@@ -118,12 +118,16 @@
 							</span>
 						</span>
 					{{end}}
-					{{template "shared/issue_dependency" (dict
-						"Dependencies" (index $.BlockedByDependenciesTemplates .ID)
-						"TitleKey" "repo.issues.dependency.blocked_by_following")}}
-					{{template "shared/issue_dependency" (dict
-						"Dependencies" (index $.BlockingDependenciesTemplates .ID)
-						"TitleKey" "repo.issues.dependency.blocks_following")}}
+					{{if $.BlockedByDependenciesTemplates}}
+						{{template "shared/issue_dependency" (dict
+							"Dependencies" (index $.BlockedByDependenciesTemplates .ID)
+							"TitleKey" "repo.issues.dependency.blocked_by_following")}}
+						{{end}}
+					{{if $.BlockingDependenciesTemplates}}
+						{{template "shared/issue_dependency" (dict
+							"Dependencies" (index $.BlockingDependenciesTemplates .ID)
+							"TitleKey" "repo.issues.dependency.blocks_following")}}
+					{{end}}
 					{{if .IsPull}}
 						{{$approveOfficial := call $approvalCounts .ID "approve"}}
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}

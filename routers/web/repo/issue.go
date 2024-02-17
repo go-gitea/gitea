@@ -344,25 +344,32 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
-	blockingDependenciesTemplates := make(map[int64]template.HTML, len(issues))
-	blockedByDependenciesTemplates := make(map[int64]template.HTML, len(issues))
+	if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		if config := unit.PullRequestsConfig(); config.ShowDependencies {
+			blockingDependenciesTemplates := make(map[int64]template.HTML, len(issues))
+			blockedByDependenciesTemplates := make(map[int64]template.HTML, len(issues))
 
-	blockingDependenciesMap, err := issues.BlockingDependenciesMap(ctx)
-	if err != nil {
-		ctx.ServerError("BlockingDependenciesMap", err)
-		return
-	}
-	for i, blockingDependencies := range blockingDependenciesMap {
-		blockingDependenciesTemplates[i] = dependenciesToHTML(ctx, blockingDependencies)
-	}
+			blockingDependenciesMap, err := issues.BlockingDependenciesMap(ctx)
+			if err != nil {
+				ctx.ServerError("BlockingDependenciesMap", err)
+				return
+			}
+			for i, blockingDependencies := range blockingDependenciesMap {
+				blockingDependenciesTemplates[i] = dependenciesToHTML(ctx, blockingDependencies)
+			}
 
-	blockedByDependenciesMap, err := issues.BlockedByDependenciesMap(ctx)
-	if err != nil {
-		ctx.ServerError("BlockedByDependenciesMap", err)
-		return
-	}
-	for i, blockedByDependencies := range blockedByDependenciesMap {
-		blockedByDependenciesTemplates[i] = dependenciesToHTML(ctx, blockedByDependencies)
+			blockedByDependenciesMap, err := issues.BlockedByDependenciesMap(ctx)
+			if err != nil {
+				ctx.ServerError("BlockedByDependenciesMap", err)
+				return
+			}
+			for i, blockedByDependencies := range blockedByDependenciesMap {
+				blockedByDependenciesTemplates[i] = dependenciesToHTML(ctx, blockedByDependencies)
+			}
+
+			ctx.Data["BlockingDependenciesTemplates"] = blockingDependenciesTemplates
+			ctx.Data["BlockedByDependenciesTemplates"] = blockedByDependenciesTemplates
+		}
 	}
 
 	// Get posters.
@@ -375,8 +382,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			return
 		}
 	}
-	ctx.Data["BlockingDependenciesTemplates"] = blockingDependenciesTemplates
-	ctx.Data["BlockedByDependenciesTemplates"] = blockedByDependenciesTemplates
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
