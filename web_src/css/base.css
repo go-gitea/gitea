@@ -413,6 +413,13 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
+/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
+.ui.dropdown > .text > .img {
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
+}
+
 .ui.dropdown > .text > .description,
 .ui.dropdown .menu > .item > .description {
   color: var(--color-text-light-2);
