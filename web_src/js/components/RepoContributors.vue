@@ -21,8 +21,8 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
-import { chartJsColors } from '../utils/color.js'
-import { sleep } from '../utils.js'
+import {chartJsColors} from '../utils/color.js';
+import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
 

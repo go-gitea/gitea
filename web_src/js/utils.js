@@ -140,4 +140,4 @@ export function serializeXml(node) {
   return xmlSerializer.serializeToString(node);
 }
 
-export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
