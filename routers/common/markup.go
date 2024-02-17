@@ -77,7 +77,8 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	if err := markup.Render(&markup.RenderContext{
-		Ctx: ctx,
+		Ctx:  ctx,
+		Repo: repo.Repository,
 		Links: markup.Links{
 			Base: urlPrefix,
 		},

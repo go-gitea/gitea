@@ -141,6 +141,7 @@ func Releases(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, r.Note)
 		if err != nil {
@@ -294,6 +295,7 @@ func SingleRelease(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, release.Note)
 	if err != nil {

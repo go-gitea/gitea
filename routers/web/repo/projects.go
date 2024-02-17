@@ -95,6 +95,7 @@ func Projects(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, projects[i].Description)
 		if err != nil {
@@ -364,6 +365,7 @@ func ViewProject(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, project.Description)
 	if err != nil {

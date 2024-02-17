@@ -1458,6 +1458,7 @@ func ViewIssue(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
@@ -1623,6 +1624,7 @@ func ViewIssue(ctx *context.Context) {
 				},
 				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 				GitRepo: ctx.Repo.GitRepo,
+				Repo:    ctx.Repo.Repository,
 				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
@@ -1702,6 +1704,7 @@ func ViewIssue(ctx *context.Context) {
 				},
 				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 				GitRepo: ctx.Repo.GitRepo,
+				Repo:    ctx.Repo.Repository,
 				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
@@ -2262,6 +2265,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
@@ -3173,6 +3177,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, comment.Content)
 	if err != nil {

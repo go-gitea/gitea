@@ -292,7 +292,8 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
 		content, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: ctx,
+			Ctx:  ctx,
+			Repo: rel.Repo,
 			Links: markup.Links{
 				Base: rel.Repo.Link(),
 			},
