@@ -205,7 +205,6 @@ func GetAllCommits(ctx *context.APIContext) {
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
 		})
-
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return
@@ -245,7 +244,6 @@ func GetAllCommits(ctx *context.APIContext) {
 				Not:      not,
 				Page:     listOptions.Page,
 			})
-
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 			return

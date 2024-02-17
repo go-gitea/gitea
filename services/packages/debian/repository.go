@@ -342,7 +342,7 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 	fmt.Fprintf(w, "Components: %s\n", strings.Join(components, " "))
 	fmt.Fprintf(w, "Architectures: %s\n", strings.Join(architectures, " "))
 	fmt.Fprintf(w, "Date: %s\n", time.Now().UTC().Format(time.RFC1123))
-	fmt.Fprint(w, "Acquire-By-Hash: yes")
+	fmt.Fprint(w, "Acquire-By-Hash: yes\n")
 
 	pfds, err := packages_model.GetPackageFileDescriptors(ctx, pfs)
 	if err != nil {

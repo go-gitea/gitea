@@ -6,6 +6,7 @@ package context
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -286,11 +287,11 @@ func (b *Base) cleanUp() {
 	}
 }
 
-func (b *Base) Tr(msg string, args ...any) string {
+func (b *Base) Tr(msg string, args ...any) template.HTML {
 	return b.Locale.Tr(msg, args...)
 }
 
-func (b *Base) TrN(cnt any, key1, keyN string, args ...any) string {
+func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 

@@ -13,12 +13,14 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/org"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
@@ -337,28 +339,30 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Organization"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	form := web.GetForm(ctx).(*api.EditOrgOption)
-	org := ctx.Org.Organization
-	org.FullName = form.FullName
-	org.Email = form.Email
-	org.Description = form.Description
-	org.Website = form.Website
-	org.Location = form.Location
-	if form.Visibility != "" {
-		org.Visibility = api.VisibilityModes[form.Visibility]
+
+	if form.Email != "" {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ReplacePrimaryEmailAddress", err)
+			return
+		}
 	}
-	if form.RepoAdminChangeTeamAccess != nil {
-		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
+
+	opts := &user_service.UpdateOptions{
+		FullName:                  optional.Some(form.FullName),
+		Description:               optional.Some(form.Description),
+		Website:                   optional.Some(form.Website),
+		Location:                  optional.Some(form.Location),
+		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
-	if err := user_model.UpdateUserCols(ctx, org.AsUser(),
-		"full_name", "description", "website", "location",
-		"visibility", "repo_admin_change_team_access",
-	); err != nil {
-		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
+	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 
 // Delete an organization

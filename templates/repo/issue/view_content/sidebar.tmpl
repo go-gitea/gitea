@@ -2,7 +2,7 @@
 	{{template "repo/issue/branch_selector_field" .}}
 	{{if .Issue.IsPull}}
 		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+		<div class="ui {{if or (and (not .Reviewers) (not .TeamReviewers)) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong>
 				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
@@ -29,7 +29,9 @@
 					{{end}}
 				{{end}}
 				{{if .TeamReviewers}}
-					<div class="divider"></div>
+					{{if .Reviewers}}
+						<div class="divider"></div>
+					{{end}}
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>

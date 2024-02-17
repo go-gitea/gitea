@@ -270,3 +270,34 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Content:  content,
 	}, nil
 }
+
+// TryGetContentLanguage tries to get the (linguist) language of the file content
+func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
+	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return "", err
+	}
+
+	defer deleteTemporaryFile()
+
+	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		CachedOnly: true,
+		Attributes: []string{"linguist-language", "gitlab-language"},
+		Filenames:  []string{treePath},
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	language := filename2attribute2info[treePath]["linguist-language"]
+	if language == "" || language == "unspecified" {
+		language = filename2attribute2info[treePath]["gitlab-language"]
+	}
+	if language == "unspecified" {
+		language = ""
+	}
+
+	return language, nil
+}

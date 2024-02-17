@@ -2289,10 +2289,6 @@
   padding: 1em;
 }
 
-.comment-body .markup {
-  border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
-}
-
 .edit-label.modal .form .column,
 .new-label.modal .form .column {
   padding-right: 0;

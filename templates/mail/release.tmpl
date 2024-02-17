@@ -15,7 +15,7 @@
 {{$repo_url := printf "<a href='%s'>%s</a>" (.Release.Repo.HTMLURL | Escape) (.Release.Repo.FullName | Escape)}}
 <body>
 	<p>
-		{{.locale.Tr "mail.release.new.text" .Release.Publisher.Name $release_url $repo_url | Str2html}}
+		{{.locale.Tr "mail.release.new.text" .Release.Publisher.Name ($release_url|Safe) ($repo_url|Safe)}}
 	</p>
 	<h4>{{.locale.Tr "mail.release.title" .Release.Title}}</h4>
 	<p>

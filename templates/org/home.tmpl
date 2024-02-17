@@ -25,13 +25,15 @@
 				{{svg "octicon-rss" 24}}
 			</a>
 			{{end}}
-			<button class="link-action ui basic button gt-mr-0" data-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
-				{{if $.IsFollowing}}
-					{{ctx.Locale.Tr "user.unfollow"}}
-				{{else}}
-					{{ctx.Locale.Tr "user.follow"}}
-				{{end}}
-			</button>
+			{{if .IsSigned}}
+				<button class="ui basic button gt-mr-0" hx-post="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
+					{{if $.IsFollowing}}
+						{{ctx.Locale.Tr "user.unfollow"}}
+					{{else}}
+						{{ctx.Locale.Tr "user.follow"}}
+					{{end}}
+				</button>
+			{{end}}
 		</div>
 	</div>
 
