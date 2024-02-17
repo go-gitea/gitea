@@ -19834,11 +19834,6 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
-        "show_dependencies": {
-          "description": "either `true` to show `depends on` and `blocks` in Pull Request list, or `false` to not show them.",
-          "type": "boolean",
-          "x-go-name": "ShowDependencies"
-        },
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
@@ -19862,6 +19857,11 @@
           "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "show_dependencies": {
+          "description": "either `true` to show `depends on` and `blocks` in Pull Request list, or `false` to not show them.",
+          "type": "boolean",
+          "x-go-name": "ShowDependencies"
         },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
@@ -22712,10 +22712,6 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
-        "show_dependencies": {
-          "type": "boolean",
-          "x-go-name": "ShowDependencies"
-        },
         "internal": {
           "type": "boolean",
           "x-go-name": "Internal"
@@ -22799,6 +22795,10 @@
         },
         "repo_transfer": {
           "$ref": "#/definitions/RepoTransfer"
+        },
+        "show_dependencies": {
+          "type": "boolean",
+          "x-go-name": "ShowDependencies"
         },
         "size": {
           "type": "integer",
