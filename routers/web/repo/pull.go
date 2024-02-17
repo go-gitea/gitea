@@ -656,8 +656,9 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		var missingRequiredChecks []string
 		for _, requiredContext := range pb.StatusCheckContexts {
 			contextFound := false
+			matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 			for _, presentStatus := range commitStatuses {
-				if presentStatus.Context == requiredContext {
+				if matchesRequiredContext(presentStatus.Context) {
 					contextFound = true
 					break
 				}
@@ -736,6 +737,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	ctx.Data["NumCommits"] = len(compareInfo.Commits)
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
 	return compareInfo
+}
+
+func createRequiredContextMatcher(requiredContext string) func(string) bool {
+	if gp, err := glob.Compile(requiredContext); err == nil {
+		return func(contextToCheck string) bool {
+			return gp.Match(contextToCheck)
+		}
+	}
+
+	return func(contextToCheck string) bool {
+		return requiredContext == contextToCheck
+	}
 }
 
 type pullCommitList struct {
