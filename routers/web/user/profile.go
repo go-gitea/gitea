@@ -29,7 +29,7 @@ import (
 
 const (
 	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
-	tplFollowUnfollow   base.TplName = "shared/user/follow_unfollow"
+	tplFollowUnfollow   base.TplName = "org/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
