@@ -167,7 +167,9 @@ func GetGeneralTokenSigningSecret() []byte {
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			log.Warn("OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
+			return jwtSecret
 		}
+		return *generalSigningSecret.Load()
 	}
-	return *generalSigningSecret.Load()
+	return *old
 }
