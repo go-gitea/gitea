@@ -40,7 +40,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusCreated)
 
 	// Test what happens if you don't have a valid Base64 string
 	opts = api.UpdateRepoAvatarOption{
