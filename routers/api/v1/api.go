@@ -1499,6 +1499,12 @@ func Routes() *web.Route {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Group("/admin", func() {
+			m.Group("/auths", func() {
+				m.Combo("").Get(admin.ListAuthSources).
+					Post(bind(api.CreateAuthSource{}), admin.CreateAuthSource)
+				m.Combo("/{id}").Get(admin.GetAuthSource).
+					Delete(admin.DeleteAuthSource)
+			})
 			m.Group("/cron", func() {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
