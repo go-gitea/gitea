@@ -58,7 +58,6 @@ export function initRepoMigrationStatusChecker() {
 }
 
 async function doMigrationRetry(e) {
-  const retryUrl = e.target.getAttribute('data-migrating-task-retry-url');
-  await POST(retryUrl);
+  await POST(e.target.getAttribute('data-migrating-task-retry-url'));
   window.location.reload();
 }
