@@ -3,10 +3,7 @@ import {SvgIcon} from '../svg.js';
 import {
   Chart,
   Title,
-  Tooltip,
-  Legend,
   BarElement,
-  CategoryScale,
   LinearScale,
   TimeScale,
   PointElement,
@@ -45,12 +42,9 @@ Chart.defaults.borderColor = chartJsColors.border;
 
 Chart.register(
   TimeScale,
-  CategoryScale,
   LinearScale,
   BarElement,
   Title,
-  Tooltip,
-  Legend,
   PointElement,
   LineElement,
   Filler,
@@ -246,9 +240,6 @@ export default {
           customEventListener: {
             chartType: type,
             instance: this,
-          },
-          legend: {
-            display: false,
           },
           zoom: {
             pan: {
