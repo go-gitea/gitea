@@ -222,7 +222,7 @@ Please check [Gitea's logs](administration/logging-config.md) for error messages
         <a href="{{.Link}}">{{.Repo}}#{{.Issue.Index}}</a>.
         </p>
         {{if not (eq .Body "")}}
-            <h3>Message content:</h3>
+            <h3>Message content</h3>
             <hr>
             {{.Body | Str2html}}
         {{end}}
@@ -245,7 +245,7 @@ This template produces something along these lines:
 
 > [@rhonda](#) (Rhonda Myers) updated [mike/stuff#38](#).
 >
-> #### Message content:
+> #### Message content
 >
 > \_********************************\_********************************
 >
