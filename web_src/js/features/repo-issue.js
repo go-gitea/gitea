@@ -5,6 +5,7 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
+import {initDropzone} from './common-global.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -380,6 +381,7 @@ export async function handleReply($el) {
   form.removeClass('gt-hidden');
 
   const $textarea = form.find('textarea');
+  initDropzone(form.find('.dropzone')[0]);
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
     editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
@@ -511,6 +513,7 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
 
+      initDropzone(td.find('.dropzone')[0]);
       const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
       editor.focus();
     }
