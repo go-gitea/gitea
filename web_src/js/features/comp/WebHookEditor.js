@@ -9,7 +9,7 @@ export function initCompWebHookEditor() {
   for (const input of document.querySelectorAll('.events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
-        showElem(document.querySelector('.events.fields'));
+        showElem('.events.fields');
       }
     });
   }
@@ -17,7 +17,7 @@ export function initCompWebHookEditor() {
   for (const input of document.querySelectorAll('.non-events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
-        hideElem(document.querySelector('.events.fields'));
+        hideElem('.events.fields');
       }
     });
   }
