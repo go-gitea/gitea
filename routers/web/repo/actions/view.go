@@ -564,6 +564,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
+	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
+	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
 	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
 		art := artifacts[0]
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
@@ -575,6 +577,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
+	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
+	// Those need to be zipped for download
 	writer := zip.NewWriter(ctx.Resp)
 	defer writer.Close()
 	for _, art := range artifacts {
