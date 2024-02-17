@@ -68,9 +68,9 @@ func TestRenderConversation(t *testing.T) {
 		renderConversation(ctx, preparedComment, "timeline")
 		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
 	})
-	run("timeline without outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+	run("timeline is not affected by ShowOutdatedComments=false", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		ctx.Data["ShowOutdatedComments"] = false
 		renderConversation(ctx, preparedComment, "timeline")
-		assert.Contains(t, resp.Body.String(), `conversation-not-existing`)
+		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
 	})
 }
