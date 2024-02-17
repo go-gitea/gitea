@@ -4,13 +4,11 @@
 package setting
 
 import (
-	"encoding/base64"
 	"math"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
@@ -137,13 +135,12 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	}
 
 	if InstallLock {
-		if _, err := util.Base64FixedDecode(base64.RawURLEncoding, []byte(OAuth2.JWTSecretBase64), 32); err != nil {
-			key, err := generate.NewJwtSecret()
+		if _, err := generate.DecodeJwtSecretBase64(OAuth2.JWTSecretBase64); err != nil {
+			_, OAuth2.JWTSecretBase64, err = generate.NewJwtSecretWithBase64()
 			if err != nil {
 				log.Fatal("error generating JWT secret: %v", err)
 			}
 
-			OAuth2.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(key)
 			saveCfg, err := rootCfg.PrepareSaving()
 			if err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
