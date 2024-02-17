@@ -52,7 +52,6 @@ function checkItems(tokenAuth) {
     if (mirror?.checked) {
       for (const item of items) {
         item.disabled = item.name !== 'wiki';
-        }
       }
       return;
     }
