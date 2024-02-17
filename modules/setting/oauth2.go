@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"fmt"
 	"math"
 	"path/filepath"
 	"sync/atomic"
@@ -163,7 +162,7 @@ func GetGeneralTokenSigningSecret() []byte {
 	if old == nil || len(*old) == 0 {
 		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
 		if err != nil {
-			panic(fmt.Errorf("unable to generate general JWT secret: %w", err))
+			log.Fatal("Unable to generate general JWT secret: %s", err.Error())
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			log.Warn("OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
