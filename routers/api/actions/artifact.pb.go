@@ -883,6 +883,7 @@ var (
 		(*wrapperspb.Int64Value)(nil),                  // 13: google.protobuf.Int64Value
 	}
 )
+
 var file_artifact_proto_depIdxs = []int32{
 	11, // 0: github.actions.results.api.v1.CreateArtifactRequest.expires_at:type_name -> google.protobuf.Timestamp
 	12, // 1: github.actions.results.api.v1.FinalizeArtifactRequest.hash:type_name -> google.protobuf.StringValue
