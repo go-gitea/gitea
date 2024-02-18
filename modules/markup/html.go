@@ -1148,7 +1148,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 				var err error
 				ctx.GitRepo, _, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
 				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					log.Error("unable to open repository: %s/%s Error: %v", ctx.Repo.GetOwnerName(), ctx.Repo.GetName(), err)
 					return
 				}
 				ctx.AddCancel(func() {

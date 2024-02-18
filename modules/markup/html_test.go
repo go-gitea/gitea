@@ -23,9 +23,9 @@ import (
 )
 
 var localMetas = map[string]string{
-	"user":     "gogits",
-	"repo":     "gogs",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"user": "gogits",
+	"repo": "gogs",
+	//"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestMain(m *testing.M) {
@@ -44,6 +44,9 @@ func TestRender_Commits(t *testing.T) {
 			RelativePath: ".md",
 			Links: markup.Links{
 				Base: markup.TestRepoURL,
+			},
+			ShaExistCache: map[string]bool{
+				input: true,
 			},
 			Metas: localMetas,
 		}, input)
