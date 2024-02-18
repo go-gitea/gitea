@@ -3,8 +3,8 @@ export function initRepositorySearch() {
   if (!repositorySearchForm) return;
 
   for (const radio of repositorySearchForm.querySelectorAll('input[type=radio]')) {
-    radio.addEventListener('click', (ev) => {
-      ev.preventDefault();
+    radio.addEventListener('click', (e) => {
+      e.preventDefault();
 
       const formData = new FormData(repositorySearchForm);
       const params = new URLSearchParams(formData);
