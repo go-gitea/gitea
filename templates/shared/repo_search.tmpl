@@ -22,23 +22,23 @@
 	<form class="ui form ignore-dirty" id="repo-search-form" data-query-params="{{$queryParamsWithSort}}">
 		<div class="ui dropdown type jump item gt-mr-0">
 			<span class="text">
-				{{ctx.Locale.Tr "repo.issues.filter"}}
+				{{ctx.Locale.Tr "filter"}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
-				<a class="item" href="{{printf "%s?%s" .Link $queryParamsWithSort}}">{{ctx.Locale.Tr "repo.issues.filter.reset"}}</a>
+				<a class="item" href="{{printf "%s?%s" .Link $queryParamsWithSort}}">{{ctx.Locale.Tr "filter.reset"}}</a>
 				<div class="divider"></div>
-				<label class="item no-blur"><input type="radio" name="archived" {{if .IsArchived.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "repo.issues.filter.is_archived"}}</label>
-				<label class="item no-blur"><input type="radio" name="archived" {{if .IsArchived.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "repo.issues.filter.not_archived"}}</label>
+				<label class="item no-blur"><input type="radio" name="archived" {{if .IsArchived.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
+				<label class="item no-blur"><input type="radio" name="archived" {{if .IsArchived.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
 				<div class="divider"></div>
-				<label class="item no-blur"><input type="radio" name="fork" {{if .IsFork.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "repo.issues.filter.is_fork"}}</label>
-				<label class="item no-blur"><input type="radio" name="fork" {{if .IsFork.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "repo.issues.filter.not_fork"}}</label>
+				<label class="item no-blur"><input type="radio" name="fork" {{if .IsFork.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_fork"}}</label>
+				<label class="item no-blur"><input type="radio" name="fork" {{if .IsFork.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_fork"}}</label>
 				<div class="divider"></div>
-				<label class="item no-blur"><input type="radio" name="mirror" {{if .IsMirror.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "repo.issues.filter.is_mirror"}}</label>
-				<label class="item no-blur"><input type="radio" name="mirror" {{if .IsMirror.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "repo.issues.filter.not_mirror"}}</label>
+				<label class="item no-blur"><input type="radio" name="mirror" {{if .IsMirror.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_mirror"}}</label>
+				<label class="item no-blur"><input type="radio" name="mirror" {{if .IsMirror.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_mirror"}}</label>
 				<div class="divider"></div>
-				<label class="item no-blur"><input type="radio" name="private" {{if .IsPrivate.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "repo.issues.filter.public"}}</label>
-				<label class="item no-blur"><input type="radio" name="private" {{if .IsPrivate.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "repo.issues.filter.private"}}</label>
+				<label class="item no-blur"><input type="radio" name="private" {{if .IsPrivate.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.public"}}</label>
+				<label class="item no-blur"><input type="radio" name="private" {{if .IsPrivate.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.private"}}</label>
 			</div>
 		</div>
 	</form>
