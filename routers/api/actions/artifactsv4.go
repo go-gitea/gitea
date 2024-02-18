@@ -82,7 +82,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -498,8 +497,7 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	_, err = db.DeleteByID[actions.ActionArtifact](ctx, artifact.ID)
-	err = errors.Join(err, r.fs.Delete(artifact.StoragePath))
+	err = actions.SetArtifactNeedDelete(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error deleting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
