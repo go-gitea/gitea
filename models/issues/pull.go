@@ -1093,3 +1093,27 @@ func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 	}
 	return committer.Commit()
 }
+
+// GetPullRequestByMergedCommit returns a merged pull request by the given commit
+func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
+	pr := &PullRequest{
+		BaseRepoID: repoID,
+		MergedCommitID: sha,
+	}
+
+	has, err := db.GetEngine(ctx).Get(pr)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
+	}
+
+	if err = pr.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
