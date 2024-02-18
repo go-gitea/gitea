@@ -32,10 +32,6 @@ textarea {
   font-family: var(--fonts-regular);
 }
 
-.ui.form textarea:not([rows]) {
-  height: 8em; /* override fomantic default 12em */
-}
-
 pre,
 code,
 kbd,
@@ -494,6 +490,10 @@ ol.ui.list li,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+.ui.form textarea:not([rows]) {
+  height: 8em; /* override fomantic default 12em */
 }
 
 /* styles from removed fomantic transition module */
