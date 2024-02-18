@@ -1,14 +1,13 @@
-import $ from 'jquery';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {toggleElem} from '../utils/dom.js';
 
 export function initCommonOrganization() {
-  if ($('.organization').length === 0) {
+  if (!document.querySelectorAll('.organization').length) {
     return;
   }
 
-  $('.organization.settings.options #org_name').on('input', function () {
-    const nameChanged = $(this).val().toLowerCase() !== $(this).attr('data-org-name').toLowerCase();
+  document.querySelector('.organization.settings.options #org_name')?.addEventListener('input', function () {
+    const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-org-name').toLowerCase();
     toggleElem('#org-name-change-prompt', nameChanged);
   });
 

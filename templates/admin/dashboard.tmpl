@@ -75,69 +75,9 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.dashboard.system_status"}}
 		</h4>
-		<div class="ui attached table segment">
-			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.dashboard.server_uptime"}}</dt>
-				<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.current_goroutine"}}</dt>
-				<dd>{{.SysStatus.NumGoroutine}}</dd>
-				<div class="divider"></div>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.current_memory_usage"}}</dt>
-				<dd>{{.SysStatus.MemAllocated}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.total_memory_allocated"}}</dt>
-				<dd>{{.SysStatus.MemTotal}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.memory_obtained"}}</dt>
-				<dd>{{.SysStatus.MemSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.pointer_lookup_times"}}</dt>
-				<dd>{{.SysStatus.Lookups}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.memory_allocate_times"}}</dt>
-				<dd>{{.SysStatus.MemMallocs}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.memory_free_times"}}</dt>
-				<dd>{{.SysStatus.MemFrees}}</dd>
-				<div class="divider"></div>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.current_heap_usage"}}</dt>
-				<dd>{{.SysStatus.HeapAlloc}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
-				<dd>{{.SysStatus.HeapSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.heap_memory_idle"}}</dt>
-				<dd>{{.SysStatus.HeapIdle}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.heap_memory_in_use"}}</dt>
-				<dd>{{.SysStatus.HeapInuse}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.heap_memory_released"}}</dt>
-				<dd>{{.SysStatus.HeapReleased}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.heap_objects"}}</dt>
-				<dd>{{.SysStatus.HeapObjects}}</dd>
-				<div class="divider"></div>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
-				<dd>{{.SysStatus.StackInuse}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
-				<dd>{{.SysStatus.StackSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
-				<dd>{{.SysStatus.MSpanInuse}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
-				<dd>{{.SysStatus.MSpanSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
-				<dd>{{.SysStatus.MCacheInuse}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>
-				<dd>{{.SysStatus.MCacheSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.profiling_bucket_hash_table_obtained"}}</dt>
-				<dd>{{.SysStatus.BuckHashSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.gc_metadata_obtained"}}</dt>
-				<dd>{{.SysStatus.GCSys}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
-				<dd>{{.SysStatus.OtherSys}}</dd>
-				<div class="divider"></div>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.next_gc_recycle"}}</dt>
-				<dd>{{.SysStatus.NextGC}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.last_gc_time"}}</dt>
-				<dd>{{.SysStatus.LastGC}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.total_gc_pause"}}</dt>
-				<dd>{{.SysStatus.PauseTotalNs}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.last_gc_pause"}}</dt>
-				<dd>{{.SysStatus.PauseNs}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.dashboard.gc_times"}}</dt>
-				<dd>{{.SysStatus.NumGC}}</dd>
-			</dl>
+		{{/* TODO: make these stats work in multi-server deployments, likely needs per-server stats in DB */}}
+		<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".divider" class="ui attached table segment">
+			{{template "admin/system_status" .}}
 		</div>
 	</div>
 {{template "admin/layout_footer" .}}

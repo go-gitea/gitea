@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -336,7 +337,7 @@ func InitSigningKey() error {
 // loadSymmetricKey checks if the configured secret is valid.
 // If it is not valid, it will return an error.
 func loadSymmetricKey() (any, error) {
-	return util.Base64FixedDecode(base64.RawURLEncoding, []byte(setting.OAuth2.JWTSecretBase64), 32)
+	return generate.DecodeJwtSecretBase64(setting.OAuth2.JWTSecretBase64)
 }
 
 // loadOrCreateAsymmetricKey checks if the configured private key exists.

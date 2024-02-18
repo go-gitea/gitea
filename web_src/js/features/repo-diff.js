@@ -58,7 +58,7 @@ function initRepoDiffConversationForm() {
       const formData = new FormData($form[0]);
 
       // if the form is submitted by a button, append the button's name and value to the form data
-      const submitter = submitEventSubmitter(e.originalEvent);
+      const submitter = submitEventSubmitter(e);
       const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
       if (isSubmittedByButton && submitter.name) {
         formData.append(submitter.name, submitter.value);
