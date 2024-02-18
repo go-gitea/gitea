@@ -1084,7 +1084,7 @@ func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				user_service.UploadAvatar(ctx, u, data)
+				_, _ = user_service.UploadAvatar(ctx, u, data)
 			}
 		}
 	}
