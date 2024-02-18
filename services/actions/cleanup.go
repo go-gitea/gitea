@@ -20,8 +20,15 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	return CleanupArtifacts(taskCtx)
 }
 
-// CleanupArtifacts removes expired artifacts and set records expired status
+// CleanupArtifacts removes expired add need-deleted artifacts and set records expired status
 func CleanupArtifacts(taskCtx context.Context) error {
+	if err := cleanExpiredArtifacts(taskCtx); err != nil {
+		return err
+	}
+	return cleanNeedDeleteArtifacts(taskCtx)
+}
+
+func cleanExpiredArtifacts(taskCtx context.Context) error {
 	artifacts, err := actions.ListNeedExpiredArtifacts(taskCtx)
 	if err != nil {
 		return err
@@ -37,6 +44,35 @@ func CleanupArtifacts(taskCtx context.Context) error {
 			continue
 		}
 		log.Info("Artifact %d set expired", artifact.ID)
+	}
+	return nil
+}
+
+// deleteArtifactBatchSize is the batch size of deleting artifacts
+const deleteArtifactBatchSize = 100
+
+func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
+	for {
+		artifacts, err := actions.ListPendingDeleteArtifacts(taskCtx, deleteArtifactBatchSize)
+		if err != nil {
+			return err
+		}
+		log.Info("Found %d artifacts pending deletion", len(artifacts))
+		for _, artifact := range artifacts {
+			if err := storage.ActionsArtifacts.Delete(artifact.StoragePath); err != nil {
+				log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
+				continue
+			}
+			if err := actions.SetArtifactDeleted(taskCtx, artifact.ID); err != nil {
+				log.Error("Cannot set artifact %d deleted: %v", artifact.ID, err)
+				continue
+			}
+			log.Info("Artifact %d set deleted", artifact.ID)
+		}
+		if len(artifacts) < deleteArtifactBatchSize {
+			log.Debug("No more artifacts pending deletion")
+			break
+		}
 	}
 	return nil
 }
