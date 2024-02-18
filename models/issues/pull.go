@@ -1097,7 +1097,7 @@ func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 // GetPullRequestByMergedCommit returns a merged pull request by the given commit
 func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
 	pr := &PullRequest{
-		BaseRepoID: repoID,
+		BaseRepoID:     repoID,
 		MergedCommitID: sha,
 	}
 
