@@ -6,7 +6,6 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -245,14 +244,4 @@ func ToFloat64(number any) (float64, error) {
 // ToPointer returns the pointer of a copy of any given value
 func ToPointer[T any](val T) *T {
 	return &val
-}
-
-func Base64FixedDecode(encoding *base64.Encoding, src []byte, length int) ([]byte, error) {
-	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
-	if n, err := encoding.Decode(decoded, src); err != nil {
-		return nil, err
-	} else if n != length {
-		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, length)
-	}
-	return decoded[:length], nil
 }

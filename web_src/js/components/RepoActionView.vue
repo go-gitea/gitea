@@ -5,7 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST} from '../modules/fetch.js';
+import {POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -200,6 +200,12 @@ const sfc = {
       return await resp.json();
     },
 
+    async deleteArtifact(name) {
+      if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
+      await DELETE(`${this.run.link}/artifacts/${name}`);
+      await this.loadJob();
+    },
+
     async fetchJob() {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
@@ -329,6 +335,8 @@ export function initRepositoryActionView() {
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      areYouSure: el.getAttribute('data-locale-are-you-sure'),
+      confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
@@ -403,6 +411,9 @@ export function initRepositoryActionView() {
             <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                 <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
+              </a>
+              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
+                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
               </a>
             </li>
           </ul>
@@ -528,6 +539,8 @@ export function initRepositoryActionView() {
 .job-artifacts-item {
   margin: 5px 0;
   padding: 6px;
+  display: flex;
+  justify-content: space-between;
 }
 
 .job-artifacts-list {
