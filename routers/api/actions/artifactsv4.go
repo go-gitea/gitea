@@ -457,11 +457,6 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
 	dsig, _ := base64.URLEncoding.DecodeString(sig)
 
-	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
-	mac.Write([]byte("DownloadArtifact"))
-	mac.Write([]byte(expires))
-	mac.Write([]byte(artifactName))
-	mac.Write([]byte(rawTaskID))
 	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 	expecedsig := r.buildSignature("DownloadArtifact", expires, artifactName, taskID)
 	if !hmac.Equal(dsig, expecedsig) {
