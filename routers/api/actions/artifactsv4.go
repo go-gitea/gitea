@@ -153,7 +153,7 @@ func ArtifactsV4Routes(prefix string) *web.Route {
 }
 
 func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, taskID int64) []byte {
-	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
+	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
 	mac.Write([]byte(endp))
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
