@@ -32,6 +32,10 @@ textarea {
   font-family: var(--fonts-regular);
 }
 
+.ui.form textarea:not([rows]) {
+  height: 8em; /* override fomantic default 12em */
+}
+
 pre,
 code,
 kbd,
