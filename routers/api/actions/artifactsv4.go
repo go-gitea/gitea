@@ -106,6 +106,7 @@ import (
 )
 
 const ArtifactV4RouteBase = "/twirp/github.actions.results.api.v1.ArtifactService"
+const ArtifactV4ContentEncoding = "application/zip"
 
 type artifactV4Routes struct {
 	prefix string
@@ -158,7 +159,8 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 	return mac.Sum(nil)
 }
 
-func (r artifactV4Routes) buildArtifactURL(endp, expires, artifactName string, taskID int64) string {
+func (r artifactV4Routes) buildArtifactURL(endp, artifactName string, taskID int64) string {
+	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(r.prefix, "/") +
 		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
 	return uploadURL
@@ -206,7 +208,7 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (ta
 
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
 	var art actions.ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ?", runID, name, name+".zip").Get(&art)
+	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ? AND content_encoding = ?", runID, name, name+".zip", ArtifactV4ContentEncoding).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -267,17 +269,16 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
-	artifact.ContentEncoding = "application/zip"
+	artifact.ContentEncoding = ArtifactV4ContentEncoding
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
 	}
 
-	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	respData := CreateArtifactResponse{
 		Ok:              true,
-		SignedUploadUrl: r.buildArtifactURL("UploadArtifact", expires, artifactName, ctx.ActionTask.ID),
+		SignedUploadUrl: r.buildArtifactURL("UploadArtifact", artifactName, ctx.ActionTask.ID),
 	}
 	r.sendProtbufBody(ctx, &respData)
 }
@@ -397,7 +398,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	table := map[string]*ListArtifactsResponse_MonolithArtifact{}
 	for _, artifact := range artifacts {
-		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value || artifact.ArtifactName+".zip" != artifact.ArtifactPath || artifact.ContentEncoding != "application/zip" {
+		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value || artifact.ArtifactName+".zip" != artifact.ArtifactPath || artifact.ContentEncoding != ArtifactV4ContentEncoding {
 			table[artifact.ArtifactName] = nil
 			continue
 		}
@@ -453,8 +454,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		}
 	}
 	if respData.SignedUrl == "" {
-		expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-		respData.SignedUrl = r.buildArtifactURL("DownloadArtifact", expires, artifactName, ctx.ActionTask.ID)
+		respData.SignedUrl = r.buildArtifactURL("DownloadArtifact", artifactName, ctx.ActionTask.ID)
 	}
 	r.sendProtbufBody(ctx, &respData)
 }
