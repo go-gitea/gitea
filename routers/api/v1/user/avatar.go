@@ -24,7 +24,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UserAvatarOption"
+	//     "$ref": "#/definitions/UpdateUserAvatarOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ByteSlice"
@@ -32,7 +32,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ByteSlice"
 	//   "400":
 	//     "$ref": "#/responses/error"
-	form := web.GetForm(ctx).(*api.UserAvatarOption)
+	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {

@@ -39,7 +39,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.UserAvatarOption)
+	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {

@@ -8,8 +8,8 @@
     "text/html"
   ],
   "schemes": [
-    "http",
-    "https"
+    "https",
+    "http"
   ],
   "swagger": "2.0",
   "info": {
@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer | JSEscape | Safe}}"
+    "version": "{{AppVer | JSEscape}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -1816,8 +1816,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/ByteSlice"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -3646,8 +3649,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/ByteSlice"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -14870,8 +14876,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/ByteSlice"
           },
           "400": {
             "$ref": "#/responses/error"

@@ -104,7 +104,7 @@ type RenameUserOption struct {
 }
 
 // UpdateUserAvatarUserOption options when updating the user avatar
-type UserAvatarOption struct {
+type UpdateUserAvatarOption struct {
 	// image must be base64 encoded
 	Image string `json:"image" binding:"Required"`
 }

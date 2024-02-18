@@ -30,7 +30,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open avatar.png")
 	}
 
-	opts := api.UserAvatarOption{
+	opts := api.UpdateUserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
@@ -39,7 +39,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusCreated)
 
 	// Test what happens if you don't have a valid Base64 string
-	opts = api.UserAvatarOption{
+	opts = api.UpdateUserAvatarOption{
 		Image: "Invalid",
 	}
 
@@ -54,7 +54,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open README.md")
 	}
 
-	opts = api.UserAvatarOption{
+	opts = api.UpdateUserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
