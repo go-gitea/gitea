@@ -82,6 +82,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,9 +97,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -146,25 +149,64 @@ func ArtifactsV4Routes(prefix string) *web.Route {
 	return m
 }
 
-func (r artifactV4Routes) buildArtifactURL(endp, sig, expires, artifactName string, taskID int64) string {
+func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, taskID int64) []byte {
+	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
+	mac.Write([]byte(endp))
+	mac.Write([]byte(expires))
+	mac.Write([]byte(artifactName))
+	mac.Write([]byte(fmt.Sprint(taskID)))
+	return mac.Sum(nil)
+}
+
+func (r artifactV4Routes) buildArtifactURL(endp, expires, artifactName string, taskID int64) string {
 	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(r.prefix, "/") +
-		"/" + endp + "?sig=" + sig + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
+		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
 	return uploadURL
+}
+
+func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
+	var art actions.ActionArtifact
+	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ?", runID, name, name+".zip").Get(&art)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.ErrNotExist
+	}
+	return &art, nil
+}
+
+func (r *artifactV4Routes) parseProtbufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) bool {
+	body, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		log.Error("Error decode request body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		return false
+	}
+	err = protojson.Unmarshal(body, req)
+	if err != nil {
+		log.Error("Error decode request body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		return false
+	}
+	return true
+}
+
+func (r *artifactV4Routes) sendProtbufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) {
+	resp, err := protojson.Marshal(req)
+	if err != nil {
+		log.Error("Error encode response body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error encode response body")
+		return
+	}
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
+	ctx.Resp.WriteHeader(http.StatusOK)
+	_, _ = ctx.Resp.Write(resp)
 }
 
 func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	var req CreateArtifactRequest
 
-	body, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
-		return
-	}
-	err = protojson.Unmarshal(body, &req)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+	if ok := r.parseProtbufBody(ctx, &req); !ok {
 		return
 	}
 	_, _, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -193,26 +235,11 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	}
 
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
-	mac.Write([]byte("UploadArtifact"))
-	mac.Write([]byte(expires))
-	mac.Write([]byte(artifactName))
-	mac.Write([]byte(fmt.Sprint(ctx.ActionTask.ID)))
-	expecedsig := mac.Sum(nil)
-	sig := base64.URLEncoding.EncodeToString(expecedsig)
 	respData := CreateArtifactResponse{
 		Ok:              true,
-		SignedUploadUrl: r.buildArtifactURL("UploadArtifact", sig, expires, artifactName, ctx.ActionTask.ID),
+		SignedUploadUrl: r.buildArtifactURL("UploadArtifact", expires, artifactName, ctx.ActionTask.ID),
 	}
-	resp, err := protojson.Marshal(&respData)
-	if err != nil {
-		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(resp)
+	r.sendProtbufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
@@ -221,13 +248,9 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	expires := ctx.Req.URL.Query().Get("expires")
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
 	dsig, _ := base64.URLEncoding.DecodeString(sig)
+	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 
-	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
-	mac.Write([]byte("UploadArtifact"))
-	mac.Write([]byte(expires))
-	mac.Write([]byte(artifactName))
-	mac.Write([]byte(rawTaskID))
-	expecedsig := mac.Sum(nil)
+	expecedsig := r.buildSignature("UploadArtifact", expires, artifactName, taskID)
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
 		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
@@ -239,7 +262,6 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		ctx.Error(http.StatusUnauthorized, "Error link expired")
 		return
 	}
-	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 	task, err := actions.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
@@ -260,11 +282,11 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	comp := ctx.Req.URL.Query().Get("comp")
 	switch comp {
 	case "block", "appendBlock":
-		// create or get artifact with name and path
-		artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactName+".zip", 90)
+		// get artifact by name
+		artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
 		if err != nil {
-			log.Error("Error create or get artifact: %v", err)
-			ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
+			log.Error("Error artifact not found: %v", err)
+			ctx.Error(http.StatusNotFound, "Error artifact not found")
 			return
 		}
 
@@ -295,16 +317,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	var req FinalizeArtifactRequest
 
-	body, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
-		return
-	}
-	err = protojson.Unmarshal(body, &req)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+	if ok := r.parseProtbufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -312,11 +325,11 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, req.Name, req.Name+".zip", 90)
+	// get artifact by name
+	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
 	if err != nil {
-		log.Error("Error create or get artifact: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
+		log.Error("Error artifact not found: %v", err)
+		ctx.Error(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 	chunkMap, err := listChunksByRunID(r.fs, runID)
@@ -345,30 +358,13 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		Ok:         true,
 		ArtifactId: artifact.ID,
 	}
-	resp, err := protojson.Marshal(&respData)
-	if err != nil {
-		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(resp)
+	r.sendProtbufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	var req ListArtifactsRequest
 
-	body, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
-		return
-	}
-	err = protojson.Unmarshal(body, &req)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+	if ok := r.parseProtbufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -415,60 +411,43 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	respData := ListArtifactsResponse{
 		Artifacts: list,
 	}
-	resp, err := protojson.Marshal(&respData)
-	if err != nil {
-		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(resp)
+	r.sendProtbufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	var req GetSignedArtifactURLRequest
 
-	body, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+	if ok := r.parseProtbufBody(ctx, &req); !ok {
 		return
 	}
-	err = protojson.Unmarshal(body, &req)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
-		return
-	}
-	_, _, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
+	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
 	if !ok {
 		return
 	}
 
 	artifactName := req.Name
 
-	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	mac := hmac.New(sha256.New, []byte(setting.SecretKey))
-	mac.Write([]byte("DownloadArtifact"))
-	mac.Write([]byte(expires))
-	mac.Write([]byte(artifactName))
-	mac.Write([]byte(fmt.Sprint(ctx.ActionTask.ID)))
-	expecedsig := mac.Sum(nil)
-	sig := base64.URLEncoding.EncodeToString(expecedsig)
-
-	respData := GetSignedArtifactURLResponse{
-		SignedUrl: r.buildArtifactURL("DownloadArtifact", sig, expires, artifactName, ctx.ActionTask.ID),
-	}
-	resp, err := protojson.Marshal(&respData)
+	// get artifact by name
+	artifact, err := r.getArtifactByName(ctx, runID, artifactName)
 	if err != nil {
-		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
+		log.Error("Error artifact not found: %v", err)
+		ctx.Error(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(resp)
+
+	respData := GetSignedArtifactURLResponse{}
+
+	if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath)
+		if u != nil && err == nil {
+			respData.SignedUrl = u.String()
+		}
+	}
+	if respData.SignedUrl == "" {
+		expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
+		respData.SignedUrl = r.buildArtifactURL("DownloadArtifact", expires, artifactName, ctx.ActionTask.ID)
+	}
+	r.sendProtbufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
@@ -483,7 +462,8 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
 	mac.Write([]byte(rawTaskID))
-	expecedsig := mac.Sum(nil)
+	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
+	expecedsig := r.buildSignature("DownloadArtifact", expires, artifactName, taskID)
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
 		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
@@ -495,7 +475,6 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		ctx.Error(http.StatusUnauthorized, "Error link expired")
 		return
 	}
-	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 	task, err := actions.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
@@ -513,11 +492,11 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactName+".zip", 90)
+	// get artifact by name
+	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
 	if err != nil {
-		log.Error("Error create or get artifact: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
+		log.Error("Error artifact not found: %v", err)
+		ctx.Error(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
@@ -529,16 +508,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 	var req DeleteArtifactRequest
 
-	body, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
-		return
-	}
-	err = protojson.Unmarshal(body, &req)
-	if err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+	if ok := r.parseProtbufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -546,36 +516,25 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID, ArtifactName: req.Name, ListOptions: db.ListOptions{PageSize: 1}})
+	// get artifact by name
+	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
 	if err != nil {
-		log.Error("Error getting artifacts: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	if len(artifacts) != 1 {
-		log.Debug("[artifact] handleListArtifacts, no artifacts")
-		ctx.Error(http.StatusNotFound)
+		log.Error("Error artifact not found: %v", err)
+		ctx.Error(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
-	_, err = db.DeleteByID[actions.ActionArtifact](ctx, artifacts[0].ID)
+	_, err = db.DeleteByID[actions.ActionArtifact](ctx, artifact.ID)
+	err = errors.Join(err, r.fs.Delete(artifact.StoragePath))
 	if err != nil {
-		log.Error("Error getting artifacts: %v", err)
+		log.Error("Error deleting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	respData := DeleteArtifactResponse{
 		Ok:         true,
-		ArtifactId: artifacts[0].ID,
+		ArtifactId: artifact.ID,
 	}
-	resp, err := protojson.Marshal(&respData)
-	if err != nil {
-		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(resp)
+	r.sendProtbufBody(ctx, &respData)
 }
