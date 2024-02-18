@@ -23,12 +23,12 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.21.x
+XGO_VERSION := go-1.22.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.49.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
@@ -988,3 +988,8 @@ docker:
 
 # This endif closes the if at the top of the file
 endif
+
+# Disable parallel execution because it would break some targets that don't
+# specify exact dependencies like 'backend' which does currently not depend
+# on 'frontend' to enable Node.js-less builds from source tarballs.
+.NOTPARALLEL:

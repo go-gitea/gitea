@@ -156,7 +156,8 @@ func UpdateResolveConversation(ctx *context.Context) {
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
+	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -219,9 +220,9 @@ func SubmitReview(ctx *context.Context) {
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
-				translated = ctx.Tr("repo.issues.review.self.approval")
+				translated = ctx.Locale.TrString("repo.issues.review.self.approval")
 			} else {
-				translated = ctx.Tr("repo.issues.review.self.rejection")
+				translated = ctx.Locale.TrString("repo.issues.review.self.rejection")
 			}
 
 			ctx.Flash.Error(translated)
