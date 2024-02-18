@@ -45,7 +45,7 @@ export async function initRepoCommitLastCommitLoader() {
   }
 
   // For fewer entries, update individual rows
-  const response = POST(lastCommitLoaderURL, {data: {'f': entries}});
+  const response = await POST(lastCommitLoaderURL, {data: {'f': entries}});
   const data = await response.text();
   const doc = parser.parseFromString(data, 'text/html');
   for (const row of doc.querySelectorAll('tr')) {
