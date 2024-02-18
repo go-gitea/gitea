@@ -168,11 +168,11 @@ func (r artifactV4Routes) buildArtifactURL(endp, artifactName string, taskID int
 	return uploadURL
 }
 
-func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (task *actions.ActionTask, artifactName string, ok bool) {
+func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
 	rawTaskID := ctx.Req.URL.Query().Get("taskID")
 	sig := ctx.Req.URL.Query().Get("sig")
 	expires := ctx.Req.URL.Query().Get("expires")
-	artifactName = ctx.Req.URL.Query().Get("artifactName")
+	artifactName := ctx.Req.URL.Query().Get("artifactName")
 	dsig, _ := base64.URLEncoding.DecodeString(sig)
 	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 
@@ -180,32 +180,31 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (ta
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
 		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
-		return
+		return nil, "", false
 	}
 	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
 	if err != nil || t.Before(time.Now()) {
 		log.Error("Error link expired")
 		ctx.Error(http.StatusUnauthorized, "Error link expired")
-		return
+		return nil, "", false
 	}
-	task, err = actions.GetTaskByID(ctx, taskID)
+	task, err := actions.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
-		return
+		return nil, "", false
 	}
 	if task.Status != actions.StatusRunning {
 		log.Error("Error runner api getting task: task is not running")
 		ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
-		return
+		return nil, "", false
 	}
 	if err := task.LoadJob(ctx); err != nil {
 		log.Error("Error runner api getting job: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
-		return
+		return nil, "", false
 	}
-	ok = true
-	return
+	return task, artifactName, true
 }
 
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
