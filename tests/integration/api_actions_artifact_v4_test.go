@@ -78,6 +78,50 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 	assert.True(t, finalizeResp.Ok)
 }
 
+func TestActionsArtifactV4UploadSingleFileWrongChecksum(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
+	assert.NoError(t, err)
+
+	// acquire artifact upload url
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
+		Version:                 4,
+		Name:                    "artifact-invalid-checksum",
+		WorkflowRunBackendId:    "792",
+		WorkflowJobRunBackendId: "193",
+	})).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var uploadResp actions.CreateArtifactResponse
+	protojson.Unmarshal(resp.Body.Bytes(), &uploadResp)
+	assert.True(t, uploadResp.Ok)
+	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
+
+	// get upload url
+	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
+	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
+
+	// upload artifact chunk
+	body := strings.Repeat("B", 1024)
+	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body))
+	MakeRequest(t, req, http.StatusCreated)
+
+	t.Logf("Create artifact confirm")
+
+	sha := sha256.Sum256([]byte(strings.Repeat("A", 1024)))
+
+	// confirm artifact upload
+	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
+		Name:                    "artifact-invalid-checksum",
+		Size:                    1024,
+		Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
+		WorkflowRunBackendId:    "792",
+		WorkflowJobRunBackendId: "193",
+	})).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusInternalServerError)
+}
+
 func TestActionsArtifactV4UploadSingleFileWithRetentionDays(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

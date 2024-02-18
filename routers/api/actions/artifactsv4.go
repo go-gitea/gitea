@@ -105,8 +105,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const ArtifactV4RouteBase = "/twirp/github.actions.results.api.v1.ArtifactService"
-const ArtifactV4ContentEncoding = "application/zip"
+const (
+	ArtifactV4RouteBase       = "/twirp/github.actions.results.api.v1.ArtifactService"
+	ArtifactV4ContentEncoding = "application/zip"
+)
 
 type artifactV4Routes struct {
 	prefix string
