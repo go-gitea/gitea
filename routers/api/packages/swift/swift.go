@@ -157,7 +157,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 }
 
 type Resource struct {
-	Name     string `json:"id"`
+	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Checksum string `json:"checksum"`
 }

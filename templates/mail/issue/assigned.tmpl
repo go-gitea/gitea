@@ -13,9 +13,9 @@
 <body>
 	<p>
 		{{if .IsPull}}
-			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url | Str2html}}
+			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name ($link|Safe) ($repo_url|Safe)}}
 		{{else}}
-			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url | Str2html}}
+			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name ($link|Safe) ($repo_url|Safe)}}
 		{{end}}
 	</p>
 	<div class="footer">

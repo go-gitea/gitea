@@ -5,9 +5,9 @@
 			<div class="flex-item gt-ac">
 				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
 				<div class="flex-item-main">
-					<div class="flex-item-title">
-						<a class="text light thin" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
-						<a class="text primary" href="{{$.RepoLink}}">{{.Name}}</a></div>
+					<div class="flex-item-title gt-font-18">
+						<a class="muted gt-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a></div>
 				</div>
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}
