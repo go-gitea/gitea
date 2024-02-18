@@ -18,11 +18,11 @@
 						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
 					</div>
 					<div class="field {{if .Err_Title}}error{{end}}">
-						<label for="title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
+						<label for="ssh-key-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
 						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 					</div>
 					<div class="field {{if .Err_Content}}error{{end}}">
-						<label for="content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
+						<label for="ssh-key-content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
 						<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
