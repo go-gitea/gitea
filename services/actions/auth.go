@@ -38,7 +38,7 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(setting.SecretKey))
+	tokenString, err := token.SignedString(setting.GetGeneralTokenSigningSecret())
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return []byte(setting.SecretKey), nil
+		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	if err != nil {
 		return 0, err
