@@ -36,9 +36,9 @@ export function initRepoMigration() {
 
 function checkAuth() {
   if (!service) return;
-  const serviceType = service.value;
+  const serviceType = Number(service.value);
 
-  checkItems(serviceType !== '1');
+  checkItems(serviceType !== 1);
 }
 
 function checkItems(tokenAuth) {
@@ -48,7 +48,7 @@ function checkItems(tokenAuth) {
   } else {
     enableItems = user?.value !== '' || pass?.value !== '';
   }
-  if (enableItems && service?.value > 1) {
+  if (enableItems && Number(service?.value) > 1) {
     if (mirror?.checked) {
       for (const item of items) {
         item.disabled = item.name !== 'wiki';
