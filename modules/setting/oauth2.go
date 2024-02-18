@@ -167,6 +167,7 @@ func GetGeneralTokenSigningSecret() []byte {
 			log.Fatal("Unable to generate general JWT secret: %s", err.Error())
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
+			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
 			log.Warn("OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
 			return jwtSecret
 		}
