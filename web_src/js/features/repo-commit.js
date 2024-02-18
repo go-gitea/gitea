@@ -34,12 +34,8 @@ export async function initRepoCommitLastCommitLoader() {
     const response = await POST(lastCommitLoaderURL);
     const data = await response.text();
     const table = document.querySelector('table#repo-files-table');
-    const parent = table.parentNode;
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = data;
-    const newTable = wrapper.querySelector('table');
-    if (newTable) {
-      parent.replaceChild(newTable, table);
+    if (table) {
+      table.outerHTML = data;
     }
     return;
   }
@@ -50,13 +46,14 @@ export async function initRepoCommitLastCommitLoader() {
   const doc = parser.parseFromString(data, 'text/html');
   for (const row of doc.querySelectorAll('tr')) {
     if (row.className === 'commit-list') {
-      document.querySelector('table#repo-files-table .commit-list')?.replaceWith(row);
+      const commitList = document.querySelector('table#repo-files-table .commit-list');
+      commitList.outerHTML = row;
       return;
     }
 
     const entryName = row.getAttribute('data-entryname');
     if (entryName) {
-      entryMap[entryName].replaceWith(row);
+      entryMap[entryName].outerHTML = row;
     }
   }
 }
