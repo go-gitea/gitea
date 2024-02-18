@@ -55,6 +55,47 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	}).Notify(withMethod(ctx, "NewIssue"))
 }
 
+// IssueChangeContent notifies change content of issue
+func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	ctx = withMethod(ctx, "IssueChangeContent")
+
+	var err error
+	if err = issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(ctx); err != nil {
+			log.Error("loadPullRequest: %v", err)
+			return
+		}
+		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
+			WithDoer(doer).
+			WithPayload(&api.PullRequestPayload{
+				Action:      api.HookIssueEdited,
+				Index:       issue.Index,
+				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
+				Sender:      convert.ToUser(ctx, doer, nil),
+			}).
+			WithPullRequest(issue.PullRequest).
+			Notify(ctx)
+		return
+	}
+	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).
+		WithDoer(doer).
+		WithPayload(&api.IssuePayload{
+			Action:     api.HookIssueEdited,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}).
+		Notify(ctx)
+}
+
 // IssueChangeStatus notifies close or reopen issue to notifiers
 func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	ctx = withMethod(ctx, "IssueChangeStatus")
