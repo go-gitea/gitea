@@ -6,6 +6,8 @@ package context
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -134,7 +136,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := CsrfOptions{
-		Secret:         setting.SecretKey,
+		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
