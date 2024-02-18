@@ -469,6 +469,11 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+// HasAvatar check if user has avatar
+func (u *User) HasAvatar() bool {
+	return len(u.Avatar) > 0
+}
+
 // IsUserExist checks if given user name exist,
 // the user name should be noncased unique.
 // If uid is presented, then check will rule out that one,

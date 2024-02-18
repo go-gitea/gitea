@@ -16,32 +16,32 @@ import (
 )
 
 // UploadAvatar saves custom avatar for user.
-func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
+func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) ([]byte, error) {
 	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer committer.Close()
 
 	u.UseCustomAvatar = true
 	u.Avatar = avatar.HashAvatar(u.ID, data)
 	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %w", err)
+		return nil, fmt.Errorf("updateUser: %w", err)
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
+		return nil, fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
-	return committer.Commit()
+	return avatarData, committer.Commit()
 }
 
 // DeleteAvatar deletes the user's custom avatar.

@@ -142,7 +142,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+				user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
@@ -182,7 +182,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+					user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}

@@ -31,7 +31,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 	}
 
 	// Test what happens if you don't have a valid Base64 string
-	opts := api.UpdateUserAvatarOption{
+	opts := api.UserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
@@ -39,7 +39,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	opts = api.UpdateUserAvatarOption{
+	opts = api.UserAvatarOption{
 		Image: "Invalid",
 	}
 
@@ -54,7 +54,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open README.md")
 	}
 
-	opts = api.UpdateUserAvatarOption{
+	opts = api.UserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
