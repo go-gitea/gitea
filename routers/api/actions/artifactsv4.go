@@ -164,6 +164,46 @@ func (r artifactV4Routes) buildArtifactURL(endp, expires, artifactName string, t
 	return uploadURL
 }
 
+func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (task *actions.ActionTask, artifactName string, ok bool) {
+	rawTaskID := ctx.Req.URL.Query().Get("taskID")
+	sig := ctx.Req.URL.Query().Get("sig")
+	expires := ctx.Req.URL.Query().Get("expires")
+	artifactName = ctx.Req.URL.Query().Get("artifactName")
+	dsig, _ := base64.URLEncoding.DecodeString(sig)
+	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
+
+	expecedsig := r.buildSignature(endp, expires, artifactName, taskID)
+	if !hmac.Equal(dsig, expecedsig) {
+		log.Error("Error unauthorized")
+		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
+		return
+	}
+	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
+	if err != nil || t.Before(time.Now()) {
+		log.Error("Error link expired")
+		ctx.Error(http.StatusUnauthorized, "Error link expired")
+		return
+	}
+	task, err = actions.GetTaskByID(ctx, taskID)
+	if err != nil {
+		log.Error("Error runner api getting task by ID: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
+		return
+	}
+	if task.Status != actions.StatusRunning {
+		log.Error("Error runner api getting task: task is not running")
+		ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+		return
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		log.Error("Error runner api getting job: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+		return
+	}
+	ok = true
+	return
+}
+
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
 	var art actions.ActionArtifact
 	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ?", runID, name, name+".zip").Get(&art)
@@ -243,39 +283,8 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 }
 
 func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
-	rawTaskID := ctx.Req.URL.Query().Get("taskID")
-	sig := ctx.Req.URL.Query().Get("sig")
-	expires := ctx.Req.URL.Query().Get("expires")
-	artifactName := ctx.Req.URL.Query().Get("artifactName")
-	dsig, _ := base64.URLEncoding.DecodeString(sig)
-	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
-
-	expecedsig := r.buildSignature("UploadArtifact", expires, artifactName, taskID)
-	if !hmac.Equal(dsig, expecedsig) {
-		log.Error("Error unauthorized")
-		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
-		return
-	}
-	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
-	if err != nil || t.Before(time.Now()) {
-		log.Error("Error link expired")
-		ctx.Error(http.StatusUnauthorized, "Error link expired")
-		return
-	}
-	task, err := actions.GetTaskByID(ctx, taskID)
-	if err != nil {
-		log.Error("Error runner api getting task by ID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
-		return
-	}
-	if task.Status != actions.StatusRunning {
-		log.Error("Error runner api getting task: task is not running")
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
-		return
-	}
-	if err := task.LoadJob(ctx); err != nil {
-		log.Error("Error runner api getting job: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+	task, artifactName, ok := r.verifySignature(ctx, "UploadArtifact")
+	if !ok {
 		return
 	}
 
@@ -451,39 +460,8 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 }
 
 func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
-	rawTaskID := ctx.Req.URL.Query().Get("taskID")
-	sig := ctx.Req.URL.Query().Get("sig")
-	expires := ctx.Req.URL.Query().Get("expires")
-	artifactName := ctx.Req.URL.Query().Get("artifactName")
-	dsig, _ := base64.URLEncoding.DecodeString(sig)
-
-	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
-	expecedsig := r.buildSignature("DownloadArtifact", expires, artifactName, taskID)
-	if !hmac.Equal(dsig, expecedsig) {
-		log.Error("Error unauthorized")
-		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
-		return
-	}
-	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
-	if err != nil || t.Before(time.Now()) {
-		log.Error("Error link expired")
-		ctx.Error(http.StatusUnauthorized, "Error link expired")
-		return
-	}
-	task, err := actions.GetTaskByID(ctx, taskID)
-	if err != nil {
-		log.Error("Error runner api getting task by ID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
-		return
-	}
-	if task.Status != actions.StatusRunning {
-		log.Error("Error runner api getting task: task is not running")
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
-		return
-	}
-	if err := task.LoadJob(ctx); err != nil {
-		log.Error("Error runner api getting job: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+	task, artifactName, ok := r.verifySignature(ctx, "DownloadArtifact")
+	if !ok {
 		return
 	}
 
