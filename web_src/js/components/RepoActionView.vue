@@ -412,7 +412,7 @@ export function initRepositoryActionView() {
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                 <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
               </a>
-              <a v-if="run.canRerun" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
+              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
                 <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
               </a>
             </li>

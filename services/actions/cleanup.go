@@ -53,11 +53,11 @@ const deleteArtifactBatchSize = 100
 
 func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 	for {
-		artifacts, err := actions.ListNeedDeleteArtifacts(taskCtx, deleteArtifactBatchSize)
+		artifacts, err := actions.ListPendingDeleteArtifacts(taskCtx, deleteArtifactBatchSize)
 		if err != nil {
 			return err
 		}
-		log.Info("Found %d need-deleted artifacts", len(artifacts))
+		log.Info("Found %d artifacts pending deletion", len(artifacts))
 		for _, artifact := range artifacts {
 			if err := storage.ActionsArtifacts.Delete(artifact.StoragePath); err != nil {
 				log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
@@ -70,7 +70,7 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 			log.Info("Artifact %d set deleted", artifact.ID)
 		}
 		if len(artifacts) < deleteArtifactBatchSize {
-			log.Debug("No more need-deleted artifacts")
+			log.Debug("No more artifacts pending deletion")
 			break
 		}
 	}
