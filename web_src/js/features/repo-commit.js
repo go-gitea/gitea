@@ -33,10 +33,7 @@ export async function initRepoCommitLastCommitLoader() {
     // For more than 200 entries, replace the entire table
     const response = await POST(lastCommitLoaderURL);
     const data = await response.text();
-    const table = document.querySelector('table#repo-files-table');
-    if (table) {
-      table.outerHTML = data;
-    }
+    document.querySelector('table#repo-files-table').outerHTML = data;
     return;
   }
 
@@ -46,14 +43,13 @@ export async function initRepoCommitLastCommitLoader() {
   const doc = parser.parseFromString(data, 'text/html');
   for (const row of doc.querySelectorAll('tr')) {
     if (row.className === 'commit-list') {
-      const commitList = document.querySelector('table#repo-files-table .commit-list');
-      commitList.outerHTML = row;
+      document.querySelector('table#repo-files-table .commit-list')?.replaceWith(row);
       return;
     }
 
     const entryName = row.getAttribute('data-entryname');
     if (entryName) {
-      entryMap[entryName].outerHTML = row;
+      entryMap[entryName].replaceWith(row);
     }
   }
 }
