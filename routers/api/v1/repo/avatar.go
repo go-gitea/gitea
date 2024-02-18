@@ -38,6 +38,8 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -50,13 +52,19 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
+	hasAvatar := ctx.Doer.HasAvatar()
+
 	err = repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	if hasAvatar {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusCreated)
+	}
 }
 
 // UpdateAvatar deletes the Avatar of an Repo

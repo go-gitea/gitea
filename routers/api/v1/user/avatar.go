@@ -24,13 +24,15 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UpdateUserAvatarOption"
+	//     "$ref": "#/definitions/UserAvatarOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
-	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
+	form := web.GetForm(ctx).(*api.UserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
@@ -38,13 +40,19 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
+	hasAvatar := ctx.Doer.HasAvatar()
+
 	err = user_service.UploadAvatar(ctx, ctx.Doer, content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	if hasAvatar {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusCreated)
+	}
 }
 
 // DeleteAvatar deletes the Avatar of an User

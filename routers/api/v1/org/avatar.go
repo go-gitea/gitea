@@ -33,11 +33,13 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
+	form := web.GetForm(ctx).(*api.UserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
@@ -45,13 +47,19 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
+	hasAvatar := ctx.Doer.HasAvatar()
+
 	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	if hasAvatar {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusCreated)
+	}
 }
 
 // DeleteAvatar deletes the Avatar of an Organisation
