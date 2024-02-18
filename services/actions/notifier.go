@@ -55,7 +55,7 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	}).Notify(withMethod(ctx, "NewIssue"))
 }
 
-// IssueChangeStatus notifies close or reopen issue to notifiers
+// IssueChangeContent notifies change content of issue
 func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	ctx = withMethod(ctx, "IssueChangeContent")
 
