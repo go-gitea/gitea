@@ -228,10 +228,10 @@ Gitea Logo的 PNG 和 SVG 版本是使用 `TAGS="gitea" make generate-images` �
 make generate-swagger
 ```
 
-您应该验证生成的 Swagger 文件并使用以下命令对其进行拼写检查：
+您应该验证生成的 Swagger 文件：
 
 ```bash
-make swagger-validate misspell-check
+make swagger-validate
 ```
 
 您应该提交更改后的 swagger JSON 文件。持续集成服务器将使用以下方法检查是否已完成：

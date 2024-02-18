@@ -312,7 +312,7 @@ receive.certNonceSeed = <randomstring>
 
 ### Labels
 
-Starting with Gitea 1.19, you can add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`:
+Starting with Gitea 1.19, you can add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) in the directory `$GITEA_CUSTOM/options/label/`:
 
 ```yaml
 labels:
@@ -330,7 +330,7 @@ For more information, see the [labels documentation](usage/labels.md).
 
 ### Licenses
 
-To add a custom license, add a file with the license text to `$GITEA_CUSTOM/options/license`
+To add a custom license, add a file with the license text in the directory `$GITEA_CUSTOM/options/license/`
 
 ### Locales
 
