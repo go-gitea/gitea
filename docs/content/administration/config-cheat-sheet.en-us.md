@@ -126,7 +126,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
  keywords used in Pull Request comments to automatically close a related issue
 - `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
  a related issue
-- `DEFAULT_MERGE_STYLE`: **merge**: Set default merge style for repository creating, valid options: `merge`, `rebase`, `rebase-merge`, `squash`
+- `DEFAULT_MERGE_STYLE`: **merge**: Set default merge style for repository creating, valid options: `merge`, `rebase`, `rebase-merge`, `squash`, `fast-forward-only`
 - `DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT`: **50**: In the default merge message for squash commits include at most this many commits. Set to `-1` to include all commits
 - `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: In the default merge message for squash commits limit the size of the commit messages. Set to `-1` to have no limit. Only used if `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES` is `true`.
 - `DEFAULT_MERGE_MESSAGE_ALL_AUTHORS`: **false**: In the default merge message for squash commits walk all commits to include all authors in the Co-authored-by otherwise just use those in the limited list

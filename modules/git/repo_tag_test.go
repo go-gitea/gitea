@@ -227,7 +227,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Object:    MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Type:      "commit",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -256,7 +256,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:    MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:      "tag",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -314,7 +314,7 @@ qbHDASXl
 				ID:      MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:  MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:    "tag",
-				Tagger:  parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:  parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
 				Signature: &CommitGPGSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
@@ -362,15 +362,4 @@ Add changelog of v1.9.1 (#7859)
 			}
 		})
 	}
-}
-
-func parseAuthorLine(t *testing.T, committer string) *Signature {
-	t.Helper()
-
-	sig, err := newSignatureFromCommitline([]byte(committer))
-	if err != nil {
-		t.Fatalf("parse author line '%s': %v", committer, err)
-	}
-
-	return sig
 }

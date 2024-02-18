@@ -182,12 +182,7 @@ func IsColorPreview(node ast.Node) bool {
 	return ok
 }
 
-const (
-	AttentionNote    string = "Note"
-	AttentionWarning string = "Warning"
-)
-
-// Attention is an inline for a color preview
+// Attention is an inline for an attention
 type Attention struct {
 	ast.BaseInline
 	AttentionType string

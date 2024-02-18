@@ -332,9 +332,7 @@ func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
 		return err
 	} else if !has {
 		return ErrUserNotExist{
-			UID:   email.UID,
-			Name:  "",
-			KeyID: 0,
+			UID: email.UID,
 		}
 	}
 

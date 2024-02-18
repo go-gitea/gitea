@@ -262,9 +262,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
 		if isNewFile {
-			message = ctx.Tr("repo.editor.add", form.TreePath)
+			message = ctx.Locale.TrString("repo.editor.add", form.TreePath)
 		} else {
-			message = ctx.Tr("repo.editor.update", form.TreePath)
+			message = ctx.Locale.TrString("repo.editor.update", form.TreePath)
 		}
 	}
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
@@ -415,7 +415,7 @@ func DiffPreviewPost(ctx *context.Context) {
 	}
 
 	if diff.NumFiles == 0 {
-		ctx.PlainText(http.StatusOK, ctx.Tr("repo.editor.no_changes_to_show"))
+		ctx.PlainText(http.StatusOK, ctx.Locale.TrString("repo.editor.no_changes_to_show"))
 		return
 	}
 	ctx.Data["File"] = diff.Files[0]
@@ -482,7 +482,7 @@ func DeleteFilePost(ctx *context.Context) {
 
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
-		message = ctx.Tr("repo.editor.delete", ctx.Repo.TreePath)
+		message = ctx.Locale.TrString("repo.editor.delete", ctx.Repo.TreePath)
 	}
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
 	if len(form.CommitMessage) > 0 {
@@ -691,7 +691,7 @@ func UploadFilePost(ctx *context.Context) {
 		if dir == "" {
 			dir = "/"
 		}
-		message = ctx.Tr("repo.editor.upload_files_to_dir", dir)
+		message = ctx.Locale.TrString("repo.editor.upload_files_to_dir", dir)
 	}
 
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
