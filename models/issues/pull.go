@@ -652,6 +652,35 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 	return pr, pr.LoadAttributes(ctx)
 }
 
+// GetPullRequestsByBaseHeadInfo returns the pull request by given base and head
+func GetPullRequestByBaseHeadInfo(ctx context.Context, baseID, headID int64, base, head string) (*PullRequest, error) {
+	pr := &PullRequest{}
+	sess := db.GetEngine(ctx).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Where("base_repo_id = ? AND base_branch = ? AND head_repo_id = ? AND head_branch = ?", baseID, base, headID, head)
+	has, err := sess.Get(pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{
+			HeadRepoID: headID,
+			BaseRepoID: baseID,
+			HeadBranch: head,
+			BaseBranch: base,
+		}
+	}
+
+	if err = pr.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
+
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
 // By poster id.
 func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*PullRequest, error) {

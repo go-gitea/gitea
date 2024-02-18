@@ -1225,6 +1225,7 @@ func Routes() *web.Route {
 							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
+					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
