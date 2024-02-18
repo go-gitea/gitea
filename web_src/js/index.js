@@ -86,6 +86,7 @@ import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoContributors} from './features/contributors.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
+import {initRepositorySearch} from './features/repo-search.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -174,6 +175,7 @@ onDomReady(() => {
   initRepository();
   initRepositoryActionView();
   initRepoContributors();
+  initRepositorySearch();
 
   initCommitStatuses();
   initCaptcha();

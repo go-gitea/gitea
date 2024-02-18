@@ -97,6 +97,18 @@ func Home(ctx *context.Context) {
 		page = 1
 	}
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	var (
 		repos []*repo_model.Repository
 		count int64
@@ -114,6 +126,10 @@ func Home(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

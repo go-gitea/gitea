@@ -389,6 +389,18 @@ func NotificationWatching(ctx *context.Context) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
@@ -402,6 +414,10 @@ func NotificationWatching(ctx *context.Context) {
 		Collaborate:        util.OptionalBoolFalse,
 		TopicOnly:          ctx.FormBool("topic"),
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
