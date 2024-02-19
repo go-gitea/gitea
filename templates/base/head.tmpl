@@ -30,7 +30,6 @@
 	{{template "custom/header" .}}
 </head>
 <body hx-headers='{"x-csrf-token": "{{.CsrfToken}}"}' hx-swap="outerHTML" hx-ext="morph" hx-push-url="false">
-	{{ctx.DataRaceCheck $.Context}}
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">
