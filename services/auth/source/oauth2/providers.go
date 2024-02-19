@@ -97,9 +97,9 @@ func GetOAuth2Providers() []Provider {
 // GetOAuth2ProvidersMap returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
-func GetOAuth2ProvidersMap(isActive bool) ([]string, map[string]Provider, error) {
+func GetOAuth2ProvidersMap(onlyActive bool) ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
-	authSources, err := auth.GetOAuth2ProviderSources(isActive)
+	authSources, err := auth.GetOAuth2ProviderSources(onlyActive)
 	if err != nil {
 		return nil, nil, err
 	}
