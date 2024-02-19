@@ -38,7 +38,7 @@
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape) | Safe)}}
 							</div>
 						</div>
 						<div class="item-section-right">
