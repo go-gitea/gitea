@@ -190,13 +190,15 @@ body:
 
 ### Markdown
 
-You can use a `markdown` element to display Markdown in your form that provides extra context to the user, but is not submitted.
+You can use a `markdown` element to display Markdown in your form that provides extra context to the user, but is not submitted by default.
 
 Attributes:
 
-| Key   | Description                                                  | Required | Type   | Default | Valid values |
-|-------|--------------------------------------------------------------|----------|--------|---------|--------------|
-| value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
+| Key    | Description                                                  | Required | Type    | Default | Valid values |
+|--------|--------------------------------------------------------------|----------|---------|---------|--------------|
+| value  | The text that is rendered. Markdown formatting is supported. | Required | String  | -       | -            |
+| submit | The text that is rendered, will be submitted.                | Optional | Boolean | false   | -            |
+| hide   | Do not render in the from.                                   | Optional | Boolean | false   | -            |
 
 ### Textarea
 
@@ -264,11 +266,13 @@ You can use the `checkboxes` element to add a set of checkboxes to your form.
 
 Attributes:
 
-| Key         | Description                                                                                           | Required | Type   | Default      | Valid values |
-|-------------|-------------------------------------------------------------------------------------------------------|----------|--------|--------------|--------------|
-| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String | -            | -            |
-| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String | Empty String | -            |
-| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array  | -            | -            |
+| Key         | Description                                                                                           | Required | Type    | Default      | Valid values |
+|-------------|-------------------------------------------------------------------------------------------------------|----------|---------|--------------|--------------|
+| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String  | -            | -            |
+| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String  | Empty String | -            |
+| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array   | -            | -            |
+| submit      | The checkboxes are rendered, will be submitted.                                                       | Optional | Boolean | true         | -            |
+| hide        | Do not render in the from.                                                                            | Optional | Boolean | false        | -            |
 
 For each value in the options array, you can set the following keys.
 
@@ -276,6 +280,8 @@ For each value in the options array, you can set the following keys.
 |----------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
 | label    | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
 | required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
+| submit   | The specific checkbox that is rendered, will be submitted.                                                                               | Optional | Boolean | true    | -       |
+| hide     | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
 
 ## Syntax for issue config
 
