@@ -4,6 +4,7 @@
 package gitrepo
 
 import (
+	"bufio"
 	"context"
 	"io"
 
@@ -16,12 +17,13 @@ type GitRepository interface {
 	GetRefCommitID(name string) (string, error)
 	IsObjectExist(sha string) bool
 	GetBranchCommit(branch string) (*git.Commit, error)
-	GetDefaultBranch()
-	GetObjectFormat()
-	IsBranchExist()
-	IsTagExist()
-	GetTagCommit()
-	GetCommit()
+	GetDefaultBranch() (string, error)
+	GetObjectFormat() (git.ObjectFormat, error)
+	IsReferenceExist(string) (bool, error)
+	GetCommit(string) (*git.Commit, error)
+	GetRelativePath() string
+	CatFileBatch(ctx context.Context) (git.WriteCloserError, *bufio.Reader, func())
+	CatFileBatchCheck(ctx context.Context) (git.WriteCloserError, *bufio.Reader, func())
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.

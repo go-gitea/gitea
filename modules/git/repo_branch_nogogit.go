@@ -34,9 +34,9 @@ func (repo *Repository) IsObjectExist(name string) bool {
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
-func (repo *Repository) IsReferenceExist(name string) bool {
+func (repo *Repository) IsReferenceExist(name string) (bool, error) {
 	if name == "" {
-		return false
+		return false, nil
 	}
 
 	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
@@ -44,10 +44,10 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
-		return false
+		return false, err
 	}
 	_, _, _, err = ReadBatchLine(rd)
-	return err == nil
+	return err == nil, err
 }
 
 // IsBranchExist returns true if given branch exists in current repository.
@@ -56,7 +56,8 @@ func (repo *Repository) IsBranchExist(name string) bool {
 		return false
 	}
 
-	return repo.IsReferenceExist(BranchPrefix + name)
+	exist, _ := repo.IsReferenceExist(BranchPrefix + name)
+	return exist
 }
 
 // GetBranchNames returns branches from the repository, skipping "skip" initial branches and

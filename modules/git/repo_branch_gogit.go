@@ -26,16 +26,16 @@ func (repo *Repository) IsObjectExist(name string) bool {
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
-func (repo *Repository) IsReferenceExist(name string) bool {
+func (repo *Repository) IsReferenceExist(name string) (bool, error) {
 	if name == "" {
-		return false
+		return false, nil
 	}
 
 	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return reference.Type() != plumbing.InvalidReference
+	return reference.Type() != plumbing.InvalidReference, nil
 }
 
 // IsBranchExist returns true if given branch exists in current repository.

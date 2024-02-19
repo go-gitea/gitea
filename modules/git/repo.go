@@ -311,3 +311,10 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	_, err = io.Copy(out, fi)
 	return err
 }
+
+// GetRelativePath FIXME
+func (repo *Repository) GetRelativePath() string {
+	repoName := filepath.Base(repo.Path)
+	ownerName := filepath.Base(filepath.Dir(repo.Path))
+	return ownerName + "/" + repoName
+}
