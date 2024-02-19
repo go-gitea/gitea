@@ -26,7 +26,7 @@
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="visibility" name="visibility" value="{{if .visibility}}{{.visibility}}{{else}}{{printf "%d" .DefaultUserVisibilityMode}}{{end}}">
+						<input type="hidden" id="visibility" name="visibility" value="{{if .visibility}}{{printf "%d" .visibility}}{{else}}{{printf "%d" .DefaultUserVisibilityMode}}{{end}}">
 						<div class="text">
 							{{if .DefaultUserVisibilityMode.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
 							{{if .DefaultUserVisibilityMode.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}

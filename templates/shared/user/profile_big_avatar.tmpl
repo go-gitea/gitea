@@ -31,9 +31,8 @@
 				<li>
 					{{svg "octicon-location"}}
 					<span class="gt-f1">{{.ContextUser.Location}}</span>
-					{{if .UserLocationMapURL}}
-						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
-						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location | QueryEscape}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
+					{{if .ContextUserLocationMapURL}}
+						<a href="{{.ContextUserLocationMapURL}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
 							{{svg "octicon-link-external"}}
 						</a>
 					{{end}}
