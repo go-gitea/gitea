@@ -35,6 +35,10 @@
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --squash {{$localBranch}}</div>
 		</div>
+		<div class="gt-hidden" data-pull-merge-style="fast-forward-only">
+			<div>git checkout {{.PullRequest.BaseBranch}}</div>
+			<div>git merge --ff-only {{$localBranch}}</div>
+		</div>
 		<div class="gt-hidden" data-pull-merge-style="manually-merged">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge {{$localBranch}}</div>

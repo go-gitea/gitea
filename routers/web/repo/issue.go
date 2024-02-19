@@ -989,17 +989,17 @@ func NewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	for k, v := range errs {
-		templateErrs[k] = v
+		ret.TemplateErrors[k] = v
 	}
 	if ctx.Written() {
 		return
 	}
 
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+	if len(ret.TemplateErrors) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
@@ -1032,7 +1032,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
-		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
+		flashError = ctx.Locale.TrString("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
 }
@@ -1042,11 +1042,11 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	issueTemplates, errs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	ctx.Data["IssueTemplates"] = issueTemplates
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["IssueTemplates"] = ret.IssueTemplates
 
-	if len(errs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, errs), true)
+	if len(ret.TemplateErrors) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
 	if !issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo) {
@@ -1642,7 +1642,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 			ghostMilestone := &issues_model.Milestone{
 				ID:   -1,
-				Name: ctx.Tr("repo.issues.deleted_milestone"),
+				Name: ctx.Locale.TrString("repo.issues.deleted_milestone"),
 			}
 			if comment.OldMilestoneID > 0 && comment.OldMilestone == nil {
 				comment.OldMilestone = ghostMilestone
@@ -1659,7 +1659,7 @@ func ViewIssue(ctx *context.Context) {
 
 			ghostProject := &project_model.Project{
 				ID:    -1,
-				Title: ctx.Tr("repo.issues.deleted_project"),
+				Title: ctx.Locale.TrString("repo.issues.deleted_project"),
 			}
 
 			if comment.OldProjectID > 0 && comment.OldProject == nil {
@@ -1849,6 +1849,8 @@ func ViewIssue(ctx *context.Context) {
 				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				mergeStyle = repo_model.MergeStyleSquash
+			} else if prConfig.AllowFastForwardOnly {
+				mergeStyle = repo_model.MergeStyleFastForwardOnly
 			} else if prConfig.AllowManualMerge {
 				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}

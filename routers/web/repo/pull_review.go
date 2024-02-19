@@ -22,6 +22,7 @@ import (
 
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
+	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
@@ -155,14 +156,15 @@ func UpdateResolveConversation(ctx *context.Context) {
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
+	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
 	}
 	if len(comments) == 0 {
-		// if the comments are empty (deleted, outdated, etc), it doesn't need to render anything, just return an empty body to replace "conversation-holder" on the page
-		ctx.Resp.WriteHeader(http.StatusOK)
+		// if the comments are empty (deleted, outdated, etc), it's better to tell the users that it is outdated
+		ctx.HTML(http.StatusOK, tplConversationOutdated)
 		return
 	}
 
@@ -218,9 +220,9 @@ func SubmitReview(ctx *context.Context) {
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
-				translated = ctx.Tr("repo.issues.review.self.approval")
+				translated = ctx.Locale.TrString("repo.issues.review.self.approval")
 			} else {
-				translated = ctx.Tr("repo.issues.review.self.rejection")
+				translated = ctx.Locale.TrString("repo.issues.review.self.rejection")
 			}
 
 			ctx.Flash.Error(translated)

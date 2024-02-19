@@ -342,13 +342,13 @@ telegram = ["requests"]
 
 [[package]]
 name = "yamllint"
-version = "1.33.0"
+version = "1.35.0"
 description = "A linter for YAML files."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "yamllint-1.33.0-py3-none-any.whl", hash = "sha256:28a19f5d68d28d8fec538a1db21bb2d84c7dc2e2ea36266da8d4d1c5a683814d"},
-    {file = "yamllint-1.33.0.tar.gz", hash = "sha256:2dceab9ef2d99518a2fcf4ffc964d44250ac4459be1ba3ca315118e4a1a81f7d"},
+    {file = "yamllint-1.35.0-py3-none-any.whl", hash = "sha256:601b0adaaac6d9bacb16a2e612e7ee8d23caf941ceebf9bfe2cff0f196266004"},
+    {file = "yamllint-1.35.0.tar.gz", hash = "sha256:9bc99c3e9fe89b4c6ee26e17aa817cf2d14390de6577cb6e2e6ed5f72120c835"},
 ]
 
 [package.dependencies]
@@ -361,4 +361,4 @@ dev = ["doc8", "flake8", "flake8-import-order", "rstcheck[sphinx]", "sphinx"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "175c87d138a47ba190a2c3f16b801f694915cc6f2367a358585df9cd1b17ff96"
+content-hash = "ba1c2c4235872f67354b5f52aa5bf0cd616354961530d9dc907f9fba28cc1ece"

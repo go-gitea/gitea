@@ -112,9 +112,9 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) | Safe) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape) | Safe) $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.comment_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.comment_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) | Safe) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape) | Safe) $createdStr}}
 					{{end}}
 				</span>
 			</div>
@@ -367,7 +367,7 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					{{/* Some timeline avatars need a offset to correctly allign with their speech
+					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
 					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
@@ -591,11 +591,11 @@
 						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
 					{{end}}
 					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
-						{{ctx.Locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.change_project_at" ($oldProjectDisplayHtml|Safe) ($newProjectDisplayHtml|Safe) $createdStr}}
 					{{else if gt .OldProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.remove_project_at" ($oldProjectDisplayHtml|Safe) $createdStr}}
 					{{else if gt .ProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.add_project_at" ($newProjectDisplayHtml|Safe) $createdStr}}
 					{{end}}
 				</span>
 			</div>
