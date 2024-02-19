@@ -57,7 +57,7 @@ func DeleteAvatar(ctx context.Context, u *user_model.User) error {
 	u.UseCustomAvatar = false
 	u.Avatar = ""
 	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("UpdateUser: %w", err)
+		return fmt.Errorf("DeleteAvatar: %w", err)
 	}
 	return nil
 }

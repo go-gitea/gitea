@@ -22,6 +22,7 @@ import (
 
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
+	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
@@ -153,12 +154,20 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
+	ctx.Data["PageIsPullFiles"] = origin == "diff"
+
+	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
 	}
-	ctx.Data["PageIsPullFiles"] = (origin == "diff")
+	if len(comments) == 0 {
+		// if the comments are empty (deleted, outdated, etc), it's better to tell the users that it is outdated
+		ctx.HTML(http.StatusOK, tplConversationOutdated)
+		return
+	}
+
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -179,6 +188,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.HTML(http.StatusOK, tplDiffConversation)
 	} else if origin == "timeline" {
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
+	} else {
+		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 
@@ -209,9 +220,9 @@ func SubmitReview(ctx *context.Context) {
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
-				translated = ctx.Tr("repo.issues.review.self.approval")
+				translated = ctx.Locale.TrString("repo.issues.review.self.approval")
 			} else {
-				translated = ctx.Tr("repo.issues.review.self.rejection")
+				translated = ctx.Locale.TrString("repo.issues.review.self.rejection")
 			}
 
 			ctx.Flash.Error(translated)

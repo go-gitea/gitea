@@ -23,7 +23,7 @@ import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
-import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
+import {initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
@@ -83,6 +83,7 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoContributors} from './features/contributors.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 
@@ -172,11 +173,11 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
+  initRepoContributors();
 
   initCommitStatuses();
   initCaptcha();
 
-  initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();

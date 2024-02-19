@@ -1,43 +1,41 @@
-import $ from 'jquery';
+import {POST} from '../../modules/fetch.js';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
 
-const {csrfToken} = window.config;
-
 export function initCompWebHookEditor() {
-  if ($('.new.webhook').length === 0) {
+  if (!document.querySelectorAll('.new.webhook').length) {
     return;
   }
 
-  $('.events.checkbox input').on('change', function () {
-    if ($(this).is(':checked')) {
-      showElem($('.events.fields'));
-    }
-  });
-  $('.non-events.checkbox input').on('change', function () {
-    if ($(this).is(':checked')) {
-      hideElem($('.events.fields'));
-    }
-  });
+  for (const input of document.querySelectorAll('.events.checkbox input')) {
+    input.addEventListener('change', function () {
+      if (this.checked) {
+        showElem('.events.fields');
+      }
+    });
+  }
+
+  for (const input of document.querySelectorAll('.non-events.checkbox input')) {
+    input.addEventListener('change', function () {
+      if (this.checked) {
+        hideElem('.events.fields');
+      }
+    });
+  }
 
   const updateContentType = function () {
-    const visible = $('#http_method').val() === 'POST';
-    toggleElem($('#content_type').parent().parent(), visible);
+    const visible = document.getElementById('http_method').value === 'POST';
+    toggleElem(document.getElementById('content_type').parentNode.parentNode, visible);
   };
   updateContentType();
-  $('#http_method').on('change', () => {
-    updateContentType();
-  });
+
+  document.getElementById('http_method').addEventListener('change', updateContentType);
 
   // Test delivery
-  $('#test-delivery').on('click', function () {
-    const $this = $(this);
-    $this.addClass('loading disabled');
-    $.post($this.data('link'), {
-      _csrf: csrfToken
-    }).done(
-      setTimeout(() => {
-        window.location.href = $this.data('redirect');
-      }, 5000)
-    );
+  document.getElementById('test-delivery')?.addEventListener('click', async function () {
+    this.classList.add('loading', 'disabled');
+    await POST(this.getAttribute('data-link'));
+    setTimeout(() => {
+      window.location.href = this.getAttribute('data-redirect');
+    }, 5000);
   });
 }

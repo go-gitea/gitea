@@ -4,13 +4,12 @@
 package setting
 
 import (
-	"encoding/base64"
 	"math"
 	"path/filepath"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
@@ -98,7 +97,6 @@ var OAuth2 = struct {
 	RefreshTokenExpirationTime int64
 	InvalidateRefreshTokens    bool
 	JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
-	JWTSecretBase64            string `ini:"JWT_SECRET"`
 	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 	MaxTokenLength             int
 	DefaultApplications        []string
@@ -130,29 +128,50 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
-	OAuth2.JWTSecretBase64 = loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
+	jwtSecretBase64 := loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
 	if InstallLock {
-		if _, err := util.Base64FixedDecode(base64.RawURLEncoding, []byte(OAuth2.JWTSecretBase64), 32); err != nil {
-			key, err := generate.NewJwtSecret()
+		jwtSecretBytes, err := generate.DecodeJwtSecretBase64(jwtSecretBase64)
+		if err != nil {
+			jwtSecretBytes, jwtSecretBase64, err = generate.NewJwtSecretWithBase64()
 			if err != nil {
 				log.Fatal("error generating JWT secret: %v", err)
 			}
-
-			OAuth2.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(key)
 			saveCfg, err := rootCfg.PrepareSaving()
 			if err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
 			}
-			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
-			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
+			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
 			if err := saveCfg.Save(); err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
 			}
 		}
+		generalSigningSecret.Store(&jwtSecretBytes)
 	}
+}
+
+// generalSigningSecret is used as container for a []byte value
+// instead of an additional mutex, we use CompareAndSwap func to change the value thread save
+var generalSigningSecret atomic.Pointer[[]byte]
+
+func GetGeneralTokenSigningSecret() []byte {
+	old := generalSigningSecret.Load()
+	if old == nil || len(*old) == 0 {
+		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
+		if err != nil {
+			log.Fatal("Unable to generate general JWT secret: %s", err.Error())
+		}
+		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
+			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
+			log.Warn("OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
+			return jwtSecret
+		}
+		return *generalSigningSecret.Load()
+	}
+	return *old
 }

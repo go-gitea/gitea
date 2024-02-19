@@ -284,7 +284,7 @@ syntax and shouldn't be touched without fully understanding these components.
 
 Google Analytics, Matomo (previously Piwik), and other analytics services can be added to Gitea. To add the tracking code, refer to the `Other additions to the page` section of this document, and add the JavaScript to the `$GITEA_CUSTOM/templates/custom/header.tmpl` file.
 
-## Customizing gitignores, labels, licenses, locales, and readmes.
+## Customizing gitignores, labels, licenses, locales, and readmes
 
 Place custom files in corresponding sub-folder under `custom/options`.
 
