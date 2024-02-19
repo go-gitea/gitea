@@ -16,14 +16,13 @@ import (
 
 // Result a search result to display
 type Result struct {
-	RepoID         int64
-	Filename       string
-	CommitID       string
-	UpdatedUnix    timeutil.TimeStamp
-	Language       string
-	Color          string
-	LineNumbers    []int
-	FormattedLines template.HTML
+	RepoID      int64
+	Filename    string
+	CommitID    string
+	UpdatedUnix timeutil.TimeStamp
+	Language    string
+	Color       string
+	Lines       map[int]template.HTML
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -67,12 +66,11 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
-	var formattedLinesBuffer bytes.Buffer
-
 	contentLines := strings.SplitAfter(result.Content[startIndex:endIndex], "\n")
-	lineNumbers := make([]int, len(contentLines))
+	lines := make(map[int]template.HTML, len(contentLines))
 	index := startIndex
 	for i, line := range contentLines {
+		var formattedLinesBuffer bytes.Buffer
 		var err error
 		if index < result.EndIndex &&
 			result.StartIndex < index+len(line) &&
@@ -93,21 +91,18 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 			return nil, err
 		}
 
-		lineNumbers[i] = startLineNum + i
+		lines[startLineNum+i], _ = highlight.Code(result.Filename, "", formattedLinesBuffer.String())
 		index += len(line)
 	}
 
-	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
-
 	return &Result{
-		RepoID:         result.RepoID,
-		Filename:       result.Filename,
-		CommitID:       result.CommitID,
-		UpdatedUnix:    result.UpdatedUnix,
-		Language:       result.Language,
-		Color:          result.Color,
-		LineNumbers:    lineNumbers,
-		FormattedLines: highlighted,
+		RepoID:      result.RepoID,
+		Filename:    result.Filename,
+		CommitID:    result.CommitID,
+		UpdatedUnix: result.UpdatedUnix,
+		Language:    result.Language,
+		Color:       result.Color,
+		Lines:       lines,
 	}, nil
 }
 
