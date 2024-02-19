@@ -100,7 +100,7 @@ func List(ctx *context.Context) {
 			}
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				workflows = append(workflows, workflow)
 				continue
 			}
@@ -115,7 +115,7 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_online_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}

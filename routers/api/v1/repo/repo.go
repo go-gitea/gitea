@@ -885,6 +885,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:                   true,
 					AllowRebaseMerge:              true,
 					AllowSquash:                   true,
+					AllowFastForwardOnly:          true,
 					AllowManualMerge:              true,
 					AutodetectManualMerge:         false,
 					AllowRebaseUpdate:             true,
@@ -910,6 +911,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.AllowFastForwardOnly != nil {
+				config.AllowFastForwardOnly = *opts.AllowFastForwardOnly
 			}
 			if opts.AllowManualMerge != nil {
 				config.AllowManualMerge = *opts.AllowManualMerge
