@@ -321,14 +321,9 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		return nil
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
-
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		RepoID:   repo.ID,
-		TagNames: lowerTags,
+		TagNames: tags,
 	})
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
@@ -336,6 +331,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.LowerTagName] = rel
+	}
+
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
