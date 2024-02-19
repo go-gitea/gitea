@@ -22,7 +22,7 @@ when creating an issue or pull request. Gitea supports adding templates to the
 **main branch of the repository** so that they can autopopulate the form when users are
 creating issues and pull requests. This will cut down on the initial back and forth
 of getting some clarifying details.
-Is actually not possible to provide generic issue/pull-request templates fort all instance.
+Is actually not possible to provide generic issue/pull-request templates for all instance.
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 
