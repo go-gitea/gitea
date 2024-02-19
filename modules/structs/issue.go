@@ -145,6 +145,8 @@ type IssueFormField struct {
 	ID          string             `json:"id" yaml:"id"`
 	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
 	Validations map[string]any     `json:"validations" yaml:"validations"`
+	Submit      *bool              `json:"submit,omitempty" yaml:"submit,omitempty"`
+	Hide        *bool              `json:"hide,omitempty" yaml:"hide,omitempty"`
 }
 
 // IssueTemplate represents an issue template for a repository

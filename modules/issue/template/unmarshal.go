@@ -128,8 +128,23 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			}
 		}
 		for i, v := range it.Fields {
+			// set default id value
 			if v.ID == "" {
 				v.ID = strconv.Itoa(i)
+			}
+			// set default submit value
+			if v.Submit == nil {
+				submit := true
+				// markdown is not submitted by default
+				if v.Type == api.IssueFormFieldTypeMarkdown {
+					submit = false
+				}
+				v.Submit = &submit
+			}
+			// set default hide value
+			if v.Hide == nil {
+				hide := false
+				v.Hide = &hide
 			}
 		}
 	}

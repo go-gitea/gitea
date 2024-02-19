@@ -177,6 +177,18 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 					return position.Errorf("'required' should be a bool")
 				}
 			}
+
+			if submit, ok := opt["submit"]; ok {
+				if _, ok := submit.(bool); !ok {
+					return position.Errorf("'submit' should be a bool")
+				}
+			}
+
+			if hide, ok := opt["hide"]; ok {
+				if _, ok := hide.(bool); !ok {
+					return position.Errorf("'required' should be a bool")
+				}
+			}
 		}
 	}
 	return nil

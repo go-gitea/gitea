@@ -194,11 +194,12 @@ You can use a `markdown` element to display Markdown in your form that provides 
 
 Attributes:
 
-| Key    | Description                                                  | Required | Type    | Default | Valid values |
-|--------|--------------------------------------------------------------|----------|---------|---------|--------------|
-| value  | The text that is rendered. Markdown formatting is supported. | Required | String  | -       | -            |
-| submit | The text that is rendered, will be submitted.                | Optional | Boolean | false   | -            |
-| hide   | Do not render in the from.                                   | Optional | Boolean | false   | -            |
+| Key   | Description                                                  | Required | Type   | Default | Valid values |
+|-------|--------------------------------------------------------------|----------|--------|---------|--------------|
+| value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
+
+Submit: Default is **false**
+Hide: Default is **false**
 
 ### Textarea
 
@@ -219,6 +220,9 @@ Validations:
 | Key      | Description                                          | Required | Type    | Default | Valid values |
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
+
+Submit: Default is **true**
+Hide: Default is **false**
 
 ### Input
 
@@ -241,6 +245,9 @@ Validations:
 | is_number | Prevents form submission until element is filled with a number.                                  | Optional | Boolean | false   | -                                                                        |
 | regex     | Prevents form submission until element is filled with a value that match the regular expression. | Optional | String  | -       | a [regular expression](https://en.wikipedia.org/wiki/Regular_expression) |
 
+Submit: Default is **true**
+Hide: Default is **false**
+
 ### Dropdown
 
 You can use a `dropdown` element to add a dropdown menu in your form.
@@ -260,19 +267,20 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
+Submit: Default is **true**
+Hide: Default is **false**
+
 ### Checkboxes
 
 You can use the `checkboxes` element to add a set of checkboxes to your form.
 
 Attributes:
 
-| Key         | Description                                                                                           | Required | Type    | Default      | Valid values |
-|-------------|-------------------------------------------------------------------------------------------------------|----------|---------|--------------|--------------|
-| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String  | -            | -            |
-| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String  | Empty String | -            |
-| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array   | -            | -            |
-| submit      | The checkboxes are rendered, will be submitted.                                                       | Optional | Boolean | true         | -            |
-| hide        | Do not render in the from.                                                                            | Optional | Boolean | false        | -            |
+| Key         | Description                                                                                           | Required | Type   | Default      | Valid values |
+|-------------|-------------------------------------------------------------------------------------------------------|----------|--------|--------------|--------------|
+| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String | -            | -            |
+| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String | Empty String | -            |
+| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array  | -            | -            |
 
 For each value in the options array, you can set the following keys.
 
@@ -282,6 +290,9 @@ For each value in the options array, you can set the following keys.
 | required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
 | submit   | The specific checkbox that is rendered, will be submitted.                                                                               | Optional | Boolean | true    | -       |
 | hide     | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
+
+Submit: Default is **true**
+Hide: Default is **false**
 
 ## Syntax for issue config
 
