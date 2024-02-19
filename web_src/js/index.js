@@ -23,7 +23,7 @@ import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
-import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
+import {initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
@@ -178,7 +178,6 @@ onDomReady(() => {
   initCommitStatuses();
   initCaptcha();
 
-  initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
