@@ -4,6 +4,8 @@
 package v1_22 //nolint
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
@@ -22,7 +24,7 @@ func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
 	}
 	for _, issueUser := range duplicatedIssueUsers {
 		if x.Dialect().URI().DBType == schemas.MSSQL {
-			if _, err := x.Exec("delete from issue_user where id in (SELECT top ? id FROM issue_user WHERE issue_id = ? and uid = ?)", issueUser.Cnt-1, issueUser.IssueID, issueUser.UID); err != nil {
+			if _, err := x.Exec(fmt.Sprintf("delete from issue_user where id in (SELECT top %d id FROM issue_user WHERE issue_id = ? and uid = ?)", issueUser.Cnt-1), issueUser.IssueID, issueUser.UID); err != nil {
 				return err
 			}
 		} else {
