@@ -18,7 +18,7 @@ const (
 
 // RecentCommits renders the page to show recent commit frequency on repository
 func RecentCommits(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.recent_commits")
+	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.recent_commits")
 
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsRecentCommits"] = true
