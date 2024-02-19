@@ -151,6 +151,7 @@ type RepoSettingForm struct {
 	PullsAllowRebase                      bool
 	PullsAllowRebaseMerge                 bool
 	PullsAllowSquash                      bool
+	PullsAllowFastForwardOnly             bool
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
@@ -313,7 +314,7 @@ func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) bind
 		errs = append(errs, binding.Error{
 			FieldNames:     []string{"Channel"},
 			Classification: "",
-			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+			Message:        ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"),
 		})
 	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
@@ -598,8 +599,8 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,manually-merged
-	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
+	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged

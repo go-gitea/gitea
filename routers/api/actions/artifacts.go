@@ -63,6 +63,7 @@ package actions
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -426,7 +427,19 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 	var items []downloadArtifactResponseItem
 	for _, artifact := range artifacts {
-		downloadURL := ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+		var downloadURL string
+		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName)
+			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
+				log.Error("Error getting serve direct url: %v", err)
+			}
+			if u != nil {
+				downloadURL = u.String()
+			}
+		}
+		if downloadURL == "" {
+			downloadURL = ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+		}
 		item := downloadArtifactResponseItem{
 			Path:            util.PathJoinRel(itemPath, artifact.ArtifactPath),
 			ItemType:        "file",

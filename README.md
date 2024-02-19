@@ -89,25 +89,23 @@ The `build` target is split into two sub-targets:
 
 Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
-Parallelism (`make -j <num>`) is not supported.
-
 More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
     ./gitea web
 
-NOTE: If you're interested in using our APIs, we have experimental
-support with [documentation](https://try.gitea.io/api/swagger).
+> [!NOTE]
+> If you're interested in using our APIs, we have experimental support with [documentation](https://try.gitea.io/api/swagger).
 
 ## Contributing
 
 Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
-NOTES:
-
-1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> [!NOTE]
+>
+> 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
+> 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
 ## Translating
 
