@@ -28,7 +28,7 @@ export function initRepoMigration() {
   const cloneAddr = document.getElementById('clone_addr');
   cloneAddr?.addEventListener('change', () => {
     const repoName = document.getElementById('repo_name');
-    if (cloneAddr.value.length > 0 && repoName?.value.length === 0) { // Only modify if repo_name input is blank
+    if (cloneAddr.value && !repoName?.value) { // Only modify if repo_name input is blank
       repoName.value = cloneAddr.value.match(/^(.*\/)?((.+?)(\.git)?)$/)[3];
     }
   });
