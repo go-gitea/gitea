@@ -5,17 +5,25 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Repository interface {
 	GetName() string
 	GetOwnerName() string
+}
+
+func fullName(repo Repository) string {
+	return repo.GetOwnerName() + "/" + repo.GetName()
 }
 
 func repoPath(repo Repository) string {
@@ -100,4 +108,43 @@ func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Rep
 
 	gitRepo, err := git.OpenRepository(ctx, path)
 	return gitRepo, gitRepo, err
+}
+
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
+
+func RenameRepository(ctx context.Context, repo Repository, newName string) error {
+	newRepoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(newName)+".git")
+	if err := util.Rename(repoPath(repo), newRepoPath); err != nil {
+		return fmt.Errorf("rename repository directory: %w", err)
+	}
+	return nil
+}
+
+func RenameWikiRepository(ctx context.Context, repo Repository, newName string) error {
+	newWikiRepoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(newName)+".wiki.git")
+	if err := util.Rename(wikiPath(repo), newWikiRepoPath); err != nil {
+		return fmt.Errorf("rename repository wiki directory: %w", err)
+	}
+	return nil
+}
+
+func DeleteRepository(ctx context.Context, repo Repository) error {
+	return util.RemoveAll(repoPath(repo))
+}
+
+func ForkRepository(ctx context.Context, baseRepo, targetRepo Repository, singleBranch string) error {
+	cloneCmd := git.NewCommand(ctx, "clone", "--bare")
+	if singleBranch != "" {
+		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(singleBranch)
+	}
+
+	if stdout, _, err := cloneCmd.AddDynamicArguments(repoPath(baseRepo), repoPath(targetRepo)).
+		SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", fullName(baseRepo), fullName(targetRepo))).
+		RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
+		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", targetRepo, baseRepo, stdout, err)
+		return fmt.Errorf("git clone: %w", err)
+	}
+	return nil
 }

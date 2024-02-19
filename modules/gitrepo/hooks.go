@@ -1,9 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repository
+package gitrepo
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -108,9 +109,14 @@ done
 }
 
 // CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(repoPath string) (err error) {
+func CreateDelegateHooks(ctx context.Context, repo Repository, iswiki bool) (err error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
-	hookDir := filepath.Join(repoPath, "hooks")
+	var hookDir string
+	if iswiki {
+		hookDir = filepath.Join(wikiPath(repo), "hooks")
+	} else {
+		hookDir = filepath.Join(repoPath(repo), "hooks")
+	}
 
 	for i, hookName := range hookNames {
 		oldHookPath := filepath.Join(hookDir, hookName)
@@ -172,10 +178,15 @@ func ensureExecutable(filename string) error {
 }
 
 // CheckDelegateHooks checks the hooks scripts for the repo
-func CheckDelegateHooks(repoPath string) ([]string, error) {
+func CheckDelegateHooks(ctx context.Context, repo Repository, isWiki bool) ([]string, error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
 
-	hookDir := filepath.Join(repoPath, "hooks")
+	var hookDir string
+	if isWiki {
+		hookDir = filepath.Join(wikiPath(repo), "hooks")
+	} else {
+		hookDir = filepath.Join(repoPath(repo), "hooks")
+	}
 	results := make([]string, 0, 10)
 
 	for i, hookName := range hookNames {

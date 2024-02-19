@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
 )
@@ -131,7 +130,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
 		var err error
-		divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
+		divergence, err = gitrepo.CountDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
 		if err != nil {
 			log.Error("CountDivergingCommits: %v", err)
 		}

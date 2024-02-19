@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/avatars"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -43,7 +44,7 @@ func NewPushCommits() *PushCommits {
 }
 
 // toAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
-func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.User, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
+func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.User, repo *repo_model.Repository, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
 	var err error
 	authorUsername := ""
 	author, ok := emailUsers[commit.AuthorEmail]
@@ -70,7 +71,7 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[st
 		committerUsername = committer.Name
 	}
 
-	fileStatus, err := git.GetCommitFileStatus(ctx, repoPath, commit.Sha1)
+	fileStatus, err := git.GetCommitFileStatus(ctx, repo.RepoPath(), commit.Sha1)
 	if err != nil {
 		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %w", commit.Sha1, err)
 	}
@@ -98,14 +99,14 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[st
 
 // ToAPIPayloadCommits converts a PushCommits object to api.PayloadCommit format.
 // It returns all converted commits and, if provided, the head commit or an error otherwise.
-func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
+func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repo *repo_model.Repository, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 	var headCommit *api.PayloadCommit
 
 	emailUsers := make(map[string]*user_model.User)
 
 	for i, commit := range pc.Commits {
-		apiCommit, err := pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, commit)
+		apiCommit, err := pc.toAPIPayloadCommit(ctx, emailUsers, repo, repoLink, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -117,7 +118,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 	}
 	if pc.HeadCommit != nil && headCommit == nil {
 		var err error
-		headCommit, err = pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, pc.HeadCommit)
+		headCommit, err = pc.toAPIPayloadCommit(ctx, emailUsers, repo, repoLink, pc.HeadCommit)
 		if err != nil {
 			return nil, nil, err
 		}

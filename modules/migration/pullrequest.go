@@ -45,7 +45,7 @@ func (p *PullRequest) GetContext() DownloaderContext { return p.Context }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository
 func (p *PullRequest) IsForkPullRequest() bool {
-	return p.Head.RepoPath() != p.Base.RepoPath()
+	return p.Head.RepoFullName() != p.Base.RepoFullName()
 }
 
 // GetGitRefName returns pull request relative path to head
@@ -62,8 +62,8 @@ type PullRequestBranch struct {
 	OwnerName string `yaml:"owner_name"`
 }
 
-// RepoPath returns pull request repo path
-func (p PullRequestBranch) RepoPath() string {
+// RepoFullName returns pull request repo full name
+func (p PullRequestBranch) RepoFullName() string {
 	return fmt.Sprintf("%s/%s", p.OwnerName, p.RepoName)
 }
 

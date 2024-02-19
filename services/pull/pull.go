@@ -329,7 +329,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
-					objectFormat, _ := git.GetObjectFormatOfRepo(ctx, pr.BaseRepo.RepoPath())
+					objectFormat, _ := gitrepo.GetObjectFormatOfRepo(ctx, pr.BaseRepo)
 					if newCommitID != "" && newCommitID != objectFormat.EmptyObjectID().String() {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
@@ -380,7 +380,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		for _, pr := range prs {
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
-				if git_model.IsErrBranchNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
 					log.Error("GetDiverging: %v", err)

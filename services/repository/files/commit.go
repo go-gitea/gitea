@@ -21,18 +21,16 @@ import (
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
-	repoPath := repo.RepoPath()
-
 	// confirm that commit is exist
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
+		return fmt.Errorf("OpenRepository[%s]: %w", gitrepo.RepoGitURL(repo), err)
 	}
 	defer closer.Close()
 
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
-		return fmt.Errorf("GetObjectFormat[%s]: %w", repoPath, err)
+		return fmt.Errorf("GetObjectFormat[%s]: %w", gitrepo.RepoGitURL(repo), err)
 	}
 	commit, err := gitRepo.GetCommit(sha)
 	if err != nil {
@@ -60,15 +58,6 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 
 	return nil
-}
-
-// CountDivergingCommits determines how many commits a branch is ahead or behind the repository's base branch
-func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, branch string) (*git.DivergeObject, error) {
-	divergence, err := git.GetDivergingCommits(ctx, repo.RepoPath(), repo.DefaultBranch, branch)
-	if err != nil {
-		return nil, err
-	}
-	return &divergence, nil
 }
 
 // GetPayloadCommitVerification returns the verification information of a commit

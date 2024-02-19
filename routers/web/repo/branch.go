@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -147,7 +148,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
+	objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository)
 	if err != nil {
 		log.Error("RestoreBranch: CreateBranch: %w", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))

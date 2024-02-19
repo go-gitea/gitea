@@ -49,10 +49,10 @@ func (db *DBIndexer) Index(id int64) error {
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) || git.IsErrNotExist(err) || setting.IsInTesting {
-			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
+			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, gitrepo.RepoGitURL(repo))
 			return nil
 		}
-		log.Error("Unable to get commit ID for default branch %s in %s. Error: %v", repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to get commit ID for default branch %s in %s. Error: %v", repo.DefaultBranch, gitrepo.RepoGitURL(repo), err)
 		return err
 	}
 
@@ -65,17 +65,17 @@ func (db *DBIndexer) Index(id int64) error {
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
 		if !setting.IsInTesting {
-			log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+			log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, gitrepo.RepoGitURL(repo), err)
 		}
 		return err
 	}
 	err = repo_model.UpdateLanguageStats(ctx, repo, commitID, stats)
 	if err != nil {
-		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, gitrepo.RepoGitURL(repo), err)
 		return err
 	}
 
-	log.Debug("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
+	log.Debug("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, gitrepo.RepoGitURL(repo), len(stats))
 	return nil
 }
 

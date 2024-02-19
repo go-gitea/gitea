@@ -479,7 +479,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
 			}
-			objectFormat, err := git.GetObjectFormatOfRepo(ctx, m.Repo.RepoPath())
+			objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, m.Repo)
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetHashTypeOfRepo: %v", m.Repo, err)
 			}
