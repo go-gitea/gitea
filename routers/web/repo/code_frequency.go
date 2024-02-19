@@ -18,7 +18,7 @@ const (
 
 // CodeFrequency renders the page to show repository code frequency
 func CodeFrequency(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.code_frequency")
+	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.code_frequency")
 
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsCodeFrequency"] = true
