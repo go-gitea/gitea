@@ -39,7 +39,7 @@ func TaskStatus(ctx *context.Context) {
 				Args:   []any{task.Message},
 			}
 		}
-		message = ctx.Tr(translatableMessage.Format, translatableMessage.Args...)
+		message = ctx.Locale.TrString(translatableMessage.Format, translatableMessage.Args...)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{

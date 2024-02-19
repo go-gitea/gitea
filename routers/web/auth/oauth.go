@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -578,16 +579,8 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown", nil)
-	if err != nil {
-		ctx.ServerError("unable to find template", err)
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Data["SigningKey"] = oauth2.DefaultSigningKey
-	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
-		ctx.ServerError("unable to execute template", err)
-	}
+	ctx.JSONTemplate("user/auth/oidc_wellknown")
 }
 
 // OIDCKeys generates the JSON Web Key Set
@@ -970,8 +963,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("CreateUser", err)
 				return
 			}
+			uname, err := getUserName(&gothUser)
+			if err != nil {
+				ctx.ServerError("UserSignIn", err)
+				return
+			}
 			u = &user_model.User{
-				Name:        getUserName(&gothUser),
+				Name:        uname,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				LoginType:   auth.OAuth2,
@@ -985,7 +983,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			source := authSource.Cfg.(*oauth2.Source)
 
-			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
+			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
+			u.IsAdmin = isAdmin.ValueOrDefault(false)
+			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
@@ -1049,19 +1049,17 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) bool {
+func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin, isRestricted optional.Option[bool]) {
 	groups := getClaimedGroups(source, gothUser)
 
-	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
-
 	if source.AdminGroup != "" {
-		u.IsAdmin = groups.Contains(source.AdminGroup)
+		isAdmin = optional.Some(groups.Contains(source.AdminGroup))
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = groups.Contains(source.RestrictedGroup)
+		isRestricted = optional.Some(groups.Contains(source.RestrictedGroup))
 	}
 
-	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
+	return isAdmin, isRestricted
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
@@ -1128,18 +1126,12 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
 
-		// Register last login
-		u.SetLastLogin()
-
-		// Update GroupClaims
-		changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-		cols := []string{"last_login_unix"}
-		if changed {
-			cols = append(cols, "is_admin", "is_restricted")
+		opts := &user_service.UpdateOptions{
+			SetLastLogin: true,
 		}
-
-		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 
@@ -1172,10 +1164,11 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-	if changed {
-		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+	opts := &user_service.UpdateOptions{}
+	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 	}

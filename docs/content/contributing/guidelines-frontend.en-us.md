@@ -34,7 +34,7 @@ The source files can be found in the following directories:
 
 We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) and [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 
-### Gitea specific guidelines:
+### Gitea specific guidelines
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case, it's preferred to contain 2-3 feature related keywords.
@@ -48,11 +48,12 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
 11. Custom event names are recommended to use `ce-` prefix.
 12. Gitea's tailwind-style CSS classes use `gt-` prefix (`gt-relative`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
+13. Avoid inline scripts & styles as much as possible, it's recommended to put JS code into JS files and use CSS classes. If inline scripts & styles are unavoidable, explain the reason why it can't be avoided.
 
 ### Accessibility / ARIA
 
 In history, Gitea heavily uses Fomantic UI which is not an accessibility-friendly framework.
-Gitea uses some patches to make Fomantic UI more accessible (see the `aria.js` and `aria.md`),
+Gitea uses some patches to make Fomantic UI more accessible (see `aria.md` and related JS files),
 but there are still many problems which need a lot of work and time to fix.
 
 ### Framework Usage
@@ -64,14 +65,17 @@ Recommended implementations:
 
 * Vue + Vanilla JS
 * Fomantic-UI (jQuery)
+* htmx (partial page reloads for otherwise static components)
 * Vanilla JS
 
 Discouraged implementations:
 
 * Vue + Fomantic-UI (jQuery)
 * jQuery + Vanilla JS
+* htmx + any other framework which requires heavy JS code, or unnecessary features like htmx scripting (`hx-on`)
 
 To make UI consistent, Vue components can use Fomantic-UI CSS classes.
+We use htmx for simple interactions. You can see an example for simple interactions where htmx should be used in this [PR](https://github.com/go-gitea/gitea/pull/28908). Do not use htmx if you require more advanced reactivity, use another framework (Vue/Vanilla JS).
 Although mixing different frameworks is discouraged,
 it should also work if the mixing is necessary and the code is well-designed and maintainable.
 

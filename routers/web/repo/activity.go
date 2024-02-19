@@ -22,6 +22,8 @@ func Activity(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
 
+	ctx.Data["PageIsPulse"] = true
+
 	ctx.Data["Period"] = ctx.Params("period")
 
 	timeUntil := time.Now()
