@@ -1498,12 +1498,6 @@
   background: var(--color-body);
 }
 
-@media (max-width: 991.98px) {
-  .repository .diff-detail-box {
-    flex-direction: row;
-  }
-}
-
 @media (max-width: 480px) {
   .repository .diff-detail-box {
     flex-wrap: wrap;
@@ -1528,7 +1522,7 @@
   color: var(--color-red);
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 800px) {
   .repository .diff-detail-box .diff-detail-stats {
     display: none !important;
   }
@@ -1538,7 +1532,6 @@
   display: flex;
   align-items: center;
   gap: 0.25em;
-  flex-wrap: wrap;
   justify-content: end;
 }
 
@@ -1546,15 +1539,6 @@
 .diff-detail-actions .button {
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-@media (max-width: 480px) {
-  .repository .diff-detail-box .diff-detail-actions {
-    padding-top: 0.25rem;
-  }
-  .repository .diff-detail-box .diff-detail-actions .ui.button:not(.btn-submit) {
-    padding: 0 0.5rem;
-  }
 }
 
 .repository .diff-detail-box span.status {

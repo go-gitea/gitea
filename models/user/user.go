@@ -835,7 +835,7 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, "", 0}
+		return nil, ErrUserNotExist{UID: id}
 	}
 	return u, nil
 }
@@ -885,14 +885,14 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 // GetUserByNameCtx returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
 	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
 }
@@ -1033,7 +1033,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, email, 0}
+		return nil, ErrUserNotExist{Name: email}
 	}
 
 	email = strings.ToLower(email)
@@ -1060,7 +1060,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		}
 	}
 
-	return nil, ErrUserNotExist{0, email, 0}
+	return nil, ErrUserNotExist{Name: email}
 }
 
 // GetUser checks if a user already exists
@@ -1071,7 +1071,7 @@ func GetUser(ctx context.Context, user *User) (bool, error) {
 // GetUserByOpenID returns the user object by given OpenID if exists.
 func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 	if len(uri) == 0 {
-		return nil, ErrUserNotExist{0, uri, 0}
+		return nil, ErrUserNotExist{Name: uri}
 	}
 
 	uri, err := openid.Normalize(uri)
@@ -1091,7 +1091,7 @@ func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 		return GetUserByID(ctx, oid.UID)
 	}
 
-	return nil, ErrUserNotExist{0, uri, 0}
+	return nil, ErrUserNotExist{Name: uri}
 }
 
 // GetAdminUser returns the first administrator

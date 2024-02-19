@@ -28,13 +28,14 @@ import (
 )
 
 const (
-	tplDashboard   base.TplName = "admin/dashboard"
-	tplSelfCheck   base.TplName = "admin/self_check"
-	tplCron        base.TplName = "admin/cron"
-	tplQueue       base.TplName = "admin/queue"
-	tplStacktrace  base.TplName = "admin/stacktrace"
-	tplQueueManage base.TplName = "admin/queue_manage"
-	tplStats       base.TplName = "admin/stats"
+	tplDashboard    base.TplName = "admin/dashboard"
+	tplSystemStatus base.TplName = "admin/system_status"
+	tplSelfCheck    base.TplName = "admin/self_check"
+	tplCron         base.TplName = "admin/cron"
+	tplQueue        base.TplName = "admin/queue"
+	tplStacktrace   base.TplName = "admin/stacktrace"
+	tplQueueManage  base.TplName = "admin/queue_manage"
+	tplStats        base.TplName = "admin/stats"
 )
 
 var sysStatus struct {
@@ -72,7 +73,7 @@ var sysStatus struct {
 
 	// Garbage collector statistics.
 	NextGC       string // next run in HeapAlloc time (bytes)
-	LastGC       string // last run in absolute time (ns)
+	LastGCTime   string // last run time
 	PauseTotalNs string
 	PauseNs      string // circular buffer of recent GC pause times, most recent at [(NumGC+255)%256]
 	NumGC        uint32
@@ -110,7 +111,7 @@ func updateSystemStatus() {
 	sysStatus.OtherSys = base.FileSize(int64(m.OtherSys))
 
 	sysStatus.NextGC = base.FileSize(int64(m.NextGC))
-	sysStatus.LastGC = fmt.Sprintf("%.1fs", float64(time.Now().UnixNano()-int64(m.LastGC))/1000/1000/1000)
+	sysStatus.LastGCTime = time.Unix(0, int64(m.LastGC)).Format(time.RFC3339)
 	sysStatus.PauseTotalNs = fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1000/1000/1000)
 	sysStatus.PauseNs = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC+255)%256])/1000/1000/1000)
 	sysStatus.NumGC = m.NumGC
@@ -132,12 +133,17 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
-	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
 	prepareDeprecatedWarningsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
+}
+
+func SystemStatus(ctx *context.Context) {
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
+	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
 
 // DashboardPost run an admin operation
