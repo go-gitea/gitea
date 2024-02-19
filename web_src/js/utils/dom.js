@@ -237,10 +237,5 @@ export function initSubmitEventPolyfill() {
 export function isVisible(element) {
   if (!element) return false;
 
-  const style = window.getComputedStyle(element);
-  return style.width !== '0' &&
-           style.height !== '0' &&
-           style.opacity !== '0' &&
-           style.display !== 'none' &&
-           style.visibility !== 'hidden';
+  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
