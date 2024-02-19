@@ -229,7 +229,7 @@ export function initSubmitEventPolyfill() {
 }
 
 /**
- * Check if an element is visible.
+ * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
  * Note: This function doesn't account for all possible visibility scenarios.
  * @param {HTMLElement} element The element to check.
  * @returns {boolean} True if the element is visible.
