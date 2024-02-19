@@ -401,7 +401,7 @@ func (a *Action) LoadIssue(ctx context.Context) error {
 // GetIssueTitle returns the title of first issue associated with the action.
 func (a *Action) GetIssueTitle(ctx context.Context) string {
 	if err := a.LoadIssue(ctx); err != nil {
-		log.Error("GetIssueByIndex: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return "<500 when get issue>"
 	}
 	if a.Issue == nil {
@@ -410,18 +410,16 @@ func (a *Action) GetIssueTitle(ctx context.Context) string {
 	return a.Issue.Title
 }
 
-// GetIssueContent returns the content of first issue associated with
-// this action.
+// GetIssueContent returns the content of first issue associated with this action.
 func (a *Action) GetIssueContent(ctx context.Context) string {
-	if index := a.getIssueIndex(); index > 0 {
-		issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
-		if err != nil {
-			log.Error("GetIssueByIndex: %v", err)
-			return "500 when get issue"
-		}
-		return issue.Content
+	if err := a.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return "<500 when get issue>"
 	}
-	return ""
+	if a.Issue == nil {
+		return "<Content not found>"
+	}
+	return a.Issue.Content
 }
 
 // GetFeedsOptions options for retrieving feeds
