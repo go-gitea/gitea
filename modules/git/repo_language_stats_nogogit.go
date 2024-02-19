@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -90,25 +91,47 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			continue
 		}
 
-		notVendored := false
-		notGenerated := false
+		isVendored := optional.None[bool]()
+		isGenerated := optional.None[bool]()
+		isDocumentation := optional.None[bool]()
+		isDetectable := optional.None[bool]()
 
 		if checker != nil {
 			attrs, err := checker.CheckPath(f.Name())
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						continue
-					}
-					notVendored = vendored == "false"
+				isVendored = linguistToBool(attrs, "linguist-vendored")
+				if isVendored.ValueOrDefault(false) {
+					continue
 				}
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						continue
-					}
-					notGenerated = generated == "false"
+
+				isGenerated = linguistToBool(attrs, "linguist-generated")
+				if isGenerated.ValueOrDefault(false) {
+					continue
 				}
-				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+
+				isDocumentation = linguistToBool(attrs, "linguist-documentation")
+				if isDocumentation.ValueOrDefault(false) {
+					continue
+				}
+
+				isDetectable = linguistToBool(attrs, "linguist-detectable")
+				if !isDetectable.ValueOrDefault(true) {
+					continue
+				}
+
+				hasLanguage := linguistToString(attrs, "linguist-language")
+				if hasLanguage.Value() == "" {
+					hasLanguage = linguistToString(attrs, "gitlab-language")
+					if hasLanguage.Has() {
+						language := hasLanguage.Value()
+						if idx := strings.IndexByte(language, '?'); idx >= 0 {
+							hasLanguage = optional.Some(language[:idx])
+						}
+					}
+				}
+				if hasLanguage.Value() != "" {
+					language := hasLanguage.Value()
+
 					// group languages, such as Pug -> HTML; SCSS -> CSS
 					group := enry.GetLanguageGroup(language)
 					if len(group) != 0 {
@@ -118,29 +141,14 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					// this language will always be added to the size
 					sizes[language] += f.Size()
 					continue
-				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					// strip off a ? if present
-					if idx := strings.IndexByte(language, '?'); idx >= 0 {
-						language = language[:idx]
-					}
-					if len(language) != 0 {
-						// group languages, such as Pug -> HTML; SCSS -> CSS
-						group := enry.GetLanguageGroup(language)
-						if len(group) != 0 {
-							language = group
-						}
-
-						// this language will always be added to the size
-						sizes[language] += f.Size()
-						continue
-					}
 				}
-
 			}
 		}
 
-		if (!notVendored && analyze.IsVendor(f.Name())) || enry.IsDotFile(f.Name()) ||
-			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
+		if (!isVendored.Has() && analyze.IsVendor(f.Name())) ||
+			enry.IsDotFile(f.Name()) ||
+			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
+			enry.IsConfiguration(f.Name()) {
 			continue
 		}
 
@@ -173,7 +181,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				return nil, err
 			}
 		}
-		if !notGenerated && enry.IsGenerated(f.Name(), content) {
+		if !isGenerated.Has() && enry.IsGenerated(f.Name(), content) {
 			continue
 		}
 
@@ -196,13 +204,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			included = langType == enry.Programming || langType == enry.Markup
 			includedLanguage[language] = included
 		}
-		if included {
+		if included || isDetectable.ValueOrDefault(false) {
 			sizes[language] += f.Size()
 		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
 			firstExcludedLanguage = language
 			firstExcludedLanguageSize += f.Size()
 		}
-		continue
 	}
 
 	// If there are no included languages add the first excluded language
