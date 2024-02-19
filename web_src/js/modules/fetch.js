@@ -8,19 +8,17 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
-export function request(url, {method = 'GET', headers = {}, data, body, ...other} = {}) {
-  let contentType;
-  if (!body) {
-    if (data instanceof FormData || data instanceof URLSearchParams) {
-      body = data;
-    } else if (isObject(data) || Array.isArray(data)) {
-      contentType = 'application/json';
-      body = JSON.stringify(data);
-    }
+export function request(url, {method = 'GET', data, headers = {}, ...other} = {}) {
+  let body, contentType;
+  if (data instanceof FormData || data instanceof URLSearchParams) {
+    body = data;
+  } else if (isObject(data) || Array.isArray(data)) {
+    contentType = 'application/json';
+    body = JSON.stringify(data);
   }
 
   const headersMerged = new Headers({
-    ...(!safeMethods.has(method.toUpperCase()) && {'x-csrf-token': csrfToken}),
+    ...(!safeMethods.has(method) && {'x-csrf-token': csrfToken}),
     ...(contentType && {'content-type': contentType}),
   });
 
@@ -31,8 +29,8 @@ export function request(url, {method = 'GET', headers = {}, data, body, ...other
   return fetch(url, {
     method,
     headers: headersMerged,
-    ...(body && {body}),
     ...other,
+    ...(body && {body}),
   });
 }
 

@@ -40,7 +40,7 @@ export function initCommonIssueListQuickGoto() {
   $form.on('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
     let doQuickGoto = !isElemHidden($goto);
-    const submitter = submitEventSubmitter(e.originalEvent);
+    const submitter = submitEventSubmitter(e);
     if (submitter !== $form[0] && submitter !== $input[0] && submitter !== $goto[0]) doQuickGoto = false;
     if (!doQuickGoto) return;
 
