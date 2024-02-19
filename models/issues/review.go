@@ -322,6 +322,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			}
 		}
 		// make sure if the created review gets dismissed no old review surface
+		// other types can be ignored, as they don't affect branch protection
 		if opts.Type == ReviewTypeApprove || opts.Type == ReviewTypeReject {
 			if _, err := sess.Where(reviewCond.And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
 				Cols("dismissed").Update(&Review{Dismissed: true}); err != nil {

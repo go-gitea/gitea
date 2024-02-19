@@ -332,14 +332,24 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 	session8 := loginUser(t, user8.LoginName)
 	token8 := getTokenForLoggedInUser(t, session8, auth_model.AccessTokenScopeWriteRepository)
 
-	// user2 request user8 again
+	// user2 request user8
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8"},
+		Reviewers: []string{user8.LoginName},
 	}).AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusCreated)
 
 	reviewsCountCheck(t,
 		"check we have only one review request",
+		pullIssue.ID, user8.ID, 0, 1, 1, false)
+
+	// user2 request user8 again, it is expected to be ignored
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{user8.LoginName},
+	}).AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusCreated)
+
+	reviewsCountCheck(t,
+		"check we have only one review request, even after re-request it again",
 		pullIssue.ID, user8.ID, 0, 1, 1, false)
 
 	// user8 reviews it as accept
@@ -360,7 +370,7 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 
 	// user2 request user8 again
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8"},
+		Reviewers: []string{user8.LoginName},
 	}).AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusCreated)
 
