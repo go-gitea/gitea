@@ -68,7 +68,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.RuleName
+	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
 
 	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
 	if err != nil {
@@ -228,6 +228,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
 	protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
 	protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
+	protectBranch.IgnoreStaleApprovals = f.IgnoreStaleApprovals
 	protectBranch.RequireSignedCommits = f.RequireSignedCommits
 	protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns

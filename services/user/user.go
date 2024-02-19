@@ -41,10 +41,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	if newUserName == u.Name {
-		return user_model.ErrUsernameNotChanged{
-			UID:  u.ID,
-			Name: u.Name,
-		}
+		return nil
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
@@ -127,6 +124,10 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
+	if user_model.IsLastAdminUser(ctx, u) {
+		return models.ErrDeleteLastAdminUser{UID: u.ID}
 	}
 
 	if purge {
@@ -295,7 +296,8 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		}
 		if err := DeleteUser(ctx, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) ||
+				models.IsErrUserOwnPackages(err) || models.IsErrDeleteLastAdminUser(err) {
 				continue
 			}
 			return err

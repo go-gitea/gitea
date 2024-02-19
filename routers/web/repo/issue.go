@@ -237,10 +237,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	isShowClosed := ctx.FormString("state") == "closed"
-	// if open issues are zero and close don't, use closed as default
+	var isShowClosed util.OptionalBool
+	switch ctx.FormString("state") {
+	case "closed":
+		isShowClosed = util.OptionalBoolTrue
+	case "all":
+		isShowClosed = util.OptionalBoolNone
+	default:
+		isShowClosed = util.OptionalBoolFalse
+	}
+	// if there are closed issues and no open issues, default to showing all issues
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
-		isShowClosed = true
+		isShowClosed = util.OptionalBoolNone
 	}
 
 	if repo.IsTimetrackerEnabled(ctx) {
@@ -260,10 +268,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var total int
-	if !isShowClosed {
-		total = int(issueStats.OpenCount)
-	} else {
+	switch isShowClosed {
+	case util.OptionalBoolTrue:
 		total = int(issueStats.ClosedCount)
+	case util.OptionalBoolNone:
+		total = int(issueStats.OpenCount + issueStats.ClosedCount)
+	default:
+		total = int(issueStats.OpenCount)
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
@@ -282,7 +293,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
-			IsClosed:          util.OptionalBoolOf(isShowClosed),
+			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
@@ -428,6 +439,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
 	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
+	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
 	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
 		mentionedID, projectID, assigneeID, posterID, archived)
@@ -442,11 +456,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
-	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
-	if isShowClosed {
+	switch isShowClosed {
+	case util.OptionalBoolTrue:
 		ctx.Data["State"] = "closed"
-	} else {
+	case util.OptionalBoolNone:
+		ctx.Data["State"] = "all"
+	default:
 		ctx.Data["State"] = "open"
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
@@ -977,17 +993,17 @@ func NewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	for k, v := range errs {
-		templateErrs[k] = v
+		ret.TemplateErrors[k] = v
 	}
 	if ctx.Written() {
 		return
 	}
 
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+	if len(ret.TemplateErrors) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
@@ -1020,7 +1036,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
-		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
+		flashError = ctx.Locale.TrString("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
 }
@@ -1030,11 +1046,11 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	issueTemplates, errs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	ctx.Data["IssueTemplates"] = issueTemplates
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["IssueTemplates"] = ret.IssueTemplates
 
-	if len(errs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, errs), true)
+	if len(ret.TemplateErrors) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
 	if !issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo) {
@@ -1436,12 +1452,13 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1601,10 +1618,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1636,7 +1655,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 			ghostMilestone := &issues_model.Milestone{
 				ID:   -1,
-				Name: ctx.Tr("repo.issues.deleted_milestone"),
+				Name: ctx.Locale.TrString("repo.issues.deleted_milestone"),
 			}
 			if comment.OldMilestoneID > 0 && comment.OldMilestone == nil {
 				comment.OldMilestone = ghostMilestone
@@ -1653,7 +1672,7 @@ func ViewIssue(ctx *context.Context) {
 
 			ghostProject := &project_model.Project{
 				ID:    -1,
-				Title: ctx.Tr("repo.issues.deleted_project"),
+				Title: ctx.Locale.TrString("repo.issues.deleted_project"),
 			}
 
 			if comment.OldProjectID > 0 && comment.OldProject == nil {
@@ -1678,10 +1697,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1841,6 +1862,8 @@ func ViewIssue(ctx *context.Context) {
 				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				mergeStyle = repo_model.MergeStyleSquash
+			} else if prConfig.AllowFastForwardOnly {
+				mergeStyle = repo_model.MergeStyleFastForwardOnly
 			} else if prConfig.AllowManualMerge {
 				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}
@@ -1962,7 +1985,7 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["BlockingDependencies"], ctx.Data["BlockingByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 	if ctx.Written() {
 		return
 	}
@@ -2023,38 +2046,34 @@ func ViewIssue(ctx *context.Context) {
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var (
-		lastRepoID int64
-		lastPerm   access_model.Permission
-	)
-	for i, blocker := range blockers {
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+	for _, blocker := range blockers {
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil, nil
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil, nil
 			}
-			lastRepoID = blocker.Repository.ID
+			repoPerms[blocker.RepoID] = perm
 		}
-
-		// check permission
-		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
-			blockers[len(notPermitted)], blockers[i] = blocker, blockers[len(notPermitted)]
-			notPermitted = blockers[:len(notPermitted)+1]
+		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+			canRead = append(canRead, blocker)
+		} else {
+			notPermitted = append(notPermitted, blocker)
 		}
 	}
-	blockers = blockers[len(notPermitted):]
-	sortDependencyInfo(blockers)
+	sortDependencyInfo(canRead)
 	sortDependencyInfo(notPermitted)
-
-	return blockers, notPermitted
+	return canRead, notPermitted
 }
 
 func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {
@@ -2238,10 +2257,12 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -3147,10 +3168,12 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

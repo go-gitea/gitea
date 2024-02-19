@@ -254,7 +254,7 @@
 <!-- Branch filter -->
 <div class="field">
 	<label for="branch_filter">{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
-	<input name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
+	<input id="branch_filter" name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
 	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
 </div>
 
@@ -263,7 +263,7 @@
 	<label for="authorization_header">{{ctx.Locale.Tr "repo.settings.authorization_header"}}</label>
 	<input id="authorization_header" name="authorization_header" type="text" value="{{.Webhook.HeaderAuthorization}}"{{if eq .HookType "matrix"}} placeholder="Bearer $access_token" required{{end}}>
 	{{if ne .HookType "matrix"}}{{/* Matrix doesn't make the authorization optional but it is implied by the help string, should be changed.*/}}
-		<span class="help">{{ctx.Locale.Tr "repo.settings.authorization_header_desc" "<code>Bearer token123456</code>, <code>Basic YWxhZGRpbjpvcGVuc2VzYW1l</code>" | Str2html}}</span>
+		<span class="help">{{ctx.Locale.Tr "repo.settings.authorization_header_desc" ("<code>Bearer token123456</code>, <code>Basic YWxhZGRpbjpvcGVuc2VzYW1l</code>" | Safe)}}</span>
 	{{end}}
 </div>
 

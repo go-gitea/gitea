@@ -49,6 +49,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
 
@@ -158,7 +159,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 	return "", readmeFile, nil
 }
 
-func renderDirectory(ctx *context.Context, treeLink string) {
+func renderDirectory(ctx *context.Context) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
@@ -175,7 +176,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	renderReadmeFile(ctx, subfolder, readmeFile, treeLink)
+	renderReadmeFile(ctx, subfolder, readmeFile)
 }
 
 // localizedExtensions prepends the provided language code with and without a
@@ -259,7 +260,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte,
 	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
 }
 
-func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry, readmeTreelink string) {
+func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry) {
 	target := readmeFile
 	if readmeFile != nil && readmeFile.IsLink() {
 		target, _ = readmeFile.FollowLinks()
@@ -303,7 +304,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		return
 	}
 
-	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 	if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 		ctx.Data["IsMarkup"] = true
@@ -312,9 +313,13 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			URLPrefix:    path.Join(readmeTreelink, subfolder),
-			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-			GitRepo:      ctx.Repo.GitRepo,
+			Links: markup.Links{
+				Base:       ctx.Repo.RepoLink,
+				BranchPath: ctx.Repo.BranchNameSubURL(),
+				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
+			},
+			Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
@@ -337,7 +342,36 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 	}
 }
 
-func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
+func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
+	// Show latest commit info of repository in table header,
+	// or of directory if not in root directory.
+	ctx.Data["LatestCommit"] = latestCommit
+	if latestCommit != nil {
+
+		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+		}, nil); err != nil {
+			ctx.ServerError("CalculateTrustStatus", err)
+			return false
+		}
+		ctx.Data["LatestCommitVerification"] = verification
+		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
+
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
+
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
+
+	return true
+}
+
+func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
@@ -351,7 +385,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return
+	}
+
+	if !loadLatestCommitData(ctx, commit) {
+		return
+	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
@@ -449,7 +493,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		shouldRenderSource := ctx.FormString("display") == "source"
 		readmeExist := util.IsReadmeFileName(blob.Name())
@@ -479,9 +523,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				Type:         markupType,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        metas,
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   metas,
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -506,31 +554,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["NumLinesSet"] = true
 
-			language := ""
-
-			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
-			if err == nil {
-				defer deleteTemporaryFile()
-
-				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
-					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
-					Filenames:  []string{ctx.Repo.TreePath},
-					IndexFile:  indexFilename,
-					WorkTree:   worktree,
-				})
-				if err != nil {
-					log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-				}
-
-				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
-				if language == "" || language == "unspecified" {
-					language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
-				}
-				if language == "unspecified" {
-					language = ""
-				}
+			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			if err != nil {
+				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 			}
+
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
@@ -585,13 +613,32 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
+			}
+		}
+	}
+
+	if ctx.Repo.GitRepo != nil {
+		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx.Repo.CommitID)
+		if checker != nil {
+			defer deferable()
+			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
+			if err == nil {
+				vendored, has := attrs["linguist-vendored"]
+				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
+
+				generated, has := attrs["linguist-generated"]
+				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
 			}
 		}
 	}
@@ -692,7 +739,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
@@ -834,29 +881,8 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	// Show latest commit info of repository in table header,
-	// or of directory if not in root directory.
-	ctx.Data["LatestCommit"] = latestCommit
-	if latestCommit != nil {
-
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
-
-		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
-		}, nil); err != nil {
-			ctx.ServerError("CalculateTrustStatus", err)
-			return nil
-		}
-		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
-
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		}
-
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
-		ctx.Data["LatestCommitStatuses"] = statuses
+	if !loadLatestCommitData(ctx, latestCommit) {
+		return nil
 	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
@@ -945,14 +971,6 @@ func renderCode(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = title
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
 	// Get Topics of this repo
 	renderRepoTopics(ctx)
 	if ctx.Written() {
@@ -977,9 +995,9 @@ func renderCode(ctx *context.Context) {
 	}
 
 	if entry.IsDir() {
-		renderDirectory(ctx, treeLink)
+		renderDirectory(ctx)
 	} else {
-		renderFile(ctx, entry, treeLink, rawLink)
+		renderFile(ctx, entry)
 	}
 	if ctx.Written() {
 		return
@@ -1020,6 +1038,12 @@ func renderCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Paths"] = paths
+
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	treeLink := branchLink
+	if len(ctx.Repo.TreePath) > 0 {
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	}
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink

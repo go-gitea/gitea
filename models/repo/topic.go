@@ -366,7 +366,7 @@ func syncTopicsInRepository(sess db.Engine, repoID int64) error {
 	topicNames := make([]string, 0, 25)
 	if err := sess.Table("topic").Cols("name").
 		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		Where("repo_topic.repo_id = ?", repoID).Asc("topic.name").Find(&topicNames); err != nil {
 		return err
 	}
 

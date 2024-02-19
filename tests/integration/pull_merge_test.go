@@ -25,6 +25,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -35,17 +36,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link := path.Join(user, repo, "pulls", pullnum, "merge")
-	req = NewRequestWithValues(t, "POST", link, map[string]string{
+
+	options := map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
-	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	}
+
+	if deleteBranch {
+		options["delete_branch_after_merge"] = "on"
+	}
+
+	req = NewRequestWithValues(t, "POST", link, options)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	respJSON := struct {
+		Redirect string
+	}{}
+	DecodeJSON(t, resp, &respJSON)
+
+	assert.EqualValues(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
 
 	return resp
 }
@@ -76,11 +91,11 @@ func TestPullMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
@@ -98,11 +113,11 @@ func TestPullRebase(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebase)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebase, false)
 
 		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
@@ -120,11 +135,11 @@ func TestPullRebaseMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebaseMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebaseMerge, false)
 
 		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
@@ -143,11 +158,11 @@ func TestPullSquash(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false)
 
 		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
@@ -161,11 +176,11 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 		// Check PR branch deletion
 		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
@@ -196,7 +211,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "[wip] This is a pull title")
 
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -204,7 +219,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
-		assert.Contains(t, text, translation.NewLocale("en-US").Tr("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
+		assert.Contains(t, text, translation.NewLocale("en-US").TrString("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
 		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
 	})
 }
@@ -241,7 +256,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 		assert.NoError(t, err)
 
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
@@ -334,7 +349,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
@@ -346,6 +361,90 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
+		gitRepo.Close()
+	})
+}
+
+func TestFastForwardOnlyMerge(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World 2\n")
+
+		// Use API to create a pr from update to master
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
+			Head:  "update",
+			Base:  "master",
+			Title: "create a pr that can be fast-forward-only merged",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: "user1",
+		})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerID: user1.ID,
+			Name:    "repo1",
+		})
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "update",
+			BaseBranch: "master",
+		})
+
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		assert.NoError(t, err)
+
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
+
+		assert.NoError(t, err)
+
+		gitRepo.Close()
+	})
+}
+
+func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "README.md", "Hello, World diverged\n")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World 2\n")
+
+		// Use API to create a pr from diverging to update
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
+			Head:  "diverging",
+			Base:  "master",
+			Title: "create a pr from a diverging branch",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: "user1",
+		})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerID: user1.ID,
+			Name:    "repo1",
+		})
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "diverging",
+			BaseBranch: "master",
+		})
+
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		assert.NoError(t, err)
+
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
+
+		assert.Error(t, err, "Merge should return an error due to being for a diverging branch")
+		assert.True(t, models.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
+
 		gitRepo.Close()
 	})
 }
@@ -426,5 +525,65 @@ func TestConflictChecking(t *testing.T) {
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
 		assert.False(t, conflictingPR.Mergeable(db.DefaultContext))
+	})
+}
+
+func TestPullRetargetChildOnBranchDelete(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n(Edited - TestPullRetargetOnCleanup - child PR)")
+
+		respBasePR := testPullCreate(t, session, "user2", "repo1", true, "master", "base-pr", "Base Pull Request")
+		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
+		assert.EqualValues(t, "pulls", elemBasePR[3])
+
+		respChildPR := testPullCreate(t, session, "user1", "repo1", false, "base-pr", "child-pr", "Child Pull Request")
+		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
+		assert.EqualValues(t, "pulls", elemChildPR[3])
+
+		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
+
+		// Check child PR
+		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+		assert.EqualValues(t, "master", targetBranch)
+		assert.EqualValues(t, "Open", prStatus)
+	})
+}
+
+func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n(Edited - TestPullDontRetargetChildOnWrongRepo - child PR)")
+
+		respBasePR := testPullCreate(t, session, "user1", "repo1", false, "master", "base-pr", "Base Pull Request")
+		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
+		assert.EqualValues(t, "pulls", elemBasePR[3])
+
+		respChildPR := testPullCreate(t, session, "user1", "repo1", true, "base-pr", "child-pr", "Child Pull Request")
+		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
+		assert.EqualValues(t, "pulls", elemChildPR[3])
+
+		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
+
+		// Check child PR
+		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+		assert.EqualValues(t, "base-pr", targetBranch)
+		assert.EqualValues(t, "Closed", prStatus)
 	})
 }

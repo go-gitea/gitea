@@ -3,7 +3,7 @@
 {{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor}}
-		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+		<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>
 	{{else}}
 		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}

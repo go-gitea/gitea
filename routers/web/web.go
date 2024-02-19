@@ -155,7 +155,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
-						ctx.Error(http.StatusUnauthorized, ctx.Tr("auth.must_change_password"))
+						ctx.Error(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
@@ -304,7 +304,7 @@ func registerRoutes(m *web.Route) {
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enable {
+		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -473,6 +473,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/change-password", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
+		m.Get("/passkey-endpoints", passkeyEndpoints)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -676,7 +677,10 @@ func registerRoutes(m *web.Route) {
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
 		m.Get("", admin.Dashboard)
+		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
+
+		m.Get("/self_check", admin.SelfCheck)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -766,7 +770,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/delete", admin.DeleteApplication)
 			})
 		}, func(ctx *context.Context) {
-			if !setting.OAuth2.Enable {
+			if !setting.OAuth2.Enabled {
 				ctx.Error(http.StatusForbidden)
 				return
 			}
@@ -777,7 +781,7 @@ func registerRoutes(m *web.Route) {
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
-	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
+	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
@@ -889,7 +893,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/delete", org.DeleteOAuth2Application)
 					})
 				}, func(ctx *context.Context) {
-					if !setting.OAuth2.Enable {
+					if !setting.OAuth2.Enabled {
 						ctx.Error(http.StatusForbidden)
 						return
 					}
@@ -941,7 +945,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
-			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
+			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
 	// ***** END: Organization *****
@@ -1233,7 +1237,7 @@ func registerRoutes(m *web.Route) {
 					Post(web.Bind(forms.UploadRepoFileForm{}), repo.UploadFilePost)
 				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
-				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
+				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
 					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
 			}, repo.MustBeEditable)
 			m.Group("", func() {
@@ -1364,6 +1368,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 				m.Post("/artifacts", actions.ArtifactsView)
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
+				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
@@ -1375,8 +1380,8 @@ func registerRoutes(m *web.Route) {
 			m.Combo("/*").
 				Get(repo.Wiki).
 				Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
 			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
@@ -1389,6 +1394,10 @@ func registerRoutes(m *web.Route) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/{period}", repo.Activity)
+			m.Group("/contributors", func() {
+				m.Get("", repo.Contributors)
+				m.Get("/data", repo.ContributorsData)
+			})
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
 		m.Group("/activity_author_data", func() {
@@ -1496,9 +1505,9 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
-			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
+			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
+			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
@@ -1515,7 +1524,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), reqRepoCodeReader)
-		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}", repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
+		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 
 	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, repo.LastCommit)
