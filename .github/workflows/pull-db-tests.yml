@@ -52,7 +52,7 @@ jobs:
       - name: run migration tests
         run: make test-pgsql-migration
       - name: run tests
-        run: maketest-pgsql
+        run: make test-pgsql
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
