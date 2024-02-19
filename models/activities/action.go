@@ -402,7 +402,10 @@ func (a *Action) LoadIssue(ctx context.Context) error {
 func (a *Action) GetIssueTitle(ctx context.Context) string {
 	if err := a.LoadIssue(ctx); err != nil {
 		log.Error("GetIssueByIndex: %v", err)
-		return "500 when get issue"
+		return "<500 when get issue>"
+	}
+	if a.Issue == nil {
+		return "<Issue not found>"
 	}
 	return a.Issue.Title
 }
