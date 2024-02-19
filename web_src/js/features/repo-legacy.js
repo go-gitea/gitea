@@ -205,12 +205,15 @@ export function initRepoCommentForm() {
     $listMenu.find('.no-select.item').on('click', function (e) {
       e.preventDefault();
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          'clear',
-          $listMenu.data('issue-id'),
-          '',
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $listMenu.data('update-url'),
+            'clear',
+            $listMenu.data('issue-id'),
+            '',
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $(this).parent().find('.item').each(function () {
@@ -248,12 +251,15 @@ export function initRepoCommentForm() {
 
       $(this).addClass('selected active');
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       let icon = '';
@@ -281,12 +287,15 @@ export function initRepoCommentForm() {
       });
 
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $list.find('.selected').html('');

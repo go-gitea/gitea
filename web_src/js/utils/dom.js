@@ -211,6 +211,7 @@ export function loadElem(el, src) {
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
 export function submitEventSubmitter(e) {
+  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 

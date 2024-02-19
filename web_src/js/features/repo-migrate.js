@@ -1,18 +1,17 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 import {GET, POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 
 export function initRepoMigrationStatusChecker() {
-  const $repoMigrating = $('#repo_migrating');
-  if (!$repoMigrating.length) return;
+  const repoMigrating = document.getElementById('repo_migrating');
+  if (!repoMigrating) return;
 
-  $('#repo_migrating_retry').on('click', doMigrationRetry);
+  document.getElementById('repo_migrating_retry').addEventListener('click', doMigrationRetry);
 
-  const task = $repoMigrating.attr('data-migrating-task-id');
+  const task = repoMigrating.getAttribute('data-migrating-task-id');
 
-  // returns true if the refresh still need to be called after a while
+  // returns true if the refresh still needs to be called after a while
   const refresh = async () => {
     const res = await GET(`${appSubUrl}/user/task/${task}`);
     if (res.status !== 200) return true; // continue to refresh if network error occurs
@@ -21,7 +20,7 @@ export function initRepoMigrationStatusChecker() {
 
     // for all status
     if (data.message) {
-      $('#repo_migrating_progress_message').text(data.message);
+      document.getElementById('repo_migrating_progress_message').textContent = data.message;
     }
 
     // TaskStatusFinished
@@ -37,7 +36,7 @@ export function initRepoMigrationStatusChecker() {
       showElem('#repo_migrating_retry');
       showElem('#repo_migrating_failed');
       showElem('#repo_migrating_failed_image');
-      $('#repo_migrating_failed_error').text(data.message);
+      document.getElementById('repo_migrating_failed_error').textContent = data.message;
       return false;
     }
 
@@ -59,6 +58,6 @@ export function initRepoMigrationStatusChecker() {
 }
 
 async function doMigrationRetry(e) {
-  await POST($(e.target).attr('data-migrating-task-retry-url'));
+  await POST(e.target.getAttribute('data-migrating-task-retry-url'));
   window.location.reload();
 }
