@@ -4,8 +4,10 @@
 package optional
 
 import (
-	"encoding/json"
+	std_json "encoding/json"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +48,11 @@ func TestOptionalToJson(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := json.Marshal(tc.obj)
 			assert.NoError(t, err)
-			assert.EqualValues(t, tc.want, string(b))
+			assert.EqualValues(t, tc.want, string(b), "gitea json module returned unexpected")
+
+			b, err = std_json.Marshal(tc.obj)
+			assert.NoError(t, err)
+			assert.EqualValues(t, tc.want, string(b), "std json module returned unexpected")
 		})
 	}
 }
