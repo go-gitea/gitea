@@ -38,7 +38,7 @@ func NewFuncMap() template.FuncMap {
 		"Safe":        Safe,
 		"Escape":      Escape,
 		"QueryEscape": url.QueryEscape,
-		"JSEscape":    template.JSEscapeString,
+		"JSEscape":    JSEscapeSafe,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
 		"URLJoin":     util.URLJoin,
 		"DotEscape":   DotEscape,
@@ -209,6 +209,10 @@ func Escape(s any) template.HTML {
 		return v
 	}
 	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func JSEscapeSafe(s string) template.HTML {
+	return template.HTML(template.JSEscapeString(s))
 }
 
 func RenderEmojiPlain(s any) any {
