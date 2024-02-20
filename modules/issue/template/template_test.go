@@ -397,7 +397,7 @@ body:
           hide_on_form: true
         - label: Required but not submitted
           required: true
-          submit: false
+          skip_submit: true
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -412,7 +412,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit:     &fBool,
+						SkipSubmit: &tBool,
 						HideOnForm: &fBool,
 					},
 					{
@@ -428,7 +428,7 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						Submit:     &tBool,
+						SkipSubmit: &fBool,
 						HideOnForm: &fBool,
 					},
 					{
@@ -445,7 +445,7 @@ body:
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
 						},
-						Submit:     &tBool,
+						SkipSubmit: &fBool,
 						HideOnForm: &fBool,
 					},
 					{
@@ -464,7 +464,7 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						Submit:     &tBool,
+						SkipSubmit: &fBool,
 						HideOnForm: &fBool,
 					},
 					{
@@ -477,10 +477,10 @@ body:
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
 								map[string]any{"label": "Hidden Option 3 of checkboxes", "hide": true},
-								map[string]any{"label": "Required but not submitted", "required": true, "submit": false},
+								map[string]any{"label": "Required but not submitted", "required": true, "skip_submit": true},
 							},
 						},
-						Submit:     &tBool,
+						SkipSubmit: &fBool,
 						HideOnForm: &fBool,
 					},
 				},
@@ -506,7 +506,7 @@ body:
     attributes:
       value: Value of the markdown shown in created issue
     hide_on_form: true
-    submit: true
+    skip_submit: false
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -521,7 +521,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in form",
 						},
-						Submit:     &fBool,
+						SkipSubmit: &tBool,
 						HideOnForm: &fBool,
 					},
 					{
@@ -530,7 +530,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in created issue",
 						},
-						Submit:     &tBool,
+						SkipSubmit: &fBool,
 						HideOnForm: &tBool,
 					},
 				},
@@ -565,7 +565,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit:     &fBool,
+						SkipSubmit: &tBool,
 						HideOnForm: &fBool,
 					},
 				},
@@ -600,7 +600,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit:     &fBool,
+						SkipSubmit: &tBool,
 						HideOnForm: &fBool,
 					},
 				},
@@ -682,7 +682,7 @@ body:
     attributes:
       value: Value of the markdown shown in created issue
     hide_on_form: true
-    submit: true
+    skip_submit: false
   - type: textarea
     id: id3
     attributes:
@@ -729,7 +729,7 @@ body:
           required: false
         - label: Option 3 of checkboxes
           required: true
-          submit: false
+          skip_submit: true
         - label: Hidden Option of checkboxes
           hide_on_form: true
 `,

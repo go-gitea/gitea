@@ -141,7 +141,7 @@ body:
       value: |
         This issue git created by an issue **template** :)
     hide_on_form: true
-    submit: true
+    skip_submit: false
   - type: input
     id: contact
     attributes:
@@ -195,7 +195,7 @@ body:
           required: true
         - label: I also have read the CONTRIBUTION.MD
           required: true
-          submit: false
+          skip_submit: true
         - label: This is a TODO only visible after issue creation
           hide_on_form: true
 ```
@@ -210,7 +210,7 @@ Attributes:
 |-------|--------------------------------------------------------------|----------|--------|---------|--------------|
 | value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
 
-Submit: Default is **false**
+skip_submit: Default is **true**
 
 hide_on_form: Default is **false**
 
@@ -234,7 +234,7 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
-Submit: Default is **true**
+skip_submit: Default is **false**
 
 hide_on_form: Default is **false**
 
@@ -259,7 +259,7 @@ Validations:
 | is_number | Prevents form submission until element is filled with a number.                                  | Optional | Boolean | false   | -                                                                        |
 | regex     | Prevents form submission until element is filled with a value that match the regular expression. | Optional | String  | -       | a [regular expression](https://en.wikipedia.org/wiki/Regular_expression) |
 
-Submit: Default is **true**
+skip_submit: Default is **false**
 
 hide_on_form: Default is **false**
 
@@ -282,7 +282,7 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
-Submit: Default is **true**
+skip_submit: Default is **false**
 
 hide_on_form: Default is **false**
 
@@ -304,10 +304,10 @@ For each value in the options array, you can set the following keys.
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
 | label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
 | required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
-| submit       | The specific checkbox that is rendered, will be submitted.                                                                               | Optional | Boolean | true    | -       |
+| skip_submit  | The specific checkbox that is rendered, will not be submitted.                                                                           | Optional | Boolean | false   | -       |
 | hide_on_form | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
 
-Submit: Default is **true**
+skip_submit: Default is **false**
 
 hide_on_form: Default is **false**
 

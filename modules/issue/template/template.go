@@ -184,9 +184,9 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				}
 			}
 
-			if submit, ok := opt["submit"]; ok {
-				if _, ok := submit.(bool); !ok {
-					return position.Errorf("'submit' should be a bool")
+			if skipSubmit, ok := opt["skip_submit"]; ok {
+				if _, ok := skipSubmit.(bool); !ok {
+					return position.Errorf("'skip_submit' should be a bool")
 				}
 			}
 
@@ -282,7 +282,7 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	switch f.Type {
 	case api.IssueFormFieldTypeCheckboxes:
 		for _, option := range f.Options() {
-			if !option.Submit() {
+			if option.NoSubmit() {
 				continue
 			}
 			checked := " "
@@ -335,11 +335,11 @@ func (f *valuedField) Label() string {
 
 func (f *valuedField) NoSubmit() bool {
 	// handle default case
-	if f.Submit == nil {
+	if f.SkipSubmit == nil {
 		// markdown blocks do not appear in output by default
-		return f.Type == api.IssueFormFieldTypeMarkdown
+		return f.Type != api.IssueFormFieldTypeMarkdown
 	}
-	return !*f.Submit
+	return *f.SkipSubmit
 }
 
 func (f *valuedField) HideLabel() bool {
@@ -417,15 +417,15 @@ func (o *valuedOption) IsChecked() bool {
 	return false
 }
 
-func (o *valuedOption) Submit() bool {
+func (o *valuedOption) NoSubmit() bool {
 	if o.field.Type == api.IssueFormFieldTypeCheckboxes {
 		if vs, ok := o.data.(map[string]any); ok {
-			if v, ok := vs["submit"].(bool); ok {
+			if v, ok := vs["skip_submit"].(bool); ok {
 				return v
 			}
 		}
 	}
-	return true
+	return false
 }
 
 var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")

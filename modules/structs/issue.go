@@ -145,7 +145,7 @@ type IssueFormField struct {
 	ID          string             `json:"id" yaml:"id"`
 	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
 	Validations map[string]any     `json:"validations" yaml:"validations"`
-	Submit      *bool              `json:"submit,omitempty" yaml:"submit,omitempty"`
+	SkipSubmit  *bool              `json:"skip_submit,omitempty" yaml:"skip_submit,omitempty"`
 	HideOnForm  *bool              `json:"hide_on_form,omitempty" yaml:"hide_on_form,omitempty"`
 }
 
