@@ -101,6 +101,7 @@ var (
 	PerWritePerKbTimeout       = 10 * time.Second
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
+	CommanMaxFileSize          int64 // `ini:"COMMON_MAX_FILE_SIZE"`
 
 	ManifestData string
 )
@@ -259,6 +260,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
+	CommanMaxFileSize = sec.Key("COMMON_MAX_FILE_SIZE").MustInt64()
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
