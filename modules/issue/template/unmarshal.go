@@ -134,11 +134,8 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			}
 			// set default submit value
 			if v.Submit == nil {
-				submit := true
 				// markdown is not submitted by default
-				if v.Type == api.IssueFormFieldTypeMarkdown {
-					submit = false
-				}
+				submit := v.Type != api.IssueFormFieldTypeMarkdown
 				v.Submit = &submit
 			}
 			// set default hide value
