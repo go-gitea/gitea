@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -27,7 +28,7 @@ type Result struct {
 
 type ResultLine struct {
 	Num              int
-	FormattedContent string
+	FormattedContent template.HTML
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -101,6 +102,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		index += len(line)
 	}
 
+	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
 	hl, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
 	highlightedLines := strings.Split(string(hl), "\n")
 
@@ -109,7 +111,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 	}
 
 	for i := 0; i < len(lines); i++ {
-		lines[i].FormattedContent = highlightedLines[i]
+		lines[i].FormattedContent = template.HTML(highlightedLines[i])
 	}
 
 	return &Result{
