@@ -1,5 +1,6 @@
 import {createTippy} from '../modules/tippy.js';
 import {toggleElem} from '../utils/dom.js';
+import {parseDom} from '../utils.js';
 import {POST} from '../modules/fetch.js';
 
 export function initRepoEllipsisButton() {
@@ -12,8 +13,6 @@ export function initRepoEllipsisButton() {
     });
   }
 }
-
-const parser = new DOMParser();
 
 export async function initRepoCommitLastCommitLoader() {
   const entryMap = {};
@@ -40,16 +39,17 @@ export async function initRepoCommitLastCommitLoader() {
   // For fewer entries, update individual rows
   const response = await POST(lastCommitLoaderURL, {data: {'f': entries}});
   const data = await response.text();
-  const doc = parser.parseFromString(data, 'text/html');
+  const doc = parseDom(data, 'text/html');
   for (const row of doc.querySelectorAll('tr')) {
     if (row.className === 'commit-list') {
       document.querySelector('table#repo-files-table .commit-list')?.replaceWith(row);
-      return;
+      continue;
     }
-
+    // there are other <tr> rows in response (eg: <tr class="has-parent">)
+    // at the moment only the "data-entryname" rows should be processed
     const entryName = row.getAttribute('data-entryname');
     if (entryName) {
-      entryMap[entryName].replaceWith(row);
+      entryMap[entryName]?.replaceWith(row);
     }
   }
 }
