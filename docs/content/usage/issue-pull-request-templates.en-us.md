@@ -211,6 +211,7 @@ Attributes:
 | value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
 
 Submit: Default is **false**
+
 Hide: Default is **false**
 
 ### Textarea
@@ -234,6 +235,7 @@ Validations:
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
 Submit: Default is **true**
+
 Hide: Default is **false**
 
 ### Input
@@ -258,6 +260,7 @@ Validations:
 | regex     | Prevents form submission until element is filled with a value that match the regular expression. | Optional | String  | -       | a [regular expression](https://en.wikipedia.org/wiki/Regular_expression) |
 
 Submit: Default is **true**
+
 Hide: Default is **false**
 
 ### Dropdown
@@ -280,6 +283,7 @@ Validations:
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
 Submit: Default is **true**
+
 Hide: Default is **false**
 
 ### Checkboxes
@@ -304,6 +308,7 @@ For each value in the options array, you can set the following keys.
 | hide     | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
 
 Submit: Default is **true**
+
 Hide: Default is **false**
 
 ## Syntax for issue config
