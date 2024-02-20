@@ -265,8 +265,16 @@ type valuedField struct {
 }
 
 func (f *valuedField) WriteTo(builder *strings.Builder) {
-	if f.Type == api.IssueFormFieldTypeMarkdown {
-		// markdown blocks do not appear in output
+	// make sure submit is not nil
+	if f.Submit == nil {
+		submit := true
+		// markdown blocks do not appear in output by default
+		if f.Type == api.IssueFormFieldTypeMarkdown {
+			submit = false
+		}
+		f.Submit = &submit
+	}
+	if !*f.Submit {
 		return
 	}
 
@@ -281,6 +289,9 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	switch f.Type {
 	case api.IssueFormFieldTypeCheckboxes:
 		for _, option := range f.Options() {
+			if !option.Submit() {
+				continue
+			}
 			checked := " "
 			if option.IsChecked() {
 				checked = "x"
@@ -395,6 +406,17 @@ func (o *valuedOption) IsChecked() bool {
 		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}
 	return false
+}
+
+func (o *valuedOption) Submit() bool {
+	if o.field.Type == api.IssueFormFieldTypeCheckboxes {
+		if vs, ok := o.data.(map[string]any); ok {
+			if v, ok := vs["submit"].(bool); ok {
+				return v
+			}
+		}
+	}
+	return true
 }
 
 var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
