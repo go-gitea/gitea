@@ -732,7 +732,7 @@ migrations.individual.pgsql.test\#%: $(GO_SOURCES) generate-ini-pgsql
 .PHONY: migrations.individual.mssql.test
 migrations.individual.mssql.test: $(GO_SOURCES) generate-ini-mssql
 	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
-		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg -test.failfast; \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
 	done
 
 .PHONY: migrations.individual.mssql.test\#%
