@@ -250,7 +250,7 @@ func RenderToMarkdown(template *api.IssueTemplate, values url.Values) string {
 			IssueFormField: field,
 			Values:         values,
 		}
-		if f.ID == "" {
+		if f.ID == "" || f.NoSubmit() {
 			continue
 		}
 		f.WriteTo(builder)
@@ -265,19 +265,6 @@ type valuedField struct {
 }
 
 func (f *valuedField) WriteTo(builder *strings.Builder) {
-	// make sure submit is not nil
-	if f.Submit == nil {
-		submit := true
-		// markdown blocks do not appear in output by default
-		if f.Type == api.IssueFormFieldTypeMarkdown {
-			submit = false
-		}
-		f.Submit = &submit
-	}
-	if !*f.Submit {
-		return
-	}
-
 	// write label
 	if !f.HideLabel() {
 		_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
@@ -325,6 +312,10 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 		} else {
 			_, _ = fmt.Fprintf(builder, "%s\n", value)
 		}
+	case api.IssueFormFieldTypeMarkdown:
+		if v, ok := f.Attributes["value"].(string); ok {
+			_, _ = fmt.Fprint(builder, v)
+		}
 	}
 	_, _ = fmt.Fprintln(builder)
 }
@@ -336,7 +327,19 @@ func (f *valuedField) Label() string {
 	return ""
 }
 
+func (f *valuedField) NoSubmit() bool {
+	// handle default case
+	if f.Submit == nil {
+		// markdown blocks do not appear in output by default
+		return f.Type == api.IssueFormFieldTypeMarkdown
+	}
+	return !*f.Submit
+}
+
 func (f *valuedField) HideLabel() bool {
+	if f.Type == api.IssueFormFieldTypeMarkdown {
+		return true
+	}
 	if label, ok := f.Attributes["hide_label"].(bool); ok {
 		return label
 	}
