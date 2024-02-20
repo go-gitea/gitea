@@ -1,7 +1,7 @@
 {{if $.LatestCommitStatus}}
 	{{if not $.Issue.PullRequest.HasMerged}}
 		<div class="ui top attached header">
-			{{if eq .LatestCommitStatus.State "pending"}}
+			{{if or (eq .LatestCommitStatus.State "pending") (.MissingRequiredChecks)}}
 				{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 			{{else if eq .LatestCommitStatus.State "success"}}
 				{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
@@ -14,7 +14,7 @@
 			{{else}}
 				{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 			{{end}}
-			</div>
+		</div>
 	{{end}}
 
 	{{range $.LatestCommitStatuses}}
@@ -27,6 +27,17 @@
 						{{if (call $.is_context_required .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
 					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+				</div>
+			</div>
+		</div>
+	{{end}}
+	{{range .MissingRequiredChecks}}
+		<div class="ui attached segment pr-status">
+			{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
+			<div class="status-context">
+				<span>{{.}}</span>
+				<div class="ui status-details">
+					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
 				</div>
 			</div>
 		</div>
