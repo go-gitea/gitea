@@ -313,8 +313,8 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 			_, _ = fmt.Fprintf(builder, "%s\n", value)
 		}
 	case api.IssueFormFieldTypeMarkdown:
-		if v, ok := f.Attributes["value"].(string); ok {
-			_, _ = fmt.Fprint(builder, v)
+		if value, ok := f.Attributes["value"].(string); ok {
+			_, _ = fmt.Fprintf(builder, "%s\n", value)
 		}
 	}
 	_, _ = fmt.Fprintln(builder)

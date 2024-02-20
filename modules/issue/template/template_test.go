@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -459,8 +460,8 @@ body:
 							"options": []any{
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
-								map[string]any{"label": "Option 3 of checkboxes", "required": false, "hide": true},
-								map[string]any{"label": "Required but not submitted", "required": false, "submit": false},
+								map[string]any{"label": "Hidden Option 3 of checkboxes", "hide": true},
+								map[string]any{"label": "Required but not submitted", "required": true, "submit": false},
 							},
 						},
 						Submit: &tBool,
@@ -509,7 +510,7 @@ body:
 					},
 					{
 						Type: "markdown",
-						ID:   "id1",
+						ID:   "id2",
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in created issue",
 						},
@@ -724,11 +725,12 @@ body:
 					"form-field-id6-2": {"on"},
 				},
 			},
-			want: `### Label of textarea
 
-` + "```bash\nValue of id2\n```" + `
+			want: `Value of the markdown shown in created issue
 
-Value of the markdown shown in created issue
+### Label of textarea
+
+` + "```bash\nValue of id3\n```" + `
 
 Value of id4
 
@@ -752,7 +754,7 @@ Option 1 of dropdown, Option 2 of dropdown
 				t.Fatal(err)
 			}
 			if got := RenderToMarkdown(template, tt.args.values); got != tt.want {
-				t.Errorf("RenderToMarkdown() = %v, want %v", got, tt.want)
+				assert.EqualValues(t, tt.want, got)
 			}
 		})
 	}
