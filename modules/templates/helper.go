@@ -176,7 +176,16 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    TabSizeClass,
+		"BoolPtrVal":      PtrVal[bool],
 	}
+}
+
+// PtrVal return the value of an pointer or init a new empty one based on pointer type
+func PtrVal[T any](ptr *T) T {
+	if ptr == nil {
+		ptr = new(T)
+	}
+	return *ptr
 }
 
 // Safe render raw as HTML

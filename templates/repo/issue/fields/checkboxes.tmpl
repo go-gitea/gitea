@@ -1,4 +1,4 @@
-<div class="field">
+<div class="field {{if (BoolPtrVal .item.Hide)}}gt-hidden{{end}}">
 	{{template "repo/issue/fields/header" .}}
 	{{range $i, $opt := .item.Attributes.options}}
 		<div class="field inline">
