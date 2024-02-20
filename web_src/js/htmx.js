@@ -21,6 +21,13 @@ document.body.addEventListener('htmx:responseError', (event) => {
   showErrorToast(`Error ${event.detail.xhr.status} when calling ${event.detail.requestConfig.path}`);
 });
 
+// eslint-disable-next-line no-import-assign
+htmx.createWebSocket = (url) => {
+  // TODO: reuse websocket from shared webworker
+  const sock = new WebSocket(url, []);
+  sock.binaryType = htmx.config.wsBinaryType;
+  return sock;
+};
 document.body.addEventListener('htmx:wsOpen', (evt) => {
   const socket = evt.detail.socketWrapper;
   socket.send(JSON.stringify({action: 'subscribe', data: {url: window.location.href}}));
