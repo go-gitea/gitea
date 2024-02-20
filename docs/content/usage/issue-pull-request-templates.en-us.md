@@ -135,6 +135,13 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
+# some markdown witch will be visible only in the created issue
+  - type: markdown
+    attributes:
+      value: |
+        This issue git created by an issue **template** :)
+    hide: true
+    submit: true
   - type: input
     id: contact
     attributes:
@@ -186,6 +193,11 @@ body:
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true
+        - label: I also have read the CONTRIBUTION.MD
+          required: true
+          submit: false
+        - label: This is a TODO only visible after issue creation
+          hide: true
 ```
 
 ### Markdown
