@@ -15,6 +15,9 @@ type testSerializationStruct struct {
 	NormalBool   bool           `json:"normal_bool" yaml:"normal_bool"`
 	OptBool      Option[bool]   `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
 	OptString    Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
+	// TODO: fix case
+	// OptTwoBool   Option[bool]   `json:"optional_two_bool" yaml:"optional_twobool"`
+	// OptTwoString Option[string] `json:"optional_twostring" yaml:"optional_twostring"`
 }
 
 func TestOptionalToJson(t *testing.T) {
@@ -29,14 +32,14 @@ func TestOptionalToJson(t *testing.T) {
 			want: `{"normal_string":"","normal_bool":false}`,
 		},
 		{
-			name: "empty",
+			name: "some",
 			obj: &testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
 				OptBool:      Some(false),
 				OptString:    Some(""),
 			},
-			want: `{"normal_string":"a string","normal_bool":true,"normal_bool":false,"optional_string":""}`,
+			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":""}`,
 		},
 	}
 	for _, tc := range tests {
