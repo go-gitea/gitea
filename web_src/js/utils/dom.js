@@ -234,7 +234,7 @@ export function initSubmitEventPolyfill() {
  * @param {HTMLElement} element The element to check.
  * @returns {boolean} True if the element is visible.
  */
-export function isVisible(element) {
+export function isElemVisible(element) {
   if (!element) return false;
 
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);

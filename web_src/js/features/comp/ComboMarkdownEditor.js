@@ -2,7 +2,7 @@ import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
-import {hideElem, showElem, autosize, isVisible} from '../../utils/dom.js';
+import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
@@ -21,11 +21,12 @@ export function validateTextareaNonEmpty(textarea) {
   // When using EasyMDE, the original edit area HTML element is hidden, breaking HTML5 input validation.
   // The workaround (https://github.com/sparksuite/simplemde-markdown-editor/issues/324) doesn't work with contenteditable, so we just show an alert.
   if (!textarea.value) {
-    if (isVisible(textarea)) {
-      textarea.setAttribute('required', 'true');
+    if (isElemVisible(textarea)) {
+      textarea.required = true;
       const form = textarea.closest('form');
       form?.reportValidity();
     } else {
+      // The alert won't hurt users too much, because we are dropping the EasyMDE and the check only occurs in a few places.
       showErrorToast('Require non-empty content');
     }
     return false;
