@@ -186,7 +186,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 
 			if hide, ok := opt["hide"]; ok {
 				if _, ok := hide.(bool); !ok {
-					return position.Errorf("'required' should be a bool")
+					return position.Errorf("'hide' should be a bool")
 				}
 			}
 		}
