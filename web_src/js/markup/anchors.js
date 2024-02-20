@@ -30,6 +30,20 @@ export function initMarkupAnchors() {
     });
     heading.prepend(a);
   }
+  for (const anchor of document.querySelectorAll('.markup [dir="auto"] > a[href^="#"][rel="nofollow"]')) {
+    const originalId = anchor.getAttribute('href').replace(/^#user-content-/, '');
+    anchor.setAttribute('href', `#${encodeURIComponent(originalId)}`);
+    const anchorDest = document.getElementsByName(originalId);
+    if (anchorDest && anchorDest.length === 1) {
+      anchor.addEventListener('click', () => {
+        anchorDest[0].scrollIntoView();
+      });
+    } else {
+      anchor.addEventListener('click', (e) => {
+        scrollToAnchor(e.currentTarget.getAttribute('href'), false);
+      });
+    }
+  }
 
   scrollToAnchor(window.location.hash, true);
 }
