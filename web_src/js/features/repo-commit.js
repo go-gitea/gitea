@@ -14,11 +14,11 @@ export function initRepoEllipsisButton() {
 }
 
 export function initRepoCommitLastCommitLoader() {
-  const entryMap = {};
-  const entries = [];
   const notReadyEls = document.querySelectorAll('table#repo-files-table tr.notready');
   if (!notReadyEls.length) return;
 
+  const entryMap = {};
+  const entries = [];
   for (const el of notReadyEls) {
     const entryname = el.getAttribute('data-entryname');
     entryMap[entryname] = $(el);
