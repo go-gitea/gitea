@@ -27,7 +27,7 @@ func (o *Option[T]) UnmarshalJSON(data []byte) error {
 
 func (o *Option[T]) MarshalJSON() ([]byte, error) {
 	if !o.Has() {
-		return nil, nil
+		return []byte("null"), nil
 	}
 
 	return json.Marshal(o.Value())

@@ -17,9 +17,8 @@ type testSerializationStruct struct {
 	NormalBool   bool           `json:"normal_bool" yaml:"normal_bool"`
 	OptBool      Option[bool]   `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
 	OptString    Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
-	// TODO: fix case
-	// OptTwoBool   Option[bool]   `json:"optional_two_bool" yaml:"optional_twobool"`
-	// OptTwoString Option[string] `json:"optional_twostring" yaml:"optional_twostring"`
+	OptTwoBool   Option[bool]   `json:"optional_two_bool" yaml:"optional_twobool"`
+	OptTwoString Option[string] `json:"optional_twostring" yaml:"optional_twostring"`
 }
 
 func TestOptionalToJson(t *testing.T) {
@@ -31,7 +30,7 @@ func TestOptionalToJson(t *testing.T) {
 		{
 			name: "empty",
 			obj:  new(testSerializationStruct),
-			want: `{"normal_string":"","normal_bool":false}`,
+			want: `{"normal_string":"","normal_bool":false,"optional_two_bool":null,"optional_twostring":null}`,
 		},
 		{
 			name: "some",
@@ -41,7 +40,7 @@ func TestOptionalToJson(t *testing.T) {
 				OptBool:      Some(false),
 				OptString:    Some(""),
 			},
-			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":""}`,
+			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
 		},
 	}
 	for _, tc := range tests {
@@ -58,6 +57,42 @@ func TestOptionalToJson(t *testing.T) {
 }
 
 func TestOptionalFromJson(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want testSerializationStruct
+	}{
+		{
+			name: "empty",
+			data: `{}`,
+			want: testSerializationStruct{
+				NormalString: "",
+			},
+		},
+		{
+			name: "some",
+			data: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
+			want: testSerializationStruct{
+				NormalString: "a string",
+				NormalBool:   true,
+				OptBool:      Some(false),
+				OptString:    Some(""),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var obj1 testSerializationStruct
+			err := json.Unmarshal([]byte(tc.data), &obj1)
+			assert.NoError(t, err)
+			assert.EqualValues(t, tc.want, obj1, "gitea json module returned unexpected")
+
+			var obj2 testSerializationStruct
+			err = std_json.Unmarshal([]byte(tc.data), &obj2)
+			assert.NoError(t, err)
+			assert.EqualValues(t, tc.want, obj2, "std json module returned unexpected")
+		})
+	}
 }
 
 func TestOptionalToYaml(t *testing.T) {
