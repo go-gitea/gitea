@@ -143,8 +143,7 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			}
 			// set default hide value
 			if v.Hide == nil {
-				hide := false
-				v.Hide = &hide
+				v.Hide = new(bool) // set false
 			}
 		}
 	}
