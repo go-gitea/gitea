@@ -6,7 +6,7 @@ package code
 import (
 	"bytes"
 	"context"
-	"html/template"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -22,7 +22,12 @@ type Result struct {
 	UpdatedUnix timeutil.TimeStamp
 	Language    string
 	Color       string
-	Lines       map[int]template.HTML
+	Lines       []ResultLine
+}
+
+type ResultLine struct {
+	Num              int
+	FormattedContent string
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -66,11 +71,12 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
+	var formattedLinesBuffer bytes.Buffer
+
 	contentLines := strings.SplitAfter(result.Content[startIndex:endIndex], "\n")
-	lines := make(map[int]template.HTML, len(contentLines))
+	lines := make([]ResultLine, 0, len(contentLines))
 	index := startIndex
 	for i, line := range contentLines {
-		var formattedLinesBuffer bytes.Buffer
 		var err error
 		if index < result.EndIndex &&
 			result.StartIndex < index+len(line) &&
@@ -91,8 +97,19 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 			return nil, err
 		}
 
-		lines[startLineNum+i], _ = highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+		lines = append(lines, ResultLine{Num: startLineNum + i})
 		index += len(line)
+	}
+
+	hl, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+	highlightedLines := strings.Split(string(hl), "\n")
+
+	if len(highlightedLines) != len(lines) {
+		return nil, fmt.Errorf("the length of line numbers [%d] don't match the length of highlighted contents [%d]", len(lines), len(highlightedLines))
+	}
+
+	for i := 0; i < len(lines); i++ {
+		lines[i].FormattedContent = highlightedLines[i]
 	}
 
 	return &Result{
