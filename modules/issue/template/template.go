@@ -122,7 +122,13 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 		// The label is not required for a markdown or checkboxes field
 		return nil
 	}
-	return validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required")
+	if err := validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required"); err != nil {
+		return err
+	}
+	if required, _ := field.Validations["required"].(bool); required && field.Hide != nil && *field.Hide {
+		return newErrorPosition(idx, field.Type).Errorf("can not require a hidden field")
+	}
+	return nil
 }
 
 func validateID(field *api.IssueFormField, idx int, ids container.Set[string]) error {

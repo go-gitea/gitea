@@ -322,6 +322,22 @@ body:
 			wantErr: "body[0](checkboxes), option[0]: 'required' should be a bool",
 		},
 		{
+			name: "field is required but hidden",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "input"
+    id: "1"
+    attributes:
+      label: "a"
+    validations:
+      required: true
+    hide: true
+`,
+			wantErr: "body[0](input): can not require a hidden field",
+		},
+		{
 			name: "valid",
 			content: `
 name: Name
