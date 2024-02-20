@@ -2,7 +2,7 @@
 	{{template "repo/issue/fields/header" .}}
 	{{range $i, $opt := .item.Attributes.options}}
 		<div class="field inline">
-			<div class="ui checkbox gt-mr-0 {{if and (not $opt.required) $opt.hide}}gt-hidden{{end}}">
+			<div class="ui checkbox gt-mr-0 {{if and (not $opt.required) $opt.hide_on_form}}gt-hidden{{end}}">
 				<input type="checkbox" name="form-field-{{$.item.ID}}-{{$i}}" {{if $opt.required}}required{{end}}>
 				<label>{{RenderMarkdownToHtml $.context $opt.label}}</label>
 			</div>

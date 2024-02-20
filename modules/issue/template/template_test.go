@@ -333,7 +333,7 @@ body:
       label: "a"
     validations:
       required: true
-    hide: true
+    hide_on_form: true
 `,
 			wantErr: "body[0](input): can not require a hidden field",
 		},
@@ -394,7 +394,7 @@ body:
         - label: Option 2 of checkboxes
           required: false
         - label: Hidden Option 3 of checkboxes
-          hide: true
+          hide_on_form: true
         - label: Required but not submitted
           required: true
           submit: false
@@ -412,8 +412,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit: &fBool,
-						Hide:   &fBool,
+						Submit:     &fBool,
+						HideOnForm: &fBool,
 					},
 					{
 						Type: "textarea",
@@ -428,8 +428,8 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						Submit: &tBool,
-						Hide:   &fBool,
+						Submit:     &tBool,
+						HideOnForm: &fBool,
 					},
 					{
 						Type: "input",
@@ -445,8 +445,8 @@ body:
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
 						},
-						Submit: &tBool,
-						Hide:   &fBool,
+						Submit:     &tBool,
+						HideOnForm: &fBool,
 					},
 					{
 						Type: "dropdown",
@@ -464,8 +464,8 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						Submit: &tBool,
-						Hide:   &fBool,
+						Submit:     &tBool,
+						HideOnForm: &fBool,
 					},
 					{
 						Type: "checkboxes",
@@ -480,8 +480,8 @@ body:
 								map[string]any{"label": "Required but not submitted", "required": true, "submit": false},
 							},
 						},
-						Submit: &tBool,
-						Hide:   &fBool,
+						Submit:     &tBool,
+						HideOnForm: &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -505,7 +505,7 @@ body:
     id: id2
     attributes:
       value: Value of the markdown shown in created issue
-    hide: true
+    hide_on_form: true
     submit: true
 `,
 			want: &api.IssueTemplate{
@@ -521,8 +521,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in form",
 						},
-						Submit: &fBool,
-						Hide:   &fBool,
+						Submit:     &fBool,
+						HideOnForm: &fBool,
 					},
 					{
 						Type: "markdown",
@@ -530,8 +530,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in created issue",
 						},
-						Submit: &tBool,
-						Hide:   &tBool,
+						Submit:     &tBool,
+						HideOnForm: &tBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -565,8 +565,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit: &fBool,
-						Hide:   &fBool,
+						Submit:     &fBool,
+						HideOnForm: &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -600,8 +600,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						Submit: &fBool,
-						Hide:   &fBool,
+						Submit:     &fBool,
+						HideOnForm: &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -681,7 +681,7 @@ body:
     id: id2
     attributes:
       value: Value of the markdown shown in created issue
-    hide: true
+    hide_on_form: true
     submit: true
   - type: textarea
     id: id3
@@ -731,7 +731,7 @@ body:
           required: true
           submit: false
         - label: Hidden Option of checkboxes
-          hide: true
+          hide_on_form: true
 `,
 				values: map[string][]string{
 					"form-field-id3":   {"Value of id3"},

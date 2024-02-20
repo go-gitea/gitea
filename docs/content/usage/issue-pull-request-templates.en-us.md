@@ -135,12 +135,12 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-# some markdown witch will be visible only in the created issue
+  # some markdown witch will be visible only in the created issue
   - type: markdown
     attributes:
       value: |
         This issue git created by an issue **template** :)
-    hide: true
+    hide_on_form: true
     submit: true
   - type: input
     id: contact
@@ -197,7 +197,7 @@ body:
           required: true
           submit: false
         - label: This is a TODO only visible after issue creation
-          hide: true
+          hide_on_form: true
 ```
 
 ### Markdown
@@ -212,7 +212,7 @@ Attributes:
 
 Submit: Default is **false**
 
-Hide: Default is **false**
+hide_on_form: Default is **false**
 
 ### Textarea
 
@@ -236,7 +236,7 @@ Validations:
 
 Submit: Default is **true**
 
-Hide: Default is **false**
+hide_on_form: Default is **false**
 
 ### Input
 
@@ -261,7 +261,7 @@ Validations:
 
 Submit: Default is **true**
 
-Hide: Default is **false**
+hide_on_form: Default is **false**
 
 ### Dropdown
 
@@ -284,7 +284,7 @@ Validations:
 
 Submit: Default is **true**
 
-Hide: Default is **false**
+hide_on_form: Default is **false**
 
 ### Checkboxes
 
@@ -293,23 +293,23 @@ You can use the `checkboxes` element to add a set of checkboxes to your form.
 Attributes:
 
 | Key         | Description                                                                                           | Required | Type   | Default      | Valid values |
-|-------------|-------------------------------------------------------------------------------------------------------|----------|--------|--------------|--------------|
+| ----------- | ----------------------------------------------------------------------------------------------------- | -------- | ------ | ------------ | ------------ |
 | label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String | -            | -            |
 | description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String | Empty String | -            |
 | options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array  | -            | -            |
 
 For each value in the options array, you can set the following keys.
 
-| Key      | Description                                                                                                                              | Required | Type    | Default | Options |
-|----------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
-| label    | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
-| required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
-| submit   | The specific checkbox that is rendered, will be submitted.                                                                               | Optional | Boolean | true    | -       |
-| hide     | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
+| Key          | Description                                                                                                                              | Required | Type    | Default | Options |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
+| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
+| required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
+| submit       | The specific checkbox that is rendered, will be submitted.                                                                               | Optional | Boolean | true    | -       |
+| hide_on_form | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
 
 Submit: Default is **true**
 
-Hide: Default is **false**
+hide_on_form: Default is **false**
 
 ## Syntax for issue config
 

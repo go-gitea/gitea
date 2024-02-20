@@ -139,8 +139,8 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 				v.Submit = &submit
 			}
 			// set default hide value
-			if v.Hide == nil {
-				v.Hide = new(bool) // set false
+			if v.HideOnForm == nil {
+				v.HideOnForm = new(bool) // set false
 			}
 		}
 	}
