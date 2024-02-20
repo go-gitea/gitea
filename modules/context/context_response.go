@@ -90,6 +90,20 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 }
 
+// JSONTemplate renders the template as JSON response
+// keep in mind that the template is processed in HTML context, so JSON-things should be handled carefully, eg: by JSEscape
+func (ctx *Context) JSONTemplate(tmpl base.TplName) {
+	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
+	if err != nil {
+		ctx.ServerError("unable to find template", err)
+		return
+	}
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
+		ctx.ServerError("unable to execute template", err)
+	}
+}
+
 // RenderToString renders the template content to a string
 func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (string, error) {
 	var buf strings.Builder

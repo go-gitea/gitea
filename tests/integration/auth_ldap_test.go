@@ -179,7 +179,7 @@ func TestLDAPUserSignin(t *testing.T) {
 
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
+	assert.Equal(t, u.Email, htmlDoc.Find("#signed-user-email").Text())
 }
 
 func TestLDAPAuthChange(t *testing.T) {
