@@ -210,6 +210,9 @@ func TestRender_links(t *testing.T) {
 	test(
 		`[link](mailto:test@example.com)`,
 		`<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](javascript:xss)`,
+		`<p>link</p>`)
 
 	// Test that should *not* be turned into URL
 	test(
