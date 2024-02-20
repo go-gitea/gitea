@@ -258,7 +258,7 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 		Notify(ctx)
 }
 
-func (m *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	ctx = withMethod(ctx, "UpdateComment")
 
 	if err := c.LoadIssue(ctx); err != nil {
@@ -305,7 +305,7 @@ func (m *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 		Notify(ctx)
 }
 
-func (m *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
+func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "DeleteComment")
 
 	if err := comment.LoadIssue(ctx); err != nil {
