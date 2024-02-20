@@ -476,7 +476,7 @@ body:
 							"options": []any{
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
-								map[string]any{"label": "Hidden Option 3 of checkboxes", "hide": true},
+								map[string]any{"label": "Hidden Option 3 of checkboxes", "hide_on_form": true},
 								map[string]any{"label": "Required but not submitted", "required": true, "skip_submit": true},
 							},
 						},
