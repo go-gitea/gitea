@@ -14,6 +14,8 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	fBool := false
+	tBool := true
 	tests := []struct {
 		name     string
 		filename string
@@ -374,8 +376,11 @@ body:
           required: true
         - label: Option 2 of checkboxes
           required: false
-        - label: Option 3 of checkboxes
+        - label: Hidden Option 3 of checkboxes
+          hide: true
+        - label: Required but not submitted
           required: true
+          submit: false
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -390,6 +395,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Submit: &fBool,
+						Hide:   &fBool,
 					},
 					{
 						Type: "textarea",
@@ -404,6 +411,8 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
+						Submit: &tBool,
+						Hide:   &fBool,
 					},
 					{
 						Type: "input",
@@ -419,6 +428,8 @@ body:
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
 						},
+						Submit: &tBool,
+						Hide:   &fBool,
 					},
 					{
 						Type: "dropdown",
@@ -436,6 +447,8 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
+						Submit: &tBool,
+						Hide:   &fBool,
 					},
 					{
 						Type: "checkboxes",
@@ -446,9 +459,12 @@ body:
 							"options": []any{
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
-								map[string]any{"label": "Option 3 of checkboxes", "required": true},
+								map[string]any{"label": "Option 3 of checkboxes", "required": false, "hide": true},
+								map[string]any{"label": "Required but not submitted", "required": false, "submit": false},
 							},
 						},
+						Submit: &tBool,
+						Hide:   &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -467,7 +483,13 @@ body:
   - type: markdown
     id: id1
     attributes:
-      value: Value of the markdown
+      value: Value of the markdown shown in form
+  - type: markdown
+    id: id2
+    attributes:
+      value: Value of the markdown shown in created issue
+    hide: true
+    submit: true
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -480,8 +502,19 @@ body:
 						Type: "markdown",
 						ID:   "id1",
 						Attributes: map[string]any{
-							"value": "Value of the markdown",
+							"value": "Value of the markdown shown in form",
 						},
+						Submit: &fBool,
+						Hide:   &fBool,
+					},
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]any{
+							"value": "Value of the markdown shown in created issue",
+						},
+						Submit: &tBool,
+						Hide:   &tBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -515,6 +548,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Submit: &fBool,
+						Hide:   &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -548,6 +583,8 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Submit: &fBool,
+						Hide:   &fBool,
 					},
 				},
 				FileName: "test.yaml",
@@ -622,9 +659,15 @@ body:
   - type: markdown
     id: id1
     attributes:
-      value: Value of the markdown
-  - type: textarea
+      value: Value of the markdown shown in form
+  - type: markdown
     id: id2
+    attributes:
+      value: Value of the markdown shown in created issue
+    hide: true
+    submit: true
+  - type: textarea
+    id: id3
     attributes:
       label: Label of textarea
       description: Description of textarea
@@ -634,7 +677,7 @@ body:
     validations:
       required: true
   - type: input
-    id: id3
+    id: id4
     attributes:
       label: Label of input
       description: Description of input
@@ -646,7 +689,7 @@ body:
       is_number: true
       regex: "[a-zA-Z0-9]+"
   - type: dropdown
-    id: id4
+    id: id5
     attributes:
       label: Label of dropdown
       description: Description of dropdown
@@ -658,7 +701,7 @@ body:
     validations:
       required: true
   - type: checkboxes
-    id: id5
+    id: id6
     attributes:
       label: Label of checkboxes
       description: Description of checkboxes
@@ -669,20 +712,25 @@ body:
           required: false
         - label: Option 3 of checkboxes
           required: true
+          submit: false
+        - label: Hidden Option of checkboxes
+          hide: true
 `,
 				values: map[string][]string{
-					"form-field-id2":   {"Value of id2"},
 					"form-field-id3":   {"Value of id3"},
-					"form-field-id4":   {"0,1"},
-					"form-field-id5-0": {"on"},
-					"form-field-id5-2": {"on"},
+					"form-field-id4":   {"Value of id4"},
+					"form-field-id5":   {"0,1"},
+					"form-field-id6-0": {"on"},
+					"form-field-id6-2": {"on"},
 				},
 			},
 			want: `### Label of textarea
 
 ` + "```bash\nValue of id2\n```" + `
 
-Value of id3
+Value of the markdown shown in created issue
+
+Value of id4
 
 ### Label of dropdown
 
@@ -692,7 +740,7 @@ Option 1 of dropdown, Option 2 of dropdown
 
 - [x] Option 1 of checkboxes
 - [ ] Option 2 of checkboxes
-- [x] Option 3 of checkboxes
+- [ ] Hidden Option of checkboxes
 
 `,
 		},
