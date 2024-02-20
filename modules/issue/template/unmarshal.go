@@ -138,10 +138,6 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 				skipSubmit := v.Type == api.IssueFormFieldTypeMarkdown
 				v.SkipSubmit = &skipSubmit
 			}
-			// set default hide value
-			if v.HideOnForm == nil {
-				v.HideOnForm = new(bool) // set false
-			}
 		}
 	}
 

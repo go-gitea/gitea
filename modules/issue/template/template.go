@@ -125,7 +125,7 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 	if err := validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required"); err != nil {
 		return err
 	}
-	if required, _ := field.Validations["required"].(bool); required && field.HideOnForm != nil && *field.HideOnForm {
+	if required, _ := field.Validations["required"].(bool); required && field.HideOnForm {
 		return newErrorPosition(idx, field.Type).Errorf("can not require a hidden field")
 	}
 	return nil
