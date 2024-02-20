@@ -1416,6 +1416,11 @@ However, later updates removed those options, and now the only options are `gith
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
 Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-server/actions/checkout@v4`.
 
+## User (`user`)
+
+- `SETTING_DISABLED_MODULES`:**_empty_** Disabled modules from user settings, could be `deletion` and more moudels can be defined in future.
+  - `deletion`: User cannot remove himself from the website.
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.

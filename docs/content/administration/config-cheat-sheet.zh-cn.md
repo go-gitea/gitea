@@ -1345,6 +1345,11 @@ PROXY_HOSTS = *.github.com
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
 例如 `uses: https://gitea.com/actions/checkout@v4` 或 `uses: http://your-git-server/actions/checkout@v4`。
 
+## User (`user`)
+
+- `SETTING_DISABLED_MODULES`:**_empty_** 禁用的用户设置模块，当前允许为空或者 `deletion` 未来可以增加更多设置.
+  - `deletion`: 用户不能通过界面或者API删除他自己。
+
 ## 其他 (`other`)
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。
