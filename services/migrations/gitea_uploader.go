@@ -144,6 +144,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
+	defer gitRepo.Close()
+
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return err
