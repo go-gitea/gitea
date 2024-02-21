@@ -58,8 +58,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		tree.entriesParsed = true
 		return tree, nil
 	default:
-		_, err := rd.Discard(int(size))
-		if err != nil {
+		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
