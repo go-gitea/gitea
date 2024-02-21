@@ -32,7 +32,7 @@ function processWindowErrorEvent(e) {
   const err = e.error ?? e.reason;
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
 
-  // error is likely from browser extension or inline scripts. Do not show these in production builds.
+  // error is likely from browser extension or inline script. Do not show these in production builds.
   if (!err.stack?.includes(assetBaseUrl) && process.env.NODE_ENV === 'production') return;
 
   let message;
