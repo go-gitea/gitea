@@ -26,7 +26,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -872,7 +871,7 @@ func TestDataAsync_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
+		gitRepo, err := git.OpenRepository(db.DefaultContext, repo.RepoPath())
 		assert.NoError(t, err)
 
 		commit, err := gitRepo.GetCommit(sha)
