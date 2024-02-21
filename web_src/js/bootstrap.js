@@ -41,6 +41,13 @@ function processWindowErrorEvent(e) {
   } else {
     message = `JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}).`;
   }
+
+  if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
+    // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
+    // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
+    return; // ignore such nonsense error event
+  }
+
   showGlobalErrorMessage(`${message} Open browser console to see more details.`);
 }
 
