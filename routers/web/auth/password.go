@@ -204,7 +204,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {
