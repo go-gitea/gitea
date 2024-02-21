@@ -29,18 +29,17 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
-  // do not show global errors in production as this causes errors from buggy browser extensions to
-  // show and we can not control or reliably detect whether an error originates from our code or
-  // from an extension.
-  if (process.env.NODE_ENV !== 'production') {
-    let message;
-    if (e.type === 'unhandledrejection') {
-      message = `JavaScript promise rejection: ${e.reason}.`;
-    } else {
-      message = `JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}).`;
-    }
-    showGlobalErrorMessage(`${message} Open browser console to see more details.`);
+  const err = e.error ?? e.reason;
+  const jsDir = `${window.location.origin}${__webpack_public_path__}js`;
+  if (!err.stack?.includes(jsDir)) return; // error likely from browser extension
+
+  let message;
+  if (e.type === 'unhandledrejection') {
+    message = `JavaScript promise rejection: ${err.message}.`;
+  } else {
+    message = `JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}).`;
   }
+  showGlobalErrorMessage(`${message} Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
