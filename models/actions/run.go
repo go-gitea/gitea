@@ -339,13 +339,15 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
-func GetRepoBranchLastRun(ctx context.Context, repoID int64, branch, workflowFile string) (*ActionRun, error) {
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
 	var run ActionRun
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).
-		And("ref = ? or schedule_id != ?", branch, 0). // schedule_id != 0 indicates cron job
-		And("workflow_id = ?", workflowFile).
-		Desc("id").
-		Get(&run)
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("ref = ?", branch).
+		And("workflow_id = ?", workflowFile)
+	if event != "" {
+		q.And("event = ?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
 	if err != nil {
 		return nil, err
 	} else if !has {
