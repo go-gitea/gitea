@@ -23,7 +23,7 @@ type Label struct {
 	width float64
 }
 
-func (l Label) Label() string {
+func (l Label) Text() string {
 	return l.text
 }
 
@@ -32,11 +32,11 @@ func (l Label) Width() int {
 }
 
 func (l Label) TextLength() int {
-	return int(l.width * 9.5) // 95% of the width
+	return int((l.width - defaultOffset) * 9.5)
 }
 
 func (l Label) X() int {
-	return int((l.width/2 + 1) * 10) // scale 10 times to be more accurate
+	return int((l.width/2 + 1) * 10)
 }
 
 type Message struct {
@@ -45,7 +45,7 @@ type Message struct {
 	x     int
 }
 
-func (m Message) Message() string {
+func (m Message) Text() string {
 	return m.text
 }
 
@@ -58,7 +58,7 @@ func (m Message) X() int {
 }
 
 func (m Message) TextLength() int {
-	return int(m.width * 9.5)
+	return int((m.width - defaultOffset) * 9.5)
 }
 
 type Badge struct {
@@ -69,12 +69,13 @@ type Badge struct {
 }
 
 func (b Badge) Width() int {
-	return b.Label.Width() + b.Message.Width()
+	return int(b.Label.width + b.Message.width)
 }
 
 const (
-	defaultOffset   = 9
+	defaultOffset   = float64(9)
 	defaultFontSize = 11
+	noStatusColor   = "#9f9f9f" // Grey
 )
 
 var drawer = &font.Drawer{
@@ -100,12 +101,9 @@ func GetWorkflowBadge(ctx *context.Context) {
 	}
 	branchRef := fmt.Sprintf("refs/heads/%s", branch)
 	event := ctx.Req.URL.Query().Get("event")
+
 	badge, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound("Not found", fmt.Errorf("%s not found", workflowFile))
-			return
-		}
 		ctx.ServerError("GetWorkflowBadge", err)
 		return
 	}
@@ -116,25 +114,29 @@ func GetWorkflowBadge(ctx *context.Context) {
 }
 
 func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event string) (Badge, error) {
+	extension := filepath.Ext(workflowFile)
+	workflowName := strings.TrimSuffix(workflowFile, extension)
+
 	run, err := actions_model.GetWorkflowLatestRun(ctx, ctx.Repo.Repository.ID, workflowFile, branchName, event)
 	if err != nil {
-		return Badge{}, err
+		if errors.Is(err, util.ErrNotExist) {
+			return generateBadge(workflowName, "no status", noStatusColor), nil
+		} else {
+			return Badge{}, err
+		}
 	}
 
 	color, ok := statusColorMap[run.Status]
 	if !ok {
-		return Badge{}, fmt.Errorf("unknown status %d", run.Status)
+		return generateBadge(workflowName, "unknown status", noStatusColor), nil
 	}
-
-	extension := filepath.Ext(workflowFile)
-	workflowName := strings.TrimSuffix(workflowFile, extension)
 	return generateBadge(workflowName, run.Status.String(), color), nil
 }
 
 // generateBadge generates badge with given template
 func generateBadge(label, message, color string) Badge {
-	lw := float64(drawer.MeasureString(label)>>6) + float64(defaultOffset)
-	mw := float64(drawer.MeasureString(message)>>6) + float64(defaultOffset)
+	lw := float64(drawer.MeasureString(label)>>6) + defaultOffset
+	mw := float64(drawer.MeasureString(message)>>6) + defaultOffset
 	x := int((lw + (mw / 2) - 1) * 10)
 	return Badge{
 		Label: Label{
@@ -147,5 +149,6 @@ func generateBadge(label, message, color string) Badge {
 			x:     x,
 		},
 		FontSize: defaultFontSize * 10,
+		Color:    color,
 	}
 }
