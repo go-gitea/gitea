@@ -30,14 +30,25 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open avatar.png")
 	}
 
+	// needs to delete avatar to test create
+	req := NewRequest(t, "DELETE", "/api/v1/user/avatar").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
 	// Test what happens if you don't have a valid Base64 string
 	opts := api.UpdateUserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
+	// created
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+
+	// updated
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	opts = api.UpdateUserAvatarOption{
 		Image: "Invalid",

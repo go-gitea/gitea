@@ -34,13 +34,24 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open avatar.png")
 	}
 
+	// needs to delete avatar to test create
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
 	opts := api.UpdateRepoAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+	// created
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+
+	// updated
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test what happens if you don't have a valid Base64 string
 	opts = api.UpdateRepoAvatarOption{
