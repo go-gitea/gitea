@@ -101,6 +101,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	var r *repo_model.Repository
+	newCreated := false
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_service.CreateRepositoryDirectly(g.ctx, g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
@@ -111,6 +112,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
+		newCreated = true
 	} else {
 		r, err = repo_model.GetRepositoryByID(g.ctx, opts.MigrateToRepoID)
 	}
@@ -134,12 +136,28 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		MirrorInterval: opts.MirrorInterval,
 	}, NewMigrationHTTPTransport())
-
-	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
-	g.repo = r
 	if err != nil {
 		return err
 	}
+
+	gitRepo, err := gitrepo.OpenRepository(g.ctx, r)
+	if err != nil {
+		return err
+	}
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return err
+	}
+	if !newCreated && objectFormat.Name() != r.ObjectFormatName {
+		return fmt.Errorf("the object format of the repository has been changed old: %s -> %s", r.ObjectFormatName, objectFormat.Name())
+	}
+	r.ObjectFormatName = objectFormat.Name()
+	if err := repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name"); err != nil {
+		return err
+	}
+
+	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
+	g.repo = r
 	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	return err
 }
@@ -894,7 +912,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			objectFormat, _ := g.gitRepo.GetObjectFormat()
+			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
 			if !objectFormat.IsValid(comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
