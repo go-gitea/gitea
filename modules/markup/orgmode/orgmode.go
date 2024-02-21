@@ -136,8 +136,7 @@ type Writer struct {
 func (r *Writer) resolveLink(kind, link string) string {
 	link = strings.TrimPrefix(link, "file:")
 	if !strings.HasPrefix(link, "#") && // not a URL fragment
-		!markup.IsLinkStr(link) && // not an absolute URL
-		!strings.HasPrefix(link, "mailto:") {
+		!markup.IsFullURLString(link) {
 		if kind == "regular" {
 			// orgmode reports the link kind as "regular" for "[[ImageLink.svg][The Image Desc]]"
 			// so we need to try to guess the link kind again here
