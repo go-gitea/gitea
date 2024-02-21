@@ -4,8 +4,6 @@
 package setting
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/modules/container"
 )
 
@@ -15,11 +13,11 @@ const (
 
 // userSetting represents user settings
 type userSetting struct {
-	content container.Set[string]
+	disabledModules container.Set[string]
 }
 
 func (s *userSetting) Enabled(module string) bool {
-	return !s.content.Contains(strings.ToLower(module))
+	return !s.disabledModules.Contains(module)
 }
 
 var User userSetting
@@ -27,5 +25,5 @@ var User userSetting
 func loadUserFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("user")
 	values := sec.Key("SETTING_DISABLED_MODULES").Strings(",")
-	User.content = container.SetOf(values...)
+	User.disabledModules = container.SetOf(values...)
 }

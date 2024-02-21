@@ -403,14 +403,6 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	userSettingModuleEnabled := func(module string) func(ctx *context.Context) {
-		return func(ctx *context.Context) {
-			if !setting.User.Enabled(module) {
-				ctx.Error(http.StatusNotFound)
-			}
-		}
-	}
-
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo_setting.WebhooksNew)
 		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo_setting.GiteaHooksNewPost)
@@ -573,7 +565,7 @@ func registerRoutes(m *web.Route) {
 			m.Combo("").Get(user_setting.Account).Post(web.Bind(forms.ChangePasswordForm{}), user_setting.AccountPost)
 			m.Post("/email", web.Bind(forms.AddEmailForm{}), user_setting.EmailPost)
 			m.Post("/email/delete", user_setting.DeleteEmail)
-			m.Post("/delete", userSettingModuleEnabled(setting.UserDeletionKey), user_setting.DeleteAccount)
+			m.Post("/delete", user_setting.DeleteAccount)
 		})
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
@@ -660,7 +652,6 @@ func registerRoutes(m *web.Route) {
 		"PageIsUserSettings", true,
 		"AllThemes", setting.UI.Themes,
 		"EnablePackages", setting.Packages.Enabled,
-		"UserModules", &setting.User,
 	))
 
 	m.Group("/user", func() {

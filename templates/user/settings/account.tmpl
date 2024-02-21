@@ -129,30 +129,30 @@
 		</div>
 
 		{{if $.UserModules.Enabled "deletion"}}
-			<h4 class="ui top attached error header">
-				{{ctx.Locale.Tr "settings.delete_account"}}
-			</h4>
-			<div class="ui attached error segment">
-				<div class="ui red message">
-					<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "settings.delete_prompt" | Str2html}}</p>
-					{{if .UserDeleteWithComments}}
-					<p class="text left gt-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
-					{{end}}
-				</div>
-				<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
-					{{template "base/disable_form_autofill"}}
-					{{.CsrfTokenHtml}}
-					<div class="required field {{if .Err_Password}}error{{end}}">
-						<label for="password-confirmation">{{ctx.Locale.Tr "password"}}</label>
-						<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
-					</div>
-					<div class="field">
-						<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
-							{{ctx.Locale.Tr "settings.confirm_delete_account"}}
-						</button>
-					</div>
-				</form>
+		<h4 class="ui top attached error header">
+			{{ctx.Locale.Tr "settings.delete_account"}}
+		</h4>
+		<div class="ui attached error segment">
+			<div class="ui red message">
+				<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "settings.delete_prompt" | Str2html}}</p>
+				{{if .UserDeleteWithComments}}
+				<p class="text left gt-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				{{end}}
 			</div>
+			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+				{{template "base/disable_form_autofill"}}
+				{{.CsrfTokenHtml}}
+				<div class="required field {{if .Err_Password}}error{{end}}">
+					<label for="password-confirmation">{{ctx.Locale.Tr "password"}}</label>
+					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
+				</div>
+				<div class="field">
+					<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
+						{{ctx.Locale.Tr "settings.confirm_delete_account"}}
+					</button>
+				</div>
+			</form>
+		</div>
 		{{end}}
 	</div>
 
