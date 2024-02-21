@@ -121,9 +121,8 @@ func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event stri
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			return generateBadge(workflowName, "no status", noStatusColor), nil
-		} else {
-			return Badge{}, err
 		}
+		return Badge{}, err
 	}
 
 	color, ok := statusColorMap[run.Status]
