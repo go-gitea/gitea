@@ -14,17 +14,15 @@ export function initRepoEllipsisButton() {
 }
 
 export function initRepoCommitLastCommitLoader() {
+  const notReadyEls = document.querySelectorAll('table#repo-files-table tr.notready');
+  if (!notReadyEls.length) return;
+
   const entryMap = {};
-
-  const entries = $('table#repo-files-table tr.notready')
-    .map((_, v) => {
-      entryMap[$(v).attr('data-entryname')] = $(v);
-      return $(v).attr('data-entryname');
-    })
-    .get();
-
-  if (entries.length === 0) {
-    return;
+  const entries = [];
+  for (const el of notReadyEls) {
+    const entryname = el.getAttribute('data-entryname');
+    entryMap[entryname] = $(el);
+    entries.push(entryname);
   }
 
   const lastCommitLoaderURL = $('table#repo-files-table').data('lastCommitLoaderUrl');
