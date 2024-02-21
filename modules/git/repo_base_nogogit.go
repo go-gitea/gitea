@@ -112,12 +112,14 @@ func (repo *Repository) Close() (err error) {
 		repo.batchReader = nil
 		repo.batchWriter = nil
 		repo.batchCancel = nil
+		repo.batchInUse = false
 	}
 	if repo.checkCancel != nil {
 		repo.checkCancel()
 		repo.checkCancel = nil
 		repo.checkReader = nil
 		repo.checkWriter = nil
+		repo.checkInUse = false
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
