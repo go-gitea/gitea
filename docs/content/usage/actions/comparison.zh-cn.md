@@ -95,12 +95,6 @@ Gitea Actions目前不支持此功能，如果使用它，结果将始终为空�
 
 ## 缺失的功能
 
-### 变量
-
-请参阅[变量](https://docs.github.com/zh/actions/learn-github-actions/variables)。
-
-目前变量功能正在开发中。
-
 ### 问题匹配器
 
 问题匹配器是一种扫描Actions输出以查找指定正则表达式模式并在用户界面中突出显示该信息的方法。
