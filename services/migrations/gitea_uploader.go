@@ -101,7 +101,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	var r *repo_model.Repository
-	newCreated := false
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_service.CreateRepositoryDirectly(g.ctx, g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
@@ -112,7 +111,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
-		newCreated = true
 	} else {
 		r, err = repo_model.GetRepositoryByID(g.ctx, opts.MigrateToRepoID)
 	}
@@ -146,12 +144,10 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 	defer gitRepo.Close()
 
+	// detect object format from git repository and update to database
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return err
-	}
-	if !newCreated && objectFormat.Name() != r.ObjectFormatName {
-		return fmt.Errorf("the object format of the repository has been changed old: %s -> %s", r.ObjectFormatName, objectFormat.Name())
 	}
 	r.ObjectFormatName = objectFormat.Name()
 	if err := repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name"); err != nil {
