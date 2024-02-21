@@ -128,7 +128,7 @@
 			{{end}}
 		</div>
 
-		{{if $.UserModules.Enabled "deletion"}}
+		{{if $.UserDisabledModules.Contains "deletion"}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "settings.delete_account"}}
 		</h4>
