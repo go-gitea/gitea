@@ -13,11 +13,14 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	issue_service "code.gitea.io/gitea/services/issue"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestAPIPullReview(t *testing.T) {
@@ -313,4 +316,127 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{}).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+}
+
+func TestAPIPullReviewStayDismissed(t *testing.T) {
+	// This test against issue https://github.com/go-gitea/gitea/issues/28542
+	// where old reviews surface after a review request got dismissed.
+	defer tests.PrepareTestEnv(t)()
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.NoError(t, pullIssue.LoadAttributes(db.DefaultContext))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session2 := loginUser(t, user2.LoginName)
+	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
+	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	session8 := loginUser(t, user8.LoginName)
+	token8 := getTokenForLoggedInUser(t, session8, auth_model.AccessTokenScopeWriteRepository)
+
+	// user2 request user8
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{user8.LoginName},
+	}).AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusCreated)
+
+	reviewsCountCheck(t,
+		"check we have only one review request",
+		pullIssue.ID, user8.ID, 0, 1, 1, false)
+
+	// user2 request user8 again, it is expected to be ignored
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{user8.LoginName},
+	}).AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusCreated)
+
+	reviewsCountCheck(t,
+		"check we have only one review request, even after re-request it again",
+		pullIssue.ID, user8.ID, 0, 1, 1, false)
+
+	// user8 reviews it as accept
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "APPROVED",
+		Body:  "lgtm",
+	}).AddTokenAuth(token8)
+	MakeRequest(t, req, http.StatusOK)
+
+	reviewsCountCheck(t,
+		"check we have one valid approval",
+		pullIssue.ID, user8.ID, 0, 0, 1, true)
+
+	// emulate of auto-dismiss lgtm on a protected branch that where a pull just got an update
+	_, err := db.GetEngine(db.DefaultContext).Where("issue_id = ? AND reviewer_id = ?", pullIssue.ID, user8.ID).
+		Cols("dismissed").Update(&issues_model.Review{Dismissed: true})
+	assert.NoError(t, err)
+
+	// user2 request user8 again
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{user8.LoginName},
+	}).AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusCreated)
+
+	reviewsCountCheck(t,
+		"check we have no valid approval and one review request",
+		pullIssue.ID, user8.ID, 1, 1, 2, false)
+
+	// user8 dismiss review
+	_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user8, user8, false)
+	assert.NoError(t, err)
+
+	reviewsCountCheck(t,
+		"check new review request is now dismissed",
+		pullIssue.ID, user8.ID, 1, 0, 1, false)
+
+	// add a new valid approval
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "APPROVED",
+		Body:  "lgtm",
+	}).AddTokenAuth(token8)
+	MakeRequest(t, req, http.StatusOK)
+
+	reviewsCountCheck(t,
+		"check that old reviews requests are deleted",
+		pullIssue.ID, user8.ID, 1, 0, 2, true)
+
+	// now add a change request witch should dismiss the approval
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "REQUEST_CHANGES",
+		Body:  "please change XYZ",
+	}).AddTokenAuth(token8)
+	MakeRequest(t, req, http.StatusOK)
+
+	reviewsCountCheck(t,
+		"check that old reviews are dismissed",
+		pullIssue.ID, user8.ID, 2, 0, 3, false)
+}
+
+func reviewsCountCheck(t *testing.T, name string, issueID, reviewerID int64, expectedDismissed, expectedRequested, expectedTotal int, expectApproval bool) {
+	t.Run(name, func(t *testing.T) {
+		unittest.AssertCountByCond(t, "review", builder.Eq{
+			"issue_id":    issueID,
+			"reviewer_id": reviewerID,
+			"dismissed":   true,
+		}, expectedDismissed)
+
+		unittest.AssertCountByCond(t, "review", builder.Eq{
+			"issue_id":    issueID,
+			"reviewer_id": reviewerID,
+		}, expectedTotal)
+
+		unittest.AssertCountByCond(t, "review", builder.Eq{
+			"issue_id":    issueID,
+			"reviewer_id": reviewerID,
+			"type":        issues_model.ReviewTypeRequest,
+		}, expectedRequested)
+
+		approvalCount := 0
+		if expectApproval {
+			approvalCount = 1
+		}
+		unittest.AssertCountByCond(t, "review", builder.Eq{
+			"issue_id":    issueID,
+			"reviewer_id": reviewerID,
+			"type":        issues_model.ReviewTypeApprove,
+			"dismissed":   false,
+		}, approvalCount)
+	})
 }
