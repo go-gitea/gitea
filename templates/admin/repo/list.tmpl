@@ -101,7 +101,7 @@
 	</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (`<span class="name"></span>`|Safe)}}<br>
 		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
