@@ -30,10 +30,10 @@ export function showGlobalErrorMessage(msg) {
  */
 function processWindowErrorEvent(e) {
   const err = e.error ?? e.reason;
-  const jsDir = `${window.location.origin}${__webpack_public_path__}js`;
+  const jsUrl = String(new URL(`${__webpack_public_path__}js`, window.location.origin));
 
   // error is likely from browser extension or inline scripts. Do not show these in production builds.
-  if (!err.stack?.includes(jsDir) && process.env.NODE_ENV === 'production') return;
+  if (!err.stack?.includes(jsUrl) && process.env.NODE_ENV === 'production') return;
 
   let message;
   if (e.type === 'unhandledrejection') {
