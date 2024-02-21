@@ -585,7 +585,6 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.DeletePayload{
 			Ref:        refFullName.ShortName(),
 			RefType:    refFullName.RefType(),
