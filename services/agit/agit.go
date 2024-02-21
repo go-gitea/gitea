@@ -149,7 +149,6 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
-			objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
