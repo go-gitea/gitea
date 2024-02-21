@@ -85,6 +85,24 @@
 					</div>
 				</div>
 
+				<div class="inline field">
+					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.heatmap_visibility"}}</label></span>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="heatmap_visibility" name="heatmap_visibility" value="{{printf "%d" .SignedUser.HeatmapVisibility}}">
+						<div class="text">
+							{{if .SignedUser.HeatmapVisibility.ShowPublic}}{{ctx.Locale.Tr "settings.heatmap_visibility.public"}}{{end}}
+							{{if .SignedUser.HeatmapVisibility.ShowAll}}{{ctx.Locale.Tr "settings.heatmap_visibility.all"}}{{end}}
+							{{if .SignedUser.HeatmapVisibility.ShowNone}}{{ctx.Locale.Tr "settings.heatmap_visibility.none"}}{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "settings.heatmap_visibility.public"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "settings.heatmap_visibility.all"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "settings.heatmap_visibility.none"}}</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="divider"></div>
 
 				<div class="field">

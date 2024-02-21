@@ -27,6 +27,7 @@ type UpdateOptions struct {
 	MaxRepoCreation              optional.Option[int]
 	IsRestricted                 optional.Option[bool]
 	Visibility                   optional.Option[structs.VisibleType]
+	HeatmapVisibility            optional.Option[structs.HeatmapVisibility]
 	KeepActivityPrivate          optional.Option[bool]
 	Language                     optional.Option[string]
 	Theme                        optional.Option[string]
@@ -128,6 +129,11 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.Visibility = opts.Visibility.Value()
 
 		cols = append(cols, "visibility")
+	}
+	if opts.HeatmapVisibility.Has() {
+		u.HeatmapVisibility = opts.HeatmapVisibility.Value()
+
+		cols = append(cols, "heatmap_visibility")
 	}
 	if opts.KeepActivityPrivate.Has() {
 		u.KeepActivityPrivate = opts.KeepActivityPrivate.Value()

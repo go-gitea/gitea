@@ -32,7 +32,7 @@ func GetUserHeatmapDataByUserTeam(ctx context.Context, user *user_model.User, te
 func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if !ActivityReadable(user, doer) {
+	if !ActivityReadable(user, doer) || user.HeatmapVisibility.ShowNone() {
 		return hdata, nil
 	}
 
@@ -56,7 +56,8 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		// * Heatmaps for individual users only include actions that the user themself did.
 		// * For organizations actions by all users that were made in owned
 		//   repositories are counted.
-		OnlyPerformedBy: !user.IsOrganization(),
+		OnlyPerformedBy:     !user.IsOrganization(),
+		IncludePrivateRepos: user.HeatmapVisibility.ShowAll(),
 	})
 	if err != nil {
 		return nil, err

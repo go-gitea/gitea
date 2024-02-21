@@ -15,9 +15,16 @@
 						<div class="ui info message">
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
+					{{else}}
+						{{if .ContextUser.HeatmapVisibility.ShowNone}}
+							<div class="ui info message">
+								<p>{{ctx.Locale.Tr "user.disabled_public_heatmap"}}</p>
+							</div>
+						{{else}}
+							{{template "user/heatmap" .}}
+						{{end}}
+						{{template "user/dashboard/feeds" .}}
 					{{end}}
-					{{template "user/heatmap" .}}
-					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "explore/repo_search" .}}

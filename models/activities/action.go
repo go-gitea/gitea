@@ -425,14 +425,15 @@ func (a *Action) GetIssueContent(ctx context.Context) string {
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	db.ListOptions
-	RequestedUser   *user_model.User       // the user we want activity for
-	RequestedTeam   *organization.Team     // the team we want activity for
-	RequestedRepo   *repo_model.Repository // the repo we want activity for
-	Actor           *user_model.User       // the user viewing the activity
-	IncludePrivate  bool                   // include private actions
-	OnlyPerformedBy bool                   // only actions performed by requested user
-	IncludeDeleted  bool                   // include deleted actions
-	Date            string                 // the day we want activity for: YYYY-MM-DD
+	RequestedUser       *user_model.User       // the user we want activity for
+	RequestedTeam       *organization.Team     // the team we want activity for
+	RequestedRepo       *repo_model.Repository // the repo we want activity for
+	Actor               *user_model.User       // the user viewing the activity
+	IncludePrivate      bool                   // include private actions
+	OnlyPerformedBy     bool                   // only actions performed by requested user
+	IncludeDeleted      bool                   // include deleted actions
+	Date                string                 // the day we want activity for: YYYY-MM-DD
+	IncludePrivateRepos bool                   // include private repos
 }
 
 // GetFeeds returns actions according to the provided options
@@ -515,7 +516,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.Actor.IsAdmin {
+	if opts.Actor == nil || !opts.IncludePrivateRepos && !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 

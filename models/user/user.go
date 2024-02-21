@@ -142,9 +142,10 @@ type User struct {
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
-	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
-	Theme               string `xorm:"NOT NULL DEFAULT ''"`
-	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+	DiffViewStyle       string                    `xorm:"NOT NULL DEFAULT ''"`
+	Theme               string                    `xorm:"NOT NULL DEFAULT ''"`
+	KeepActivityPrivate bool                      `xorm:"NOT NULL DEFAULT false"`
+	HeatmapVisibility   structs.HeatmapVisibility `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {

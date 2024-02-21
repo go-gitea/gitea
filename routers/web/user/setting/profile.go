@@ -93,6 +93,7 @@ func ProfilePost(ctx *context.Context) {
 		Website:             optional.Some(form.Website),
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
+		HeatmapVisibility:   optional.Some(form.HeatmapVisibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {

@@ -224,6 +224,7 @@ type UpdateProfileForm struct {
 	Location            string `binding:"MaxSize(50)"`
 	Description         string `binding:"MaxSize(255)"`
 	Visibility          structs.VisibleType
+	HeatmapVisibility   structs.HeatmapVisibility
 	KeepActivityPrivate bool
 }
 
