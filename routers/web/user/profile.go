@@ -170,6 +170,9 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	mirror := ctx.FormOptionalBool("mirror")
 	ctx.Data["IsMirror"] = mirror
 
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
@@ -222,6 +225,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,
+			Template:           template,
 			IsPrivate:          private,
 		})
 		if err != nil {
@@ -248,6 +252,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,
+			Template:           template,
 			IsPrivate:          private,
 		})
 		if err != nil {
@@ -297,6 +302,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,
+			Template:           template,
 			IsPrivate:          private,
 		})
 		if err != nil {

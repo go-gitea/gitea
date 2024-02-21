@@ -106,6 +106,9 @@ func Home(ctx *context.Context) {
 	mirror := ctx.FormOptionalBool("mirror")
 	ctx.Data["IsMirror"] = mirror
 
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
@@ -129,6 +132,7 @@ func Home(ctx *context.Context) {
 		Archived:           archived,
 		Fork:               fork,
 		Mirror:             mirror,
+		Template:           template,
 		IsPrivate:          private,
 	})
 	if err != nil {

@@ -118,6 +118,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	mirror := ctx.FormOptionalBool("mirror")
 	ctx.Data["IsMirror"] = mirror
 
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
@@ -140,6 +143,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Archived:           archived,
 		Fork:               fork,
 		Mirror:             mirror,
+		Template:           template,
 		IsPrivate:          private,
 	})
 	if err != nil {
