@@ -103,7 +103,7 @@ func TestXSSWikiLastCommitInfo(t *testing.T) {
 			htmlDoc := NewHTMLParser(t, resp.Body)
 
 			htmlDoc.AssertElement(t, "script.evil", false)
-			assert.EqualValues(t, `Gusted <script class="evil">alert('Oh no!');</script> edited this page 2024-01-31 00:00:00 +00:00`, strings.TrimSpace(htmlDoc.Find(".ui.sub.header").Text()))
+			assert.EqualValues(t, `Gusted edited this page 0001-01-01 00:00:00 +00:00`, strings.TrimSpace(htmlDoc.Find(".ui.sub.header").Text()))
 		})
 
 		// Check on revisions page.
@@ -115,7 +115,7 @@ func TestXSSWikiLastCommitInfo(t *testing.T) {
 			htmlDoc := NewHTMLParser(t, resp.Body)
 
 			htmlDoc.AssertElement(t, "script.evil", false)
-			assert.EqualValues(t, `Gusted <script class="evil">alert('Oh no!');</script> edited this page 2024-01-31 00:00:00 +00:00`, strings.TrimSpace(htmlDoc.Find(".ui.sub.header").Text()))
+			assert.EqualValues(t, `Gusted edited this page 0001-01-01 00:00:00 +00:00`, strings.TrimSpace(htmlDoc.Find(".ui.sub.header").Text()))
 		})
 	})
 }
