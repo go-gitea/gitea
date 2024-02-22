@@ -224,38 +224,11 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 ) {
 	ctx = withMethod(ctx, "CreateIssueComment")
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
-
 	if issue.IsPull {
-		if err := issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestComment).
-			WithDoer(doer).
-			WithPayload(&api.IssueCommentPayload{
-				Action:     api.HookIssueCommentCreated,
-				Issue:      convert.ToAPIIssue(ctx, issue),
-				Comment:    convert.ToAPIComment(ctx, repo, comment),
-				Repository: convert.ToRepo(ctx, repo, permission),
-				Sender:     convert.ToUser(ctx, doer, nil),
-				IsPull:     true,
-			}).
-			WithPullRequest(issue.PullRequest).
-			Notify(ctx)
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentCreated)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueComment).
-		WithDoer(doer).
-		WithPayload(&api.IssueCommentPayload{
-			Action:     api.HookIssueCommentCreated,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Comment:    convert.ToAPIComment(ctx, repo, comment),
-			Repository: convert.ToRepo(ctx, repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-			IsPull:     false,
-		}).
-		Notify(ctx)
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentCreated)
 }
 
 func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
@@ -265,49 +238,30 @@ func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	if err := c.Issue.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return
-	}
-
-	permission, _ := access_model.GetUserRepoPermission(ctx, c.Issue.Repo, doer)
-
-	payload := &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentEdited,
-		Issue:      convert.ToAPIIssue(ctx, c.Issue),
-		Comment:    convert.ToAPIComment(ctx, c.Issue.Repo, c),
-		Repository: convert.ToRepo(ctx, c.Issue.Repo, permission),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
-			},
-		},
-		Sender: convert.ToUser(ctx, doer, nil),
-		IsPull: c.Issue.IsPull,
-	}
 
 	if c.Issue.IsPull {
-		if err := c.Issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(c.Issue, webhook_module.HookEventPullRequestComment).
-			WithDoer(doer).
-			WithPayload(payload).
-			WithPullRequest(c.Issue.PullRequest).
-			Notify(ctx)
+		notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventPullRequestComment, api.HookIssueCommentEdited)
 		return
 	}
-
-	newNotifyInputFromIssue(c.Issue, webhook_module.HookEventIssueComment).
-		WithDoer(doer).
-		WithPayload(payload).
-		Notify(ctx)
+	notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventIssueComment, api.HookIssueCommentEdited)
 }
 
 func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "DeleteComment")
 
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if comment.Issue.IsPull {
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentDeleted)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentDeleted)
+}
+
+func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, oldContent string, event webhook_module.HookEventType, action api.HookIssueCommentAction) {
 	if err := comment.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
@@ -320,7 +274,7 @@ func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
 
 	payload := &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
+		Action:     action,
 		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
 		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
 		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
@@ -328,12 +282,20 @@ func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 		IsPull:     comment.Issue.IsPull,
 	}
 
+	if action == api.HookIssueCommentEdited {
+		payload.Changes = &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		}
+	}
+
 	if comment.Issue.IsPull {
 		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
 			log.Error("LoadPullRequest: %v", err)
 			return
 		}
-		newNotifyInputFromIssue(comment.Issue, webhook_module.HookEventPullRequestComment).
+		newNotifyInputFromIssue(comment.Issue, event).
 			WithDoer(doer).
 			WithPayload(payload).
 			WithPullRequest(comment.Issue.PullRequest).
@@ -341,7 +303,7 @@ func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 		return
 	}
 
-	newNotifyInputFromIssue(comment.Issue, webhook_module.HookEventIssueComment).
+	newNotifyInputFromIssue(comment.Issue, event).
 		WithDoer(doer).
 		WithPayload(payload).
 		Notify(ctx)
