@@ -11,7 +11,7 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
-					{{if and .ContextUser.ActionsVisibility.ShowNone (not .IsAdmin)}}
+					{{if and .ContextUser.ActionsVisibility.ShowNone (not .IsAdmin) (ne .ContextUser.ID .SignedUserID)}}
 						<div class="ui info message">
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
