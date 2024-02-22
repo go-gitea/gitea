@@ -92,7 +92,7 @@ cd gitea-dump-1610949662
 mv app.ini /etc/gitea/conf/app.ini
 mv data/* /var/lib/gitea/data/
 mv log/* /var/lib/gitea/log/
-mv repos/* /var/lib/gitea/gitea-repositories/
+mv repos/* /var/lib/gitea/data/gitea-repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea
 
 # mysql
