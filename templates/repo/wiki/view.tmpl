@@ -40,7 +40,7 @@
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" (.Author.Name | Escape) $timeSince | Safe}}
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
