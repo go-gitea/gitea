@@ -27,16 +27,16 @@
 		</div>
 		{{if eq .Team.LowerName "owners"}}
 			<div class="item">
-				{{ctx.Locale.Tr "org.teams.owners_permission_desc" | Str2html}}
+				{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}
 			</div>
 		{{else}}
 			<div class="item">
 				<h3>{{ctx.Locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
-						<li>{{ctx.Locale.Tr "org.teams.all_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.all_repositories"}}</li>
 					{{else}}
-						<li>{{ctx.Locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.specific_repositories"}}</li>
 					{{end}}
 					{{if .Team.CanCreateOrgRepo}}
 						<li>{{ctx.Locale.Tr "org.teams.can_create_org_repo"}}</li>
@@ -44,10 +44,10 @@
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
-					{{ctx.Locale.Tr "org.teams.write_permission_desc" | Str2html}}
+					{{ctx.Locale.Tr "org.teams.write_permission_desc"}}
 				{{else if (eq .Team.AccessMode 3)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
-					{{ctx.Locale.Tr "org.teams.admin_permission_desc" | Str2html}}
+					{{ctx.Locale.Tr "org.teams.admin_permission_desc"}}
 				{{else}}
 					<table class="ui table">
 						<thead>

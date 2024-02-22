@@ -136,12 +136,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if input.Event == webhook_module.HookEventDelete {
-		// The event is deleting a reference, so it will fail to get the commit for a deleted reference.
-		// Set ref to empty string to fall back to the default branch.
-		ref = ""
+	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+		if ref != "" {
+			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
+				input.Event, ref)
+		}
+		ref = input.Repo.DefaultBranch
 	}
 	if ref == "" {
+		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
 		ref = input.Repo.DefaultBranch
 	}
 
