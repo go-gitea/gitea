@@ -48,15 +48,15 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	_, err = ctx.Write(avatarData)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Write", err)
-		return
-	}
 	if hasAvatar {
 		ctx.Status(http.StatusOK)
 	} else {
 		ctx.Status(http.StatusCreated)
+	}
+	_, err = ctx.Write(avatarData)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Write", err)
+		return
 	}
 }
 

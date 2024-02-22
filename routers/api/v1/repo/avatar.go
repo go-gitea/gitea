@@ -52,7 +52,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	hasAvatar := ctx.Doer.HasAvatar()
+	hasAvatar := len(ctx.Repo.Repository.Avatar) > 0
 
 	avatarData, err := repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
 	if err != nil {
@@ -60,15 +60,15 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	_, err = ctx.Write(avatarData)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Write", err)
-		return
-	}
 	if hasAvatar {
 		ctx.Status(http.StatusOK)
 	} else {
 		ctx.Status(http.StatusCreated)
+	}
+	_, err = ctx.Write(avatarData)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Write", err)
+		return
 	}
 }
 
