@@ -28,7 +28,7 @@
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
 				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
 
-				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
+				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch ($oldCommitLink|Safe) ($newCommitLink|Safe)}}
 			{{else}}
 				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}

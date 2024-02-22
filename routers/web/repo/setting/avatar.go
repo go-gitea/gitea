@@ -38,7 +38,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	defer r.Close()
 
 	if form.Avatar.Size > setting.Avatar.MaxFileSize {
-		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
+		return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 	}
 
 	data, err := io.ReadAll(r)
@@ -47,7 +47,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
-		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+		return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %w", err)

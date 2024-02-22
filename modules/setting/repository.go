@@ -285,6 +285,9 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	} else {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
+
+	fatalDuplicatedPath("repository.ROOT", RepoRootPath)
+
 	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {
 		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))
