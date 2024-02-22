@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -92,7 +93,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err
@@ -713,7 +714,7 @@ func NewWikiPost(ctx *context.Context) {
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.add", form.Title)
+		form.Message = ctx.Locale.TrString("repo.editor.add", form.Title)
 	}
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
@@ -765,7 +766,7 @@ func EditWikiPost(ctx *context.Context) {
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.update", form.Title)
+		form.Message = ctx.Locale.TrString("repo.editor.update", form.Title)
 	}
 
 	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {

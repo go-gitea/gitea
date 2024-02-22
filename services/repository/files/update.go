@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,7 +40,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.Reader
+	ContentReader io.ReadSeeker
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -78,7 +79,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -447,6 +448,10 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
+			_, err := file.ContentReader.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
 			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)

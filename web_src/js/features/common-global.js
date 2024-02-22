@@ -12,6 +12,7 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request, POST} from '../modules/fetch.js';
+import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 

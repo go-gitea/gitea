@@ -18,7 +18,7 @@ func (source *Source) FromDB(bs []byte) error {
 	return nil
 }
 
-// ToDB exports an SMTPConfig to a serialized format.
+// ToDB exports the config to a byte slice to be saved into database (this method is just dummy and does nothing for DB source)
 func (source *Source) ToDB() ([]byte, error) {
 	return nil, nil
 }

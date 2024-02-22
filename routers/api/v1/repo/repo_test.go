@@ -35,6 +35,7 @@ func TestRepoEdit(t *testing.T) {
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquashMerge := false
+	allowFastForwardOnlyMerge := false
 	archived := true
 	opts := api.EditRepoOption{
 		Name:                      &ctx.Repo.Repository.Name,
@@ -50,6 +51,7 @@ func TestRepoEdit(t *testing.T) {
 		AllowRebase:               &allowRebase,
 		AllowRebaseMerge:          &allowRebaseMerge,
 		AllowSquash:               &allowSquashMerge,
+		AllowFastForwardOnly:      &allowFastForwardOnlyMerge,
 		Archived:                  &archived,
 	}
 

@@ -24,6 +24,7 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
+			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
 			"is_context_required" .is_context_required
 		)}}
@@ -38,7 +39,7 @@
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape) | Safe)}}
 							</div>
 						</div>
 						<div class="item-section-right">
@@ -197,7 +198,7 @@
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
 							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix ctx.Locale}}
@@ -266,6 +267,13 @@
 									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}},
 									'mergeTitleFieldText': defaultSquashMergeTitle,
 									'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'fast-forward-only',
+									'allowed': {{and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0)}},
+									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}},
+									'hideMergeMessageTexts': true,
 									'hideAutoMerge': generalHideAutoMerge,
 								},
 								{

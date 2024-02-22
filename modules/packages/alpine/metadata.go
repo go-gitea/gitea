@@ -55,16 +55,17 @@ type VersionMetadata struct {
 }
 
 type FileMetadata struct {
-	Checksum     string   `json:"checksum"`
-	Packager     string   `json:"packager,omitempty"`
-	BuildDate    int64    `json:"build_date,omitempty"`
-	Size         int64    `json:"size,omitempty"`
-	Architecture string   `json:"architecture,omitempty"`
-	Origin       string   `json:"origin,omitempty"`
-	CommitHash   string   `json:"commit_hash,omitempty"`
-	InstallIf    string   `json:"install_if,omitempty"`
-	Provides     []string `json:"provides,omitempty"`
-	Dependencies []string `json:"dependencies,omitempty"`
+	Checksum         string   `json:"checksum"`
+	Packager         string   `json:"packager,omitempty"`
+	BuildDate        int64    `json:"build_date,omitempty"`
+	Size             int64    `json:"size,omitempty"`
+	Architecture     string   `json:"architecture,omitempty"`
+	Origin           string   `json:"origin,omitempty"`
+	CommitHash       string   `json:"commit_hash,omitempty"`
+	InstallIf        string   `json:"install_if,omitempty"`
+	Provides         []string `json:"provides,omitempty"`
+	Dependencies     []string `json:"dependencies,omitempty"`
+	ProviderPriority int64    `json:"provider_priority,omitempty"`
 }
 
 // ParsePackage parses the Alpine package file
@@ -187,6 +188,11 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 		case "depend":
 			if value != "" {
 				p.FileMetadata.Dependencies = append(p.FileMetadata.Dependencies, value)
+			}
+		case "provider_priority":
+			n, err := strconv.ParseInt(value, 10, 64)
+			if err == nil {
+				p.FileMetadata.ProviderPriority = n
 			}
 		}
 	}
