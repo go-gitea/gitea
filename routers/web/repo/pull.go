@@ -1283,19 +1283,19 @@ func MergePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if models.IsErrSHADoesNotMatch(err) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
 			pushrejErr := err.(*git.ErrPushRejected)
