@@ -17,11 +17,8 @@ import (
 func AddActionsVisibility(x *xorm.Engine) error {
 	// This migration maybe rerun so that we should check if it has been run
 	keepActivityPrivateExits, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "keep_activity_private")
-	if err != nil {
+	if err != nil || !keepActivityPrivateExits {
 		return err
-	}
-	if keepActivityPrivateExits {
-		return nil
 	}
 
 	sess := x.NewSession()
