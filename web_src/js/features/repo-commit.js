@@ -18,9 +18,9 @@ export async function initRepoCommitLastCommitLoader() {
   const entryMap = {};
 
   const entries = Array.from(document.querySelectorAll('table#repo-files-table tr.notready'), (el) => {
-    entryname = el.getAttribute('data-entryname');
-    entryMap[entryname] = el;
-    return entryname;
+    const entryName = el.getAttribute('data-entryname');
+    entryMap[entryName] = el;
+    return entryName;
   });
 
   if (entries.length === 0) {
