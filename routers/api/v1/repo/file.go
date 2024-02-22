@@ -408,7 +408,7 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
-func base64Reader(s string) (io.Reader, error) {
+func base64Reader(s string) (io.ReadSeeker, error) {
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err

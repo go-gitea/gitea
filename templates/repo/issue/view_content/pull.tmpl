@@ -24,6 +24,7 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
+			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
 			"is_context_required" .is_context_required
 		)}}
@@ -38,7 +39,7 @@
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape) | Safe)}}
 							</div>
 						</div>
 						<div class="item-section-right">
@@ -87,7 +88,7 @@
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 						<button class="ui compact button">
-							{{ctx.Locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							{{ctx.Locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape)}}
 						</button>
 					{{end}}
 				</div>
@@ -126,7 +127,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}
@@ -333,7 +334,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}

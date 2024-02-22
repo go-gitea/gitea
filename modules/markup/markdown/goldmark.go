@@ -26,8 +26,6 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var byteMailto = []byte("mailto:")
-
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
@@ -84,7 +82,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// 2. If they're not wrapped with a link they need a link wrapper
 
 			// Check if the destination is a real link
-			if len(v.Destination) > 0 && !markup.IsLink(v.Destination) {
+			if len(v.Destination) > 0 && !markup.IsFullURLBytes(v.Destination) {
 				v.Destination = []byte(giteautil.URLJoin(
 					ctx.Links.ResolveMediaLink(ctx.IsWiki),
 					strings.TrimLeft(string(v.Destination), "/"),
@@ -130,23 +128,17 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.Link:
 			// Links need their href to munged to be a real value
 			link := v.Destination
-			if len(link) > 0 && !markup.IsLink(link) &&
-				link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
-				// special case: this is not a link, a hash link or a mailto:, so it's a
-				// relative URL
-
-				var base string
+			isAnchorFragment := len(link) > 0 && link[0] == '#'
+			if !isAnchorFragment && !markup.IsFullURLBytes(link) {
+				base := ctx.Links.Base
 				if ctx.IsWiki {
 					base = ctx.Links.WikiLink()
 				} else if ctx.Links.HasBranchInfo() {
 					base = ctx.Links.SrcLink()
-				} else {
-					base = ctx.Links.Base
 				}
-
 				link = []byte(giteautil.URLJoin(base, string(link)))
 			}
-			if len(link) > 0 && link[0] == '#' {
+			if isAnchorFragment {
 				link = []byte("#user-content-" + string(link)[1:])
 			}
 			v.Destination = link

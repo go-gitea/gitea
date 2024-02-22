@@ -24,7 +24,6 @@ import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
 import {
-  initUserAuthLinkAccountView,
   initUserAuthOauth2,
   initUserAuthSAML
 } from './features/user-auth.js';
@@ -182,7 +181,6 @@ onDomReady(() => {
   initCommitStatuses();
   initCaptcha();
 
-  initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthSAML();
   initUserAuthWebAuthn();

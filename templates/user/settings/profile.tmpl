@@ -22,8 +22,8 @@
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{ctx.Locale.Tr "email"}}</label>
-					<p>{{.SignedUser.Email}}</p>
+					<label>{{ctx.Locale.Tr "email"}}</label>
+					<p id="signed-user-email">{{.SignedUser.Email}}</p>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
@@ -42,11 +42,11 @@
 				<!-- private block -->
 
 				<div class="field" id="privacy-user-settings">
-					<label for="security-private"><strong>{{ctx.Locale.Tr "settings.privacy"}}</strong></label>
+					<label><strong>{{ctx.Locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
@@ -120,8 +120,8 @@
 				</div>
 
 				<div class="inline field gt-pl-4">
-					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+					<label for="new-avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
+					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
