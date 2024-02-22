@@ -44,10 +44,6 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 			DisplayName: "Intellij IDEA",
 			OpenURL:     "jetbrains://idea/checkout/git?idea.required.plugins.id=Git4Idea&checkout.repo={url}",
 		},
-		{
-			DisplayName: "Gitpod",
-			OpenURL:     "https://gitpod.io/#{url}",
-		},
 	}
 }
 
