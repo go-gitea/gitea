@@ -425,15 +425,14 @@ func (a *Action) GetIssueContent(ctx context.Context) string {
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	db.ListOptions
-	RequestedUser       *user_model.User       // the user we want activity for
-	RequestedTeam       *organization.Team     // the team we want activity for
-	RequestedRepo       *repo_model.Repository // the repo we want activity for
-	Actor               *user_model.User       // the user viewing the activity
-	IncludePrivate      bool                   // include private actions
-	OnlyPerformedBy     bool                   // only actions performed by requested user
-	IncludeDeleted      bool                   // include deleted actions
-	Date                string                 // the day we want activity for: YYYY-MM-DD
-	IncludePrivateRepos bool                   // include private repos
+	RequestedUser   *user_model.User       // the user we want activity for
+	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedRepo   *repo_model.Repository // the repo we want activity for
+	Actor           *user_model.User       // the user viewing the activity
+	IncludePrivate  bool                   // include private actions
+	OnlyPerformedBy bool                   // only actions performed by requested user
+	IncludeDeleted  bool                   // include deleted actions
+	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -469,7 +468,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
-	return !user.KeepActivityPrivate ||
+	return !user.ActionsVisibility.ShowNone() ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
@@ -515,8 +514,9 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
+	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActionsVisibility.ShowAll()
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.IncludePrivateRepos && !opts.Actor.IsAdmin {
+	if opts.Actor == nil || !includePrivateRepos && !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 

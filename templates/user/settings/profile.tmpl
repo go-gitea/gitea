@@ -78,27 +78,20 @@
 					</div>
 				</div>
 
-				<div class="field">
-					<div class="ui checkbox" id="keep-activity-private">
-						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
-					</div>
-				</div>
-
 				<div class="inline field">
-					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.heatmap_visibility"}}</label></span>
+					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.actions_visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="heatmap_visibility" name="heatmap_visibility" value="{{printf "%d" .SignedUser.HeatmapVisibility}}">
+						<input type="hidden" id="actions_visibility" name="actions_visibility" value="{{printf "%d" .SignedUser.ActionsVisibility}}">
 						<div class="text">
-							{{if .SignedUser.HeatmapVisibility.ShowPublic}}{{ctx.Locale.Tr "settings.heatmap_visibility.public"}}{{end}}
-							{{if .SignedUser.HeatmapVisibility.ShowAll}}{{ctx.Locale.Tr "settings.heatmap_visibility.all"}}{{end}}
-							{{if .SignedUser.HeatmapVisibility.ShowNone}}{{ctx.Locale.Tr "settings.heatmap_visibility.none"}}{{end}}
+							{{if .SignedUser.ActionsVisibility.ShowPublic}}{{ctx.Locale.Tr "public"}}{{end}}
+							{{if .SignedUser.ActionsVisibility.ShowAll}}{{ctx.Locale.Tr "all"}}{{end}}
+							{{if .SignedUser.ActionsVisibility.ShowNone}}{{ctx.Locale.Tr "none"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "settings.heatmap_visibility.public"}}</div>
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "settings.heatmap_visibility.all"}}</div>
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.heatmap_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "settings.heatmap_visibility.none"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "public"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "all"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "none"}}</div>
 						</div>
 					</div>
 				</div>

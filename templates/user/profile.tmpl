@@ -11,18 +11,12 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
-					{{if .ContextUser.KeepActivityPrivate}}
+					{{if and .ContextUser.ActionsVisibility.ShowNone (not .IsAdmin)}}
 						<div class="ui info message">
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{else}}
-						{{if .ContextUser.HeatmapVisibility.ShowNone}}
-							<div class="ui info message">
-								<p>{{ctx.Locale.Tr "user.disabled_public_heatmap"}}</p>
-							</div>
-						{{else}}
-							{{template "user/heatmap" .}}
-						{{end}}
+						{{template "user/heatmap" .}}
 						{{template "user/dashboard/feeds" .}}
 					{{end}}
 				{{else if eq .TabName "stars"}}
