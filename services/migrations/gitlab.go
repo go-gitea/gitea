@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -506,30 +507,8 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			return nil, false, fmt.Errorf("error while listing comments: %v %w", g.repoID, err)
 		}
 		for _, comment := range comments {
-			// Flatten comment threads
-			if !comment.IndividualNote {
-				for _, note := range comment.Notes {
-					allComments = append(allComments, &base.Comment{
-						IssueIndex:  commentable.GetLocalIndex(),
-						Index:       int64(note.ID),
-						PosterID:    int64(note.Author.ID),
-						PosterName:  note.Author.Username,
-						PosterEmail: note.Author.Email,
-						Content:     note.Body,
-						Created:     *note.CreatedAt,
-					})
-				}
-			} else {
-				c := comment.Notes[0]
-				allComments = append(allComments, &base.Comment{
-					IssueIndex:  commentable.GetLocalIndex(),
-					Index:       int64(c.ID),
-					PosterID:    int64(c.Author.ID),
-					PosterName:  c.Author.Username,
-					PosterEmail: c.Author.Email,
-					Content:     c.Body,
-					Created:     *c.CreatedAt,
-				})
+			for _, note := range comment.Notes {
+				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
 			}
 		}
 		if resp.NextPage == 0 {
@@ -538,6 +517,29 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		page = resp.NextPage
 	}
 	return allComments, true, nil
+}
+
+func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
+	comment := &base.Comment{
+		IssueIndex:  localIndex,
+		Index:       int64(note.ID),
+		PosterID:    int64(note.Author.ID),
+		PosterName:  note.Author.Username,
+		PosterEmail: note.Author.Email,
+		Content:     note.Body,
+		Created:     *note.CreatedAt,
+	}
+
+	// Try to find the underlying event of system notes.
+	if note.System {
+		if strings.HasPrefix(note.Body, "enabled an automatic merge") {
+			comment.CommentType = issues_model.CommentTypePRScheduledToAutoMerge.String()
+		} else if note.Body == "canceled the automatic merge" {
+			comment.CommentType = issues_model.CommentTypePRUnScheduledToAutoMerge.String()
+		}
+	}
+
+	return comment
 }
 
 // GetPullRequests returns pull requests according page and perPage
