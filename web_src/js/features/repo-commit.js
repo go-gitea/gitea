@@ -17,9 +17,10 @@ export function initRepoEllipsisButton() {
 export async function initRepoCommitLastCommitLoader() {
   const entryMap = {};
 
-  const entries = Array.from(document.querySelectorAll('table#repo-files-table tr.notready'), (v) => {
-    entryMap[v.getAttribute('data-entryname')] = v;
-    return v.getAttribute('data-entryname');
+  const entries = Array.from(document.querySelectorAll('table#repo-files-table tr.notready'), (el) => {
+    entryname = el.getAttribute('data-entryname');
+    entryMap[entryname] = el;
+    return entryname;
   });
 
   if (entries.length === 0) {
