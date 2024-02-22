@@ -33,7 +33,7 @@ function processWindowErrorEvent(e) {
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
 
   // error is likely from browser extension or inline script. Do not show these in production builds.
-  if (!err.stack?.includes(assetBaseUrl) && (window.config?.runModeIsProd ?? true)) return;
+  if (!err.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
 
   let message;
   if (e.type === 'unhandledrejection') {
