@@ -15,6 +15,10 @@ import (
 )
 
 func AddActionsVisibility(x *xorm.Engine) error {
+	type User struct {
+		ActionsVisibility structs.ActionsVisibility `xorm:"NOT NULL DEFAULT 0"`
+	}
+
 	// This migration maybe rerun so that we should check if it has been run
 	hasActionsVisibility, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "actions_visibility")
 	if err != nil || hasActionsVisibility {
@@ -28,11 +32,7 @@ func AddActionsVisibility(x *xorm.Engine) error {
 		return err
 	}
 
-	type User struct {
-		ActionsVisibility structs.ActionsVisibility `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	if err = x.Sync(&User{}); err != nil {
+	if err = sess.Sync(&User{}); err != nil {
 		return err
 	}
 
