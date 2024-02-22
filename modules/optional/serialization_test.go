@@ -27,14 +27,11 @@ func TestOptionalToJson(t *testing.T) {
 		name string
 		obj  *testSerializationStruct
 		want string
-		// TODO: report this bug to upstream, as `jsoniter.ConfigCompatibleWithStandardLibrary` claims to be std compatible
-		wantGitea string
 	}{
 		{
-			name:      "empty",
-			obj:       new(testSerializationStruct),
-			want:      `{"normal_string":"","normal_bool":false,"optional_two_bool":null,"optional_twostring":null}`,
-			wantGitea: `{"normal_string":"","normal_bool":false,"optional_bool":null,"optional_string":null,"optional_two_bool":null,"optional_twostring":null}`,
+			name: "empty",
+			obj:  new(testSerializationStruct),
+			want: `{"normal_string":"","normal_bool":false,"optional_two_bool":null,"optional_twostring":null}`,
 		},
 		{
 			name: "some",
@@ -51,11 +48,7 @@ func TestOptionalToJson(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := json.Marshal(tc.obj)
 			assert.NoError(t, err)
-			if tc.wantGitea != "" {
-				assert.EqualValues(t, tc.wantGitea, string(b), "gitea json module returned unexpected")
-			} else {
-				assert.EqualValues(t, tc.want, string(b), "gitea json module returned unexpected")
-			}
+			assert.EqualValues(t, tc.want, string(b), "gitea json module returned unexpected")
 
 			b, err = std_json.Marshal(tc.obj)
 			assert.NoError(t, err)
