@@ -381,8 +381,9 @@
 								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 								{{.OriginalAuthor}}
 							</span>
-							<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-							<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
+							{{if $.Repository.OriginalURL}}
+							<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+							{{end}}
 						{{else}}
 							{{template "shared/user/authorlink" .Poster}}
 						{{end}}
@@ -663,7 +664,17 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{if .OriginalAuthor}}
+						<span class="text black">
+							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+							{{.OriginalAuthor}}
+						</span>
+						{{if $.Repository.OriginalURL}}
+						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+						{{end}}
+					{{else}}
+						{{template "shared/user/authorlink" .Poster}}
+					{{end}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
 				</span>
