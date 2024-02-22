@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -73,33 +72,6 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 		return 0
 	}
 	return int(c)
-}
-
-// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		sess := db.GetEngine(ctx)
-
-		issueIDs := make([]int64, 0, len(sortedIssueIDs))
-		for _, issueID := range sortedIssueIDs {
-			issueIDs = append(issueIDs, issueID)
-		}
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
-		if err != nil {
-			return err
-		}
-		if int(count) != len(sortedIssueIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
-		}
-
-		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 func (b *Board) removeIssues(ctx context.Context) error {
