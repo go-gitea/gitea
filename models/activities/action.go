@@ -487,14 +487,17 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+				builder.Eq{"visibility": structs.VisibleTypePublic},
+			).Where(
+				builder.Neq{"actions_visibility": structs.ActionsVisibilityNone},
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
-			builder.Eq{"keep_activity_private": false}.
-				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
-			Or(builder.Eq{"id": opts.Actor.ID})
+			builder.Neq{"actions_visibility": structs.ActionsVisibilityNone},
+		).Where(
+			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited),
+		).Or(builder.Eq{"id": opts.Actor.ID})
 
 		if opts.RequestedUser != nil {
 			if opts.RequestedUser.IsOrganization() {
