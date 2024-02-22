@@ -111,6 +111,8 @@ With Gitea running, and from the directory Gitea's binary is located, execute: `
 
 This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
 
+If you still have issues, consider running `./gitea doctor check` to inspect possible errors (or run with `--fix`).
+
 ### Using Docker (`restore`)
 
 There is also no support for a recovery command in a Docker-based gitea instance. The restore process contains the same steps as described in the previous section but with different paths.
