@@ -52,8 +52,8 @@ func (o OptionalBool) ToGeneric() optional.Option[bool] {
 	return optional.Some[bool](o.IsTrue())
 }
 
-// FromGeneric converts optional.Option[bool] to OptionalBool
-func FromGeneric(o optional.Option[bool]) OptionalBool {
+// OptionalBoolFromGeneric converts optional.Option[bool] to OptionalBool
+func OptionalBoolFromGeneric(o optional.Option[bool]) OptionalBool {
 	if o.Has() {
 		return OptionalBoolOf(o.Value())
 	}
