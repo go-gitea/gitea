@@ -82,6 +82,8 @@ func Init(ctx context.Context) error {
 		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
 	}
 
+	// This is needed in order to encode and store the struct in the goth/gothic session
+	// during the process of linking the external user.
 	gob.Register(LinkAccountUser{})
 
 	var registeredApps []*OAuth2Application
