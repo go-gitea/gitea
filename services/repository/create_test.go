@@ -21,12 +21,12 @@ import (
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testTeamRepositories := func(teamID int64, repoIds []int64) {
+	testTeamRepositories := func(teamID int64, repoIDs []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 		assert.NoError(t, team.LoadRepositories(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
-		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
-		for i, rid := range repoIds {
+		assert.Len(t, team.Repos, len(repoIDs), "%s: repo count", team.Name)
+		for i, rid := range repoIDs {
 			if rid > 0 {
 				assert.True(t, HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
@@ -52,12 +52,12 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.True(t, ownerTeam.IncludesAllRepositories, "Owner team includes all repositories")
 
 	// Create repos.
-	repoIds := make([]int64, 0)
+	repoIDs := make([]int64, 0)
 	for i := 0; i < 3; i++ {
 		r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
-			repoIds = append(repoIds, r.ID)
+			repoIDs = append(repoIDs, r.ID)
 		}
 	}
 	// Get fresh copy of Owner team after creating repos.
@@ -93,10 +93,10 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		},
 	}
 	teamRepos := [][]int64{
-		repoIds,
-		repoIds,
+		repoIDs,
+		repoIDs,
 		{},
-		repoIds,
+		repoIDs,
 		{},
 	}
 	for i, team := range teams {
@@ -109,7 +109,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Update teams and check repositories.
 	teams[3].IncludesAllRepositories = false
 	teams[4].IncludesAllRepositories = true
-	teamRepos[4] = repoIds
+	teamRepos[4] = repoIDs
 	for i, team := range teams {
 		assert.NoError(t, models.UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
@@ -119,27 +119,27 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
-		repoIds = append(repoIds, r.ID)
+		repoIDs = append(repoIDs, r.ID)
 	}
-	teamRepos[0] = repoIds
-	teamRepos[1] = repoIds
-	teamRepos[4] = repoIds
+	teamRepos[0] = repoIDs
+	teamRepos[1] = repoIDs
+	teamRepos[4] = repoIDs
 	for i, team := range teams {
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, repoIds[0]), "DeleteRepository")
-	teamRepos[0] = repoIds[1:]
-	teamRepos[1] = repoIds[1:]
-	teamRepos[3] = repoIds[1:3]
-	teamRepos[4] = repoIds[1:]
+	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, repoIDs[0]), "DeleteRepository")
+	teamRepos[0] = repoIDs[1:]
+	teamRepos[1] = repoIDs[1:]
+	teamRepos[3] = repoIDs[1:3]
+	teamRepos[4] = repoIDs[1:]
 	for i, team := range teams {
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
 	// Wipe created items.
-	for i, rid := range repoIds {
+	for i, rid := range repoIDs {
 		if i > 0 { // first repo already deleted.
 			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
 		}

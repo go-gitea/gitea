@@ -20,7 +20,7 @@ func TestCreateAuthorizationToken(t *testing.T) {
 	assert.NotEqual(t, "", token)
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte(setting.SecretKey), nil
+		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	assert.Nil(t, err)
 	scp, ok := claims["scp"]

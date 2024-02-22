@@ -38,6 +38,11 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	_, forcePush = opts.GitPushOptions["force-push"]
 	objectFormat, _ := gitRepo.GetObjectFormat()
 
+	pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get user. Error: %w", err)
+	}
+
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
@@ -114,11 +119,6 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 					title = strings.Split(commit.CommitMessage, "\n")[0]
 				}
 				description = opts.GitPushOptions["description"]
-			}
-
-			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 			}
 
 			prIssue := &issues_model.Issue{

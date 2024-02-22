@@ -59,6 +59,17 @@ export function onDomReady(cb) {
   }
 }
 
+// checks whether an element is owned by the current document, and whether it is a document fragment or element node
+// if it is, it means it is a "normal" element managed by us, which can be modified safely.
+export function isDocumentFragmentOrElementNode(el) {
+  try {
+    return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+  } catch {
+    // in case the el is not in the same origin, then the access to nodeType would fail
+    return false;
+  }
+}
+
 // autosize a textarea to fit content. Based on
 // https://github.com/github/textarea-autosize
 // ---------------------------------------------------------------------
@@ -200,6 +211,7 @@ export function loadElem(el, src) {
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
 export function submitEventSubmitter(e) {
+  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
@@ -214,4 +226,16 @@ export function initSubmitEventPolyfill() {
   console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
   document.body.addEventListener('click', submitEventPolyfillListener);
   document.body.addEventListener('focus', submitEventPolyfillListener);
+}
+
+/**
+ * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+ * Note: This function doesn't account for all possible visibility scenarios.
+ * @param {HTMLElement} element The element to check.
+ * @returns {boolean} True if the element is visible.
+ */
+export function isElemVisible(element) {
+  if (!element) return false;
+
+  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
