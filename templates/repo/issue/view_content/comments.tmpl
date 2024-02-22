@@ -382,7 +382,7 @@
 								{{.OriginalAuthor}}
 							</span>
 							{{if $.Repository.OriginalURL}}
-							<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}})</span>
+							<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL|Escape $.Repository.GetOriginalURLHostname}})</span>
 							{{end}}
 						{{else}}
 							{{template "shared/user/authorlink" .Poster}}
@@ -670,7 +670,7 @@
 							{{.OriginalAuthor}}
 						</span>
 						{{if $.Repository.OriginalURL}}
-						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}})</span>
+						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
 						{{end}}
 					{{else}}
 						{{template "shared/user/authorlink" .Poster}}
