@@ -203,16 +203,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the tag
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
@@ -238,16 +229,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // git tree files are a list:
@@ -344,4 +326,22 @@ var callerPrefix string
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
 	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
+}
+
+func DiscardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
