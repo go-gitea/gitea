@@ -92,7 +92,7 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 
 func (opts FindBranchOptions) ToOrders() string {
 	orderBy := opts.OrderBy
-	if !opts.IsDeletedBranch.ValueOrDefault(false) { // if deleted branch included, put them at the end
+	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the end
 		if orderBy != "" {
 			orderBy += ", "
 		}
