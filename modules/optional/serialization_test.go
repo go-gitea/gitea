@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
-	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 type testSerializationStruct struct {
