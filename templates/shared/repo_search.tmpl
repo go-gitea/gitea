@@ -52,7 +52,7 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			{{$href := printf "%s?%s" (.Link | PathEscapeSegments) $queryParams }}
+			{{$href := printf "%s?%s" (.Link | PathEscapeSegments) $queryParams}}
 			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$href}}&sort=newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
 			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$href}}&sort=oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$href}}&sort=alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
