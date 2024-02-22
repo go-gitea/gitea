@@ -1,8 +1,0 @@
--
-  id: 1000
-  type: 1
-  issue_id: 2
-  original_author: "Otto <script class='evil'>alert('Oh no!')</script>"
-  content: "XSS time!"
-  updated_unix: 1700000000
-  created_unix: 1700000000
