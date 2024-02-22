@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -906,12 +907,16 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 				return
 			}
 			defer headRepo.Close()
+		}
+		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
+			return
 		}
 		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
@@ -1000,7 +1005,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepository(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -1304,7 +1309,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	var prInfo *git.CompareInfo
-	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
@@ -1329,17 +1334,16 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	userCache := make(map[string]*user_model.User)
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfCommits {
-		end = totalNumberOfCommits
-	}
+	limit = min(limit, totalNumberOfCommits-start)
+	limit = max(limit, 0)
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	apiCommits := make([]*api.Commit, 0, end-start)
-	for i := start; i < end; i++ {
+	apiCommits := make([]*api.Commit, 0, limit)
+	for i := start; i < start+limit; i++ {
 		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
@@ -1477,19 +1481,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	totalNumberOfFiles := diff.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfFiles {
-		end = totalNumberOfFiles
-	}
+	limit = min(limit, totalNumberOfFiles-start)
 
-	lenFiles := end - start
-	if lenFiles < 0 {
-		lenFiles = 0
-	}
+	limit = max(limit, 0)
 
-	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
-	for i := start; i < end; i++ {
+	apiFiles := make([]*api.ChangedFile, 0, limit)
+	for i := start; i < start+limit; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}
 

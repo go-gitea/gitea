@@ -52,3 +52,7 @@ func TestSubjectBodySeparator(t *testing.T) {
 		"",
 		"Insuficient\n--\nSeparators")
 }
+
+func TestJSEscapeSafe(t *testing.T) {
+	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, JSEscapeSafe(`&<>'"`))
+}

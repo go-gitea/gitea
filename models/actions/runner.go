@@ -97,7 +97,7 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
-	return lang.Tr("actions.runners.status." + r.StatusName())
+	return lang.TrString("actions.runners.status." + r.StatusName())
 }
 
 func (r *ActionRunner) IsOnline() bool {
@@ -254,7 +254,7 @@ func DeleteRunner(ctx context.Context, id int64) error {
 		return err
 	}
 
-	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
+	_, err := db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 

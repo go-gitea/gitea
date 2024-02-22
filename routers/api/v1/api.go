@@ -6,9 +6,9 @@
 //
 // This documentation describes the Gitea API.
 //
-//	Schemes: http, https
+//	Schemes: https, http
 //	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape | Safe}}
+//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
@@ -845,7 +845,7 @@ func individualPermsChecker(ctx *context.APIContext) {
 // check for and warn against deprecated authentication options
 func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
 	}
 }
 
@@ -987,11 +987,17 @@ func Routes() *web.Route {
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
-			// create or update a user's actions secrets
-			m.Group("/actions/secrets", func() {
-				m.Combo("/{secretname}").
-					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(user.DeleteSecret)
+			// manage user-level actions features
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+						Delete(user.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+				})
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1110,10 +1116,16 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Group("/actions/secrets", func() {
-					m.Combo("/{secretname}").
-						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
-						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				m.Group("/actions", func() {
+					m.Group("/secrets", func() {
+						m.Combo("/{secretname}").
+							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+					})
+
+					m.Group("/runners", func() {
+						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
+					})
 				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1202,9 +1214,9 @@ func Routes() *web.Route {
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
-					m.Put("", reqToken(), user.Watch)
-					m.Delete("", reqToken(), user.Unwatch)
-				})
+					m.Put("", user.Watch)
+					m.Delete("", user.Unwatch)
+				}, reqToken())
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
@@ -1227,13 +1239,13 @@ func Routes() *web.Route {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), repo.PushMirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
-						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+						Post(mustNotBeArchived, bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
-						Delete(repo.DeletePushMirrorByRemoteName).
+						Delete(mustNotBeArchived, repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
 				}, reqAdmin(), reqToken())
 
@@ -1480,11 +1492,17 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			m.Group("/actions/secrets", func() {
-				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-				m.Combo("/{secretname}").
-					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
+				})
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1575,6 +1593,9 @@ func Routes() *web.Route {
 				m.Combo("/{id}").Get(admin.GetHook).
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
+			})
+			m.Group("/runners", func() {
+				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 

@@ -11,12 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRemoveUsernameParameterSuffix(t *testing.T) {
-	assert.Equal(t, "foobar", RemoveUsernameParameterSuffix("foobar (Foo Bar)"))
-	assert.Equal(t, "foobar", RemoveUsernameParameterSuffix("foobar"))
-	assert.Equal(t, "", RemoveUsernameParameterSuffix(""))
-}
-
 func TestIsExternalURL(t *testing.T) {
 	setting.AppURL = "https://try.gitea.io/"
 	type test struct {

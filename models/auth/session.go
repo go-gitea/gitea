@@ -41,12 +41,15 @@ func ReadSession(ctx context.Context, key string) (*Session, error) {
 	}
 	defer committer.Close()
 
-	session, exist, err := db.Get[Session](ctx, builder.Eq{"key": key})
+	session, exist, err := db.Get[Session](ctx, builder.Eq{"`key`": key})
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		session.Expiry = timeutil.TimeStampNow()
-		if err := db.Insert(ctx, &session); err != nil {
+		session = &Session{
+			Key:    key,
+			Expiry: timeutil.TimeStampNow(),
+		}
+		if err := db.Insert(ctx, session); err != nil {
 			return nil, err
 		}
 	}
@@ -56,7 +59,7 @@ func ReadSession(ctx context.Context, key string) (*Session, error) {
 
 // ExistSession checks if a session exists
 func ExistSession(ctx context.Context, key string) (bool, error) {
-	return db.Exist[Session](ctx, builder.Eq{"key": key})
+	return db.Exist[Session](ctx, builder.Eq{"`key`": key})
 }
 
 // DestroySession destroys a session
@@ -75,13 +78,13 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 	}
 	defer committer.Close()
 
-	if has, err := db.Exist[Session](ctx, builder.Eq{"key": newKey}); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": newKey}); err != nil {
 		return nil, err
 	} else if has {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := db.Exist[Session](ctx, builder.Eq{"key": oldKey}); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": oldKey}); err != nil {
 		return nil, err
 	} else if !has {
 		if err := db.Insert(ctx, &Session{
@@ -96,7 +99,7 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 		return nil, err
 	}
 
-	s, _, err := db.Get[Session](ctx, builder.Eq{"key": newKey})
+	s, _, err := db.Get[Session](ctx, builder.Eq{"`key`": newKey})
 	if err != nil {
 		// is not exist, it should be impossible
 		return nil, err

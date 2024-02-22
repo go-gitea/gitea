@@ -1,0 +1,8 @@
+<div class="ui fluid vertical menu">
+	<a class="{{if .PageIsPulse}}active {{end}}item" href="{{.RepoLink}}/activity">
+		{{ctx.Locale.Tr "repo.activity.navbar.pulse"}}
+	</a>
+	<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/activity/contributors">
+		{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
+	</a>
+</div>

@@ -22,7 +22,7 @@ import (
 
 type DetectedWorkflow struct {
 	EntryName    string
-	TriggerEvent string
+	TriggerEvent *jobparser.Event
 	Content      []byte
 }
 
@@ -100,6 +100,7 @@ func DetectWorkflows(
 	commit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
+	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
@@ -114,6 +115,7 @@ func DetectWorkflows(
 			return nil, nil, err
 		}
 
+		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
@@ -122,17 +124,18 @@ func DetectWorkflows(
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if evt.IsSchedule() {
-				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
-					TriggerEvent: evt.Name,
-					Content:      content,
+				if detectSchedule {
+					dwf := &DetectedWorkflow{
+						EntryName:    entry.Name(),
+						TriggerEvent: evt,
+						Content:      content,
+					}
+					schedules = append(schedules, dwf)
 				}
-				schedules = append(schedules, dwf)
-			}
-			if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
+			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
-					TriggerEvent: evt.Name,
+					TriggerEvent: evt,
 					Content:      content,
 				}
 				workflows = append(workflows, dwf)
@@ -141,6 +144,41 @@ func DetectWorkflows(
 	}
 
 	return workflows, schedules, nil
+}
+
+func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
+	entries, err := ListWorkflows(commit)
+	if err != nil {
+		return nil, err
+	}
+
+	wfs := make([]*DetectedWorkflow, 0, len(entries))
+	for _, entry := range entries {
+		content, err := GetContentFromEntry(entry)
+		if err != nil {
+			return nil, err
+		}
+
+		// one workflow may have multiple events
+		events, err := GetEventsFromContent(content)
+		if err != nil {
+			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			continue
+		}
+		for _, evt := range events {
+			if evt.IsSchedule() {
+				log.Trace("detect scheduled workflow: %q", entry.Name())
+				dwf := &DetectedWorkflow{
+					EntryName:    entry.Name(),
+					TriggerEvent: evt,
+					Content:      content,
+				}
+				wfs = append(wfs, dwf)
+			}
+		}
+	}
+
+	return wfs, nil
 }
 
 func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
@@ -153,7 +191,8 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
-		webhook_module.HookEventWiki:
+		webhook_module.HookEventWiki,
+		webhook_module.HookEventSchedule:
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
@@ -182,7 +221,9 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventPullRequest,
 		webhook_module.HookEventPullRequestSync,
 		webhook_module.HookEventPullRequestAssign,
-		webhook_module.HookEventPullRequestLabel:
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
 		return matchPullRequestEvent(gitRepo, commit, payload.(*api.PullRequestPayload), evt)
 
 	case // pull_request_review
@@ -358,13 +399,13 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 	} else {
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		// Actions with the same name:
-		// opened, edited, closed, reopened, assigned, unassigned
+		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
 		// Actions need to be converted:
 		// synchronized -> synchronize
 		// label_updated -> labeled
 		// label_cleared -> unlabeled
 		// Unsupported activity types:
-		// converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled
+		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
 		action := prPayload.Action
 		switch action {

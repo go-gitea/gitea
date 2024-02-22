@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -54,12 +55,16 @@ func TestMirrorPull(t *testing.T) {
 	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	findOptions := repo_model.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	initCount, err := repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
+	findOptions := repo_model.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		RepoID:        mirror.ID,
+	}
+	initCount, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
 	assert.NoError(t, err)
 
 	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
@@ -82,7 +87,7 @@ func TestMirrorPull(t *testing.T) {
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err := repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
+	count, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
@@ -93,7 +98,7 @@ func TestMirrorPull(t *testing.T) {
 	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err = repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
+	count, err = db.Count[repo_model.Release](db.DefaultContext, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

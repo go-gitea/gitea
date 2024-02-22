@@ -6,6 +6,7 @@ package utils
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -157,6 +158,7 @@ func pullHook(events []string, event string) bool {
 // addHook add the hook specified by `form`, `ownerID` and `repoID`. If there is
 // an error, write to `ctx` accordingly. Return (webhook, ok)
 func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64) (*webhook.Webhook, bool) {
+	var isSystemWebhook bool
 	if !checkCreateHookOption(ctx, form) {
 		return nil, false
 	}
@@ -164,13 +166,22 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	if len(form.Events) == 0 {
 		form.Events = []string{"push"}
 	}
+	if form.Config["is_system_webhook"] != "" {
+		sw, err := strconv.ParseBool(form.Config["is_system_webhook"])
+		if err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "", "Invalid is_system_webhook value")
+			return nil, false
+		}
+		isSystemWebhook = sw
+	}
 	w := &webhook.Webhook{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		URL:         form.Config["url"],
-		ContentType: webhook.ToHookContentType(form.Config["content_type"]),
-		Secret:      form.Config["secret"],
-		HTTPMethod:  "POST",
+		OwnerID:         ownerID,
+		RepoID:          repoID,
+		URL:             form.Config["url"],
+		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
+		Secret:          form.Config["secret"],
+		HTTPMethod:      "POST",
+		IsSystemWebhook: isSystemWebhook,
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{

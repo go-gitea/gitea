@@ -42,8 +42,10 @@ func showUserFeed(ctx *context.Context, formatType string) {
 	}
 
 	ctxUserDescription, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: ctx.ContextUser.HTMLURL(),
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: ctx.ContextUser.HTMLURL(),
+		},
 		Metas: map[string]string{
 			"user": ctx.ContextUser.GetDisplayName(),
 		},
@@ -54,7 +56,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 	}
 
 	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.feed_of", ctx.ContextUser.DisplayName()),
+		Title:       ctx.Locale.TrString("home.feed_of", ctx.ContextUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
 		Description: ctxUserDescription,
 		Created:     time.Now(),

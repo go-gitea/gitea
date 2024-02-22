@@ -79,7 +79,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	// `message` will be both the summary and message combined
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
-		message = ctx.Tr("repo.editor.patch")
+		message = ctx.Locale.TrString("repo.editor.patch")
 	}
 
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)

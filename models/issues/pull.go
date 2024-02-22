@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -171,11 +172,11 @@ type PullRequest struct {
 	HeadBranch          string
 	HeadCommitID        string `xorm:"-"`
 	BaseBranch          string
-	MergeBase           string `xorm:"VARCHAR(40)"`
+	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
-	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergedCommitID string             `xorm:"VARCHAR(64)"`
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
@@ -801,7 +802,7 @@ func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.Prot
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
-	if protectBranch.DismissStaleApprovals {
+	if protectBranch.IgnoreStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
 	approvals, err := sess.Count(new(Review))
@@ -865,7 +866,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 		return err
 	}
 
-	repo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}

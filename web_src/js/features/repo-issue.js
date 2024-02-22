@@ -4,6 +4,7 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -343,19 +344,15 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (e) {
+  $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    updateIssuesMeta(
-      url,
-      isChecked ? 'detach' : 'attach',
-      issueId,
-      id,
-    ).then(() => window.location.reload());
+    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
+    window.location.reload();
   });
 
   $(document).on('click', (event) => {
@@ -526,7 +523,7 @@ export function initRepoIssueReferenceIssue() {
     const $this = $(this);
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
-    const reference = $this.data('reference');
+    const reference = toAbsoluteUrl($this.data('reference'));
     const $modal = $($this.data('modal'));
     $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
     $modal.modal('show');

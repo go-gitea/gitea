@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -58,7 +59,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	}
 	treePath = cleanTreePath
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	treePath = cleanTreePath
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -268,4 +269,35 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Encoding: "base64",
 		Content:  content,
 	}, nil
+}
+
+// TryGetContentLanguage tries to get the (linguist) language of the file content
+func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
+	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return "", err
+	}
+
+	defer deleteTemporaryFile()
+
+	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		CachedOnly: true,
+		Attributes: []string{"linguist-language", "gitlab-language"},
+		Filenames:  []string{treePath},
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	language := filename2attribute2info[treePath]["linguist-language"]
+	if language == "" || language == "unspecified" {
+		language = filename2attribute2info[treePath]["gitlab-language"]
+	}
+	if language == "unspecified" {
+		language = ""
+	}
+
+	return language, nil
 }
