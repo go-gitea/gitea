@@ -1098,10 +1098,9 @@ func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID:     repoID,
-		MergedCommitID: sha,
 	}
 
-	has, err := db.GetEngine(ctx).Get(pr)
+	has, err := db.GetEngine(ctx).Where("merged_commit_id = ?", sha).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
