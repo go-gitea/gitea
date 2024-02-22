@@ -1,6 +1,6 @@
 {{if eq .HookType "feishu"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://feishu.cn" (ctx.Locale.Tr "repo.settings.web_hook_name_feishu") | Str2html}}</p>
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://larksuite.com" (ctx.Locale.Tr "repo.settings.web_hook_name_larksuite") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://feishu.cn" (ctx.Locale.Tr "repo.settings.web_hook_name_feishu")}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://larksuite.com" (ctx.Locale.Tr "repo.settings.web_hook_name_larksuite")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/feishu/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
