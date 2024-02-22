@@ -84,8 +84,8 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 }
 
 // User2UserSettings return UserSettings based on a user
-func User2UserSettings(user *user_model.User) api.UserSettings {
-	return api.UserSettings{
+func User2UserSettings(ctx context.Context, user *user_model.User) api.UserSettings {
+	settings := api.UserSettings{
 		FullName:      user.FullName,
 		Website:       user.Website,
 		Location:      user.Location,
@@ -96,6 +96,13 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 		HideActivity:  user.KeepActivityPrivate,
 		DiffViewStyle: user.DiffViewStyle,
 	}
+
+	settings.ProfileRepoName, _ = user_model.GetSetting(ctx, user.ID, user_model.SettingsKeyProfileRepoName)
+	if len(settings.ProfileRepoName) == 0 {
+		settings.ProfileRepoName = ".profile"
+	}
+
+	return settings
 }
 
 // ToUserAndPermission return User and its collaboration permission for a repository

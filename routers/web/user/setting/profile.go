@@ -46,6 +46,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["ProfileRepoName"], _ = user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyProfileRepoName)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -94,6 +95,7 @@ func ProfilePost(ctx *context.Context) {
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+		ProfileRepoName:     optional.Some(form.ProfileRepoName),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)

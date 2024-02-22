@@ -54,6 +54,7 @@ type EditOrgOption struct {
 	Location    string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public`, `limited` or `private`
 	// enum: public,limited,private
-	Visibility                string `json:"visibility" binding:"In(,public,limited,private)"`
-	RepoAdminChangeTeamAccess *bool  `json:"repo_admin_change_team_access"`
+	Visibility                string  `json:"visibility" binding:"In(,public,limited,private)"`
+	RepoAdminChangeTeamAccess *bool   `json:"repo_admin_change_team_access"`
+	ProfileRepoName           *string `json:"profile_repo_name"`
 }

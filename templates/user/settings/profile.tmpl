@@ -37,6 +37,10 @@
 					<label for="location">{{ctx.Locale.Tr "settings.location"}}</label>
 					<input id="location" name="location" placeholder="{{ctx.Locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
+				<div class="field">
+					<label for="profile_repo_name">{{ctx.Locale.Tr "settings.profile_repo_name"}}</label>
+					<input id="profile_repo_name" name="profile_repo_name"  value="{{.ProfileRepoName}}" placeholder=".profile">
+				</div>
 
 				<div class="divider"></div>
 				<!-- private block -->

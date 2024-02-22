@@ -24,7 +24,7 @@ func GetUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx, ctx.Doer))
 }
 
 // UpdateUserSettings returns user settings
@@ -55,11 +55,12 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		DiffViewStyle:       optional.FromPtr(form.DiffViewStyle),
 		KeepEmailPrivate:    optional.FromPtr(form.HideEmail),
 		KeepActivityPrivate: optional.FromPtr(form.HideActivity),
+		ProfileRepoName:     optional.FromPtr(form.ProfileRepoName),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx, ctx.Doer))
 }

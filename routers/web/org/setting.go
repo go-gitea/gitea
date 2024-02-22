@@ -47,6 +47,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["ProfileRepoName"], _ = user_model.GetUserSetting(ctx, ctx.ContextUser.ID, user_model.SettingsKeyProfileRepoName)
 
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -107,6 +108,7 @@ func SettingsPost(ctx *context.Context) {
 		Location:                  optional.Some(form.Location),
 		Visibility:                optional.Some(form.Visibility),
 		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
+		ProfileRepoName:           optional.Some(form.ProfileRepoName),
 	}
 	if ctx.Doer.IsAdmin {
 		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)

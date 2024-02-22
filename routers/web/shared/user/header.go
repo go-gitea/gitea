@@ -89,7 +89,12 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 }
 
 func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
+	profileRepoName, _ := user_model.GetSetting(ctx, ctx.ContextUser.ID, user_model.SettingsKeyProfileRepoName)
+	if len(profileRepoName) == 0 {
+		profileRepoName = ".profile"
+	}
+
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileRepoName)
 	if err == nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
 		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {

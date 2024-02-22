@@ -14,4 +14,6 @@ const (
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key
 	UserActivityPubPubPem = "activitypub.pub_pem"
+	// SettingsKeyProfileRepoName is user's profile repo name
+	SettingsKeyProfileRepoName = "profile.repo_name"
 )

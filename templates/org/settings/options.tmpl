@@ -34,6 +34,10 @@
 							<label for="location">{{ctx.Locale.Tr "org.settings.location"}}</label>
 							<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
 						</div>
+						<div class="field">
+							<label for="profile_repo_name">{{ctx.Locale.Tr "settings.profile_repo_name"}}</label>
+							<input id="profile_repo_name" name="profile_repo_name"  value="{{.ProfileRepoName}}" placeholder=".profile">
+						</div>
 
 						<div class="divider"></div>
 						<div class="field" id="visibility_box">

@@ -37,6 +37,7 @@ type UpdateOptions struct {
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
+	ProfileRepoName              optional.Option[string]
 }
 
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
@@ -156,6 +157,13 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.SetLastLogin()
 
 		cols = append(cols, "last_login_unix")
+	}
+
+	if opts.ProfileRepoName.Has() {
+		err := user_model.SetUserSetting(ctx, u.ID, user_model.SettingsKeyProfileRepoName, opts.ProfileRepoName.Value())
+		if err != nil {
+			return err
+		}
 	}
 
 	return user_model.UpdateUserCols(ctx, u, cols...)
