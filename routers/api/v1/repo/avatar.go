@@ -52,7 +52,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	hasAvatar := ctx.Doer.HasAvatar()
+	hasAvatar := len(ctx.Repo.Repository.Avatar) > 0
 
 	err = repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
 	if err != nil {

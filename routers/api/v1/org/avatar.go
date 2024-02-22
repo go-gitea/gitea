@@ -47,9 +47,10 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	hasAvatar := ctx.Doer.HasAvatar()
+	user := ctx.Org.Organization.AsUser()
+	hasAvatar := user.HasAvatar()
 
-	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
+	err = user_service.UploadAvatar(ctx, user, content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
