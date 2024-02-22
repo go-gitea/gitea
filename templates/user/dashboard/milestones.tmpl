@@ -106,14 +106,14 @@
 									{{if .UpdatedUnix}}
 										<div class="flex-text-block">
 											{{svg "octicon-clock"}}
-											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
+											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
 										</div>
 									{{end}}
 									<div class="flex-text-block">
 										{{if .IsClosed}}
 											{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 											{{svg "octicon-clock" 14}}
-											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 										{{else}}
 											{{if .DeadlineString}}
 												<span{{if .IsOverdue}} class="text red"{{end}}>

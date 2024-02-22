@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rubygems.install" | Safe}}:</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rubygems.install"}}:</label>
 				<div class="markup"><pre class="code-block"><code>gem install {{.PackageDescriptor.Package.Name}} --version &quot;{{.PackageDescriptor.Version.Version}}&quot; --source &quot;<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/rubygems"></gitea-origin-url>&quot;</code></pre></div>
 			</div>
 			<div class="field">
@@ -13,7 +13,7 @@
 end</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "RubyGems" "https://docs.gitea.com/usage/packages/rubygems/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "RubyGems" "https://docs.gitea.com/usage/packages/rubygems/"}}</label>
 			</div>
 		</div>
 	</div>
