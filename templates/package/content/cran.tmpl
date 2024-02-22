@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cran.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cran.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>options("repos" = c(getOption("repos"), c(gitea="<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cran"></gitea-origin-url>")))</code></pre></div>
 			</div>
 			<div class="field">
@@ -11,7 +11,7 @@
 				<div class="markup"><pre class="code-block"><code>install.packages("{{.PackageDescriptor.Package.Name}}")</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "CRAN" "https://docs.gitea.com/usage/packages/cran/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "CRAN" "https://docs.gitea.com/usage/packages/cran/"}}</label>
 			</div>
 		</div>
 	</div>

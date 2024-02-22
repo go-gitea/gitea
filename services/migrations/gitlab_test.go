@@ -517,6 +517,71 @@ func TestAwardsToReactions(t *testing.T) {
 	}, reactions)
 }
 
+func TestNoteToComment(t *testing.T) {
+	downloader := &GitlabDownloader{}
+
+	now := time.Now()
+	makeTestNote := func(id int, body string, system bool) gitlab.Note {
+		return gitlab.Note{
+			ID: id,
+			Author: struct {
+				ID        int    `json:"id"`
+				Username  string `json:"username"`
+				Email     string `json:"email"`
+				Name      string `json:"name"`
+				State     string `json:"state"`
+				AvatarURL string `json:"avatar_url"`
+				WebURL    string `json:"web_url"`
+			}{
+				ID:       72,
+				Email:    "test@example.com",
+				Username: "test",
+			},
+			Body:      body,
+			CreatedAt: &now,
+			System:    system,
+		}
+	}
+	notes := []gitlab.Note{
+		makeTestNote(1, "This is a regular comment", false),
+		makeTestNote(2, "enabled an automatic merge for abcd1234", true),
+		makeTestNote(3, "canceled the automatic merge", true),
+	}
+	comments := []base.Comment{{
+		IssueIndex:  17,
+		Index:       1,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "",
+		Content:     "This is a regular comment",
+		Created:     now,
+	}, {
+		IssueIndex:  17,
+		Index:       2,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_scheduled_merge",
+		Content:     "enabled an automatic merge for abcd1234",
+		Created:     now,
+	}, {
+		IssueIndex:  17,
+		Index:       3,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_cancel_scheduled_merge",
+		Content:     "canceled the automatic merge",
+		Created:     now,
+	}}
+
+	for i, note := range notes {
+		actualComment := *downloader.convertNoteToComment(17, &note)
+		assert.EqualValues(t, actualComment, comments[i])
+	}
+}
+
 func TestGitlabIIDResolver(t *testing.T) {
 	r := gitlabIIDResolver{}
 	r.recordIssueIID(1)

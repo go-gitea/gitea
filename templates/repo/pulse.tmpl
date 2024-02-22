@@ -33,7 +33,7 @@
 				<a class="table-cell tiny background light grey"></a>
 			</div>
 			{{end}}
-			{{ctx.Locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount | Safe}}
+			{{ctx.Locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount}}
 		</div>
 	{{end}}
 	{{if .Permission.CanRead $.UnitTypeIssues}}
@@ -48,7 +48,7 @@
 				<a class="table-cell tiny background light grey"></a>
 			</div>
 			{{end}}
-			{{ctx.Locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount | Safe}}
+			{{ctx.Locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount}}
 		</div>
 	{{end}}
 </div>
