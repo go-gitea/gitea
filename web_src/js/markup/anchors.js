@@ -30,11 +30,15 @@ export function initMarkupAnchors() {
     });
     heading.prepend(a);
   }
-  for (const anchor of document.querySelectorAll('.markup [dir="auto"] > a[href^="#"][rel="nofollow"]')) {
-    const originalId = anchor.getAttribute('href').replace(/^#user-content-/, '');
+  for (const anchor of document.querySelectorAll('.markup a[href^="#"]')) {
+    const href = anchor.getAttribute('href');
+    if (!href.startsWith('#user-content-')) {
+      continue;
+    }
+    const originalId = href.replace(/^#user-content-/, '');
     anchor.setAttribute('href', `#${encodeURIComponent(originalId)}`);
     const anchorDest = document.getElementsByName(originalId);
-    if (anchorDest && anchorDest.length === 1) {
+    if (anchorDest?.length === 1) {
       anchor.addEventListener('click', () => {
         anchorDest[0].scrollIntoView();
       });
