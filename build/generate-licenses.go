@@ -130,11 +130,7 @@ func main() {
 			fmt.Printf("Written %s\n", out.Name())
 
 			md5 := hex.EncodeToString(h.Sum(nil))
-			if _, ok := aliasesFiles[md5]; ok {
-				aliasesFiles[md5] = append(aliasesFiles[md5], licenseName)
-			} else {
-				aliasesFiles[md5] = []string{licenseName}
-			}
+			aliasesFiles[md5] = append(aliasesFiles[md5], licenseName)
 		}
 	}
 
