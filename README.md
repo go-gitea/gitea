@@ -45,9 +45,6 @@
   <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
     <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
-  <a href="https://app.bountysource.com/teams/gitea" title="Bountysource">
-    <img src="https://img.shields.io/bountysource/team/gitea/activity">
-  </a>
 </p>
 
 <p align="center">
