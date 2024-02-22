@@ -24,6 +24,7 @@ type Result struct {
 	Color          string
 	LineNumbers    []int
 	FormattedLines template.HTML
+  ContentLines   []string
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -108,6 +109,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
 		FormattedLines: highlighted,
+		ContentLines:   contentLines,
 	}, nil
 }
 

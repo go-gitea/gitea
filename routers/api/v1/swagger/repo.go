@@ -394,6 +394,13 @@ type swaggerRepoCollaboratorPermission struct {
 	Body api.RepoCollaboratorPermission `json:"body"`
 }
 
+// RepoCodeSearch
+// swagger:response RepoCodeSearch
+type swaggerRepoCodeSearch struct {
+	// in:body
+	Body api.RepoCodeSearchAPIResponse `json:"body"`
+}
+
 // RepoIssueConfig
 // swagger:response RepoIssueConfig
 type swaggerRepoIssueConfig struct {

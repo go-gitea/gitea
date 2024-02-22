@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -215,4 +216,56 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(count)
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+}
+
+// CodeSearch Performs a code search on a User
+func CodeSearch(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/code_search user userCodeSearch
+	// ---
+	// summary: Performs a code search on a User
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to get
+	//   type: string
+	//   required: true
+	// - name: keyword
+	//   in: query
+	//   description: the keyword the search for
+	//   type: string
+	//   required: true
+	// - name: language
+	//   in: query
+	//   description: filter results by language
+	//   type: string
+	// - name: match
+	//   in: query
+	//   description: only exact match (defaults to false)
+	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserHeatmapData"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     description: "The keyword is empty"
+	//   "501":
+	//     description: "The repo indexer is disabled for this instance"
+	repos, err := repo_model.FindUserCodeAccessibleOwnerRepoIDs(ctx, ctx.ContextUser.ID, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FindUserCodeAccessibleOwnerRepoIDs", err)
+		return
+	}
+
+	utils.PerformCodeSearch(ctx, repos)
 }

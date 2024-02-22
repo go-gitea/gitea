@@ -906,6 +906,62 @@
         }
       }
     },
+    "/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Performs a code search on all Repos",
+        "operationId": "globalCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "422": {
+            "description": "The keyword is empty"
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance"
+          }
+        }
+      }
+    },
     "/gitignore/templates": {
       "get": {
         "produces": [
@@ -1848,6 +1904,72 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Performs a code search on a Organization",
+        "operationId": "orgCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the org",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty"
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance"
           }
         }
       }
@@ -4097,6 +4219,79 @@
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Performs a code search on a Repo",
+        "operationId": "repoCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoCodeSearch"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty"
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance"
           }
         }
       }
@@ -16088,6 +16283,72 @@
         }
       }
     },
+    "/users/{username}/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Performs a code search on a User",
+        "operationId": "userCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty"
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance"
+          }
+        }
+      }
+    },
     "/users/{username}/followers": {
       "get": {
         "produces": [
@@ -20166,6 +20427,78 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IndexerResult": {
+      "description": "IndexerResult a search result to display",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "content_lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ContentLines"
+        },
+        "filename": {
+          "type": "string",
+          "x-go-name": "Filename"
+        },
+        "formated_lines": {
+          "type": "string",
+          "x-go-name": "FormattedLines"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "line_numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "LineNumbers"
+        },
+        "repo_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IndexerSearchResultLanguages": {
+      "description": "IndexerSearchResultLanguages result of top languages count in search results",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "InternalTracker": {
       "description": "InternalTracker represents settings for internal tracker",
       "type": "object",
@@ -21954,6 +22287,32 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "NewName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepoCodeSearchAPIResponse": {
+      "description": "RepoCodeSearchAPIResponse represents the resposne of the code_search API endpoint",
+      "type": "object",
+      "properties": {
+        "search_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IndexerResult"
+          },
+          "x-go-name": "SearchResults"
+        },
+        "search_results_language": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IndexerSearchResultLanguages"
+          },
+          "x-go-name": "SearchResultLanguages"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23887,6 +24246,12 @@
         "items": {
           "$ref": "#/definitions/Release"
         }
+      }
+    },
+    "RepoCodeSearch": {
+      "description": "RepoCodeSearch",
+      "schema": {
+        "$ref": "#/definitions/RepoCodeSearchAPIResponse"
       }
     },
     "RepoCollaboratorPermission": {

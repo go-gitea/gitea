@@ -387,6 +387,13 @@ type RepoTransfer struct {
 	Teams     []*Team `json:"teams"`
 }
 
+// RepoCodeSearchAPIResponse represents the resposne of the code_search API endpoint
+type RepoCodeSearchAPIResponse struct {
+	Total                 int                             `json:"total"`
+	SearchResults         []*IndexerResult                `json:"search_results"`
+	SearchResultLanguages []*IndexerSearchResultLanguages `json:"search_results_language"`
+}
+
 // NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed
 type NewIssuePinsAllowed struct {
 	Issues       bool `json:"issues"`
