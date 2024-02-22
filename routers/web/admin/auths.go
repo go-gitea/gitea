@@ -250,13 +250,13 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 
 func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml.Source, error) {
 	if util.IsEmptyString(form.IdentityProviderMetadata) && util.IsEmptyString(form.IdentityProviderMetadataURL) {
-		return nil, errors.New(ctx.Tr("form.SAMLMetadata") + ctx.Tr("form.require_error"))
+		return nil, fmt.Errorf("%s %s", ctx.Tr("form.SAMLMetadata"), ctx.Tr("form.require_error"))
 	}
 
 	if !util.IsEmptyString(form.IdentityProviderMetadataURL) {
 		_, err := url.Parse(form.IdentityProviderMetadataURL)
 		if err != nil {
-			return nil, errors.New(ctx.Tr("form.SAMLMetadataURL"))
+			return nil, fmt.Errorf("%s", ctx.Tr("form.SAMLMetadataURL"))
 		}
 	}
 
