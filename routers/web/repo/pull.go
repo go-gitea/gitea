@@ -652,6 +652,24 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	}
 
 	if pb != nil && pb.EnableStatusCheck {
+
+		var missingRequiredChecks []string
+		for _, requiredContext := range pb.StatusCheckContexts {
+			contextFound := false
+			matchesRequiredContext := createRequiredContextMatcher(requiredContext)
+			for _, presentStatus := range commitStatuses {
+				if matchesRequiredContext(presentStatus.Context) {
+					contextFound = true
+					break
+				}
+			}
+
+			if !contextFound {
+				missingRequiredChecks = append(missingRequiredChecks, requiredContext)
+			}
+		}
+		ctx.Data["MissingRequiredChecks"] = missingRequiredChecks
+
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
 				if c == context {
@@ -718,6 +736,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	ctx.Data["NumCommits"] = len(compareInfo.Commits)
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
 	return compareInfo
+}
+
+func createRequiredContextMatcher(requiredContext string) func(string) bool {
+	if gp, err := glob.Compile(requiredContext); err == nil {
+		return func(contextToCheck string) bool {
+			return gp.Match(contextToCheck)
+		}
+	}
+
+	return func(contextToCheck string) bool {
+		return requiredContext == contextToCheck
+	}
 }
 
 type pullCommitList struct {
@@ -1253,19 +1283,19 @@ func MergePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if models.IsErrSHADoesNotMatch(err) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
 			pushrejErr := err.(*git.ErrPushRejected)
