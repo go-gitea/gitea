@@ -120,7 +120,7 @@ func main() {
 		defer out.Close()
 
 		// some license files have same content, so we need to detect these files and create a convert map into a json file
-		// In functuion initClassifier, we use this convert map to avoid adding same license content with different license name
+		// Later we use this convert map to avoid adding same license content with different license name
 		h := md5.New()
 		// calculate md5 and write file in the same time
 		r := io.TeeReader(tr, h)
