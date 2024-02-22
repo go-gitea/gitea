@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/util"
@@ -63,30 +64,83 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
+func (branches BranchList) LoadRepo(ctx context.Context) error {
+	ids := container.Set[int64]{}
+	for _, branch := range branches {
+		if branch.RepoID > 0 {
+			ids.Add(branch.RepoID)
+		}
+	}
+	reposMap := make(map[int64]*repo_model.Repository, len(ids))
+	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&reposMap); err != nil {
+		return err
+	}
+	for _, branch := range branches {
+		if branch.RepoID <= 0 {
+			continue
+		}
+		branch.Repo = reposMap[branch.RepoID]
+	}
+	return nil
+}
+
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
+	RepoCond           builder.Cond
 	ExcludeBranchNames []string
+	CommitCond         builder.Cond
+	PusherID           int64
 	IsDeletedBranch    util.OptionalBool
+	CommitAfterUnix    int64
+	CommitBeforeUnix   int64
 	OrderBy            string
 	Keyword            string
+
+	// find branch by pull request
+	PullRequestCond builder.Cond
 }
 
 func (opts FindBranchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
+	}
 
 	if len(opts.ExcludeBranchNames) > 0 {
-		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
+		cond = cond.And(builder.NotIn("branch.name", opts.ExcludeBranchNames))
 	}
+
+	if opts.CommitCond != nil {
+		cond = cond.And(opts.CommitCond)
+	}
+
+	if opts.PusherID > 0 {
+		cond = cond.And(builder.Eq{"branch.pusher_id": opts.PusherID})
+	}
+
 	if !opts.IsDeletedBranch.IsNone() {
-		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"name", opts.Keyword})
 	}
+
+	if opts.CommitAfterUnix != 0 {
+		cond = cond.And(builder.Gte{"branch.commit_time": opts.CommitAfterUnix})
+	}
+	if opts.CommitBeforeUnix != 0 {
+		cond = cond.And(builder.Lte{"branch.commit_time": opts.CommitBeforeUnix})
+	}
+
+	if opts.PullRequestCond != nil {
+		cond = cond.And(opts.PullRequestCond)
+	}
+
 	return cond
 }
 

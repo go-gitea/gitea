@@ -286,3 +286,21 @@
   team_id: 2
   type: 8
   access_mode: 2
+
+-
+  id: 49
+  team_id: 18
+  type: 1 # code
+  access_mode: 4
+
+-
+  id: 50
+  team_id: 21
+  type: 1 # code
+  access_mode: 4
+
+-
+  id: 51
+  team_id: 22
+  type: 1 # code
+  access_mode: 0

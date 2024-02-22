@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -102,8 +103,9 @@ func (err ErrBranchesEqual) Unwrap() error {
 // for pagination, keyword search and filtering
 type Branch struct {
 	ID            int64
-	RepoID        int64  `xorm:"UNIQUE(s)"`
-	Name          string `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
+	RepoID        int64                  `xorm:"UNIQUE(s)"`
+	Repo          *repo_model.Repository `xorm:"-"`
+	Name          string                 `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
 	CommitID      string
 	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
@@ -136,6 +138,14 @@ func (b *Branch) LoadPusher(ctx context.Context) (err error) {
 			err = nil
 		}
 	}
+	return err
+}
+
+func (b *Branch) LoadRepo(ctx context.Context) (err error) {
+	if b.Repo != nil || b.RepoID == 0 {
+		return nil
+	}
+	b.Repo, err = repo_model.GetRepositoryByID(ctx, b.RepoID)
 	return err
 }
 
@@ -376,24 +386,98 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	return committer.Commit()
 }
 
-// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
-// except the indicate branch
-func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, excludeBranchName string) (BranchList, error) {
-	branches := make(BranchList, 0, 2)
-	subQuery := builder.Select("head_branch").From("pull_request").
-		InnerJoin("issue", "issue.id = pull_request.issue_id").
-		Where(builder.Eq{
-			"pull_request.head_repo_id": repoID,
-			"issue.is_closed":           false,
+type FindRecentlyPushedNewBranchesOptions struct {
+	db.ListOptions
+	Actor           *user_model.User
+	Repo            *repo_model.Repository
+	BaseRepo        *repo_model.Repository
+	CommitAfterUnix int64
+}
+
+type RecentlyPushedNewBranch struct {
+	BranchName       string
+	BranchCompareURL string
+	CommitTime       timeutil.TimeStamp
+}
+
+// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
+// opts.Actor should not be nil
+// if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
+// if opts.ListOptions is not set, we will only display top 2 latest branch
+func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+	// find all related repo ids
+	repoOpts := repo_model.SearchRepoOptions{
+		Actor:      opts.Actor,
+		Private:    true,
+		AllPublic:  false, // Include also all public repositories of users and public organisations
+		AllLimited: false, // Include also all public repositories of limited organisations
+		Fork:       util.OptionalBoolTrue,
+		ForkFrom:   opts.BaseRepo.ID,
+		Archived:   util.OptionalBoolFalse,
+	}
+	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
+	if opts.Repo == opts.BaseRepo {
+		// should also include the base repo's branches
+		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})
+	} else {
+		// in fork repo, we only detect the fork repo's branch
+		repoCond = repoCond.And(builder.Eq{"id": opts.Repo.ID})
+	}
+	repoIDs := builder.Select("id").From("repository").Where(repoCond)
+
+	// find branches which have already created PRs
+	prBranchIds := builder.Select("branch.id").From("branch").
+		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
+		Where(builder.And(
+			builder.Eq{"pull_request.base_repo_id": opts.BaseRepo.ID},
+			builder.Eq{"pull_request.base_branch": opts.BaseRepo.DefaultBranch},
+			builder.In("pull_request.head_repo_id", repoIDs),
+		))
+
+	if opts.CommitAfterUnix == 0 {
+		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
+	}
+
+	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.ListOptions.PageSize == 0 {
+		opts.ListOptions.PageSize = 2
+		opts.ListOptions.Page = 1
+	}
+
+	branches, err := db.Find[Branch](ctx, FindBranchOptions{
+		RepoCond:        builder.In("branch.repo_id", repoIDs),
+		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
+		PusherID:        opts.Actor.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		CommitAfterUnix: opts.CommitAfterUnix,
+		OrderBy:         "branch.updated_unix DESC",
+		// should not use branch name here, because if there are branches with same name in different repos,
+		// we can not detect them correctly
+		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
+		ListOptions:     opts.ListOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := BranchList(branches).LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
+	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
+	for _, branch := range branches {
+		branchName := branch.Name
+		if branch.Repo.ID != opts.BaseRepo.ID && branch.Repo.ID != opts.Repo.ID {
+			branchName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchName)
+		}
+		newBranches = append(newBranches, &RecentlyPushedNewBranch{
+			BranchName:       branchName,
+			BranchCompareURL: branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
+			CommitTime:       branch.CommitTime,
 		})
-	err := db.GetEngine(ctx).
-		Where("pusher_id=? AND is_deleted=?", userID, false).
-		And("name <> ?", excludeBranchName).
-		And("repo_id = ?", repoID).
-		And("commit_time >= ?", time.Now().Add(-time.Hour*6).Unix()).
-		NotIn("name", subQuery).
-		OrderBy("branch.commit_time DESC").
-		Limit(2).
-		Find(&branches)
-	return branches, err
+	}
+	return newBranches, nil
 }
