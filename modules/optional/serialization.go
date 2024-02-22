@@ -10,18 +10,11 @@ import (
 )
 
 func (o *Option[T]) UnmarshalJSON(data []byte) error {
-	var v []interface{}
+	var v *T
 	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}
-	if v == nil {
-		return nil
-	}
-	var someValue T
-	if err := json.Unmarshal(data, &someValue); err != nil {
-		return err
-	}
-	*o = Some[T](someValue)
+	*o = FromPtr(v)
 	return nil
 }
 
@@ -34,18 +27,11 @@ func (o *Option[T]) MarshalJSON() ([]byte, error) {
 }
 
 func (o *Option[T]) UnmarshalYAML(value *yaml.Node) error {
-	var v []interface{}
+	var v *T
 	if err := value.Decode(&v); err != nil {
 		return err
 	}
-	if v == nil {
-		return nil
-	}
-	var someValue T
-	if err := value.Decode(&someValue); err != nil {
-		return err
-	}
-	*o = Some[T](someValue)
+	*o = FromPtr(v)
 	return nil
 }
 
