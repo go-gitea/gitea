@@ -6,6 +6,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.21.6](https://github.com/go-gitea/gitea/releases/tag/v1.21.6) - 2024-02-22
 
+* SECURITY
+  * Fix XSS vulnerabilities (#29336)
+  * Use general token signing secret (#29205) (#29325)
 * API
   * Refactor issue template parsing and fix API endpoint (#29069) (#29140)
   * Fix swift packages not resolving (#29095) (#29102)
@@ -47,7 +50,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * DOCS
   * Rm outdated docs from some languages (#27530) (#29208)
 * MISC
-  * Use general token signing secret (#29205) (#29325)
   * Implement some action notifier functions (#29173) (#29308)
   * Fix gitea-action user avatar broken on edited menu (#29190) (#29307)
   * Disallow merge when required checked are missing (#29143) (#29268)
