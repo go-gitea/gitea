@@ -4,7 +4,7 @@
 package optional
 
 import (
-	std_json "encoding/json"
+	std_json "encoding/json" //nolint:depguard
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
