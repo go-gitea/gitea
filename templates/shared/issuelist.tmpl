@@ -118,14 +118,14 @@
 							</span>
 						</span>
 					{{end}}
-					{{if $.BlockedByDependenciesTemplates}}
+					{{if $.BlockedByDependenciesMap}}
 						{{template "shared/issue_dependency" (dict
-							"Dependencies" (index $.BlockedByDependenciesTemplates .ID)
+							"Dependencies" (index $.BlockedByDependenciesMap .ID)
 							"TitleKey" "repo.issues.dependency.blocked_by_following")}}
 						{{end}}
-					{{if $.BlockingDependenciesTemplates}}
+					{{if $.BlockingDependenciesMap}}
 						{{template "shared/issue_dependency" (dict
-							"Dependencies" (index $.BlockingDependenciesTemplates .ID)
+							"Dependencies" (index $.BlockingDependenciesMap .ID)
 							"TitleKey" "repo.issues.dependency.blocks_following")}}
 					{{end}}
 					{{if .IsPull}}

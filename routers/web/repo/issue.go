@@ -43,6 +43,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -138,27 +139,6 @@ func MustAllowPulls(ctx *context.Context) {
 		ctx.Repo.PullRequest.Allowed = true
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Doer.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
-}
-
-func dependenciesToHTML(ctx *context.Context, dependencies []*issues_model.DependencyInfo) template.HTML {
-	if len(dependencies) == 0 {
-		return ""
-	}
-
-	htmlCode := "<span>"
-
-	for index, dependency := range dependencies {
-		if index != 0 {
-			htmlCode += `<span>,</span>`
-		}
-		anchorClasses := "gt-ml-2 ref-issue"
-		if dependency.Issue.IsClosed {
-			anchorClasses += " gt-line-through"
-		}
-		htmlCode += fmt.Sprintf(`<a href="%s" class="%s">#%d</a>`, dependency.Issue.Link(), anchorClasses, dependency.Issue.Index)
-	}
-
-	return template.HTML(htmlCode + "</span>")
 }
 
 func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
@@ -346,16 +326,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 
 	if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 		if config := unit.PullRequestsConfig(); config.ShowDependencies {
-			blockingDependenciesTemplates := make(map[int64]template.HTML, len(issues))
-			blockedByDependenciesTemplates := make(map[int64]template.HTML, len(issues))
-
 			blockingDependenciesMap, err := issues.BlockingDependenciesMap(ctx)
 			if err != nil {
 				ctx.ServerError("BlockingDependenciesMap", err)
 				return
-			}
-			for i, blockingDependencies := range blockingDependenciesMap {
-				blockingDependenciesTemplates[i] = dependenciesToHTML(ctx, blockingDependencies)
 			}
 
 			blockedByDependenciesMap, err := issues.BlockedByDependenciesMap(ctx)
@@ -363,12 +337,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 				ctx.ServerError("BlockedByDependenciesMap", err)
 				return
 			}
-			for i, blockedByDependencies := range blockedByDependenciesMap {
-				blockedByDependenciesTemplates[i] = dependenciesToHTML(ctx, blockedByDependencies)
-			}
 
-			ctx.Data["BlockingDependenciesTemplates"] = blockingDependenciesTemplates
-			ctx.Data["BlockedByDependenciesTemplates"] = blockedByDependenciesTemplates
+			ctx.Data["BlockingDependenciesMap"] = blockingDependenciesMap
+			ctx.Data["BlockedByDependenciesMap"] = blockedByDependenciesMap
 		}
 	}
 
