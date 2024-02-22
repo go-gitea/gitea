@@ -4,16 +4,26 @@
 package v1_22 //nolint
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/structs"
+	"context"
 
+	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
 func AddActionsVisibility(x *xorm.Engine) error {
+	// This migration maybe rerun so that we should check if it has been run
+	keepActivityPrivateExits, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "keep_activity_private")
+	if err != nil {
+		return err
+	}
+	if keepActivityPrivateExits {
+		return nil
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
