@@ -2,7 +2,7 @@
 	<div class="admin-setting-content">
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
-				<p>{{(ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer) | Str2html}}</p>
+				<p>{{ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer}}</p>
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">

@@ -40,7 +40,7 @@
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
@@ -107,7 +107,7 @@
 		{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape) | Safe}}</p>
+		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape)}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
