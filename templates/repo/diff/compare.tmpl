@@ -194,7 +194,7 @@
 		{{if .HasPullRequest}}
 			<div class="ui segment grid title">
 				<div class="twelve wide column issue-title">
-					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print (Escape $.RepoLink) "/pulls/" .PullRequest.Issue.Index) (Escape $.RepoRelPath) .PullRequest.Index | Safe}}
+					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print (Escape $.RepoLink) "/pulls/" .PullRequest.Issue.Index) (Escape $.RepoRelPath) .PullRequest.Index}}
 					<h1>
 						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}</span>
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
@@ -220,7 +220,7 @@
 					{{if .Repository.ArchivedUnix.IsZero}}
 						{{ctx.Locale.Tr "repo.archive.title"}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix) | Safe}}
+						{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
 					{{end}}
 				</div>
 			{{end}}

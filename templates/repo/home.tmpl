@@ -57,7 +57,7 @@
 				{{if .Repository.ArchivedUnix.IsZero}}
 					{{ctx.Locale.Tr "repo.archive.title"}}
 				{{else}}
-					{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix) | Safe}}
+					{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
 				{{end}}
 			</div>
 		{{end}}
