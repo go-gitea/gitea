@@ -19,7 +19,7 @@
 			</span>
 		</div>
 		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription | Str2html}}</div>{{end}}
-		<div class="text grey meta">
+		<div class="text light grey meta gt-mt-2">
 			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			{{if .IsSigned}}
