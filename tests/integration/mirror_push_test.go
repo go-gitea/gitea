@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -55,14 +56,14 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := git.OpenRepository(git.DefaultContext, srcRepo.RepoPath())
+	srcGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
 	srcCommit, err := srcGitRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := git.OpenRepository(git.DefaultContext, mirrorRepo.RepoPath())
+	mirrorGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 

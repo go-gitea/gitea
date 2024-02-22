@@ -63,4 +63,8 @@ async function main() {
   ]);
 }
 
-main().then(exit).catch(exit);
+try {
+  exit(await main());
+} catch (err) {
+  exit(err);
+}

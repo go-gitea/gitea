@@ -34,7 +34,7 @@ The source files can be found in the following directories:
 
 We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) and [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 
-### Gitea specific guidelines:
+### Gitea specific guidelines
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case, it's preferred to contain 2-3 feature related keywords.
@@ -65,14 +65,17 @@ Recommended implementations:
 
 * Vue + Vanilla JS
 * Fomantic-UI (jQuery)
+* htmx (partial page reloads for otherwise static components)
 * Vanilla JS
 
 Discouraged implementations:
 
 * Vue + Fomantic-UI (jQuery)
 * jQuery + Vanilla JS
+* htmx + any other framework which requires heavy JS code, or unnecessary features like htmx scripting (`hx-on`)
 
 To make UI consistent, Vue components can use Fomantic-UI CSS classes.
+We use htmx for simple interactions. You can see an example for simple interactions where htmx should be used in this [PR](https://github.com/go-gitea/gitea/pull/28908). Do not use htmx if you require more advanced reactivity, use another framework (Vue/Vanilla JS).
 Although mixing different frameworks is discouraged,
 it should also work if the mixing is necessary and the code is well-designed and maintainable.
 
