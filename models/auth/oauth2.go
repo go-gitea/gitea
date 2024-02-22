@@ -626,10 +626,14 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources() ([]*Source, error) {
+// GetOAuth2ProviderSources returns all actived LoginOAuth2 sources
+func GetOAuth2ProviderSources(onlyActive bool) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
+	sess := db.GetEngine(db.DefaultContext)
+	if onlyActive {
+		sess = sess.Where("is_active = ?", true)
+	}
+	if err := sess.Where("type = ?", OAuth2).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil

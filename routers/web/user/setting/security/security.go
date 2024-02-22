@@ -105,7 +105,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetOAuth2ProvidersMap(false)
 	if err != nil {
 		ctx.ServerError("GetActiveOAuth2Providers", err)
 		return

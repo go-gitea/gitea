@@ -62,7 +62,7 @@ func ResetOAuth2() error {
 
 // initOAuth2Sources is used to load and register all active OAuth2 providers
 func initOAuth2Sources() error {
-	authSources, _ := auth.GetActiveOAuth2ProviderSources()
+	authSources, _ := auth.GetOAuth2ProviderSources(true)
 	for _, source := range authSources {
 		oauth2Source, ok := source.Cfg.(*Source)
 		if !ok {
