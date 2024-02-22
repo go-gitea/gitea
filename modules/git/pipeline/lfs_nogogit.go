@@ -170,6 +170,10 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				} else {
 					break commitReadingLoop
 				}
+			default:
+				if err := git.DiscardFull(batchReader, size+1); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
