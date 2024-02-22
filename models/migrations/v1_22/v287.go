@@ -16,8 +16,8 @@ import (
 
 func AddActionsVisibility(x *xorm.Engine) error {
 	// This migration maybe rerun so that we should check if it has been run
-	keepActivityPrivateExits, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "keep_activity_private")
-	if err != nil || !keepActivityPrivateExits {
+	hasActionsVisibility, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "actions_visibility")
+	if err != nil || hasActionsVisibility {
 		return err
 	}
 
@@ -25,6 +25,14 @@ func AddActionsVisibility(x *xorm.Engine) error {
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	type User struct {
+		ActionsVisibility structs.ActionsVisibility `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	if err = x.Sync(&User{}); err != nil {
 		return err
 	}
 
