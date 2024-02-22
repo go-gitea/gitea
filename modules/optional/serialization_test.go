@@ -1,25 +1,26 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package optional
+package optional_test
 
 import (
 	std_json "encoding/json" //nolint:depguard
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
 type testSerializationStruct struct {
-	NormalString string         `json:"normal_string" yaml:"normal_string"`
-	NormalBool   bool           `json:"normal_bool" yaml:"normal_bool"`
-	OptBool      Option[bool]   `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
-	OptString    Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
-	OptTwoBool   Option[bool]   `json:"optional_two_bool" yaml:"optional_two_bool"`
-	OptTwoString Option[string] `json:"optional_twostring" yaml:"optional_two_string"`
+	NormalString string                  `json:"normal_string" yaml:"normal_string"`
+	NormalBool   bool                    `json:"normal_bool" yaml:"normal_bool"`
+	OptBool      optional.Option[bool]   `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
+	OptString    optional.Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
+	OptTwoBool   optional.Option[bool]   `json:"optional_two_bool" yaml:"optional_two_bool"`
+	OptTwoString optional.Option[string] `json:"optional_twostring" yaml:"optional_two_string"`
 }
 
 func TestOptionalToJson(t *testing.T) {
@@ -38,8 +39,8 @@ func TestOptionalToJson(t *testing.T) {
 			obj: &testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
-				OptBool:      Some(false),
-				OptString:    Some(""),
+				OptBool:      optional.Some(false),
+				OptString:    optional.Some(""),
 			},
 			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
 		},
@@ -76,8 +77,8 @@ func TestOptionalFromJson(t *testing.T) {
 			want: testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
-				OptBool:      Some(false),
-				OptString:    Some(""),
+				OptBool:      optional.Some(false),
+				OptString:    optional.Some(""),
 			},
 		},
 	}
@@ -116,8 +117,8 @@ optional_two_string: null
 			obj: &testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
-				OptBool:      Some(false),
-				OptString:    Some(""),
+				OptBool:      optional.Some(false),
+				OptString:    optional.Some(""),
 			},
 			want: `normal_string: a string
 normal_bool: true
@@ -171,8 +172,8 @@ optional_twostring: null
 			want: testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
-				OptBool:      Some(false),
-				OptString:    Some(""),
+				OptBool:      optional.Some(false),
+				OptString:    optional.Some(""),
 			},
 		},
 	}
