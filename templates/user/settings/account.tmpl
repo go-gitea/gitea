@@ -133,9 +133,9 @@
 		</h4>
 		<div class="ui attached error segment">
 			<div class="ui red message">
-				<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "settings.delete_prompt" | Str2html}}</p>
+				<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "settings.delete_prompt"}}</p>
 				{{if .UserDeleteWithComments}}
-				<p class="text left gt-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				<p class="text left gt-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime}}</p>
 				{{end}}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">

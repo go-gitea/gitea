@@ -24,7 +24,7 @@
 			</div>
 		{{else if .Keyword}}
 			<h3>
-				{{ctx.Locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape) | Str2html}}
+				{{ctx.Locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape)}}
 			</h3>
 			{{if .SearchResults}}
 				<div class="flex-text-block gt-fw">

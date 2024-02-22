@@ -602,8 +602,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
-playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save @playwright/test
+playwright: deps-frontend
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
