@@ -73,13 +73,13 @@ func TestXSSWikiLastCommitInfo(t *testing.T) {
 
 		filename := filepath.Join(dstPath, "Home.md")
 		err = os.WriteFile(filename, []byte("Oh, a XSS attack?"), 0o644)
-		if err != nil {
-			panic(err)
+		if !assert.NoError(t, err) {
+			t.FailNow()
 		}
 
 		_, err = w.Add("Home.md")
-		if err != nil {
-			panic(err)
+		if !assert.NoError(t, err) {
+			t.FailNow()
 		}
 
 		_, err = w.Commit("Yay XSS", &gogit.CommitOptions{
@@ -89,6 +89,9 @@ func TestXSSWikiLastCommitInfo(t *testing.T) {
 				When:  time.Date(2024, time.January, 31, 0, 0, 0, 0, time.UTC),
 			},
 		})
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
 
 		// Push.
 		_, _, err = git.NewCommand(git.DefaultContext, "push").AddArguments(git.ToTrustedCmdArgs([]string{"origin", "master"})...).RunStdString(&git.RunOpts{Dir: dstPath})
