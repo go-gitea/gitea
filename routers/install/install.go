@@ -25,12 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -533,8 +533,8 @@ func SubmitInstall(ctx *context.Context) {
 			IsAdmin: true,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolFalse,
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(false),
+			IsActive:     optional.Some(true),
 		}
 
 		if err = user_model.CreateUser(ctx, u, overwriteDefault); err != nil {

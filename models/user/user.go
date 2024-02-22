@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -573,14 +574,14 @@ func IsUsableUsername(name string) error {
 
 // CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
 type CreateUserOverwriteOptions struct {
-	KeepEmailPrivate             util.OptionalBool
+	KeepEmailPrivate             optional.Option[bool]
 	Visibility                   *structs.VisibleType
-	AllowCreateOrganization      util.OptionalBool
+	AllowCreateOrganization      optional.Option[bool]
 	EmailNotificationsPreference *string
 	MaxRepoCreation              *int
 	Theme                        *string
-	IsRestricted                 util.OptionalBool
-	IsActive                     util.OptionalBool
+	IsRestricted                 optional.Option[bool]
+	IsActive                     optional.Option[bool]
 }
 
 // CreateUser creates record of a new user.
@@ -607,14 +608,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
 		overwrite := overwriteDefault[0]
-		if !overwrite.KeepEmailPrivate.IsNone() {
-			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.IsTrue()
+		if overwrite.KeepEmailPrivate.Has() {
+			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.Value()
 		}
 		if overwrite.Visibility != nil {
 			u.Visibility = *overwrite.Visibility
 		}
-		if !overwrite.AllowCreateOrganization.IsNone() {
-			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.IsTrue()
+		if overwrite.AllowCreateOrganization.Has() {
+			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.Value()
 		}
 		if overwrite.EmailNotificationsPreference != nil {
 			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
@@ -625,11 +626,11 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		if overwrite.Theme != nil {
 			u.Theme = *overwrite.Theme
 		}
-		if !overwrite.IsRestricted.IsNone() {
-			u.IsRestricted = overwrite.IsRestricted.IsTrue()
+		if overwrite.IsRestricted.Has() {
+			u.IsRestricted = overwrite.IsRestricted.Value()
 		}
-		if !overwrite.IsActive.IsNone() {
-			u.IsActive = overwrite.IsActive.IsTrue()
+		if overwrite.IsActive.Has() {
+			u.IsActive = overwrite.IsActive.Value()
 		}
 	}
 
