@@ -7,7 +7,6 @@ package context
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"html"
 	"html/template"
 	"io"
