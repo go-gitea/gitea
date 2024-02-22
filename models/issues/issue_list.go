@@ -607,7 +607,7 @@ func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsM
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
-		Where(builder.In("dependency_id", issues.getIssueIDs())).
+		Where(builder.In("issue_dependency.dependency_id", issues.getIssueIDs())).
 		// sort by repo id then created date
 		Asc("issue.repo_id").
 		Asc("issue.created_unix").
@@ -633,7 +633,7 @@ func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDeps
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
-		Where(builder.In("issue_id", issues.getIssueIDs())).
+		Where(builder.In("issue_dependency.issue_id", issues.getIssueIDs())).
 		// sort by repo id then created date
 		Asc("issue.repo_id").
 		Asc("issue.created_unix").

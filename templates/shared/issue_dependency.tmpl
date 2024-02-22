@@ -1,5 +1,5 @@
 {{if .Dependencies}}
 	<div class="flex-text-inline">
-		{{(ctx.Locale.Tr .TitleKey .Dependencies) | Safe}}
+		{{ctx.Locale.Tr .TitleKey .Dependencies}}
 	</div>
 {{end}}
