@@ -71,13 +71,6 @@
 					</div>
 				</div>
 
-				<div class="field">
-					<div class="ui checkbox">
-						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
-						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
-					</div>
-				</div>
-
 				<div class="inline field">
 					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.actions_visibility"}}</label></span>
 					<div class="ui selection type dropdown">
@@ -93,6 +86,13 @@
 							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "all"}}</div>
 							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "none"}}</div>
 						</div>
+					</div>
+				</div>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
+						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 
