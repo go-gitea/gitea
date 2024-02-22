@@ -545,7 +545,7 @@ In this option, the idea is that the host SSH uses an `AuthorizedKeysCommand` in
   ```bash
   cat <<"EOF" | sudo tee /home/git/docker-shell
   #!/bin/sh
-  /usr/bin/docker exec -i --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" gitea sh "$@"
+  /usr/bin/docker exec -i -u git --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" gitea sh "$@"
   EOF
   sudo chmod +x /home/git/docker-shell
   sudo usermod -s /home/git/docker-shell git
@@ -560,7 +560,7 @@ Add the following block to `/etc/ssh/sshd_config`, on the host:
 ```bash
 Match User git
   AuthorizedKeysCommandUser git
-  AuthorizedKeysCommand /usr/bin/docker exec -i gitea /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
+  AuthorizedKeysCommand /usr/bin/docker exec -i -u git gitea /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
 ```
 
 (From 1.16.0 you will not need to set the `-c /data/gitea/conf/app.ini` option.)
