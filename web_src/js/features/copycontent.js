@@ -1,6 +1,7 @@
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {convertImage} from '../utils.js';
+import {getFileViewContent} from '../utils/misc.js';
 import {GET} from '../modules/fetch.js';
 
 const {i18n} = window.config;
@@ -36,8 +37,7 @@ export function initCopyContent() {
         btn.classList.remove('is-loading', 'small-loading-icon');
       }
     } else { // text, read from DOM
-      const lineEls = document.querySelectorAll('.file-view .lines-code');
-      content = Array.from(lineEls, (el) => el.textContent).join('');
+      content = getFileViewContent();
     }
 
     // try copy original first, if that fails and it's an image, convert it to png

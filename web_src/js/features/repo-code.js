@@ -4,6 +4,7 @@ import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
 import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.js';
+import {getFileViewContent, getFileViewFileName} from '../utils/misc.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
@@ -120,6 +121,44 @@ function showLineButton() {
   });
 }
 
+function initFilePostProcess() {
+  const fileName = getFileViewFileName();
+  if (fileName === 'package.json') {
+    let data;
+    try {
+      data = JSON.parse(getFileViewContent());
+    } catch {
+      return;
+    }
+
+    const packages = new Set();
+    for (const key of [
+      'dependencies',
+      'devDependencies',
+      'optionalDependencies',
+      'peerDependencies',
+    ]) {
+      for (const packageName of Object.keys(data?.[key] || {})) {
+        packages.add(packageName);
+      }
+    }
+
+    // match chroma NameTag token to detect JSON object keys
+    for (const el of document.querySelectorAll('.code-inner .nt')) {
+      const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
+      if (packages.has(jsonKey)) {
+        const a = document.createElement('a');
+        a.textContent = jsonKey;
+        a.href = `https://www.npmjs.com/package/${jsonKey}`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer nofollow';
+        el.textContent = '';
+        el.append('"', a, '"');
+      }
+    }
+  }
+}
+
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -197,4 +236,5 @@ export function initRepoCodeView() {
   $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
     await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
   });
+  initFilePostProcess();
 }

@@ -1620,6 +1620,12 @@ a.ui.active.label:hover {
   width: 100%;
 }
 
+/* don't change link color in highlighted code */
+.code-view .lines-code a,
+.code-view .lines-code a:hover {
+  color: inherit;
+}
+
 .ui.primary.label,
 .ui.primary.labels .label,
 .ui.ui.ui.primary.label {
