@@ -518,6 +518,8 @@ And the following unique queues:
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
+- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion` and more features can be added in future.
+  - `deletion`: User cannot delete their own account.
 
 ## Security (`security`)
 
