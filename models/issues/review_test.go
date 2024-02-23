@@ -84,19 +84,19 @@ func TestFindLatestReviews(t *testing.T) {
 	assert.Equal(t, "singular review from org6 and final review for this pr", reviews[1].Content)
 }
 
-func TestGetCurrentReview(t *testing.T) {
+func TestGetCurrentPendingReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	review, err := issues_model.GetCurrentReview(db.DefaultContext, user, issue)
+	review, err := issues_model.GetCurrentPendingReview(db.DefaultContext, user, issue)
 	assert.NoError(t, err)
 	assert.NotNil(t, review)
 	assert.Equal(t, issues_model.ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
-	review2, err := issues_model.GetCurrentReview(db.DefaultContext, user2, issue)
+	review2, err := issues_model.GetCurrentPendingReview(db.DefaultContext, user2, issue)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewNotExist(err))
 	assert.Nil(t, review2)

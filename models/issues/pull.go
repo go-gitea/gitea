@@ -798,14 +798,16 @@ func HasEnoughApprovals(ctx context.Context, protectBranch *git_model.ProtectedB
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) int64 {
-	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true).
-		And("dismissed = ?", false)
-	if protectBranch.IgnoreStaleApprovals {
-		sess = sess.And("stale = ?", false)
+	opt := &GetReviewOption{
+		Dismissed: util.OptionalBoolFalse,
+		Official:  util.OptionalBoolTrue,
+		Types:     []ReviewType{ReviewTypeApprove},
+		IssueID:   pr.IssueID,
 	}
-	approvals, err := sess.Count(new(Review))
+	if protectBranch.IgnoreStaleApprovals {
+		opt.Stale = util.OptionalBoolFalse
+	}
+	approvals, err := db.GetEngine(ctx).Where(opt.toCond()).Count(new(Review))
 	if err != nil {
 		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
@@ -819,11 +821,13 @@ func MergeBlockedByRejectedReview(ctx context.Context, protectBranch *git_model.
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
-	rejectExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeReject).
-		And("official = ?", true).
-		And("dismissed = ?", false).
-		Exist(new(Review))
+	opt := &GetReviewOption{
+		Dismissed: util.OptionalBoolFalse,
+		Official:  util.OptionalBoolTrue,
+		Types:     []ReviewType{ReviewTypeReject},
+		IssueID:   pr.IssueID,
+	}
+	rejectExist, err := db.GetEngine(ctx).Where(opt.toCond()).Exist(new(Review))
 	if err != nil {
 		log.Error("MergeBlockedByRejectedReview: %v", err)
 		return true
@@ -838,10 +842,12 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 	if !protectBranch.BlockOnOfficialReviewRequests {
 		return false
 	}
-	has, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeRequest).
-		And("official = ?", true).
-		Exist(new(Review))
+	opt := &GetReviewOption{
+		Official: util.OptionalBoolTrue,
+		Types:    []ReviewType{ReviewTypeRequest},
+		IssueID:  pr.IssueID,
+	}
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).Exist(new(Review))
 	if err != nil {
 		log.Error("MergeBlockedByOfficialReviewRequests: %v", err)
 		return true

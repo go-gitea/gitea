@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -97,20 +98,20 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 
 	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
-		return err
+		return fmt.Errorf("GetUserRepoPermission: %w", err)
 	}
 
 	if permDoer == nil {
 		permDoer = new(access_model.Permission)
 		*permDoer, err = access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetUserRepoPermission: %w", err)
 		}
 	}
 
 	lastreview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		return err
+		return fmt.Errorf("GetReviewByIssueIDAndUserID: %w", err)
 	}
 
 	var pemResult bool
@@ -135,7 +136,7 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		if !pemResult {
 			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
-				return err
+				return fmt.Errorf("IsOfficialReviewer :%w", err)
 			}
 			if !pemResult {
 				return issues_model.ErrNotValidReviewRequest{

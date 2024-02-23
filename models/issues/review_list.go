@@ -151,6 +151,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error)
 	sess := db.GetEngine(ctx)
 
 	// Get latest review of each reviewer, sorted in order they were made
+	// TODO: use FindLatestReviews()
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
@@ -158,6 +159,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error)
 	}
 
 	teamReviewRequests := make([]*Review, 0, 5)
+	// TODO: use FindLatestReviews()
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
 		issueID).
 		Find(&teamReviewRequests); err != nil {

@@ -119,7 +119,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	review, err := issues_model.GetCurrentReview(ctx, doer, issue)
+	review, err := issues_model.GetCurrentPendingReview(ctx, doer, issue)
 	if err != nil {
 		if !issues_model.IsErrReviewNotExist(err) {
 			return nil, err
@@ -271,7 +271,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	}
 
 	var stale bool
-	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
+	if !reviewType.AffectReview() {
 		stale = false
 	} else {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
@@ -369,7 +369,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, err
 	}
 
-	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
+	if !review.Type.AffectReview() {
 		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
 	}
 

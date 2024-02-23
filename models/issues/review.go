@@ -85,6 +85,11 @@ const (
 	ReviewTypeRequest
 )
 
+// AffectReview indicate if this review type alter a pull state
+func (rt ReviewType) AffectReview() bool {
+	return rt == ReviewTypeApprove || rt == ReviewTypeReject
+}
+
 // Icon returns the corresponding icon for the review type
 func (rt ReviewType) Icon() string {
 	switch rt {
@@ -103,11 +108,11 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             ReviewType
+	ID               int64              `xorm:"pk autoincr"`
+	Type             ReviewType         `xorm:"index"`
 	Reviewer         *user_model.User   `xorm:"-"`
 	ReviewerID       int64              `xorm:"index"`
-	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ReviewerTeamID   int64              `xorm:"index NOT NULL DEFAULT 0"`
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
@@ -314,17 +319,20 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		review.Type = opts.Type
 		review.ReviewerID = opts.Reviewer.ID
 
-		reviewCond := builder.Eq{"reviewer_id": opts.Reviewer.ID, "issue_id": opts.Issue.ID}
+		opt := &GetReviewOption{
+			ReviewerID: opts.Reviewer.ID,
+			IssueID:    opts.Issue.ID,
+		}
 		// make sure user review requests are cleared
 		if opts.Type != ReviewTypePending {
-			if _, err := sess.Where(reviewCond.And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
+			if _, err := sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
 				return nil, err
 			}
 		}
 		// make sure if the created review gets dismissed no old review surface
 		// other types can be ignored, as they don't affect branch protection
-		if opts.Type == ReviewTypeApprove || opts.Type == ReviewTypeReject {
-			if _, err := sess.Where(reviewCond.And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
+		if opts.Type.AffectReview() {
+			if _, err := sess.Where(opt.toCond().And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
 				Cols("dismissed").Update(&Review{Dismissed: true}); err != nil {
 				return nil, err
 			}
@@ -344,8 +352,8 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 	return review, committer.Commit()
 }
 
-// GetCurrentReview returns the current pending review of reviewer for given issue
-func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
+// GetCurrentPendingReview returns the current pending review of reviewer for given issue
+func GetCurrentPendingReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
 	if reviewer == nil {
 		return nil, nil
 	}
@@ -394,7 +402,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 
 	official := false
 
-	review, err := GetCurrentReview(ctx, doer, issue)
+	review, err := GetCurrentPendingReview(ctx, doer, issue)
 	if err != nil {
 		if !IsErrReviewNotExist(err) {
 			return nil, nil, err
@@ -404,7 +412,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 			return nil, nil, ContentEmptyErr{}
 		}
 
-		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+		if reviewType.AffectReview() {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
 			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
@@ -434,7 +442,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 			return nil, nil, ContentEmptyErr{}
 		}
 
-		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+		if reviewType.AffectReview() {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
 			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
@@ -470,7 +478,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	}
 
 	// try to remove team review request if need
-	if issue.Repo.Owner.IsOrganization() && (reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject) {
+	if issue.Repo.Owner.IsOrganization() && reviewType.AffectReview() {
 		teamReviewRequests := make([]*Review, 0, 10)
 		if err := sess.SQL("SELECT * FROM review WHERE issue_id = ? AND reviewer_team_id > 0 AND type = ?", issue.ID, ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
 			return nil, nil, err
@@ -494,15 +502,63 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	return review, comm, committer.Commit()
 }
 
+type GetReviewOption struct {
+	Dismissed  util.OptionalBool
+	Official   util.OptionalBool
+	Stale      util.OptionalBool
+	Types      []ReviewType
+	IssueID    int64
+	ReviewerID int64
+	TeamID     int64
+}
+
+func (o *GetReviewOption) toCond() builder.Cond {
+	cond := builder.And(builder.Eq{"review.issue_id": o.IssueID})
+
+	if !o.Dismissed.IsNone() {
+		cond = cond.And(builder.Eq{"review.dismissed": o.Dismissed.IsTrue()})
+	}
+	if !o.Official.IsNone() {
+		cond = cond.And(builder.Eq{"review.official": o.Official.IsTrue()})
+	}
+	if !o.Stale.IsNone() {
+		cond = cond.And(builder.Eq{"review.stale": o.Stale.IsTrue()})
+	}
+	if len(o.Types) != 0 {
+		cond = cond.And(builder.In("review.type", o.Types))
+	}
+	if o.ReviewerID > 0 {
+		cond = cond.And(builder.Eq{"review.reviewer_id": o.ReviewerID, "original_author_id": 0})
+	}
+	if o.TeamID > 0 {
+		cond = cond.And(builder.Eq{"review.reviewer_team_id": o.TeamID})
+	}
+
+	return cond
+}
+
+// GetReviewByOption get the latest review for a pull request filtered by given option
+func GetReviewByOption(ctx context.Context, opt *GetReviewOption) (*Review, error) {
+	review := new(Review)
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrReviewNotExist{}
+	}
+	return review, nil
+}
+
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
 	review := new(Review)
-
-	has, err := db.GetEngine(ctx).Where(
-		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
-		Desc("id").
-		Get(review)
+	opt := &GetReviewOption{
+		Types:      []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest},
+		IssueID:    issueID,
+		ReviewerID: userID,
+	}
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
 	if err != nil {
 		return nil, err
 	}
@@ -517,10 +573,11 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 // GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
 func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (*Review, error) {
 	review := new(Review)
-
-	has, err := db.GetEngine(ctx).Where(builder.Eq{"issue_id": issueID, "reviewer_team_id": teamID}).
-		Desc("id").
-		Get(review)
+	opt := &GetReviewOption{
+		IssueID: issueID,
+		TeamID:  teamID,
+	}
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
 	if err != nil {
 		return nil, err
 	}
@@ -548,7 +605,7 @@ func MarkReviewsAsNotStale(ctx context.Context, issueID int64, commitID string) 
 
 // DismissReview change the dismiss status of a review
 func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err error) {
-	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+	if review.Dismissed == isDismiss || !review.Type.AffectReview() {
 		return nil
 	}
 
@@ -619,7 +676,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, err
 	}
 
-	// skip it when reviewer hase been request to review
+	// skip it when reviewer has been request to review
 	if review != nil && review.Type == ReviewTypeRequest {
 		return nil, nil
 	}
@@ -635,7 +692,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		}
 	}
 
-	review, err = CreateReview(ctx, CreateReviewOptions{
+	_, err = CreateReview(ctx, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
@@ -653,7 +710,6 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
-		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, err

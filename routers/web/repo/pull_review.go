@@ -36,7 +36,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+	currentReview, err := issues_model.GetCurrentPendingReview(ctx, ctx.Doer, issue)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
@@ -210,13 +210,13 @@ func SubmitReview(ctx *context.Context) {
 	}
 
 	reviewType := form.ReviewType()
-	switch reviewType {
-	case issues_model.ReviewTypeUnknown:
+	switch {
+	case reviewType == issues_model.ReviewTypeUnknown:
 		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
-	case issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject:
+	case reviewType.AffectReview():
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
