@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -117,11 +116,8 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
-	}
-
-	if form.Restricted != nil {
-		overwriteDefault.IsRestricted = util.OptionalBoolOf(*form.Restricted)
+		IsActive:     optional.Some(true),
+		IsRestricted: optional.FromPtr(form.Restricted),
 	}
 
 	if form.Visibility != "" {

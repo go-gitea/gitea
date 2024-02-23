@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -700,7 +701,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -757,7 +758,7 @@ func CompareDiff(ctx *context.Context) {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
