@@ -146,10 +146,10 @@ func InitEngine(ctx context.Context) error {
 	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 	xormEngine.SetDefaultContext(ctx)
 
-	if setting.Database.SlowQueryTreshold > 0 {
+	if setting.Database.SlowQueryThreshold > 0 {
 		xormEngine.AddHook(&SlowQueryHook{
-			Treshold: setting.Database.SlowQueryTreshold,
-			Logger:   log.GetLogger("xorm"),
+			Threshold: setting.Database.SlowQueryThreshold,
+			Logger:    log.GetLogger("xorm"),
 		})
 	}
 
@@ -310,8 +310,8 @@ func SetLogSQL(ctx context.Context, on bool) {
 }
 
 type SlowQueryHook struct {
-	Treshold time.Duration
-	Logger   log.Logger
+	Threshold time.Duration
+	Logger    log.Logger
 }
 
 var _ contexts.Hook = &SlowQueryHook{}
@@ -321,7 +321,7 @@ func (SlowQueryHook) BeforeProcess(c *contexts.ContextHook) (context.Context, er
 }
 
 func (h *SlowQueryHook) AfterProcess(c *contexts.ContextHook) error {
-	if c.ExecuteTime >= h.Treshold {
+	if c.ExecuteTime >= h.Threshold {
 		// 8 is the amount of skips passed to runtime.Caller, so that in the log the correct function
 		// is being displayed (the function that ultimately wants to execute the query in the code)
 		// instead of the function of the slow query hook being called.
