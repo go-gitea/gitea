@@ -841,7 +841,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -892,7 +892,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -935,7 +935,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser, auth.OAuth2)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
@@ -988,7 +988,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			u.IsAdmin = isAdmin.ValueOrDefault(false)
 			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled, auth.OAuth2) {
 				// error already handled
 				return
 			}
@@ -999,7 +999,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		} else {
 			// no existing user is found, request attach or new account
-			showLinkingLogin(ctx, gothUser)
+			showLinkingLogin(ctx, gothUser, auth.OAuth2)
 			return
 		}
 	}
@@ -1063,9 +1063,12 @@ func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *g
 	return isAdmin, isRestricted
 }
 
-func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
+func showLinkingLogin(ctx *context.Context, gothUser goth.User, authType auth.Type) {
 	if err := updateSession(ctx, nil, map[string]any{
-		"linkAccountGothUser": gothUser,
+		"linkAccountUser": auth.LinkAccountUser{
+			Type:     authType,
+			GothUser: gothUser,
+		},
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
 		return
@@ -1144,7 +1147,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser, auth.OAuth2); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
