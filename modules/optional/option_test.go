@@ -6,8 +6,6 @@ package optional
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +28,8 @@ func TestOption(t *testing.T) {
 	var ptr *int
 	assert.False(t, FromPtr(ptr).Has())
 
-	opt1 := FromPtr(util.ToPointer(1))
+	int1 := 1
+	opt1 := FromPtr(&int1)
 	assert.True(t, opt1.Has())
 	assert.Equal(t, int(1), opt1.Value())
 

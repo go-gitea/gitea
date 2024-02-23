@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -671,7 +672,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions:     db.ListOptionsAll,
 	}
 	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)

@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-
-	"github.com/markbates/goth"
 )
 
 // Store represents a thing that stores things
@@ -21,10 +20,12 @@ type Store interface {
 
 // LinkAccountFromStore links the provided user with a stored external user
 func LinkAccountFromStore(ctx context.Context, store Store, user *user_model.User) error {
-	gothUser := store.Get("linkAccountGothUser")
-	if gothUser == nil {
+	externalLinkUserInterface := store.Get("linkAccountUser")
+	if externalLinkUserInterface == nil {
 		return fmt.Errorf("not in LinkAccount session")
 	}
 
-	return LinkAccountToUser(ctx, user, gothUser.(goth.User))
+	externalLinkUser := externalLinkUserInterface.(auth.LinkAccountUser)
+
+	return LinkAccountToUser(ctx, user, externalLinkUser.GothUser, externalLinkUser.Type)
 }

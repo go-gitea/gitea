@@ -1,0 +1,62 @@
+<div class="saml field {{if not (eq .type 8)}}gt-hidden{{end}}">
+
+	<div class="inline required field">
+		<label>{{ctx.Locale.Tr "admin.auths.saml_nameidformat"}}</label>
+		<div class="ui selection type dropdown">
+			<input type="hidden" id="name_id_format" name="name_id_format" value="{{.name_id_format}}">
+			<div class="text">{{.CurrentNameIDFormat}}</div>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				{{range .NameIDFormats}}
+					<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+
+	<div class="optional field">
+		<label for="saml_icon_url">{{ctx.Locale.Tr "admin.auths.saml_icon_url"}}</label>
+		<input id="saml_icon_url" name="saml_icon_url" value="{{.SAMLIconURL}}">
+	</div>
+
+	<div class="field">
+		<label for="identity_provider_metadata_url">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_metadata_url"}}</label>
+		<input id="identity_provider_metadata_url" name="identity_provider_metadata_url" value="{{.IdentityProviderMetadataURL}}">
+	</div>
+	<div class="field">
+		<label for="identity_provider_metadata">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_metadata"}}</label>
+		<textarea rows=2 id="identity_provider_metadata" name="identity_provider_metadata" value="{{.IdentityProviderMetadata}}"></textarea>
+	</div>
+
+	<div class="inline field">
+		<div class="ui checkbox">
+			<label><strong>{{ctx.Locale.Tr "admin.auths.saml_insecure_skip_assertion_signature_validation"}}</strong></label>
+			<input name="insecure_skip_assertion_signature_validation" type="checkbox" {{if .InsecureSkipAssertionSignatureValidation}}checked{{end}}>
+		</div>
+	</div>
+
+	<div class="field">
+		<label for="service_provider_certificate">{{ctx.Locale.Tr "admin.auths.saml_service_provider_certificate"}}</label>
+		<textarea rows=2 id="service_provider_certificate" name="service_provider_certificate" value="{{.ServiceProviderCertificate}}"></textarea>
+	</div>
+	<div class="field">
+		<label for="service_provider_private_key">{{ctx.Locale.Tr "admin.auths.saml_service_provider_private_key"}}</label>
+		<textarea rows=2 id="service_provider_private_key" name="service_provider_private_key" value="{{.ServiceProviderPrivateKey}}"></textarea>
+	</div>
+
+	<div class="field">
+		<label for="email_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_email_assertion_key"}}</label>
+		<input id="email_assertion_key" name="email_assertion_key" value="{{if not .EmailAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress{{else}}{{.EmailAssertionKey}}{{end}}">
+	</div>
+
+	<div class="field">
+		<label for="name_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_name_assertion_key"}}</label>
+		<input id="name_assertion_key" name="name_assertion_key" value="{{if not .NameAssertionKey}}http://schemas.xmlsoap.org/claims/CommonName{{else}}{{.NameAssertionKey}}{{end}}">
+	</div>
+
+	<div class="field">
+		<label for="username_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_username_assertion_key"}}</label>
+		<input id="username_assertion_key" name="username_assertion_key" value="{{if not .UsernameAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name{{else}}{{.UsernameAssertionKey}}{{end}}">
+	</div>
+
+</div>

@@ -458,6 +458,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
 - `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
+- `SLOW_QUERY_THRESHOLD` **5s**: Threshold value in seconds beyond which query execution time is logged as a warning in the xorm logger.
 
 [^1]: It may be necessary to specify a hostport even when listening on a unix socket, as the port is part of the socket name. see [#24552](https://github.com/go-gitea/gitea/issues/24552#issuecomment-1681649367) for additional details.
 
