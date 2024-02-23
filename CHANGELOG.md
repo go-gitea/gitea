@@ -52,7 +52,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Disallow merge when required checked are missing (#29143) (#29268)
   * Fix incorrect link to swift doc and swift package-registry login command (#29096) (#29103)
 * DOCS
-  * Rm outdated docs from some languages (#27530) (#29208)
+  * Remove outdated docs from some languages (#27530) (#29208)
   * Fix typos in the documentation (#29048) (#29056)
   * Explained where create issue/PR template (#29035)
 * MISC
