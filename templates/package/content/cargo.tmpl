@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cargo.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cargo.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>[registry]
 default = "gitea"
 
@@ -19,7 +19,7 @@ git-fetch-with-cli = true</code></pre></div>
 				<div class="markup"><pre class="code-block"><code>cargo add {{.PackageDescriptor.Package.Name}}@{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Cargo" "https://docs.gitea.com/usage/packages/cargo/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Cargo" "https://docs.gitea.com/usage/packages/cargo/"}}</label>
 			</div>
 		</div>
 	</div>

@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.npm.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.npm.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>{{if .PackageDescriptor.Metadata.Scope}}{{.PackageDescriptor.Metadata.Scope}}:{{end}}registry=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/npm/"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
@@ -15,7 +15,7 @@
 				<div class="markup"><pre class="code-block"><code>&quot;{{.PackageDescriptor.Package.Name}}&quot;: &quot;{{.PackageDescriptor.Version.Version}}&quot;</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "npm" "https://docs.gitea.com/usage/packages/npm/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "npm" "https://docs.gitea.com/usage/packages/npm/"}}</label>
 			</div>
 		</div>
 	</div>

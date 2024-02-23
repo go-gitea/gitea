@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -499,11 +500,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
 	if user != nil {
-		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name))
+		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
 	} else {
-		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName))
+		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
 	}
-	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
+	ctx.Data["ApplicationRedirectDomainHTML"] = template.HTML("<strong>" + html.EscapeString(form.RedirectURI) + "</strong>")
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
 	if err != nil {
@@ -840,7 +841,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -891,7 +892,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -934,7 +935,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser, auth.OAuth2)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
@@ -978,7 +979,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
+				IsActive: optional.Some(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
 			source := authSource.Cfg.(*oauth2.Source)
@@ -987,7 +988,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			u.IsAdmin = isAdmin.ValueOrDefault(false)
 			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled, auth.OAuth2) {
 				// error already handled
 				return
 			}
@@ -998,7 +999,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		} else {
 			// no existing user is found, request attach or new account
-			showLinkingLogin(ctx, gothUser)
+			showLinkingLogin(ctx, gothUser, auth.OAuth2)
 			return
 		}
 	}
@@ -1062,9 +1063,12 @@ func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *g
 	return isAdmin, isRestricted
 }
 
-func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
+func showLinkingLogin(ctx *context.Context, gothUser goth.User, authType auth.Type) {
 	if err := updateSession(ctx, nil, map[string]any{
-		"linkAccountGothUser": gothUser,
+		"linkAccountUser": auth.LinkAccountUser{
+			Type:     authType,
+			GothUser: gothUser,
+		},
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
 		return
@@ -1143,7 +1147,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser, auth.OAuth2); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
