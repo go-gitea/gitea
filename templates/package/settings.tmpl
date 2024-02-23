@@ -1,8 +1,14 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
-	{{template "shared/user/org_profile_avatar" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings options{{if .ContextUser.IsOrganization}} organization{{end}}">
+	{{if .ContextUser.IsOrganization}}
+		{{template "org/header" .}}
+	{{else}}
+		{{template "shared/user/org_profile_avatar" .}}
+	{{end}}
 	<div class="ui container">
-		{{template "user/overview/header" .}}
+		{{if not .ContextUser.IsOrganization}}
+			{{template "user/overview/header" .}}
+		{{end}}
 		{{template "base/alert" .}}
 		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -61,7 +62,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          repo.ID,
-		IsDeletedBranch: isDeletedBranch,
+		IsDeletedBranch: isDeletedBranch.ToGeneric(),
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: pageSize,
@@ -239,7 +240,7 @@ func syncBranchToDB(ctx context.Context, repoID, pusherID int64, branchName stri
 	// we cannot simply insert the branch but need to check we have branches or not
 	hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          repoID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	}.ToConds())
 	if err != nil {
 		return err

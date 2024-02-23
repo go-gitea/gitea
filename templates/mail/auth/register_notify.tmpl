@@ -8,10 +8,10 @@
 
 {{$set_pwd_url := printf "%[1]suser/forgot_password" AppUrl}}
 <body>
-	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape) | Str2html}}</p><br>
+	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p><br>
 	<p>{{.locale.Tr "mail.register_notify.text_1" AppName}}</p><br>
 	<p>{{.locale.Tr "mail.register_notify.text_2" .Username}}</p><p><a href="{{AppUrl}}user/login">{{AppUrl}}user/login</a></p><br>
-	<p>{{.locale.Tr "mail.register_notify.text_3" ($set_pwd_url | Escape) | Str2html}}</p><br>
+	<p>{{.locale.Tr "mail.register_notify.text_3" ($set_pwd_url | Escape)}}</p><br>
 
 	<p>© <a target="_blank" rel="noopener noreferrer" href="{{AppUrl}}">{{AppName}}</a></p>
 </body>

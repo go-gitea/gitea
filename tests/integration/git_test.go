@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
@@ -25,9 +26,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -847,4 +850,45 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
+}
+
+func TestDataAsync_Issue29101(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		resp, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "test.txt",
+					ContentReader: bytes.NewReader(make([]byte, 10000)),
+				},
+			},
+			OldBranch: repo.DefaultBranch,
+			NewBranch: repo.DefaultBranch,
+		})
+		assert.NoError(t, err)
+
+		sha := resp.Commit.SHA
+
+		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
+		assert.NoError(t, err)
+
+		commit, err := gitRepo.GetCommit(sha)
+		assert.NoError(t, err)
+
+		entry, err := commit.GetTreeEntryByPath("test.txt")
+		assert.NoError(t, err)
+
+		b := entry.Blob()
+
+		r, err := b.DataAsync()
+		assert.NoError(t, err)
+		defer r.Close()
+
+		r2, err := b.DataAsync()
+		assert.NoError(t, err)
+		defer r2.Close()
+	})
 }

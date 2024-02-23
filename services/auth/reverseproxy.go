@@ -10,8 +10,8 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
@@ -161,7 +161,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	overwriteDefault := user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	}
 
 	if err := user_model.CreateUser(req.Context(), user, &overwriteDefault); err != nil {
