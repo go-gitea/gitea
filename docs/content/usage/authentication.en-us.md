@@ -349,3 +349,72 @@ If set `ENABLE_REVERSE_PROXY_FULL_NAME=true`, a user full name expected in `X-WE
 You can also limit the reverse proxy's IP address range with `REVERSE_PROXY_TRUSTED_PROXIES` which default value is `127.0.0.0/8,::1/128`. By `REVERSE_PROXY_LIMIT`, you can limit trusted proxies level.
 
 Notice: Reverse Proxy Auth doesn't support the API. You still need an access token or basic auth to make API requests.
+
+## SAML
+
+### Configuring Gitea as a SAML 2.0 Service Provider
+
+- Navigate to `Site Administration > Identity & Access > Authentication Sources`.
+- Click the `Add Authentication Source` button.
+- Select `SAML` as the authentication type.
+
+#### Features Not Yet Supported
+
+Currently, auto-registration is not supported for SAML. During the external account linking process the user will be prompted to set a username and email address or link to an existing account.
+
+SAML group mapping is not supported.
+
+#### Settings
+
+- `Authentication Name` **(required)**
+
+  - The name of this authentication source (appears in the Gitea ACS and metadata URLs)
+
+- `SAML NameID Format` **(required)**
+
+  - This specifies how Identity Provider (IdP) users are mapped to Gitea users. This option will be provider specific.
+
+- `Icon URL` (optional)
+
+  - URL of an icon to display on the Sign-In page for this authentication source.
+
+- `[Insecure] Skip Assertion Signature Validation` (optional)
+
+  - This option is not recommended and disables integrity verification of IdP SAML assertions.
+
+- `Identity Provider Metadata URL` (optional if XML set)
+
+  - The URL of the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata XML` is left blank.
+
+- `Identity Provider Metadata XML` (optional if URL set)
+
+  - The XML returned by the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata URL` is left blank.
+
+- `Service Provider Certificate` (optional)
+
+  - X.509-formatted certificate (with `Service Provider Private Key`) used for signing SAML requests.
+  - A certificate will be generated if this field is left blank.
+
+- `Service Provider Private Key` (optional)
+
+  - DSA/RSA private key (with `Service Provider Certificate`) used for signing SAML requests.
+  - A private key will be generated if this field is left blank.
+
+- `Email Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's email (depends on provider configuration).
+
+- `Name Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's nickname (depends on provider configuration).
+
+- `Username Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's username (depends on provider configuration).
+
+### Configuring a SAML 2.0 Identity Provider to use Gitea
+
+- The service provider assertion consumer service url will look like: `http(s)://[mydomain]/user/saml/[Authentication Name]/acs`.
+- The service provider metadata url will look like: `http(s)://[mydomain]/user/saml/[Authentication Name]/metadata`.
