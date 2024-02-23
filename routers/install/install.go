@@ -420,9 +420,8 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
-		_, err = mail.ParseAddress(form.SMTPFrom)
-		if err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.err_smtp_from_is_invalid"), tplInstall, &form)
+		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
 			return
 		}
 
