@@ -7,6 +7,7 @@ package install
 import (
 	"fmt"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -419,6 +420,12 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
+		_, err = mail.ParseAddress(form.SMTPFrom)
+		if err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.err_smtp_from_is_invalid"), tplInstall, &form)
+			return
+		}
+
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
 		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
 		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
