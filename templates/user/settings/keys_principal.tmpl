@@ -22,7 +22,7 @@
 					<div class="flex-item-main">
 						<div class="flex-item-title">{{.Name}}</div>
 						<div class="flex-item-body">
-							<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+							<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 					</div>
 					<div class="flex-item-trailing">
@@ -44,7 +44,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Content}}error{{end}}">
-					<label for="content">{{ctx.Locale.Tr "settings.principal_content"}}</label>
+					<label for="ssh-principal-content">{{ctx.Locale.Tr "settings.principal_content"}}</label>
 					<input id="ssh-principal-content" name="content" value="{{.content}}" autofocus required>
 				</div>
 				<input name="title" type="hidden" value="principal">

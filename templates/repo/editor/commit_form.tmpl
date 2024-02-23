@@ -26,7 +26,7 @@
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
-						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape)}}
 						{{if not .CanCommitToBranch.CanCommitToBranch}}
 						<div class="ui visible small warning message">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
@@ -50,9 +50,9 @@
 					<label>
 						{{svg "octicon-git-pull-request"}}
 						{{if .CanCreatePullRequest}}
-							{{ctx.Locale.Tr "repo.editor.create_new_branch" | Safe}}
+							{{ctx.Locale.Tr "repo.editor.create_new_branch"}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.editor.create_new_branch_np" | Safe}}
+							{{ctx.Locale.Tr "repo.editor.create_new_branch_np"}}
 						{{end}}
 					</label>
 				</div>

@@ -594,9 +594,7 @@ func GetOrgByID(ctx context.Context, id int64) (*Organization, error) {
 		return nil, err
 	} else if !has {
 		return nil, user_model.ErrUserNotExist{
-			UID:   id,
-			Name:  "",
-			KeyID: 0,
+			UID: id,
 		}
 	}
 	return u, nil

@@ -8,7 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/contexttest"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -109,7 +109,7 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
 	treePath := "README.md"
-	gitRepo, _ := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, _ := gitrepo.OpenRepository(ctx, repo)
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedFileResponse := getExpectedFileResponse()

@@ -30,9 +30,9 @@
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
 					{{end}}
 					{{if $hasRepositoryAccess}}
-						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape) | Safe}}
+						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape)}}
 					{{else}}
-						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape)}}
 					{{end}}
 				</div>
 			</div>
@@ -45,9 +45,9 @@
 				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}
 					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
-					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
+					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl}}</p>
 				{{end}}
-				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/"}}</p>
 			</div>
 		{{else}}
 			<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>

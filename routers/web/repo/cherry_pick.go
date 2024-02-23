@@ -104,9 +104,9 @@ func CherryPickPost(ctx *context.Context) {
 	message := strings.TrimSpace(form.CommitSummary)
 	if message == "" {
 		if form.Revert {
-			message = ctx.Tr("repo.commit.revert-header", sha)
+			message = ctx.Locale.TrString("repo.commit.revert-header", sha)
 		} else {
-			message = ctx.Tr("repo.commit.cherry-pick-header", sha)
+			message = ctx.Locale.TrString("repo.commit.cherry-pick-header", sha)
 		}
 	}
 

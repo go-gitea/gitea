@@ -25,6 +25,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -218,7 +219,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
-		assert.Contains(t, text, translation.NewLocale("en-US").Tr("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
+		assert.Contains(t, text, translation.NewLocale("en-US").TrString("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
 		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
 	})
 }
@@ -255,7 +256,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 		assert.NoError(t, err)
 
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
@@ -348,7 +349,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
@@ -360,6 +361,90 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
+		gitRepo.Close()
+	})
+}
+
+func TestFastForwardOnlyMerge(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World 2\n")
+
+		// Use API to create a pr from update to master
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
+			Head:  "update",
+			Base:  "master",
+			Title: "create a pr that can be fast-forward-only merged",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: "user1",
+		})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerID: user1.ID,
+			Name:    "repo1",
+		})
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "update",
+			BaseBranch: "master",
+		})
+
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		assert.NoError(t, err)
+
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
+
+		assert.NoError(t, err)
+
+		gitRepo.Close()
+	})
+}
+
+func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "README.md", "Hello, World diverged\n")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World 2\n")
+
+		// Use API to create a pr from diverging to update
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
+			Head:  "diverging",
+			Base:  "master",
+			Title: "create a pr from a diverging branch",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: "user1",
+		})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerID: user1.ID,
+			Name:    "repo1",
+		})
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "diverging",
+			BaseBranch: "master",
+		})
+
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		assert.NoError(t, err)
+
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
+
+		assert.Error(t, err, "Merge should return an error due to being for a diverging branch")
+		assert.True(t, models.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
+
 		gitRepo.Close()
 	})
 }
