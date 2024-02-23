@@ -121,7 +121,7 @@ function showLineButton() {
   });
 }
 
-function initFilePostProcess() {
+function postProcessFile() {
   const fileName = getFileViewFileName();
   if (fileName === 'package.json') {
     let data;
@@ -235,5 +235,5 @@ export function initRepoCodeView() {
   $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
     await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
   });
-  initFilePostProcess();
+  postProcessFile();
 }
