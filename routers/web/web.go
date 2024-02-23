@@ -1403,6 +1403,10 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo.Contributors)
 				m.Get("/data", repo.ContributorsData)
 			})
+			m.Group("/code-frequency", func() {
+				m.Get("", repo.CodeFrequency)
+				m.Get("/data", repo.CodeFrequencyData)
+			})
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
 		m.Group("/activity_author_data", func() {
