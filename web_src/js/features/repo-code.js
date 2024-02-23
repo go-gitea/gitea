@@ -146,6 +146,7 @@ function postProcessPackageJson() {
     const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
     if (packages.has(jsonKey)) {
       const link = createExternalLink({
+        className: 'suppressed',
         textContent: jsonKey,
         href: `https://www.npmjs.com/package/${jsonKey}`,
       });
