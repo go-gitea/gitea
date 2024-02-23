@@ -41,6 +41,8 @@ func TestOptionalToJson(t *testing.T) {
 				NormalBool:   true,
 				OptBool:      optional.Some(false),
 				OptString:    optional.Some(""),
+				OptTwoBool:   optional.None[bool](),
+				OptTwoString: optional.None[string](),
 			},
 			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
 		},
