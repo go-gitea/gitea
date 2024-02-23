@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
@@ -141,7 +141,7 @@ func DeleteBranch(ctx *context.APIContext) {
 	// check whether branches of this repository has been synced
 	totalNumOfBranches, err := db.Count[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountBranches", err)
@@ -340,7 +340,7 @@ func ListBranches(ctx *context.APIContext) {
 		branchOpts := git_model.FindBranchOptions{
 			ListOptions:     listOptions,
 			RepoID:          ctx.Repo.Repository.ID,
-			IsDeletedBranch: util.OptionalBoolFalse,
+			IsDeletedBranch: optional.Some(false),
 		}
 		var err error
 		totalNumOfBranches, err = db.Count[git_model.Branch](ctx, branchOpts)
