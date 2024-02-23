@@ -152,17 +152,16 @@
 					</button>
 				</div>
 			</form>
-		</div>
-
-		<div class="ui g-modal-confirm delete modal" id="delete-account">
-			<div class="header">
-				{{svg "octicon-trash"}}
-				{{ctx.Locale.Tr "settings.delete_account_title"}}
+			<div class="ui g-modal-confirm delete modal" id="delete-account">
+				<div class="header">
+					{{svg "octicon-trash"}}
+					{{ctx.Locale.Tr "settings.delete_account_title"}}
+				</div>
+				<div class="content">
+					<p>{{ctx.Locale.Tr "settings.delete_account_desc"}}</p>
+				</div>
+				{{template "base/modal_actions_confirm" .}}
 			</div>
-			<div class="content">
-				<p>{{ctx.Locale.Tr "settings.delete_account_desc"}}</p>
-			</div>
-			{{template "base/modal_actions_confirm" .}}
 		</div>
 		{{end}}
 	</div>
