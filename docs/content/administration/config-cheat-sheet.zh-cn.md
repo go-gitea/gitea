@@ -497,6 +497,8 @@ Gitea 创建以下非唯一队列：
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**：用户电子邮件通知的默认配置（用户可配置）。选项：enabled、onmention、disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**：禁止普通（非管理员）用户创建组织。
+- `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`， 未来可以增加更多设置。
+  - `deletion`: 用户不能通过界面或者API删除他自己。
 
 ## 安全性 (`security`)
 
@@ -1344,11 +1346,6 @@ PROXY_HOSTS = *.github.com
 然而，后来的更新删除了这些选项，现在唯一的选项是 `github` 和 `self`，默认值为 `github`。
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
 例如 `uses: https://gitea.com/actions/checkout@v4` 或 `uses: http://your-git-server/actions/checkout@v4`。
-
-## User (`user`)
-
-- `SETTING_DISABLED_MODULES`:**_empty_** 禁用的用户设置模块，当前允许为空或者 `deletion` 未来可以增加更多设置.
-  - `deletion`: 用户不能通过界面或者API删除他自己。
 
 ## 其他 (`other`)
 
