@@ -16,9 +16,7 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("admin")
 	Admin.DisableRegularOrgCreation = sec.Key("DISABLE_REGULAR_ORG_CREATION").MustBool(false)
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
-
-	values := sec.Key("USER_DISABLED_FEATURES").Strings(",")
-	Admin.UserDisabledFeatures = container.SetOf(values...)
+	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
 }
 
 const (
