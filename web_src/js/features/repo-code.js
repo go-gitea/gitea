@@ -121,40 +121,44 @@ function showLineButton() {
   });
 }
 
+function postProcessPackageJson() {
+  let data;
+  try {
+    data = JSON.parse(getFileViewContent());
+  } catch {
+    return;
+  }
+
+  const packages = new Set();
+  for (const key of [
+    'dependencies',
+    'devDependencies',
+    'optionalDependencies',
+    'peerDependencies',
+  ]) {
+    for (const packageName of Object.keys(data?.[key] || {})) {
+      packages.add(packageName);
+    }
+  }
+
+  // match chroma NameTag token to detect JSON object keys
+  for (const el of document.querySelectorAll('.code-inner .nt')) {
+    const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
+    if (packages.has(jsonKey)) {
+      const link = createExternalLink({
+        textContent: jsonKey,
+        href: `https://www.npmjs.com/package/${jsonKey}`,
+      });
+      el.textContent = '';
+      el.append('"', link, '"');
+    }
+  }
+}
+
 function postProcessFile() {
   const fileName = getFileViewFileName();
   if (fileName === 'package.json') {
-    let data;
-    try {
-      data = JSON.parse(getFileViewContent());
-    } catch {
-      return;
-    }
-
-    const packages = new Set();
-    for (const key of [
-      'dependencies',
-      'devDependencies',
-      'optionalDependencies',
-      'peerDependencies',
-    ]) {
-      for (const packageName of Object.keys(data?.[key] || {})) {
-        packages.add(packageName);
-      }
-    }
-
-    // match chroma NameTag token to detect JSON object keys
-    for (const el of document.querySelectorAll('.code-inner .nt')) {
-      const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
-      if (packages.has(jsonKey)) {
-        const link = createExternalLink({
-          textContent: jsonKey,
-          href: `https://www.npmjs.com/package/${jsonKey}`,
-        });
-        el.textContent = '';
-        el.append('"', link, '"');
-      }
-    }
+    postProcessPackageJson();
   }
 }
 
