@@ -103,9 +103,9 @@ export function initAdminCommon() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
-      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi'));
+      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi, .saml'));
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required], .saml input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -136,6 +136,10 @@ export function initAdminCommon() {
         case '7': // SSPI
           showElem($('.sspi'));
           $('.sspi div.required input').attr('required', 'required');
+          break;
+        case '8': // SAML
+          showElem($('.saml'));
+          $('.saml div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {

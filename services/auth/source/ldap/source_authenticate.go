@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -85,8 +84,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			IsAdmin:     sr.IsAdmin,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(sr.IsRestricted),
+			IsActive:     optional.Some(true),
 		}
 
 		err := user_model.CreateUser(ctx, user, overwriteDefault)
