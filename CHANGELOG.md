@@ -51,12 +51,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix gitea-action user avatar broken on edited menu (#29190) (#29307)
   * Disallow merge when required checked are missing (#29143) (#29268)
   * Fix incorrect link to swift doc and swift package-registry login command (#29096) (#29103)
+  * Convert visibility to number (#29226) (#29244)
 * DOCS
   * Remove outdated docs from some languages (#27530) (#29208)
   * Fix typos in the documentation (#29048) (#29056)
   * Explained where create issue/PR template (#29035)
-* MISC
-  * Convert visibility to number (#29226) (#29244)
 
 ## [1.21.5](https://github.com/go-gitea/gitea/releases/tag/v1.21.5) - 2024-01-31
 
