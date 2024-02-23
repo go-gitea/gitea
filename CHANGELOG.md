@@ -9,9 +9,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Fix XSS vulnerabilities (#29336)
   * Use general token signing secret (#29205) (#29325)
-* API
-  * Refactor issue template parsing and fix API endpoint (#29069) (#29140)
-  * Fix swift packages not resolving (#29095) (#29102)
 * ENHANCEMENTS
   * Refactor git version functions and check compatibility (#29155) (#29157)
   * Improve user experience for outdated comments (#29050) (#29086)
@@ -19,7 +16,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Wrap contained tags and branches again (#29021) (#29026)
   * Fix incorrect button CSS usages (#29015) (#29023)
   * Strip trailing newline in markdown code copy (#29019) (#29022)
+  * Implement some action notifier functions (#29173) (#29308)
+  * Load outdated comments when (un)resolving conversation on PR timeline (#29203) (#29221)
 * BUGFIXES
+  * Refactor issue template parsing and fix API endpoint (#29069) (#29140)
+  * Fix swift packages not resolving (#29095) (#29102)
   * Remove SSH workaround (#27893) (#29332)
   * Only log error when tag sync fails (#29295) (#29327)
   * Fix SSPI user creation (#28948) (#29323)
@@ -44,18 +45,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Avoid showing unnecessary JS errors when there are elements with different origin on the page (#29081) (#29089)
   * Fix gitea-origin-url with default ports (#29085) (#29088)
   * Fix orgmode link resolving (#29024) (#29076)
-  * Fix: Elasticsearch: Request Entity Too Large #28117 (#29062) (#29075)
+  * Fix Elasticsearh Request Entity Too Large #28117 (#29062) (#29075)
   * Do not render empty comments (#29039) (#29049)
   * Avoid sending update/delete release notice when it is draft (#29008) (#29025)
-* DOCS
-  * Rm outdated docs from some languages (#27530) (#29208)
-* MISC
-  * Implement some action notifier functions (#29173) (#29308)
   * Fix gitea-action user avatar broken on edited menu (#29190) (#29307)
   * Disallow merge when required checked are missing (#29143) (#29268)
-  * Convert visibility to number (#29226) (#29244)
-  * Load outdated comments when (un)resolving conversation on PR timeline (#29203) (#29221)
   * Fix incorrect link to swift doc and swift package-registry login command (#29096) (#29103)
+  * Convert visibility to number (#29226) (#29244)
+* DOCS
+  * Remove outdated docs from some languages (#27530) (#29208)
   * Fix typos in the documentation (#29048) (#29056)
   * Explained where create issue/PR template (#29035)
 
@@ -174,7 +172,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix Chinese translation of config cheat sheet[API] (#28472) (#28473)
   * Retry SSH key verification with additional CRLF if it failed (#28392) (#28464)
 
-## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/1.21.2) - 2023-12-12
+## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/v1.21.2) - 2023-12-12
 
 * SECURITY
   * Rebuild with recently released golang version
@@ -213,7 +211,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use full width for project boards (#28225) (#28245)
   * Enable system users search via the API (#28013) (#28018)
 
-## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/1.21.1) - 2023-11-26
+## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/v1.21.1) - 2023-11-26
 
 * SECURITY
   * Fix comment permissions (#28213) (#28216)
