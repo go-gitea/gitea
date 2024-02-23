@@ -225,8 +225,8 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id"`
-	ProjectColumnTitle string `json:"project_column_name"`
-	ProjectTitle       string `json:"project_name"`
+	ProjectColumnTitle string `json:"project_column_title"`
+	ProjectTitle       string `json:"project_title"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -807,11 +807,11 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	}
 
 	var commentMetaData *CommentMetaData
-	if opts.ProjectColumnID > 0 {
+	if opts.ProjectColumnTitle != "" {
 		commentMetaData = &CommentMetaData{
 			ProjectColumnID:    opts.ProjectColumnID,
 			ProjectColumnTitle: opts.ProjectColumnTitle,
-			ProjectTitle:       opts.ProjectColumnTitle,
+			ProjectTitle:       opts.ProjectTitle,
 		}
 	}
 
