@@ -173,7 +173,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix Chinese translation of config cheat sheet[API] (#28472) (#28473)
   * Retry SSH key verification with additional CRLF if it failed (#28392) (#28464)
 
-## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/1.21.2) - 2023-12-12
+## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/v1.21.2) - 2023-12-12
 
 * SECURITY
   * Rebuild with recently released golang version
@@ -212,7 +212,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use full width for project boards (#28225) (#28245)
   * Enable system users search via the API (#28013) (#28018)
 
-## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/1.21.1) - 2023-11-26
+## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/v1.21.1) - 2023-11-26
 
 * SECURITY
   * Fix comment permissions (#28213) (#28216)
