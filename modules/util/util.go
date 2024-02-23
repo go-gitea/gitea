@@ -12,36 +12,37 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/values"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 // OptionalBool a boolean that can be "null"
-type OptionalBool byte
+type OptionalBool values.NullableValue[bool]
 
-const (
+var (
 	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone OptionalBool = iota
+	OptionalBoolNone = OptionalBool(values.None[bool]())
 	// OptionalBoolTrue a "true" boolean value
-	OptionalBoolTrue
+	OptionalBoolTrue = OptionalBool(values.Nullable(true))
 	// OptionalBoolFalse a "false" boolean value
-	OptionalBoolFalse
+	OptionalBoolFalse = OptionalBool(values.Nullable(false))
 )
 
 // IsTrue return true if equal to OptionalBoolTrue
 func (o OptionalBool) IsTrue() bool {
-	return o == OptionalBoolTrue
+	return values.NullableValue[bool](o).Equal(true)
 }
 
 // IsFalse return true if equal to OptionalBoolFalse
 func (o OptionalBool) IsFalse() bool {
-	return o == OptionalBoolFalse
+	return values.NullableValue[bool](o).Equal(false)
 }
 
 // IsNone return true if equal to OptionalBoolNone
 func (o OptionalBool) IsNone() bool {
-	return o == OptionalBoolNone
+	return values.NullableValue[bool](o).IsNone()
 }
 
 // ToGeneric converts OptionalBool to optional.Option[bool]
@@ -52,20 +53,9 @@ func (o OptionalBool) ToGeneric() optional.Option[bool] {
 	return optional.Some[bool](o.IsTrue())
 }
 
-// OptionalBoolFromGeneric converts optional.Option[bool] to OptionalBool
-func OptionalBoolFromGeneric(o optional.Option[bool]) OptionalBool {
-	if o.Has() {
-		return OptionalBoolOf(o.Value())
-	}
-	return OptionalBoolNone
-}
-
 // OptionalBoolOf get the corresponding OptionalBool of a bool
 func OptionalBoolOf(b bool) OptionalBool {
-	if b {
-		return OptionalBoolTrue
-	}
-	return OptionalBoolFalse
+	return OptionalBool(values.Nullable(b))
 }
 
 // OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool

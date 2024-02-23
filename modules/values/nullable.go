@@ -3,7 +3,7 @@
 
 package values
 
-type NullableValue[T any] struct {
+type NullableValue[T comparable] struct {
 	value *T
 	isNil bool
 }
@@ -12,19 +12,19 @@ func (n NullableValue[T]) IsNone() bool {
 	return n.isNil
 }
 
-func (n NullableValue[T]) IsSome() bool {
-	return !n.isNil
-}
-
 func (n NullableValue[T]) Value() T {
-	// check if the value is nil first, otherwise panic
+	// check if the value IsNone first, otherwise panic
 	return *n.value
 }
 
-func None[T any]() NullableValue[T] {
+func (n NullableValue[T]) Equal(v T) bool {
+	return n.value != nil && *n.value == v
+}
+
+func None[T comparable]() NullableValue[T] {
 	return NullableValue[T]{nil, true}
 }
 
-func Nullable[T any](value T) NullableValue[T] {
+func Nullable[T comparable](value T) NullableValue[T] {
 	return NullableValue[T]{&value, false}
 }
