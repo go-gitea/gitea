@@ -45,7 +45,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Avoid showing unnecessary JS errors when there are elements with different origin on the page (#29081) (#29089)
   * Fix gitea-origin-url with default ports (#29085) (#29088)
   * Fix orgmode link resolving (#29024) (#29076)
-  * Fix: Elasticsearch: Request Entity Too Large #28117 (#29062) (#29075)
+  * Fix Elasticsearh Request Entity Too Large #28117 (#29062) (#29075)
   * Do not render empty comments (#29039) (#29049)
   * Avoid sending update/delete release notice when it is draft (#29008) (#29025)
   * Fix gitea-action user avatar broken on edited menu (#29190) (#29307)
