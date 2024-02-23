@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"io/fs"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -102,7 +103,17 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 
 // Close implements io.Closer
 func (b *blobReader) Close() error {
+	if b.rd == nil {
+		return fs.ErrClosed
+	}
+
 	defer b.cancel()
 
-	return DiscardFull(b.rd, b.n+1)
+	if err := DiscardFull(b.rd, b.n+1); err != nil {
+		return err
+	}
+
+	b.rd = nil
+
+	return nil
 }
