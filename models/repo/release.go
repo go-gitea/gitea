@@ -118,13 +118,13 @@ func (r *Release) APIURL() string {
 	return r.Repo.APIURL() + "/releases/" + strconv.FormatInt(r.ID, 10)
 }
 
-// ZipURL the zip url for a release. release must have attributes loaded
-func (r *Release) ZipURL() string {
+// APIZipURL the zip api url for a release. release must have attributes loaded
+func (r *Release) APIZipURL() string {
 	return r.Repo.APIURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".zip"
 }
 
-// TarURL the tar.gz url for a release. release must have attributes loaded
-func (r *Release) TarURL() string {
+// APITarURL the tar.gz api url for a release. release must have attributes loaded
+func (r *Release) APITarURL() string {
 	return r.Repo.APIURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".tar.gz"
 }
 
