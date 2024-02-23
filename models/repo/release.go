@@ -120,12 +120,12 @@ func (r *Release) APIURL() string {
 
 // ZipURL the zip url for a release. release must have attributes loaded
 func (r *Release) ZipURL() string {
-	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".zip"
+	return r.Repo.APIURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".zip"
 }
 
 // TarURL the tar.gz url for a release. release must have attributes loaded
 func (r *Release) TarURL() string {
-	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".tar.gz"
+	return r.Repo.APIURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".tar.gz"
 }
 
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
