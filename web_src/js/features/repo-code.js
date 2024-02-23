@@ -3,7 +3,7 @@ import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
 import {clippie} from 'clippie';
-import {toAbsoluteUrl} from '../utils.js';
+import {toAbsoluteUrl, createExternalLink} from '../utils.js';
 import {getFileViewContent, getFileViewFileName} from '../utils/misc.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
@@ -147,13 +147,12 @@ function initFilePostProcess() {
     for (const el of document.querySelectorAll('.code-inner .nt')) {
       const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
       if (packages.has(jsonKey)) {
-        const a = document.createElement('a');
-        a.textContent = jsonKey;
-        a.href = `https://www.npmjs.com/package/${jsonKey}`;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer nofollow';
+        const link = createExternalLink({
+          textContent: jsonKey,
+          href: `https://www.npmjs.com/package/${jsonKey}`,
+        });
         el.textContent = '';
-        el.append('"', a, '"');
+        el.append('"', link, '"');
       }
     }
   }

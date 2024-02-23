@@ -139,3 +139,13 @@ export function parseDom(text, contentType) {
 export function serializeXml(node) {
   return xmlSerializer.serializeToString(node);
 }
+
+export function createExternalLink(props = {}) {
+  const a = document.createElement('a');
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer nofollow';
+  for (const [key, value] of Object.entries(props)) {
+    a[key] = value;
+  }
+  return a;
+}
