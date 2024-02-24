@@ -22,6 +22,7 @@ func RecentCommits(ctx *context.Context) {
 
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsRecentCommits"] = true
+	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 
 	ctx.HTML(http.StatusOK, tplRecentCommits)
 }

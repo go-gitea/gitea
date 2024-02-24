@@ -18,6 +18,8 @@ import {chartJsColors} from '../utils/color.js';
 import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
+const {pageData} = window.config;
+
 Chart.defaults.color = chartJsColors.text;
 Chart.defaults.borderColor = chartJsColors.border;
 
@@ -35,14 +37,11 @@ export default {
       type: Object,
       required: true
     },
-    repoLink: {
-      type: String,
-      required: true
-    }
   },
   data: () => ({
     isLoading: false,
     errorText: '',
+    repoLink: pageData.repoLink || [],
     data: [],
   }),
   mounted() {
@@ -54,7 +53,7 @@ export default {
       try {
         let response;
         do {
-          response = await GET(`${repoLink}/activity/recent-commits/data`);
+          response = await GET(`${this.repoLink}/activity/recent-commits/data`);
           if (response.status === 202) {
             await sleep(1000); // wait for 1 second before retrying
           }
