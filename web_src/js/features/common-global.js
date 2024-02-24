@@ -206,7 +206,6 @@ export function initGlobalDropzone() {
 }
 
 export function initDropzone(el) {
-  if (el.dropzone) return;
   const $dropzone = $(el);
   const _promise = createDropzone(el, {
     url: $dropzone.data('upload-url'),
