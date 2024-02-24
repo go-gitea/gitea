@@ -1,20 +1,13 @@
 #!/usr/bin/env node
 import imageminZopfli from 'imagemin-zopfli';
 import {optimize} from 'svgo';
-import {fabric} from 'fabric';
+import {loadSVGFromString, Canvas, Rect, util} from 'fabric/node';
 import {readFile, writeFile} from 'node:fs/promises';
+import {argv, exit} from 'node:process';
 
-function exit(err) {
+function doExit(err) {
   if (err) console.error(err);
-  process.exit(err ? 1 : 0);
-}
-
-function loadSvg(svg) {
-  return new Promise((resolve) => {
-    fabric.loadSVGFromString(svg, (objects, options) => {
-      resolve({objects, options});
-    });
-  });
+  exit(err ? 1 : 0);
 }
 
 async function generate(svg, path, {size, bg}) {
@@ -35,14 +28,14 @@ async function generate(svg, path, {size, bg}) {
     return;
   }
 
-  const {objects, options} = await loadSvg(svg);
-  const canvas = new fabric.Canvas();
+  const {objects, options} = await loadSVGFromString(svg);
+  const canvas = new Canvas();
   canvas.setDimensions({width: size, height: size});
   const ctx = canvas.getContext('2d');
   ctx.scale(options.width ? (size / options.width) : 1, options.height ? (size / options.height) : 1);
 
   if (bg) {
-    canvas.add(new fabric.Rect({
+    canvas.add(new Rect({
       left: 0,
       top: 0,
       height: size * (1 / (size / options.height)),
@@ -51,7 +44,7 @@ async function generate(svg, path, {size, bg}) {
     }));
   }
 
-  canvas.add(fabric.util.groupSVGElements(objects, options));
+  canvas.add(util.groupSVGElements(objects, options));
   canvas.renderAll();
 
   let png = Buffer.from([]);
@@ -64,7 +57,7 @@ async function generate(svg, path, {size, bg}) {
 }
 
 async function main() {
-  const gitea = process.argv.slice(2).includes('gitea');
+  const gitea = argv.slice(2).includes('gitea');
   const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
 
@@ -80,7 +73,7 @@ async function main() {
 }
 
 try {
-  exit(await main());
+  doExit(await main());
 } catch (err) {
-  exit(err);
+  doExit(err);
 }

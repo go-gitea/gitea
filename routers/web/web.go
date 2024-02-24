@@ -670,6 +670,11 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
 		})
+		m.Group("/saml", func() {
+			m.Get("/{provider}", auth.SignInSAML) // redir to SAML IDP
+			m.Post("/{provider}/acs", auth.SignInSAMLCallback)
+			m.Get("/{provider}/metadata", auth.SAMLMetadata)
+		})
 	})
 	// ***** END: User *****
 
@@ -1400,6 +1405,10 @@ func registerRoutes(m *web.Route) {
 			m.Group("/contributors", func() {
 				m.Get("", repo.Contributors)
 				m.Get("/data", repo.ContributorsData)
+			})
+			m.Group("/code-frequency", func() {
+				m.Get("", repo.CodeFrequency)
+				m.Get("/data", repo.CodeFrequencyData)
 			})
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
