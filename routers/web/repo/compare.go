@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -311,14 +312,14 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
 	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(ci.BaseBranch)
 	baseIsTag := ctx.Repo.GitRepo.IsTagExist(ci.BaseBranch)
-	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
 		// Check if baseBranch is short sha commit hash
 		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(ci.BaseBranch); baseCommit != nil {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
-		} else if ci.BaseBranch == objectFormat.EmptyObjectID().String() {
+		} else if ci.BaseBranch == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 			if isSameRepo {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
 			} else {
@@ -700,7 +701,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -757,7 +758,7 @@ func CompareDiff(ctx *context.Context) {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)

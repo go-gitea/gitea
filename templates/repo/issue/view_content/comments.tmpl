@@ -365,8 +365,7 @@
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group" id="{{.HashTag}}">
 				<div class="timeline-item event">
-					{{if .OriginalAuthor}}
-					{{else}}
+					{{if not .OriginalAuthor}}
 					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
@@ -495,9 +494,21 @@
 		{{else if eq .Type 25}}
 			<div class="timeline-item event">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a>
+					{{if .OriginalAuthor}}
+						<span class="text black">
+							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+							{{.OriginalAuthor}}
+						</span>
+						{{if $.Repository.OriginalURL}}
+						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+						{{end}}
+					{{else}}
+						{{template "shared/user/authorlink" .Poster}}
+					{{end}}
 					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr}}
 				</span>
 			</div>

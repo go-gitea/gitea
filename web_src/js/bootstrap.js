@@ -29,17 +29,26 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
+  const err = e.error ?? e.reason;
+  const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
+
+  // error is likely from browser extension or inline script. Do not show these in production builds.
+  if (!err.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
+
+  let message;
   if (e.type === 'unhandledrejection') {
-    showGlobalErrorMessage(`JavaScript promise rejection: ${e.reason}. Open browser console to see more details.`);
-    return;
+    message = `JavaScript promise rejection: ${err.message}.`;
+  } else {
+    message = `JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}).`;
   }
+
   if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
     // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
     // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
     return; // ignore such nonsense error event
   }
 
-  showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
+  showGlobalErrorMessage(`${message} Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
