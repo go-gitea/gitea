@@ -63,16 +63,17 @@
 								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
-										<span class="text black gt-font-semibold">
+										<span class="text black">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
-										<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-										<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
+										{{if $.Repository.OriginalURL}}
+										<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+										{{end}}
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
 									{{end}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr}}
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
