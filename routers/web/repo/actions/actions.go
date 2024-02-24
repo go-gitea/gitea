@@ -61,17 +61,17 @@ func List(ctx *context.Context) {
 
 	var workflows []Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("IsEmpty", err)
 		return
 	} else if !empty {
 		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
 		entries, err := actions.ListWorkflows(commit)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("ListWorkflows", err)
 			return
 		}
 
@@ -96,7 +96,7 @@ func List(ctx *context.Context) {
 			workflow := Workflow{Entry: *entry}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
+				ctx.ServerError("GetContentFromEntry", err)
 				return
 			}
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -173,7 +173,7 @@ func List(ctx *context.Context) {
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("FindAndCount", err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func List(ctx *context.Context) {
 	}
 
 	if err := runs.LoadTriggerUser(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func List(ctx *context.Context) {
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetActors", err)
 		return
 	}
 	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
