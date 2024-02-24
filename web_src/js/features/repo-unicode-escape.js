@@ -1,4 +1,4 @@
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 export function initUnicodeEscapeButton() {
   document.addEventListener('click', (e) => {
@@ -20,19 +20,10 @@ export function initUnicodeEscapeButton() {
     } else if (target.closest('.toggle-escape-button')) {
       const isEscaped = fileView[0].classList.contains('unicode-escaped');
       for (const el of fileView) {
-        if (isEscaped) {
-          el.classList.remove('unicode-escaped');
-        } else {
-          el.classList.add('unicode-escaped');
-        }
+        el.classList.toggle('unicode-escaped', isEscaped);
       }
-      if (isEscaped) {
-        hideElem(fileContent.querySelectorAll('.unescape-button'));
-        showElem(fileContent.querySelectorAll('.escape-button'));
-      } else {
-        showElem(fileContent.querySelectorAll('.unescape-button'));
-        hideElem(fileContent.querySelectorAll('.escape-button'));
-      }
+      toggleElem(fileContent.querySelectorAll('.unescape-button'), !isEscaped);
+      toggleElem(fileContent.querySelectorAll('.escape-button'), isEscaped);
     }
   });
 }
