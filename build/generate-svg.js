@@ -4,15 +4,16 @@ import {optimize} from 'svgo';
 import {parse} from 'node:path';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {exit} from 'node:process';
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: fileURLToPath(new URL('..', import.meta.url)),
   absolute: true,
 });
 
-function exit(err) {
+function doExit(err) {
   if (err) console.error(err);
-  process.exit(err ? 1 : 0);
+  exit(err ? 1 : 0);
 }
 
 async function processFile(file, {prefix, fullName} = {}) {
@@ -64,7 +65,7 @@ async function main() {
 }
 
 try {
-  exit(await main());
+  doExit(await main());
 } catch (err) {
-  exit(err);
+  doExit(err);
 }

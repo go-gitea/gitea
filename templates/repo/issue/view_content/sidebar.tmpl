@@ -101,7 +101,7 @@
 				{{range .OriginalReviews}}
 					<div class="item gt-df gt-ac gt-py-3">
 						<div class="gt-df gt-ac gt-f1">
-							<a class="muted" href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
+							<a class="muted" href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape)}}">
 								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname) 20 "gt-mr-3"}}
 								{{.OriginalAuthor}}
 							</a>
@@ -116,7 +116,7 @@
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .HasMerged) (not .Issue.IsClosed) (not .IsPullWorkInProgress)}}
 			<div class="toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(index .PullRequestWorkInProgressPrefixes 0| Escape)}}" data-update-url="{{.Issue.Link}}/title">
 				<a class="muted">
-					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}
+					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape)}}
 				</a>
 			</div>
 		{{end}}
@@ -300,7 +300,7 @@
 					{{else}}
 						{{if .HasUserStopwatch}}
 							<div class="ui warning message">
-								{{ctx.Locale.Tr "repo.issues.tracking_already_started" (.OtherStopwatchURL|Escape) | Safe}}
+								{{ctx.Locale.Tr "repo.issues.tracking_already_started" (.OtherStopwatchURL|Escape)}}
 							</div>
 						{{end}}
 						<button class="ui fluid button issue-start-time" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.start_tracking"}}'>
@@ -332,7 +332,7 @@
 		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">

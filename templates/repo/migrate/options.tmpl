@@ -17,7 +17,7 @@
 	<span id="lfs_settings" class="gt-hidden">(<a id="lfs_settings_show" href="#">{{ctx.Locale.Tr "repo.settings.advanced_settings"}}</a>)</span>
 </div>
 <div id="lfs_endpoint" class="gt-hidden">
-	<span class="help">{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
+	<span class="help">{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
 	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
 		<label>{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
 		<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
