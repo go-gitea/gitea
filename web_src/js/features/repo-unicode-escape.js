@@ -13,11 +13,11 @@ export function initUnicodeEscapeButton() {
       for (const el of fileView) el.classList.add('unicode-escaped');
       hideElem(btn);
       showElem(queryElemSiblings(btn, '.unescape-button'));
-    } else if (btn.closest('.unescape-button')) {
+    } else if (btn.matches('.unescape-button')) {
       for (const el of fileView) el.classList.remove('unicode-escaped');
       hideElem(btn);
       showElem(queryElemSiblings(btn, '.escape-button'));
-    } else if (btn.closest('.toggle-escape-button')) {
+    } else if (btn.matches('.toggle-escape-button')) {
       const isEscaped = fileView[0]?.classList.contains('unicode-escaped');
       for (const el of fileView) el.classList.toggle('unicode-escaped', !isEscaped);
       toggleElem(fileContent.querySelectorAll('.unescape-button'), !isEscaped);
