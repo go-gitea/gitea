@@ -39,8 +39,8 @@ func init() {
 	db.RegisterModel(new(Blocking))
 }
 
-func UpdateUserBlock(ctx context.Context, block *Blocking) error {
-	_, err := db.GetEngine(ctx).ID(block.ID).Update(block)
+func UpdateBlockingNote(ctx context.Context, id int64, note string) error {
+	_, err := db.GetEngine(ctx).ID(id).Cols("note").Update(&Blocking{Note: note})
 	return err
 }
 

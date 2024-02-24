@@ -67,10 +67,8 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User) {
 			return
 		}
 		if block != nil {
-			block.Note = form.Note
-
-			if err := user_model.UpdateUserBlock(ctx, block); err != nil {
-				ctx.ServerError("UpdateUserBlock", err)
+			if err := user_model.UpdateBlockingNote(ctx, block.ID, form.Note); err != nil {
+				ctx.ServerError("UpdateBlockingNote", err)
 				return
 			}
 		}
