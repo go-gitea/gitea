@@ -22,7 +22,7 @@ export default {
   ],
   theme: {
     colors: {
-      // make bg-red etc work with our CSS variables
+      // make `tw-bg-red` etc work with our CSS variables
       ...Object.fromEntries(colors.map((color) => [color, `var(--color-${color})`])),
       inherit: 'inherit',
       currentcolor: 'currentcolor',
