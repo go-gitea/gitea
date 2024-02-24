@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -49,20 +49,17 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			}
 		}
 		if user != nil && !user.ProhibitLogin {
-			cols := make([]string, 0)
+			opts := &user_service.UpdateOptions{}
 			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
-				user.IsAdmin = sr.IsAdmin
-				cols = append(cols, "is_admin")
+				opts.IsAdmin = optional.Some(sr.IsAdmin)
 			}
-			if !user.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+			if !sr.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
 				// Change existing restricted flag only if RestrictedFilter option is set
-				user.IsRestricted = sr.IsRestricted
-				cols = append(cols, "is_restricted")
+				opts.IsRestricted = optional.Some(sr.IsRestricted)
 			}
-			if len(cols) > 0 {
-				err = user_model.UpdateUserCols(ctx, user, cols...)
-				if err != nil {
+			if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+				if err := user_service.UpdateUser(ctx, user, opts); err != nil {
 					return nil, err
 				}
 			}
@@ -87,8 +84,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			IsAdmin:     sr.IsAdmin,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(sr.IsRestricted),
+			IsActive:     optional.Some(true),
 		}
 
 		err := user_model.CreateUser(ctx, user, overwriteDefault)

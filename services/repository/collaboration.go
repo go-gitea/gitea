@@ -26,9 +26,12 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, uid i
 	}
 	defer committer.Close()
 
-	if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil || has == 0 {
+	if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 		return err
-	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
+	} else if has == 0 {
+		return committer.Commit()
+	}
+	if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		return err
 	}
 

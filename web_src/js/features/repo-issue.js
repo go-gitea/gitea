@@ -344,19 +344,15 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (e) {
+  $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    updateIssuesMeta(
-      url,
-      isChecked ? 'detach' : 'attach',
-      issueId,
-      id,
-    ).then(() => window.location.reload());
+    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
+    window.location.reload();
   });
 
   $(document).on('click', (event) => {

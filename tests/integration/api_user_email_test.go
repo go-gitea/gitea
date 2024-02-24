@@ -68,6 +68,16 @@ func TestAPIAddEmail(t *testing.T) {
 	DecodeJSON(t, resp, &emails)
 	assert.EqualValues(t, []*api.Email{
 		{
+			Email:    "user2@example.com",
+			Verified: true,
+			Primary:  true,
+		},
+		{
+			Email:    "user2-2@example.com",
+			Verified: false,
+			Primary:  false,
+		},
+		{
 			Email:    "user2-3@example.com",
 			Verified: true,
 			Primary:  false,

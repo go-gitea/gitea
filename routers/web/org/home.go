@@ -5,12 +5,12 @@ package org
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -45,19 +45,6 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
-	if len(org.Description) != 0 {
-		desc, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
-		}, org.Description)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-		ctx.Data["RenderedDescription"] = desc
-	}
 
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -132,18 +119,12 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var isFollowing bool
-	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
-	}
-
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
-	ctx.Data["IsFollowing"] = isFollowing
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -173,14 +154,16 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
 	} else {
-		// Pass URLPrefix to markdown render for the full link of media elements.
-		// The profile of default branch would be shown.
-		prefix := profileDbRepo.Link() + "/src/branch/" + util.PathEscapeSegments(profileDbRepo.DefaultBranch)
 		if profileContent, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			GitRepo:   profileGitRepo,
-			URLPrefix: prefix,
-			Metas:     map[string]string{"mode": "document"},
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Links: markup.Links{
+				// Pass repo link to markdown render for the full link of media elements.
+				// The profile of default branch would be shown.
+				Base:       profileDbRepo.Link(),
+				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+			},
+			Metas: map[string]string{"mode": "document"},
 		}, bytes); err != nil {
 			log.Error("failed to RenderString: %v", err)
 		} else {

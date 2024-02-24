@@ -6,6 +6,7 @@ package context
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -23,8 +24,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -80,11 +83,15 @@ func (r *Repository) CanCreateBranch() bool {
 	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanCreateBranch()
 }
 
+func (r *Repository) GetObjectFormat() git.ObjectFormat {
+	return git.ObjectFormatFromName(r.Repository.ObjectFormatName)
+}
+
 // RepoMustNotBeArchived checks if a repo is archived
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
-			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+			ctx.NotFound("IsArchived", errors.New(ctx.Locale.TrString("repo.archive.title")))
 		}
 	}
 }
@@ -633,7 +640,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(userName, repoName))
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
@@ -645,7 +652,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 			}
 			return nil
 		}
-		ctx.ServerError("RepoAssignment Invalid repo "+repo_model.RepoPath(userName, repoName), err)
+		ctx.ServerError("RepoAssignment Invalid repo "+repo.FullName(), err)
 		return nil
 	}
 	if ctx.Repo.GitRepo != nil {
@@ -669,7 +676,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions:     db.ListOptionsAll,
 	}
 	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
@@ -827,9 +834,8 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
-		objectFormat, _ := repo.GitRepo.GetObjectFormat()
 
-		if len(parts) > 0 && len(parts[0]) == objectFormat.FullLength() {
+		if len(parts) > 0 && len(parts[0]) == git.ObjectFormatFromName(repo.Repository.ObjectFormatName).FullLength() {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -873,9 +879,8 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		objectFormat, _ := repo.GitRepo.GetObjectFormat()
 
-		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= objectFormat.FullLength() {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= repo.GetObjectFormat().FullLength() {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -920,10 +925,9 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		)
 
 		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(ctx, repoPath)
+			ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
+				ctx.ServerError(fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return nil
 			}
 			// We opened it, we should close it
@@ -933,12 +937,6 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					ctx.Repo.GitRepo.Close()
 				}
 			}
-		}
-
-		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
-		if err != nil {
-			log.Error("Cannot determine objectFormat for repository: %w", err)
-			ctx.Repo.Repository.MarkAsBrokenEmpty()
 		}
 
 		// Get default branch.
@@ -1007,7 +1005,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) >= 7 && len(refName) <= objectFormat.FullLength() {
+			} else if len(refName) >= 7 && len(refName) <= ctx.Repo.GetObjectFormat().FullLength() {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -1017,7 +1015,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				// If short commit ID add canonical link header
-				if len(refName) < objectFormat.FullLength() {
+				if len(refName) < ctx.Repo.GetObjectFormat().FullLength() {
 					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}

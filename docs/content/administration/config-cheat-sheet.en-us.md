@@ -126,7 +126,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
  keywords used in Pull Request comments to automatically close a related issue
 - `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
  a related issue
-- `DEFAULT_MERGE_STYLE`: **merge**: Set default merge style for repository creating, valid options: `merge`, `rebase`, `rebase-merge`, `squash`
+- `DEFAULT_MERGE_STYLE`: **merge**: Set default merge style for repository creating, valid options: `merge`, `rebase`, `rebase-merge`, `squash`, `fast-forward-only`
 - `DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT`: **50**: In the default merge message for squash commits include at most this many commits. Set to `-1` to include all commits
 - `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: In the default merge message for squash commits limit the size of the commit messages. Set to `-1` to have no limit. Only used if `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES` is `true`.
 - `DEFAULT_MERGE_MESSAGE_ALL_AUTHORS`: **false**: In the default merge message for squash commits walk all commits to include all authors in the Co-authored-by otherwise just use those in the limited list
@@ -135,6 +135,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
 - `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
+- `RETARGET_CHILDREN_ON_MERGE`: **true**: Retarget child pull requests to the parent pull request branch target on merge of parent pull request. It only works on merged PRs where the head and base branch target the same repo.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -457,6 +458,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
 - `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
+- `SLOW_QUERY_THRESHOLD` **5s**: Threshold value in seconds beyond which query execution time is logged as a warning in the xorm logger.
 
 [^1]: It may be necessary to specify a hostport even when listening on a unix socket, as the port is part of the socket name. see [#24552](https://github.com/go-gitea/gitea/issues/24552#issuecomment-1681649367) for additional details.
 
@@ -516,6 +518,8 @@ And the following unique queues:
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
+- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion` and more features can be added in future.
+  - `deletion`: User cannot delete their own account.
 
 ## Security (`security`)
 
@@ -1106,7 +1110,7 @@ This section only does "set" config, a removed config key from this section won'
 
 ## OAuth2 (`oauth2`)
 
-- `ENABLE`: **true**: Enables OAuth2 provider.
+- `ENABLED`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKENS`: **false**: Check if refresh token has already been used

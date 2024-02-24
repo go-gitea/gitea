@@ -6,9 +6,9 @@
 //
 // This documentation describes the Gitea API.
 //
-//	Schemes: http, https
+//	Schemes: https, http
 //	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape | Safe}}
+//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
@@ -811,7 +811,7 @@ func individualPermsChecker(ctx *context.APIContext) {
 // check for and warn against deprecated authentication options
 func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
 	}
 }
 
@@ -1181,13 +1181,13 @@ func Routes() *web.Route {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), repo.PushMirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
-						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+						Post(mustNotBeArchived, bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
-						Delete(repo.DeletePushMirrorByRemoteName).
+						Delete(mustNotBeArchived, repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
 				}, reqAdmin(), reqToken())
 
@@ -1235,6 +1235,7 @@ func Routes() *web.Route {
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
+						m.Get("/pull", repo.GetCommitPullRequest)
 					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {

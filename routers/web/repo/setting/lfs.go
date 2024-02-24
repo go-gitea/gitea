@@ -303,7 +303,7 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		// Building code view blocks with line number on server side.
 		escapedContent := &bytes.Buffer{}
@@ -388,7 +388,7 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+	objectFormat := ctx.Repo.GetObjectFormat()
 	var objectID git.ObjectID
 	if len(sha) == 0 {
 		pointer := lfs.Pointer{Oid: oid, Size: size}
