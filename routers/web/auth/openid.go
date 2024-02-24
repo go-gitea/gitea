@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
@@ -364,7 +363,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Email:  form.Email,
 		Passwd: password,
 	}
-	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false, auth_model.NoType) {
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
 		// error already handled
 		return
 	}
@@ -380,7 +379,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	if !handleUserCreated(ctx, u, nil, auth_model.NoType) {
+	if !handleUserCreated(ctx, u, nil) {
 		// error already handled
 		return
 	}

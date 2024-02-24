@@ -339,6 +339,18 @@ func TestGetApprovers(t *testing.T) {
 	assert.EqualValues(t, expected, approvers)
 }
 
+func TestGetPullRequestByMergedCommit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr, err := issues_model.GetPullRequestByMergedCommit(db.DefaultContext, 1, "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, pr.ID)
+
+	_, err = issues_model.GetPullRequestByMergedCommit(db.DefaultContext, 0, "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3")
+	assert.ErrorAs(t, err, &issues_model.ErrPullRequestNotExist{})
+	_, err = issues_model.GetPullRequestByMergedCommit(db.DefaultContext, 1, "")
+	assert.ErrorAs(t, err, &issues_model.ErrPullRequestNotExist{})
+}
+
 func TestMigrate_InsertPullRequests(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reponame := "repo1"

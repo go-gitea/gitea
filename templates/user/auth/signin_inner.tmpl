@@ -69,22 +69,5 @@
 		</div>
 	</div>
 	{{end}}
-	{{if .SAMLProviders}}
-	<div class="divider divider-text">
-		{{.locale.Tr "sign_in_or"}}
-	</div>
-	<div id="saml-login-navigator" class="gt-py-2">
-		<div class="gt-df gt-fc gt-jc">
-			<div id="saml-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
-				{{range $provider := .SAMLProviders}}
-					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 saml-login-link" href="{{AppSubUrl}}/user/saml/{{$provider.Name}}">
-						{{.IconHTML 28}}
-						{{ctx.Locale.Tr "sign_in_with_provider" $provider.Name}}
-					</a>
-				{{end}}
-			</div>
-		</div>
-	</div>
-	{{end}}
 	</form>
 </div>

@@ -110,20 +110,3 @@ SLOW_FLUSH = 5S ; 5s is the default value
 ```bash
 GITEA_SLOW_TEST_TIME="10s" GITEA_SLOW_FLUSH_TIME="5s" make test-sqlite
 ```
-
-## Running SimpleSAML for testing SAML locally
-
-```shell
-docker run \
--p 8080:8080 \
--p 8443:8443 \
--e SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3003/user/saml/test-sp/metadata \
--e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3003/user/saml/test-sp/acs \
--e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3003/user/saml/test-sp/acs \
---add-host=localhost:192.168.65.2 \
--d allspice/simple-saml
-```
-
-```shell
-TEST_SIMPLESAML_URL=localhost:8080 make test-sqlite#TestSAMLRegistration
-```
