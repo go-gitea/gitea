@@ -686,6 +686,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Get("/settings", admin.ConfigSettings)
 		})
 
 		m.Group("/monitor", func() {
