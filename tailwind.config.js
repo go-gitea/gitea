@@ -1,7 +1,10 @@
 import {readFileSync} from 'node:fs';
+import {env} from 'node:process';
 import {parse} from 'css-variables-parser';
 
-export default ({isProduction}) => ({
+const isProduction = env.NODE_ENV !== 'development';
+
+export default {
   prefix: 'tw-',
   content: [
     isProduction && '!./templates/devtest/**/*',
@@ -33,4 +36,4 @@ export default ({isProduction}) => ({
       transparent: 'transparent',
     },
   },
-});
+};
