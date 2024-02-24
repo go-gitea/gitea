@@ -18,13 +18,11 @@ const (
 
 // true if "set"/"true", false if "unset"/"false", none otherwise
 func AttributeToBool(attr map[string]string, name string) optional.Option[bool] {
-	if value, has := attr[name]; has && value != "unspecified" {
-		switch value {
-		case "set", "true":
-			return optional.Some(true)
-		case "unset", "false":
-			return optional.Some(false)
-		}
+	switch attr[name] {
+	case "set", "true":
+		return optional.Some(true)
+	case "unset", "false":
+		return optional.Some(false)
 	}
 	return optional.None[bool]()
 }

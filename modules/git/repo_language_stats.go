@@ -55,6 +55,9 @@ func TryReadLanguageAttribute(attrs map[string]string) optional.Option[string] {
 		language = AttributeToString(attrs, AttributeGitlabLanguage)
 		if language.Has() {
 			raw := language.Value()
+			// gitlab-language may have additional parameters after the language
+			// ignore them and just use the main language
+			// https://docs.gitlab.com/ee/user/project/highlighting.html#override-syntax-highlighting-for-a-file-type
 			if idx := strings.IndexByte(raw, '?'); idx >= 0 {
 				language = optional.Some(raw[:idx])
 			}
