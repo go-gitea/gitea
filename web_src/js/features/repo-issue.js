@@ -384,7 +384,7 @@ export async function handleReply($el) {
   const $dropzone = form.find('.dropzone')[0];
   if (!$dropzone.dropzone) {
     initDropzone($dropzone);
-  }  
+  }
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
     editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
