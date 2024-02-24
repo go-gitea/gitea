@@ -120,7 +120,7 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	audit.RecordUserOpenIDAdd(ctx, ctx.Doer, ctx.Doer, oid)
+	audit.RecordUserOpenIDRemove(ctx, ctx.Doer, ctx.Doer, oid)
 
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 

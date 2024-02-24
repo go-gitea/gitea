@@ -155,7 +155,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | Event | Description |
 | - | - |
 | `system:startup` | System startup |
-| `system:shutdown` | System shutdown |
+| `system:shutdown` | Normal system shutdown (unexpected shutdowns may not be logged) |
 | `system:webhook:add` | Added webhook |
 | `system:webhook:update` | Updated webhook |
 | `system:webhook:remove` | Removed webhook |

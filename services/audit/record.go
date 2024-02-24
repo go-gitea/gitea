@@ -491,6 +491,7 @@ func RecordRepositoryDeployKeyRemove(ctx context.Context, doer *user_model.User,
 }
 
 func RecordSystemStartup(ctx context.Context, doer *user_model.User, version string) {
+	// Do not change this message anymore. We guarantee the stability of this message for users wanting to parse the log themselves to be able to trace back events across gitea versions.
 	record(ctx, audit_model.SystemStartup, doer, &systemObject, &systemObject, "System started [Gitea %s]", version)
 }
 
