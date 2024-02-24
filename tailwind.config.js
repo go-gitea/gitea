@@ -1,11 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {parse} from 'css-variables-parser';
 
-const colors = Object.keys(parse([
-  readFileSync(new URL('web_src/css/themes/theme-gitea-light.css', import.meta.url), 'utf8'),
-  readFileSync(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url), 'utf8'),
-].join('\n'), {})).filter((prop) => prop.startsWith('color-')).map((prop) => prop.substring(6));
-
 export default function ({isProduction}) {
   return {
     prefix: 'tw-',
@@ -25,7 +20,15 @@ export default function ({isProduction}) {
     theme: {
       colors: {
         // make `tw-bg-red` etc work with our CSS variables
-        ...Object.fromEntries(colors.map((color) => [color, `var(--color-${color})`])),
+        ...Object.fromEntries(
+          Object.keys(parse([
+            readFileSync(new URL('web_src/css/themes/theme-gitea-light.css', import.meta.url), 'utf8'),
+            readFileSync(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url), 'utf8'),
+          ].join('\n'), {})).filter((prop) => prop.startsWith('color-')).map((prop) => {
+            const color = prop.substring(6);
+            return [color, `var(--color-${color})`];
+          })
+        ),
         inherit: 'inherit',
         currentcolor: 'currentcolor',
         transparent: 'transparent',
