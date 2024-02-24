@@ -151,6 +151,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 	r.ObjectFormatName = objectFormat.Name()
+	g.repo = r
 	return repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name")
 }
 
