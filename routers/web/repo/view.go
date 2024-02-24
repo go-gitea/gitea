@@ -45,6 +45,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -792,7 +793,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	renderCode(ctx)
+	renderHomeCode(ctx)
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -919,9 +920,33 @@ func renderRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func renderCode(ctx *context.Context) {
+func prepareOpenWithEditorApps(ctx *context.Context) {
+	var tmplApps []map[string]any
+	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
+	if len(apps) == 0 {
+		apps = setting.DefaultOpenWithEditorApps()
+	}
+	for _, app := range apps {
+		schema, _, _ := strings.Cut(app.OpenURL, ":")
+		var iconHTML template.HTML
+		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-open-with-%s", schema), 16, "gt-mr-3")
+		} else {
+			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
+		}
+		tmplApps = append(tmplApps, map[string]any{
+			"DisplayName": app.DisplayName,
+			"OpenURL":     app.OpenURL,
+			"IconHTML":    iconHTML,
+		})
+	}
+	ctx.Data["OpenWithEditorApps"] = tmplApps
+}
+
+func renderHomeCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
+	prepareOpenWithEditorApps(ctx)
 
 	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
 		showEmpty := true
