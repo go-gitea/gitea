@@ -135,3 +135,27 @@
   user_id: 31
   repo_id: 28
   mode: 4
+
+-
+  id: 24
+  user_id: 38
+  repo_id: 60
+  mode: 2
+
+-
+  id: 25
+  user_id: 38
+  repo_id: 61
+  mode: 1
+
+-
+  id: 26
+  user_id: 39
+  repo_id: 61
+  mode: 1
+
+-
+  id: 27
+  user_id: 40
+  repo_id: 61
+  mode: 4
