@@ -10,7 +10,7 @@
 					{{$title}}
 					<div class="ui sub header gt-word-break">
 						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 					</div>
 				</div>
 			</div>
