@@ -380,11 +380,6 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return fmt.Errorf("GetBranch: %vc", err)
 	}
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return err
-	}
-
 	if rawBranch.IsDeleted {
 		return nil
 	}
@@ -405,6 +400,8 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}); err != nil {
 		return err
 	}
+
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
 	// Don't return error below this
 	if err := PushUpdate(
