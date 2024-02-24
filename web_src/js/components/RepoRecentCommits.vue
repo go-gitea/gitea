@@ -144,6 +144,6 @@ export default {
 </template>
 <style scoped>
 .main-graph {
-  height: 440px;
+  height: 250px;
 }
 </style>
