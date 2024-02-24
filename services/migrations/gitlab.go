@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -519,6 +520,8 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	return allComments, true, nil
 }
 
+var targetBranchChangeRegexp = regexp.MustCompile("^changed target branch from `(.*?)` to `(.*?)`$")
+
 func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
 	comment := &base.Comment{
 		IssueIndex:  localIndex,
@@ -528,11 +531,16 @@ func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.N
 		PosterEmail: note.Author.Email,
 		Content:     note.Body,
 		Created:     *note.CreatedAt,
+		Meta:        map[string]any{},
 	}
 
 	// Try to find the underlying event of system notes.
 	if note.System {
-		if strings.HasPrefix(note.Body, "enabled an automatic merge") {
+		if match := targetBranchChangeRegexp.FindStringSubmatch(note.Body); match != nil {
+			comment.CommentType = issues_model.CommentTypeChangeTargetBranch.String()
+			comment.Meta["OldRef"] = match[1]
+			comment.Meta["NewRef"] = match[2]
+		} else if strings.HasPrefix(note.Body, "enabled an automatic merge") {
 			comment.CommentType = issues_model.CommentTypePRScheduledToAutoMerge.String()
 		} else if note.Body == "canceled the automatic merge" {
 			comment.CommentType = issues_model.CommentTypePRUnScheduledToAutoMerge.String()

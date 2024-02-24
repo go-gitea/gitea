@@ -3,10 +3,7 @@ import {SvgIcon} from '../svg.js';
 import {
   Chart,
   Title,
-  Tooltip,
-  Legend,
   BarElement,
-  CategoryScale,
   LinearScale,
   TimeScale,
   PointElement,
@@ -21,26 +18,12 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
+import {chartJsColors} from '../utils/color.js';
+import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
 
 const {pageData} = window.config;
-
-const colors = {
-  text: '--color-text',
-  border: '--color-secondary-alpha-60',
-  commits: '--color-primary-alpha-60',
-  additions: '--color-green',
-  deletions: '--color-red',
-  title: '--color-secondary-dark-4',
-};
-
-const styles = window.getComputedStyle(document.documentElement);
-const getColor = (name) => styles.getPropertyValue(name).trim();
-
-for (const [key, value] of Object.entries(colors)) {
-  colors[key] = getColor(value);
-}
 
 const customEventListener = {
   id: 'customEventListener',
@@ -54,17 +37,14 @@ const customEventListener = {
   }
 };
 
-Chart.defaults.color = colors.text;
-Chart.defaults.borderColor = colors.border;
+Chart.defaults.color = chartJsColors.text;
+Chart.defaults.borderColor = chartJsColors.border;
 
 Chart.register(
   TimeScale,
-  CategoryScale,
   LinearScale,
   BarElement,
   Title,
-  Tooltip,
-  Legend,
   PointElement,
   LineElement,
   Filler,
@@ -122,7 +102,7 @@ export default {
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
           if (response.status === 202) {
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for 1 second before retrying
+            await sleep(1000); // wait for 1 second before retrying
           }
         } while (response.status === 202);
         if (response.ok) {
@@ -222,7 +202,7 @@ export default {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
-            backgroundColor: colors[this.type],
+            backgroundColor: chartJsColors[this.type],
             borderWidth: 0,
             tension: 0.3,
           },
@@ -254,16 +234,12 @@ export default {
           title: {
             display: type === 'main',
             text: 'drag: zoom, shift+drag: pan, double click: reset zoom',
-            color: colors.title,
             position: 'top',
             align: 'center',
           },
           customEventListener: {
             chartType: type,
             instance: this,
-          },
-          legend: {
-            display: false,
           },
           zoom: {
             pan: {

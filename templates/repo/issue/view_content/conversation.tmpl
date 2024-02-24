@@ -73,7 +73,7 @@
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
 									{{end}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr}}
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">

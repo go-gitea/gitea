@@ -2,7 +2,7 @@
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
-				{{ctx.Locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
+				{{ctx.Locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape)}}
 			</h4>
 			<div class="ui attached segment branch-protection">
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_patterns"}}</h5>
@@ -10,17 +10,17 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" | Safe}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc"}}</p>
 				</div>
 
 				{{.CsrfTokenHtml}}
