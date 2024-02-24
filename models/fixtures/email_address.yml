@@ -293,3 +293,27 @@
   lower_email: user37@example.com
   is_activated: true
   is_primary: true
+
+-
+  id: 38
+  uid: 38
+  email: user38@example.com
+  lower_email: user38@example.com
+  is_activated: true
+  is_primary: true
+
+-
+  id: 39
+  uid: 39
+  email: user39@example.com
+  lower_email: user39@example.com
+  is_activated: true
+  is_primary: true
+
+-
+  id: 40
+  uid: 40
+  email: user40@example.com
+  lower_email: user40@example.com
+  is_activated: true
+  is_primary: true
