@@ -6,7 +6,6 @@ const colors = Object.keys(parse([
   readFileSync(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url), 'utf8'),
 ].join('\n'), {})).filter((prop) => prop.startsWith('color-')).map((prop) => prop.substring(6));
 
-/** @type {import('tailwindcss').Config} */
 export default function ({isProduction}) {
   return {
     prefix: 'tw-',
