@@ -134,6 +134,9 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		MirrorInterval: opts.MirrorInterval,
 	}, NewMigrationHTTPTransport())
+
+	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
+	g.repo = r
 	if err != nil {
 		return err
 	}
@@ -149,13 +152,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 	r.ObjectFormatName = objectFormat.Name()
-	if err := repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name"); err != nil {
-		return err
-	}
-
-	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
-	g.repo = r
-	return err
+	return repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name")
 }
 
 // Close closes this uploader
