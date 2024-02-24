@@ -72,7 +72,7 @@ func TestAPIViewPullsByBaseHead(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	var pull *api.PullRequest
+	pull := &api.PullRequest{}
 	DecodeJSON(t, resp, pull)
 	assert.Equal(t, 3, pull.Index)
 	assert.Equal(t, 2, pull.ID)
