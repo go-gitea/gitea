@@ -492,10 +492,16 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			}
 		case issues_model.CommentTypeChangeTitle:
 			if comment.Meta["OldTitle"] != nil {
-				cm.OldTitle = fmt.Sprintf("%s", comment.Meta["OldTitle"])
+				cm.OldTitle = fmt.Sprint(comment.Meta["OldTitle"])
 			}
 			if comment.Meta["NewTitle"] != nil {
-				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
+				cm.NewTitle = fmt.Sprint(comment.Meta["NewTitle"])
+			}
+		case issues_model.CommentTypeChangeTargetBranch:
+			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
+				cm.OldRef = fmt.Sprint(comment.Meta["OldRef"])
+				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
+				cm.Content = ""
 			}
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
 			cm.Content = ""
