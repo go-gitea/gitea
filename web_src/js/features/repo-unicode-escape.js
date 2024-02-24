@@ -3,19 +3,21 @@ import {hideElem, showElem} from '../utils/dom.js';
 export function initUnicodeEscapeButton() {
   document.addEventListener('click', (e) => {
     const target = e.target;
-    const fileView = target.closest('.file-content, .non-diff-file-content')?.querySelectorAll('.file-code, .file-view');
+    if (!target.matches('.escape-button, .unescape-button, .toggle-escape-button')) return;
+    e.preventDefault();
+    const fileContent = target.closest('.file-content, .non-diff-file-content');
+    const fileView = fileContent?.querySelectorAll('.file-code, .file-view');
     if (target.matches('.escape-button')) {
-      e.preventDefault();
       for (const el of fileView) el.classList.add('unicode-escaped');
       hideElem(target);
-      showElem('.unescape-button');
+      const siblings = Array.from(target.parentNode.children).filter((child) => child !== target);
+      showElem(siblings.filter((s) => s.matches('.unescape-button')));
     } else if (target.matches('.unescape-button')) {
-      e.preventDefault();
       for (const el of fileView) el.classList.remove('unicode-escaped');
       hideElem(target);
-      showElem('.escape-button');
+      const siblings = Array.from(target.parentNode.children).filter((child) => child !== target);
+      showElem(siblings.filter((s) => s.matches('.escape-button')));
     } else if (target.matches('.toggle-escape-button')) {
-      e.preventDefault();
       const isEscaped = fileView[0].classList.contains('unicode-escaped');
       for (const el of fileView) {
         if (isEscaped) {
@@ -25,11 +27,11 @@ export function initUnicodeEscapeButton() {
         }
       }
       if (isEscaped) {
-        hideElem('.unescape-button');
-        showElem('.escape-button');
+        hideElem(fileContent.querySelectorAll('.unescape-button'));
+        showElem(fileContent.querySelectorAll('.escape-button'));
       } else {
-        showElem('.unescape-button');
-        hideElem('.escape-button');
+        showElem(fileContent.querySelectorAll('.unescape-button'));
+        hideElem(fileContent.querySelectorAll('.escape-button'));
       }
     }
   });
