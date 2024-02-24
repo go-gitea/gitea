@@ -47,8 +47,8 @@ function initRepoDiffConversationForm() {
     e.preventDefault();
 
     const $form = $(e.target);
-    const $textArea = $form.find('textarea');
-    if (!validateTextareaNonEmpty($textArea)) {
+    const textArea = e.target.querySelector('textarea');
+    if (!validateTextareaNonEmpty(textArea)) {
       return;
     }
 

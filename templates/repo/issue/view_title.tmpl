@@ -104,11 +104,11 @@
 				{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
 				<span class="time-desc">
 					{{if .Issue.OriginalAuthor}}
-						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape)}}
 					{{else if gt .Issue.Poster.ID 0}}
-						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape)}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape)}}
 					{{end}}
 					·
 					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}

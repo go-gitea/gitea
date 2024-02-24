@@ -227,3 +227,15 @@ export function initSubmitEventPolyfill() {
   document.body.addEventListener('click', submitEventPolyfillListener);
   document.body.addEventListener('focus', submitEventPolyfillListener);
 }
+
+/**
+ * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+ * Note: This function doesn't account for all possible visibility scenarios.
+ * @param {HTMLElement} element The element to check.
+ * @returns {boolean} True if the element is visible.
+ */
+export function isElemVisible(element) {
+  if (!element) return false;
+
+  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+}

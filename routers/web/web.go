@@ -1398,6 +1398,10 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo.Contributors)
 				m.Get("/data", repo.ContributorsData)
 			})
+			m.Group("/code-frequency", func() {
+				m.Get("", repo.CodeFrequency)
+				m.Get("/data", repo.CodeFrequencyData)
+			})
 			m.Group("/recent-commits", func() {
 				m.Get("", repo.RecentCommits)
 				m.Get("/data", repo.RecentCommitsData)

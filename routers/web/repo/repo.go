@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -685,7 +686,7 @@ type branchTagSearchResponse struct {
 func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
@@ -720,7 +721,7 @@ func GetTagList(ctx *context.Context) {
 func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
