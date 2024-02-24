@@ -53,9 +53,6 @@
 				<!-- SSPI -->
 				{{template "admin/auth/source/sspi" .}}
 
-				<!-- SAML -->
-				{{template "admin/auth/source/saml" .}}
-
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
@@ -87,9 +84,6 @@
 		<div class="ui attached segment">
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
-
-			<h5>SAML Settings:</h5>
-			<p>{{ctx.Locale.Tr "admin.auths.tips.saml"}}</p>
 
 			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
 			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
