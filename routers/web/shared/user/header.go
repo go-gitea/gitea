@@ -6,6 +6,7 @@ package user
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -124,6 +125,22 @@ func LoadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["RepoCount"] = repoCount
+
+	var projectType project_model.Type
+	if ctx.ContextUser.IsOrganization() {
+		projectType = project_model.TypeOrganization
+	} else {
+		projectType = project_model.TypeIndividual
+	}
+	projectCount, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+		OwnerID:  ctx.ContextUser.ID,
+		IsClosed: util.OptionalBoolOf(false),
+		Type:     projectType,
+	})
+	if err != nil {
+		return err
+	}
+	ctx.Data["ProjectCount"] = projectCount
 
 	return nil
 }
