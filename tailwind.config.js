@@ -8,13 +8,12 @@ const colors = Object.keys(parse([
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  prefix: 'tw-',
   content: [
     './templates/**/*.tmpl',
     './web_src/**/*.{js,vue}',
   ],
   blocklist: [
-    // classes that conflict with fomantic
-    'table', 'inline', 'grid', 'truncate', 'transition', 'fixed',
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
     'backdrop-filter',
