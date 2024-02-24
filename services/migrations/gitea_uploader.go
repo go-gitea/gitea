@@ -138,14 +138,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(g.ctx, r)
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	if err != nil {
 		return err
 	}
-	defer gitRepo.Close()
 
 	// detect object format from git repository and update to database
-	objectFormat, err := gitRepo.GetObjectFormat()
+	objectFormat, err := g.gitRepo.GetObjectFormat()
 	if err != nil {
 		return err
 	}
@@ -156,7 +155,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
 	g.repo = r
-	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	return err
 }
 
