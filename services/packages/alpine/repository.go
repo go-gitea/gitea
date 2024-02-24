@@ -33,7 +33,7 @@ import (
 
 const (
 	IndexFilename       = "APKINDEX"
-	IndexArchivFilename = IndexFilename + ".tar.gz"
+	IndexArchiveFilename = IndexFilename + ".tar.gz"
 )
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
