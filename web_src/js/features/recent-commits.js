@@ -11,7 +11,8 @@ export async function initRepoRecentCommits() {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),
         loadingInfo: el.getAttribute('data-locale-loading-info'),
-      }
+      },
+      repoLink: el.getAttribute('data-repo-link')
     });
     View.mount(el);
   } catch (err) {
