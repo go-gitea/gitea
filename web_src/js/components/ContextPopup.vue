@@ -1,8 +1,8 @@
 <script>
-import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
+import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -80,20 +80,25 @@ export default {
     });
   },
   methods: {
-    load(data) {
+    async load(data) {
       this.loading = true;
       this.i18nErrorMessage = null;
-      $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
+
+      try {
+        const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`);
+        if (!response.ok) throw response;
+        const issue = await response.json();
         this.issue = issue;
-      }).fail((jqXHR) => {
-        if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-          this.i18nErrorMessage = jqXHR.responseJSON.message;
-        } else {
+      } catch (error) {
+        try {
+          const err = await error.json();
+          this.i18nErrorMessage = err?.message ?? i18n.network_error;
+        } catch {
           this.i18nErrorMessage = i18n.network_error;
         }
-      }).always(() => {
+      } finally {
         this.loading = false;
-      });
+      }
     }
   }
 };
