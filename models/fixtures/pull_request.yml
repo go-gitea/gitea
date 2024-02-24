@@ -99,3 +99,21 @@
   index: 1
   head_repo_id: 23
   base_repo_id: 23
+
+-
+  id: 9
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 21
+  index: 1
+  head_repo_id: 60
+  base_repo_id: 60
+
+-
+  id: 10
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 22
+  index: 1
+  head_repo_id: 61
+  base_repo_id: 61
