@@ -338,3 +338,37 @@
   created_unix: 978307210
   updated_unix: 978307210
   is_locked: false
+
+-
+  id: 21
+  repo_id: 60
+  index: 1
+  poster_id: 39
+  original_author_id: 0
+  name: repo60 pull1
+  content: content for the 1st issue
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false
+
+-
+  id: 22
+  repo_id: 61
+  index: 1
+  poster_id: 40
+  original_author_id: 0
+  name: repo61 pull1
+  content: content for the 1st issue
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false
