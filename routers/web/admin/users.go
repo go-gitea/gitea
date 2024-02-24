@@ -141,7 +141,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive:   util.OptionalBoolTrue,
+		IsActive:   optional.Some(true),
 		Visibility: &form.Visibility,
 	}
 

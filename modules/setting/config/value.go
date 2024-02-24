@@ -5,8 +5,11 @@ package config
 
 import (
 	"context"
-	"strconv"
 	"sync"
+
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type CfgSecKey struct {
@@ -23,14 +26,14 @@ type Value[T any] struct {
 	revision   int
 }
 
-func (value *Value[T]) parse(s string) (v T) {
-	switch any(v).(type) {
-	case bool:
-		b, _ := strconv.ParseBool(s)
-		return any(b).(T)
-	default:
-		panic("unsupported config type, please complete the code")
+func (value *Value[T]) parse(key, valStr string) (v T) {
+	v = value.def
+	if valStr != "" {
+		if err := json.Unmarshal(util.UnsafeStringToBytes(valStr), &v); err != nil {
+			log.Error("Unable to unmarshal json config for key %q, err: %v", key, err)
+		}
 	}
+	return v
 }
 
 func (value *Value[T]) Value(ctx context.Context) (v T) {
@@ -62,7 +65,7 @@ func (value *Value[T]) Value(ctx context.Context) (v T) {
 	if valStr == nil {
 		v = value.def
 	} else {
-		v = value.parse(*valStr)
+		v = value.parse(value.dynKey, *valStr)
 	}
 
 	value.mu.Lock()
@@ -76,6 +79,16 @@ func (value *Value[T]) DynKey() string {
 	return value.dynKey
 }
 
-func Bool(def bool, cfgSecKey CfgSecKey, dynKey string) *Value[bool] {
-	return &Value[bool]{def: def, cfgSecKey: cfgSecKey, dynKey: dynKey}
+func (value *Value[T]) WithDefault(def T) *Value[T] {
+	value.def = def
+	return value
+}
+
+func (value *Value[T]) WithFileConfig(cfgSecKey CfgSecKey) *Value[T] {
+	value.cfgSecKey = cfgSecKey
+	return value
+}
+
+func ValueJSON[T any](dynKey string) *Value[T] {
+	return &Value[T]{dynKey: dynKey}
 }

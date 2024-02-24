@@ -25,26 +25,27 @@ var (
 
 	// Database holds the database settings
 	Database = struct {
-		Type              DatabaseType
-		Host              string
-		Name              string
-		User              string
-		Passwd            string
-		Schema            string
-		SSLMode           string
-		Path              string
-		LogSQL            bool
-		MysqlCharset      string
-		CharsetCollation  string
-		Timeout           int // seconds
-		SQLiteJournalMode string
-		DBConnectRetries  int
-		DBConnectBackoff  time.Duration
-		MaxIdleConns      int
-		MaxOpenConns      int
-		ConnMaxLifetime   time.Duration
-		IterateBufferSize int
-		AutoMigration     bool
+		Type               DatabaseType
+		Host               string
+		Name               string
+		User               string
+		Passwd             string
+		Schema             string
+		SSLMode            string
+		Path               string
+		LogSQL             bool
+		MysqlCharset       string
+		CharsetCollation   string
+		Timeout            int // seconds
+		SQLiteJournalMode  string
+		DBConnectRetries   int
+		DBConnectBackoff   time.Duration
+		MaxIdleConns       int
+		MaxOpenConns       int
+		ConnMaxLifetime    time.Duration
+		IterateBufferSize  int
+		AutoMigration      bool
+		SlowQueryThreshold time.Duration
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -87,6 +88,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
+	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(5 * time.Second)
 }
 
 // DBConnStr returns database connection string
