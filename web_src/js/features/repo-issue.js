@@ -381,12 +381,13 @@ export async function handleReply($el) {
   form.removeClass('gt-hidden');
 
   const $textarea = form.find('textarea');
-  const $dropzone = form.find('.dropzone')[0];
-  if (!$dropzone.dropzone) {
-    initDropzone($dropzone);
-  }
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
+    // FIXME: the initialization of the dropzone is not consistent.
+    // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
+    // When the form is submitted and partially reload, none of them is initialized.
+    const dropzone = form.find('.dropzone')[0];
+    if (!dropzone.dropzone) initDropzone(dropzone);
     editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
   }
   editor.focus();
