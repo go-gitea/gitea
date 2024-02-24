@@ -12,71 +12,71 @@
 						{{.ShortActUserName ctx}}
 					{{end}}
 					{{if .GetOpType.InActions "create_repo"}}
-						{{ctx.Locale.Tr "action.create_repo" ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.create_repo" ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "rename_repo"}}
-						{{ctx.Locale.Tr "action.rename_repo" (.GetContent|Escape) ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.rename_repo" (.GetContent|Escape) ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "commit_repo"}}
 						{{if .Content}}
-							{{ctx.Locale.Tr "action.commit_repo" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (Escape .GetBranch) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+							{{ctx.Locale.Tr "action.commit_repo" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (Escape .GetBranch) ((.ShortRepoPath ctx)|Escape)}}
 						{{else}}
-							{{ctx.Locale.Tr "action.create_branch" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (Escape .GetBranch) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+							{{ctx.Locale.Tr "action.create_branch" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (Escape .GetBranch) ((.ShortRepoPath ctx)|Escape)}}
 						{{end}}
 					{{else if .GetOpType.InActions "create_issue"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.create_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.create_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "create_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "transfer_repo"}}
-						{{ctx.Locale.Tr "action.transfer_repo" .GetContent ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.transfer_repo" .GetContent ((.GetRepoLink ctx)|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "push_tag"}}
-						{{ctx.Locale.Tr "action.push_tag" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetTag|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.push_tag" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetTag|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "comment_issue"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.comment_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.comment_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "merge_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "close_issue"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.close_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.close_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "reopen_issue"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.reopen_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.reopen_issue" ((printf "%s/issues/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "close_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.close_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.close_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "reopen_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "delete_tag"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.delete_tag" ((.GetRepoLink ctx)|Escape) (.GetTag|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.delete_tag" ((.GetRepoLink ctx)|Escape) (.GetTag|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "delete_branch"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.delete_branch" ((.GetRepoLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.delete_branch" ((.GetRepoLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "mirror_sync_push"}}
-						{{ctx.Locale.Tr "action.mirror_sync_push" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.mirror_sync_push" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "mirror_sync_create"}}
-						{{ctx.Locale.Tr "action.mirror_sync_create" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.mirror_sync_create" ((.GetRepoLink ctx)|Escape) ((.GetRefLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "mirror_sync_delete"}}
-						{{ctx.Locale.Tr "action.mirror_sync_delete" ((.GetRepoLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.mirror_sync_delete" ((.GetRepoLink ctx)|Escape) (.GetBranch|Escape) ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "approve_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "reject_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.reject_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.reject_pull_request" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "comment_pull"}}
 						{{$index := index .GetIssueInfos 0}}
-						{{ctx.Locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
+						{{ctx.Locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape)}}
 					{{else if .GetOpType.InActions "publish_release"}}
 						{{$linkText := .Content | RenderEmoji $.Context}}
-						{{ctx.Locale.Tr "action.publish_release" ((.GetRepoLink ctx)|Escape) ((printf "%s/releases/tag/%s" (.GetRepoLink ctx) .GetTag)|Escape) ((.ShortRepoPath ctx)|Escape) $linkText | Str2html}}
+						{{ctx.Locale.Tr "action.publish_release" ((.GetRepoLink ctx)|Escape) ((printf "%s/releases/tag/%s" (.GetRepoLink ctx) .GetTag)|Escape) ((.ShortRepoPath ctx)|Escape) $linkText}}
 					{{else if .GetOpType.InActions "review_dismissed"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
-						{{ctx.Locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) $reviewer | Str2html}}
+						{{ctx.Locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) $reviewer}}
 					{{end}}
 					{{TimeSince .GetCreate ctx.Locale}}
 				</div>

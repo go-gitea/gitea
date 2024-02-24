@@ -31,7 +31,7 @@
 		<div class="flex-item">
 			<p>
 				{{ctx.Locale.Tr "settings.ssh_desc"}}<br>
-				{{ctx.Locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}
+				{{ctx.Locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh"}}
 			</p>
 		</div>
 		{{if .DisableSSH}}
@@ -53,7 +53,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 				<div class="flex-item-trailing">

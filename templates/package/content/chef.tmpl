@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.chef.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.chef.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>knife[:supermarket_site] = '<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/chef"></gitea-origin-url>'</code></pre></div>
 			</div>
 			<div class="field">
@@ -11,7 +11,7 @@
 				<div class="markup"><pre class="code-block"><code>knife supermarket install {{.PackageDescriptor.Package.Name}} {{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.com/usage/packages/chef/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.com/usage/packages/chef/"}}</label>
 			</div>
 		</div>
 	</div>
