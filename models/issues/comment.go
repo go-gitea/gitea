@@ -855,7 +855,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
-		if err = checkAttachments(ctx, opts, comment); err != nil {
+		if err = updateAttachments(ctx, opts, comment); err != nil {
 			return err
 		}
 		if comment.ReviewID != 0 {
@@ -875,7 +875,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeReview:
-		if err = checkAttachments(ctx, opts, comment); err != nil {
+		if err = updateAttachments(ctx, opts, comment); err != nil {
 			return err
 		}
 	case CommentTypeReopen, CommentTypeClose:
@@ -887,7 +887,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
-func checkAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
+func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
 	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)

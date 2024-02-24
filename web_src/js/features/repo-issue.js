@@ -381,7 +381,10 @@ export async function handleReply($el) {
   form.removeClass('gt-hidden');
 
   const $textarea = form.find('textarea');
-  initDropzone(form.find('.dropzone')[0]);
+  const $dropzone = form.find('.dropzone')[0];
+  if (!$dropzone.dropzone) {
+    initDropzone($dropzone);
+  }  
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
     editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
