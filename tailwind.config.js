@@ -14,7 +14,7 @@ export default function ({isProduction}) {
       // classes that don't work without CSS variables from "@tailwind base" which we don't use
       'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
       'backdrop-filter',
-      // false-positives or otherwise unneeded
+      // unneeded classes
       '[-a-zA-Z:0-9_.]',
     ],
     theme: {
@@ -35,4 +35,4 @@ export default function ({isProduction}) {
       },
     },
   };
-};
+}
