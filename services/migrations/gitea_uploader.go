@@ -140,7 +140,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, g.repo)
 	if err != nil {
 		return err
 	}
@@ -150,9 +150,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	r.ObjectFormatName = objectFormat.Name()
-	g.repo = r
-	return repo_model.UpdateRepositoryCols(g.ctx, r, "object_format_name")
+	g.repo.ObjectFormatName = objectFormat.Name()
+	return repo_model.UpdateRepositoryCols(g.ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
