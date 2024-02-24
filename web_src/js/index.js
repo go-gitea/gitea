@@ -87,6 +87,7 @@ import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoContributors} from './features/contributors.js';
+import {initRepoCodeFrequency} from './features/code-frequency.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 
@@ -177,6 +178,7 @@ onDomReady(() => {
   initRepository();
   initRepositoryActionView();
   initRepoContributors();
+  initRepoCodeFrequency();
 
   initCommitStatuses();
   initCaptcha();
