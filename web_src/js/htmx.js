@@ -1,5 +1,5 @@
 import * as htmx from 'htmx.org';
-import { showErrorToast } from './modules/toast.js';
+import {showErrorToast} from './modules/toast.js';
 import 'htmx.org/dist/ext/ws.js';
 
 // https://github.com/bigskysoftware/idiomorph#htmx
@@ -18,9 +18,7 @@ document.body.addEventListener('htmx:sendError', (e) => {
 // https://htmx.org/events/#htmx:responseError
 document.body.addEventListener('htmx:responseError', (e) => {
   // TODO: add translations
-  showErrorToast(
-    `Error ${e.detail.xhr.status} when calling ${e.detail.requestConfig.path}`
-  );
+  showErrorToast(`Error ${e.detail.xhr.status} when calling ${e.detail.requestConfig.path}`);
 });
 
 let webSocket;
