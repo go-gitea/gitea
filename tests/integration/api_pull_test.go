@@ -74,14 +74,12 @@ func TestAPIViewPullsByBaseHead(t *testing.T) {
 
 	pull := &api.PullRequest{}
 	DecodeJSON(t, resp, pull)
-	assert.Equal(t, 3, pull.Index)
-	assert.Equal(t, 2, pull.ID)
+	assert.EqualValues(t, 3, pull.Index)
+	assert.EqualValues(t, 2, pull.ID)
 
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
 		AddTokenAuth(ctx.Token)
-	resp = ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-	assert.Equal(t, http.NotFound, resp.Code)
+	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
