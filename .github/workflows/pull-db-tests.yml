@@ -37,14 +37,6 @@ jobs:
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
-      simplesaml:
-        image: allspice/simple-saml
-        ports:
-          - "8080:8080"
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3002/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3002/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3002/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

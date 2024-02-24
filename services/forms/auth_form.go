@@ -1,4 +1,3 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
@@ -16,7 +15,7 @@ import (
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	ID                            int64
-	Type                          int    `binding:"Range(2,9)"`
+	Type                          int    `binding:"Range(2,7)"`
 	Name                          string `binding:"Required;MaxSize(30)"`
 	Host                          string
 	Port                          int
@@ -83,18 +82,6 @@ type AuthenticationForm struct {
 	SSPIDefaultLanguage           string
 	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
 	GroupTeamMapRemoval           bool
-
-	// SAML Settings
-	NameIDFormat                             int
-	IdentityProviderMetadata                 string
-	IdentityProviderMetadataURL              string
-	InsecureSkipAssertionSignatureValidation bool
-	ServiceProviderCertificate               string
-	ServiceProviderPrivateKey                string
-	EmailAssertionKey                        string
-	NameAssertionKey                         string
-	UsernameAssertionKey                     string
-	SAMLIconURL                              string
 }
 
 // Validate validates fields
