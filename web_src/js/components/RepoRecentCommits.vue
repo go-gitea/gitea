@@ -14,27 +14,14 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
+import {chartJsColors} from '../utils/color.js';
+import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
 
-const colors = {
-  text: '--color-text',
-  border: '--color-secondary-alpha-60',
-  commits: '--color-primary-alpha-60',
-  additions: '--color-green',
-  deletions: '--color-red',
-};
-
-const styles = window.getComputedStyle(document.documentElement);
-const getColor = (name) => styles.getPropertyValue(name).trim();
-
-for (const [key, value] of Object.entries(colors)) {
-  colors[key] = getColor(value);
-}
-
-Chart.defaults.color = colors.text;
-Chart.defaults.borderColor = colors.border;
+Chart.defaults.color = chartJsColors.text;
+Chart.defaults.borderColor = chartJsColors.border;
 
 Chart.register(
   TimeScale,
@@ -68,7 +55,7 @@ export default {
         do {
           response = await GET(`${this.repoLink}/activity/recent-commits/data`);
           if (response.status === 202) {
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for 1 second before retrying
+            await sleep(1000); // wait for 1 second before retrying
           }
         } while (response.status === 202);
         if (response.ok) {
@@ -94,7 +81,7 @@ export default {
           {
             data: data.map((i) => ({x: i.week, y: i.commits})),
             label: 'Commits',
-            backgroundColor: colors['commits'],
+            backgroundColor: chartJsColors['commits'],
             borderWidth: 0,
             tension: 0.3,
           },
