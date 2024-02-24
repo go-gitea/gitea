@@ -32,7 +32,7 @@ export default {
         })
       ),
       inherit: 'inherit',
-      currentcolor: 'currentcolor',
+      current: 'currentcolor',
       transparent: 'transparent',
     },
   },
