@@ -8,7 +8,6 @@ package git
 import (
 	"bytes"
 	"io"
-	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
@@ -97,36 +96,27 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		if checker != nil {
 			attrs, err := checker.CheckPath(f.Name())
 			if err == nil {
-				isVendored = attributeToBool(attrs, "linguist-vendored")
+				isVendored = AttributeToBool(attrs, AttributeLinguistVendored)
 				if isVendored.ValueOrDefault(false) {
 					continue
 				}
 
-				isGenerated = attributeToBool(attrs, "linguist-generated")
+				isGenerated = AttributeToBool(attrs, AttributeLinguistGenerated)
 				if isGenerated.ValueOrDefault(false) {
 					continue
 				}
 
-				isDocumentation = attributeToBool(attrs, "linguist-documentation")
+				isDocumentation = AttributeToBool(attrs, AttributeLinguistDocumentation)
 				if isDocumentation.ValueOrDefault(false) {
 					continue
 				}
 
-				isDetectable = attributeToBool(attrs, "linguist-detectable")
+				isDetectable = AttributeToBool(attrs, AttributeLinguistDetectable)
 				if !isDetectable.ValueOrDefault(true) {
 					continue
 				}
 
-				hasLanguage := attributeToString(attrs, "linguist-language")
-				if hasLanguage.Value() == "" {
-					hasLanguage = attributeToString(attrs, "gitlab-language")
-					if hasLanguage.Has() {
-						language := hasLanguage.Value()
-						if idx := strings.IndexByte(language, '?'); idx >= 0 {
-							hasLanguage = optional.Some(language[:idx])
-						}
-					}
-				}
+				hasLanguage := TryReadLanguageAttribute(attrs)
 				if hasLanguage.Value() != "" {
 					language := hasLanguage.Value()
 
