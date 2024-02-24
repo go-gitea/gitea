@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 // CheckAttributeOpts represents the possible options to CheckAttribute
@@ -291,7 +292,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	checker := &CheckAttributeReader{
-		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language", "linguist-documentation", "linguist-detectable"},
 		Repo:       repo,
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,
@@ -315,4 +316,24 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	return checker, deferable
+}
+
+// true if "set"/"true", false if "unset"/"false", none otherwise
+func attributeToBool(attr map[string]string, name string) optional.Option[bool] {
+	if value, has := attr[name]; has && value != "unspecified" {
+		switch value {
+		case "set", "true":
+			return optional.Some(true)
+		case "unset", "false":
+			return optional.Some(false)
+		}
+	}
+	return optional.None[bool]()
+}
+
+func attributeToString(attr map[string]string, name string) optional.Option[string] {
+	if value, has := attr[name]; has && value != "unspecified" {
+		return optional.Some(value)
+	}
+	return optional.None[string]()
 }

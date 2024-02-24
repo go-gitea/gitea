@@ -93,11 +93,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repo.FullName(), err)
-	}
-
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
@@ -105,6 +100,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
 	var pusher *user_model.User
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
 	for _, opts := range optsList {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
