@@ -140,7 +140,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-
 	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	if err != nil {
 		return err
