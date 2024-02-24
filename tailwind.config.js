@@ -7,26 +7,30 @@ const colors = Object.keys(parse([
 ].join('\n'), {})).filter((prop) => prop.startsWith('color-')).map((prop) => prop.substring(6));
 
 /** @type {import('tailwindcss').Config} */
-export default {
-  prefix: 'tw-',
-  content: [
-    './templates/**/*.tmpl',
-    './web_src/**/*.{js,vue}',
-  ],
-  blocklist: [
-    // classes that don't work without CSS variables from "@tailwind base" which we don't use
-    'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
-    'backdrop-filter',
-    // false-positives or otherwise unneeded
-    '[-a-zA-Z:0-9_.]',
-  ],
-  theme: {
-    colors: {
-      // make `tw-bg-red` etc work with our CSS variables
-      ...Object.fromEntries(colors.map((color) => [color, `var(--color-${color})`])),
-      inherit: 'inherit',
-      currentcolor: 'currentcolor',
-      transparent: 'transparent',
+export default function ({isProduction}) {
+  return {
+    prefix: 'tw-',
+    content: [
+      isProduction && '!./templates/devtest/**/*',
+      isProduction && '!./web_src/js/standalone/devtest.js',
+      './templates/**/*.tmpl',
+      './web_src/**/*.{js,vue}',
+    ],
+    blocklist: [
+      // classes that don't work without CSS variables from "@tailwind base" which we don't use
+      'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
+      'backdrop-filter',
+      // false-positives or otherwise unneeded
+      '[-a-zA-Z:0-9_.]',
+    ],
+    theme: {
+      colors: {
+        // make `tw-bg-red` etc work with our CSS variables
+        ...Object.fromEntries(colors.map((color) => [color, `var(--color-${color})`])),
+        inherit: 'inherit',
+        currentcolor: 'currentcolor',
+        transparent: 'transparent',
+      },
     },
-  },
+  };
 };
