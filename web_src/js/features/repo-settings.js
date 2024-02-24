@@ -13,15 +13,17 @@ export function initRepoSettingsCollaboration() {
     const $text = $dropdown.find('> .text');
     $dropdown.dropdown({
       async action(_text, value) {
+        const lastValue = $dropdown.attr('data-last-value');
         try {
+          $dropdown.attr('data-last-value', value);
           $dropdown.dropdown('hide');
           const data = new FormData();
           data.append('uid', $dropdown.attr('data-uid'));
           data.append('mode', value);
           await POST($dropdown.attr('data-url'), {data});
-          $dropdown.attr('data-last-value', value);
         } catch {
           $text.text('(error)'); // prevent from misleading users when error occurs
+          $dropdown.attr('data-last-value', lastValue);
         }
       },
       onChange(_value, text, _$choice) {
