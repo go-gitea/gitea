@@ -15,7 +15,7 @@ export default function ({isProduction}) {
       isProduction && '!./web_src/js/standalone/devtest.js',
       './templates/**/*.tmpl',
       './web_src/**/*.{js,vue}',
-    ],
+    ].filter(Boolean),
     blocklist: [
       // classes that don't work without CSS variables from "@tailwind base" which we don't use
       'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
