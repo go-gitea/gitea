@@ -365,8 +365,7 @@
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group" id="{{.HashTag}}">
 				<div class="timeline-item event">
-					{{if .OriginalAuthor}}
-					{{else}}
+					{{if not .OriginalAuthor}}
 					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
@@ -495,8 +494,7 @@
 		{{else if eq .Type 25}}
 			<div class="timeline-item event">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{if .OriginalAuthor}}
-				{{else}}
+				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
