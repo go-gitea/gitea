@@ -14,7 +14,6 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -36,9 +35,9 @@ func NewFuncMap() template.FuncMap {
 		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
 		"Eval":        Eval,
 		"Safe":        Safe,
-		"Escape":      html.EscapeString,
+		"Escape":      Escape,
 		"QueryEscape": url.QueryEscape,
-		"JSEscape":    template.JSEscapeString,
+		"JSEscape":    JSEscapeSafe,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
 		"URLJoin":     util.URLJoin,
 		"DotEscape":   DotEscape,
@@ -159,7 +158,6 @@ func NewFuncMap() template.FuncMap {
 		"RenderCodeBlock":  RenderCodeBlock,
 		"RenderIssueTitle": RenderIssueTitle,
 		"RenderEmoji":      RenderEmoji,
-		"RenderEmojiPlain": emoji.ReplaceAliases,
 		"ReactionToEmoji":  ReactionToEmoji,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
@@ -180,13 +178,39 @@ func NewFuncMap() template.FuncMap {
 }
 
 // Safe render raw as HTML
-func Safe(raw string) template.HTML {
-	return template.HTML(raw)
+func Safe(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(v)
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// Str2html render Markdown text to HTML
-func Str2html(raw string) template.HTML {
-	return template.HTML(markup.Sanitize(raw))
+// Str2html sanitizes the input by pre-defined markdown rules
+func Str2html(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(markup.Sanitize(v))
+	case template.HTML:
+		return template.HTML(markup.Sanitize(string(v)))
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func Escape(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(html.EscapeString(v))
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func JSEscapeSafe(s string) template.HTML {
+	return template.HTML(template.JSEscapeString(s))
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls

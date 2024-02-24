@@ -36,7 +36,7 @@
 </div>
 {{if and .PageIsExploreRepositories .OnlyShowRelevant}}
 	<div class="ui message explore-relevancy-note">
-		<span data-tooltip-content="{{ctx.Locale.Tr "explore.relevant_repositories_tooltip"}}">{{ctx.Locale.Tr "explore.relevant_repositories" ((printf "?only_show_relevant=0&sort=%s&q=%s&language=%s" $.SortType (QueryEscape $.Keyword) (QueryEscape $.Language))|Escape) | Safe}}</span>
+		<span data-tooltip-content="{{ctx.Locale.Tr "explore.relevant_repositories_tooltip"}}">{{ctx.Locale.Tr "explore.relevant_repositories" ((printf "?only_show_relevant=0&sort=%s&q=%s&language=%s" $.SortType (QueryEscape $.Keyword) (QueryEscape $.Language))|Escape)}}</span>
 	</div>
 {{end}}
 <div class="divider"></div>

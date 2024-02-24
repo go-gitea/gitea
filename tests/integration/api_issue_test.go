@@ -223,7 +223,7 @@ func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 18 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -263,7 +263,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "10")
@@ -271,7 +271,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -321,7 +321,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 18 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}

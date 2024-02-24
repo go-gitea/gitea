@@ -51,6 +51,10 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		}
 	}
 
+	if matchedCount != len(requiredContexts) {
+		return structs.CommitStatusPending
+	}
+
 	if matchedCount == 0 {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {

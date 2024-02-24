@@ -7,6 +7,7 @@ package install
 import (
 	"fmt"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,12 +26,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -409,7 +410,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
-		if _, lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
+		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
@@ -419,6 +420,11 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
+		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
+			return
+		}
+
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
 		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
 		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
@@ -533,8 +539,8 @@ func SubmitInstall(ctx *context.Context) {
 			IsAdmin: true,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolFalse,
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(false),
+			IsActive:     optional.Some(true),
 		}
 
 		if err = user_model.CreateUser(ctx, u, overwriteDefault); err != nil {

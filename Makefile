@@ -23,12 +23,12 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.21.x
+XGO_VERSION := go-1.22.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.49.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
@@ -164,8 +164,8 @@ ifdef DEPS_PLAYWRIGHT
 endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
-SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
 SWAGGER_EXCLUDE := code.gitea.io/sdk
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
@@ -602,8 +602,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
-playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save @playwright/test
+playwright: deps-frontend
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
@@ -970,7 +969,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save --no-package-lock fabric@5 imagemin-zopfli@7
+	npm install --no-save fabric@6.0.0-beta19 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
@@ -988,3 +987,8 @@ docker:
 
 # This endif closes the if at the top of the file
 endif
+
+# Disable parallel execution because it would break some targets that don't
+# specify exact dependencies like 'backend' which does currently not depend
+# on 'frontend' to enable Node.js-less builds from source tarballs.
+.NOTPARALLEL:

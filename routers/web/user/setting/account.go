@@ -233,6 +233,11 @@ func DeleteEmail(ctx *context.Context) {
 
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureDeletion) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -299,6 +304,7 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
+	ctx.Data["UserDisabledFeatures"] = &setting.Admin.UserDisabledFeatures
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
 		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()

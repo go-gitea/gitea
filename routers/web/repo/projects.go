@@ -315,7 +315,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
@@ -339,16 +339,16 @@ func ViewProject(ctx *context.Context) {
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
 		for _, issue := range issuesList {
-			var referencedIds []int64
+			var referencedIDs []int64
 			for _, comment := range issue.Comments {
 				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIds = append(referencedIds, comment.RefIssueID)
+					referencedIDs = append(referencedIDs, comment.RefIssueID)
 				}
 			}
 
-			if len(referencedIds) > 0 {
+			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIds,
+					IssueIDs: referencedIDs,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
@@ -633,7 +633,7 @@ func MoveIssues(ctx *context.Context) {
 		board = &project_model.Board{
 			ID:        0,
 			ProjectID: project.ID,
-			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
 		}
 	} else {
 		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))

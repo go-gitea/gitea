@@ -87,7 +87,11 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
+				Config: &repo_model.PullRequestsConfig{
+					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
+					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
+					AllowRebaseUpdate: true,
+				},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{

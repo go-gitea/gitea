@@ -408,7 +408,7 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
-func base64Reader(s string) (io.Reader, error) {
+func base64Reader(s string) (io.ReadSeeker, error) {
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err
@@ -762,13 +762,13 @@ func changeFilesCommitMessage(ctx *context.APIContext, files []*files_service.Ch
 	}
 	message := ""
 	if len(createFiles) != 0 {
-		message += ctx.Tr("repo.editor.add", strings.Join(createFiles, ", ")+"\n")
+		message += ctx.Locale.TrString("repo.editor.add", strings.Join(createFiles, ", ")+"\n")
 	}
 	if len(updateFiles) != 0 {
-		message += ctx.Tr("repo.editor.update", strings.Join(updateFiles, ", ")+"\n")
+		message += ctx.Locale.TrString("repo.editor.update", strings.Join(updateFiles, ", ")+"\n")
 	}
 	if len(deleteFiles) != 0 {
-		message += ctx.Tr("repo.editor.delete", strings.Join(deleteFiles, ", "))
+		message += ctx.Locale.TrString("repo.editor.delete", strings.Join(deleteFiles, ", "))
 	}
 	return strings.Trim(message, "\n")
 }
