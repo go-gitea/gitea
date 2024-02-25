@@ -5,14 +5,11 @@ package badge
 
 import (
 	actions_model "code.gitea.io/gitea/models/actions"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
 )
 
 type Label struct {
 	text  string
-	width float64
+	width int
 }
 
 func (l Label) Text() string {
@@ -24,16 +21,16 @@ func (l Label) Width() int {
 }
 
 func (l Label) TextLength() int {
-	return int((l.width - defaultOffset) * 9.5)
+	return int(float64(l.width-defaultOffset) * 9.5)
 }
 
 func (l Label) X() int {
-	return int((l.width/2 + 1) * 10)
+	return l.width*5 + 10
 }
 
 type Message struct {
 	text  string
-	width float64
+	width int
 	x     int
 }
 
@@ -42,7 +39,7 @@ func (m Message) Text() string {
 }
 
 func (m Message) Width() int {
-	return int(m.width)
+	return m.width
 }
 
 func (m Message) X() int {
@@ -50,7 +47,7 @@ func (m Message) X() int {
 }
 
 func (m Message) TextLength() int {
-	return int((m.width - defaultOffset) * 9.5)
+	return int(float64(m.width-defaultOffset) * 9.5)
 }
 
 type Badge struct {
@@ -61,18 +58,15 @@ type Badge struct {
 }
 
 func (b Badge) Width() int {
-	return int(b.Label.width + b.Message.width)
+	return b.Label.width + b.Message.width
 }
 
 const (
-	defaultOffset   = float64(9)
-	defaultFontSize = 11
-	DefaultColor    = "#9f9f9f" // Grey
+	defaultOffset    = 9
+	defaultFontSize  = 11
+	DefaultColor     = "#9f9f9f" // Grey
+	defaultFontWidth = 7         // approximate speculation
 )
-
-var drawer = &font.Drawer{
-	Face: basicfont.Face7x13,
-}
 
 var StatusColorMap = map[actions_model.Status]string{
 	actions_model.StatusSuccess:   "#4c1",    // Green
@@ -87,9 +81,9 @@ var StatusColorMap = map[actions_model.Status]string{
 
 // GenerateBadge generates badge with given template
 func GenerateBadge(label, message, color string) Badge {
-	lw := float64(drawer.MeasureString(label)>>6) + defaultOffset
-	mw := float64(drawer.MeasureString(message)>>6) + defaultOffset
-	x := int((lw + (mw / 2) - 1) * 10)
+	lw := defaultFontWidth*len(label) + defaultOffset
+	mw := defaultFontWidth*len(message) + defaultOffset
+	x := lw*10 + mw*5 - 10
 	return Badge{
 		Label: Label{
 			text:  label,
