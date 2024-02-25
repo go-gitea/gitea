@@ -245,7 +245,7 @@ export function isElemVisible(element) {
 }
 
 export function isHorizontallyOverflown(el) {
-  return (el.scrollWidth ?? 0) - (el.clientWidth ?? 0) > 1;
+  return (el.scrollWidth ?? 0) - (el.clientWidth ?? 0) > 0;
 }
 
 export function createElementFromHTML(str) {
