@@ -78,7 +78,6 @@ Gitea's private styles use `g-` prefix.
 .gt-w-auto { width: auto !important; }
 .gt-w-screen { width: 100vw !important; }
 .gt-w-full { width: 100% !important; }
-.gt-w-24rem { width: 24rem !important; }
 
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
