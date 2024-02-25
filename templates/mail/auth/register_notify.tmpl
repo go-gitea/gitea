@@ -11,7 +11,7 @@
 	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p><br>
 	<p>{{.locale.Tr "mail.register_notify.text_1" AppName}}</p><br>
 	<p>{{.locale.Tr "mail.register_notify.text_2" .Username}}</p><p><a href="{{AppUrl}}user/login">{{AppUrl}}user/login</a></p><br>
-	<p>{{.locale.Tr "mail.register_notify.text_3" ($set_pwd_url | Escape)}}</p><br>
+	<p>{{.locale.Tr "mail.register_notify.text_3" $set_pwd_url}}</p><br>
 
 	<p>© <a target="_blank" rel="noopener noreferrer" href="{{AppUrl}}">{{AppName}}</a></p>
 </body>
