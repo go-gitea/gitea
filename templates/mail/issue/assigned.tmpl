@@ -8,7 +8,7 @@
 	<title>{{.Subject}}</title>
 </head>
 
-{{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .Issue.Repo.HTMLURL Escape .Issue.Repo.FullName}}
+{{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .Issue.Repo.HTMLURL .Issue.Repo.FullName}}
 {{$link := HTMLFormat "<a href='%s'>#%d</a>" .Link .Issue.Index}}
 <body>
 	<p>
