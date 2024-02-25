@@ -17,7 +17,7 @@ func (l Label) Text() string {
 }
 
 func (l Label) Width() int {
-	return int(l.width)
+	return l.width
 }
 
 func (l Label) TextLength() int {
