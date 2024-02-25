@@ -130,6 +130,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 				false, // not pending review but a single review
 				comment.ReviewID,
 				"",
+				nil,
 			)
 			if err != nil {
 				return fmt.Errorf("CreateCodeComment failed: %w", err)

@@ -43,31 +43,31 @@
 		{{end}}
 		<div class="gt-ml-3">
 			{{if .Issue.IsPull}}
-				{{$headHref := .HeadTarget|Escape}}
+				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}
-					{{$headHref = printf `<a href="%s">%s</a>` (.HeadBranchLink | Escape) $headHref}}
+					{{$headHref = HTMLFormat `<a href="%s">%s</a>` .HeadBranchLink $headHref}}
 				{{end}}
-				{{$headHref = printf `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (ctx.Locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
-				{{$baseHref := .BaseTarget|Escape}}
+				{{$headHref = HTMLFormat `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
+				{{$baseHref := .BaseTarget}}
 				{{if .BaseBranchLink}}
-					{{$baseHref = printf `<a href="%s">%s</a>` (.BaseBranchLink | Escape) $baseHref}}
+					{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
 					{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix ctx.Locale}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
-						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits ($headHref|Safe) ($baseHref|Safe) $mergedStr}}</span>
+						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{else}}
 						<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits ($headHref|Safe) ($baseHref|Safe) $mergedStr}}</span>
+						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{end}}
 				{{else}}
 					{{if .Issue.OriginalAuthor}}
-						<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits ($headHref|Safe) ($baseHref|Safe)}}</span>
+						<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
 					{{else}}
 						<span id="pull-desc" class="pull-desc">
 							<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits ($headHref|Safe) ($baseHref|Safe)}}
+							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
 					<span id="pull-desc-edit" class="gt-hidden flex-text-block">
@@ -104,11 +104,11 @@
 				{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
 				<span class="time-desc">
 					{{if .Issue.OriginalAuthor}}
-						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape)}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor}}
 					{{else if gt .Issue.Poster.ID 0}}
-						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape)}}
+						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.GetDisplayName}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape)}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.Poster.GetDisplayName}}
 					{{end}}
 					·
 					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
