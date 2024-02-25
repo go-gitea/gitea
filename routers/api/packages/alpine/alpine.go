@@ -72,7 +72,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     alpine_service.IndexArchivFilename,
+			Filename:     alpine_service.IndexArchiveFilename,
 			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
 		},
 	)

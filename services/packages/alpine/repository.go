@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	IndexFilename       = "APKINDEX"
+	IndexFilename        = "APKINDEX"
 	IndexArchiveFilename = IndexFilename + ".tar.gz"
 )
 
@@ -186,7 +186,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	// Delete the package indices if there are no packages
 	if len(pfs) == 0 {
-		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexArchivFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
+		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexArchiveFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		} else if pf == nil {
@@ -334,7 +334,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     IndexArchivFilename,
+				Filename:     IndexArchiveFilename,
 				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 			},
 			Creator:           user_model.NewGhostUser(),
