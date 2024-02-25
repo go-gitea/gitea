@@ -3,27 +3,31 @@ import {hideElem, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 async function getArchive($target, url, first) {
-  const response = await POST(url);
-  if (response.status === 200) {
-    const data = await response.json();
-    if (!data) {
-      // XXX Shouldn't happen?
-      $target.closest('.dropdown').children('i').removeClass('loading');
-      return;
-    }
+  try {
+    const response = await POST(url);
+    if (response.status === 200) {
+      const data = await response.json();
+      if (!data) {
+        // XXX Shouldn't happen?
+        $target.closest('.dropdown').children('i').removeClass('loading');
+        return;
+      }
 
-    if (!data.complete) {
-      $target.closest('.dropdown').children('i').addClass('loading');
-      // Wait for only three quarters of a second initially, in case it's
-      // quickly archived.
-      setTimeout(() => {
-        getArchive($target, url, false);
-      }, first ? 750 : 2000);
-    } else {
-      // We don't need to continue checking.
-      $target.closest('.dropdown').children('i').removeClass('loading');
-      window.location.href = url;
+      if (!data.complete) {
+        $target.closest('.dropdown').children('i').addClass('loading');
+        // Wait for only three quarters of a second initially, in case it's
+        // quickly archived.
+        setTimeout(() => {
+          getArchive($target, url, false);
+        }, first ? 750 : 2000);
+      } else {
+        // We don't need to continue checking.
+        $target.closest('.dropdown').children('i').removeClass('loading');
+        window.location.href = url;
+      }
     }
+  } catch {
+    $target.closest('.dropdown').children('i').removeClass('loading');
   }
 }
 
