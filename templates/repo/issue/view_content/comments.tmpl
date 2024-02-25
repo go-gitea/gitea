@@ -33,10 +33,10 @@
 									{{.OriginalAuthor}}
 								</span>
 								<span class="text grey muted-links">
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr}} {{if $.Repository.OriginalURL}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}} {{if $.Repository.OriginalURL}}
 								</span>
 								<span class="text migrate">
-									({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape)}}){{end}}
+									({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}}){{end}}
 								</span>
 							{{else}}
 								{{if gt .Poster.ID 0}}
@@ -46,7 +46,7 @@
 								{{end}}
 								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Poster}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 								</span>
 							{{end}}
 						</div>
@@ -121,7 +121,7 @@
 		{{else if eq .Type 3 5 6}}
 			{{$refFrom:= ""}}
 			{{if ne .RefRepoID .Issue.RepoID}}
-				{{$refFrom = ctx.Locale.Tr "repo.issues.ref_from" (.RefRepo.FullName|Escape)}}
+				{{$refFrom = ctx.Locale.Tr "repo.issues.ref_from" .RefRepo.FullName}}
 			{{end}}
 			{{$refTr := "repo.issues.ref_issue_from"}}
 			{{if .Issue.IsPull}}
@@ -138,7 +138,7 @@
 				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr $refTr (.EventTag|Escape) $createdStr ((.RefCommentLink ctx)|Escape) $refFrom}}
+					{{ctx.Locale.Tr $refTr .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
@@ -182,7 +182,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr}}{{end}}
+					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr}}{{end}}
 				</span>
 			</div>
 		{{else if and (eq .Type 9) (gt .AssigneeID 0)}}
@@ -195,7 +195,7 @@
 						{{if eq .Poster.ID .Assignee.ID}}
 							{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" .Poster.GetDisplayName $createdStr}}
 						{{end}}
 					</span>
 				{{else}}
@@ -205,7 +205,7 @@
 						{{if eq .Poster.ID .AssigneeID}}
 							{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_assignee_at" .Poster.GetDisplayName $createdStr}}
 						{{end}}
 					</span>
 				{{end}}
@@ -225,7 +225,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr}}
+					{{ctx.Locale.Tr "repo.issues.delete_branch_at" .OldRef $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 12}}
@@ -418,7 +418,7 @@
 											{{.OriginalAuthor}}
 										</span>
 										<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-										<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape)}}){{end}}</span>
+										<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}}){{end}}</span>
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
 									{{end}}
@@ -509,7 +509,7 @@
 					{{else}}
 						{{template "shared/user/authorlink" .Poster}}
 					{{end}}
-					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr}}
+					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 26}}
@@ -542,10 +542,10 @@
 							{{if eq .PosterID .AssigneeID}}
 								{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr}}
 							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr}}
+								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" .Assignee.GetDisplayName $createdStr}}
 							{{end}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.add_review_request" .Assignee.GetDisplayName $createdStr}}
 						{{end}}
 					{{else}}
 						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
@@ -554,9 +554,9 @@
 							{{$teamName = .AssigneeTeam.Name}}
 						{{end}}
 						{{if .RemovedAssignee}}
-							{{ctx.Locale.Tr "repo.issues.review.remove_review_request" ($teamName|Escape) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.remove_review_request" $teamName $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" ($teamName|Escape) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.add_review_request" $teamName $createdStr}}
 						{{end}}
 					{{end}}
 				</span>
@@ -571,7 +571,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if .IsForcePush}}
-						{{ctx.Locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape) (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit) (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr}}
 					{{else}}
 						{{ctx.Locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr}}
 					{{end}}
@@ -663,11 +663,11 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if and .OldRef .NewRef}}
-						{{ctx.Locale.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.change_ref_at" .OldRef .NewRef $createdStr}}
 					{{else if .OldRef}}
-						{{ctx.Locale.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.remove_ref_at" .OldRef $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.add_ref_at" .NewRef $createdStr}}
 					{{end}}
 				</span>
 			</div>
