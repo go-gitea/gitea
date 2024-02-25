@@ -266,7 +266,7 @@ the messages. Here's a list of some of them:
 | `AppDomain`      | -           | Any       | Gitea's host name                                                           |
 | `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed         |
 | `Str2html`       | string      | Body only | Sanitizes text by removing any HTML tags from it.                           |
-| `Safe`           | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
+| `SafeHTML`       | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
 
 These are _functions_, not metadata, so they have to be used:
 
