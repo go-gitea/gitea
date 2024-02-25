@@ -75,7 +75,7 @@
 						{{ctx.Locale.Tr "settings.select_permissions"}}
 					</summary>
 					<p class="activity meta">
-						<i>{{ctx.Locale.Tr "settings.access_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`)}}</i>
+						<i>{{ctx.Locale.Tr "settings.access_token_desc" (`href="/api/swagger" target="_blank"`|SafeHTML) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</i>
 					</p>
 					<div class="scoped-access-token-mount">
 						<scoped-access-token-selector
