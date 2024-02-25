@@ -1,0 +1,41 @@
+-
+  id: 1
+  user_id: 1
+  issue_id: 1
+  dependency_id: 2
+
+-
+  id: 2
+  user_id: 1
+  issue_id: 1
+  dependency_id: 3
+
+-
+  id: 3
+  user_id: 1
+  issue_id: 1
+  dependency_id: 4
+
+-
+  id: 4
+  user_id: 1
+  issue_id: 3
+  dependency_id: 1
+
+-
+  id: 5
+  user_id: 1
+  issue_id: 3
+  dependency_id: 2
+
+-
+  id: 6
+  user_id: 1
+  issue_id: 4
+  dependency_id: 1
+
+-
+  id: 7
+  user_id: 1
+  issue_id: 4
+  dependency_id: 2

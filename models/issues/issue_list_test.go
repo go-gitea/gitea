@@ -73,3 +73,67 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 		}
 	}
 }
+
+func TestIssueList_BlockingDependenciesMap(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	setting.Service.EnableTimetracking = true
+	issueList := issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
+	}
+
+	blockingDependenciesMap, err := issueList.BlockingDependenciesMap(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, blockingDependenciesMap, 2)
+
+	issue1DepInfos := blockingDependenciesMap[1]
+	assert.Len(t, issue1DepInfos, 2)
+	issue2DepInfos := blockingDependenciesMap[2]
+	assert.Nil(t, issue2DepInfos)
+	issue3DepInfos := blockingDependenciesMap[3]
+	assert.Nil(t, issue3DepInfos)
+	issue4DepInfos := blockingDependenciesMap[4]
+	assert.Len(t, issue4DepInfos, 1)
+
+	for _, depInfo := range issue1DepInfos {
+		assert.Equal(t, int64(1), depInfo.DependencyID)
+		assert.Contains(t, [3]int64{3, 4}, depInfo.Issue.ID)
+	}
+
+	for _, depInfo := range issue4DepInfos {
+		assert.Equal(t, int64(4), depInfo.DependencyID)
+		assert.Equal(t, int64(1), depInfo.Issue.ID)
+	}
+}
+
+func TestIssueList_BlockedByDependenciesMap(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	setting.Service.EnableTimetracking = true
+	issueList := issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
+	}
+
+	blockedByDependenciesMap, err := issueList.BlockedByDependenciesMap(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, blockedByDependenciesMap, 2)
+
+	issue1DepInfos := blockedByDependenciesMap[1]
+	assert.Len(t, issue1DepInfos, 3)
+	issue2DepInfos := blockedByDependenciesMap[2]
+	assert.Nil(t, issue2DepInfos)
+	issue3DepInfos := blockedByDependenciesMap[3]
+	assert.Nil(t, issue3DepInfos)
+	issue4DepInfos := blockedByDependenciesMap[4]
+	assert.Len(t, issue4DepInfos, 2)
+
+	for _, depInfo := range issue1DepInfos {
+		assert.Equal(t, int64(1), depInfo.IssueID)
+		assert.Contains(t, [3]int64{2, 3, 4}, depInfo.Issue.ID)
+	}
+
+	for _, depInfo := range issue4DepInfos {
+		assert.Equal(t, int64(4), depInfo.IssueID)
+		assert.Contains(t, [3]int64{1, 2}, depInfo.Issue.ID)
+	}
+}
