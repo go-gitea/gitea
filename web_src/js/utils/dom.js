@@ -243,3 +243,13 @@ export function isElemVisible(element) {
 
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
+
+export function isHorizontallyOverflown(el) {
+  return (el.scrollWidth ?? 0) - (el.clientWidth ?? 0) > 1;
+}
+
+export function createElementFromHTML(str) {
+  const div = document.createElement('div');
+  div.innerHTML = str.trim();
+  return div.firstChild;
+}

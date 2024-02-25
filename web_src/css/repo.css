@@ -2778,12 +2778,12 @@ tbody.commit-list {
   border-left: 1px solid var(--color-secondary);
 }
 
-.repository .ui.menu.new-menu {
+.repository .ui.menu.overflow-menu {
   background: none !important;
 }
 
 @media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
+  .repository .ui.menu.overflow-menu::after {
     background: none !important;
   }
 }
