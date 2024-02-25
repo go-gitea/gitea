@@ -26,7 +26,7 @@
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
-						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape)}}
+						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" .BranchName}}
 						{{if not .CanCommitToBranch.CanCommitToBranch}}
 						<div class="ui visible small warning message">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
