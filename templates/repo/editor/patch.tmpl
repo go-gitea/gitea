@@ -15,7 +15,7 @@
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
 					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="" required>
-					<input id="file-name" type="hidden" value="diff.patch">
+					<input id="file-name" maxlength="500" type="hidden" value="diff.patch">
 				</div>
 			</div>
 			<div class="field">
