@@ -635,11 +635,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			defer deferable()
 			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 			if err == nil {
-				vendored, has := attrs["linguist-vendored"]
-				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
-
-				generated, has := attrs["linguist-generated"]
-				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
+				ctx.Data["IsVendored"] = git.AttributeToBool(attrs, git.AttributeLinguistVendored).Value()
+				ctx.Data["IsGenerated"] = git.AttributeToBool(attrs, git.AttributeLinguistGenerated).Value()
 			}
 		}
 	}

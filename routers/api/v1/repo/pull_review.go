@@ -362,6 +362,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			true, // pending review
 			0,    // no reply
 			opts.CommitID,
+			nil,
 		); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateCodeComment", err)
 			return
