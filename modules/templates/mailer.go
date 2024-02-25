@@ -64,7 +64,14 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 	bodyTemplates := template.New("")
 
 	subjectTemplates.Funcs(mailSubjectTextFuncMap())
-	bodyTemplates.Funcs(NewFuncMap())
+	// To do the best to avoid serious breaking, add some functions back for body templates.
+	// Keep in mind that some behaviors have changed, for worse case, double-escaping.
+	// Custom template users should migrate to the new template system ASAP.
+	bodyTemplateFuncMap := NewFuncMap()
+	bodyTemplateFuncMap["Safe"] = SafeHTML
+	bodyTemplateFuncMap["Escape"] = HTMLEscape
+	bodyTemplateFuncMap["Str2html"] = SanitizeHTML
+	bodyTemplates.Funcs(bodyTemplateFuncMap)
 
 	assetFS := AssetFS()
 	refreshTemplates := func(firstRun bool) {
