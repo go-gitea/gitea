@@ -91,9 +91,11 @@ const sfc = {
         if (item.tag) {
           this.isViewTag = true;
           $(`#${this.branchForm} input[name="refType"]`).val('tag');
+          $(`#${this.branchForm} input[name="tag"]`).val(item.name);
         } else {
           this.isViewBranch = true;
           $(`#${this.branchForm} input[name="refType"]`).val('branch');
+          $(`#${this.branchForm} input[name="branch"]`).val(item.name);
         }
         if (this.submitForm) {
           $(`#${this.branchForm}`).trigger('submit');
@@ -244,14 +246,14 @@ export function initRepoBranchTagSelector(selector) {
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
-  <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text gt-df gt-ac gt-mr-2">
+  <div class="ui dropdown custom gt-w-full gt-h-full">
+    <button type="button" class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-sb gt-m-0 gt-w-full gt-h-full" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="text gt-df gt-ac gt-mr-2 gt-ellipsis">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="gt-ml-3">{{ refNameText }}</strong>
+          <strong ref="dropdownRefName" class="gt-ml-3 gt-ellipsis">{{ refNameText }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
@@ -261,7 +263,7 @@ export default sfc; // activate IDE's Vue plugin
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
-      <div v-if="showBranchesInDropdown" class="branch-tag-tab">
+      <div v-if="showBranchesInDropdown && !noTag" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: mode === 'branches'}" href="#" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
         </a>

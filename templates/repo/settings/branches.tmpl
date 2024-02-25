@@ -12,20 +12,16 @@
 				<p>
 					{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
-				<form class="gt-df" action="{{.Link}}" method="post">
+				<form id="js-default-branch" class="gt-df" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
+					<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 					{{if not .Repository.IsEmpty}}
-						<div class="ui dropdown selection gt-f1 gt-mr-3 gt-max-width-24rem">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
-							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu">
-								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
-							</div>
-						</div>
+						{{template "repo/branch_dropdown" dict "root" .
+							"ContainerClasses" "gt-w-24rem gt-mr-4"
+							"branchForm" "js-default-branch"
+							"noTag" true
+						}}
 						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					{{end}}
 				</form>
