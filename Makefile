@@ -119,7 +119,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.js
+WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/img/webpack
 
@@ -602,8 +602,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
-playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save @playwright/test
+playwright: deps-frontend
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
@@ -970,7 +969,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save --no-package-lock fabric@5 imagemin-zopfli@7
+	npm install --no-save fabric@6.0.0-beta19 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage

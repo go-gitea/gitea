@@ -17,8 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -36,7 +34,6 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 	ctx.Data["ContextUserLocationMapURL"] = setting.Service.UserLocationMapURL + url.QueryEscape(ctx.ContextUser.Location)
 
@@ -47,18 +44,6 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OpenIDs"] = openIDs
-
-	if len(ctx.ContextUser.Description) != 0 {
-		content, err := markdown.RenderString(&markup.RenderContext{
-			Metas: map[string]string{"mode": "document"},
-			Ctx:   ctx,
-		}, ctx.ContextUser.Description)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-		ctx.Data["RenderedDescription"] = content
-	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{

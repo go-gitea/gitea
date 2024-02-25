@@ -34,7 +34,7 @@
 						<h4 class="ui dividing header">
 							{{ctx.Locale.Tr "twofa"}}
 						</h4>
-						<div class="ui warning visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled" | Str2html}}</div>
+						<div class="ui warning visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</div>
 						{{if .scratch_code}}
 						<div class="required inline field {{if .Err_Token}}error{{end}}">
 							<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
@@ -53,11 +53,11 @@
 							<label></label>
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
-								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code" | Str2html}}</a>
+								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code"}}</a>
 							{{end}}
 						</div>
 					{{else}}
-						<p class="center">{{ctx.Locale.Tr "auth.invalid_code_forgot_password" (printf "%s/user/forgot_password" AppSubUrl) | Str2html}}</p>
+						<p class="center">{{ctx.Locale.Tr "auth.invalid_code_forgot_password" (printf "%s/user/forgot_password" AppSubUrl)}}</p>
 					{{end}}
 				</div>
 			</form>

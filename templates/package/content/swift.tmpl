@@ -7,7 +7,7 @@
 				<div class="markup"><pre class="code-block"><code>swift package-registry set <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/swift"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.swift.install" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.swift.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>dependencies: [
 	.package(id: "{{.PackageDescriptor.Package.Name}}", from:"{{.PackageDescriptor.Version.Version}}")
 ]</code></pre></div>
@@ -17,7 +17,7 @@
 				<div class="markup"><pre class="code-block"><code>swift package resolve</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Swift" "https://docs.gitea.com/usage/packages/swift/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Swift" "https://docs.gitea.com/usage/packages/swift/"}}</label>
 			</div>
 		</div>
 	</div>

@@ -1,37 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
-	<div class="ui container gt-df">
-		{{ctx.AvatarUtils.Avatar .Org 140 "org-avatar"}}
-		<div id="org-info">
-			<div class="ui header">
-				{{.Org.DisplayName}}
-				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
-				</span>
-			</div>
-			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
-			<div class="text grey meta">
-				{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
-				{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
-				{{if $.IsSigned}}
-					{{if .Org.Email}}<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>{{end}}
-				{{end}}
-			</div>
-		</div>
-		<div class="right menu">
-			{{if .EnableFeed}}
-			<a class="ui basic label button gt-mr-0" href="{{$.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
-				{{svg "octicon-rss" 24}}
-			</a>
-			{{end}}
-			{{if .IsSigned}}
-				{{template "org/follow_unfollow" .}}
-			{{end}}
-		</div>
-	</div>
-
-	{{template "org/menu" .}}
+	{{template "org/header" .}}
 
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
