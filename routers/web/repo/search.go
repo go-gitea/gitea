@@ -5,6 +5,7 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -27,9 +28,9 @@ func Search(ctx *context.Context) {
 	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+	ctx.Data["Keyword"] = url.PathEscape(keyword)
+	ctx.Data["Language"] = url.PathEscape(language)
+	ctx.Data["queryType"] = url.PathEscape(queryType)
 	ctx.Data["PageIsViewCode"] = true
 
 	if keyword == "" {

@@ -16,7 +16,7 @@
 	{{if not .TabName}}{{$tabQuery = ""}}{{end}}
 	{{$languageQuery := printf "language=%s&" .Language}}
 	{{if not .TabName}}{{$languageQuery = ""}}{{end}}
-	{{$queryParams := (printf "%s%sq=%s" $tabQuery $languageQuery .Keyword) | PathEscape}}
+	{{$queryParams := printf "%s%sq=%s" $tabQuery $languageQuery .Keyword}}
 	<!-- Filter -->
 	{{$queryParamsWithSort := printf "%s&sort=%s" $queryParams .SortType}}
 	<form class="ui form ignore-dirty" id="repo-search-form" data-query-params="{{$queryParamsWithSort}}">
@@ -26,7 +26,7 @@
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
-				<a class="item" href="{{printf "%s?%s" (.Link | PathEscapeSegments) $queryParamsWithSort}}">{{ctx.Locale.Tr "filter.clear"}}</a>
+				<a class="item" href="{{printf "%s?%s" .Link $queryParamsWithSort}}">{{ctx.Locale.Tr "filter.clear"}}</a>
 				<div class="divider"></div>
 				<label class="item"><input type="radio" name="archived" {{if .IsArchived.IsTrue}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
 				<label class="item"><input type="radio" name="archived" {{if .IsArchived.IsFalse}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
@@ -52,7 +52,7 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			{{$href := printf "%s?%s" (.Link | PathEscapeSegments) $queryParams}}
+			{{$href := printf "%s?%s" .Link $queryParams}}
 			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$href}}&sort=newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
 			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$href}}&sort=oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$href}}&sort=alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>

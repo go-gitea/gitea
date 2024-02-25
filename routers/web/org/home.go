@@ -5,6 +5,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -59,7 +60,7 @@ func Home(ctx *context.Context) {
 	}
 
 	var orderBy db.SearchOrderBy
-	ctx.Data["SortType"] = ctx.FormString("sort")
+	ctx.Data["SortType"] = url.PathEscape(ctx.FormString("sort"))
 	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = db.SearchOrderByNewest
@@ -87,10 +88,10 @@ func Home(ctx *context.Context) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = url.PathEscape(keyword)
 
 	language := ctx.FormTrim("language")
-	ctx.Data["Language"] = language
+	ctx.Data["Language"] = url.PathEscape(language)
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
