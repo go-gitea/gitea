@@ -102,7 +102,17 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 
 // Close implements io.Closer
 func (b *blobReader) Close() error {
+	if b.rd == nil {
+		return nil
+	}
+
 	defer b.cancel()
 
-	return DiscardFull(b.rd, b.n+1)
+	if err := DiscardFull(b.rd, b.n+1); err != nil {
+		return err
+	}
+
+	b.rd = nil
+
+	return nil
 }

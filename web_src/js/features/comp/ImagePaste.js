@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {POST} from '../../modules/fetch.js';
 import {imageInfo} from '../../utils/image.js';
@@ -93,11 +92,10 @@ class CodeMirrorEditor {
 }
 
 const uploadClipboardImage = async (editor, dropzone, e) => {
-  const $dropzone = $(dropzone);
-  const uploadUrl = $dropzone.attr('data-upload-url');
-  const $files = $dropzone.find('.files');
+  const uploadUrl = dropzone.getAttribute('data-upload-url');
+  const filesContainer = dropzone.querySelector('.files');
 
-  if (!uploadUrl || !$files.length) return;
+  if (!uploadUrl || !filesContainer) return;
 
   const pastedImages = clipboardPastedImages(e);
   if (!pastedImages || pastedImages.length === 0) {
@@ -126,8 +124,12 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     }
     editor.replacePlaceholder(placeholder, text);
 
-    const $input = $(`<input name="files" type="hidden">`).attr('id', uuid).val(uuid);
-    $files.append($input);
+    const input = document.createElement('input');
+    input.setAttribute('name', 'files');
+    input.setAttribute('type', 'hidden');
+    input.setAttribute('id', uuid);
+    input.value = uuid;
+    filesContainer.append(input);
   }
 };
 
@@ -140,7 +142,7 @@ export function initEasyMDEImagePaste(easyMDE, dropzone) {
 
 export function initTextareaImagePaste(textarea, dropzone) {
   if (!dropzone) return;
-  $(textarea).on('paste', async (e) => {
-    return uploadClipboardImage(new TextareaEditor(textarea), dropzone, e.originalEvent);
+  textarea.addEventListener('paste', async (e) => {
+    return uploadClipboardImage(new TextareaEditor(textarea), dropzone, e);
   });
 }

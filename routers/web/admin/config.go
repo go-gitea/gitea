@@ -7,11 +7,11 @@ package admin
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -24,7 +24,10 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-const tplConfig base.TplName = "admin/config"
+const (
+	tplConfig         base.TplName = "admin/config"
+	tplConfigSettings base.TplName = "admin/config_settings"
+)
 
 // SendTestMail send test mail to confirm mail service is OK
 func SendTestMail(ctx *context.Context) {
@@ -98,8 +101,9 @@ func shadowPassword(provider, cfgItem string) string {
 
 // Config show admin config page
 func Config(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.config")
+	ctx.Data["Title"] = ctx.Tr("admin.config_summary")
 	ctx.Data["PageIsAdminConfig"] = true
+	ctx.Data["PageIsAdminConfigSummary"] = true
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
@@ -161,23 +165,70 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 	config.GetDynGetter().InvalidateCache()
-	ctx.Data["SystemConfig"] = setting.Config()
 	prepareDeprecatedWarningsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
+}
+
+func ConfigSettings(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
+	ctx.Data["PageIsAdminConfig"] = true
+	ctx.Data["PageIsAdminConfigSettings"] = true
+	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
+	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
 func ChangeConfig(ctx *context.Context) {
 	key := strings.TrimSpace(ctx.FormString("key"))
 	value := ctx.FormString("value")
 	cfg := setting.Config()
-	allowedKeys := container.SetOf(cfg.Picture.DisableGravatar.DynKey(), cfg.Picture.EnableFederatedAvatar.DynKey())
-	if !allowedKeys.Contains(key) {
+
+	marshalBool := func(v string) (string, error) {
+		if b, _ := strconv.ParseBool(v); b {
+			return "true", nil
+		}
+		return "false", nil
+	}
+	marshalOpenWithApps := func(value string) (string, error) {
+		lines := strings.Split(value, "\n")
+		var openWithEditorApps setting.OpenWithEditorAppsType
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			displayName, openURL, ok := strings.Cut(line, "=")
+			displayName, openURL = strings.TrimSpace(displayName), strings.TrimSpace(openURL)
+			if !ok || displayName == "" || openURL == "" {
+				continue
+			}
+			openWithEditorApps = append(openWithEditorApps, setting.OpenWithEditorApp{
+				DisplayName: strings.TrimSpace(displayName),
+				OpenURL:     strings.TrimSpace(openURL),
+			})
+		}
+		b, err := json.Marshal(openWithEditorApps)
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+	}
+	marshallers := map[string]func(string) (string, error){
+		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
+		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
+		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
+	}
+	marshaller, hasMarshaller := marshallers[key]
+	if !hasMarshaller {
 		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
 		return
 	}
-	if err := system_model.SetSettings(ctx, map[string]string{key: value}); err != nil {
-		log.Error("set setting failed: %v", err)
+	marshaledValue, err := marshaller(value)
+	if err != nil {
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+		return
+	}
+	if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
 		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
 		return
 	}

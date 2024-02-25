@@ -72,7 +72,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     alpine_service.IndexFilename,
+			Filename:     alpine_service.IndexArchiveFilename,
 			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
 		},
 	)
@@ -182,19 +182,38 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+	branch := ctx.Params("branch")
+	repository := ctx.Params("repository")
+	architecture := ctx.Params("architecture")
+
+	opts := &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
 		Query:        ctx.Params("filename"),
-		CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
-	})
+		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
+	}
+	pfs, _, err := packages_model.SearchFiles(ctx, opts)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
+	if len(pfs) == 0 {
+		// Try again with architecture 'noarch'
+		if architecture == alpine_module.NoArch {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
+
+		opts.CompositeKey = fmt.Sprintf("%s|%s|%s", branch, repository, alpine_module.NoArch)
+		if pfs, _, err = packages_model.SearchFiles(ctx, opts); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		if len(pfs) == 0 {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
 	}
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
