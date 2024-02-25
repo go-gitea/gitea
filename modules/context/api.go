@@ -245,7 +245,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...any) {
-	message := ctx.Tr("error.not_found")
+	message := ctx.Locale.TrString("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -307,12 +307,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-			return
-		}
-
 		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
 			if err != nil {
@@ -331,6 +325,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		}
 
 		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
+		var err error
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
@@ -346,7 +341,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == objectFormat.FullLength() {
+		} else if len(refName) == ctx.Repo.GetObjectFormat().FullLength() {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {

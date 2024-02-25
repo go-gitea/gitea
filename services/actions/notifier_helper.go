@@ -136,12 +136,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if input.Event == webhook_module.HookEventDelete {
-		// The event is deleting a reference, so it will fail to get the commit for a deleted reference.
-		// Set ref to empty string to fall back to the default branch.
-		ref = ""
+	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+		if ref != "" {
+			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
+				input.Event, ref)
+		}
+		ref = input.Repo.DefaultBranch
 	}
 	if ref == "" {
+		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
 		ref = input.Repo.DefaultBranch
 	}
 
@@ -157,10 +160,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
-		input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch,
+		shouldDetectSchedules,
 	)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
@@ -207,8 +211,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
-		return err
+	if shouldDetectSchedules {
+		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
+			return err
+		}
 	}
 
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
@@ -473,4 +479,36 @@ func handleSchedules(
 	}
 
 	return actions_model.CreateScheduleTask(ctx, crons)
+}
+
+// DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
+func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	if err != nil {
+		return fmt.Errorf("git.OpenRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	// Only detect schedule workflows on the default branch
+	commit, err := gitRepo.GetCommit(repo.DefaultBranch)
+	if err != nil {
+		return fmt.Errorf("gitRepo.GetCommit: %w", err)
+	}
+	scheduleWorkflows, err := actions_module.DetectScheduledWorkflows(gitRepo, commit)
+	if err != nil {
+		return fmt.Errorf("detect schedule workflows: %w", err)
+	}
+	if len(scheduleWorkflows) == 0 {
+		return nil
+	}
+
+	// We need a notifyInput to call handleSchedules
+	// Here we use the commit author as the Doer of the notifyInput
+	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
+	if err != nil {
+		return fmt.Errorf("get user by email: %w", err)
+	}
+	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+
+	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

@@ -352,7 +352,9 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		}
 
 		if err := PushUpdateAddTag(ctx, repo, gitRepo, tagName, sha1, refname); err != nil {
-			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+			// sometimes, some tags will be sync failed. i.e. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tag/?h=v2.6.11
+			// this is a tree object, not a tag object which created before git
+			log.Error("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %v", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
 		return nil

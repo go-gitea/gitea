@@ -88,7 +88,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
 
-			objectFormat, _ := gitRepo.GetObjectFormat()
+			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
 			commits := repository.NewPushCommits()
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
 			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())
@@ -291,15 +291,13 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 	}
 
-	if !isCreated {
-		notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
-		return nil
-	}
-
 	if !rel.IsDraft {
+		if !isCreated {
+			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
+			return nil
+		}
 		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
-
 	return nil
 }
 
@@ -368,8 +366,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 	}
 
-	notify_service.DeleteRelease(ctx, doer, rel)
-
+	if !rel.IsDraft {
+		notify_service.DeleteRelease(ctx, doer, rel)
+	}
 	return nil
 }
 

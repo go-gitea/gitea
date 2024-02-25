@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -22,6 +23,7 @@ import (
 
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
+	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
@@ -49,6 +51,8 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
@@ -74,6 +78,11 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine *= -1
 	}
 
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
 	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.Doer,
 		ctx.Repo.GitRepo,
@@ -84,6 +93,7 @@ func CreateCodeComment(ctx *context.Context) {
 		!form.SingleReview,
 		form.Reply,
 		form.LatestCommitID,
+		attachments,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
@@ -153,12 +163,30 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
+	ctx.Data["PageIsPullFiles"] = origin == "diff"
+
+	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
 	}
-	ctx.Data["PageIsPullFiles"] = (origin == "diff")
+	if len(comments) == 0 {
+		// if the comments are empty (deleted, outdated, etc), it's better to tell the users that it is outdated
+		ctx.HTML(http.StatusOK, tplConversationOutdated)
+		return
+	}
+
+	for _, c := range comments {
+		if err := c.LoadAttachments(ctx); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -179,6 +207,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.HTML(http.StatusOK, tplDiffConversation)
 	} else if origin == "timeline" {
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
+	} else {
+		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 
@@ -209,9 +239,9 @@ func SubmitReview(ctx *context.Context) {
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
-				translated = ctx.Tr("repo.issues.review.self.approval")
+				translated = ctx.Locale.TrString("repo.issues.review.self.approval")
 			} else {
-				translated = ctx.Tr("repo.issues.review.self.rejection")
+				translated = ctx.Locale.TrString("repo.issues.review.self.rejection")
 			}
 
 			ctx.Flash.Error(translated)

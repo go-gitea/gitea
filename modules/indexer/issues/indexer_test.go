@@ -218,7 +218,7 @@ func searchIssueIsPull(t *testing.T) {
 			SearchOptions{
 				IsPull: util.OptionalBoolTrue,
 			},
-			[]int64{12, 11, 20, 19, 9, 8, 3, 2},
+			[]int64{22, 21, 12, 11, 20, 19, 9, 8, 3, 2},
 		},
 	}
 	for _, test := range tests {
@@ -239,7 +239,7 @@ func searchIssueIsClosed(t *testing.T) {
 			SearchOptions{
 				IsClosed: util.OptionalBoolFalse,
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 19, 18, 10, 7, 9, 8, 3, 2, 1},
+			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 19, 18, 10, 7, 9, 8, 3, 2, 1},
 		},
 		{
 			SearchOptions{
@@ -305,7 +305,7 @@ func searchIssueByLabelID(t *testing.T) {
 			SearchOptions{
 				ExcludedLabelIDs: []int64{1},
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
+			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
 		},
 	}
 	for _, test := range tests {
@@ -329,7 +329,7 @@ func searchIssueByTime(t *testing.T) {
 			SearchOptions{
 				UpdatedAfterUnix: int64Pointer(0),
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
+			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
 	}
 	for _, test := range tests {
@@ -350,7 +350,7 @@ func searchIssueWithOrder(t *testing.T) {
 			SearchOptions{
 				SortBy: internal.SortByCreatedAsc,
 			},
-			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 20, 11, 12, 13, 14, 15, 16, 17},
+			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 20, 11, 12, 13, 14, 15, 16, 17, 21, 22},
 		},
 	}
 	for _, test := range tests {
@@ -410,8 +410,8 @@ func searchIssueWithPaginator(t *testing.T) {
 					PageSize: 5,
 				},
 			},
-			[]int64{17, 16, 15, 14, 13},
-			20,
+			[]int64{22, 21, 17, 16, 15},
+			22,
 		},
 	}
 	for _, test := range tests {

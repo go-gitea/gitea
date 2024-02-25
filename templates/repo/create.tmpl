@@ -51,10 +51,10 @@
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
 								<input name="private" type="checkbox" checked readonly>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
 							{{else}}
 								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
 							{{end}}
 						</div>
 						<span class="help">{{ctx.Locale.Tr "repo.visibility_description"}}</span>
@@ -158,7 +158,7 @@
 									{{end}}
 								</div>
 							</div>
-							<span class="help">{{ctx.Locale.Tr "repo.license_helper_desc" "https://choosealicense.com/" | Str2html}}</span>
+							<span class="help">{{ctx.Locale.Tr "repo.license_helper_desc" "https://choosealicense.com/"}}</span>
 						</div>
 
 						<div class="inline field">
