@@ -194,7 +194,7 @@
 		{{if .HasPullRequest}}
 			<div class="ui segment grid title">
 				<div class="twelve wide column issue-title">
-					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print (Escape $.RepoLink) "/pulls/" .PullRequest.Issue.Index) (Escape $.RepoRelPath) .PullRequest.Index}}
+					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print $.RepoLink "/pulls/" .PullRequest.Issue.Index) $.RepoRelPath .PullRequest.Index}}
 					<h1>
 						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}</span>
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
@@ -202,11 +202,11 @@
 				</div>
 				<div class="four wide column middle aligned text right">
 				{{- if .PullRequest.HasMerged -}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else if .Issue.IsClosed}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{end}}
 				</div>
 			</div>
