@@ -1718,6 +1718,10 @@ func ViewIssue(ctx *context.Context) {
 			for _, codeComments := range comment.Review.CodeComments {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
+						if err := c.LoadAttachments(ctx); err != nil {
+							ctx.ServerError("LoadAttachments", err)
+							return
+						}
 						// Check tag.
 						role, ok = marked[c.PosterID]
 						if ok {

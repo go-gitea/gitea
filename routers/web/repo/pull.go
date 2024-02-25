@@ -970,6 +970,19 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
+	for _, file := range diff.Files {
+		for _, section := range file.Sections {
+			for _, line := range section.Lines {
+				for _, comment := range line.Comments {
+					if err := comment.LoadAttachments(ctx); err != nil {
+						ctx.ServerError("LoadAttachments", err)
+						return
+					}
+				}
+			}
+		}
+	}
+
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
