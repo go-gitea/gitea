@@ -9,7 +9,7 @@
 			{{ctx.Locale.Tr "repo.editor.commit_changes"}}
 		{{- end}}</h3>
 		<div class="field">
-			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{ctx.Locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{ctx.Locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.add_tmpl"}}{{else if .PageIsPatch}}{{ctx.Locale.Tr "repo.editor.patch"}}{{else}}{{ctx.Locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
+			<input name="commit_summary" maxlength="100" placeholder="{{if .PageIsDelete}}{{ctx.Locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{ctx.Locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.add_tmpl"}}{{else if .PageIsPatch}}{{ctx.Locale.Tr "repo.editor.patch"}}{{else}}{{ctx.Locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
 		</div>
 		<div class="field">
 			<textarea name="commit_message" placeholder="{{ctx.Locale.Tr "repo.editor.commit_message_desc"}}" rows="5">{{.commit_message}}</textarea>
@@ -26,7 +26,7 @@
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
-						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape)}}
+						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" .BranchName}}
 						{{if not .CanCommitToBranch.CanCommitToBranch}}
 						<div class="ui visible small warning message">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
@@ -60,7 +60,7 @@
 			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}gt-hidden{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
 					{{svg "octicon-git-branch"}}
-					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast gt-mr-2 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
+					<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast gt-mr-2 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
 			</div>

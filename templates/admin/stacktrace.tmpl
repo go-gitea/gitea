@@ -39,7 +39,7 @@
 		{{ctx.Locale.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_notices" (`<span class="name"></span>`|Safe)}}</p>
+		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_notices" (`<span class="name"></span>`|SafeHTML)}}</p>
 		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
