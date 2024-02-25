@@ -28,10 +28,10 @@
 									{{.Issue.OriginalAuthor}}
 								</span>
 								<span class="text grey muted-links">
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>
 								<span class="text migrate">
-									{{if .Repository.OriginalURL}} ({{ctx.Locale.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape)}}){{end}}
+									{{if .Repository.OriginalURL}} ({{ctx.Locale.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname}}){{end}}
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
@@ -39,7 +39,7 @@
 								</a>
 								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>
 							{{end}}
 						</div>
@@ -133,7 +133,7 @@
 					</div>
 				{{else}}
 					<div class="ui warning message">
-						{{ctx.Locale.Tr "repo.issues.sign_in_require_desc" (.SignInLink|Escape)}}
+						{{ctx.Locale.Tr "repo.issues.sign_in_require_desc" .SignInLink}}
 					</div>
 				{{end}}
 			{{end}}{{/* end if: .IsSigned */}}

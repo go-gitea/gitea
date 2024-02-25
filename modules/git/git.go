@@ -33,16 +33,18 @@ var (
 	// DefaultContext is the default context to run git commands in, must be initialized by git.InitXxx
 	DefaultContext context.Context
 
-	SupportProcReceive bool // >= 2.29
-	SupportHashSha256  bool // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	DefaultFeatures struct {
+		GitVersion *version.Version
 
-	gitVersion *version.Version
+		SupportProcReceive bool // >= 2.29
+		SupportHashSha256  bool // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	}
 )
 
 // loadGitVersion tries to get the current git version and stores it into a global variable
 func loadGitVersion() error {
 	// doesn't need RWMutex because it's executed by Init()
-	if gitVersion != nil {
+	if DefaultFeatures.GitVersion != nil {
 		return nil
 	}
 
@@ -53,7 +55,7 @@ func loadGitVersion() error {
 
 	ver, err := parseGitVersionLine(strings.TrimSpace(stdout))
 	if err == nil {
-		gitVersion = ver
+		DefaultFeatures.GitVersion = ver
 	}
 	return err
 }
@@ -93,7 +95,7 @@ func SetExecutablePath(path string) error {
 		return err
 	}
 
-	if gitVersion.LessThan(versionRequired) {
+	if DefaultFeatures.GitVersion.LessThan(versionRequired) {
 		moreHint := "get git: https://git-scm.com/download/"
 		if runtime.GOOS == "linux" {
 			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
@@ -102,22 +104,22 @@ func SetExecutablePath(path string) error {
 				moreHint = "get git: https://git-scm.com/download/linux and https://ius.io"
 			}
 		}
-		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), RequiredVersion, moreHint)
+		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", DefaultFeatures.GitVersion.Original(), RequiredVersion, moreHint)
 	}
 
-	if err = checkGitVersionCompatibility(gitVersion); err != nil {
-		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", gitVersion.String(), err)
+	if err = checkGitVersionCompatibility(DefaultFeatures.GitVersion); err != nil {
+		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures.GitVersion.String(), err)
 	}
 	return nil
 }
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	if gitVersion == nil {
+	if DefaultFeatures.GitVersion == nil {
 		return "(git not found)"
 	}
 	format := "%s"
-	args := []any{gitVersion.Original()}
+	args := []any{DefaultFeatures.GitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -187,9 +189,9 @@ func InitFull(ctx context.Context) (err error) {
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
-	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
-	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil && !isGogit
-	if SupportHashSha256 {
+	DefaultFeatures.SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
+	DefaultFeatures.SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil && !isGogit
+	if DefaultFeatures.SupportHashSha256 {
 		SupportedObjectFormats = append(SupportedObjectFormats, Sha256ObjectFormat)
 	} else {
 		log.Warn("sha256 hash support is disabled - requires Git >= 2.42. Gogit is currently unsupported")
@@ -254,7 +256,7 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	if SupportProcReceive {
+	if DefaultFeatures.SupportProcReceive {
 		// set support for AGit flow
 		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
@@ -309,15 +311,15 @@ func syncGitConfig() (err error) {
 
 // CheckGitVersionAtLeast check git version is at least the constraint version
 func CheckGitVersionAtLeast(atLeast string) error {
-	if gitVersion == nil {
+	if DefaultFeatures.GitVersion == nil {
 		panic("git module is not initialized") // it shouldn't happen
 	}
 	atLeastVersion, err := version.NewVersion(atLeast)
 	if err != nil {
 		return err
 	}
-	if gitVersion.Compare(atLeastVersion) < 0 {
-		return fmt.Errorf("installed git binary version %s is not at least %s", gitVersion.Original(), atLeast)
+	if DefaultFeatures.GitVersion.Compare(atLeastVersion) < 0 {
+		return fmt.Errorf("installed git binary version %s is not at least %s", DefaultFeatures.GitVersion.Original(), atLeast)
 	}
 	return nil
 }

@@ -23,11 +23,11 @@
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
 				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
 				{{if .OriginalAuthor}}
-					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape)}}
+					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 				{{else if gt .Poster.ID 0}}
-					{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape)}}
+					{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}
 				{{else}}
-					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape)}}
+					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
 				{{end}}
 			</span>
 		</div>
