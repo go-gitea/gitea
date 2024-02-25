@@ -210,12 +210,12 @@ const (
 
 // LocaleString returns the locale string name of the role
 func (r RoleInRepo) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + string(r))
+	return lang.TrString("repo.issues.role." + string(r))
 }
 
 // LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + string(r) + "_helper")
+	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
@@ -695,8 +695,15 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
+	if c.ReviewID == 0 {
+		return nil
+	}
 	if c.Review == nil {
 		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so ignorem them.
+			if c.Type == CommentTypeReviewRequest {
+				return nil
+			}
 			return err
 		}
 	}
@@ -848,6 +855,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
+		}
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
 				if err := comment.loadReview(ctx); err != nil {
@@ -865,22 +875,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeReview:
-		// Check attachments
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
 		}
-
-		for i := range attachments {
-			attachments[i].IssueID = opts.Issue.ID
-			attachments[i].CommentID = comment.ID
-			// No assign value could be 0, so ignore AllCols().
-			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
-			}
-		}
-
-		comment.Attachments = attachments
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err
@@ -888,6 +885,23 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
+}
+
+func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
+	}
+	for i := range attachments {
+		attachments[i].IssueID = opts.Issue.ID
+		attachments[i].CommentID = comment.ID
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
+		}
+	}
+	comment.Attachments = attachments
+	return nil
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {

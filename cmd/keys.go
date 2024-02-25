@@ -71,7 +71,7 @@ func runKeys(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup(ctx, false)
+	setup(ctx, c.Bool("debug"))
 
 	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
 	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys

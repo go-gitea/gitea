@@ -44,12 +44,12 @@ func fatalTestError(fmtStr string, args ...any) {
 }
 
 // InitSettings initializes config provider and load common settings for tests
-func InitSettings(extraConfigs ...string) {
+func InitSettings() {
 	if setting.CustomConf == "" {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 
 	if err := setting.PrepareAppDataPath(); err != nil {

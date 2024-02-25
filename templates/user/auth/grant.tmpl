@@ -9,11 +9,11 @@
 				{{template "base/alert" .}}
 				<p>
 					<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
-					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML | Str2html}}
+					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}
 				</p>
 			</div>
 			<div class="ui attached segment">
-				<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
+				<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>
 			</div>
 			<div class="ui attached segment">
 				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
