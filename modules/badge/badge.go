@@ -5,6 +5,7 @@ package badge
 
 import (
 	actions_model "code.gitea.io/gitea/models/actions"
+
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 )
