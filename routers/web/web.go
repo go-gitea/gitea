@@ -686,6 +686,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Get("/settings", admin.ConfigSettings)
 		})
 
 		m.Group("/monitor", func() {
@@ -1401,6 +1402,10 @@ func registerRoutes(m *web.Route) {
 			m.Group("/code-frequency", func() {
 				m.Get("", repo.CodeFrequency)
 				m.Get("/data", repo.CodeFrequencyData)
+			})
+			m.Group("/recent-commits", func() {
+				m.Get("", repo.RecentCommits)
+				m.Get("/data", repo.RecentCommitsData)
 			})
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 

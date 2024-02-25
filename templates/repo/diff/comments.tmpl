@@ -16,17 +16,17 @@
 						{{.OriginalAuthor}}
 					</span>
 					<span class="text grey muted-links">
-						{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{ctx.Locale.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape)}})
+							({{ctx.Locale.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname}})
 						{{end}}
 					</span>
 				{{else}}
 					<span class="text grey muted-links">
 						{{template "shared/user/namelink" .Poster}}
-						{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr}}
+						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 				{{end}}
 			</div>
@@ -61,7 +61,10 @@
 			{{end}}
 			</div>
 			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
+			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			{{if .Attachments}}
+				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
