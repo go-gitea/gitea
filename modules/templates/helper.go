@@ -14,7 +14,6 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -159,7 +158,6 @@ func NewFuncMap() template.FuncMap {
 		"RenderCodeBlock":  RenderCodeBlock,
 		"RenderIssueTitle": RenderIssueTitle,
 		"RenderEmoji":      RenderEmoji,
-		"RenderEmojiPlain": RenderEmojiPlain,
 		"ReactionToEmoji":  ReactionToEmoji,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
@@ -213,16 +211,6 @@ func Escape(s any) template.HTML {
 
 func JSEscapeSafe(s string) template.HTML {
 	return template.HTML(template.JSEscapeString(s))
-}
-
-func RenderEmojiPlain(s any) any {
-	switch v := s.(type) {
-	case string:
-		return emoji.ReplaceAliases(v)
-	case template.HTML:
-		return template.HTML(emoji.ReplaceAliases(string(v)))
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
