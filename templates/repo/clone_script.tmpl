@@ -35,8 +35,8 @@
 		for (const el of document.getElementsByClassName('js-clone-url')) {
 			el[el.nodeName === 'INPUT' ? 'value' : 'textContent'] = link;
 		}
-		for (const el of document.getElementsByClassName('js-clone-url-vsc')) {
-			el['href'] = 'vscode://vscode.git/clone?url=' + encodeURIComponent(link);
+		for (const el of document.getElementsByClassName('js-clone-url-editor')) {
+			el.href = el.getAttribute('data-href-template').replace('{url}', encodeURIComponent(link));
 		}
 	})();
 </script>
