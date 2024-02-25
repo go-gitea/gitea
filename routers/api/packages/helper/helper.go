@@ -10,9 +10,13 @@ import (
 	"net/url"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LogAndProcessError logs an error and calls a custom callback with the processed error message.
@@ -60,4 +64,46 @@ func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf 
 	}
 
 	ctx.ServeContent(s, opts)
+}
+
+// Try to connect repository to uploaded package.
+// If request header with repository is provided by user - it will be used
+// to connect gitea repository. Otherwise, metadata repository variable will
+// be used if provided in package metadata.
+func TryConnectRepository(ctx *context.Context, packageID int64, metadataRepository string) error {
+	var repo *repo_model.Repository
+	var err error
+
+	if headers, ok := ctx.Req.Header["X-Package-Repository"]; ok {
+		if len(headers) != 1 {
+			return util.NewInvalidArgumentErrorf("too many package repository connection headers")
+		}
+
+		repo, err = repo_model.GetRepositoryByName(ctx, ctx.Package.Owner.ID, headers[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	if metadataRepository != "" && repo == nil {
+		repo, err = repo_model.GetRepositoryByURL(ctx, metadataRepository)
+		if err != nil {
+			return err
+		}
+	}
+
+	if repo == nil {
+		return nil
+	}
+
+	perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		return err
+	}
+
+	if !perms.CanWrite(unit.TypePackages) {
+		return util.NewPermissionDeniedErrorf("no permission to link package to repository: %s, or packages are disabled", repo.Name)
+	}
+
+	return packages_model.SetRepositoryLink(ctx, packageID, repo.ID)
 }

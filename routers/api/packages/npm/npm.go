@@ -14,9 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
@@ -162,26 +159,6 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(ctx, npmPackage.Metadata.Repository.URL)
-	if err == nil {
-		canWrite := repo.OwnerID == ctx.Doer.ID
-
-		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
-			}
-
-			canWrite = perms.CanWrite(unit.TypePackages)
-		}
-
-		if !canWrite {
-			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
-			return
-		}
-	}
-
 	buf, err := packages_module.CreateHashedBufferFromReader(bytes.NewReader(npmPackage.Data))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -234,11 +211,18 @@ func UploadPackage(ctx *context.Context) {
 		}
 	}
 
-	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+	if err = helper.TryConnectRepository(ctx, pv.PackageID, npmPackage.Metadata.Repository.URL); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
+		default:
 			apiError(ctx, http.StatusInternalServerError, err)
-			return
 		}
+		return
 	}
 
 	ctx.Status(http.StatusCreated)

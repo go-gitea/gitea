@@ -259,6 +259,20 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
+	if err = helper.TryConnectRepository(ctx, pv.PackageID, cp.Metadata.RepositoryURL); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	ctx.JSON(http.StatusOK, StatusResponse{OK: true})
 }
 
