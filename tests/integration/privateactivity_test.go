@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -53,7 +52,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"name":               privateActivityTestUser,
 		"email":              privateActivityTestUser + "@example.com",
 		"language":           "en-US",
-		"actions_visibility": fmt.Sprintf("%d", structs.ActionsVisibilityNone),
+		"actions_visibility": fmt.Sprintf("%d", api.ActionsVisibilityNone),
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
