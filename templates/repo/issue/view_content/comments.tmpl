@@ -610,9 +610,9 @@
 					{{$newProjectDisplayHtml := .CommentMetaData.ProjectTitle | Escape}}
 					{{if .Project}}
 						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
-						{{$newProjectDisplayHtml = printf `%s <a href="%s"><span data-tooltip-content="%s">%s</span></a>` (svg .Project.IconName) (.Project.Link ctx) (ctx.Locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
+						{{$newProjectDisplayHtml = HTMLFormat `%s <a href="%s"><span data-tooltip-content="%s">%s</span></a>` (svg .Project.IconName) (.Project.Link ctx) (ctx.Locale.Tr $trKey) .Project.Title}}
 					{{end}}
-					{{ctx.Locale.Tr "repo.issues.move_to_column_of_project" (.CommentMetaData.ProjectColumnTitle|Escape) ($newProjectDisplayHtml|Safe) $createdStr}}
+					{{ctx.Locale.Tr "repo.issues.move_to_column_of_project" (.CommentMetaData.ProjectColumnTitle|Escape) $newProjectDisplayHtml $createdStr}}
 				</span>
 			</div>
 			{{end}}
