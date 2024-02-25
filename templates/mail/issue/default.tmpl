@@ -22,13 +22,13 @@
 			{{if .Comment.IsForcePush}}
 				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.OldCommit}}
 				{{$oldShortSha := ShortSha .Comment.OldCommit}}
-				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $oldCommitUrl) (Escape $oldShortSha)}}
+				{{$oldCommitLink := HTMLFormat "<a href='%[1]s'><b>%[2]s</b></a>" $oldCommitUrl $oldShortSha}}
 
 				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.NewCommit}}
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
-				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
+				{{$newCommitLink := HTMLFormat "<a href='%[1]s'><b>%[2]s</b></a>" $newCommitUrl $newShortSha}}
 
-				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch ($oldCommitLink|Safe) ($newCommitLink|Safe)}}
+				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink}}
 			{{else}}
 				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits)}}
 			{{end}}
@@ -65,7 +65,7 @@
 			{{$.locale.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
-				<div>{{.RenderedContent | Safe}}</div>
+				<div>{{.RenderedContent | SafeHTML}}</div>
 			</div>
 		{{end -}}
 		{{if eq .ActionName "push"}}
