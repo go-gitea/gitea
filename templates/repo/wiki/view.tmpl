@@ -107,7 +107,7 @@
 		{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape)}}</p>
+		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" $title}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
