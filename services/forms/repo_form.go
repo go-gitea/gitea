@@ -626,6 +626,7 @@ type CodeCommentForm struct {
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
+	Files          []string
 }
 
 // Validate validates the fields
