@@ -5,6 +5,7 @@ package base
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -22,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
-	"github.com/minio/sha256-simd"
 )
 
 // EncodeSha1 string to sha1 hex value.
