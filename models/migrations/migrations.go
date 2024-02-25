@@ -559,7 +559,7 @@ var migrations = []Migration{
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 	// v287 -> v288
-	NewMigration("Add change KeepActivityPrivate to AddActionsVisibility", v1_22.AddActionsVisibility),
+	NewMigration("Change KeepActivityPrivate to AddActionsVisibility", v1_22.AddActionsVisibility),
 }
 
 // GetCurrentDBVersion returns the current db version
