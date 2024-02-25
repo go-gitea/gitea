@@ -545,7 +545,8 @@ func TestNoteToComment(t *testing.T) {
 	notes := []gitlab.Note{
 		makeTestNote(1, "This is a regular comment", false),
 		makeTestNote(2, "enabled an automatic merge for abcd1234", true),
-		makeTestNote(3, "canceled the automatic merge", true),
+		makeTestNote(3, "changed target branch from `master` to `main`", true),
+		makeTestNote(4, "canceled the automatic merge", true),
 	}
 	comments := []base.Comment{{
 		IssueIndex:  17,
@@ -556,6 +557,7 @@ func TestNoteToComment(t *testing.T) {
 		CommentType: "",
 		Content:     "This is a regular comment",
 		Created:     now,
+		Meta:        map[string]any{},
 	}, {
 		IssueIndex:  17,
 		Index:       2,
@@ -565,15 +567,30 @@ func TestNoteToComment(t *testing.T) {
 		CommentType: "pull_scheduled_merge",
 		Content:     "enabled an automatic merge for abcd1234",
 		Created:     now,
+		Meta:        map[string]any{},
 	}, {
 		IssueIndex:  17,
 		Index:       3,
 		PosterID:    72,
 		PosterName:  "test",
 		PosterEmail: "test@example.com",
+		CommentType: "change_target_branch",
+		Content:     "changed target branch from `master` to `main`",
+		Created:     now,
+		Meta: map[string]any{
+			"OldRef": "master",
+			"NewRef": "main",
+		},
+	}, {
+		IssueIndex:  17,
+		Index:       4,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
 		CommentType: "pull_cancel_scheduled_merge",
 		Content:     "canceled the automatic merge",
 		Created:     now,
+		Meta:        map[string]any{},
 	}}
 
 	for i, note := range notes {

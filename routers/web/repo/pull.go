@@ -28,10 +28,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
@@ -186,7 +188,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		// Add it as the first option
 		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},
 	})
@@ -334,7 +336,7 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 		ctx.ServerError("LoadRepo", err)
 		return nil, false
 	}
-	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 	ctx.Data["Issue"] = issue
 
 	if !issue.IsPull {
@@ -966,6 +968,19 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
+	}
+
+	for _, file := range diff.Files {
+		for _, section := range file.Sections {
+			for _, line := range section.Lines {
+				for _, comment := range line.Comments {
+					if err := comment.LoadAttachments(ctx); err != nil {
+						ctx.ServerError("LoadAttachments", err)
+						return
+					}
+				}
+			}
+		}
 	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)

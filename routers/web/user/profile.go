@@ -324,6 +324,7 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
 	} else if ctx.ContextUser.IsOrganization() {
+		ctx.Data["Org"] = ctx.ContextUser
 		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
 		return
