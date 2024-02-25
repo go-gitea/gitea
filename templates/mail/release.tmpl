@@ -11,11 +11,11 @@
 
 </head>
 
-{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape)}}
-{{$repo_url := printf "<a href='%s'>%s</a>" (.Release.Repo.HTMLURL | Escape) (.Release.Repo.FullName | Escape)}}
+{{$release_url := HTMLFormat "<a href='%s'>%s</a>" .Release.HTMLURL .Release.TagName}}
+{{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .Release.Repo.HTMLURL .Release.Repo.FullName}}
 <body>
 	<p>
-		{{.locale.Tr "mail.release.new.text" .Release.Publisher.Name ($release_url|Safe) ($repo_url|Safe)}}
+		{{.locale.Tr "mail.release.new.text" .Release.Publisher.Name $release_url $repo_url}}
 	</p>
 	<h4>{{.locale.Tr "mail.release.title" .Release.Title}}</h4>
 	<p>
