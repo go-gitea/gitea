@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -90,7 +91,6 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
@@ -458,13 +458,14 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.getRepoDir()))
-	if err := cmd.Run(&git.RunOpts{
-		Dir:               h.getRepoDir(),
-		Env:               append(os.Environ(), h.environ...),
-		Stdout:            ctx.Resp,
-		Stdin:             reqBody,
-		Stderr:            &stderr,
-		UseContextTimeout: true,
+	if err := gitrepo.RunGitCmd(h.repo, cmd, &gitrepo.RunOpts{
+		RunOpts: git.RunOpts{
+			Env:               append(os.Environ(), h.environ...),
+			Stdout:            ctx.Resp,
+			Stdin:             reqBody,
+			Stderr:            &stderr,
+			UseContextTimeout: true,
+		},
 	}); err != nil {
 		if err.Error() != "signal: killed" {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
@@ -497,8 +498,9 @@ func getServiceType(ctx *context.Context) string {
 	return strings.TrimPrefix(serviceType, "git-")
 }
 
-func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := git.NewCommand(ctx, "update-server-info").RunStdBytes(&git.RunOpts{Dir: dir})
+func updateServerInfo(ctx gocontext.Context, repo *repo_model.Repository) []byte {
+	cmd := git.NewCommand(ctx, "update-server-info")
+	out, _, err := gitrepo.RunGitCmdStdBytes(repo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -528,7 +530,10 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".")
+		refs, _, err := gitrepo.RunGitCmdStdBytes(h.repo, cmd, &gitrepo.RunOpts{
+			RunOpts: git.RunOpts{Env: h.environ},
+		})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -539,7 +544,7 @@ func GetInfoRefs(ctx *context.Context) {
 		_, _ = ctx.Resp.Write([]byte("0000"))
 		_, _ = ctx.Resp.Write(refs)
 	} else {
-		updateServerInfo(ctx, h.getRepoDir())
+		updateServerInfo(ctx, h.repo)
 		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
 	}
 }

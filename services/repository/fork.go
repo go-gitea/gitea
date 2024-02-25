@@ -157,9 +157,9 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
-			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		cmd := git.NewCommand(txCtx, "update-server-info").
+			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", gitrepo.RepoGitURL(repo)))
+		if stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}

@@ -80,7 +80,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo, doer, repo.RepoPath(), opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

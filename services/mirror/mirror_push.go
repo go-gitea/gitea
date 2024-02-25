@@ -29,33 +29,39 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
-	addRemoteAndConfig := func(addr, path string) error {
+	addRemoteAndConfig := func(addr string, repo gitrepo.Repository, isWiki bool) error {
 		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
+		url := gitrepo.RepoGitURL(repo)
+		if isWiki {
+			url = gitrepo.WikiRepoGitURL(repo)
+		}
 		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), path))
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), url))
 		} else {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, url))
 		}
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{IsWiki: isWiki}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		cmd = git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*")
+		if _, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{IsWiki: isWiki}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		cmd = git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		if _, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{IsWiki: isWiki}); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err := addRemoteAndConfig(addr, m.Repo.RepoPath()); err != nil {
+	if err := addRemoteAndConfig(addr, m.Repo, false); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
 		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
 		if len(wikiRemoteURL) > 0 {
-			if err := addRemoteAndConfig(wikiRemoteURL, m.Repo.WikiPath()); err != nil {
+			if err := addRemoteAndConfig(wikiRemoteURL, m.Repo, true); err != nil {
 				return err
 			}
 		}
@@ -69,12 +75,12 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(m.RemoteName)
 	_ = m.GetRepository(ctx)
 
-	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
+	if _, _, err := gitrepo.RunGitCmdStdString(m.Repo, cmd, &gitrepo.RunOpts{}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
+		if _, _, err := gitrepo.RunGitCmdStdString(m.Repo, cmd, &gitrepo.RunOpts{IsWiki: true}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}

@@ -298,9 +298,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		cmd := git.NewCommand(ctx, "update-server-info").
+			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", gitrepo.RepoGitURL(repo)))
+		if stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
