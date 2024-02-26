@@ -38,7 +38,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   if (!err && message) console.error(new Error(message));
 
   // If the error stack trace does not include the base URL of our scripts, it is likely coming from
-  // a browser extension or inline script. Do not show these in production builds.
+  // a browser extension or inline script. Do not show such errors in production builds.
   if (!err?.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
 
   // At the moment, Firefox (iOS) (10x) has an engine bug. If a script inserts a newly created (and
