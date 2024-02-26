@@ -7,7 +7,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 
@@ -138,10 +137,10 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 
 	keyword := ctx.FormTrim("q")
-	ctx.Data["Keyword"] = url.PathEscape(keyword)
+	ctx.Data["Keyword"] = keyword
 
 	language := ctx.FormTrim("language")
-	ctx.Data["Language"] = url.PathEscape(language)
+	ctx.Data["Language"] = language
 
 	followers, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 		PageSize: pagingNum,

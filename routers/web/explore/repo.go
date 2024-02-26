@@ -108,7 +108,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	language := ctx.FormTrim("language")
-	ctx.Data["Language"] = url.PathEscape(language)
+	ctx.Data["Language"] = url.QueryEscape(language)
 
 	archived := ctx.FormOptionalBool("archived")
 	ctx.Data["IsArchived"] = archived
@@ -163,7 +163,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		return
 	}
 
-	ctx.Data["Keyword"] = url.PathEscape(keyword)
+	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
