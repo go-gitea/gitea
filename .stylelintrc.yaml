@@ -98,7 +98,7 @@ rules:
   at-rule-allowed-list: null
   at-rule-disallowed-list: null
   at-rule-empty-line-before: null
-  at-rule-no-unknown: true
+  at-rule-no-unknown: [true, {ignoreAtRules: [tailwind]}]
   at-rule-no-vendor-prefix: true
   at-rule-property-required-list: null
   block-no-empty: true
