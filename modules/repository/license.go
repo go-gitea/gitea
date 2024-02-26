@@ -265,7 +265,6 @@ func updateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		if err != nil {
 			return fmt.Errorf("detectLicense: %w", err)
 		}
-
 	}
 	return repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses)
 }
