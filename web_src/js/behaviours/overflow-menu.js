@@ -3,16 +3,16 @@ import {svg} from '../svg.js';
 import {createTippy} from '../modules/tippy.js';
 
 const update = throttle(100, (menu) => {
-  let buttonParent = menu.querySelector('.overflow-menu-dropdown');
-  if (!buttonParent) {
+  let dropdownParent = menu.querySelector('.overflow-menu-dropdown');
+  if (!dropdownParent) {
     const div = document.createElement('div');
     div.classList.add('overflow-menu-dropdown', 'ui', 'vertical', 'menu', 'tippy-target');
     menu.append(div);
-    buttonParent = div;
+    dropdownParent = div;
   }
 
   const menuParent = menu.querySelector('.overflow-menu-items');
-  const dropdownItems = buttonParent?.querySelectorAll('.item') || [];
+  const dropdownItems = dropdownParent?.querySelectorAll('.item') || [];
   for (const item of dropdownItems) {
     menuParent.append(item);
   }
@@ -29,7 +29,7 @@ const update = throttle(100, (menu) => {
 
   if (itemsToMove?.length) {
     for (const item of itemsToMove) {
-      buttonParent.append(item);
+      dropdownParent.append(item);
     }
 
     menu.querySelector('.overflow-menu-button')?.remove();
@@ -44,7 +44,7 @@ const update = throttle(100, (menu) => {
       interactive: true,
       placement: 'bottom-end',
       role: 'menu',
-      content: buttonParent.cloneNode(true),
+      content: dropdownParent.cloneNode(true),
     });
   } else {
     menu.querySelector('.overflow-menu-button')?.remove();
