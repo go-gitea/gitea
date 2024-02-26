@@ -4,10 +4,13 @@
 package issues_test
 
 import (
+	"cmp"
+	"slices"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -76,64 +79,133 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 
 func TestIssueList_BlockingDependenciesMap(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.EnableTimetracking = true
 	issueList := issues_model.IssueList{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 20}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 22}),
 	}
 
 	blockingDependenciesMap, err := issueList.BlockingDependenciesMap(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Len(t, blockingDependenciesMap, 2)
+	if assert.Len(t, blockingDependenciesMap, 2) {
+		var keys []int64
+		for k := range blockingDependenciesMap {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		assert.EqualValues(t, []int64{20, 22}, keys)
 
-	issue1DepInfos := blockingDependenciesMap[1]
-	assert.Len(t, issue1DepInfos, 2)
-	issue2DepInfos := blockingDependenciesMap[2]
-	assert.Nil(t, issue2DepInfos)
-	issue3DepInfos := blockingDependenciesMap[3]
-	assert.Nil(t, issue3DepInfos)
-	issue4DepInfos := blockingDependenciesMap[4]
-	assert.Len(t, issue4DepInfos, 1)
-
-	for _, depInfo := range issue1DepInfos {
-		assert.Equal(t, int64(1), depInfo.DependencyID)
-		assert.Contains(t, [3]int64{3, 4}, depInfo.Issue.ID)
+		if assert.Len(t, blockingDependenciesMap[20], 1) {
+			expectIssuesDependencyInfo(t,
+				&issues_model.DependencyInfo{
+					IssueID:      21,
+					DependencyID: 20,
+					Issue:        issues_model.Issue{ID: 21},
+					Repository:   repo_model.Repository{ID: 60},
+				},
+				blockingDependenciesMap[20][0])
+		}
+		if assert.Len(t, blockingDependenciesMap[22], 2) {
+			list := sortIssuesDependencyInfos(blockingDependenciesMap[22])
+			expectIssuesDependencyInfo(t, &issues_model.DependencyInfo{
+				IssueID:      20,
+				DependencyID: 22,
+				Issue:        issues_model.Issue{ID: 20},
+				Repository:   repo_model.Repository{ID: 23},
+			}, list[0])
+			expectIssuesDependencyInfo(t, &issues_model.DependencyInfo{
+				IssueID:      21,
+				DependencyID: 22,
+				Issue:        issues_model.Issue{ID: 21},
+				Repository:   repo_model.Repository{ID: 60},
+			}, list[1])
+		}
 	}
 
-	for _, depInfo := range issue4DepInfos {
-		assert.Equal(t, int64(4), depInfo.DependencyID)
-		assert.Equal(t, int64(1), depInfo.Issue.ID)
+	issueList = issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 22}),
 	}
+
+	blockingDependenciesMap, err = issueList.BlockingDependenciesMap(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, blockingDependenciesMap, 1)
+	assert.Len(t, blockingDependenciesMap[22], 2)
 }
 
 func TestIssueList_BlockedByDependenciesMap(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.EnableTimetracking = true
 	issueList := issues_model.IssueList{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 20}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 22}),
 	}
 
 	blockedByDependenciesMap, err := issueList.BlockedByDependenciesMap(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Len(t, blockedByDependenciesMap, 2)
+	if assert.Len(t, blockedByDependenciesMap, 2) {
+		var keys []int64
+		for k := range blockedByDependenciesMap {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		assert.EqualValues(t, []int64{20, 21}, keys)
 
-	issue1DepInfos := blockedByDependenciesMap[1]
-	assert.Len(t, issue1DepInfos, 3)
-	issue2DepInfos := blockedByDependenciesMap[2]
-	assert.Nil(t, issue2DepInfos)
-	issue3DepInfos := blockedByDependenciesMap[3]
-	assert.Nil(t, issue3DepInfos)
-	issue4DepInfos := blockedByDependenciesMap[4]
-	assert.Len(t, issue4DepInfos, 2)
-
-	for _, depInfo := range issue1DepInfos {
-		assert.Equal(t, int64(1), depInfo.IssueID)
-		assert.Contains(t, [3]int64{2, 3, 4}, depInfo.Issue.ID)
+		if assert.Len(t, blockedByDependenciesMap[20], 1) {
+			expectIssuesDependencyInfo(t,
+				&issues_model.DependencyInfo{
+					IssueID:      20,
+					DependencyID: 22,
+					Issue:        issues_model.Issue{ID: 22},
+					Repository:   repo_model.Repository{ID: 61},
+				},
+				blockedByDependenciesMap[20][0])
+		}
+		if assert.Len(t, blockedByDependenciesMap[21], 2) {
+			list := sortIssuesDependencyInfos(blockedByDependenciesMap[21])
+			expectIssuesDependencyInfo(t, &issues_model.DependencyInfo{
+				IssueID:      21,
+				DependencyID: 20,
+				Issue:        issues_model.Issue{ID: 20},
+				Repository:   repo_model.Repository{ID: 23},
+			}, list[0])
+			expectIssuesDependencyInfo(t, &issues_model.DependencyInfo{
+				IssueID:      21,
+				DependencyID: 22,
+				Issue:        issues_model.Issue{ID: 22},
+				Repository:   repo_model.Repository{ID: 61},
+			}, list[1])
+		}
 	}
 
-	for _, depInfo := range issue4DepInfos {
-		assert.Equal(t, int64(4), depInfo.IssueID)
-		assert.Contains(t, [3]int64{1, 2}, depInfo.Issue.ID)
+	issueList = issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 22}),
 	}
+
+	blockedByDependenciesMap, err = issueList.BlockedByDependenciesMap(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, blockedByDependenciesMap, 1)
+	assert.Len(t, blockedByDependenciesMap[21], 2)
+}
+
+func expectIssuesDependencyInfo(t *testing.T, expect, got *issues_model.DependencyInfo) {
+	if expect == nil {
+		assert.Nil(t, got)
+		return
+	}
+	if !assert.NotNil(t, got) {
+		return
+	}
+	assert.EqualValues(t, expect.DependencyID, got.DependencyID, "DependencyID")
+	assert.EqualValues(t, expect.IssueID, got.IssueID, "IssueID")
+	assert.EqualValues(t, expect.Issue.ID, got.Issue.ID, "RelatedIssueID")
+	assert.EqualValues(t, expect.Repository.ID, got.Repository.ID, "RelatedIssueRepoID")
+}
+
+func sortIssuesDependencyInfos(in []*issues_model.DependencyInfo) []*issues_model.DependencyInfo {
+	slices.SortFunc(in, func(a, b *issues_model.DependencyInfo) int {
+		return cmp.Compare(a.DependencyID, b.DependencyID)
+	})
+	return in
 }
