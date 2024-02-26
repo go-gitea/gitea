@@ -29,7 +29,7 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}) {
-  let err = error ?? reason;
+  const err = error ?? reason;
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
 
   // Normally the browser will log the error to the console, but in some cases like "ResizeObserver
