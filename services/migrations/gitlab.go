@@ -501,9 +501,8 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 				reactions, err := g.loadAwards(func(awardPage int) ([]*gitlab.AwardEmoji, *gitlab.Response, error) {
 					if context.IsMergeRequest {
 						return g.client.AwardEmoji.ListMergeRequestAwardEmojiOnNote(g.repoID, note.NoteableIID, note.ID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: g.maxPerPage}, gitlab.WithContext(g.ctx))
-					} else {
-						return g.client.AwardEmoji.ListIssuesAwardEmojiOnNote(g.repoID, note.NoteableIID, note.ID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: g.maxPerPage}, gitlab.WithContext(g.ctx))
 					}
+					return g.client.AwardEmoji.ListIssuesAwardEmojiOnNote(g.repoID, note.NoteableIID, note.ID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: g.maxPerPage}, gitlab.WithContext(g.ctx))
 				})
 				if err != nil {
 					return nil, false, err
