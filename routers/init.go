@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -165,6 +166,8 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(svg.Init)
 
 	actions_service.Init()
+
+	mustInit(repository.Init)
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

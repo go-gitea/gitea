@@ -159,7 +159,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		// If we've pushed a branch (and not deleted it)
-		if git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
+		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
 			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
@@ -195,8 +195,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			branch := refFullName.BranchName()
 
 			if branch == baseRepo.DefaultBranch {
-				err := repo_module.UpdateRepoLicensesByGitRepo(ctx, repo, nil)
-				if err != nil {
+				if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+					RepoID: repo.ID,
+				}); err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
 					return
 				}

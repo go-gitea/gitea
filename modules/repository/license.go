@@ -15,8 +15,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
@@ -25,7 +28,68 @@ import (
 var (
 	classifier     *licenseclassifier.Classifier
 	licenseAliases map[string]string
+
+	// licenseUpdaterQueue represents a queue to handle update repo licenses
+	licenseUpdaterQueue *queue.WorkerPoolQueue[*LicenseUpdaterOptions]
 )
+
+func Init() error {
+	licenseUpdaterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_license_updater", repoLicenseUpdater)
+	if licenseUpdaterQueue == nil {
+		return fmt.Errorf("unable to create repo_license_updater queue")
+	}
+	go graceful.GetManager().RunWithCancel(licenseUpdaterQueue)
+	return nil
+}
+
+type LicenseUpdaterOptions struct {
+	RepoID   int64
+	CommitID string
+}
+
+func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOptions {
+	ctx := graceful.GetManager().ShutdownContext()
+
+	for _, opts := range items {
+		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("repoLicenseUpdater [%d] failed: GetRepositoryByID: %v", opts.RepoID, err)
+			continue
+		}
+		if repo.IsEmpty {
+			continue
+		}
+
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
+			continue
+		}
+		defer gitRepo.Close()
+
+		var commit *git.Commit
+		if opts.CommitID != "" {
+			commit, err = gitRepo.GetCommit(opts.CommitID)
+		} else {
+			commit, err = gitRepo.GetBranchCommit(repo.DefaultBranch)
+		}
+		if err != nil {
+			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
+			continue
+		}
+		if err = updateRepoLicenses(ctx, repo, commit); err != nil {
+			log.Error("repoLicenseUpdater [%d] failed: updateRepoLicenses: %v", opts.RepoID, err)
+		}
+	}
+	return nil
+}
+
+func AddRepoToLicenseUpdaterQueue(opts *LicenseUpdaterOptions) error {
+	if opts == nil {
+		return nil
+	}
+	return licenseUpdaterQueue.Push(opts)
+}
 
 func loadLicenseAliases() error {
 	if licenseAliases != nil {
@@ -184,29 +248,8 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 	return ret
 }
 
-// UpdateRepoLicensesByGitRepo will update repository licenses col if license file exists
-func UpdateRepoLicensesByGitRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("OpenRepository: %w", err)
-		}
-		defer gitRepo.Close()
-	}
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			// allow empty repo
-			return nil
-		}
-		return err
-	}
-	return UpdateRepoLicenses(ctx, repo, commit)
-}
-
-// UpdateRepoLicenses will update repository licenses col if license file exists
-func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) error {
+// updateRepoLicenses will update repository licenses col if license file exists
+func updateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) error {
 	if commit == nil {
 		return nil
 	}

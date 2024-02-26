@@ -499,8 +499,11 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 				return err
 			}
 		}
-		if err := repo_module.UpdateRepoLicenses(ctx, repo, commit); err != nil {
-			log.Error("UpdateRepoLicenses: %v", err)
+		if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+			RepoID:   repo.ID,
+			CommitID: commit.ID.String(),
+		}); err != nil {
+			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 		}
 		return nil
 	}); err != nil {

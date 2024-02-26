@@ -37,7 +37,10 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	if err := repo_module.UpdateRepoLicenses(ctx, ctx.Repo.Repository, ctx.Repo.Commit); err != nil {
+	if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+		RepoID:   ctx.Repo.Repository.ID,
+		CommitID: ctx.Repo.Commit.ID.String(),
+	}); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})

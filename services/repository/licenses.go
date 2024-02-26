@@ -24,7 +24,7 @@ func SyncRepoLicenses(ctx context.Context) error {
 				return db.ErrCancelledf("before sync repo licenses for %s", repo.FullName())
 			default:
 			}
-			return repo_module.UpdateRepoLicensesByGitRepo(ctx, repo, nil)
+			return repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{RepoID: repo.ID})
 		},
 	); err != nil {
 		log.Trace("Error: SyncRepoLicenses: %v", err)
