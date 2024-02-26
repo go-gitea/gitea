@@ -955,19 +955,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			var config *repo_model.ProjectsConfig
 			if err != nil {
 				config = &repo_model.ProjectsConfig{
-					DisableRepoProjects:  false,
-					DisableOwnerProjects: false,
+					ProjectsMode: repo_model.ProjectsModeAll,
 				}
 			} else {
 				config = unit.ProjectsConfig()
 			}
 
-			if opts.DisableRepoProjects != nil {
-				config.DisableRepoProjects = *opts.DisableRepoProjects
-			}
-
-			if opts.DisableOwnerProjects != nil {
-				config.DisableOwnerProjects = *opts.DisableOwnerProjects
+			if opts.ProjectsMode != nil {
+				config.ProjectsMode = repo_model.ProjectsMode(*opts.ProjectsMode)
 			}
 
 			units = append(units, repo_model.RepoUnit{

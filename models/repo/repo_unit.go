@@ -202,10 +202,21 @@ func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// ProjectsMode represents the projects enabled for a repository
+type ProjectsMode string
+
+const (
+	// ProjectsModeRepo allows only repo-level projects
+	ProjectsModeRepo ProjectsMode = "repo"
+	// ProjectsModeOwner allows only owner-level projects
+	ProjectsModeOwner ProjectsMode = "owner"
+	// ProjectsModeAll allows both kinds of projects
+	ProjectsModeAll ProjectsMode = "all"
+)
+
 // ProjectsConfig describes projects config
 type ProjectsConfig struct {
-	DisableRepoProjects  bool
-	DisableOwnerProjects bool
+	ProjectsMode ProjectsMode
 }
 
 // FromDB fills up a ProjectsConfig from serialized format.

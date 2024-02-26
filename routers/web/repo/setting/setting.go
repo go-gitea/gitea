@@ -535,8 +535,7 @@ func SettingsPost(ctx *context.Context) {
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
 				Config: &repo_model.ProjectsConfig{
-					DisableRepoProjects:  form.ProjectsDisableRepo,
-					DisableOwnerProjects: form.ProjectsDisableOwner,
+					ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
 				},
 			})
 		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {

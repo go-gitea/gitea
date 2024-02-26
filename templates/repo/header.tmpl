@@ -175,7 +175,7 @@
 				{{end}}
 
 				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
-				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects) (not $projectsUnit.ProjectsConfig.DisableRepoProjects)}}
+				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects) (ne $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}

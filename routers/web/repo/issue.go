@@ -594,7 +594,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		}
 
 		var openProjects []*project_model.Project
-		if !projectsConfig.DisableRepoProjects {
+		if projectsConfig.ProjectsMode != repo_model.ProjectsModeOwner {
 			repoProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 				ListOptions: db.ListOptionsAll,
 				RepoID:      repo.ID,
@@ -607,7 +607,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			}
 			openProjects = append(openProjects, repoProjects...)
 		}
-		if !projectsConfig.DisableOwnerProjects {
+		if projectsConfig.ProjectsMode != repo_model.ProjectsModeRepo {
 			ownerProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 				ListOptions: db.ListOptionsAll,
 				OwnerID:     repo.OwnerID,
@@ -625,7 +625,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.Data["OpenProjects"] = openProjects
 
 		var closedProjects []*project_model.Project
-		if !projectsConfig.DisableRepoProjects {
+		if projectsConfig.ProjectsMode != repo_model.ProjectsModeOwner {
 			repoProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 				ListOptions: db.ListOptionsAll,
 				RepoID:      repo.ID,
@@ -639,7 +639,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 			closedProjects = append(closedProjects, repoProjects...)
 		}
-		if !projectsConfig.DisableOwnerProjects {
+		if projectsConfig.ProjectsMode != repo_model.ProjectsModeRepo {
 			ownerProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 				ListOptions: db.ListOptionsAll,
 				OwnerID:     repo.OwnerID,
@@ -974,16 +974,7 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	isProjectsEnabled := false
-	if ctx.Repo.CanWrite(unit.TypeProjects) {
-		projectsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeProjects)
-		if err != nil {
-			ctx.ServerError("GetUnit", err)
-			return
-		}
-		projectsConfig := projectsUnit.ProjectsConfig()
-		isProjectsEnabled = !projectsConfig.DisableRepoProjects || !projectsConfig.DisableOwnerProjects
-	}
+	isProjectsEnabled := ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1498,15 +1489,7 @@ func ViewIssue(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	if ctx.Repo.CanRead(unit.TypeProjects) {
-		projectsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeProjects)
-		if err != nil {
-			ctx.ServerError("GetUnit", err)
-			return
-		}
-		projectsConfig := projectsUnit.ProjectsConfig()
-		ctx.Data["IsProjectsEnabled"] = !projectsConfig.DisableRepoProjects || !projectsConfig.DisableOwnerProjects
-	}
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 
 	// Get more information if it's a pull request.
 	if issue.IsPull {

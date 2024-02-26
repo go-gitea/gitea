@@ -19358,16 +19358,6 @@
           "type": "string",
           "x-go-name": "Description"
         },
-        "disable_owner_projects": {
-          "description": "either `true` to enable owner projects, or `false` to disable them.",
-          "type": "boolean",
-          "x-go-name": "DisableOwnerProjects"
-        },
-        "disable_repo_projects": {
-          "description": "either `true` to enable repo projects, or `false` to disable them.",
-          "type": "boolean",
-          "x-go-name": "DisableRepoProjects"
-        },
         "enable_prune": {
           "description": "enable prune - remove obsolete remote-tracking references",
           "type": "boolean",
@@ -19437,6 +19427,11 @@
           "description": "either `true` to make the repository private or `false` to make it public.\nNote: you will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "projects_mode": {
+          "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
+          "type": "string",
+          "x-go-name": "ProjectsMode"
         },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
@@ -22211,14 +22206,6 @@
           "type": "string",
           "x-go-name": "Description"
         },
-        "disable_owner_projects": {
-          "type": "boolean",
-          "x-go-name": "DisableOwnerProjects"
-        },
-        "disable_repo_projects": {
-          "type": "boolean",
-          "x-go-name": "DisableRepoProjects"
-        },
         "empty": {
           "type": "boolean",
           "x-go-name": "Empty"
@@ -22354,6 +22341,10 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "projects_mode": {
+          "type": "string",
+          "x-go-name": "ProjectsMode"
         },
         "release_counter": {
           "type": "integer",
