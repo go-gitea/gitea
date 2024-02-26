@@ -17,11 +17,11 @@ const update = throttle(100, (menu) => {
 
   if (buttonItems.length && !menu.querySelector('.overflow-menu-button')) {
     const btn = document.createElement('button');
-    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-4');
+    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2');
     btn.innerHTML = svg('octicon-kebab-horizontal');
 
     const itemsMenu = document.createElement('div');
-    itemsMenu.classList.add('overflow-menu-tippy', 'ui', 'vertical', 'menu');
+    itemsMenu.classList.add('overflow-menu-tippy', 'ui', 'secondary', 'vertical', 'menu');
     for (const item of buttonItems) {
       itemsMenu.append(item);
     }
@@ -43,9 +43,12 @@ export function initOverflowMenu() {
   for (const el of document.querySelectorAll('.overflow-menu')) {
     update(el);
     (new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        update(entry.target);
-      }
+      // raf seems to avoid 'ResizeObserver loop completed with undelivered notifications' error
+      requestAnimationFrame(() => {
+        for (const entry of entries) {
+          update(entry.target);
+        }
+      });
     })).observe(el);
   }
 }
