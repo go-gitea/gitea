@@ -389,7 +389,7 @@ export default {
               {{ contributor.name }}
             </h4>
             <p class="gt-font-12 gt-df gt-gap-2">
-              <a v-if="contributor.total_commits" :href="searchQuery + contributor.email">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</a>
+              <strong v-if="contributor.total_commits"><a :href="searchQuery + contributor.email">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</a></strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
