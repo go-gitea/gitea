@@ -51,7 +51,7 @@ function checkItems(tokenAuth) {
   } else {
     enableItems = user?.value !== '' || pass?.value !== '';
   }
-  if (enableItems && Number(service?.value) > 1 && !allowedServiceTypes.includes(Number($service.val()))) {
+  if (enableItems && Number(service?.value) > 1 && !allowedServiceTypes.includes(Number(service?.value))) {
     if (mirror?.checked) {
       for (const item of items) {
         item.disabled = item.name !== 'wiki';
