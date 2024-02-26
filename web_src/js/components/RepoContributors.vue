@@ -90,8 +90,8 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange();
-      const min = new Date(this.xAxisMin).toISOString().split('T')[0];
-      const max = new Date(this.xAxisMax).toISOString().split('T')[0];
+      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
+      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
       this.searchQuery = `${this.repoLink}/commits/branch/${this.repoBranch}/search?q=after:${min}, before:${max}, author:`;
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
