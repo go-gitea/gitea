@@ -1217,11 +1217,10 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 					escapeBtn := &html.Node{
 						Type: html.ElementNode,
-						Data: atom.A.String(),
+						Data: atom.Button.String(),
 						Attr: []html.Attribute{
 							{Key: "class", Val: "toggle-escape-button btn interact-bg"},
 							{Key: "title", Val: btnTitle},
-							{Key: "href", Val: "javascript:void(0)"},
 						},
 					}
 					tdLinesEscape.AppendChild(escapeBtn)
