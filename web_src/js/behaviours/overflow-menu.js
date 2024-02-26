@@ -54,13 +54,13 @@ const update = throttle(100, (menu) => {
 export function initOverflowMenu() {
   for (const el of document.querySelectorAll('.overflow-menu')) {
     update(el);
-    let lastSize;
+    let lastWidth;
     (new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const newSize = entry.contentBoxSize[0].inlineSize;
-        if (newSize !== lastSize) { // only trigger update on horizontal size change
+        const newWidth = entry.contentBoxSize[0].inlineSize;
+        if (newWidth !== lastWidth) {
           update(entry.target);
-          lastSize = newSize;
+          lastWidth = newWidth;
         }
       }
     })).observe(el);
