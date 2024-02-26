@@ -937,18 +937,13 @@ func UpsertIssues(ctx context.Context, issues ...*Issue) error {
 
 func upsertIssue(ctx context.Context, issue *Issue) (isInsert bool, err error) {
 	sess := db.GetEngine(ctx)
-
-	var issueIDs []int64
-	err = sess.Table("issue").Where("repo_id = ? AND `index` = ?", issue.RepoID, issue.Index).Cols("id").Find(&issueIDs)
+	has, err := sess.Table("issue").Where("repo_id = ? AND `index` = ?", issue.RepoID, issue.Index).Cols("id").Get(&issue.ID)
 	if err != nil {
 		return false, err
 	}
-
-	if len(issueIDs) == 0 {
+	if !has {
 		return true, insertIssue(ctx, issue)
 	}
-
-	issue.ID = issueIDs[0]
 	return false, updateIssue(ctx, issue)
 }
 
