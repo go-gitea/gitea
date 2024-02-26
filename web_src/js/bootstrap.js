@@ -33,12 +33,12 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
 
   // Normally the browser will log the error to the console, but in some cases like "ResizeObserver
-  // loop completed with undelivered notifications" in Firefox, e.error is undefined, resulting in
+  // loop completed with undelivered notifications" in Firefox, `error is undefined, resulting in
   // nothing being logged by the browser, so we do it instead.
   if (!err && message) console.error(new Error(message));
 
-  // If the error stack trace does not include the base URL of our scripts, it is likely from a
-  // browser extension or inline script. Do not show these in production builds.
+  // If the error stack trace does not include the base URL of our scripts, it is likely coming from
+  // a browser extension or inline script. Do not show these in production builds.
   if (!err?.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
 
   // At the moment, Firefox (iOS) (10x) has an engine bug. If a script inserts a newly created (and
