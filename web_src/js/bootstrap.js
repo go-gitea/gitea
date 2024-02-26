@@ -28,28 +28,29 @@ export function showGlobalErrorMessage(msg) {
 /**
  * @param {ErrorEvent} e
  */
-function processWindowErrorEvent(e) {
-  const err = e.error ?? e.reason;
+function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}) {
+  let err = error ?? reason;
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
 
-  // error is likely from browser extension or inline script. Do not show these in production builds.
-  if (err?.stack && !err.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
+  // Normally the browser will log the error to the console, but in some cases like "ResizeObserver
+  // loop completed with undelivered notifications" in Firefox, e.error is undefined, resulting in
+  // nothing being logged by the browser, so we do it instead.
+  if (!err && message) console.error(new Error(message));
 
-  let message;
-  if (e.type === 'unhandledrejection') {
-    message = `JavaScript promise rejection: ${err.message}.`;
-  } else {
-    message = `JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}).`;
-  }
+  // If the error stack trace does not include the base URL of our scripts, it is likely from a
+  // browser extension or inline script. Do not show these in production builds.
+  if (!err?.stack?.includes(assetBaseUrl) && window.config?.runModeIsProd) return;
 
-  if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
-    // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
-    // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
-    return; // ignore such nonsense error event
-  }
+  // At the moment, Firefox (iOS) (10x) has an engine bug. If a script inserts a newly created (and
+  // content changed) element into DOM, there will be a nonsense error event reporting: Script
+  // error: line 0, col 0, ignore such nonsense error event.
+  // See https://github.com/go-gitea/gitea/issues/20240
+  if (!err && lineno === 0 && colno === 0 && filename === '' && window.navigator.userAgent.includes('FxiOS/')) return;
 
-  showGlobalErrorMessage(`${message} Open browser console to see more details.`);
-  console.error(err ?? e);
+  const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
+  let msg = err?.message ?? message;
+  if (lineno) msg += `(${filename} @ ${lineno}:${colno})`;
+  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}. Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
