@@ -4,6 +4,22 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.7](https://github.com/go-gitea/gitea/releases/tag/1.21.7) - 2024-02-26
+
+* ENHANCEMENTS
+  * Users with `read` permission of pull requests can be assigned too (#27263) (#29372)
+* BUGFIXES
+  * Do not double close reader (#29354) (#29370)
+  * Display friendly error message (#29105) (#29363)
+  * Fix project counter in organization/individual profile (#28068) (#29361)
+  * Fix validity of the FROM email address not being checked (#29347) (#29360)
+  * Fix tarball/zipball download bug (#29342) (#29352)
+* DOCS
+  * Adjust changelog for v1.21.6 to move prs to correct labels (#29339)
+  * Docker Tag Information in Docs (#29047) (#29362)
+* MISC
+  * Enforce maxlength in frontend (#29389) (#29396)
+
 ## [1.21.6](https://github.com/go-gitea/gitea/releases/tag/v1.21.6) - 2024-02-22
 
 * SECURITY
