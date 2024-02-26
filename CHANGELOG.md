@@ -15,7 +15,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix validity of the FROM email address not being checked (#29347) (#29360)
   * Fix tarball/zipball download bug (#29342) (#29352)
 * DOCS
-  * Adjust changelog for v1.21.6 to move prs to correct labels (#29339)
   * Docker Tag Information in Docs (#29047) (#29362)
 * MISC
   * Enforce maxlength in frontend (#29389) (#29396)
