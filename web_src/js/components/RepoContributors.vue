@@ -66,12 +66,14 @@ export default {
     totalStats: {},
     sortedContributors: {},
     repoLink: pageData.repoLink || [],
+    repoBranch: pageData.repoDefaultBranch || [],
     type: pageData.contributionType,
     contributorsStats: [],
     xAxisStart: null,
     xAxisEnd: null,
     xAxisMin: null,
     xAxisMax: null,
+    searchQuery: '',
   }),
   mounted() {
     this.fetchGraphData();
@@ -88,6 +90,9 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange();
+      const min = new Date(this.xAxisMin).toISOString().split('T')[0];
+      const max = new Date(this.xAxisMax).toISOString().split('T')[0];
+      this.searchQuery = `${this.repoLink}/commits/branch/${this.repoBranch}/search?q=after:${min}, before:${max}, author:`;
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -162,7 +167,7 @@ export default {
         // for details.
         user.max_contribution_type += 1;
 
-        filteredData[key] = {...user, weeks: filteredWeeks};
+        filteredData[key] = {...user, weeks: filteredWeeks, email: key};
       }
 
       return filteredData;
@@ -384,7 +389,7 @@ export default {
               {{ contributor.name }}
             </h4>
             <p class="gt-font-12 gt-df gt-gap-2">
-              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <a v-if="contributor.total_commits" :href="searchQuery + contributor.email">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</a>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
