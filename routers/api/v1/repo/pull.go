@@ -187,6 +187,91 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
+// GetPullRequest returns a single PR based on index
+func GetPullRequestByBaseHead(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{base}/{head} repository repoGetPullRequestByBaseHead
+	// ---
+	// summary: Get a pull request by base and head
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: base
+	//   in: path
+	//   description: base of the pull request to get
+	//   type: string
+	//   required: true
+	// - name: head
+	//   in: path
+	//   description: head of the pull request to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequest"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	var headRepoID int64
+	var headBranch string
+	head := ctx.Params("*")
+	if strings.Contains(head, ":") {
+		split := strings.SplitN(head, ":", 2)
+		headBranch = split[1]
+		var owner, name string
+		if strings.Contains(split[0], "/") {
+			split = strings.Split(split[0], "/")
+			owner = split[0]
+			name = split[1]
+		} else {
+			owner = split[0]
+			name = ctx.Repo.Repository.Name
+		}
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerName", err)
+			}
+			return
+		}
+		headRepoID = repo.ID
+	} else {
+		headRepoID = ctx.Repo.Repository.ID
+		headBranch = head
+	}
+
+	pr, err := issues_model.GetPullRequestByBaseHeadInfo(ctx, ctx.Repo.Repository.ID, headRepoID, ctx.Params(":base"), headBranch)
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByBaseHeadInfo", err)
+		}
+		return
+	}
+
+	if err = pr.LoadBaseRepo(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
+		return
+	}
+	if err = pr.LoadHeadRepo(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+}
+
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
 func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.{diffType} repository repoDownloadPullDiffOrPatch
