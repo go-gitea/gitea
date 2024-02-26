@@ -23,10 +23,11 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true
 
-	ctx.PageData["contributionType"] = "commits"
-
-	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
-	ctx.PageData["repoDefaultBranch"] = ctx.Repo.RefName
+	ctx.PageData["repoContributorsData"] = map[string]any{
+		"contributionType":  "commits",
+		"repoLink":          ctx.Repo.RepoLink,
+		"repoDefaultBranch": ctx.Repo.RefName,
+	}
 
 	ctx.HTML(http.StatusOK, tplContributors)
 }
