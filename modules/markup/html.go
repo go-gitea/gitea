@@ -1271,7 +1271,10 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 		afilepath := &html.Node{
 			Type: html.ElementNode,
 			Data: atom.A.String(),
-			Attr: []html.Attribute{{Key: "href", Val: urlFull}},
+			Attr: []html.Attribute{
+				{Key: "href", Val: urlFull},
+				{Key: "class", Val: "muted"},
+			},
 		}
 		afilepath.AppendChild(&html.Node{
 			Type: html.TextNode,
@@ -1288,7 +1291,7 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 			Type: html.TextNode,
 			Data: subTitle + " in ",
 		})
-		psubtitle.AppendChild(createLink(urlFull[m[0]:m[5]], commitSha[0:7], ""))
+		psubtitle.AppendChild(createLink(urlFull[m[0]:m[5]], commitSha[0:7], "text black"))
 		header.AppendChild(psubtitle)
 
 		preview := &html.Node{

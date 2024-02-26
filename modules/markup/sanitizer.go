@@ -134,6 +134,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("^toggle-escape-button btn interact-bg$")).OnElements("a")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("^ambiguous-code-point$")).OnElements("span")
 	policy.AllowAttrs("data-tooltip-content").OnElements("span")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile("muted|(text black)")).OnElements("a")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{
