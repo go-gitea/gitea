@@ -23,14 +23,14 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.21.x
+XGO_VERSION := go-1.22.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.49.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
@@ -119,7 +119,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.js
+WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/img/webpack
 
@@ -146,6 +146,8 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMAN
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github
+
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
 GO_SOURCES += $(GENERATED_GO_DEST)
@@ -162,8 +164,8 @@ ifdef DEPS_PLAYWRIGHT
 endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
-SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
 SWAGGER_EXCLUDE := code.gitea.io/sdk
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
@@ -219,6 +221,8 @@ help:
 	@echo " - lint-swagger                     lint swagger files"
 	@echo " - lint-templates                   lint template files"
 	@echo " - lint-yaml                        lint yaml files"
+	@echo " - lint-spell                       lint spelling"
+	@echo " - lint-spell-fix                   lint spelling and fix issues"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -308,10 +312,6 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
-.PHONY: misspell-check
-misspell-check:
-	go run $(MISSPELL_PACKAGE) -error $(GO_DIRS) $(WEB_DIRS)
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -351,13 +351,13 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate security-check
+checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check
 
 .PHONY: lint
-lint: lint-frontend lint-backend
+lint: lint-frontend lint-backend lint-spell
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix
+lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css
@@ -394,6 +394,14 @@ lint-swagger: node_modules
 .PHONY: lint-md
 lint-md: node_modules
 	npx markdownlint docs *.md
+
+.PHONY: lint-spell
+lint-spell:
+	@go run $(MISSPELL_PACKAGE) -error $(SPELLCHECK_FILES)
+
+.PHONY: lint-spell-fix
+lint-spell-fix:
+	@go run $(MISSPELL_PACKAGE) -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go:
@@ -594,8 +602,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
-playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save @playwright/test
+playwright: deps-frontend
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
@@ -962,7 +969,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save --no-package-lock fabric@5 imagemin-zopfli@7
+	npm install --no-save fabric@6.0.0-beta19 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
@@ -980,3 +987,8 @@ docker:
 
 # This endif closes the if at the top of the file
 endif
+
+# Disable parallel execution because it would break some targets that don't
+# specify exact dependencies like 'backend' which does currently not depend
+# on 'frontend' to enable Node.js-less builds from source tarballs.
+.NOTPARALLEL:

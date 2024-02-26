@@ -21,11 +21,20 @@
   --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
 }
 
 :root * {
   --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
 }
 
 textarea {
@@ -413,6 +422,13 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
+/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
+.ui.dropdown > .text > .img {
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
+}
+
 .ui.dropdown > .text > .description,
 .ui.dropdown .menu > .item > .description {
   color: var(--color-text-light-2);
@@ -483,6 +499,11 @@ ol.ui.list li,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+.ui.form textarea:not([rows]) {
+  height: var(--min-height-textarea); /* override fomantic default 12em */
+  min-height: var(--min-height-textarea); /* override fomantic default 8em */
 }
 
 /* styles from removed fomantic transition module */
@@ -1268,18 +1289,43 @@ img.ui.avatar,
   border-radius: var(--border-radius);
 }
 
-.attention-icon {
-  vertical-align: text-top;
+.attention {
+  color: var(--color-text) !important;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, span.attention-note {
+  color: var(--color-blue-dark-1);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, span.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, span.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, span.attention-warning {
   color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, span.attention-caution {
+  color: var(--color-red-dark-1);
 }
 
 .center:not(.popup) {

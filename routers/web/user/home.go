@@ -85,7 +85,7 @@ func Dashboard(ctx *context.Context) {
 		page = 1
 	}
 
-	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
+	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Locale.TrString("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
@@ -296,17 +296,17 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	showRepoIds := make(container.Set[int64], len(showRepos))
+	showRepoIDs := make(container.Set[int64], len(showRepos))
 	for _, repo := range showRepos {
 		if repo.ID > 0 {
-			showRepoIds.Add(repo.ID)
+			showRepoIDs.Add(repo.ID)
 		}
 	}
 	if len(repoIDs) == 0 {
-		repoIDs = showRepoIds.Values()
+		repoIDs = showRepoIDs.Values()
 	}
 	repoIDs = slices.DeleteFunc(repoIDs, func(v int64) bool {
-		return !showRepoIds.Contains(v)
+		return !showRepoIDs.Contains(v)
 	})
 
 	var pagerCount int

@@ -204,6 +204,15 @@ func TestRender_links(t *testing.T) {
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
 		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+	test(
+		`[link](https://example.com)`,
+		`<p><a href="https://example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](mailto:test@example.com)`,
+		`<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](javascript:xss)`,
+		`<p>link</p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -672,4 +681,10 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+}
+
+func TestIsFullURL(t *testing.T) {
+	assert.True(t, markup.IsFullURLString("https://example.com"))
+	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
+	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

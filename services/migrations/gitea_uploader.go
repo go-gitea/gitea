@@ -147,8 +147,18 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
-	return err
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, g.repo)
+	if err != nil {
+		return err
+	}
+
+	// detect object format from git repository and update to database
+	objectFormat, err := g.gitRepo.GetObjectFormat()
+	if err != nil {
+		return err
+	}
+	g.repo.ObjectFormatName = objectFormat.Name()
+	return repo_model.UpdateRepositoryCols(g.ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
@@ -522,11 +532,19 @@ func (g *GiteaLocalUploader) prepareComments(comments ...*base.Comment) ([]*issu
 			}
 		case issues_model.CommentTypeChangeTitle:
 			if comment.Meta["OldTitle"] != nil {
-				cm.OldTitle = fmt.Sprintf("%s", comment.Meta["OldTitle"])
+				cm.OldTitle = fmt.Sprint(comment.Meta["OldTitle"])
 			}
 			if comment.Meta["NewTitle"] != nil {
-				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
+				cm.NewTitle = fmt.Sprint(comment.Meta["NewTitle"])
 			}
+		case issues_model.CommentTypeChangeTargetBranch:
+			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
+				cm.OldRef = fmt.Sprint(comment.Meta["OldRef"])
+				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
+				cm.Content = ""
+			}
+		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
+			cm.Content = ""
 		default:
 		}
 
@@ -951,7 +969,7 @@ func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			objectFormat, _ := g.gitRepo.GetObjectFormat()
+			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
 			if !objectFormat.IsValid(comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID

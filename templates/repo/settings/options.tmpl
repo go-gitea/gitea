@@ -32,7 +32,7 @@
 							{{else}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
 							{{end}}
-							<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper"}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
 				{{end}}
@@ -191,7 +191,7 @@
 										<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
 											<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
 											<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
-											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery"}}</p>
 										</div>
 										{{end}}
 										<div class="field">
@@ -409,7 +409,7 @@
 						<div class="field">
 							<label for="tracker_url_format">{{ctx.Locale.Tr "repo.settings.tracker_url_format"}}</label>
 							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
-							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc"}}</p>
 						</div>
 						<div class="inline fields">
 							<label for="issue_style">{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
@@ -437,7 +437,7 @@
 						<div class="field {{if ne $externalTrackerStyle "regexp"}}disabled{{end}}" id="tracker-issue-style-regex-box">
 							<label for="external_tracker_regexp_pattern">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern"}}</label>
 							<input id="external_tracker_regexp_pattern" name="external_tracker_regexp_pattern" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerRegexpPattern}}">
-							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc" | Str2html}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc"}}</p>
 						</div>
 					</div>
 				</div>
@@ -530,6 +530,12 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
+								<input name="pulls_allow_fast_forward_only" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowFastForwardOnly)}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
 								<input name="pulls_allow_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowManualMerge)}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.pulls.merge_manually"}}</label>
 							</div>
@@ -545,6 +551,7 @@
 									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
 									<option value="rebase-merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
 									<option value="squash" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
+									<option value="fast-forward-only" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "fast-forward-only")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</option>
 								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="default text">
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}
@@ -559,12 +566,16 @@
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}
 										{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}
 									{{end}}
+									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "fast-forward-only")}}
+										{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}
+									{{end}}
 								</div>
 								<div class="menu">
 									<div class="item" data-value="merge">{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</div>
 									<div class="item" data-value="rebase">{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
 									<div class="item" data-value="rebase-merge">{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
 									<div class="item" data-value="squash">{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+									<div class="item" data-value="fast-forward-only">{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</div>
 								</div>
 							</div>
 						</div>
@@ -922,8 +933,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
 				{{if .Repository.NumForks}}<br>
 				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
@@ -957,8 +968,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}

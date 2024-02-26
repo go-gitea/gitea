@@ -15,24 +15,24 @@
 		</a>
 		{{end}}
 		{{if and .IsPackageEnabled .CanReadPackages}}
-		<a class="item" href="{{$.Org.HomeLink}}/-/packages">
+		<a class="{{if .IsPackagesPage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/packages">
 			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 		</a>
 		{{end}}
 		{{if and .IsRepoIndexerEnabled .CanReadCode}}
-		<a class="item" href="{{$.Org.HomeLink}}/-/code">
-			{{svg "octicon-code"}}&nbsp;{{ctx.Locale.Tr "org.code"}}
+		<a class="{{if .IsCodePage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/code">
+			{{svg "octicon-code"}} {{ctx.Locale.Tr "org.code"}}
 		</a>
 		{{end}}
 		{{if .NumMembers}}
 			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
-				{{svg "octicon-person"}}&nbsp;{{ctx.Locale.Tr "org.members"}}
+				{{svg "octicon-person"}} {{ctx.Locale.Tr "org.members"}}
 				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
 		{{end}}
 		{{if .IsOrganizationMember}}
 			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
-				{{svg "octicon-people"}}&nbsp;{{ctx.Locale.Tr "org.teams"}}
+				{{svg "octicon-people"}} {{ctx.Locale.Tr "org.teams"}}
 				{{if .NumTeams}}
 					<div class="ui small label">{{.NumTeams}}</div>
 				{{end}}

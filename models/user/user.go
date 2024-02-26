@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -425,14 +426,14 @@ func (u *User) GetDisplayName() string {
 }
 
 // GetCompleteName returns the the full name and username in the form of
-// "Full Name (@username)" if full name is not empty, otherwise it returns
-// "@username".
+// "Full Name (username)" if full name is not empty, otherwise it returns
+// "username".
 func (u *User) GetCompleteName() string {
 	trimmedFullName := strings.TrimSpace(u.FullName)
 	if len(trimmedFullName) > 0 {
-		return fmt.Sprintf("%s (@%s)", trimmedFullName, u.Name)
+		return fmt.Sprintf("%s (%s)", trimmedFullName, u.Name)
 	}
-	return fmt.Sprintf("@%s", u.Name)
+	return u.Name
 }
 
 func gitSafeName(name string) string {
@@ -573,14 +574,14 @@ func IsUsableUsername(name string) error {
 
 // CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
 type CreateUserOverwriteOptions struct {
-	KeepEmailPrivate             util.OptionalBool
+	KeepEmailPrivate             optional.Option[bool]
 	Visibility                   *structs.VisibleType
-	AllowCreateOrganization      util.OptionalBool
+	AllowCreateOrganization      optional.Option[bool]
 	EmailNotificationsPreference *string
 	MaxRepoCreation              *int
 	Theme                        *string
-	IsRestricted                 util.OptionalBool
-	IsActive                     util.OptionalBool
+	IsRestricted                 optional.Option[bool]
+	IsActive                     optional.Option[bool]
 }
 
 // CreateUser creates record of a new user.
@@ -607,14 +608,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
 		overwrite := overwriteDefault[0]
-		if !overwrite.KeepEmailPrivate.IsNone() {
-			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.IsTrue()
+		if overwrite.KeepEmailPrivate.Has() {
+			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.Value()
 		}
 		if overwrite.Visibility != nil {
 			u.Visibility = *overwrite.Visibility
 		}
-		if !overwrite.AllowCreateOrganization.IsNone() {
-			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.IsTrue()
+		if overwrite.AllowCreateOrganization.Has() {
+			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.Value()
 		}
 		if overwrite.EmailNotificationsPreference != nil {
 			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
@@ -625,11 +626,11 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		if overwrite.Theme != nil {
 			u.Theme = *overwrite.Theme
 		}
-		if !overwrite.IsRestricted.IsNone() {
-			u.IsRestricted = overwrite.IsRestricted.IsTrue()
+		if overwrite.IsRestricted.Has() {
+			u.IsRestricted = overwrite.IsRestricted.Value()
 		}
-		if !overwrite.IsActive.IsNone() {
-			u.IsActive = overwrite.IsActive.IsTrue()
+		if overwrite.IsActive.Has() {
+			u.IsActive = overwrite.IsActive.Value()
 		}
 	}
 
@@ -835,7 +836,7 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, "", 0}
+		return nil, ErrUserNotExist{UID: id}
 	}
 	return u, nil
 }
@@ -885,14 +886,14 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 // GetUserByNameCtx returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
 	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
 }
@@ -1033,7 +1034,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, email, 0}
+		return nil, ErrUserNotExist{Name: email}
 	}
 
 	email = strings.ToLower(email)
@@ -1060,7 +1061,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		}
 	}
 
-	return nil, ErrUserNotExist{0, email, 0}
+	return nil, ErrUserNotExist{Name: email}
 }
 
 // GetUser checks if a user already exists
@@ -1071,7 +1072,7 @@ func GetUser(ctx context.Context, user *User) (bool, error) {
 // GetUserByOpenID returns the user object by given OpenID if exists.
 func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 	if len(uri) == 0 {
-		return nil, ErrUserNotExist{0, uri, 0}
+		return nil, ErrUserNotExist{Name: uri}
 	}
 
 	uri, err := openid.Normalize(uri)
@@ -1091,7 +1092,7 @@ func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 		return GetUserByID(ctx, oid.UID)
 	}
 
-	return nil, ErrUserNotExist{0, uri, 0}
+	return nil, ErrUserNotExist{Name: uri}
 }
 
 // GetAdminUser returns the first administrator

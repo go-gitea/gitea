@@ -1122,3 +1122,23 @@ func UpsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 		return nil
 	})
 }
+
+// GetPullRequestByMergedCommit returns a merged pull request by the given commit
+func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
+	pr := new(PullRequest)
+	has, err := db.GetEngine(ctx).Where("base_repo_id = ? AND merged_commit_id = ?", repoID, sha).Get(pr)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
+	}
+
+	if err = pr.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}

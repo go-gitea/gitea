@@ -19,3 +19,17 @@ function getLuminance(r, g, b) {
 export function useLightTextOnBackground(r, g, b) {
   return getLuminance(r, g, b) < 0.453;
 }
+
+function resolveColors(obj) {
+  const styles = window.getComputedStyle(document.documentElement);
+  const getColor = (name) => styles.getPropertyValue(name).trim();
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, getColor(value)]));
+}
+
+export const chartJsColors = resolveColors({
+  text: '--color-text',
+  border: '--color-secondary-alpha-60',
+  commits: '--color-primary-alpha-60',
+  additions: '--color-green',
+  deletions: '--color-red',
+});
