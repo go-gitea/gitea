@@ -1,8 +1,9 @@
-import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
 import {createTippy} from '../modules/tippy.js';
+import {GET} from '../modules/fetch.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
+const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
 
 export function initStopwatch() {
   if (!enableTimeTracking) {
@@ -28,7 +29,7 @@ export function initStopwatch() {
   });
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
-  const currSeconds = $('.stopwatch-time').attr('data-seconds');
+  const currSeconds = document.querySelector('.stopwatch-time')?.getAttribute('data-seconds');
   if (currSeconds) {
     updateStopwatchTime(currSeconds);
   }
@@ -112,29 +113,31 @@ async function updateStopwatchWithCallback(callback, timeout) {
 }
 
 async function updateStopwatch() {
-  const data = await $.ajax({
-    type: 'GET',
-    url: `${appSubUrl}/user/stopwatches`,
-    headers: {'X-Csrf-Token': csrfToken},
-  });
+  const response = await GET(`${appSubUrl}/user/stopwatches`);
+  if (!response.ok) {
+    console.error('Failed to fetch stopwatch data');
+    return false;
+  }
+  const data = await response.json();
   return updateStopwatchData(data);
 }
 
 function updateStopwatchData(data) {
   const watch = data[0];
-  const btnEl = $('.active-stopwatch-trigger');
+  const btnEl = document.querySelector('.active-stopwatch-trigger');
   if (!watch) {
     clearStopwatchTimer();
-    btnEl.addClass('gt-hidden');
+    hideElem(btnEl);
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
-    $('.stopwatch-link').attr('href', issueUrl);
-    $('.stopwatch-commit').attr('action', `${issueUrl}/times/stopwatch/toggle`);
-    $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
-    $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
+    document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
+    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/toggle`);
+    document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
+    const stopwatchIssue = document.querySelector('.stopwatch-issue');
+    if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
     updateStopwatchTime(seconds);
-    btnEl.removeClass('gt-hidden');
+    showElem(btnEl);
   }
   return Boolean(data.length);
 }
@@ -151,12 +154,13 @@ function updateStopwatchTime(seconds) {
   if (!Number.isFinite(secs)) return;
 
   clearStopwatchTimer();
-  const $stopwatch = $('.stopwatch-time');
+  const stopwatch = document.querySelector('.stopwatch-time');
+  // TODO: replace with <relative-time> similar to how system status up time is shown
   const start = Date.now();
   const updateUi = () => {
     const delta = Date.now() - start;
     const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
-    $stopwatch.text(dur);
+    if (stopwatch) stopwatch.textContent = dur;
   };
   updateUi();
   updateTimeIntervalId = setInterval(updateUi, 1000);

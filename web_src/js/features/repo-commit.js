@@ -1,70 +1,70 @@
-import $ from 'jquery';
 import {createTippy} from '../modules/tippy.js';
 import {toggleElem} from '../utils/dom.js';
-
-const {csrfToken} = window.config;
+import {parseDom} from '../utils.js';
+import {POST} from '../modules/fetch.js';
 
 export function initRepoEllipsisButton() {
-  $('.js-toggle-commit-body').on('click', function (e) {
-    e.preventDefault();
-    const expanded = $(this).attr('aria-expanded') === 'true';
-    toggleElem($(this).parent().find('.commit-body'));
-    $(this).attr('aria-expanded', String(!expanded));
-  });
+  for (const button of document.querySelectorAll('.js-toggle-commit-body')) {
+    button.addEventListener('click', function (e) {
+      e.preventDefault();
+      const expanded = this.getAttribute('aria-expanded') === 'true';
+      toggleElem(this.parentElement.querySelector('.commit-body'));
+      this.setAttribute('aria-expanded', String(!expanded));
+    });
+  }
 }
 
-export function initRepoCommitLastCommitLoader() {
-  const notReadyEls = document.querySelectorAll('table#repo-files-table tr.notready');
-  if (!notReadyEls.length) return;
-
+export async function initRepoCommitLastCommitLoader() {
   const entryMap = {};
-  const entries = [];
-  for (const el of notReadyEls) {
-    const entryname = el.getAttribute('data-entryname');
-    entryMap[entryname] = $(el);
-    entries.push(entryname);
-  }
 
-  const lastCommitLoaderURL = $('table#repo-files-table').data('lastCommitLoaderUrl');
+  const entries = Array.from(document.querySelectorAll('table#repo-files-table tr.notready'), (el) => {
+    const entryName = el.getAttribute('data-entryname');
+    entryMap[entryName] = el;
+    return entryName;
+  });
 
-  if (entries.length > 200) {
-    $.post(lastCommitLoaderURL, {
-      _csrf: csrfToken,
-    }, (data) => {
-      $('table#repo-files-table').replaceWith(data);
-    });
+  if (entries.length === 0) {
     return;
   }
 
-  $.post(lastCommitLoaderURL, {
-    _csrf: csrfToken,
-    'f': entries,
-  }, (data) => {
-    $(data).find('tr').each((_, row) => {
-      if (row.className === 'commit-list') {
-        $('table#repo-files-table .commit-list').replaceWith(row);
-        return;
-      }
-      // there are other <tr> rows in response (eg: <tr class="has-parent">)
-      // at the moment only the "data-entryname" rows should be processed
-      const entryName = $(row).attr('data-entryname');
-      if (entryName) {
-        entryMap[entryName].replaceWith(row);
-      }
-    });
-  });
+  const lastCommitLoaderURL = document.querySelector('table#repo-files-table').getAttribute('data-last-commit-loader-url');
+
+  if (entries.length > 200) {
+    // For more than 200 entries, replace the entire table
+    const response = await POST(lastCommitLoaderURL);
+    const data = await response.text();
+    document.querySelector('table#repo-files-table').outerHTML = data;
+    return;
+  }
+
+  // For fewer entries, update individual rows
+  const response = await POST(lastCommitLoaderURL, {data: {'f': entries}});
+  const data = await response.text();
+  const doc = parseDom(data, 'text/html');
+  for (const row of doc.querySelectorAll('tr')) {
+    if (row.className === 'commit-list') {
+      document.querySelector('table#repo-files-table .commit-list')?.replaceWith(row);
+      continue;
+    }
+    // there are other <tr> rows in response (eg: <tr class="has-parent">)
+    // at the moment only the "data-entryname" rows should be processed
+    const entryName = row.getAttribute('data-entryname');
+    if (entryName) {
+      entryMap[entryName]?.replaceWith(row);
+    }
+  }
 }
 
 export function initCommitStatuses() {
-  $('[data-tippy="commit-statuses"]').each(function () {
-    const top = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
+  for (const element of document.querySelectorAll('[data-tippy="commit-statuses"]')) {
+    const top = document.querySelector('.repository.file.list') || document.querySelector('.repository.diff');
 
-    createTippy(this, {
-      content: this.nextElementSibling,
+    createTippy(element, {
+      content: element.nextElementSibling,
       placement: top ? 'top-start' : 'bottom-start',
       interactive: true,
       role: 'dialog',
       theme: 'box-with-header',
     });
-  });
+  }
 }

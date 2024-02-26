@@ -132,11 +132,8 @@ type blameResult struct {
 }
 
 func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
-	objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
-	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
-		return nil, err
-	}
+	objectFormat := ctx.Repo.GetObjectFormat()
+
 	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err

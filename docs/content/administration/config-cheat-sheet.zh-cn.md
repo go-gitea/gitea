@@ -497,6 +497,8 @@ Gitea 创建以下非唯一队列：
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**：用户电子邮件通知的默认配置（用户可配置）。选项：enabled、onmention、disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**：禁止普通（非管理员）用户创建组织。
+- `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`， 未来可以增加更多设置。
+  - `deletion`: 用户不能通过界面或者API删除他自己。
 
 ## 安全性 (`security`)
 

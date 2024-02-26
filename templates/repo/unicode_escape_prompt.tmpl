@@ -5,9 +5,9 @@
 			<div class="header">
 				{{ctx.Locale.Tr "repo.invisible_runes_header"}}
 			</div>
-			<p>{{ctx.Locale.Tr "repo.invisible_runes_description" | Str2html}}</p>
+			<p>{{ctx.Locale.Tr "repo.invisible_runes_description"}}</p>
 			{{if .EscapeStatus.HasAmbiguous}}
-				<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
+				<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description"}}</p>
 			{{end}}
 		</div>
 	{{else if .EscapeStatus.HasAmbiguous}}
@@ -16,7 +16,7 @@
 			<div class="header">
 				{{ctx.Locale.Tr "repo.ambiguous_runes_header"}}
 			</div>
-			<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
+			<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description"}}</p>
 		</div>
 	{{end}}
 {{end}}
