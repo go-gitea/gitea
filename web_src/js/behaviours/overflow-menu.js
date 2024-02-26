@@ -1,30 +1,41 @@
 import {throttle} from 'throttle-debounce';
-import {isHorizontallyOverflown, createElementFromHTML} from '../utils/dom.js';
 import {svg} from '../svg.js';
-import $ from 'jquery';
+import {createTippy} from '../modules/tippy.js';
 
 const update = throttle(100, (menu) => {
-  const isOverflown = isHorizontallyOverflown(menu);
-  if (isOverflown) {
-    const overflownItems = [];
-    const {right: menuRight} = menu.getBoundingClientRect();
-    for (const item of menu.querySelectorAll('.overflow-menu-items .item')) {
-      const {right: itemRight} = item.getBoundingClientRect();
-      if (itemRight >= menuRight) {
-        overflownItems.push(item.cloneNode(true));
-        item.remove();
-      }
+  const menuItems = menu.querySelectorAll('.overflow-menu-items .item');
+  const buttonItems = [];
+
+  const {right: menuRight} = menu.getBoundingClientRect();
+  for (const item of menuItems) {
+    const {right: itemRight} = item.getBoundingClientRect();
+    if (itemRight >= menuRight) {
+      buttonItems.push(item.cloneNode(true));
+      item.remove();
     }
-    if (overflownItems.length) {
-      menu.querySelector('.overflow-menu')?.remove();
-      menu.append(createElementFromHTML(`
-        <div class="ui dropdown overflow-menu gt-px-2">
-          <div class="text">${svg('octicon-kebab-horizontal')}</div>
-          <div class="menu">${overflownItems.map((item) => item.outerHTML).join('')}</div>
-        </div>
-      `));
-      $(menu).dropdown();
+  }
+
+  if (buttonItems.length && !menu.querySelector('.overflow-menu-button')) {
+    const btn = document.createElement('button');
+    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-4');
+    btn.innerHTML = svg('octicon-kebab-horizontal');
+
+    const itemsMenu = document.createElement('div');
+    itemsMenu.classList.add('overflow-menu-tippy', 'ui', 'vertical', 'menu');
+    for (const item of buttonItems) {
+      itemsMenu.append(item);
     }
+
+    createTippy(btn, {
+      trigger: 'click',
+      hideOnClick: true,
+      interactive: true,
+      placement: 'bottom-end',
+      role: 'menu',
+      content: itemsMenu,
+    });
+
+    menu.append(btn);
   }
 });
 
