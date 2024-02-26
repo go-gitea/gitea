@@ -133,7 +133,6 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("^lines-escape$")).OnElements("td")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("^toggle-escape-button btn interact-bg$")).OnElements("button")
 	policy.AllowAttrs("title").OnElements("button")
-	policy.AllowAttrs()
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("^ambiguous-code-point$")).OnElements("span")
 	policy.AllowAttrs("data-tooltip-content").OnElements("span")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile("muted|(text black)")).OnElements("a")
