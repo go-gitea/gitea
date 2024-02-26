@@ -5,10 +5,10 @@
 	<title>{{.Subject}}</title>
 </head>
 
-{{$url := printf "<a href='%[1]s'>%[2]s</a>" (Escape .Link) (Escape .Repo)}}
+{{$url := HTMLFormat "<a href='%[1]s'>%[2]s</a>" .Link .Repo)}}
 <body>
 	<p>{{.Subject}}.
-		{{.locale.Tr "mail.repo.transfer.body" ($url|Safe)}}
+		{{.locale.Tr "mail.repo.transfer.body" $url}}
 	</p>
 	<p>
 		---

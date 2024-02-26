@@ -6,6 +6,7 @@ package context
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -124,7 +125,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := CsrfOptions{
-		Secret:         setting.SecretKey,
+		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
@@ -191,6 +192,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
+			ctx.Data["SystemConfig"] = setting.Config()
 			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 

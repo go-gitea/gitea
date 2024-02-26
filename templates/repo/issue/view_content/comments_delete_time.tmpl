@@ -1,4 +1,4 @@
-{{if .comment.Time}} {{/* compatibility with time comments made before v1.14 */}}
+{{if and .comment.Time (.ctxData.Repository.IsTimetrackerEnabled ctx)}} {{/* compatibility with time comments made before v1.14 */}}
 	{{if (not .comment.Time.Deleted)}}
 		{{if (or .ctxData.IsAdmin (and .ctxData.IsSigned (eq .ctxData.SignedUserID .comment.PosterID)))}}
 			<span class="gt-float-right">

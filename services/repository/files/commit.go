@@ -30,10 +30,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 	defer closer.Close()
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return fmt.Errorf("GetObjectFormat[%s]: %w", repoPath, err)
-	}
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	commit, err := gitRepo.GetCommit(sha)
 	if err != nil {
 		gitRepo.Close()

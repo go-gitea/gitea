@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.composer.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.composer.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>{
 	"repositories": [{
 			"type": "composer",
@@ -17,7 +17,7 @@
 				<div class="markup"><pre class="code-block"><code>composer require {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Composer" "https://docs.gitea.com/usage/packages/composer/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Composer" "https://docs.gitea.com/usage/packages/composer/"}}</label>
 			</div>
 		</div>
 	</div>

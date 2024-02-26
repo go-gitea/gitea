@@ -55,6 +55,47 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	}).Notify(withMethod(ctx, "NewIssue"))
 }
 
+// IssueChangeContent notifies change content of issue
+func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	ctx = withMethod(ctx, "IssueChangeContent")
+
+	var err error
+	if err = issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(ctx); err != nil {
+			log.Error("loadPullRequest: %v", err)
+			return
+		}
+		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
+			WithDoer(doer).
+			WithPayload(&api.PullRequestPayload{
+				Action:      api.HookIssueEdited,
+				Index:       issue.Index,
+				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
+				Sender:      convert.ToUser(ctx, doer, nil),
+			}).
+			WithPullRequest(issue.PullRequest).
+			Notify(ctx)
+		return
+	}
+	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).
+		WithDoer(doer).
+		WithPayload(&api.IssuePayload{
+			Action:     api.HookIssueEdited,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}).
+		Notify(ctx)
+}
+
 // IssueChangeStatus notifies close or reopen issue to notifiers
 func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	ctx = withMethod(ctx, "IssueChangeStatus")
@@ -183,37 +224,88 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 ) {
 	ctx = withMethod(ctx, "CreateIssueComment")
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
-
 	if issue.IsPull {
-		if err := issue.LoadPullRequest(ctx); err != nil {
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentCreated)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentCreated)
+}
+
+func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	ctx = withMethod(ctx, "UpdateComment")
+
+	if err := c.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if c.Issue.IsPull {
+		notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventPullRequestComment, api.HookIssueCommentEdited)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventIssueComment, api.HookIssueCommentEdited)
+}
+
+func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
+	ctx = withMethod(ctx, "DeleteComment")
+
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if comment.Issue.IsPull {
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentDeleted)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentDeleted)
+}
+
+func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, oldContent string, event webhook_module.HookEventType, action api.HookIssueCommentAction) {
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if err := comment.Issue.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
+
+	payload := &api.IssueCommentPayload{
+		Action:     action,
+		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
+		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
+		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		IsPull:     comment.Issue.IsPull,
+	}
+
+	if action == api.HookIssueCommentEdited {
+		payload.Changes = &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		}
+	}
+
+	if comment.Issue.IsPull {
+		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
 			log.Error("LoadPullRequest: %v", err)
 			return
 		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestComment).
+		newNotifyInputFromIssue(comment.Issue, event).
 			WithDoer(doer).
-			WithPayload(&api.IssueCommentPayload{
-				Action:     api.HookIssueCommentCreated,
-				Issue:      convert.ToAPIIssue(ctx, issue),
-				Comment:    convert.ToAPIComment(ctx, repo, comment),
-				Repository: convert.ToRepo(ctx, repo, permission),
-				Sender:     convert.ToUser(ctx, doer, nil),
-				IsPull:     true,
-			}).
-			WithPullRequest(issue.PullRequest).
+			WithPayload(payload).
+			WithPullRequest(comment.Issue.PullRequest).
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueComment).
+
+	newNotifyInputFromIssue(comment.Issue, event).
 		WithDoer(doer).
-		WithPayload(&api.IssueCommentPayload{
-			Action:     api.HookIssueCommentCreated,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Comment:    convert.ToAPIComment(ctx, repo, comment),
-			Repository: convert.ToRepo(ctx, repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-			IsPull:     false,
-		}).
+		WithPayload(payload).
 		Notify(ctx)
 }
 
@@ -455,7 +547,6 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.DeletePayload{
 			Ref:        refFullName.ShortName(),
 			RefType:    refFullName.RefType(),
