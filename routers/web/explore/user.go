@@ -86,6 +86,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	}
 
 	if opts.SupportedSortOrders != nil && !opts.SupportedSortOrders.Contains(sortOrder) {
+		ctx.NotFound("unsupported sort order", nil)
 		return
 	}
 
@@ -148,11 +149,6 @@ func Users(ctx *context.Context) {
 	if sortOrder == "" {
 		sortOrder = "newest"
 		ctx.SetFormString("sort", sortOrder)
-	}
-
-	if !supportedSortOrders.Contains(sortOrder) {
-		ctx.NotFound("unsupported sort order", nil)
-		return
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
