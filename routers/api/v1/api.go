@@ -90,6 +90,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/v1/projects"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -1029,6 +1030,10 @@ func Routes() *web.Route {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
 			}, reqToken())
+
+			m.Combo("/projects", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue)).
+				Get(projects.ListUserProjects).
+				Post(bind(api.NewProjectPayload{}), projects.CreateUserProject)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1404,6 +1409,10 @@ func Routes() *web.Route {
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
+				m.Group("/projects", func() {
+					m.Combo("").Get(projects.ListRepoProjects).
+						Post(bind(api.NewProjectPayload{}), projects.CreateRepoProject)
+				}, mustEnableIssues)
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
@@ -1478,6 +1487,10 @@ func Routes() *web.Route {
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+			m.Group("/projects", func() {
+				m.Combo("").Get(projects.ListOrgProjects).
+					Post(bind(api.NewProjectPayload{}), projects.CreateOrgProject)
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), reqToken(), reqOrgMembership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1543,6 +1556,25 @@ func Routes() *web.Route {
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
+		m.Group("/projects", func() {
+			m.Group("/{projectId}", func() {
+				m.Combo("").
+					Get(projects.GetProject).
+					Patch(bind(api.UpdateProjectPayload{}), projects.UpdateProject).
+					Delete(projects.DeleteProject)
+				m.Combo("/boards").
+					Get(projects.ListProjectBoards).
+					Post(bind(api.NewProjectBoardPayload{}), projects.CreateProjectBoard)
+			})
+
+			m.Group("/boards", func() {
+				m.Combo("/{boardId}").
+					Get(projects.GetProjectBoard).
+					Patch(bind(api.UpdateProjectBoardPayload{}), projects.UpdateProjectBoard).
+					Delete(projects.DeleteProjectBoard)
+			})
+
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), reqToken())
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))

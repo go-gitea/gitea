@@ -190,4 +190,16 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
+
+	// in:body
+	NewProjectPayload api.NewProjectPayload
+
+	// in:body
+	UpdateProjectPayload api.UpdateProjectPayload
+
+	// in:body
+	NewProjectBoardPayload api.NewProjectBoardPayload
+
+	// in:body
+	UpdateProjectBoardPayload api.UpdateProjectBoardPayload
 }

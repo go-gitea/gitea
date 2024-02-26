@@ -45,3 +45,29 @@
   type: 2
   created_unix: 1688973000
   updated_unix: 1688973000
+
+# user projects
+-
+  id: 5
+  title: project on user2
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 1
+  created_unix: 1688973000
+  updated_unix: 1688973000
+
+# org projects
+-
+  id: 6
+  title: project on org17
+  owner_id: 17
+  repo_id: 0
+  is_closed: false
+  creator_id: 17
+  board_type: 1
+  type: 3
+  created_unix: 1688973000
+  updated_unix: 1688973000

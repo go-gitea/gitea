@@ -244,6 +244,24 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	return append([]*Board{defaultB}, boards...), nil
 }
 
+func (p *Project) GetBoardsAndCount(ctx context.Context) (BoardList, int64, error) {
+	boards := make([]*Board, 0, 5)
+	count, err := db.GetEngine(ctx).
+		Where("project_id=? AND `default`=?", p.ID, false).
+		OrderBy("Sorting").
+		FindAndCount(&boards)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	defaultB, err := p.getDefaultBoard(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return append([]*Board{defaultB}, boards...), count, nil
+}
+
 // getDefaultBoard return default board and create a dummy if none exist
 func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board

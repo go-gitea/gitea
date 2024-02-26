@@ -2357,6 +2357,75 @@
         }
       }
     },
+    "/orgs/{org}/projects": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "List repository projects",
+        "operationId": "projectListOrgProjects",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include closed issues or not",
+            "name": "closed",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "Create a organization project",
+        "operationId": "projectCreateOrgProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of repo",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewProjectPayload"
+            }
+          }
+        ]
+      }
+    },
     "/orgs/{org}/public_members": {
       "get": {
         "produces": [
@@ -2956,6 +3025,206 @@
             "$ref": "#/responses/notFound"
           }
         }
+      }
+    },
+    "/projects/boards/{boardId}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "board"
+        ],
+        "summary": "Get project board",
+        "operationId": "boardGetProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the board",
+            "name": "boardId",
+            "in": "path",
+            "required": true
+          }
+        ]
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "board"
+        ],
+        "summary": "Delete project board",
+        "operationId": "boardDeleteProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project board",
+            "name": "boardId",
+            "in": "path",
+            "required": true
+          }
+        ]
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "board"
+        ],
+        "summary": "Update project board",
+        "operationId": "boardUpdateProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project board",
+            "name": "boardId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "board",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateProjectBoardPayload"
+            }
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "Get project",
+        "operationId": "projectGetProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "project"
+        ],
+        "summary": "Delete project",
+        "operationId": "projectDeleteProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          }
+        ]
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "Update project",
+        "operationId": "projectUpdateProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateProjectPayload"
+            }
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/boards": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "board"
+        ],
+        "summary": "Get project boards",
+        "operationId": "boardGetProjectBoards",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "board"
+        ],
+        "summary": "Create project board",
+        "operationId": "boardCreateProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "board",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewProjectBoardPayload"
+            }
+          }
+        ]
       }
     },
     "/repos/issues/search": {
@@ -10229,6 +10498,89 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/projects": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "List repository projects",
+        "operationId": "projectListRepositoryProjects",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include closed issues or not",
+            "name": "closed",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "Create a repository project",
+        "operationId": "projectCreateRepositoryProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewProjectPayload"
+            }
+          }
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -15664,6 +16016,61 @@
         }
       }
     },
+    "/user/projects": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "List repository projects",
+        "operationId": "projectListUserProjects",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "include closed issues or not",
+            "name": "closed",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "Create a user project",
+        "operationId": "projectCreateUserProject",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewProjectPayload"
+            }
+          }
+        ]
+      }
+    },
     "/user/repos": {
       "get": {
         "produces": [
@@ -20953,6 +21360,60 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NewProjectBoardPayload": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "Sorting": {
+          "type": "integer",
+          "format": "int8"
+        },
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NewProjectPayload": {
+      "type": "object",
+      "required": [
+        "title",
+        "board_type",
+        "card_type"
+      ],
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "card_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NodeInfo": {
       "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
       "type": "object",
@@ -21515,6 +21976,102 @@
         "push": {
           "type": "boolean",
           "x-go-name": "Push"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_closed": {
+          "type": "boolean",
+          "x-go-name": "IsClosed"
+        },
+        "owner": {
+          "$ref": "#/definitions/User"
+        },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ProjectBoard": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "project": {
+          "$ref": "#/definitions/Project"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int8",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -22913,6 +23470,37 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpdateProjectBoardPayload": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateProjectPayload": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "UpdateRepoAvatarOption": {
       "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
       "type": "object",
@@ -23854,6 +24442,36 @@
         }
       }
     },
+    "Project": {
+      "description": "Project",
+      "schema": {
+        "$ref": "#/definitions/Project"
+      }
+    },
+    "ProjectBoard": {
+      "description": "ProjectBoard",
+      "schema": {
+        "$ref": "#/definitions/ProjectBoard"
+      }
+    },
+    "ProjectBoardList": {
+      "description": "ProjectBoardList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectBoard"
+        }
+      }
+    },
+    "ProjectList": {
+      "description": "ProjectList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    },
     "PublicKey": {
       "description": "PublicKey",
       "schema": {
@@ -24249,7 +24867,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/UpdateProjectBoardPayload"
       }
     },
     "redirect": {
