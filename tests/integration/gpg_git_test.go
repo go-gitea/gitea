@@ -263,7 +263,7 @@ func TestGPGGit(t *testing.T) {
 }
 
 func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
-	return doAPICreateFile(ctx, path, &api.CreateFileOptions{
+	return doAPICreateFile(ctx, path, &api.CreateOrUpdateFileOptions{
 		FileOptions: api.FileOptions{
 			BranchName:    from,
 			NewBranchName: to,

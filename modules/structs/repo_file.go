@@ -21,6 +21,7 @@ type FileOptions struct {
 }
 
 // CreateFileOptions options for creating files
+// Deprecated: Use CreateOrUpdateFileOptions instead
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
 	FileOptions
@@ -48,10 +49,13 @@ func (o *DeleteFileOptions) Branch() string {
 	return o.FileOptions.BranchName
 }
 
-// UpdateFileOptions options for updating files
+// CreateOrUpdateFileOptions options for creating or updating files
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
-type UpdateFileOptions struct {
-	DeleteFileOptions
+type CreateOrUpdateFileOptions struct {
+	FileOptions
+	// sha is the SHA for the file that already exists
+	// required only for updating files
+	SHA string `json:"sha"`
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`
@@ -60,7 +64,7 @@ type UpdateFileOptions struct {
 }
 
 // Branch returns branch name
-func (o *UpdateFileOptions) Branch() string {
+func (o *CreateOrUpdateFileOptions) Branch() string {
 	return o.FileOptions.BranchName
 }
 

@@ -353,9 +353,9 @@ func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing
 	}
 }
 
-func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFileOptions, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
+func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateOrUpdateFileOptions, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ctx.Username, ctx.Reponame, treepath), &options).
+		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ctx.Username, ctx.Reponame, treepath), &options).
 			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)

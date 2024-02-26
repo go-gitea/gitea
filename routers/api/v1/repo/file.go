@@ -514,6 +514,7 @@ func ChangeFiles(ctx *context.APIContext) {
 }
 
 // CreateFile handles API call for creating a file
+// Deprecated: Use CreateOrUpdateFileOptions instead
 func CreateFile(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
 	// ---
@@ -611,11 +612,11 @@ func CreateFile(ctx *context.APIContext) {
 	}
 }
 
-// UpdateFile handles API call for updating a file
-func UpdateFile(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
+// CreateOrUpdateFile handles API call for creating or updating a file
+func CreateOrUpdateFile(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoCreateOrUpdateFile
 	// ---
-	// summary: Update a file in a repository
+	// summary: Create or update a file in a repository
 	// consumes:
 	// - application/json
 	// produces:
@@ -633,16 +634,18 @@ func UpdateFile(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: path of the file to update
+	//   description: path of the file to create or update
 	//   type: string
 	//   required: true
 	// - name: body
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/UpdateFileOptions"
+	//     "$ref": "#/definitions/CreateOrUpdateFileOptions"
 	// responses:
 	//   "200":
+	//     "$ref": "#/responses/FileResponse"
+	//   "201":
 	//     "$ref": "#/responses/FileResponse"
 	//   "403":
 	//     "$ref": "#/responses/error"
@@ -652,10 +655,7 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
-	}
+	apiOpts := web.GetForm(ctx).(*api.CreateOrUpdateFileOptions)
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -667,16 +667,30 @@ func UpdateFile(ctx *context.APIContext) {
 		return
 	}
 
+	var changeRepoFile files_service.ChangeRepoFile
+	if apiOpts.SHA == "" {
+		changeRepoFile = files_service.ChangeRepoFile{
+			Operation:     "create",
+			TreePath:      ctx.Params("*"),
+			ContentReader: contentReader,
+		}
+	} else {
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+			return
+		}
+
+		changeRepoFile = files_service.ChangeRepoFile{
+			Operation:     "update",
+			TreePath:      ctx.Params("*"),
+			ContentReader: contentReader,
+			SHA:           apiOpts.SHA,
+			FromTreePath:  apiOpts.FromPath,
+		}
+	}
+
 	opts := &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "update",
-				ContentReader: contentReader,
-				SHA:           apiOpts.SHA,
-				FromTreePath:  apiOpts.FromPath,
-				TreePath:      ctx.Params("*"),
-			},
-		},
+		Files:     []*files_service.ChangeRepoFile{&changeRepoFile},
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
@@ -709,7 +723,11 @@ func UpdateFile(ctx *context.APIContext) {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
 		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
-		ctx.JSON(http.StatusOK, fileResponse)
+		if apiOpts.SHA == "" {
+			ctx.JSON(http.StatusCreated, fileResponse)
+		} else {
+			ctx.JSON(http.StatusOK, fileResponse)
+		}
 	}
 }
 
@@ -728,10 +746,10 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		return
 	}
 
-	ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
+	ctx.Error(http.StatusInternalServerError, "CreateOrUpdateFile", err)
 }
 
-// Called from both CreateFile or UpdateFile to handle both
+// Called from both CreateFile or CreateOrUpdateFile to handle both
 func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepoFilesOptions) (*api.FilesResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{

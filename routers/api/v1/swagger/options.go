@@ -123,7 +123,7 @@ type swaggerParameterBodies struct {
 	CreateFileOptions api.CreateFileOptions
 
 	// in:body
-	UpdateFileOptions api.UpdateFileOptions
+	CreateOrUpdateFileOptions api.CreateOrUpdateFileOptions
 
 	// in:body
 	DeleteFileOptions api.DeleteFileOptions

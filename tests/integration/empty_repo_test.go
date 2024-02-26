@@ -108,7 +108,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	session := loginUser(t, "user30")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user30/empty/contents/new-file.txt", &api.CreateFileOptions{
+	req := NewRequestWithJSON(t, "PUT", "/api/v1/repos/user30/empty/contents/new-file.txt", &api.CreateOrUpdateFileOptions{
 		FileOptions: api.FileOptions{
 			NewBranchName: "new_branch",
 			Message:       "init",

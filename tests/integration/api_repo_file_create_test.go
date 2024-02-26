@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -25,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getCreateFileOptions() api.CreateFileOptions {
+func getDeprecatedCreateFileOptions() api.CreateFileOptions {
 	content := "This is new text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return api.CreateFileOptions{
@@ -50,95 +49,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCommitSHA string) *api.FileResponse {
-	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
-	encoding := "base64"
-	content := "VGhpcyBpcyBuZXcgdGV4dA=="
-	selfURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + repoFullName + "/src/branch/master/" + treePath
-	gitURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/git/blobs/" + sha
-	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
-	return &api.FileResponse{
-		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: latestCommitSHA,
-			Size:          16,
-			Type:          "file",
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
-			Links: &api.FileLinksResponse{
-				Self:    &selfURL,
-				GitURL:  &gitURL,
-				HTMLURL: &htmlURL,
-			},
-		},
-		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/" + repoFullName + "/git/commits/" + commitID,
-				SHA: commitID,
-			},
-			HTMLURL: setting.AppURL + repoFullName + "/commit/" + commitID,
-			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Anne Doe",
-					Email: "annedoe@example.com",
-				},
-				Date: "2000-01-01T00:00:10Z",
-			},
-			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
-				},
-				Date: "2000-12-31T23:59:50Z",
-			},
-			Message: "Updates README.md\n",
-		},
-		Verification: &api.PayloadCommitVerification{
-			Verified:  false,
-			Reason:    "gpg.error.not_signed_commit",
-			Signature: "",
-			Payload:   "",
-		},
-	}
-}
-
-func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; n < b.N; n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
-		}
-	})
-}
-
-func BenchmarkAPICreateFileMedium(b *testing.B) {
-	data := make([]byte, 10*1024*1024)
-
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; n < b.N; n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			copy(data, treePath)
-			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
-		}
-	})
-}
-
-func TestAPICreateFile(t *testing.T) {
+func TestAPIDeprecatedCreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
@@ -160,7 +71,7 @@ func TestAPICreateFile(t *testing.T) {
 			"master", // Branch
 			"",       // Empty branch
 		} {
-			createFileOptions := getCreateFileOptions()
+			createFileOptions := getDeprecatedCreateFileOptions()
 			createFileOptions.BranchName = branch
 			fileID++
 			treePath := fmt.Sprintf("new/file%d.txt", fileID)
@@ -186,7 +97,7 @@ func TestAPICreateFile(t *testing.T) {
 		}
 
 		// Test creating a file in a new branch
-		createFileOptions := getCreateFileOptions()
+		createFileOptions := getDeprecatedCreateFileOptions()
 		createFileOptions.BranchName = repo1.DefaultBranch
 		createFileOptions.NewBranchName = "new_branch"
 		fileID++
@@ -205,7 +116,7 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test creating a file without a message
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		createFileOptions.Message = ""
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
@@ -217,7 +128,7 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		treePath = "README.md"
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 			AddTokenAuth(token2)
@@ -231,7 +142,7 @@ func TestAPICreateFile(t *testing.T) {
 		assert.Equal(t, expectedAPIError, apiError)
 
 		// Test creating a file in repo1 by user4 who does not have write access
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions).
@@ -239,14 +150,14 @@ func TestAPICreateFile(t *testing.T) {
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Tests a repo with no token given so will fail
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using access token for a private repo that the user of the token owns
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions).
@@ -254,7 +165,7 @@ func TestAPICreateFile(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "org3/repo3" where user2 is a collaborator
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &createFileOptions).
@@ -262,14 +173,14 @@ func TestAPICreateFile(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "org3/repo3" with no user token
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &createFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using repo "user2/repo1" where user4 is a NOT collaborator
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
@@ -278,7 +189,7 @@ func TestAPICreateFile(t *testing.T) {
 
 		// Test creating a file in an empty repository
 		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser), true)(t)
-		createFileOptions = getCreateFileOptions()
+		createFileOptions = getDeprecatedCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, "empty-repo", treePath), &createFileOptions).
