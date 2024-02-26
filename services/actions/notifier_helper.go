@@ -148,6 +148,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref)
 	if err != nil {
+		// repo is empty, so we don't need to detect the workflows
+		if git.IsErrNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
