@@ -1,5 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
+import dayjs from 'dayjs';
 import {
   Chart,
   Title,
