@@ -43,8 +43,7 @@ func Init() error {
 }
 
 type LicenseUpdaterOptions struct {
-	RepoID   int64
-	CommitID string
+	RepoID int64
 }
 
 func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOptions {
@@ -67,14 +66,9 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 		}
 		defer gitRepo.Close()
 
-		var commit *git.Commit
-		if opts.CommitID != "" {
-			commit, err = gitRepo.GetCommit(opts.CommitID)
-		} else {
-			commit, err = gitRepo.GetBranchCommit(repo.DefaultBranch)
-		}
+		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		if err != nil {
-			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
+			log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
 			continue
 		}
 		if err = updateRepoLicenses(ctx, repo, commit); err != nil {
@@ -258,6 +252,8 @@ func updateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
+
+	licenses := make([]string, 0)
 	if licenseFile != nil {
 		r, err := licenseFile.Blob().DataAsync()
 		if err != nil {
@@ -265,15 +261,13 @@ func updateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		}
 		defer r.Close()
 
-		licenses, err := detectLicense(r)
+		licenses, err = detectLicense(r)
 		if err != nil {
 			return fmt.Errorf("detectLicense: %w", err)
 		}
-		if err := repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses); err != nil {
-			return fmt.Errorf("UpdateRepoLicenses: %v", err)
-		}
+
 	}
-	return nil
+	return repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses)
 }
 
 // GetDetectedLicenseFileName returns license file name in the repository if it exists
