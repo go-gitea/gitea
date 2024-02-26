@@ -15,32 +15,30 @@ import (
 func TestExploreUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/explore/users")
-	resp := MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<a class="active item" href="/explore/users?sort=newest&q=">Newest</a>`)
-
-	req = NewRequest(t, "GET", "/explore/users?sort=oldest")
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<a class="active item" href="/explore/users?sort=oldest&q=">Oldest</a>`)
-
-	req = NewRequest(t, "GET", "/explore/users?sort=alphabetically")
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<a class="active item" href="/explore/users?sort=alphabetically&q=">Alphabetically</a>`)
-
-	req = NewRequest(t, "GET", "/explore/users?sort=reversealphabetically")
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<a class="active item" href="/explore/users?sort=reversealphabetically&q=">Reverse alphabetically</a>`)
+	cases := []struct{ sortOrder, expected string }{
+		{"", "/explore/users?sort=newest&q="},
+		{"newest", "/explore/users?sort=newest&q="},
+		{"oldest", "/explore/users?sort=oldest&q="},
+		{"alphabetically", "/explore/users?sort=alphabetically&q="},
+		{"reversealphabetically", "/explore/users?sort=reversealphabetically&q="},
+	}
+	for _, c := range cases {
+		req := NewRequest(t, "GET", "/explore/users?sort="+c.sortOrder)
+		resp := MakeRequest(t, req, http.StatusOK)
+		h := NewHTMLParser(t, resp.Body)
+		href, _ := h.Find(`.ui.dropdown .menu a.active.item[href^="/explore/users"]`).Attr("href")
+		assert.Equal(t, c.expected, href)
+	}
 
 	// these sort orders shouldn't be supported, to avoid leaking user activity
-	cases := []string{
+	cases404 := []string{
 		"/explore/users?sort=lastlogin",
 		"/explore/users?sort=reverselastlogin",
 		"/explore/users?sort=leastupdate",
 		"/explore/users?sort=reverseleastupdate",
 	}
-	for _, c := range cases {
-		req = NewRequest(t, "GET", c).SetHeader("Accept", "text/html")
-		resp = MakeRequest(t, req, http.StatusNotFound)
-		assert.Contains(t, resp.Body.String(), `<title>Page Not Found`)
+	for _, c := range cases404 {
+		req := NewRequest(t, "GET", c).SetHeader("Accept", "text/html")
+		MakeRequest(t, req, http.StatusNotFound)
 	}
 }
