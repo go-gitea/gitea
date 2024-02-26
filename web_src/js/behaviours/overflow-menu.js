@@ -1,31 +1,28 @@
-import {debounce} from 'throttle-debounce';
+import {throttle} from 'throttle-debounce';
 import {svg} from '../svg.js';
 import {createTippy} from '../modules/tippy.js';
 
-const update = debounce(250, (menu) => {
-  const menuParent = menu.querySelector('.overflow-menu-items');
-  let buttonParent = menu.querySelector('.overflow-menu-button-items');
-  const menuItems = menuParent.querySelectorAll('.item');
-
+const update = throttle(100, (menu) => {
+  let buttonParent = menu.querySelector('.overflow-menu-dropdown');
   if (!buttonParent) {
     const div = document.createElement('div');
-    div.classList.add('overflow-menu-button-items', 'ui', 'secondary', 'vertical', 'menu', 'tippy-target');
+    div.classList.add('overflow-menu-dropdown', 'ui', 'vertical', 'menu', 'tippy-target');
     menu.append(div);
     buttonParent = div;
   }
 
-  const buttonItems = buttonParent?.querySelectorAll('.item') || [];
-
-  for (const item of buttonItems) {
+  const menuParent = menu.querySelector('.overflow-menu-items');
+  const dropdownItems = buttonParent?.querySelectorAll('.item') || [];
+  for (const item of dropdownItems) {
     menuParent.append(item);
   }
 
   // measure which items are outside the element boundary and move them into the button menu
   const itemsToMove = [];
-  const {right: menuRight} = menu.parentNode.getBoundingClientRect();
-  for (const item of menuItems) {
-    const {right: itemRight} = item.getBoundingClientRect();
-    if (menuRight - itemRight < 40) {
+  const menuRight = menu.parentNode.getBoundingClientRect().right;
+  for (const item of menuParent.querySelectorAll('.item')) {
+    const itemRight = item.getBoundingClientRect().right;
+    if (menuRight - itemRight < 50) {
       itemsToMove.push(item);
     }
   }
@@ -35,21 +32,20 @@ const update = debounce(250, (menu) => {
       buttonParent.append(item);
     }
 
-    if (!menu.querySelector('.overflow-menu-button')) {
-      const btn = document.createElement('button');
-      btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2');
-      btn.innerHTML = svg('octicon-kebab-horizontal');
-      menu.append(btn);
+    menu.querySelector('.overflow-menu-button')?.remove();
+    const btn = document.createElement('button');
+    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2');
+    btn.innerHTML = svg('octicon-kebab-horizontal');
+    menu.append(btn);
 
-      createTippy(btn, {
-        trigger: 'click',
-        hideOnClick: true,
-        interactive: true,
-        placement: 'bottom-end',
-        role: 'menu',
-        content: buttonParent.cloneNode(true),
-      });
-    }
+    createTippy(btn, {
+      trigger: 'click',
+      hideOnClick: true,
+      interactive: true,
+      placement: 'bottom-end',
+      role: 'menu',
+      content: buttonParent.cloneNode(true),
+    });
   } else {
     menu.querySelector('.overflow-menu-button')?.remove();
   }

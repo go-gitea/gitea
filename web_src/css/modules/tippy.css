@@ -56,6 +56,15 @@
   fill: var(--color-menu);
 }
 
+.tippy-box[data-theme="menu"] .tippy-content > .ui.menu {
+  width: auto; /* unset fomantic's default 15rem */
+  border: none; /* remove `.ui.menu` border as it is provided by tippy */
+}
+
+.tippy-box[data-theme="menu"] .tippy-content .ui.vertical.menu .item::before {
+  content: none; /* remove lines between items */
+}
+
 /* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
