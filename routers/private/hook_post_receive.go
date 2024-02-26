@@ -124,7 +124,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		// post update for agit pull request
 		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
-		if git.SupportProcReceive && refFullName.IsPull() {
+		if git.DefaultFeatures.SupportProcReceive && refFullName.IsPull() {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
 				if ctx.Written() {

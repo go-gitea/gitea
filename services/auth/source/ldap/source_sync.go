@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -125,8 +124,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsAdmin:     su.IsAdmin,
 			}
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsRestricted: util.OptionalBoolOf(su.IsRestricted),
-				IsActive:     util.OptionalBoolTrue,
+				IsRestricted: optional.Some(su.IsRestricted),
+				IsActive:     optional.Some(true),
 			}
 
 			err = user_model.CreateUser(ctx, usr, overwriteDefault)

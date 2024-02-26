@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -1181,41 +1182,30 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 	for _, diffFile := range diff.Files {
 
-		gotVendor := false
-		gotGenerated := false
+		isVendored := optional.None[bool]()
+		isGenerated := optional.None[bool]()
 		if checker != nil {
 			attrs, err := checker.CheckPath(diffFile.Name)
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						diffFile.IsVendored = true
-						gotVendor = true
-					} else {
-						gotVendor = vendored == "false"
-					}
-				}
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						diffFile.IsGenerated = true
-						gotGenerated = true
-					} else {
-						gotGenerated = generated == "false"
-					}
-				}
-				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
-				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
+				isVendored = git.AttributeToBool(attrs, git.AttributeLinguistVendored)
+				isGenerated = git.AttributeToBool(attrs, git.AttributeLinguistGenerated)
+
+				language := git.TryReadLanguageAttribute(attrs)
+				if language.Has() {
+					diffFile.Language = language.Value()
 				}
 			}
 		}
 
-		if !gotVendor {
-			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		if !isVendored.Has() {
+			isVendored = optional.Some(analyze.IsVendor(diffFile.Name))
 		}
-		if !gotGenerated {
-			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		diffFile.IsVendored = isVendored.Value()
+
+		if !isGenerated.Has() {
+			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
+		diffFile.IsGenerated = isGenerated.Value()
 
 		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommitID, opts.AfterCommitID)
 		if tailSection != nil {

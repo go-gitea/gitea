@@ -122,7 +122,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
-		case git.SupportProcReceive && refFullName.IsFor():
+		case git.DefaultFeatures.SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, oldCommitID, newCommitID, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
@@ -145,7 +145,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	objectFormat, _ := gitRepo.GetObjectFormat()
+	objectFormat := ctx.Repo.GetObjectFormat()
 
 	if branchName == repo.DefaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
