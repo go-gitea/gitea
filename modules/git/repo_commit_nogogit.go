@@ -121,8 +121,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 		return commit, nil
 	default:
 		log.Debug("Unknown typ: %s", typ)
-		_, err = rd.Discard(int(size) + 1)
-		if err != nil {
+		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{

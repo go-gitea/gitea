@@ -282,7 +282,7 @@ func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (
 
 	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
 		CachedOnly: true,
-		Attributes: []string{"linguist-language", "gitlab-language"},
+		Attributes: []string{git.AttributeLinguistLanguage, git.AttributeGitlabLanguage},
 		Filenames:  []string{treePath},
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,
@@ -291,13 +291,7 @@ func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (
 		return "", err
 	}
 
-	language := filename2attribute2info[treePath]["linguist-language"]
-	if language == "" || language == "unspecified" {
-		language = filename2attribute2info[treePath]["gitlab-language"]
-	}
-	if language == "unspecified" {
-		language = ""
-	}
+	language := git.TryReadLanguageAttribute(filename2attribute2info[treePath])
 
-	return language, nil
+	return language.Value(), nil
 }

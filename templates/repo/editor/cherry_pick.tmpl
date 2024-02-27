@@ -11,11 +11,11 @@
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
 					{{$shaurl := printf "%s/commit/%s" $.RepoLink (PathEscape .SHA)}}
-					{{$shalink := printf `<a class="ui primary sha label" href="%s">%s</a>` (Escape $shaurl) (ShortSha .SHA)}}
+					{{$shalink := HTMLFormat `<a class="ui primary sha label" href="%s">%s</a>` $shaurl (ShortSha .SHA)}}
 					{{if eq .CherryPickType "revert"}}
-						{{ctx.Locale.Tr "repo.editor.revert" ($shalink|Safe)}}
+						{{ctx.Locale.Tr "repo.editor.revert" $shalink}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.editor.cherry_pick" ($shalink|Safe)}}
+						{{ctx.Locale.Tr "repo.editor.cherry_pick" $shalink}}
 					{{end}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 					<div class="breadcrumb-divider">:</div>

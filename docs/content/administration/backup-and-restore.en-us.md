@@ -92,7 +92,7 @@ cd gitea-dump-1610949662
 mv app.ini /etc/gitea/conf/app.ini
 mv data/* /var/lib/gitea/data/
 mv log/* /var/lib/gitea/log/
-mv repos/* /var/lib/gitea/gitea-repositories/
+mv repos/* /var/lib/gitea/data/gitea-repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea
 
 # mysql
@@ -110,6 +110,8 @@ Repository Git Hooks should be regenerated if installation method is changed (eg
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
 
 This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
+
+If you still have issues, consider running `./gitea doctor check` to inspect possible errors (or run with `--fix`).
 
 ### Using Docker (`restore`)
 
