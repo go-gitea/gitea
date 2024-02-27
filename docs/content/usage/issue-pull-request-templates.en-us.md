@@ -136,11 +136,11 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-  # some markdown witch will be visible only in the created issue
+  # some markdown which will be visible only in the created issue
   - type: markdown
     attributes:
       value: |
-        This issue git created by an issue **template** :)
+        This issue was created by an issue **template** :)
     hide_on_form: true
     skip_submit: false
   - type: input
@@ -194,7 +194,7 @@ body:
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true
-        - label: I also have read the CONTRIBUTION.MD
+        - label: I have also read the CONTRIBUTION.MD
           required: true
           skip_submit: true
         - label: This is a TODO only visible after issue creation
@@ -306,7 +306,7 @@ For each value in the options array, you can set the following keys.
 | label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
 | required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
 | skip_submit  | The specific checkbox that is rendered, will not be submitted.                                                                           | Optional | Boolean | false   | -       |
-| hide_on_form | Do not render in the from.                                                                                                               | Optional | Boolean | false   | -       |
+| hide_on_form | Do not render in the form.                                                                                                               | Optional | Boolean | false   | -       |
 
 skip_submit: Default is **false**
 
