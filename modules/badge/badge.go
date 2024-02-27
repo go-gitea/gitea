@@ -9,7 +9,7 @@ import (
 
 // The Badge layout: |offset|label|message|
 // We use 10x scale to calculate more precisely
-// Then scale down to noraml size in tmpl file
+// Then scale down to normal size in tmpl file
 
 type Label struct {
 	text  string
