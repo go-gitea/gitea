@@ -10,7 +10,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	gitea_context "code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -124,7 +124,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		// post update for agit pull request
 		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
-		if git.SupportProcReceive && refFullName.IsPull() {
+		if git.DefaultFeatures.SupportProcReceive && refFullName.IsPull() {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
 				if ctx.Written() {
@@ -159,7 +159,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		// If we've pushed a branch (and not deleted it)
-		if git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
+		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
 			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
