@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
-	"encoding/gob"
 	"fmt"
 	"net"
 	"net/url"
@@ -81,10 +80,6 @@ func Init(ctx context.Context) error {
 	for clientID := range builtinApps {
 		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
 	}
-
-	// This is needed in order to encode and store the struct in the goth/gothic session
-	// during the process of linking the external user.
-	gob.Register(LinkAccountUser{})
 
 	var registeredApps []*OAuth2Application
 	if err := db.GetEngine(ctx).In("client_id", builtinAllClientIDs).Find(&registeredApps); err != nil {
@@ -608,6 +603,21 @@ func (err ErrOAuthApplicationNotFound) Error() string {
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
+}
+
+// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
+func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
+	authSource := new(Source)
+	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
+	if err != nil {
+		return nil, err
+	}
+
+	if !has {
+		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+	}
+
+	return authSource, nil
 }
 
 func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {

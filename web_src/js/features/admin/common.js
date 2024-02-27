@@ -1,8 +1,9 @@
 import $ from 'jquery';
 import {checkAppUrl} from '../common-global.js';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
+import {POST} from '../../modules/fetch.js';
 
-const {csrfToken, appSubUrl} = window.config;
+const {appSubUrl} = window.config;
 
 export function initAdminCommon() {
   if ($('.page-content.admin').length === 0) {
@@ -103,9 +104,9 @@ export function initAdminCommon() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
-      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi, .saml'));
+      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi'));
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required], .saml input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -136,10 +137,6 @@ export function initAdminCommon() {
         case '7': // SSPI
           showElem($('.sspi'));
           $('.sspi div.required input').attr('required', 'required');
-          break;
-        case '8': // SAML
-          showElem($('.saml'));
-          $('.saml div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {
@@ -208,22 +205,18 @@ export function initAdminCommon() {
           break;
       }
     });
-    $('#delete-selection').on('click', function (e) {
+    $('#delete-selection').on('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
       $this.addClass('loading disabled');
-      const ids = [];
+      const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {
-          ids.push($(this).data('id'));
+          data.append('ids[]', $(this).data('id'));
         }
       });
-      $.post($this.data('link'), {
-        _csrf: csrfToken,
-        ids
-      }).done(() => {
-        window.location.href = $this.data('redirect');
-      });
+      await POST($this.data('link'), {data});
+      window.location.href = $this.data('redirect');
     });
   }
 }

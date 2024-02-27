@@ -73,7 +73,7 @@
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
 									{{end}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
@@ -94,6 +94,9 @@
 							</div>
 							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 							<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+							{{if .Attachments}}
+								{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+							{{end}}
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}

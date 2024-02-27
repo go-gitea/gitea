@@ -30,9 +30,9 @@
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
 					{{end}}
 					{{if $hasRepositoryAccess}}
-						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape)}}
+						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink .Creator.GetDisplayName .Repository.Link .Repository.FullName}}
 					{{else}}
-						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape)}}
+						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName}}
 					{{end}}
 				</div>
 			</div>
