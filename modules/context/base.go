@@ -265,6 +265,14 @@ func (b *Base) Redirect(location string, status ...int) {
 		// So in this case, we should remove the session cookie from the response header
 		removeSessionCookieHeader(b.Resp)
 	}
+	// in case the request is made by htmx, have it redirect the browser instead of trying to follow the redirect inside htmx
+	if b.Req.Header.Get("HX-Request") == "true" {
+		b.Resp.Header().Set("HX-Redirect", location)
+		// we have to return a non-redirect status code so XMLHTTPRequest will not immediately follow the redirect
+		// so as to give htmx redirect logic a chance to run
+		b.Status(http.StatusNoContent)
+		return
+	}
 	http.Redirect(b.Resp, b.Req, location, code)
 }
 
