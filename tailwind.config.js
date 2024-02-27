@@ -6,6 +6,7 @@ const isProduction = env.NODE_ENV !== 'development';
 
 export default {
   prefix: 'tw-',
+  important: true,
   content: [
     isProduction && '!./templates/devtest/**/*',
     isProduction && '!./web_src/js/standalone/devtest.js',
