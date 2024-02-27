@@ -262,7 +262,7 @@ func ViewPost(ctx *context_module.Context) {
 }
 
 // Rerun will rerun jobs in the given run
-// jobIndex = 0 means rerun all jobs
+// jobIndex = -1 means rerun all jobs
 func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
@@ -297,7 +297,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndex != 0 {
+	if jobIndex != -1 {
 		jobs = []*actions_model.ActionRunJob{job}
 	}
 
