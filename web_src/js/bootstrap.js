@@ -61,7 +61,8 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   let msg = err?.message ?? message;
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
   const dot = msg.endsWith('.') ? '' : '.';
-  showGlobalErrorMessage(`JavaScript ${type}: ${msg}${dot} Open browser console to see more details.`);
+  const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
+  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
