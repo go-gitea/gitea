@@ -18,7 +18,6 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/indexer/stats"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -185,7 +185,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -278,7 +278,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -306,7 +306,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-update":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -343,7 +343,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -372,7 +372,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
-		if setting.Mirror.DisableNewPush {
+		if setting.Mirror.DisableNewPush || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -576,6 +576,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:                   form.PullsAllowRebase,
 					AllowRebaseMerge:              form.PullsAllowRebaseMerge,
 					AllowSquash:                   form.PullsAllowSquash,
+					AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
@@ -813,7 +814,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}

@@ -21,15 +21,16 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -302,6 +303,11 @@ func CreatePost(ctx *context.Context) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
+const (
+	tplWatchUnwatch base.TplName = "repo/watch_unwatch"
+	tplStarUnstar   base.TplName = "repo/star_unstar"
+)
+
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -334,6 +340,32 @@ func Action(ctx *context.Context) {
 		return
 	}
 
+	switch ctx.Params(":action") {
+	case "watch", "unwatch":
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	case "star", "unstar":
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	}
+
+	switch ctx.Params(":action") {
+	case "watch", "unwatch", "star", "unstar":
+		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
+		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+	}
+
+	switch ctx.Params(":action") {
+	case "watch", "unwatch":
+		ctx.HTML(http.StatusOK, tplWatchUnwatch)
+		return
+	case "star", "unstar":
+		ctx.HTML(http.StatusOK, tplStarUnstar)
+		return
+	}
+
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
@@ -362,7 +394,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 	} else {
-		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
@@ -654,7 +686,7 @@ type branchTagSearchResponse struct {
 func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
@@ -689,7 +721,7 @@ func GetTagList(ctx *context.Context) {
 func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},

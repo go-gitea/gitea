@@ -1,19 +1,17 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 import {GET} from '../modules/fetch.js';
 
 export function initInstall() {
-  const $page = $('.page-content.install');
-  if ($page.length === 0) {
+  const page = document.querySelector('.page-content.install');
+  if (!page) {
     return;
   }
-  if ($page.is('.post-install')) {
+  if (page.classList.contains('post-install')) {
     initPostInstall();
   } else {
     initPreInstall();
   }
 }
-
 function initPreInstall() {
   const defaultDbUser = 'gitea';
   const defaultDbName = 'gitea';
@@ -24,83 +22,82 @@ function initPreInstall() {
     mssql: '127.0.0.1:1433'
   };
 
-  const $dbHost = $('#db_host');
-  const $dbUser = $('#db_user');
-  const $dbName = $('#db_name');
+  const dbHost = document.getElementById('db_host');
+  const dbUser = document.getElementById('db_user');
+  const dbName = document.getElementById('db_name');
 
   // Database type change detection.
-  $('#db_type').on('change', function () {
-    const dbType = $(this).val();
-    hideElem($('div[data-db-setting-for]'));
-    showElem($(`div[data-db-setting-for=${dbType}]`));
+  document.getElementById('db_type').addEventListener('change', function () {
+    const dbType = this.value;
+    hideElem('div[data-db-setting-for]');
+    showElem(`div[data-db-setting-for=${dbType}]`);
 
     if (dbType !== 'sqlite3') {
       // for most remote database servers
-      showElem($(`div[data-db-setting-for=common-host]`));
-      const lastDbHost = $dbHost.val();
+      showElem('div[data-db-setting-for=common-host]');
+      const lastDbHost = dbHost.value;
       const isDbHostDefault = !lastDbHost || Object.values(defaultDbHosts).includes(lastDbHost);
       if (isDbHostDefault) {
-        $dbHost.val(defaultDbHosts[dbType] ?? '');
+        dbHost.value = defaultDbHosts[dbType] ?? '';
       }
-      if (!$dbUser.val() && !$dbName.val()) {
-        $dbUser.val(defaultDbUser);
-        $dbName.val(defaultDbName);
+      if (!dbUser.value && !dbName.value) {
+        dbUser.value = defaultDbUser;
+        dbName.value = defaultDbName;
       }
     } // else: for SQLite3, the default path is always prepared by backend code (setting)
-  }).trigger('change');
+  });
+  document.getElementById('db_type').dispatchEvent(new Event('change'));
 
-  const $appUrl = $('#app_url');
-  const configAppUrl = $appUrl.val();
-  if (configAppUrl.includes('://localhost')) {
-    $appUrl.val(window.location.href);
+  const appUrl = document.getElementById('app_url');
+  if (appUrl.value.includes('://localhost')) {
+    appUrl.value = window.location.href;
   }
 
-  const $domain = $('#domain');
-  const configDomain = $domain.val().trim();
-  if (configDomain === 'localhost') {
-    $domain.val(window.location.hostname);
+  const domain = document.getElementById('domain');
+  if (domain.value.trim() === 'localhost') {
+    domain.value = window.location.hostname;
   }
 
   // TODO: better handling of exclusive relations.
-  $('#offline-mode input').on('change', function () {
-    if ($(this).is(':checked')) {
-      $('#disable-gravatar').checkbox('check');
-      $('#federated-avatar-lookup').checkbox('uncheck');
+  document.querySelector('#offline-mode input').addEventListener('change', function () {
+    if (this.checked) {
+      document.querySelector('#disable-gravatar input').checked = true;
+      document.querySelector('#federated-avatar-lookup input').checked = false;
     }
   });
-  $('#disable-gravatar input').on('change', function () {
-    if ($(this).is(':checked')) {
-      $('#federated-avatar-lookup').checkbox('uncheck');
+  document.querySelector('#disable-gravatar input').addEventListener('change', function () {
+    if (this.checked) {
+      document.querySelector('#federated-avatar-lookup input').checked = false;
     } else {
-      $('#offline-mode').checkbox('uncheck');
+      document.querySelector('#offline-mode input').checked = false;
     }
   });
-  $('#federated-avatar-lookup input').on('change', function () {
-    if ($(this).is(':checked')) {
-      $('#disable-gravatar').checkbox('uncheck');
-      $('#offline-mode').checkbox('uncheck');
+  document.querySelector('#federated-avatar-lookup input').addEventListener('change', function () {
+    if (this.checked) {
+      document.querySelector('#disable-gravatar input').checked = false;
+      document.querySelector('#offline-mode input').checked = false;
     }
   });
-  $('#enable-openid-signin input').on('change', function () {
-    if ($(this).is(':checked')) {
-      if (!$('#disable-registration input').is(':checked')) {
-        $('#enable-openid-signup').checkbox('check');
+  document.querySelector('#enable-openid-signin input').addEventListener('change', function () {
+    if (this.checked) {
+      if (!document.querySelector('#disable-registration input').checked) {
+        document.querySelector('#enable-openid-signup input').checked = true;
       }
     } else {
-      $('#enable-openid-signup').checkbox('uncheck');
+      document.querySelector('#enable-openid-signup input').checked = false;
     }
   });
-  $('#disable-registration input').on('change', function () {
-    if ($(this).is(':checked')) {
-      $('#enable-captcha').checkbox('uncheck');
-      $('#enable-openid-signup').checkbox('uncheck');
+  document.querySelector('#disable-registration input').addEventListener('change', function () {
+    if (this.checked) {
+      document.querySelector('#enable-captcha input').checked = false;
+      document.querySelector('#enable-openid-signup input').checked = false;
     } else {
-      $('#enable-openid-signup').checkbox('check');
+      document.querySelector('#enable-openid-signup input').checked = true;
     }
   });
-  $('#enable-captcha input').on('change', function () {
-    if ($(this).is(':checked')) {
-      $('#disable-registration').checkbox('uncheck');
+  document.querySelector('#enable-captcha input').addEventListener('change', function () {
+    if (this.checked) {
+      document.querySelector('#disable-registration input').checked = false;
     }
   });
 }

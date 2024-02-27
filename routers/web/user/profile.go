@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -24,6 +24,12 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
+)
+
+const (
+	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
+	tplFollowUnfollow   base.TplName = "org/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -309,8 +315,20 @@ func Action(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	ctx.JSONOK()
+
+	if ctx.ContextUser.IsIndividual() {
+		shared_user.PrepareContextForProfileBigAvatar(ctx)
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+		return
+	} else if ctx.ContextUser.IsOrganization() {
+		ctx.Data["Org"] = ctx.ContextUser
+		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.HTML(http.StatusOK, tplFollowUnfollow)
+		return
+	}
+	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
+	ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

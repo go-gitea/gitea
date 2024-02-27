@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,12 +22,12 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
-	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	context_module "code.gitea.io/gitea/services/context"
 
 	"xorm.io/builder"
 )
@@ -57,15 +58,16 @@ type ViewRequest struct {
 type ViewResponse struct {
 	State struct {
 		Run struct {
-			Link       string     `json:"link"`
-			Title      string     `json:"title"`
-			Status     string     `json:"status"`
-			CanCancel  bool       `json:"canCancel"`
-			CanApprove bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
-			CanRerun   bool       `json:"canRerun"`
-			Done       bool       `json:"done"`
-			Jobs       []*ViewJob `json:"jobs"`
-			Commit     ViewCommit `json:"commit"`
+			Link              string     `json:"link"`
+			Title             string     `json:"title"`
+			Status            string     `json:"status"`
+			CanCancel         bool       `json:"canCancel"`
+			CanApprove        bool       `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+			CanRerun          bool       `json:"canRerun"`
+			CanDeleteArtifact bool       `json:"canDeleteArtifact"`
+			Done              bool       `json:"done"`
+			Jobs              []*ViewJob `json:"jobs"`
+			Commit            ViewCommit `json:"commit"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -146,6 +148,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
@@ -168,8 +171,8 @@ func ViewPost(ctx *context_module.Context) {
 		Link: run.RefLink(),
 	}
 	resp.State.Run.Commit = ViewCommit{
-		LocaleCommit:   ctx.Tr("actions.runs.commit"),
-		LocalePushedBy: ctx.Tr("actions.runs.pushed_by"),
+		LocaleCommit:   ctx.Locale.TrString("actions.runs.commit"),
+		LocalePushedBy: ctx.Locale.TrString("actions.runs.pushed_by"),
 		ShortSha:       base.ShortSha(run.CommitSHA),
 		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
 		Pusher:         pusher,
@@ -194,7 +197,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if run.NeedApproval {
-		resp.State.CurrentJob.Detail = ctx.Locale.Tr("actions.need_approval_desc")
+		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
 	}
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
@@ -260,10 +263,14 @@ func ViewPost(ctx *context_module.Context) {
 }
 
 // Rerun will rerun jobs in the given run
-// jobIndex = 0 means rerun all jobs
+// If jobIndexStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
-	jobIndex := ctx.ParamsInt64("job")
+	jobIndexStr := ctx.Params("job")
+	var jobIndex int64
+	if jobIndexStr != "" {
+		jobIndex, _ = strconv.ParseInt(jobIndexStr, 10, 64)
+	}
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -295,7 +302,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndex != 0 {
+	if jobIndexStr != "" {
 		jobs = []*actions_model.ActionRunJob{job}
 	}
 
@@ -535,6 +542,29 @@ func ArtifactsView(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, artifactsResponse)
 }
 
+func ArtifactsDeleteView(ctx *context_module.Context) {
+	if !ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Error(http.StatusForbidden, "no permission")
+		return
+	}
+
+	runIndex := ctx.ParamsInt64("run")
+	artifactName := ctx.Params("artifact_name")
+
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+	if err = actions_model.SetArtifactNeedDelete(ctx, run.ID, artifactName); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
 func ArtifactsDownloadView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	artifactName := ctx.Params("artifact_name")
@@ -560,6 +590,14 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if len(artifacts) == 0 {
 		ctx.Error(http.StatusNotFound, "artifact not found")
 		return
+	}
+
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	for _, art := range artifacts {
+		if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
+			ctx.Error(http.StatusNotFound, "artifact not found")
+			return
+		}
 	}
 
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))

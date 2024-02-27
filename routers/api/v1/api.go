@@ -6,9 +6,9 @@
 //
 // This documentation describes the Gitea API.
 //
-//	Schemes: http, https
+//	Schemes: https, http
 //	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape | Safe}}
+//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
@@ -79,7 +79,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -95,7 +94,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/auth"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -811,7 +810,7 @@ func individualPermsChecker(ctx *context.APIContext) {
 // check for and warn against deprecated authentication options
 func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
 	}
 }
 
@@ -855,11 +854,11 @@ func Routes() *web.Route {
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context_service.UserAssignmentAPI())
+				}, context.UserAssignmentAPI())
 				m.Group("/user-id/{user-id}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context_service.UserIDAssignmentAPI())
+				}, context.UserIDAssignmentAPI())
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
@@ -915,7 +914,7 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context_service.UserAssignmentAPI(), individualPermsChecker)
+			}, context.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
@@ -933,7 +932,7 @@ func Routes() *web.Route {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context_service.UserAssignmentAPI())
+			}, context.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -968,7 +967,7 @@ func Routes() *web.Route {
 					m.Get("", user.CheckMyFollowing)
 					m.Put("", user.Follow)
 					m.Delete("", user.Unfollow)
-				}, context_service.UserAssignmentAPI())
+				}, context.UserAssignmentAPI())
 			})
 
 			// (admin:public_key scope)
@@ -1181,13 +1180,13 @@ func Routes() *web.Route {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), repo.PushMirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
-						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+						Post(mustNotBeArchived, bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
-						Delete(repo.DeletePushMirrorByRemoteName).
+						Delete(mustNotBeArchived, repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
 				}, reqAdmin(), reqToken())
 
@@ -1225,6 +1224,7 @@ func Routes() *web.Route {
 							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
+					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
@@ -1235,6 +1235,7 @@ func Routes() *web.Route {
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
+						m.Get("/pull", repo.GetCommitPullRequest)
 					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
@@ -1413,14 +1414,14 @@ func Routes() *web.Route {
 				m.Get("/files", reqToken(), packages.ListPackageFiles)
 			})
 			m.Get("/", reqToken(), packages.ListPackages)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context_service.UserAssignmentAPI())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI())
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
@@ -1518,7 +1519,7 @@ func Routes() *web.Route {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
-				}, context_service.UserAssignmentAPI())
+				}, context.UserAssignmentAPI())
 			})
 			m.Group("/emails", func() {
 				m.Get("", admin.GetAllEmails)

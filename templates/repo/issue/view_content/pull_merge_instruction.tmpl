@@ -1,5 +1,5 @@
 <div class="divider"></div>
-<div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint" | Safe}} </div>
+<div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}} </div>
 <div class="instruct-content gt-mt-3 gt-hidden">
 	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}</div>
 	{{$localBranch := .PullRequest.HeadBranch}}
@@ -34,6 +34,10 @@
 		<div class="gt-hidden" data-pull-merge-style="squash">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --squash {{$localBranch}}</div>
+		</div>
+		<div class="gt-hidden" data-pull-merge-style="fast-forward-only">
+			<div>git checkout {{.PullRequest.BaseBranch}}</div>
+			<div>git merge --ff-only {{$localBranch}}</div>
 		</div>
 		<div class="gt-hidden" data-pull-merge-style="manually-merged">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>

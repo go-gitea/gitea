@@ -1,6 +1,6 @@
 {
   "name": "Gitea DevContainer",
-  "image": "mcr.microsoft.com/devcontainers/go:1.21-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22-bullseye",
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {

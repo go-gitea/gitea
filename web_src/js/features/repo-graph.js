@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {GET} from '../modules/fetch.js';
 
 export function initRepoGraphGit() {
   const graphContainer = document.getElementById('git-graph-container');
@@ -60,7 +61,9 @@ export function initRepoGraphGit() {
     $('#rev-container').addClass('gt-hidden');
     $('#loading-indicator').removeClass('gt-hidden');
     (async () => {
-      const div = $(await $.ajax(String(ajaxUrl)));
+      const response = await GET(String(ajaxUrl));
+      const html = await response.text();
+      const div = $(html);
       $('#pagination').html(div.find('#pagination').html());
       $('#rel-container').html(div.find('#rel-container').html());
       $('#rev-container').html(div.find('#rev-container').html());

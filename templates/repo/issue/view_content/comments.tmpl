@@ -17,7 +17,7 @@
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
 				<span class="timeline-avatar">
-					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+					{{ctx.AvatarUtils.Avatar nil 40}}
 				</span>
 			{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
@@ -33,10 +33,10 @@
 									{{.OriginalAuthor}}
 								</span>
 								<span class="text grey muted-links">
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}} {{if $.Repository.OriginalURL}}
 								</span>
 								<span class="text migrate">
-									({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}
+									({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}}){{end}}
 								</span>
 							{{else}}
 								{{if gt .Poster.ID 0}}
@@ -46,7 +46,7 @@
 								{{end}}
 								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Poster}}
-									{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+									{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 								</span>
 							{{end}}
 						</div>
@@ -81,47 +81,53 @@
 		{{else if eq .Type 1}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-green gt-text-white">{{svg "octicon-dot-fill"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
-						{{ctx.Locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.reopened_at" .EventTag $createdStr}}
 					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-red gt-text-white">{{svg "octicon-circle-slash"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
-						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
 					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-purple gt-text-white">{{svg "octicon-git-merge"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (HTMLFormat `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` $link (ShortSha $.Issue.PullRequest.MergedCommitID)) (HTMLFormat "<b>%[1]s</b>" $.BaseTarget) $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.comment_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.comment_pull_merged_at" (HTMLFormat `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` $link (ShortSha $.Issue.PullRequest.MergedCommitID)) (HTMLFormat "<b>%[1]s</b>" $.BaseTarget) $createdStr}}
 					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 3 5 6}}
 			{{$refFrom:= ""}}
 			{{if ne .RefRepoID .Issue.RepoID}}
-				{{$refFrom = ctx.Locale.Tr "repo.issues.ref_from" (.RefRepo.FullName|Escape)}}
+				{{$refFrom = ctx.Locale.Tr "repo.issues.ref_from" .RefRepo.FullName}}
 			{{end}}
 			{{$refTr := "repo.issues.ref_issue_from"}}
 			{{if .Issue.IsPull}}
@@ -138,7 +144,7 @@
 				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr $refTr (.EventTag|Escape) $createdStr ((.RefCommentLink ctx)|Escape) $refFrom | Safe}}
+					{{ctx.Locale.Tr $refTr .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
@@ -152,7 +158,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-git-commit"}}
@@ -167,11 +173,11 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels $.Context .AddedLabels $.RepoLink) $createdStr | Safe}}
+							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels $.Context .AddedLabels $.RepoLink) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels $.Context .RemovedLabels $.RepoLink) $createdStr | Safe}}
+							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels $.Context .RemovedLabels $.RepoLink) $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels $.Context .AddedLabels $.RepoLink) (RenderLabels $.Context .RemovedLabels $.RepoLink) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels $.Context .AddedLabels $.RepoLink) (RenderLabels $.Context .RemovedLabels $.RepoLink) $createdStr}}
 						{{end}}
 					</span>
 				</div>
@@ -182,7 +188,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr}}{{end}}
 				</span>
 			</div>
 		{{else if and (eq .Type 9) (gt .AssigneeID 0)}}
@@ -193,9 +199,9 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Assignee}}
 						{{if eq .Poster.ID .Assignee.ID}}
-							{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" .Poster.GetDisplayName $createdStr}}
 						{{end}}
 					</span>
 				{{else}}
@@ -203,9 +209,9 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Assignee}}
 						{{if eq .Poster.ID .AssigneeID}}
-							{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.add_assignee_at" .Poster.GetDisplayName $createdStr}}
 						{{end}}
 					</span>
 				{{end}}
@@ -216,7 +222,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji $.Context) (.NewTitle|RenderEmoji $.Context) $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji $.Context) (.NewTitle|RenderEmoji $.Context) $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
@@ -225,7 +231,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.delete_branch_at" .OldRef $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 12}}
@@ -234,7 +240,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.start_tracking_history" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.start_tracking_history" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 13}}
@@ -243,7 +249,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
@@ -262,7 +268,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
@@ -281,7 +287,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.cancel_tracking_history" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.cancel_tracking_history" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 16}}
@@ -290,7 +296,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.due_date_added" (DateTime "long" .Content) $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.due_date_added" (DateTime "long" .Content) $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -303,7 +309,7 @@
 					{{if eq (len $parsedDeadline) 2}}
 						{{$from := DateTime "long" (index $parsedDeadline 1)}}
 						{{$to := DateTime "long" (index $parsedDeadline 0)}}
-						{{ctx.Locale.Tr "repo.issues.due_date_modified" $to $from $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.due_date_modified" $to $from $createdStr}}
 					{{end}}
 				</span>
 			</div>
@@ -313,7 +319,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.due_date_remove" (DateTime "long" .Content) $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.due_date_remove" (DateTime "long" .Content) $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
@@ -322,7 +328,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.dependency.added_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
 					<div class="detail">
@@ -345,7 +351,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.dependency.removed_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
 					<div class="detail">
@@ -365,9 +371,8 @@
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group" id="{{.HashTag}}">
 				<div class="timeline-item event">
-					{{if .OriginalAuthor}}
-					{{else}}
-					{{/* Some timeline avatars need a offset to correctly allign with their speech
+					{{if not .OriginalAuthor}}
+					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
 					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
@@ -376,25 +381,15 @@
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 					<span class="text grey muted-links">
-						{{if .OriginalAuthor}}
-							<span class="text black">
-								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-								{{.OriginalAuthor}}
-							</span>
-							<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-							<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
-						{{else}}
-							{{template "shared/user/authorlink" .Poster}}
-						{{end}}
-
+						{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 						{{if eq .Review.Type 1}}
-							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
 						{{else if eq .Review.Type 2}}
-							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr}}
 						{{else if eq .Review.Type 3}}
-							{{ctx.Locale.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.reject" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr}}
 						{{end}}
 						{{if .Review.Dismissed}}
 							<div class="ui small label">{{ctx.Locale.Tr "repo.issues.review.dismissed_label"}}</div>
@@ -418,12 +413,12 @@
 											{{.OriginalAuthor}}
 										</span>
 										<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-										<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
+										<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}}){{end}}</span>
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
 									{{end}}
 
-									{{ctx.Locale.Tr "repo.issues.review.left_comment" | Safe}}
+									{{ctx.Locale.Tr "repo.issues.review.left_comment"}}
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
@@ -460,139 +455,7 @@
 				<div class="timeline-item event">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
-								<div class="ui segments">
-									<div class="ui segment collapsible-comment-box gt-py-3 gt-df gt-ac gt-sb">
-										{{$invalid := (index $comms 0).Invalidated}}
-										{{$resolved := (index $comms 0).IsResolved}}
-										{{$resolveDoer := (index $comms 0).ResolveDoer}}
-										{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
-										<div class="gt-df gt-ac">
-											<a href="{{(index $comms 0).CodeCommentLink ctx}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
-											{{if $invalid}}
-												<span class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
-													{{ctx.Locale.Tr "repo.issues.review.outdated"}}
-												</span>
-											{{end}}
-										</div>
-										<div>
-											{{if or $invalid $resolved}}
-												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact labeled button show-outdated gt-df gt-ac">
-													{{svg "octicon-unfold" 16 "gt-mr-3"}}
-													{{if $resolved}}
-														{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
-													{{else}}
-														{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
-													{{end}}
-												</button>
-												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact labeled button hide-outdated gt-df gt-ac">
-													{{svg "octicon-fold" 16 "gt-mr-3"}}
-													{{if $resolved}}
-														{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
-													{{else}}
-														{{ctx.Locale.Tr "repo.issues.review.hide_outdated"}}
-													{{end}}
-												</button>
-											{{end}}
-										</div>
-									</div>
-									{{$diff := (CommentMustAsDiff ctx (index $comms 0))}}
-									{{if $diff}}
-										{{$file := (index $diff.Files 0)}}
-										<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
-											<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
-												<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
-													<table>
-														<tbody>
-															{{template "repo/diff/section_unified" dict "file" $file "root" $}}
-														</tbody>
-													</table>
-												</div>
-											</div>
-										</div>
-									{{end}}
-									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} gt-hidden{{end}}">
-										<div class="ui comments gt-mb-0">
-											{{range $comms}}
-												{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
-												<div class="comment code-comment gt-pb-4" id="{{.HashTag}}">
-													<div class="content">
-														<div class="header comment-header">
-															<div class="comment-header-left gt-df gt-ac">
-																{{if not .OriginalAuthor}}
-																	<a class="avatar">
-																		{{ctx.AvatarUtils.Avatar .Poster 20}}
-																	</a>
-																{{end}}
-																<span class="text grey muted-links">
-																	{{if .OriginalAuthor}}
-																		<span class="text black gt-font-semibold">
-																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-																			{{.OriginalAuthor}}
-																		</span>
-																		<span class="text grey muted-links"> {{if $.Repository.OriginalURL}}</span>
-																		<span class="text migrate">({{ctx.Locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}</span>
-																	{{else}}
-																		{{template "shared/user/authorlink" .Poster}}
-																	{{end}}
-																	{{ctx.Locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
-																</span>
-															</div>
-															<div class="comment-header-right actions gt-df gt-ac">
-																{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-																{{if not $.Repository.IsArchived}}
-																	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-																	{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
-																{{end}}
-															</div>
-														</div>
-														<div class="text comment-content">
-															<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
-															{{if .RenderedContent}}
-																{{.RenderedContent|Str2html}}
-															{{else}}
-																<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
-															{{end}}
-															</div>
-															<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-															<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
-														</div>
-														{{$reactions := .Reactions.GroupByType}}
-														{{if $reactions}}
-															{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-														{{end}}
-													</div>
-												</div>
-											{{end}}
-										</div>
-										<div class="code-comment-buttons gt-df gt-ac gt-fw gt-mt-3 gt-mb-2 gt-mx-3">
-											<div class="gt-f1">
-												{{if $resolved}}
-													<div class="ui grey text">
-														{{svg "octicon-check" 16 "gt-mr-2"}}
-														<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
-													</div>
-												{{end}}
-											</div>
-											<div class="code-comment-buttons-buttons">
-												{{if and $.CanMarkConversation $isNotPending}}
-													<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
-														{{if $resolved}}
-															{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
-														{{else}}
-															{{ctx.Locale.Tr "repo.issues.review.resolve_conversation"}}
-														{{end}}
-													</button>
-												{{end}}
-												{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-													<button class="comment-form-reply ui primary tiny labeled icon button gt-ml-2 gt-mr-0">
-														{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
-													</button>
-												{{end}}
-											</div>
-										</div>
-										{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
-									</div>
-								</div>
+							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
 						{{end}}
 					{{end}}
 				</div>
@@ -605,12 +468,12 @@
 				{{if .Content}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
-						{{ctx.Locale.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.lock_with_reason" .Content $createdStr}}
 					</span>
 				{{else}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
-						{{ctx.Locale.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.lock_no_reason" $createdStr}}
 					</span>
 				{{end}}
 			</div>
@@ -620,16 +483,18 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.unlock_comment" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 25}}
 			<div class="timeline-item event">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a>
-					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 26}}
@@ -639,7 +504,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{ctx.Locale.Tr "repo.issues.del_time_history" $createdStr | Safe}}
+					{{ctx.Locale.Tr "repo.issues.del_time_history" $createdStr}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
@@ -660,12 +525,12 @@
 					{{if (gt .AssigneeID 0)}}
 						{{if .RemovedAssignee}}
 							{{if eq .PosterID .AssigneeID}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+								{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr}}
 							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" .Assignee.GetDisplayName $createdStr}}
 							{{end}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.add_review_request" .Assignee.GetDisplayName $createdStr}}
 						{{end}}
 					{{else}}
 						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
@@ -674,9 +539,9 @@
 							{{$teamName = .AssigneeTeam.Name}}
 						{{end}}
 						{{if .RemovedAssignee}}
-							{{ctx.Locale.Tr "repo.issues.review.remove_review_request" ($teamName|Escape) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.remove_review_request" $teamName $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" ($teamName|Escape) $createdStr | Safe}}
+							{{ctx.Locale.Tr "repo.issues.review.add_review_request" $teamName $createdStr}}
 						{{end}}
 					{{end}}
 				</span>
@@ -691,9 +556,9 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if .IsForcePush}}
-						{{ctx.Locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape) (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit) (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr}}
 					{{else}}
-						{{ctx.Locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
+						{{ctx.Locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr}}
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
@@ -715,19 +580,19 @@
 					{{$oldProjectDisplayHtml := "Unknown Project"}}
 					{{if .OldProject}}
 						{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
-						{{$oldProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey | Escape) (.OldProject.Title | Escape)}}
+						{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .OldProject.Title}}
 					{{end}}
 					{{$newProjectDisplayHtml := "Unknown Project"}}
 					{{if .Project}}
 						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
-						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
+						{{$newProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .Project.Title}}
 					{{end}}
 					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
-						{{ctx.Locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr}}
 					{{else if gt .OldProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr}}
 					{{else if gt .ProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr}}
 					{{end}}
 				</span>
 			</div>
@@ -747,7 +612,7 @@
 						{{else}}
 							{{$reviewerName = .Review.OriginalAuthor}}
 						{{end}}
-						{{ctx.Locale.Tr "repo.issues.review.dismissed" $reviewerName $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.review.dismissed" $reviewerName $createdStr}}
 					</span>
 				</div>
 				{{if .Content}}
@@ -783,11 +648,11 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if and .OldRef .NewRef}}
-						{{ctx.Locale.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.change_ref_at" .OldRef .NewRef $createdStr}}
 					{{else if .OldRef}}
-						{{ctx.Locale.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.remove_ref_at" .OldRef $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.add_ref_at" .NewRef $createdStr}}
 					{{end}}
 				</span>
 			</div>
@@ -795,9 +660,9 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
-					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
-					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
+					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 				</span>
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}
@@ -806,8 +671,8 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if eq .Type 36}}{{ctx.Locale.Tr "repo.issues.pin_comment" $createdStr | Safe}}
-					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr | Safe}}{{end}}
+					{{if eq .Type 36}}{{ctx.Locale.Tr "repo.issues.pin_comment" $createdStr}}
+					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr}}{{end}}
 				</span>
 			</div>
 		{{end}}

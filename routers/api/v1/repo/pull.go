@@ -21,8 +21,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -171,6 +172,91 @@ func GetPullRequest(ctx *context.APIContext) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err = pr.LoadBaseRepo(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
+		return
+	}
+	if err = pr.LoadHeadRepo(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+}
+
+// GetPullRequest returns a single PR based on index
+func GetPullRequestByBaseHead(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{base}/{head} repository repoGetPullRequestByBaseHead
+	// ---
+	// summary: Get a pull request by base and head
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: base
+	//   in: path
+	//   description: base of the pull request to get
+	//   type: string
+	//   required: true
+	// - name: head
+	//   in: path
+	//   description: head of the pull request to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequest"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	var headRepoID int64
+	var headBranch string
+	head := ctx.Params("*")
+	if strings.Contains(head, ":") {
+		split := strings.SplitN(head, ":", 2)
+		headBranch = split[1]
+		var owner, name string
+		if strings.Contains(split[0], "/") {
+			split = strings.Split(split[0], "/")
+			owner = split[0]
+			name = split[1]
+		} else {
+			owner = split[0]
+			name = ctx.Repo.Repository.Name
+		}
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerName", err)
+			}
+			return
+		}
+		headRepoID = repo.ID
+	} else {
+		headRepoID = ctx.Repo.Repository.ID
+		headBranch = head
+	}
+
+	pr, err := issues_model.GetPullRequestByBaseHeadInfo(ctx, ctx.Repo.Repository.ID, headRepoID, ctx.Params(":base"), headBranch)
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByBaseHeadInfo", err)
 		}
 		return
 	}
@@ -906,9 +992,9 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 				return
 			}
 			defer headRepo.Close()
@@ -1004,7 +1090,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepository(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -1308,7 +1394,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	var prInfo *git.CompareInfo
-	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return

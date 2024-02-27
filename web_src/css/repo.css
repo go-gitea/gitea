@@ -1498,12 +1498,6 @@
   background: var(--color-body);
 }
 
-@media (max-width: 991.98px) {
-  .repository .diff-detail-box {
-    flex-direction: row;
-  }
-}
-
 @media (max-width: 480px) {
   .repository .diff-detail-box {
     flex-wrap: wrap;
@@ -1528,7 +1522,7 @@
   color: var(--color-red);
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 800px) {
   .repository .diff-detail-box .diff-detail-stats {
     display: none !important;
   }
@@ -1538,7 +1532,6 @@
   display: flex;
   align-items: center;
   gap: 0.25em;
-  flex-wrap: wrap;
   justify-content: end;
 }
 
@@ -1546,15 +1539,6 @@
 .diff-detail-actions .button {
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-@media (max-width: 480px) {
-  .repository .diff-detail-box .diff-detail-actions {
-    padding-top: 0.25rem;
-  }
-  .repository .diff-detail-box .diff-detail-actions .ui.button:not(.btn-submit) {
-    padding: 0 0.5rem;
-  }
 }
 
 .repository .diff-detail-box span.status {
@@ -2128,14 +2112,16 @@
 }
 
 #search-user-box .results .result .image {
-  float: left;
-  margin-right: 8px;
+  order: 0;
+  margin-right: 12px;
   width: 2em;
   height: 2em;
+  min-width: 2em;
+  min-height: 2em;
 }
 
 #search-user-box .results .result .content {
-  margin: 6px 0; /* this trick is used to align with the sibling avatar image */
+  margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
 }
 
 .ui.menu .item > img:not(.ui) {
@@ -2285,10 +2271,6 @@
   max-width: 100% !important;
   margin: 0 !important;
   padding: 1em;
-}
-
-.comment-body .markup {
-  border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
 .edit-label.modal .form .column,

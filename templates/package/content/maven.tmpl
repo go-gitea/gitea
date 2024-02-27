@@ -3,7 +3,7 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>&lt;repositories&gt;
 	&lt;repository&gt;
 		&lt;id&gt;gitea&lt;/id&gt;
@@ -24,7 +24,7 @@
 &lt;/distributionManagement&gt;</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.install" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>&lt;dependency&gt;
 	&lt;groupId&gt;{{.PackageDescriptor.Metadata.GroupID}}&lt;/groupId&gt;
 	&lt;artifactId&gt;{{.PackageDescriptor.Metadata.ArtifactID}}&lt;/artifactId&gt;
@@ -40,7 +40,7 @@
 				<div class="markup"><pre class="code-block"><code>mvn dependency:get -DremoteRepositories=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven"></gitea-origin-url> -Dartifact={{.PackageDescriptor.Metadata.GroupID}}:{{.PackageDescriptor.Metadata.ArtifactID}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Maven" "https://docs.gitea.com/usage/packages/maven/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Maven" "https://docs.gitea.com/usage/packages/maven/"}}</label>
 			</div>
 		</div>
 	</div>

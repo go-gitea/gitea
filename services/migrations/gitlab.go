@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -506,30 +508,8 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			return nil, false, fmt.Errorf("error while listing comments: %v %w", g.repoID, err)
 		}
 		for _, comment := range comments {
-			// Flatten comment threads
-			if !comment.IndividualNote {
-				for _, note := range comment.Notes {
-					allComments = append(allComments, &base.Comment{
-						IssueIndex:  commentable.GetLocalIndex(),
-						Index:       int64(note.ID),
-						PosterID:    int64(note.Author.ID),
-						PosterName:  note.Author.Username,
-						PosterEmail: note.Author.Email,
-						Content:     note.Body,
-						Created:     *note.CreatedAt,
-					})
-				}
-			} else {
-				c := comment.Notes[0]
-				allComments = append(allComments, &base.Comment{
-					IssueIndex:  commentable.GetLocalIndex(),
-					Index:       int64(c.ID),
-					PosterID:    int64(c.Author.ID),
-					PosterName:  c.Author.Username,
-					PosterEmail: c.Author.Email,
-					Content:     c.Body,
-					Created:     *c.CreatedAt,
-				})
+			for _, note := range comment.Notes {
+				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
 			}
 		}
 		if resp.NextPage == 0 {
@@ -537,7 +517,91 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		page = resp.NextPage
 	}
+
+	page = 1
+	for {
+		var stateEvents []*gitlab.StateEvent
+		var resp *gitlab.Response
+		var err error
+		if context.IsMergeRequest {
+			stateEvents, resp, err = g.client.ResourceStateEvents.ListMergeStateEvents(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListStateEventsOptions{
+				ListOptions: gitlab.ListOptions{
+					Page:    page,
+					PerPage: g.maxPerPage,
+				},
+			}, nil, gitlab.WithContext(g.ctx))
+		} else {
+			stateEvents, resp, err = g.client.ResourceStateEvents.ListIssueStateEvents(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListStateEventsOptions{
+				ListOptions: gitlab.ListOptions{
+					Page:    page,
+					PerPage: g.maxPerPage,
+				},
+			}, nil, gitlab.WithContext(g.ctx))
+		}
+		if err != nil {
+			return nil, false, fmt.Errorf("error while listing state events: %v %w", g.repoID, err)
+		}
+
+		for _, stateEvent := range stateEvents {
+			comment := &base.Comment{
+				IssueIndex: commentable.GetLocalIndex(),
+				Index:      int64(stateEvent.ID),
+				PosterID:   int64(stateEvent.User.ID),
+				PosterName: stateEvent.User.Username,
+				Content:    "",
+				Created:    *stateEvent.CreatedAt,
+			}
+			switch stateEvent.State {
+			case gitlab.ClosedEventType:
+				comment.CommentType = issues_model.CommentTypeClose.String()
+			case gitlab.MergedEventType:
+				comment.CommentType = issues_model.CommentTypeMergePull.String()
+			case gitlab.ReopenedEventType:
+				comment.CommentType = issues_model.CommentTypeReopen.String()
+			default:
+				// Ignore other event types
+				continue
+			}
+			allComments = append(allComments, comment)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		page = resp.NextPage
+	}
+
 	return allComments, true, nil
+}
+
+var targetBranchChangeRegexp = regexp.MustCompile("^changed target branch from `(.*?)` to `(.*?)`$")
+
+func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
+	comment := &base.Comment{
+		IssueIndex:  localIndex,
+		Index:       int64(note.ID),
+		PosterID:    int64(note.Author.ID),
+		PosterName:  note.Author.Username,
+		PosterEmail: note.Author.Email,
+		Content:     note.Body,
+		Created:     *note.CreatedAt,
+		Meta:        map[string]any{},
+	}
+
+	// Try to find the underlying event of system notes.
+	if note.System {
+		if match := targetBranchChangeRegexp.FindStringSubmatch(note.Body); match != nil {
+			comment.CommentType = issues_model.CommentTypeChangeTargetBranch.String()
+			comment.Meta["OldRef"] = match[1]
+			comment.Meta["NewRef"] = match[2]
+		} else if strings.HasPrefix(note.Body, "enabled an automatic merge") {
+			comment.CommentType = issues_model.CommentTypePRScheduledToAutoMerge.String()
+		} else if note.Body == "canceled the automatic merge" {
+			comment.CommentType = issues_model.CommentTypePRUnScheduledToAutoMerge.String()
+		}
+	}
+
+	return comment
 }
 
 // GetPullRequests returns pull requests according page and perPage

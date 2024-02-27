@@ -14,11 +14,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -297,7 +297,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 		} else {
 			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.SupportProcReceive && unitType == unit.TypeCode {
+			if git.DefaultFeatures.SupportProcReceive && unitType == unit.TypeCode {
 				mode = perm.AccessModeRead
 			}
 

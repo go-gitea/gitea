@@ -101,7 +101,9 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	if !IsValidObjectFormat(objectFormatName) {
 		return fmt.Errorf("invalid object format: %s", objectFormatName)
 	}
-	cmd.AddOptionValues("--object-format", objectFormatName)
+	if DefaultFeatures.SupportHashSha256 {
+		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
 
 	if bare {
 		cmd.AddArguments("--bare")
@@ -269,7 +271,7 @@ func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error
 		return time.Time{}, err
 	}
 	commitTime := strings.TrimSpace(stdout)
-	return time.Parse(GitTimeLayout, commitTime)
+	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }
 
 // DivergeObject represents commit count diverging commits
