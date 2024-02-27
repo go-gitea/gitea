@@ -2,14 +2,21 @@ export function initRepositorySearch() {
   const repositorySearchForm = document.querySelector('#repo-search-form');
   if (!repositorySearchForm) return;
 
-  for (const radio of repositorySearchForm.querySelectorAll('input[type=radio]')) {
-    radio.addEventListener('click', (e) => {
-      e.preventDefault();
+  repositorySearchForm.addEventListener('change', (e) => {
+    e.preventDefault();
 
-      const formData = new FormData(repositorySearchForm);
-      const params = new URLSearchParams(formData);
-      const otherQueryParams = repositorySearchForm.getAttribute('data-query-params');
-      window.location.search = `${otherQueryParams}&${params.toString()}`;
-    });
-  }
+    const formData = new FormData(repositorySearchForm);
+    const params = new URLSearchParams(formData);
+
+    if (e.target.name === 'clear-filter') {
+      params.delete('archived');
+      params.delete('fork');
+      params.delete('mirror');
+      params.delete('template');
+      params.delete('private');
+    }
+
+    params.delete('clear-filter');
+    window.location.search = params.toString();
+  });
 }
