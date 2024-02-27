@@ -117,6 +117,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 		return nil
 	}
+	if input.Repo.IsEmpty {
+		return nil
+	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
 		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
 			log.Error("CleanRepoScheduleTasks: %v", err)
