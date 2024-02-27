@@ -21,4 +21,5 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 
 const (
 	UserFeatureDeletion = "deletion"
+	UserFeatureSSHKeys  = "ssh_keys"
 )
