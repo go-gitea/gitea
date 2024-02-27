@@ -1,0 +1,9 @@
+{{if .Permission.CanRead $.UnitTypeCode}}
+	<div id="repo-recent-commits-chart"
+		data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "graphs.recent_commits.what")}}"
+		data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "graphs.recent_commits.what")}}"
+		data-locale-loading-info="{{ctx.Locale.Tr "graphs.component_loading_info"}}"
+		data-locale-component-failed-to-load="{{ctx.Locale.Tr "graphs.component_failed_to_load"}}"
+	>
+	</div>
+{{end}}

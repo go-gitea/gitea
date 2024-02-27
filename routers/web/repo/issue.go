@@ -31,7 +31,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
@@ -43,11 +43,12 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -711,15 +712,11 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		if ctx.Repo.IsAdmin() {
-			// Admin can dismiss or re-request any review requests
+		if canChooseReviewer {
+			// Users who can choose reviewers can also remove review requests
 			tmp.CanChange = true
 		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID && review.Type == issues_model.ReviewTypeRequest {
 			// A user can refuse review requests
-			tmp.CanChange = true
-		} else if (canChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == issue.PosterID)) && review.Type != issues_model.ReviewTypeRequest &&
-			ctx.Doer.ID != review.ReviewerID {
-			// The poster of the PR, a manager, or official reviewers can re-request review from other reviewers
 			tmp.CanChange = true
 		}
 
@@ -1036,7 +1033,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
-		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
+		flashError = ctx.Locale.TrString("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
 }
@@ -1439,7 +1436,7 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 
 	iw := new(issues_model.IssueWatch)
 	if ctx.Doer != nil {
@@ -1525,18 +1522,9 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
+		canChooseReviewer := false
 		if ctx.Doer != nil && ctx.IsSigned {
-			if !canChooseReviewer {
-				canChooseReviewer = ctx.Doer.ID == issue.PosterID
-			}
-			if !canChooseReviewer {
-				canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("IsOfficialReviewer", err)
-					return
-				}
-			}
+			canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
 		}
 
 		RetrieveRepoReviewers(ctx, repo, issue, canChooseReviewer)
@@ -1655,7 +1643,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 			ghostMilestone := &issues_model.Milestone{
 				ID:   -1,
-				Name: ctx.Tr("repo.issues.deleted_milestone"),
+				Name: ctx.Locale.TrString("repo.issues.deleted_milestone"),
 			}
 			if comment.OldMilestoneID > 0 && comment.OldMilestone == nil {
 				comment.OldMilestone = ghostMilestone
@@ -1672,7 +1660,7 @@ func ViewIssue(ctx *context.Context) {
 
 			ghostProject := &project_model.Project{
 				ID:    -1,
-				Title: ctx.Tr("repo.issues.deleted_project"),
+				Title: ctx.Locale.TrString("repo.issues.deleted_project"),
 			}
 
 			if comment.OldProjectID > 0 && comment.OldProject == nil {
@@ -1730,6 +1718,10 @@ func ViewIssue(ctx *context.Context) {
 			for _, codeComments := range comment.Review.CodeComments {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
+						if err := c.LoadAttachments(ctx); err != nil {
+							ctx.ServerError("LoadAttachments", err)
+							return
+						}
 						// Check tag.
 						role, ok = marked[c.PosterID]
 						if ok {
@@ -1862,6 +1854,8 @@ func ViewIssue(ctx *context.Context) {
 				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				mergeStyle = repo_model.MergeStyleSquash
+			} else if prConfig.AllowFastForwardOnly {
+				mergeStyle = repo_model.MergeStyleFastForwardOnly
 			} else if prConfig.AllowManualMerge {
 				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}

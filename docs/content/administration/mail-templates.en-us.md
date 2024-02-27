@@ -222,7 +222,7 @@ Please check [Gitea's logs](administration/logging-config.md) for error messages
         <a href="{{.Link}}">{{.Repo}}#{{.Issue.Index}}</a>.
         </p>
         {{if not (eq .Body "")}}
-            <h3>Message content:</h3>
+            <h3>Message content</h3>
             <hr>
             {{.Body | Str2html}}
         {{end}}
@@ -245,7 +245,7 @@ This template produces something along these lines:
 
 > [@rhonda](#) (Rhonda Myers) updated [mike/stuff#38](#).
 >
-> #### Message content:
+> #### Message content
 >
 > \_********************************\_********************************
 >
@@ -266,7 +266,7 @@ the messages. Here's a list of some of them:
 | `AppDomain`      | -           | Any       | Gitea's host name                                                           |
 | `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed         |
 | `Str2html`       | string      | Body only | Sanitizes text by removing any HTML tags from it.                           |
-| `Safe`           | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
+| `SafeHTML`       | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
 
 These are _functions_, not metadata, so they have to be used:
 

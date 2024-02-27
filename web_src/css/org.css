@@ -93,46 +93,44 @@
   min-width: 300px;
 }
 
-.organization.profile .org-avatar {
-  width: 100px;
-  height: 100px;
+.page-content.organization .org-avatar {
   margin-right: 15px;
 }
 
-.organization.profile #org-info {
+.page-content.organization #org-info {
   overflow-wrap: anywhere;
   flex: 1;
   word-break: break-all;
 }
 
-.organization.profile #org-info .ui.header {
+.page-content.organization #org-info .ui.header {
   display: flex;
   align-items: center;
   font-size: 36px;
   margin-bottom: 0;
 }
 
-.organization.profile #org-info .desc {
+.page-content.organization #org-info .desc {
   font-size: 16px;
   margin-bottom: 10px;
 }
 
-.organization.profile #org-info .meta {
+.page-content.organization #org-info .meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.organization.profile .ui.top.header .ui.right {
+.page-content.organization .ui.top.header .ui.right {
   margin-top: 0;
 }
 
-.organization.profile .teams .item {
+.page-content.organization .teams .item {
   padding: 10px 15px;
 }
 
-.organization.profile .members .ui.avatar {
+.page-content.organization .members .ui.avatar {
   width: 48px;
   height: 48px;
   margin-right: 5px;

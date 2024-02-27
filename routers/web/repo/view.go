@@ -36,7 +36,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
@@ -45,10 +44,13 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
 
@@ -553,31 +555,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			}
 			ctx.Data["NumLinesSet"] = true
 
-			language := ""
-
-			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
-			if err == nil {
-				defer deleteTemporaryFile()
-
-				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
-					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
-					Filenames:  []string{ctx.Repo.TreePath},
-					IndexFile:  indexFilename,
-					WorkTree:   worktree,
-				})
-				if err != nil {
-					log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-				}
-
-				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
-				if language == "" || language == "unspecified" {
-					language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
-				}
-				if language == "unspecified" {
-					language = ""
-				}
+			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			if err != nil {
+				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 			}
+
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
@@ -653,11 +635,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			defer deferable()
 			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 			if err == nil {
-				vendored, has := attrs["linguist-vendored"]
-				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
-
-				generated, has := attrs["linguist-generated"]
-				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
+				ctx.Data["IsVendored"] = git.AttributeToBool(attrs, git.AttributeLinguistVendored).Value()
+				ctx.Data["IsGenerated"] = git.AttributeToBool(attrs, git.AttributeLinguistGenerated).Value()
 			}
 		}
 	}
@@ -758,7 +737,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
@@ -811,7 +790,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	renderCode(ctx)
+	renderHomeCode(ctx)
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -938,9 +917,33 @@ func renderRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func renderCode(ctx *context.Context) {
+func prepareOpenWithEditorApps(ctx *context.Context) {
+	var tmplApps []map[string]any
+	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
+	if len(apps) == 0 {
+		apps = setting.DefaultOpenWithEditorApps()
+	}
+	for _, app := range apps {
+		schema, _, _ := strings.Cut(app.OpenURL, ":")
+		var iconHTML template.HTML
+		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-open-with-%s", schema), 16, "gt-mr-3")
+		} else {
+			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
+		}
+		tmplApps = append(tmplApps, map[string]any{
+			"DisplayName": app.DisplayName,
+			"OpenURL":     app.OpenURL,
+			"IconHTML":    iconHTML,
+		})
+	}
+	ctx.Data["OpenWithEditorApps"] = tmplApps
+}
+
+func renderHomeCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
+	prepareOpenWithEditorApps(ctx)
 
 	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
 		showEmpty := true

@@ -78,9 +78,12 @@
 						{{end}}
 						<td class="text right aligned gt-py-0">
 							<button class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-							{{if $.FileName}}
-								<a class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) (PathEscapeSegments $.FileName)}}">{{svg "octicon-file-code"}}</a>
-							{{end}}
+							<a
+								class="btn interact-bg gt-p-3"
+								data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}"
+								href="{{if $.FileName}}{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) (PathEscapeSegments $.FileName)}}{{else}}{{printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}{{end}}">
+								{{svg "octicon-file-code"}}
+							</a>
 						</td>
 					</tr>
 				{{end}}
