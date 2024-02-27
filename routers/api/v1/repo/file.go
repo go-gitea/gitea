@@ -655,6 +655,7 @@ func UpdateFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		return
 	}
 
 	if apiOpts.BranchName == "" {
