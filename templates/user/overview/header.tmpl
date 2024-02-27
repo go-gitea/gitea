@@ -1,9 +1,7 @@
 <div class="ui secondary stackable pointing menu">
-	{{if and .HasProfileReadme .ContextUser.IsIndividual}}
 	<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
 		{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
 	</a>
-	{{end}}
 	<a class="{{if eq .TabName "repositories"}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
 		{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
 		{{if .RepoCount}}

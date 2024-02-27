@@ -73,6 +73,8 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.HTML(http.StatusOK, tplMembers)
 }
 
