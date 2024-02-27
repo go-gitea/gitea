@@ -82,9 +82,9 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	default:
 		// in case the sortType is not valid, we set it to recentupdate
 		sortOrder = "recentupdate"
-		ctx.Data["SortType"] = "recentupdate"
 		orderBy = "`user`.updated_unix DESC"
 	}
+	ctx.Data["SortType"] = sortOrder
 
 	if opts.SupportedSortOrders != nil && !opts.SupportedSortOrders.Contains(sortOrder) {
 		ctx.NotFound("unsupported sort order", nil)
