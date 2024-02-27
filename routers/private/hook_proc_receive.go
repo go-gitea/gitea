@@ -7,12 +7,12 @@ import (
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/agit"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
