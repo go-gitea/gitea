@@ -21,7 +21,8 @@ Gitea has its builtin Badge system which allows you to display the status of you
 
 ## Workflow Badge
 
-Gitea Actions workflow badge is a badge that shows the status of the latest workflow run. It designed to be compatible with [GitHub Actions workflow badge](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge).
+The Gitea Actions workflow badge is a badge that shows the status of the latest workflow run.
+It is designed to be compatible with [GitHub Actions workflow badge](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge).
 
 You can use the following URL to get the badge:
 
