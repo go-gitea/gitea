@@ -19,7 +19,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -30,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -655,6 +655,7 @@ func UpdateFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		return
 	}
 
 	if apiOpts.BranchName == "" {

@@ -8,9 +8,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (

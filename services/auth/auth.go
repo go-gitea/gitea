@@ -12,12 +12,12 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	gitea_context "code.gitea.io/gitea/services/context"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -40,6 +40,7 @@ func isContainerPath(req *http.Request) bool {
 var (
 	gitRawOrAttachPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`)
 	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+	archivePathRe        = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/archive/`)
 )
 
 func isGitRawOrAttachPath(req *http.Request) bool {
@@ -54,6 +55,10 @@ func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
 		return lfsPathRe.MatchString(req.URL.Path)
 	}
 	return false
+}
+
+func isArchivePath(req *http.Request) bool {
+	return archivePathRe.MatchString(req.URL.Path)
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 func Queues(ctx *context.Context) {
