@@ -1448,7 +1448,9 @@ strong.attention-caution, span.attention-caution {
 }
 
 .ui.label,
-.ui.menu .item > .label {
+.ui.menu .item > .label,
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
 }
