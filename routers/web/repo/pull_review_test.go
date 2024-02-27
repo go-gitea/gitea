@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func TestRenderConversation(t *testing.T) {
 
 	var preparedComment *issues_model.Comment
 	run("prepare", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		comment, err := pull.CreateCodeComment(ctx, pr.Issue.Poster, ctx.Repo.GitRepo, pr.Issue, 1, "content", "", false, 0, pr.HeadCommitID)
+		comment, err := pull.CreateCodeComment(ctx, pr.Issue.Poster, ctx.Repo.GitRepo, pr.Issue, 1, "content", "", false, 0, pr.HeadCommitID, nil)
 		if !assert.NoError(t, err) {
 			return
 		}

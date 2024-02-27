@@ -20,7 +20,7 @@
 								{{.Title}}
 							</div>
 							<div class="description gt-text-center">
-								{{(printf "repo.migrate.%s.description" .Name) | ctx.Locale.Tr}}
+								{{ctx.Locale.Tr (printf "repo.migrate.%s.description" .Name)}}
 							</div>
 						</div>
 					</a>

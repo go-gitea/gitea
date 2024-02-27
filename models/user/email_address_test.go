@@ -45,31 +45,22 @@ func TestIsEmailUsed(t *testing.T) {
 func TestMakeEmailPrimary(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	email := &user_model.EmailAddress{
-		Email: "user567890@example.com",
-	}
-	err := user_model.MakeEmailPrimary(db.DefaultContext, email)
+	err := user_model.MakeActiveEmailPrimary(db.DefaultContext, 9999999)
 	assert.Error(t, err)
-	assert.EqualError(t, err, user_model.ErrEmailAddressNotExist{Email: email.Email}.Error())
+	assert.ErrorIs(t, err, user_model.ErrEmailAddressNotExist{})
 
-	email = &user_model.EmailAddress{
-		Email: "user11@example.com",
-	}
-	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
+	email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user11@example.com"})
+	err = user_model.MakeActiveEmailPrimary(db.DefaultContext, email.ID)
 	assert.Error(t, err)
-	assert.EqualError(t, err, user_model.ErrEmailNotActivated.Error())
+	assert.ErrorIs(t, err, user_model.ErrEmailAddressNotExist{}) // inactive email is considered as not exist for "MakeActiveEmailPrimary"
 
-	email = &user_model.EmailAddress{
-		Email: "user9999999@example.com",
-	}
-	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
+	email = unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user9999999@example.com"})
+	err = user_model.MakeActiveEmailPrimary(db.DefaultContext, email.ID)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrUserNotExist(err))
 
-	email = &user_model.EmailAddress{
-		Email: "user101@example.com",
-	}
-	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
+	email = unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user101@example.com"})
+	err = user_model.MakeActiveEmailPrimary(db.DefaultContext, email.ID)
 	assert.NoError(t, err)
 
 	user, _ := user_model.GetUserByID(db.DefaultContext, int64(10))

@@ -88,7 +88,7 @@
 		{{ctx.Locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
-		{{ctx.Locale.Tr "packages.settings.delete.notice" (`<span class="name"></span>`|Safe) (`<span class="dataVersion"></span>`|Safe)}}
+		{{ctx.Locale.Tr "packages.settings.delete.notice" (`<span class="name"></span>`|SafeHTML) (`<span class="dataVersion"></span>`|SafeHTML)}}
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

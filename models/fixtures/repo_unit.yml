@@ -676,3 +676,45 @@
   type: 1
   config: "{}"
   created_unix: 946684810
+
+-
+  id: 102
+  repo_id: 60
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 103
+  repo_id: 60
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 104
+  repo_id: 60
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 105
+  repo_id: 61
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 106
+  repo_id: 61
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 107
+  repo_id: 61
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810

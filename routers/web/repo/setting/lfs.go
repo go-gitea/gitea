@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -388,7 +388,7 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+	objectFormat := ctx.Repo.GetObjectFormat()
 	var objectID git.ObjectID
 	if len(sha) == 0 {
 		pointer := lfs.Pointer{Oid: oid, Size: size}
