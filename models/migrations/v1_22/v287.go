@@ -8,15 +8,10 @@ import (
 )
 
 type HookTask struct {
-	PayloadVersion int
+	PayloadVersion int `xorm:"DEFAULT 1"`
 }
 
 func AddPayloadVersionToHookTaskTable(x *xorm.Engine) error {
 	// create missing column
-	if err := x.Sync(new(HookTask)); err != nil {
-		return err
-	}
-	// set payload_version to 1
-	_, err := x.Cols("payload_version").Update(HookTask{PayloadVersion: 1})
-	return err
+	return x.Sync(new(HookTask))
 }

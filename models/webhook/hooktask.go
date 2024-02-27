@@ -48,9 +48,9 @@ type HookTask struct {
 	UUID           string `xorm:"unique"`
 	PayloadContent string `xorm:"LONGTEXT"`
 	// PayloadVersion number to allow for smooth version upgrades:
-	//  - PayloadVersion 1: PayloadContent contains the JSON as send to the URL
+	//  - PayloadVersion 1: PayloadContent contains the JSON as sent to the URL
 	//  - PayloadVersion 2: PayloadContent contains the original event
-	PayloadVersion int
+	PayloadVersion int `xorm:"DEFAULT 1"`
 
 	EventType   webhook_module.HookEventType
 	IsDelivered bool
