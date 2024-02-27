@@ -60,7 +60,7 @@ func (pc packagistConvertor) Fork(_ *api.ForkPayload) (PackagistPayload, error) 
 func (pc packagistConvertor) Push(_ *api.PushPayload) (PackagistPayload, error) {
 	return PackagistPayload{
 		PackagistRepository: struct {
-			URL string "json:\"url\""
+			URL string `json:"url"`
 		}{
 			URL: pc.PackageURL,
 		},
