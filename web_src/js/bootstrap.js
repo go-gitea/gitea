@@ -27,16 +27,23 @@ export function showGlobalErrorMessage(msg) {
 }
 
 /**
- * @param {ErrorEvent} e
+ * @param {ErrorEvent|PromiseRejectionEvent} event- Event
+ * @param {string} event.message - Only present on ErrorEvent
+ * @param {string} event.error - Only present on ErrorEvent
+ * @param {string} event.type - Only present on ErrorEvent
+ * @param {string} event.filename - Only present on ErrorEvent
+ * @param {number} event.lineno - Only present on ErrorEvent
+ * @param {number} event.colno - Only present on ErrorEvent
+ * @param {string} event.reason - Only present on PromiseRejectionEvent
+ * @param {number} event.promise - Only present on PromiseRejectionEvent
  */
 function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}) {
   const err = error ?? reason;
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // This handler not only receives `Error`s but also error events, detectable by `error` being
-  // null or undefined. Error events do not log to the browser console by default but as they may
-  // might still be relevant, we show them during development. Examples:
+  // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likly a
+  // non-critical event from the browser. We log them but don't show them to users. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
   // - https://github.com/mozilla-mobile/firefox-ios/issues/10817
   // - https://github.com/go-gitea/gitea/issues/20240
@@ -47,13 +54,14 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
 
   // If the error stack trace does not include the base URL of our script assets, it likely came
   // from a browser extension or inline script. Do not show such errors in production.
-  if (!err?.stack?.includes(assetBaseUrl) && runModeIsProd) return;
+  if (err instanceof Error && !err.stack?.includes(assetBaseUrl) && runModeIsProd) {
+    return;
+  }
 
-  const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   let msg = err?.message ?? message;
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
   const dot = msg.endsWith('.') ? '' : '.';
-  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`);
+  showGlobalErrorMessage(`JavaScript ${type}: ${msg}${dot} Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
