@@ -499,7 +499,7 @@ Gitea 创建以下非唯一队列：
 - `DISABLE_REGULAR_ORG_CREATION`: **false**：禁止普通（非管理员）用户创建组织。
 - `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`，`ssh_keys` 未来可以增加更多设置。
   - `deletion`: 用户不能通过界面或者API删除他自己。
-  - `ssh_keys`: 用户不能通过界面配置SSH Keys。
+  - `ssh_keys`: 用户不能通过界面或者API配置SSH Keys。
 
 ## 安全性 (`security`)
 
