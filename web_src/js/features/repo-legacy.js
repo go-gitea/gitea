@@ -20,6 +20,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
+import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
@@ -204,12 +205,15 @@ export function initRepoCommentForm() {
     $listMenu.find('.no-select.item').on('click', function (e) {
       e.preventDefault();
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          'clear',
-          $listMenu.data('issue-id'),
-          '',
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $listMenu.data('update-url'),
+            'clear',
+            $listMenu.data('issue-id'),
+            '',
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $(this).parent().find('.item').each(function () {
@@ -247,12 +251,15 @@ export function initRepoCommentForm() {
 
       $(this).addClass('selected active');
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       let icon = '';
@@ -280,12 +287,15 @@ export function initRepoCommentForm() {
       });
 
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $list.find('.selected').html('');
@@ -299,7 +309,6 @@ export function initRepoCommentForm() {
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
-
 
 async function onEditContent(event) {
   event.preventDefault();
@@ -389,17 +398,14 @@ async function onEditContent(event) {
     }
   };
 
-  const saveAndRefresh = (dz, $dropzone) => {
+  const saveAndRefresh = (dz) => {
     showElem($renderContent);
     hideElem($editContentZone);
-    const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
-      return $(this).val();
-    }).get();
     $.post($editContentZone.attr('data-update-url'), {
       _csrf: csrfToken,
       content: comboMarkdownEditor.value(),
       context: $editContentZone.attr('data-context'),
-      files: $attachments,
+      files: dz.files.map((file) => file.uuid),
     }, (data) => {
       if (!data.content) {
         $renderContent.html($('#no-content').html());
@@ -443,7 +449,7 @@ async function onEditContent(event) {
     });
     $editContentZone.find('.save.button').on('click', (e) => {
       e.preventDefault();
-      saveAndRefresh(dz, $dropzone);
+      saveAndRefresh(dz);
     });
   } else {
     comboMarkdownEditor = getComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
@@ -538,7 +544,6 @@ export function initRepository() {
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
 
-
     initRepoIssueCommentDelete();
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
@@ -546,6 +551,7 @@ export function initRepository() {
     initCompReactionSelector($(document));
 
     initRepoPullRequestMergeForm();
+    initRepoPullRequestCommitStatus();
   }
 
   // Pull request

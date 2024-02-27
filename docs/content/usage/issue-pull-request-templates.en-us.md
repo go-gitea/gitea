@@ -19,9 +19,10 @@ menu:
 
 Some projects have a standard list of questions that users need to answer
 when creating an issue or pull request. Gitea supports adding templates to the
-main branch of the repository so that they can autopopulate the form when users are
+**default branch of the repository** so that they can autopopulate the form when users are
 creating issues and pull requests. This will cut down on the initial back and forth
 of getting some clarifying details.
+It is currently not possible to provide generic issue/pull-request templates globally.
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 

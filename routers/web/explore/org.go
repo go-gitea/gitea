@@ -6,9 +6,9 @@ package explore
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 )
 
 // Organizations render explore organizations page
@@ -25,7 +25,7 @@ func Organizations(ctx *context.Context) {
 	}
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", setting.UI.ExploreDefaultSort)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{

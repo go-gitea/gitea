@@ -122,6 +122,7 @@ type PullRequestsConfig struct {
 	AllowRebase                   bool
 	AllowRebaseMerge              bool
 	AllowSquash                   bool
+	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
 	AllowRebaseUpdate             bool
@@ -148,6 +149,7 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleFastForwardOnly && cfg.AllowFastForwardOnly ||
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
@@ -282,30 +284,4 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
 	return err
-}
-
-// UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(ctx context.Context, repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	// Delete existing settings of units before adding again
-	for _, u := range units {
-		deleteUnitTypes = append(deleteUnitTypes, u.Type)
-	}
-
-	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
-		return err
-	}
-
-	if len(units) > 0 {
-		if err = db.Insert(ctx, units); err != nil {
-			return err
-		}
-	}
-
-	return committer.Commit()
 }

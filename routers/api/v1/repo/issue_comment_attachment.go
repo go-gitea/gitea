@@ -8,12 +8,12 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/attachment"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -326,6 +326,10 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 	}
 	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
 		ctx.Error(http.StatusNotFound, "", "no matching issue comment found")
+		return nil
+	}
+
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		return nil
 	}
 

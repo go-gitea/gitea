@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -61,6 +61,12 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 
 	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
 	}
 
 	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
@@ -190,9 +196,19 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
-	err = comment.LoadIssue(ctx)
-	if err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
+	}
+
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound()
+		return
 	}
 
 	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {

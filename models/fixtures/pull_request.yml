@@ -9,6 +9,7 @@
   head_branch: branch1
   base_branch: master
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  merged_commit_id: 1a8823cd1a9549fde083f992f6b9b87a7ab74fb3
   has_merged: true
   merger_id: 2
 
@@ -98,3 +99,21 @@
   index: 1
   head_repo_id: 23
   base_repo_id: 23
+
+-
+  id: 9
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 21
+  index: 1
+  head_repo_id: 60
+  base_repo_id: 60
+
+-
+  id: 10
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 22
+  index: 1
+  head_repo_id: 61
+  base_repo_id: 61

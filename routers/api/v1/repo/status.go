@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -194,8 +195,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		SHA:         sha,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})

@@ -1,7 +1,8 @@
 {{template "base/alert" .}}
+{{if .HasPackages}}
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
+		{{template "shared/searchinput" dict "Value" .Query}}
 		<select class="ui dropdown" name="type">
 			<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
 			<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
@@ -12,6 +13,7 @@
 		<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 	</div>
 </form>
+{{end}}
 <div>
 	{{range .PackageDescriptors}}
 	<div class="flex-list">
@@ -28,9 +30,9 @@
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
 					{{end}}
 					{{if $hasRepositoryAccess}}
-						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape) | Safe}}
+						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink .Creator.GetDisplayName .Repository.Link .Repository.FullName}}
 					{{else}}
-						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName}}
 					{{end}}
 				</div>
 			</div>
@@ -38,14 +40,14 @@
 	</div>
 	{{else}}
 		{{if not .HasPackages}}
-			<div class="empty center">
+			<div class="empty-placeholder">
 				{{svg "octicon-package" 48}}
 				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}
 					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
-					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
+					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl}}</p>
 				{{end}}
-				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/"}}</p>
 			</div>
 		{{else}}
 			<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>

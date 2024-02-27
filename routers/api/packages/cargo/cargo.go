@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
@@ -250,7 +250,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	if err := cargo_service.AddOrUpdatePackageIndex(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
+	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
 		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 			log.Error("Rollback creation of package version: %v", err)
 		}
@@ -301,7 +301,7 @@ func yankPackage(ctx *context.Context, yank bool) {
 		return
 	}
 
-	if err := cargo_service.AddOrUpdatePackageIndex(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
+	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}

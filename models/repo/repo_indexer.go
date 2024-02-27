@@ -27,7 +27,7 @@ const (
 type RepoIndexerStatus struct { //revive:disable-line:exported
 	ID          int64           `xorm:"pk autoincr"`
 	RepoID      int64           `xorm:"INDEX(s)"`
-	CommitSha   string          `xorm:"VARCHAR(40)"`
+	CommitSha   string          `xorm:"VARCHAR(64)"`
 	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 

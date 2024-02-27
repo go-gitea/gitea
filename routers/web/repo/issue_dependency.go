@@ -8,8 +8,8 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 // AddDependency adds new dependencies
@@ -80,10 +80,9 @@ func AddDependency(ctx *context.Context) {
 		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			return
-		} else {
-			ctx.ServerError("CreateOrUpdateIssueDependency", err)
-			return
 		}
+		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		return
 	}
 }
 

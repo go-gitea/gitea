@@ -40,9 +40,8 @@ func PathJoinRel(elem ...string) string {
 		return ""
 	} else if p == "/" {
 		return "."
-	} else {
-		return p[1:]
 	}
+	return p[1:]
 }
 
 // PathJoinRelX joins the path elements into a single path like PathJoinRel,

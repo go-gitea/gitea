@@ -38,7 +38,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "leastupdate"
 	case internal.SortByCommentsAsc:
 		sortType = "leastcomment"
-	case internal.SortByDeadlineAsc:
+	case internal.SortByDeadlineDesc:
 		sortType = "farduedate"
 	case internal.SortByCreatedDesc:
 		sortType = "newest"
@@ -46,7 +46,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "recentupdate"
 	case internal.SortByCommentsDesc:
 		sortType = "mostcomment"
-	case internal.SortByDeadlineDesc:
+	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
 		sortType = "newest"
@@ -55,6 +55,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
+		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
 		AssigneeID:         convertID(options.AssigneeID),
 		PosterID:           convertID(options.PosterID),

@@ -13,11 +13,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -52,7 +51,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
+	name := strings.ToLower(ctx.FormString("collaborator"))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
@@ -144,7 +143,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
+	name := strings.ToLower(ctx.FormString("team"))
 	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return

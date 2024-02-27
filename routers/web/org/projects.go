@@ -11,17 +11,18 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -59,9 +60,12 @@ func Projects(ctx *context.Context) {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	projects, total, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.IssuePagingNum,
+		},
 		OwnerID:  ctx.ContextUser.ID,
-		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
@@ -72,7 +76,7 @@ func Projects(ctx *context.Context) {
 		return
 	}
 
-	opTotal, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+	opTotal, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(!isShowClosed),
 		Type:     projectType,
@@ -349,7 +353,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
@@ -373,16 +377,16 @@ func ViewProject(ctx *context.Context) {
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
 		for _, issue := range issuesList {
-			var referencedIds []int64
+			var referencedIDs []int64
 			for _, comment := range issue.Comments {
 				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIds = append(referencedIds, comment.RefIssueID)
+					referencedIDs = append(referencedIDs, comment.RefIssueID)
 				}
 			}
 
-			if len(referencedIds) > 0 {
+			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIds,
+					IssueIDs: referencedIDs,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
@@ -675,7 +679,7 @@ func MoveIssues(ctx *context.Context) {
 		board = &project_model.Board{
 			ID:        0,
 			ProjectID: project.ID,
-			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
 		}
 	} else {
 		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))

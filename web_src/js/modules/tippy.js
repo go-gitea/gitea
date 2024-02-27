@@ -1,4 +1,5 @@
 import tippy, {followCursor} from 'tippy.js';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 
 const visibleInstances = new Set();
 
@@ -34,7 +35,7 @@ export function createTippy(target, opts = {}) {
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    theme: other.role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
     plugins: [followCursor],
     ...other,
   });
@@ -106,7 +107,7 @@ function switchTitleToTooltip(target) {
 /**
  * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */
@@ -136,8 +137,6 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
-
 export function initGlobalTooltips() {
   // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer) => observer.observe(document, {
@@ -152,11 +151,10 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (elementNodeTypes.has(el.nodeType)) {
-            attachChildrenLazyTooltip(el);
-            if (el.hasAttribute('data-tooltip-content')) {
-              attachLazyTooltip(el);
-            }
+          if (!isDocumentFragmentOrElementNode(el)) continue;
+          attachChildrenLazyTooltip(el);
+          if (el.hasAttribute('data-tooltip-content')) {
+            attachLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {

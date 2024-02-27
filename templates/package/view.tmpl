@@ -10,9 +10,9 @@
 			<div>
 				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}
 				{{if .HasRepositoryAccess}}
-					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
 				{{else}}
-					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
+					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName}}
 				{{end}}
 			</div>
 		</div>
@@ -91,7 +91,7 @@
 				<div class="ui relaxed list">
 				{{range .LatestVersions}}
 					<div class="item gt-df">
-						<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+						<a class="gt-f1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
 						<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 					</div>
 				{{end}}
