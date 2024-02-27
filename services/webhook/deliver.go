@@ -35,7 +35,7 @@ import (
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
 	switch w.HTTPMethod {
 	case "":
-		log.Info("HTTP Method for webhook %s[%d] %s is not set, setting to POST as default", w.Type, w.ID, w.URL)
+		log.Info("HTTP Method for %s webhook %s [ID: %d] is not set, defaulting to POST", w.Type, w.URL, w.ID)
 		fallthrough
 	case http.MethodPost:
 		switch w.ContentType {
