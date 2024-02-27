@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )

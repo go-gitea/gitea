@@ -81,9 +81,11 @@
 		{{else if eq .Type 1}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-green gt-text-white">{{svg "octicon-dot-fill"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr}}
 					{{else}}
@@ -94,9 +96,11 @@
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-red gt-text-white">{{svg "octicon-circle-slash"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
@@ -107,9 +111,11 @@
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-purple gt-text-white">{{svg "octicon-git-merge"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="text grey muted-links">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (HTMLFormat `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` $link (ShortSha $.Issue.PullRequest.MergedCommitID)) (HTMLFormat "<b>%[1]s</b>" $.BaseTarget) $createdStr}}
@@ -375,18 +381,7 @@
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 					<span class="text grey muted-links">
-						{{if .OriginalAuthor}}
-							<span class="text black">
-								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-								{{.OriginalAuthor}}
-							</span>
-							{{if $.Repository.OriginalURL}}
-							<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
-							{{end}}
-						{{else}}
-							{{template "shared/user/authorlink" .Poster}}
-						{{end}}
-
+						{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 						{{if eq .Review.Type 1}}
 							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
 						{{else if eq .Review.Type 2}}
@@ -498,17 +493,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{if .OriginalAuthor}}
-						<span class="text black">
-							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-							{{.OriginalAuthor}}
-						</span>
-						{{if $.Repository.OriginalURL}}
-						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
-						{{end}}
-					{{else}}
-						{{template "shared/user/authorlink" .Poster}}
-					{{end}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
 				</span>
 			</div>
@@ -675,17 +660,7 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
-					{{if .OriginalAuthor}}
-						<span class="text black">
-							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-							{{.OriginalAuthor}}
-						</span>
-						{{if $.Repository.OriginalURL}}
-						<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
-						{{end}}
-					{{else}}
-						{{template "shared/user/authorlink" .Poster}}
-					{{end}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 				</span>
