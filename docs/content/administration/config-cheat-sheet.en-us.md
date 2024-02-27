@@ -520,7 +520,7 @@ And the following unique queues:
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
 - `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `ssh_keys` and more features can be added in future.
   - `deletion`: User cannot delete their own account.
-  - `ssh_keys`: User cannot configuration ssh keys.
+  - `ssh_keys`: User cannot configure ssh keys.
 
 ## Security (`security`)
 
