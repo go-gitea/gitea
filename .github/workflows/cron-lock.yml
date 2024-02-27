@@ -22,6 +22,6 @@ jobs:
           issue-inactive-days: 10
           issue-comment: |
             Automatically locked because of our [CONTRIBUTING guidelines](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md#issue-locking)
-          pr-inactive-days: 1
+          pr-inactive-days: 7
           pr-comment: |
             Automatically locked because of our [CONTRIBUTING guidelines](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md#issue-locking)
