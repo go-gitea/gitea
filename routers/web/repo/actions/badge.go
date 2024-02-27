@@ -12,8 +12,8 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/badge"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
