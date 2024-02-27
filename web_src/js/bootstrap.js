@@ -33,15 +33,15 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // The browser will log all `err` that pass this handler to the console, but some cases like
-  // ResizeObserver [1] or Browser errors [2], [3] don't raise actual errors but only error events
-  // which don't log to the console by default. We log these errors to the console, and during
-  // development, they will additionaly show as error message.
-  // [1] https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
-  // [2] https://github.com/mozilla-mobile/firefox-ios/issues/10817
-  // [3] https://github.com/go-gitea/gitea/issues/20240
-  if (!err && message) {
-    console.error(new Error(message));
+  // This handler not only receives errors but also error events, detectable by `err` being null
+  // or undefined. Error events do not log to the browser console by default but as they might
+  // still be relevant, we show them during development. In production they will only log to the
+  // console. References and examples:
+  // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
+  // - https://github.com/mozilla-mobile/firefox-ios/issues/10817
+  // - https://github.com/go-gitea/gitea/issues/20240
+  if (!err) {
+    if (message) console.error(new Error(message));
     if (runModeIsProd) return; // don't show error events in production
   }
 
