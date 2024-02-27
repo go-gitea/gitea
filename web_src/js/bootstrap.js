@@ -1,5 +1,6 @@
 // DO NOT IMPORT window.config HERE!
-// to make sure the error handler always works, we should never import `window.config`, because some user's custom template breaks it.
+// to make sure the error handler always works, we should never import `window.config`, because
+// some user's custom template breaks it.
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
@@ -33,15 +34,15 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // This handler not only receives errors but also error events, detectable by `err` being null
-  // or undefined. Error events do not log to the browser console by default but as they might
-  // still be relevant, we show them during development. References and examples:
+  // This handler not only receives `Errors`` but also error events, detectable by `error` being
+  // null or undefined. Error events do not log to the browser console by default but as they may
+  // might still be relevant, we show them during development. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
   // - https://github.com/mozilla-mobile/firefox-ios/issues/10817
   // - https://github.com/go-gitea/gitea/issues/20240
   if (!err) {
     if (message) console.error(new Error(message));
-    if (runModeIsProd) return; // don't show error events in production
+    if (runModeIsProd) return;
   }
 
   // If the error stack trace does not include the base URL of our script assets, it likely came
@@ -63,13 +64,14 @@ function initGlobalErrorHandler() {
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
-  // we added an event handler for window error at the very beginning of <script> of page head
-  // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
-  // then in this init, we can collect all error events and show them
+  // we added an event handler for window error at the very beginning of <script> of page head the
+  // handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before
+  // this init then in this init, we can collect all error events and show them.
   for (const e of window._globalHandlerErrors || []) {
     processWindowErrorEvent(e);
   }
-  // then, change _globalHandlerErrors to an object with push method, to process further error events directly
+  // then, change _globalHandlerErrors to an object with push method, to process further error
+  // events directly
   window._globalHandlerErrors = {_inited: true, push: (e) => processWindowErrorEvent(e)};
 }
 
