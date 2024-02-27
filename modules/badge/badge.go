@@ -7,6 +7,10 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 )
 
+// The Badge layout: |offset|label|message|
+// We use 10x scale to calculate more precisely
+// Then scale down to noraml size in tmpl file
+
 type Label struct {
 	text  string
 	width int
