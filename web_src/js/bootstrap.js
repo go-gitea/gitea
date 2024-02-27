@@ -34,7 +34,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // This handler not only receives `Errors`` but also error events, detectable by `error` being
+  // This handler not only receives `Error`s but also error events, detectable by `error` being
   // null or undefined. Error events do not log to the browser console by default but as they may
   // might still be relevant, we show them during development. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
