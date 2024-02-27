@@ -6,7 +6,6 @@ package explore
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -108,7 +107,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	language := ctx.FormTrim("language")
-	ctx.Data["Language"] = url.QueryEscape(language)
+	ctx.Data["Language"] = language
 
 	archived := ctx.FormOptionalBool("archived")
 	ctx.Data["IsArchived"] = archived
