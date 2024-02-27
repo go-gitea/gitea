@@ -92,9 +92,9 @@ func EmailPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	// Make emailaddress primary.
+	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeEmailPrimary(ctx, &user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.FormInt64("id")); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
