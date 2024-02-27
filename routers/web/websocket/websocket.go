@@ -4,8 +4,8 @@
 package websocket
 
 import (
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/websocket"
 )
 

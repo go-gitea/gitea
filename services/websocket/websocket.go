@@ -4,8 +4,8 @@
 package websocket
 
 import (
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/mitchellh/mapstructure"
