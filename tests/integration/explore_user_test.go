@@ -38,7 +38,8 @@ func TestExploreUser(t *testing.T) {
 		"/explore/users?sort=reverseleastupdate",
 	}
 	for _, c := range cases404 {
-		req := NewRequest(t, "GET", c).SetHeader("Accept", "text/html")
+		req := NewRequest(t, "GET", c)
+		req.Header.Get("Accept: text/html")
 		MakeRequest(t, req, http.StatusNotFound)
 	}
 }
