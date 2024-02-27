@@ -35,8 +35,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
 
   // This handler not only receives errors but also error events, detectable by `err` being null
   // or undefined. Error events do not log to the browser console by default but as they might
-  // still be relevant, we show them during development. In production they will only log to the
-  // console. References and examples:
+  // still be relevant, we show them during development. References and examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
   // - https://github.com/mozilla-mobile/firefox-ios/issues/10817
   // - https://github.com/go-gitea/gitea/issues/20240
