@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	gitea_context "code.gitea.io/gitea/services/context"
 
 	gouuid "github.com/google/uuid"
 )
@@ -172,8 +173,8 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	}
 	emailNotificationPreference := user_model.EmailNotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
-		KeepEmailPrivate:             util.OptionalBoolTrue,
+		IsActive:                     optional.Some(cfg.AutoActivateUsers),
+		KeepEmailPrivate:             optional.Some(true),
 		EmailNotificationsPreference: &emailNotificationPreference,
 	}
 	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {

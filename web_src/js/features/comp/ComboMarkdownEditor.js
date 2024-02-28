@@ -9,6 +9,7 @@ import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
+import {POST} from '../../modules/fetch.js';
 
 let elementIdCounter = 0;
 
@@ -147,16 +148,15 @@ class ComboMarkdownEditor {
     this.previewContext = $tabPreviewer.attr('data-preview-context');
     this.previewMode = this.options.previewMode ?? 'comment';
     this.previewWiki = this.options.previewWiki ?? false;
-    $tabPreviewer.on('click', () => {
-      $.post(this.previewUrl, {
-        _csrf: window.config.csrfToken,
-        mode: this.previewMode,
-        context: this.previewContext,
-        text: this.value(),
-        wiki: this.previewWiki,
-      }, (data) => {
-        renderPreviewPanelContent($panelPreviewer, data);
-      });
+    $tabPreviewer.on('click', async () => {
+      const formData = new FormData();
+      formData.append('mode', this.previewMode);
+      formData.append('context', this.previewContext);
+      formData.append('text', this.value());
+      formData.append('wiki', this.previewWiki);
+      const response = await POST(this.previewUrl, {data: formData});
+      const data = await response.text();
+      renderPreviewPanelContent($panelPreviewer, data);
     });
   }
 

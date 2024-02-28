@@ -186,14 +186,6 @@ export function initRepoCodeView() {
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
   });
-  $(document).on('click', '.code-expander-button', async ({currentTarget}) => {
-    const url = currentTarget.getAttribute('data-url');
-    const query = currentTarget.getAttribute('data-query');
-    const anchor = currentTarget.getAttribute('data-anchor');
-    if (!url) return;
-    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
-    currentTarget.closest('tr').outerHTML = blob;
-  });
   $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
     await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
   });

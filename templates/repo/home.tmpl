@@ -135,11 +135,13 @@
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
-									{{if .CitiationExist}}
-										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
-									{{end}}
 								{{end}}
-								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.clone_in_vsc"}}</a>
+								{{if .CitiationExist}}
+									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+								{{end}}
+								{{range .OpenWithEditorApps}}
+									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+								{{end}}
 							</div>
 						</button>
 						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}

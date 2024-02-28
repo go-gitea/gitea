@@ -1,18 +1,32 @@
-{{with .Org}}
-	<div class="ui container">
-		<div class="ui vertically grid head">
-			<div class="column">
-				<div class="ui header gt-df gt-ac gt-word-break">
-					{{ctx.AvatarUtils.Avatar . 100}}
-					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
-					<span class="org-visibility">
-						{{if .Visibility.IsLimited}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-						{{if .Visibility.IsPrivate}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
-					</span>
-				</div>
-			</div>
+<div class="ui container gt-df">
+	{{ctx.AvatarUtils.Avatar .Org 100 "org-avatar"}}
+	<div id="org-info" class="gt-df gt-fc">
+		<div class="ui header">
+			{{.Org.DisplayName}}
+			<span class="org-visibility">
+				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+			</span>
+			<span class="gt-df gt-ac gt-gap-2 gt-ml-auto gt-font-16 gt-whitespace-nowrap">
+				{{if .EnableFeed}}
+					<a class="ui basic label button gt-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+						{{svg "octicon-rss" 24}}
+					</a>
+				{{end}}
+				{{if .IsSigned}}
+					{{template "org/follow_unfollow" .}}
+				{{end}}
+			</span>
+		</div>
+		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription | Str2html}}</div>{{end}}
+		<div class="text light meta gt-mt-2">
+			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
+			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
+			{{if .IsSigned}}
+				{{if .Org.Email}}<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>{{end}}
+			{{end}}
 		</div>
 	</div>
-{{end}}
+</div>
 
 {{template "org/menu" .}}
