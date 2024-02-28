@@ -36,8 +36,8 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
-		Secrets:         actions_module.GetSecretsOfTask(ctx, t),
-		Vars:            actions_module.GetVariablesOfRun(ctx, t.Job.Run),
+		Secrets:         actions.GetSecretsOfTask(ctx, t),
+		Vars:            actions.GetVariablesOfRun(ctx, t.Job.Run),
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {
