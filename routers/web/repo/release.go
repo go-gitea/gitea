@@ -282,6 +282,7 @@ func SingleRelease(ctx *context.Context) {
 		TagNames:    []string{ctx.Params("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
+		IncludeTags:   true,
 	})
 	if err != nil {
 		ctx.ServerError("getReleaseInfos", err)
