@@ -21,7 +21,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -31,6 +30,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -244,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
-		opts := repo_module.GenerateRepoOptions{
+		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
 			Private:         form.Private,
