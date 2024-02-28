@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/nektos/act/pkg/jobparser"
-	"github.com/rhysd/actionlint"
 	"xorm.io/builder"
 )
 
@@ -145,25 +144,14 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 				// If a job's "if" condition is "always()", the job should always run even if some of its dependencies did not succeed.
 				// See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idneeds
 				always := false
-				wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload)
+				wfJobs, perr := jobparser.Parse(r.jobMap[id].WorkflowPayload)
+				if perr != nil && len(r.jobMap[id].WorkflowPayload) > 0 {
+					_ = perr
+				}
 				if len(wfJobs) == 1 {
 					_, wfJob := wfJobs[0].Job()
-					if wfJob.If.Value != "" {
-						// We use "actionlint" to check whether the value of "if" is the "always()" function
-						value := strings.TrimPrefix(wfJob.If.Value, "${{")
-						if !strings.HasSuffix(value, "}}") {
-							// "}}" is necessary since lexer lexes it as end of tokens
-							// See https://github.com/rhysd/actionlint/blob/3e2f8eab86d3490068c620638bb2955598438492/rule_expression.go#L622
-							value += "}}"
-						}
-						exprParser := actionlint.NewExprParser()
-						exprNode, _ := exprParser.Parse(actionlint.NewExprLexer(value))
-						if funcNode, ok := (exprNode).(*actionlint.FuncCallNode); ok {
-							if funcNode.Callee == "always" {
-								always = true
-							}
-						}
-					}
+					expr := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(wfJob.If.Value, "${{"), "}}"))
+					always = expr == "always()"
 				}
 
 				if always {
