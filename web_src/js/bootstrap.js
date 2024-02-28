@@ -27,7 +27,7 @@ export function showGlobalErrorMessage(msg) {
 }
 
 /**
- * @param {ErrorEvent|PromiseRejectionEvent} event- Event
+ * @param {ErrorEvent|PromiseRejectionEvent} event - Event
  * @param {string} event.message - Only present on ErrorEvent
  * @param {string} event.error - Only present on ErrorEvent
  * @param {string} event.type - Only present on ErrorEvent
