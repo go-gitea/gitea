@@ -358,7 +358,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	opts := repo_module.GenerateRepoOptions{
+	opts := repo_service.GenerateRepoOptions{
 		Name:            form.Name,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
