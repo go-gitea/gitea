@@ -154,7 +154,7 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 						if !strings.HasSuffix(value, "}}") {
 							// "}}" is necessary since lexer lexes it as end of tokens
 							// See https://github.com/rhysd/actionlint/blob/3e2f8eab86d3490068c620638bb2955598438492/rule_expression.go#L622
-							value = value + "}}"
+							value += "}}"
 						}
 						exprParser := actionlint.NewExprParser()
 						exprNode, _ := exprParser.Parse(actionlint.NewExprLexer(value))
