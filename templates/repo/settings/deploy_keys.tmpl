@@ -31,7 +31,7 @@
 							<label for="is_writable">
 								{{ctx.Locale.Tr "repo.settings.is_writable"}}
 							</label>
-							<small style="padding-left: 26px;">{{ctx.Locale.Tr "repo.settings.is_writable_info" | Str2html}}</small>
+							<small style="padding-left: 26px;">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
 						</div>
 					</div>
 					<button class="ui primary button">
@@ -55,7 +55,7 @@
 									{{.Fingerprint}}
 								</div>
 								<div class="flex-item-body">
-									<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
+									<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
 							</div>
 							<div class="flex-item-trailing">
