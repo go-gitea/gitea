@@ -19,8 +19,6 @@ export function initRepoReleaseNew() {
   initRepoReleaseEditor();
 }
 
-
-
 function initTagNameEditor() {
   const el = document.getElementById('tag-name-editor');
   if (!el) return;
