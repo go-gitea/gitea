@@ -1569,8 +1569,7 @@ a.ui.active.label:hover {
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
+  word-break: break-all;
   word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
 }
 
