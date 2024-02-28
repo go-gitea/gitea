@@ -162,7 +162,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return err
 	}
 
-	has, err := db.GetEngine(ctx).ID(t.OrgID).Get(new(user_model.User))
+	has, err := db.ExistByID[user_model.User](ctx, t.OrgID)
 	if err != nil {
 		return err
 	}
@@ -171,10 +171,10 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = db.GetEngine(ctx).
-		Where("org_id=?", t.OrgID).
-		And("lower_name=?", t.LowerName).
-		Get(new(organization.Team))
+	has, err = db.Exist[organization.Team](ctx, builder.Eq{
+		"org_id":     t.OrgID,
+		"lower_name": t.LowerName,
+	})
 	if err != nil {
 		return err
 	}
@@ -232,20 +232,20 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err := sess.
-		Where("org_id=?", t.OrgID).
-		And("lower_name=?", t.LowerName).
-		And("id!=?", t.ID).
-		Get(new(organization.Team))
+	has, err := db.Exist[organization.Team](ctx, builder.Eq{
+		"org_id":     t.OrgID,
+		"lower_name": t.LowerName,
+	}.And(builder.Neq{"id": t.ID}),
+	)
 	if err != nil {
 		return err
 	} else if has {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
+	sess := db.GetEngine(ctx)
 	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
 		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
 		return fmt.Errorf("update: %w", err)

@@ -7,8 +7,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/user"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 func ProcessorHelper() *markup.ProcessorHelper {

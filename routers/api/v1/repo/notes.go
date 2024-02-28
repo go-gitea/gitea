@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -66,7 +66,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	commitSHA, err := ctx.Repo.GitRepo.ConvertToSHA1(identifier)
+	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -77,7 +77,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 	}
 
 	var note git.Note
-	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitSHA.String(), &note); err != nil {
+	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(identifier)
 			return

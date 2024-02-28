@@ -45,6 +45,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
@@ -118,7 +119,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
-	mustInit(cache.NewContext)
+	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)
@@ -137,6 +138,8 @@ func InitWebInstalled(ctx context.Context) {
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
 	mustInitCtx(ctx, oauth2.Init)
+
+	mustInit(release_service.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)

@@ -15,15 +15,16 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
+	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -195,9 +196,9 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 
-		ctx.Data["Branches"] = branches.Values()
-		ctx.Data["Repositories"] = repositories.Values()
-		ctx.Data["Architectures"] = architectures.Values()
+		ctx.Data["Branches"] = util.Sorted(branches.Values())
+		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeDebian:
 		distributions := make(container.Set[string])
 		components := make(container.Set[string])
@@ -216,9 +217,26 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 
-		ctx.Data["Distributions"] = distributions.Values()
-		ctx.Data["Components"] = components.Values()
-		ctx.Data["Architectures"] = architectures.Values()
+		ctx.Data["Distributions"] = util.Sorted(distributions.Values())
+		ctx.Data["Components"] = util.Sorted(components.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
+	case packages_model.TypeRpm:
+		groups := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case rpm_module.PropertyGroup:
+					groups.Add(pp.Value)
+				case rpm_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Groups"] = util.Sorted(groups.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	}
 
 	var (

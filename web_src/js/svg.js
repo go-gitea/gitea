@@ -33,6 +33,7 @@ import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
+import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
@@ -66,6 +67,7 @@ import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethro
 import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
 import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
 import octiconTag from '../../public/assets/img/svg/octicon-tag.svg';
+import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
@@ -104,6 +106,7 @@ const svgs = {
   'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
+  'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-heading': octiconHeading,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
@@ -137,6 +140,7 @@ const svgs = {
   'octicon-sync': octiconSync,
   'octicon-table': octiconTable,
   'octicon-tag': octiconTag,
+  'octicon-trash': octiconTrash,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,

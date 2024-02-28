@@ -85,7 +85,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("form.username_error"),
+			translation.NewLocale("en-US").TrString("form.username_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -147,7 +147,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").TrString("user.form.name_reserved", reservedUsername),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
@@ -262,7 +262,7 @@ func TestListStopWatches(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	req := NewRequestf(t, "GET", "/user/stopwatches")
+	req := NewRequest(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)

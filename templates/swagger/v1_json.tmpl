@@ -8,8 +8,8 @@
     "text/html"
   ],
   "schemes": [
-    "http",
-    "https"
+    "https",
+    "http"
   ],
   "swagger": "2.0",
   "info": {
@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer | JSEscape | Safe}}"
+    "version": "{{AppVer | JSEscape}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -392,6 +392,23 @@
         }
       }
     },
+    "/admin/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get an global actions runner registration token",
+        "operationId": "adminGetRunnerRegistrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
+          }
+        }
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -659,6 +676,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1558,6 +1578,32 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get an organization's actions runner registration token",
+        "operationId": "orgGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -4512,6 +4558,49 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{sha}/pull": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the pull request of the commit",
+        "operationId": "repoGetCommitPullRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to get",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullRequest"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -10320,6 +10409,56 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{base}/{head}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a pull request by base and head",
+        "operationId": "repoGetPullRequestByBaseHead",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "base of the pull request to get",
+            "name": "base",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "head of the pull request to get",
+            "name": "head",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullRequest"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}": {
       "get": {
         "produces": [
@@ -11730,12 +11869,6 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, deprecated - use limit",
-            "name": "per_page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
@@ -12361,6 +12494,39 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repository's actions runner registration token",
+        "operationId": "repoGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -14519,6 +14685,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          }
+        }
+      }
+    },
+    "/user/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get an user's actions runner registration token",
+        "operationId": "userGetRunnerRegistrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -16930,6 +17113,10 @@
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -17570,6 +17757,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -18272,6 +18463,15 @@
           "uniqueItems": true,
           "x-go-name": "Name"
         },
+        "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "ObjectFormatName"
+        },
         "private": {
           "description": "Whether the repository is private",
           "type": "boolean",
@@ -18418,8 +18618,7 @@
       "type": "object",
       "required": [
         "username",
-        "email",
-        "password"
+        "email"
       ],
       "properties": {
         "created_at": {
@@ -18708,6 +18907,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -19091,6 +19294,11 @@
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
       "properties": {
+        "allow_fast_forward_only_merge": {
+          "description": "either `true` to allow fast-forward-only merging pull requests, or `false` to prevent fast-forward-only merging.",
+          "type": "boolean",
+          "x-go-name": "AllowFastForwardOnly"
+        },
         "allow_manual_merge": {
           "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it.",
           "type": "boolean",
@@ -19147,7 +19355,7 @@
           "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
-          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\".",
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", or \"fast-forward-only\".",
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
@@ -20552,6 +20760,7 @@
             "rebase",
             "rebase-merge",
             "squash",
+            "fast-forward-only",
             "manually-merged"
           ]
         },
@@ -21512,6 +21721,10 @@
       "description": "PullRequestMeta PR info if an issue is a PR",
       "type": "object",
       "properties": {
+        "draft": {
+          "type": "boolean",
+          "x-go-name": "IsWorkInProgress"
+        },
         "merged": {
           "type": "boolean",
           "x-go-name": "HasMerged"
@@ -21934,6 +22147,10 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "allow_fast_forward_only_merge": {
+          "type": "boolean",
+          "x-go-name": "AllowFastForwardOnly"
+        },
         "allow_merge_commits": {
           "type": "boolean",
           "x-go-name": "AllowMerge"
@@ -22095,6 +22312,15 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
           "type": "integer",
@@ -23745,6 +23971,14 @@
         }
       }
     },
+    "RegistrationToken": {
+      "description": "RegistrationToken is response related to registeration token",
+      "headers": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
     "Release": {
       "description": "Release",
       "schema": {
@@ -24064,6 +24298,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -24096,6 +24331,7 @@
       "in": "header"
     },
     "Token": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

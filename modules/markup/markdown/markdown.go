@@ -34,9 +34,6 @@ var (
 )
 
 var (
-	urlPrefixKey     = parser.NewContextKey()
-	isWikiKey        = parser.NewContextKey()
-	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
 	renderConfigKey  = parser.NewContextKey()
 )
@@ -66,9 +63,6 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
-	pc.Set(urlPrefixKey, ctx.URLPrefix)
-	pc.Set(isWikiKey, ctx.IsWiki)
-	pc.Set(renderMetasKey, ctx.Metas)
 	pc.Set(renderContextKey, ctx)
 	return pc
 }

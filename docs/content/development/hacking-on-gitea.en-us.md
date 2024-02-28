@@ -25,7 +25,7 @@ To get a quick working development environment you could use Gitpod.
 
 ## Installing go
 
-You should [install go](https://golang.org/doc/install) and set up your go
+You should [install go](https://go.dev/doc/install) and set up your go
 environment correctly.
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
@@ -243,10 +243,10 @@ documentation using:
 make generate-swagger
 ```
 
-You should validate your generated Swagger file and spell-check it with:
+You should validate your generated Swagger file:
 
 ```bash
-make swagger-validate misspell-check
+make swagger-validate
 ```
 
 You should commit the changed swagger JSON file. The continuous integration

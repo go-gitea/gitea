@@ -18,7 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -211,12 +210,12 @@ const (
 
 // LocaleString returns the locale string name of the role
 func (r RoleInRepo) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + string(r))
+	return lang.TrString("repo.issues.role." + string(r))
 }
 
 // LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + string(r) + "_helper")
+	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
@@ -271,7 +270,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR(64)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
@@ -338,7 +337,7 @@ func (c *Comment) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
+func (c *Comment) AfterLoad() {
 	c.Patch = c.PatchQuoted
 	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
 		unquoted, err := strconv.Unquote(c.PatchQuoted)
@@ -696,8 +695,15 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
+	if c.ReviewID == 0 {
+		return nil
+	}
 	if c.Review == nil {
 		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so ignorem them.
+			if c.Type == CommentTypeReviewRequest {
+				return nil
+			}
 			return err
 		}
 	}
@@ -763,8 +769,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		c.OldCommit = data.CommitIDs[0]
 		c.NewCommit = data.CommitIDs[1]
 	} else {
-		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
 		if err != nil {
 			return err
 		}
@@ -850,6 +855,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
+		}
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
 				if err := comment.loadReview(ctx); err != nil {
@@ -867,22 +875,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeReview:
-		// Check attachments
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
 		}
-
-		for i := range attachments {
-			attachments[i].IssueID = opts.Issue.ID
-			attachments[i].CommentID = comment.ID
-			// No assign value could be 0, so ignore AllCols().
-			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
-			}
-		}
-
-		comment.Attachments = attachments
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err
@@ -892,6 +887,23 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
+func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
+	}
+	for i := range attachments {
+		attachments[i].IssueID = opts.Issue.ID
+		attachments[i].CommentID = comment.ID
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
+		}
+	}
+	comment.Attachments = attachments
+	return nil
+}
+
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 	var content string
 	var commentType CommentType
@@ -899,15 +911,15 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	// newDeadline = 0 means deleting
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
-		content = issue.DeadlineUnix.Format("2006-01-02")
+		content = issue.DeadlineUnix.FormatDate()
 	} else if issue.DeadlineUnix == 0 {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		commentType = CommentTypeAddedDeadline
-		content = newDeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate()
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
-		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate() + "|" + issue.DeadlineUnix.FormatDate()
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -1161,14 +1173,9 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(ctx).Table("comment").
-		Where(builder.In("issue_id",
-			builder.Select("issue.id").
-				From("issue").
-				InnerJoin("repository", "issue.repo_id = repository.id").
-				Where(builder.Eq{
-					"repository.original_service_type": tp,
-				}),
-		)).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
+		Join("INNER", "repository", "issue.repo_id = repository.id").
+		Where("repository.original_service_type = ?", tp).
 		And("comment.original_author_id = ?", originalAuthorID).
 		Update(map[string]any{
 			"poster_id":          posterID,

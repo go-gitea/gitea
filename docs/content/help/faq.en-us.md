@@ -362,7 +362,7 @@ If you are receiving errors on upgrade of Gitea using MySQL that read:
 
 > `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
 
-Please run `gitea convert` or run `ALTER TABLE table_name ROW_FORMAT=dynamic;` for each table in the database.
+Please run `gitea doctor convert` or run `ALTER TABLE table_name ROW_FORMAT=dynamic;` for each table in the database.
 
 The underlying problem is that the space allocated for indices by the default row format
 is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
@@ -370,24 +370,6 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
 you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
-
-If you are using MySQL 5, another possible fix is
-
-```mysql
-SET GLOBAL innodb_file_format=Barracuda;
-SET GLOBAL innodb_file_per_table=1;
-SET GLOBAL innodb_large_prefix=1;
-```
-
-## Why Are Emoji Broken On MySQL
-
-Unfortunately MySQL's `utf8` charset does not completely allow all possible UTF-8 characters, in particular Emoji.
-They created a new charset and collation called `utf8mb4` that allows for emoji to be stored but tables which use
-the `utf8` charset, and connections which use the `utf8` charset will not use this.
-
-Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for each table in the database.
 
 ## Why are Emoji displaying only as placeholders or in monochrome
 
