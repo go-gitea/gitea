@@ -243,7 +243,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		defaultBranch = templateRepo.DefaultBranch
 	}
 
-	return repo_module.InitRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
