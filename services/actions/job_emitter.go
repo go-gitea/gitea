@@ -7,12 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
+	"github.com/nektos/act/pkg/jobparser"
 
+	"github.com/rhysd/actionlint"
 	"xorm.io/builder"
 )
 
@@ -76,12 +79,15 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 type jobStatusResolver struct {
 	statuses map[int64]actions_model.Status
 	needs    map[int64][]int64
+	jobMap   map[int64]*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
 		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
+		jobMap[job.ID] = job
 	}
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
@@ -97,6 +103,7 @@ func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	return &jobStatusResolver{
 		statuses: statuses,
 		needs:    needs,
+		jobMap:   jobMap,
 	}
 }
 
@@ -135,7 +142,30 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 			if allSucceed {
 				ret[id] = actions_model.StatusWaiting
 			} else {
-				ret[id] = actions_model.StatusSkipped
+				// If a job's "if" condition is "always()", the job should always run even if some of its dependencies did not succeed.
+				// See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idneeds
+				always := false
+				wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload)
+				if len(wfJobs) == 1 {
+					_, wfJob := wfJobs[0].Job()
+					if wfJob.If.Value != "" {
+						// We use "actionlint" to check whether the value of "if" is the "always()" function
+						value := strings.TrimPrefix(wfJob.If.Value, "${{")
+						exprParser := actionlint.NewExprParser()
+						exprNode, _ := exprParser.Parse(actionlint.NewExprLexer(value))
+						if funcNode, ok := (exprNode).(*actionlint.FuncCallNode); ok {
+							if funcNode.Callee == "always" {
+								always = true
+							}
+						}
+					}
+				}
+
+				if always {
+					ret[id] = actions_model.StatusWaiting
+				} else {
+					ret[id] = actions_model.StatusSkipped
+				}
 			}
 		}
 	}
