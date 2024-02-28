@@ -18,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -296,7 +297,12 @@ func handleWorkflows(
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content)
+		if err := run.LoadAttributes(ctx); err != nil {
+			log.Error("LoadAttributes %v", err)
+			continue
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(actions.GetVariablesOfRun(ctx, run)))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
