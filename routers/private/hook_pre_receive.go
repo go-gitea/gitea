@@ -16,11 +16,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
+	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -122,7 +122,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
-		case git.SupportProcReceive && refFullName.IsFor():
+		case git.DefaultFeatures.SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, oldCommitID, newCommitID, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()

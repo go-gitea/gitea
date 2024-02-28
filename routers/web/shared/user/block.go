@@ -7,8 +7,8 @@ import (
 	"errors"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
 )

@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,8 +35,9 @@ func NewFuncMap() template.FuncMap {
 		// html/template related functions
 		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
 		"Eval":        Eval,
-		"Safe":        Safe,
-		"Escape":      Escape,
+		"SafeHTML":    SafeHTML,
+		"HTMLFormat":  HTMLFormat,
+		"HTMLEscape":  HTMLEscape,
 		"QueryEscape": url.QueryEscape,
 		"JSEscape":    JSEscapeSafe,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
@@ -177,8 +179,25 @@ func NewFuncMap() template.FuncMap {
 	}
 }
 
-// Safe render raw as HTML
-func Safe(s any) template.HTML {
+func HTMLFormat(s string, rawArgs ...any) template.HTML {
+	args := slices.Clone(rawArgs)
+	for i, v := range args {
+		switch v := v.(type) {
+		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
+			// for most basic types (including template.HTML which is safe), just do nothing and use it
+		case string:
+			args[i] = template.HTMLEscapeString(v)
+		case fmt.Stringer:
+			args[i] = template.HTMLEscapeString(v.String())
+		default:
+			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
+		}
+	}
+	return template.HTML(fmt.Sprintf(s, args...))
+}
+
+// SafeHTML render raw as HTML
+func SafeHTML(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(v)
@@ -199,7 +218,7 @@ func Str2html(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-func Escape(s any) template.HTML {
+func HTMLEscape(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(html.EscapeString(v))

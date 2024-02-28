@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -36,12 +35,13 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -971,6 +971,19 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
+	}
+
+	for _, file := range diff.Files {
+		for _, section := range file.Sections {
+			for _, line := range section.Lines {
+				for _, comment := range line.Comments {
+					if err := comment.LoadAttachments(ctx); err != nil {
+						ctx.ServerError("LoadAttachments", err)
+						return
+					}
+				}
+			}
+		}
 	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)

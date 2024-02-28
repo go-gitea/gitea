@@ -39,7 +39,7 @@
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape) | Safe)}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (HTMLFormat "<code>%s</code>" .HeadTarget)}}
 							</div>
 						</div>
 						<div class="item-section-right">
@@ -81,14 +81,14 @@
 					{{ctx.Locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
+				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 					<div class="item-section-left flex-text-inline gt-f1">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 						<button class="ui compact button">
-							{{ctx.Locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape)}}
+							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}
 				</div>

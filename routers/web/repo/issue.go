@@ -31,7 +31,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -44,11 +43,12 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -1721,6 +1721,10 @@ func ViewIssue(ctx *context.Context) {
 			for _, codeComments := range comment.Review.CodeComments {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
+						if err := c.LoadAttachments(ctx); err != nil {
+							ctx.ServerError("LoadAttachments", err)
+							return
+						}
 						// Check tag.
 						role, ok = marked[c.PosterID]
 						if ok {

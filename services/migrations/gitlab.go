@@ -517,6 +517,60 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		page = resp.NextPage
 	}
+
+	page = 1
+	for {
+		var stateEvents []*gitlab.StateEvent
+		var resp *gitlab.Response
+		var err error
+		if context.IsMergeRequest {
+			stateEvents, resp, err = g.client.ResourceStateEvents.ListMergeStateEvents(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListStateEventsOptions{
+				ListOptions: gitlab.ListOptions{
+					Page:    page,
+					PerPage: g.maxPerPage,
+				},
+			}, nil, gitlab.WithContext(g.ctx))
+		} else {
+			stateEvents, resp, err = g.client.ResourceStateEvents.ListIssueStateEvents(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListStateEventsOptions{
+				ListOptions: gitlab.ListOptions{
+					Page:    page,
+					PerPage: g.maxPerPage,
+				},
+			}, nil, gitlab.WithContext(g.ctx))
+		}
+		if err != nil {
+			return nil, false, fmt.Errorf("error while listing state events: %v %w", g.repoID, err)
+		}
+
+		for _, stateEvent := range stateEvents {
+			comment := &base.Comment{
+				IssueIndex: commentable.GetLocalIndex(),
+				Index:      int64(stateEvent.ID),
+				PosterID:   int64(stateEvent.User.ID),
+				PosterName: stateEvent.User.Username,
+				Content:    "",
+				Created:    *stateEvent.CreatedAt,
+			}
+			switch stateEvent.State {
+			case gitlab.ClosedEventType:
+				comment.CommentType = issues_model.CommentTypeClose.String()
+			case gitlab.MergedEventType:
+				comment.CommentType = issues_model.CommentTypeMergePull.String()
+			case gitlab.ReopenedEventType:
+				comment.CommentType = issues_model.CommentTypeReopen.String()
+			default:
+				// Ignore other event types
+				continue
+			}
+			allComments = append(allComments, comment)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		page = resp.NextPage
+	}
+
 	return allComments, true, nil
 }
 
