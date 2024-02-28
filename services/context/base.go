@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -207,17 +207,17 @@ func (b *Base) FormBool(key string) bool {
 	return v
 }
 
-// FormOptionalBool returns an OptionalBoolTrue or OptionalBoolFalse if the value
-// for the provided key exists in the form else it returns OptionalBoolNone
-func (b *Base) FormOptionalBool(key string) util.OptionalBool {
+// FormOptionalBool returns an optional.Some(true) or optional.Some(false) if the value
+// for the provided key exists in the form else it returns optional.None[bool]()
+func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
 	value := b.Req.FormValue(key)
 	if len(value) == 0 {
-		return util.OptionalBoolNone
+		return optional.None[bool]()
 	}
 	s := b.Req.FormValue(key)
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
-	return util.OptionalBoolOf(v)
+	return optional.Some(v)
 }
 
 func (b *Base) SetFormString(key, value string) {
