@@ -83,13 +83,18 @@ function filterRepoFiles(filter) {
     const cell = document.createElement('td');
     const a = document.createElement('a');
     a.setAttribute('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
-    a.innerHTML = svg('octicon-file') + r.matchResult.map((part, index) =>
-    // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
-    // the matchResult[odd] is matched and highlighted to red.
-      `<span class="${index % 2 === 1 ? 'ui text red' : ''}">${part}</span>`
-    ).join('');
-    cell.append(a);
+    a.innerHTML = svg('octicon-file', 16, 'gt-mr-3');
     row.append(cell);
+    cell.append(a);
+    for (const [index, part] of r.matchResult.entries()) {
+      const span = document.createElement('span');
+      // safely escape by using textContent
+      span.textContent = part;
+      // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
+      // the matchResult[odd] is matched and highlighted to red.
+      if (index % 2 === 1) span.classList.add('ui', 'text', 'red');
+      a.append(span);
+    }
     repoFindFileTableBody.append(row);
   }
 }

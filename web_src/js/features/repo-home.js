@@ -1,8 +1,9 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
@@ -30,14 +31,15 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  saveBtn.on('click', () => {
+  saveBtn.on('click', async () => {
     const topics = $('input[name=topics]').val();
+    const formData = new FormData();
+    formData.append('topics', topics);
+    try {
+      const response = await POST(saveBtn.attr('data-link'), {data: formData});
+      const data = await response.json();
 
-    $.post(saveBtn.attr('data-link'), {
-      _csrf: csrfToken,
-      topics
-    }, (_data, _textStatus, xhr) => {
-      if (xhr.responseJSON.status === 'ok') {
+      if (data.status === 'ok') {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
@@ -52,12 +54,14 @@ export function initRepoTopicBar() {
         hideElem(editDiv);
         showElem(viewDiv);
       }
-    }).fail((xhr) => {
+    } catch (error) {
+      const xhr = error.response; // Assuming `error.response` contains the fetch response object
       if (xhr.status === 422) {
-        if (xhr.responseJSON.invalidTopics.length > 0) {
-          topicPrompts.formatPrompt = xhr.responseJSON.message;
+        const responseData = await xhr.json(); // Parse JSON response
+        if (responseData.invalidTopics.length > 0) {
+          topicPrompts.formatPrompt = responseData.message;
 
-          const {invalidTopics} = xhr.responseJSON;
+          const {invalidTopics} = responseData;
           const topicLabels = topicDropdown.children('a.ui.label');
 
           for (const [index, value] of topics.split(',').entries()) {
@@ -68,12 +72,12 @@ export function initRepoTopicBar() {
             }
           }
         } else {
-          topicPrompts.countPrompt = xhr.responseJSON.message;
+          topicPrompts.countPrompt = responseData.message;
         }
       }
-    }).always(() => {
+    } finally {
       topicForm.form('validate form');
-    });
+    }
   });
 
   topicDropdown.dropdown({
