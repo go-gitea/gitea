@@ -174,7 +174,7 @@ func Test_RandomBytes(t *testing.T) {
 	assert.NotEqual(t, bytes3, bytes4)
 }
 
-func Test_OptionalBool(t *testing.T) {
+func TestOptionalBoolParse(t *testing.T) {
 	assert.Equal(t, optional.None[bool](), OptionalBoolParse(""))
 	assert.Equal(t, optional.None[bool](), OptionalBoolParse("x"))
 
