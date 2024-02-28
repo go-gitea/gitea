@@ -1,6 +1,13 @@
 <div id="activity-feed" class="flex-list">
 	{{range .Feeds}}
-		{{$isPrivateView := and (not $.IsAdmin) .IsPrivate (ne $.ContextUser.ID $.SignedUserID) (not $.IsOrganizationMember)}}
+		{{$isPrivateView := and (not $.IsAdmin) .IsPrivate (ne $.ContextUser.ID $.SignedUserID)}}
+		{{if $isPrivateView}}
+			{{$isOrganizationMember := $.IsOrganizationMember}}
+			{{if eq $isOrganizationMember nil}}
+				{{$isOrganizationMember = IsOrganizationMember ctx .Repo.Owner.ID $.SignedUserID}}
+			{{end}}
+			{{$isPrivateView = and $isPrivateView (not $isOrganizationMember)}}
+		{{end}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}

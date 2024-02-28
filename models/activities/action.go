@@ -519,7 +519,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 
 	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActionsVisibility.ShowAll()
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !includePrivateRepos && !opts.Actor.IsAdmin {
+	if !includePrivateRepos && !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
