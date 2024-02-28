@@ -135,9 +135,10 @@ func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*
 
 func doAPIGetRepositorySize(ctx APITestContext, owner, repo string) func(*testing.T) int64 {
 	return func(t *testing.T) int64 {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)
 
-		req := NewRequest(t, "GET", urlStr)
+		req := NewRequest(t, "GET", urlStr).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 		}
@@ -467,9 +468,10 @@ func doAPIAddRepoToOrganizationTeam(ctx APITestContext, teamID int64, orgName, r
 
 func doAPISetRepoSizeLimit(ctx APITestContext, owner, repo string, size int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s",
-			owner, repo, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditRepoOption{SizeLimit: &size})
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s",
+			owner, repo)
+		req := NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditRepoOption{SizeLimit: &size}).
+			AddTokenAuth(ctx.Token)
 
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
