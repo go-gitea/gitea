@@ -21,7 +21,8 @@ type ProjectIssue struct { //revive:disable-line:exported
 	ProjectBoardID int64 `xorm:"INDEX"`
 
 	// the sorting order on the board
-	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
+	Sorting          int64 `xorm:"NOT NULL DEFAULT 0"`
+	CloseIssueOnMove bool  `xorm:"DEFAULT false"`
 }
 
 func init() {
