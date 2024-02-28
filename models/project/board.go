@@ -55,6 +55,7 @@ type Board struct {
 	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
 	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
 	Color   string `xorm:"VARCHAR(7)"`
+	LabelID int64  `xorm:"DEFAULT 0"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`

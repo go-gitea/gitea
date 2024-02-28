@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
@@ -487,6 +489,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		Title:     form.Title,
 		Color:     form.Color,
 		CreatorID: ctx.Doer.ID,
+		LabelID:   form.LabelID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
 		return
@@ -691,8 +694,25 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
+	fromColumnLabelID, err := strconv.ParseInt(ctx.FormString("fromColumnLabelID"), 10, 64)
+	if err != nil {
+		ctx.ServerError("fromColumnLableId is required", errors.New("fromColumnLableId is required"))
+		return
+	}
+
+	issueID, err := strconv.ParseInt(ctx.FormString("issueID"), 10, 64)
+	if err != nil {
+		ctx.ServerError("moved issueID is required", errors.New("moved issueID is required"))
+		return
+	}
+
 	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
+		return
+	}
+
+	if err = issue_service.AddAndOrRemoveLabelFromIssue(ctx, issueID, fromColumnLabelID, board); err != nil {
+		ctx.ServerError("failed adding/removing label in addAndOrRemoveLabel", err)
 		return
 	}
 

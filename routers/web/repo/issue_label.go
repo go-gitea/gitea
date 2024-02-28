@@ -99,6 +99,17 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["SortType"] = ctx.FormString("sort")
 }
 
+// RetrieveLabelsOrg clone of RetrieveLabels but without repo
+func RetrieveLabelsOrg(ctx *context.Context) {
+	orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByOrgID", err)
+		return
+	}
+
+	ctx.Data["Labels"] = orgLabels
+}
+
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
