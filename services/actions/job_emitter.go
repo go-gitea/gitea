@@ -144,11 +144,7 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 				// If a job's "if" condition is "always()", the job should always run even if some of its dependencies did not succeed.
 				// See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idneeds
 				always := false
-				wfJobs, perr := jobparser.Parse(r.jobMap[id].WorkflowPayload)
-				if perr != nil && len(r.jobMap[id].WorkflowPayload) > 0 {
-					_ = perr
-				}
-				if len(wfJobs) == 1 {
+				if wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload); len(wfJobs) == 1 {
 					_, wfJob := wfJobs[0].Job()
 					expr := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(wfJob.If.Value, "${{"), "}}"))
 					always = expr == "always()"
