@@ -7,7 +7,7 @@
 				<div class="markup"><pre class="code-block"><code>sudo curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key"></gitea-origin-url> -o /etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
 echo "deb [signed-by=/etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc] <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></gitea-origin-url> $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 sudo apt update</code></pre></div>
-				<p>{{ctx.Locale.Tr "packages.debian.registry.info" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "packages.debian.registry.info"}}</p>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.install"}}</label>
@@ -16,7 +16,7 @@ sudo apt update</code></pre></div>
 				</div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Debian" "https://docs.gitea.com/usage/packages/debian/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Debian" "https://docs.gitea.com/usage/packages/debian/"}}</label>
 			</div>
 		</div>
 	</div>

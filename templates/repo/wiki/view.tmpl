@@ -40,7 +40,7 @@
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
@@ -67,13 +67,13 @@
 		<div class="wiki-content-parts">
 			{{if .sidebarTocContent}}
 			<div class="markup wiki-content-sidebar wiki-content-toc">
-				{{.sidebarTocContent | Safe}}
+				{{.sidebarTocContent | SafeHTML}}
 			</div>
 			{{end}}
 
 			<div class="markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
-				{{.content | Safe}}
+				{{.content | SafeHTML}}
 			</div>
 
 			{{if .sidebarPresent}}
@@ -82,7 +82,7 @@
 					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
-				{{.sidebarContent | Safe}}
+				{{.sidebarContent | SafeHTML}}
 			</div>
 			{{end}}
 
@@ -94,7 +94,7 @@
 					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
-				{{.footerContent | Safe}}
+				{{.footerContent | SafeHTML}}
 			</div>
 			{{end}}
 		</div>
@@ -107,7 +107,7 @@
 		{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape) | Safe}}</p>
+		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" $title}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

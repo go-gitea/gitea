@@ -5,6 +5,7 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
+import {initDropzone} from './common-global.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -344,19 +345,15 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (e) {
+  $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    updateIssuesMeta(
-      url,
-      isChecked ? 'detach' : 'attach',
-      issueId,
-      id,
-    ).then(() => window.location.reload());
+    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
+    window.location.reload();
   });
 
   $(document).on('click', (event) => {
@@ -386,6 +383,11 @@ export async function handleReply($el) {
   const $textarea = form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
+    // FIXME: the initialization of the dropzone is not consistent.
+    // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
+    // When the form is submitted and partially reload, none of them is initialized.
+    const dropzone = form.find('.dropzone')[0];
+    if (!dropzone.dropzone) initDropzone(dropzone);
     editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
   }
   editor.focus();
@@ -515,6 +517,7 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
 
+      initDropzone(td.find('.dropzone')[0]);
       const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
       editor.focus();
     }

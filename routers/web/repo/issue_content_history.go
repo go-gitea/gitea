@@ -11,11 +11,11 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -56,12 +56,12 @@ func GetContentHistoryList(ctx *context.Context) {
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.TrString("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
 		}
 
 		username := item.UserName

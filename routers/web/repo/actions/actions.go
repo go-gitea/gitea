@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -61,17 +61,17 @@ func List(ctx *context.Context) {
 
 	var workflows []Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("IsEmpty", err)
 		return
 	} else if !empty {
 		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
 		entries, err := actions.ListWorkflows(commit)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("ListWorkflows", err)
 			return
 		}
 
@@ -95,12 +95,12 @@ func List(ctx *context.Context) {
 			workflow := Workflow{Entry: *entry}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
+				ctx.ServerError("GetContentFromEntry", err)
 				return
 			}
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				workflows = append(workflows, workflow)
 				continue
 			}
@@ -115,7 +115,7 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_online_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}
@@ -172,7 +172,7 @@ func List(ctx *context.Context) {
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("FindAndCount", err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func List(ctx *context.Context) {
 	}
 
 	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
 
@@ -189,7 +189,7 @@ func List(ctx *context.Context) {
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetActors", err)
 		return
 	}
 	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)

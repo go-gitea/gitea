@@ -1,7 +1,7 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
-		<div class="gt-df gt-ac gt-fw">
+		<div class="gt-df gt-ac gt-fw gt-gap-3 gt-ml-1">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
@@ -19,7 +19,7 @@
 			{{end}}
 			{{if not .DiffNotAvailable}}
 				<div class="diff-detail-stats gt-df gt-ac gt-fw">
-					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
@@ -203,7 +203,7 @@
 							{{if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} gt-overflow-x-scroll">
-									<table class="chroma gt-w-full">
+									<table class="chroma tw-w-full">
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
 										{{else}}
@@ -237,6 +237,11 @@
 					"TextareaName" "content"
 					"DropzoneParentContainer" ".ui.form"
 				)}}
+				{{if .IsAttachmentEnabled}}
+					<div class="field">
+						{{template "repo/upload" .}}
+					</div>
+				{{end}}
 				<div class="text right edit buttons">
 					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
 					<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>

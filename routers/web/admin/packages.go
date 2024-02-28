@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
@@ -108,6 +108,6 @@ func CleanupExpiredData(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("packages.cleanup.success"))
+	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/packages")
 }

@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/automerge"
 )
@@ -23,16 +24,14 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
 	}
 	defer closer.Close()
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return fmt.Errorf("GetObjectFormat[%s]: %w", repoPath, err)
-	}
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	commit, err := gitRepo.GetCommit(sha)
 	if err != nil {
 		gitRepo.Close()

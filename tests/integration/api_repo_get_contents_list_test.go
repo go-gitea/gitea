@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -71,7 +72,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
