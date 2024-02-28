@@ -9,14 +9,15 @@ import (
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations/base"
 
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_UpdateOpenMilestoneCounts(t *testing.T) {
-	type ExpectedMilestone issues.Milestone
+	type ExpectedMilestone milestone_model.Milestone
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(issues.Milestone), new(ExpectedMilestone), new(issues.Issue))
+	x, deferable := base.PrepareTestEnv(t, 0, new(milestone_model.Milestone), new(ExpectedMilestone), new(issues.Issue))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -32,7 +33,7 @@ func Test_UpdateOpenMilestoneCounts(t *testing.T) {
 		return
 	}
 
-	got := []issues.Milestone{}
+	got := []milestone_model.Milestone{}
 	if err := x.Table("milestone").Asc("id").Find(&got); !assert.NoError(t, err) {
 		return
 	}

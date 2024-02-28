@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -102,14 +103,14 @@ type Issue struct {
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64                  `xorm:"index"`
-	Title            string                 `xorm:"name"`
-	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
-	Labels           []*Label               `xorm:"-"`
-	MilestoneID      int64                  `xorm:"INDEX"`
-	Milestone        *Milestone             `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
+	OriginalAuthorID int64                      `xorm:"index"`
+	Title            string                     `xorm:"name"`
+	Content          string                     `xorm:"LONGTEXT"`
+	RenderedContent  string                     `xorm:"-"`
+	Labels           []*Label                   `xorm:"-"`
+	MilestoneID      int64                      `xorm:"INDEX"`
+	Milestone        *milestone_model.Milestone `xorm:"-"`
+	Project          *project_model.Project     `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
@@ -298,8 +299,8 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 // LoadMilestone load milestone of this issue.
 func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
-		issue.Milestone, err = GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
-		if err != nil && !IsErrMilestoneNotExist(err) {
+		issue.Milestone, err = milestone_model.GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		if err != nil && !milestone_model.IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %w", issue.RepoID, issue.MilestoneID, err)
 		}
 	}

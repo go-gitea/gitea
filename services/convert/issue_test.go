@@ -9,6 +9,7 @@ import (
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,7 +32,7 @@ func TestLabel_ToLabel(t *testing.T) {
 }
 
 func TestMilestone_APIFormat(t *testing.T) {
-	milestone := &issues_model.Milestone{
+	milestone := &milestone_model.Milestone{
 		ID:              3,
 		RepoID:          4,
 		Name:            "milestoneName",

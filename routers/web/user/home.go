@@ -18,6 +18,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -212,7 +213,7 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := issues_model.CountMilestonesMap(ctx, issues_model.FindMilestoneOptions{
+	counts, err := milestone_model.CountMilestonesMap(ctx, milestone_model.FindMilestoneOptions{
 		RepoCond: userRepoCond,
 		Name:     keyword,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -222,7 +223,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+	milestones, err := db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
@@ -279,17 +280,17 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
+	milestoneStats, err := milestone_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 
-	var totalMilestoneStats *issues_model.MilestonesStats
+	var totalMilestoneStats *milestone_model.MilestonesStats
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
+		totalMilestoneStats, err = milestone_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return

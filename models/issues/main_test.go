@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/models/unittest"
 
 	_ "code.gitea.io/gitea/models"
@@ -23,7 +24,7 @@ func TestFixturesAreConsistent(t *testing.T) {
 	unittest.CheckConsistencyFor(t,
 		&issues_model.Issue{},
 		&issues_model.PullRequest{},
-		&issues_model.Milestone{},
+		&milestone_model.Milestone{},
 		&issues_model.Label{},
 	)
 }

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -67,14 +67,14 @@ func ListMilestones(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolOf(state == api.StateClosed)
 	}
 
-	milestones, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+	milestones, total, err := db.FindAndCount[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		IsClosed:    isClosed,
 		Name:        ctx.FormString("name"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[issues_model.Milestone]", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[milestone_model.Milestone]", err)
 		return
 	}
 
@@ -160,7 +160,7 @@ func CreateMilestone(ctx *context.APIContext) {
 		form.Deadline = &defaultDeadline
 	}
 
-	milestone := &issues_model.Milestone{
+	milestone := &milestone_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Description,
@@ -172,7 +172,7 @@ func CreateMilestone(ctx *context.APIContext) {
 		milestone.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
-	if err := issues_model.NewMilestone(ctx, milestone); err != nil {
+	if err := milestone_model.NewMilestone(ctx, milestone); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewMilestone", err)
 		return
 	}
@@ -234,7 +234,7 @@ func EditMilestone(ctx *context.APIContext) {
 		milestone.IsClosed = *form.State == string(api.StateClosed)
 	}
 
-	if err := issues_model.UpdateMilestone(ctx, milestone, oldIsClosed); err != nil {
+	if err := milestone_model.UpdateMilestone(ctx, milestone, oldIsClosed); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateMilestone", err)
 		return
 	}
@@ -273,7 +273,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.DeleteMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, m.ID); err != nil {
+	if err := milestone_model.DeleteMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, m.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteMilestoneByRepoID", err)
 		return
 	}
@@ -281,23 +281,23 @@ func DeleteMilestone(ctx *context.APIContext) {
 }
 
 // getMilestoneByIDOrName get milestone by ID and if not available by name
-func getMilestoneByIDOrName(ctx *context.APIContext) *issues_model.Milestone {
+func getMilestoneByIDOrName(ctx *context.APIContext) *milestone_model.Milestone {
 	mile := ctx.Params(":id")
 	mileID, _ := strconv.ParseInt(mile, 0, 64)
 
 	if mileID != 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, mileID)
+		milestone, err := milestone_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, mileID)
 		if err == nil {
 			return milestone
-		} else if !issues_model.IsErrMilestoneNotExist(err) {
+		} else if !milestone_model.IsErrMilestoneNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
 			return nil
 		}
 	}
 
-	milestone, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, mile)
+	milestone, err := milestone_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, mile)
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
+		if milestone_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound()
 			return nil
 		}

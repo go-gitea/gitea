@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	user_model "code.gitea.io/gitea/models/user"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -16,7 +17,7 @@ import (
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) error {
 	// Only check if milestone exists if we don't remove it.
 	if issue.MilestoneID > 0 {
-		has, err := issues_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		has, err := milestone_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
 		if err != nil {
 			return fmt.Errorf("HasMilestoneByRepoID: %w", err)
 		}
@@ -30,13 +31,13 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 	}
 
 	if oldMilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, oldMilestoneID); err != nil {
+		if err := milestone_model.UpdateMilestoneCounters(ctx, oldMilestoneID); err != nil {
 			return err
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+		if err := milestone_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return err
 		}
 	}

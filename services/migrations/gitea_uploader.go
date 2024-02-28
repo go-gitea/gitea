@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	base_module "code.gitea.io/gitea/modules/base"
@@ -82,7 +83,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	case "comment":
 		return db.MaxBatchInsertSize(new(issues_model.Comment))
 	case "milestone":
-		return db.MaxBatchInsertSize(new(issues_model.Milestone))
+		return db.MaxBatchInsertSize(new(milestone_model.Milestone))
 	case "label":
 		return db.MaxBatchInsertSize(new(issues_model.Label))
 	case "release":
@@ -179,7 +180,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
-	mss := make([]*issues_model.Milestone, 0, len(milestones))
+	mss := make([]*milestone_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
@@ -202,7 +203,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			milestone.Updated = &milestone.Created
 		}
 
-		ms := issues_model.Milestone{
+		ms := milestone_model.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
@@ -217,7 +218,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		mss = append(mss, &ms)
 	}
 
-	err := issues_model.InsertMilestones(g.ctx, mss...)
+	err := milestone_model.InsertMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}

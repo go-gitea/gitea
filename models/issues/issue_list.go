@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -206,7 +207,7 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*milestone_model.Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize

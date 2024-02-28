@@ -6,7 +6,7 @@ package v1_18 //nolint
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/milestone"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -30,7 +30,7 @@ func UpdateOpenMilestoneCounts(x *xorm.Engine) error {
 					"is_closed":    true,
 				},
 			)).
-			Update(&issues.Milestone{})
+			Update(&milestone.Milestone{})
 		if err != nil {
 			return fmt.Errorf("error updating issue counts in milestone %d: %w", id, err)
 		}

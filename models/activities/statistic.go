@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
@@ -104,7 +105,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Release, _ = e.Count(new(repo_model.Release))
 	stats.Counter.AuthSource, _ = db.Count[auth.Source](ctx, auth.FindSourcesOptions{})
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
-	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
+	stats.Counter.Milestone, _ = e.Count(new(milestone_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(issues_model.Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))

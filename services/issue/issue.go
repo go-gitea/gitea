@@ -10,6 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -247,7 +248,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
-	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+	if err := milestone_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 		return fmt.Errorf("error updating counters for milestone id %d: %w",
 			issue.MilestoneID, err)
 	}

@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -30,5 +31,5 @@ func TestChangeMilestoneAssign(t *testing.T) {
 		MilestoneID:    issue.MilestoneID,
 		OldMilestoneID: oldMilestoneID,
 	})
-	unittest.CheckConsistencyFor(t, &issues_model.Milestone{}, &issues_model.Issue{})
+	unittest.CheckConsistencyFor(t, &milestone_model.Milestone{}, &issues_model.Issue{})
 }

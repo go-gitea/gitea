@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/label"
@@ -239,7 +240,7 @@ func ToLabelList(labels []*issues_model.Label, repo *repo_model.Repository, org 
 }
 
 // ToAPIMilestone converts Milestone into API Format
-func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
+func ToAPIMilestone(m *milestone_model.Milestone) *api.Milestone {
 	apiMilestone := &api.Milestone{
 		ID:           m.ID,
 		State:        m.State(),
