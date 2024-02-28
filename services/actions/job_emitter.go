@@ -151,6 +151,11 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 					if wfJob.If.Value != "" {
 						// We use "actionlint" to check whether the value of "if" is the "always()" function
 						value := strings.TrimPrefix(wfJob.If.Value, "${{")
+						if !strings.HasSuffix(value, "}}") {
+							// "}}" is necessary since lexer lexes it as end of tokens
+							// See https://github.com/rhysd/actionlint/blob/3e2f8eab86d3490068c620638bb2955598438492/rule_expression.go#L622
+							value = value + "}}"
+						}
 						exprParser := actionlint.NewExprParser()
 						exprNode, _ := exprParser.Parse(actionlint.NewExprLexer(value))
 						if funcNode, ok := (exprNode).(*actionlint.FuncCallNode); ok {

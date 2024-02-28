@@ -71,11 +71,20 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			want: map[int64]actions_model.Status{},
 		},
 		{
-			name: "with always() condition",
+			name: "with ${{ always() }} condition",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
 				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					"name: test\non: push\njobs:\n  job2:\n    runs-on: ubuntu-latest\n    needs: job1\n    if: ${{ always() }}\n    steps:\n      - run: echo \"always run\"")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
+		{
+			name: "with always() condition",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					"name: test\non: push\njobs:\n  job2:\n    runs-on: ubuntu-latest\n    needs: job1\n    if: always()\n    steps:\n      - run: echo \"always run\"")},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
