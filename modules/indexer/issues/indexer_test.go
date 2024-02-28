@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -210,7 +211,7 @@ func searchIssueIsPull(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				IsPull: util.OptionalBoolFalse,
+				IsPull: util.OptionalBoolFromGeneric(optional.Some(false)),
 			},
 			[]int64{17, 16, 15, 14, 13, 6, 5, 18, 10, 7, 4, 1},
 		},

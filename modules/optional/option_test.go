@@ -27,6 +27,16 @@ func TestOption(t *testing.T) {
 	assert.Equal(t, int(1), some.Value())
 	assert.Equal(t, int(1), some.ValueOrDefault(2))
 
+	noneBool := optional.None[bool]()
+	assert.False(t, noneBool.Has())
+	assert.Equal(t, false, noneBool.Value())
+	assert.Equal(t, true, noneBool.ValueOrDefault(true))
+
+	someBool := optional.Some(true)
+	assert.True(t, someBool.Has())
+	assert.Equal(t, true, someBool.Value())
+	assert.Equal(t, true, someBool.ValueOrDefault(false))
+
 	var ptr *int
 	assert.False(t, optional.FromPtr(ptr).Has())
 

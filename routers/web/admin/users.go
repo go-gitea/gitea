@@ -76,11 +76,11 @@ func Users(ctx *context.Context) {
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
 		SearchByEmail:      true,
-		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]),
-		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]),
-		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
-		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
-		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]).ToGeneric(),
+		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]).ToGeneric(),
+		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]).ToGeneric(),
+		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]).ToGeneric(),
+		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]).ToGeneric(),
 		IncludeReserved:    true, // administrator needs to list all acounts include reserved, bot, remote ones
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
@@ -276,7 +276,7 @@ func ViewUser(ctx *context.Context) {
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
+		Collaborate: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
