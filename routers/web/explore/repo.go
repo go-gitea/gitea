@@ -155,13 +155,13 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["Page"] = pager
 
 	if ctx.Data["Err_Repo_Size_Limit"] != nil {
-		ctx.RenderWithErr(ctx.Tr("admin.config.invalid_repo_size")+"   "+ctx.Data["Err_Repo_Size_Limit"].(string),
+		ctx.RenderWithErr(ctx.Tr("admin.config.invalid_repo_size", ctx.Data["Err_Repo_Size_Limit"].(string)),
 			opts.TplName, nil)
 		return
 	}
 
 	if ctx.Data["Err_Repo_Size_Save"] != nil {
-		ctx.RenderWithErr(ctx.Tr("admin.config.save_repo_size_setting_failed")+"   "+ctx.Data["Err_Repo_Size_Save"].(string),
+		ctx.RenderWithErr(ctx.Tr("admin.config.save_repo_size_setting_failed", ctx.Data["Err_Repo_Size_Save"].(string)),
 			opts.TplName, nil)
 		return
 	}

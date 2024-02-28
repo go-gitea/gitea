@@ -76,7 +76,6 @@ func UpdateRepoPost(ctx *context.Context) {
 	}
 
 	err = setting.SaveGlobalRepositorySetting(form.EnableSizeLimit, repoSizeLimit)
-
 	if err != nil {
 		ctx.Data["Err_Repo_Size_Save"] = err.Error()
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
