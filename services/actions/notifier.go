@@ -152,7 +152,15 @@ func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 	} else {
 		action = api.HookIssueAssigned
 	}
-	notifyIssueChange(ctx, doer, issue, webhook_module.HookEventPullRequestAssign, action)
+
+	var hookEvent webhook_module.HookEventType
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequestAssign
+	} else {
+		hookEvent = webhook_module.HookEventIssueAssign
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, action)
 }
 
 // IssueChangeMilestone notifies assignee to notifiers
