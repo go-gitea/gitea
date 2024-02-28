@@ -29,7 +29,7 @@
 								{{end}}
 							</h4>
 							<div>
-								{{if $.CanCreateRelease}}
+								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}
 									<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{$release.TagName | PathEscapeSegments}}" rel="nofollow">
 										{{svg "octicon-pencil"}}
 									</a>
