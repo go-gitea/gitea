@@ -17,12 +17,12 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
