@@ -127,7 +127,7 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
-		!isGitRawOrAttachPath(req) {
+		!isGitRawOrAttachPath(req) && !isMultipartHandler(req) {
 		return nil, nil
 	}
 
@@ -163,4 +163,9 @@ func isAuthenticatedTokenRequest(req *http.Request) bool {
 		return true
 	}
 	return false
+}
+
+// isMultipartHandler check if request is to lfs batch or multipart-verify
+func isMultipartHandler(req *http.Request) bool {
+	return strings.HasSuffix(req.URL.Path, "info/lfs/objects/batch") || strings.HasSuffix(req.URL.Path, "multipart-verify")
 }
