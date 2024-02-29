@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -228,10 +229,10 @@ type FindReleasesOptions struct {
 	RepoID        int64
 	IncludeDrafts bool
 	IncludeTags   bool
-	IsPreRelease  util.OptionalBool
-	IsDraft       util.OptionalBool
+	IsPreRelease  optional.Option[bool]
+	IsDraft       optional.Option[bool]
 	TagNames      []string
-	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
+	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -246,14 +247,14 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
 	}
-	if !opts.IsPreRelease.IsNone() {
-		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.IsTrue()})
+	if opts.IsPreRelease.Has() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.Value()})
 	}
-	if !opts.IsDraft.IsNone() {
-		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	if opts.IsDraft.Has() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.Value()})
 	}
-	if !opts.HasSha1.IsNone() {
-		if opts.HasSha1.IsTrue() {
+	if opts.HasSha1.Has() {
+		if opts.HasSha1.Value() {
 			cond = cond.And(builder.Neq{"sha1": ""})
 		} else {
 			cond = cond.And(builder.Eq{"sha1": ""})
@@ -275,7 +276,7 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 		ListOptions:   listOptions,
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue,
+		HasSha1:       optional.Some(true),
 		RepoID:        repoID,
 	}
 

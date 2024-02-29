@@ -1,13 +1,11 @@
-import $ from 'jquery';
 import {svg} from '../svg.js';
 import {toggleElem} from '../utils/dom.js';
 import {pathEscapeSegments} from '../utils/url.js';
-
-const {csrf} = window.config;
+import {GET} from '../modules/fetch.js';
 
 const threshold = 50;
 let files = [];
-let $repoFindFileInput, $repoFindFileTableBody, $repoFindFileNoResult;
+let repoFindFileInput, repoFindFileTableBody, repoFindFileNoResult;
 
 // return the case-insensitive sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
 // res[even] is unmatched, res[odd] is matched, see unit tests for examples
@@ -74,46 +72,46 @@ export function filterRepoFilesWeighted(files, filter) {
 }
 
 function filterRepoFiles(filter) {
-  const treeLink = $repoFindFileInput.attr('data-url-tree-link');
-  $repoFindFileTableBody.empty();
+  const treeLink = repoFindFileInput.getAttribute('data-url-tree-link');
+  repoFindFileTableBody.innerHTML = '';
 
   const filterResult = filterRepoFilesWeighted(files, filter);
-  const tmplRow = `<tr><td><a></a></td></tr>`;
 
-  toggleElem($repoFindFileNoResult, filterResult.length === 0);
+  toggleElem(repoFindFileNoResult, filterResult.length === 0);
   for (const r of filterResult) {
-    const $row = $(tmplRow);
-    const $a = $row.find('a');
-    $a.attr('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
-    const $octiconFile = $(svg('octicon-file')).addClass('gt-mr-3');
-    $a.append($octiconFile);
-    // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
-    // the matchResult[odd] is matched and highlighted to red.
-    for (let j = 0; j < r.matchResult.length; j++) {
-      if (!r.matchResult[j]) continue;
-      const $span = $('<span>').text(r.matchResult[j]);
-      if (j % 2 === 1) $span.addClass('ui text red');
-      $a.append($span);
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    const a = document.createElement('a');
+    a.setAttribute('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
+    a.innerHTML = svg('octicon-file', 16, 'gt-mr-3');
+    row.append(cell);
+    cell.append(a);
+    for (const [index, part] of r.matchResult.entries()) {
+      const span = document.createElement('span');
+      // safely escape by using textContent
+      span.textContent = part;
+      // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
+      // the matchResult[odd] is matched and highlighted to red.
+      if (index % 2 === 1) span.classList.add('ui', 'text', 'red');
+      a.append(span);
     }
-    $repoFindFileTableBody.append($row);
+    repoFindFileTableBody.append(row);
   }
 }
 
 async function loadRepoFiles() {
-  files = await $.ajax({
-    url: $repoFindFileInput.attr('data-url-data-link'),
-    headers: {'X-Csrf-Token': csrf}
-  });
-  filterRepoFiles($repoFindFileInput.val());
+  const response = await GET(repoFindFileInput.getAttribute('data-url-data-link'));
+  files = await response.json();
+  filterRepoFiles(repoFindFileInput.value);
 }
 
 export function initFindFileInRepo() {
-  $repoFindFileInput = $('#repo-file-find-input');
-  if (!$repoFindFileInput.length) return;
+  repoFindFileInput = document.getElementById('repo-file-find-input');
+  if (!repoFindFileInput) return;
 
-  $repoFindFileTableBody = $('#repo-find-file-table tbody');
-  $repoFindFileNoResult = $('#repo-find-file-no-result');
-  $repoFindFileInput.on('input', () => filterRepoFiles($repoFindFileInput.val()));
+  repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
+  repoFindFileNoResult = document.getElementById('repo-find-file-no-result');
+  repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
 
   loadRepoFiles();
 }
