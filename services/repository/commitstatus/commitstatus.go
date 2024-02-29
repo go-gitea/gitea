@@ -52,13 +52,12 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 
 	commit, err := gitRepo.GetCommit(sha)
 	if err != nil {
-		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
-	} else if len(sha) != objectFormat.FullLength() {
+	}
+	if len(sha) != objectFormat.FullLength() {
 		// use complete commit sha
 		sha = commit.ID.String()
 	}
-	gitRepo.Close()
 
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:         repo,
@@ -69,7 +68,12 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 	}
 
-	if sha == repo.DefaultBranch { // since one commit status updated, the combined commit status should be invalid
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	if err != nil {
+		return fmt.Errorf("GetBranchCommit[%s]: %w", repo.DefaultBranch, err)
+	}
+
+	if commit.ID.String() == defaultBranchCommit.ID.String() { // since one commit status updated, the combined commit status should be invalid
 		if err := deleteCommitStatusCache(ctx, repo.ID, repo.DefaultBranch); err != nil {
 			log.Error("deleteCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 		}
