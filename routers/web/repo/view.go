@@ -768,6 +768,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 }
 
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if setting.Other.EnableFeed {
@@ -1006,6 +1007,8 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
+	checkOutdatedBranch(ctx)
+
 	checkCitationFile(ctx, entry)
 	if ctx.Written() {
 		return
@@ -1071,6 +1074,31 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["BranchLink"] = branchLink
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
+
+func checkOutdatedBranch(ctx *context.Context) {
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranch: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if commit.ID.String() != dbBranch.CommitID &&
+		time.Since(commit.)
+		{
+
+	}
+}
+
 
 // RenderUserCards render a page show users according the input template
 func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*user_model.User, error), tpl base.TplName) {
@@ -1147,3 +1175,5 @@ func Forks(ctx *context.Context) {
 
 	ctx.HTML(http.StatusOK, tplForks)
 }
+
+
