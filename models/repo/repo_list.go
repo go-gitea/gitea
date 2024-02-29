@@ -123,33 +123,33 @@ type SearchRepoOptions struct {
 	WatchedByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
-	// None[bool]() -> include public and private
-	// Some(true) -> include just private
-	// Some(false) -> include just public
+	// None -> include public and private
+	// True -> include just private
+	// False -> include just public
 	IsPrivate optional.Option[bool]
-	// None[bool]() -> include collaborative AND non-collaborative
-	// Some(true) -> include just collaborative
-	// Some(false) -> include just non-collaborative
+	// None -> include collaborative AND non-collaborative
+	// True -> include just collaborative
+	// False -> include just non-collaborative
 	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
 	// TypeInvalid means any unit type.
 	UnitType unit.Type
-	// None[bool]() -> include forks AND non-forks
-	// Some(true) -> include just forks
-	// Some(false) -> include just non-forks
+	// None -> include forks AND non-forks
+	// True -> include just forks
+	// False -> include just non-forks
 	Fork optional.Option[bool]
-	// None[bool]() -> include templates AND non-templates
-	// Some(true) -> include just templates
-	// Some(false) -> include just non-templates
+	// None -> include templates AND non-templates
+	// True -> include just templates
+	// False -> include just non-templates
 	Template optional.Option[bool]
-	// None[bool]() -> include mirrors AND non-mirrors
-	// Some(true) -> include just mirrors
-	// Some(false) -> include just non-mirrors
+	// None -> include mirrors AND non-mirrors
+	// True -> include just mirrors
+	// False -> include just non-mirrors
 	Mirror optional.Option[bool]
-	// None[bool]() -> include archived AND non-archived
-	// Some(true) -> include just archived
-	// Some(false) -> include just non-archived
+	// None -> include archived AND non-archived
+	// True -> include just archived
+	// False -> include just non-archived
 	Archived optional.Option[bool]
 	// only search topic name
 	TopicOnly bool
@@ -157,9 +157,9 @@ type SearchRepoOptions struct {
 	Language string
 	// include description in keyword search
 	IncludeDescription bool
-	// None[bool]() -> include has milestones AND has no milestone
-	// Some(true) -> include just has milestones
-	// Some(false) -> include just has no milestone
+	// None -> include has milestones AND has no milestone
+	// True -> include just has milestones
+	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
