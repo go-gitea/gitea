@@ -1371,6 +1371,9 @@ func registerRoutes(m *web.Route) {
 				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
+			m.Group("/workflows/{workflow_name}", func() {
+				m.Get("/badge.svg", actions.GetWorkflowBadge)
+			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
 		m.Group("/wiki", func() {
