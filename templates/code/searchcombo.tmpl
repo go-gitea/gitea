@@ -7,7 +7,7 @@
 		</div>
 	{{else if .SearchResults}}
 		<h3>
-			{{ctx.Locale.Tr "explore.code_search_results" (.Keyword|Escape)}}
+			{{ctx.Locale.Tr "explore.code_search_results" .Keyword}}
 		</h3>
 		{{template "code/searchresults" .}}
 	{{else if .Keyword}}

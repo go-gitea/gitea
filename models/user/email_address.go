@@ -21,9 +21,6 @@ import (
 	"xorm.io/builder"
 )
 
-// ErrEmailNotActivated e-mail address has not been activated error
-var ErrEmailNotActivated = util.NewInvalidArgumentErrorf("e-mail address has not been activated")
-
 // ErrEmailCharIsNotSupported e-mail address contains unsupported character
 type ErrEmailCharIsNotSupported struct {
 	Email string
@@ -313,27 +310,27 @@ func updateActivation(ctx context.Context, email *EmailAddress, activate bool) e
 	return UpdateUserCols(ctx, user, "rands")
 }
 
-// MakeEmailPrimary sets primary email address of given user.
-func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
-	has, err := db.GetEngine(ctx).Get(email)
-	if err != nil {
+func MakeActiveEmailPrimary(ctx context.Context, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, emailID, true)
+}
+
+func MakeInactiveEmailPrimary(ctx context.Context, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, emailID, false)
+}
+
+func makeEmailPrimaryInternal(ctx context.Context, emailID int64, isActive bool) error {
+	email := &EmailAddress{}
+	if has, err := db.GetEngine(ctx).ID(emailID).Where(builder.Eq{"is_activated": isActive}).Get(email); err != nil {
 		return err
 	} else if !has {
-		return ErrEmailAddressNotExist{Email: email.Email}
-	}
-
-	if !email.IsActivated {
-		return ErrEmailNotActivated
+		return ErrEmailAddressNotExist{}
 	}
 
 	user := &User{}
-	has, err = db.GetEngine(ctx).ID(email.UID).Get(user)
-	if err != nil {
+	if has, err := db.GetEngine(ctx).ID(email.UID).Get(user); err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{
-			UID: email.UID,
-		}
+		return ErrUserNotExist{UID: email.UID}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -363,6 +360,21 @@ func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
 	}
 
 	return committer.Commit()
+}
+
+// ChangeInactivePrimaryEmail replaces the inactive primary email of a given user
+func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, newEmailAddr string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": strings.ToLower(oldEmailAddr)}).Delete(&EmailAddress{})
+		if err != nil {
+			return err
+		}
+		newEmail, err := InsertEmailAddress(ctx, &EmailAddress{UID: uid, Email: newEmailAddr})
+		if err != nil {
+			return err
+		}
+		return MakeInactiveEmailPrimary(ctx, newEmail.ID)
+	})
 }
 
 // VerifyActiveEmailCode verifies active email code when active account

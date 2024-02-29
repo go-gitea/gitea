@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -242,7 +243,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		defaultBranch = templateRepo.DefaultBranch
 	}
 
-	return InitRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -292,7 +293,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 		return err
 	}
 
-	if err := UpdateRepoSize(ctx, generateRepo); err != nil {
+	if err := repo_module.UpdateRepoSize(ctx, generateRepo); err != nil {
 		return fmt.Errorf("failed to update size for repository: %w", err)
 	}
 
@@ -323,8 +324,8 @@ func (gro GenerateRepoOptions) IsValid() bool {
 		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
 }
 
-// GenerateRepository generates a repository from a template
-func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+// generateRepository generates a repository from a template
+func generateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	generateRepo := &repo_model.Repository{
 		OwnerID:          owner.ID,
 		Owner:            owner,
@@ -341,7 +342,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		ObjectFormatName: templateRepo.ObjectFormatName,
 	}
 
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
+	if err = repo_module.CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
 		return nil, err
 	}
 
@@ -358,11 +359,11 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
 		return generateRepo, err
 	}
 
-	if err = CheckDaemonExportOK(ctx, generateRepo); err != nil {
+	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 

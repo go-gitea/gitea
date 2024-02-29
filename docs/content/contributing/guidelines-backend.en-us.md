@@ -101,6 +101,10 @@ i.e. `services/user`, `models/repository`.
 Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
 i.e. `import user_service "code.gitea.io/gitea/services/user"`
 
+### Implementing `io.Closer`
+
+If a type implements `io.Closer`, calling `Close` multiple times must not fail or `panic` but return an error or `nil`.
+
 ### Important Gotchas
 
 - Never write `x.Update(exemplar)` without an explicit `WHERE` clause:

@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/services/context"
 )
 
 // TaskStatus returns task's status

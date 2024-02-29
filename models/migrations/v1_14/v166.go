@@ -4,9 +4,9 @@
 package v1_14 //nolint
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"

@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // SetDefaultBranch updates the default branch

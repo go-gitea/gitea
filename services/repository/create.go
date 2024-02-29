@@ -157,7 +157,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 
 		// Apply changes and commit.
-		if err = repo_module.InitRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
+		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
 	}

@@ -45,25 +45,24 @@ It is technically possible to implement, but we need to discuss whether it is ne
 
 ## Where will the runner download scripts when using actions such as `actions/checkout@v4`?
 
-You may be aware that there are tens of thousands of [marketplace actions](https://github.com/marketplace?type=actions) in GitHub.
-However, when you write `uses: actions/checkout@v4`, it actually downloads the scripts from [gitea.com/actions/checkout](http://gitea.com/actions/checkout) by default (not GitHub).
-This is a mirror of [github.com/actions/checkout](http://github.com/actions/checkout), but it's impossible to mirror all of them.
-That's why you may encounter failures when trying to use some actions that haven't been mirrored.
+There are tens of thousands of [actions scripts](https://github.com/marketplace?type=actions) in GitHub, and when you write `uses: actions/checkout@v4`, it downloads the scripts from [github.com/actions/checkout](http://github.com/actions/checkout) by default.
+But what if you want to use actions from other places such as gitea.com instead of GitHub?
 
 The good news is that you can specify the URL prefix to use actions from anywhere.
 This is an extra syntax in Gitea Actions.
 For example:
 
-- `uses: https://github.com/xxx/xxx@xxx`
 - `uses: https://gitea.com/xxx/xxx@xxx`
+- `uses: https://github.com/xxx/xxx@xxx`
 - `uses: http://your_gitea_instance.com/xxx@xxx`
 
 Be careful, the `https://` or `http://` prefix is necessary!
 
-Alternatively, if you want your runners to download actions from GitHub or your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`.
-See [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions).
+This is one of the differences from GitHub Actions which supports actions scripts only from GitHub.
+But it should allow users much more flexibility in how they run Actions.
 
-This is one of the differences from GitHub Actions, but it should allow users much more flexibility in how they run Actions.
+Alternatively, if you want your runners to download actions from your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`.
+See [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions).
 
 ## How to limit the permission of the runners?
 

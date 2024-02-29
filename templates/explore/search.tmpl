@@ -16,8 +16,6 @@
 			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
 			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-			<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-			<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 		</div>
 	</div>
 </div>

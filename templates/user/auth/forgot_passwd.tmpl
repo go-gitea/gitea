@@ -10,7 +10,7 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .IsResetSent}}
-						<p>{{ctx.Locale.Tr "auth.reset_password_mail_sent_prompt" (Escape .Email) .ResetPwdCodeLives}}</p>
+						<p>{{ctx.Locale.Tr "auth.reset_password_mail_sent_prompt" .Email .ResetPwdCodeLives}}</p>
 					{{else if .IsResetRequest}}
 						<div class="required inline field {{if .Err_Email}}error{{end}}">
 							<label for="email">{{ctx.Locale.Tr "email"}}</label>

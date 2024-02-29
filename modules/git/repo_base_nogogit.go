@@ -103,7 +103,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 	}
 }
 
-func (repo *Repository) Close() (err error) {
+func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
@@ -123,5 +123,5 @@ func (repo *Repository) Close() (err error) {
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
-	return err
+	return nil
 }

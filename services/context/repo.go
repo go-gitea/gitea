@@ -546,7 +546,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
+		HasSha1:       optional.Some(true), // only draft releases which are created with existing tags
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {

@@ -115,6 +115,10 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
+	if r.bufferedReader == nil {
+		return nil
+	}
+
 	err := <-r.done
 	r.bufferedReader = nil
 	_ = r.reader.Close()

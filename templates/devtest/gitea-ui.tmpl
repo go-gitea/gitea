@@ -275,6 +275,12 @@
 		<div>ps: no JS code attached, so just a layout</div>
 		{{template "shared/combomarkdowneditor" .}}
 	</div>
+
+	<h1>Tailwind CSS Demo</h1>
+	<div>
+		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
+	</div>
+
 	<script src="{{AssetUrlPrefix}}/js/devtest.js?v={{AssetVersion}}"></script>
 </div>
 {{template "base/footer" .}}

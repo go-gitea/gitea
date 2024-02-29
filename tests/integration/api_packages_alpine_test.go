@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
+	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,34 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 	content, err := base64.StdEncoding.DecodeString(base64AlpinePackageContent)
 	assert.NoError(t, err)
 
-	branches := []string{"v3.16", "v3.17", "v3.18"}
+	base64AlpinePackageNoArchContent := `H4sIAAAAAAACA9ML9nT30wsKdtQrLU4t0jUzTUo1NDVP0ysqTtQrKE1ioAYwAAIzExMwDQTotCGI
+bWhiampuYmRiaGrMYGBoZGZkxKBgwEAHUFpcklikoMAwQkHLB7eoE40P9n5jvx32t7Dy9rq7x19k
+66cJPV38t/h+vWe2jdXy+/PzPT0YTF5z39i4cPFptcLa1C1lD0z/XvrNp6In/7nP4PPCF2pZu8uV
+z74QXLxpY1XWJuVFysqVf+PdizccFbD6ZL/QPGXd1Ri1fec2XBNuYfK/rFa6wF/h3dK/W12f8mxP
+04iP3aCy+vPx7h9S+5M1LLkWr5M/4ezGt3bDW/FjBp/S9hiKP72s/XrJ0vWtO0zr5wa+D/X8XluW
+d7BLP7XS3YUhd8WbPPF/NW3691ONJbXsRb69O7BIMZC96uTri+utC/fbie5J+n7zhCxD4Aep/qet
+QnlCZyN8MhNdVNlNl7965R1nExrrGvfI/YQZFx8Dg+d9122hZsYd/24WL/L69OWrDAN/y//nS7im
+XEive3v7QeTe433TPj/X71+9yHiV6+E9k++3TL8V0Xoq9panhNt23fLgau/pTOvmKx6bV/pS26+Y
+5UP4viyuklYeu4/BZl6rLINe1L/uWuUXcH5z7pa2b9+/rp/v/8dFgc1PL3bO3/iVcrI//J/LMU2X
+Nzu1IaMmWXnGp7CmyQIR39d0Nai9/+tdPbfjvmsNH88Tu7uVrvNuJE0wjxfePXGv/KHNXD+mnG0t
+yTPu+Na0b5WR9O4t0yMd9T5k6ui7hOyU/jL/4dOn6neLwhdrZIZfcl1ectnGvUTurWDo1vY5Gw9k
+PTQLVgcA61F+7gAEAAAfiwgAAAAAAAID7VVNa9wwEPXZv2Ig53hHlizbCzkVkobQJtDkB4wl2SvW
+lhdbTpP++oyXQGEPLYU2paTvIs3X05PQSNnmjp4+OrJumjfZ3c3V9efL2+T3AhlaqePIOB0Rc50I
+VRSlypUoZIJCKJQJPCVvgGWONLGU5H1CCDDRD+4CU57S6zT5j3eCP9Tyv9T/GsuT/scyLxPAt+z/
+aRzjj/J+Fv9HcQZXLriJorPQPAM1i+8tyEzkGZ5PmJ7BMvvQQUt7tx4BPPJH4ccAIpN5Jjj+hSJc
+ugZAghDbArco4eH+A+SYq/Sw7wINDi6g89HReRhpMrvVzTzsFZlaV2Hbutmw4zVhmXo2djEe5u1m
+c6zNzDikR3mW1a61JepaC0SZHsjsqTsyPoR9GL+GdPbf1iSFtU5Xyu/c4+Q7H04lMfvgI3vT3hsX
+5rX40/U9b5CWOA78Mhrq+2ewLjrDp7VNWQbtaF6ZXVWZIhdV09RWOIvU6BqNboSxLSEpkrpQq80x
+W1Nla6NavuqtrJQ0sv17D+4L2oD1lwAIAAAfiwgAAAAAAAID7dM/SgNBFAbw6cSAnYXlXsDNm50/
+u1METBeIkEBMK87uzKKEJbB/IN7CxhN4AI/gNcRD6BWciI0WSiBGxO/XvA9mile8L+5P7WrkrfN1
+049dV1XXbNso0FK+zeDzJC4SxqVSqUwkV4IR51KkLFqxHeia1tZhFfY/cR4V7VXlB9QL0b5HnUXD
+6fj4bDI5ncXFpS8WTVfFs9GQD5wVxgrvlde5zMmJRKm89KVRmnhmyJYuo5RMj8Ef8EOV36j/6/yx
+/5qnxKJ1J8MZJifskD2Zu+fzxfggmT+83F4c3dw/7u1vtf/1ctl+9e+7dwAAAAAAAAAAAAAAAAAA
+AACAX/AKARNTyAAoAAA=`
+	noarchContent, err := base64.StdEncoding.DecodeString(base64AlpinePackageNoArchContent)
+	assert.NoError(t, err)
+
+	branches := []string{"v3.16", "v3.17"}
 	repositories := []string{"main", "testing"}
 
 	rootURL := fmt.Sprintf("/api/packages/%s/alpine", user.Name)
@@ -139,63 +167,71 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 					})
 				})
 
-				t.Run("Index", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
+				readIndexContent := func(r io.Reader) (string, error) {
+					br := bufio.NewReader(r)
 
-					url := fmt.Sprintf("%s/%s/%s/x86_64/APKINDEX.tar.gz", rootURL, branch, repository)
+					gzr, err := gzip.NewReader(br)
+					if err != nil {
+						return "", err
+					}
 
-					req := NewRequest(t, "GET", url)
-					resp := MakeRequest(t, req, http.StatusOK)
+					for {
+						gzr.Multistream(false)
 
-					assert.Condition(t, func() bool {
-						br := bufio.NewReader(resp.Body)
-
-						gzr, err := gzip.NewReader(br)
-						assert.NoError(t, err)
-
+						tr := tar.NewReader(gzr)
 						for {
-							gzr.Multistream(false)
-
-							tr := tar.NewReader(gzr)
-							for {
-								hd, err := tr.Next()
-								if err == io.EOF {
-									break
-								}
-								assert.NoError(t, err)
-
-								if hd.Name == "APKINDEX" {
-									buf, err := io.ReadAll(tr)
-									assert.NoError(t, err)
-
-									s := string(buf)
-
-									assert.Contains(t, s, "C:Q1/se1PjO94hYXbfpNR1/61hVORIc=\n")
-									assert.Contains(t, s, "P:"+packageName+"\n")
-									assert.Contains(t, s, "V:"+packageVersion+"\n")
-									assert.Contains(t, s, "A:x86_64\n")
-									assert.Contains(t, s, "T:Gitea Test Package\n")
-									assert.Contains(t, s, "U:https://gitea.io/\n")
-									assert.Contains(t, s, "L:MIT\n")
-									assert.Contains(t, s, "S:1353\n")
-									assert.Contains(t, s, "I:4096\n")
-									assert.Contains(t, s, "o:gitea-test\n")
-									assert.Contains(t, s, "m:KN4CK3R <kn4ck3r@gitea.io>\n")
-									assert.Contains(t, s, "t:1679498030\n")
-
-									return true
-								}
-							}
-
-							err = gzr.Reset(br)
+							hd, err := tr.Next()
 							if err == io.EOF {
 								break
 							}
-							assert.NoError(t, err)
+							if err != nil {
+								return "", err
+							}
+
+							if hd.Name == alpine_service.IndexFilename {
+								buf, err := io.ReadAll(tr)
+								if err != nil {
+									return "", err
+								}
+
+								return string(buf), nil
+							}
 						}
 
-						return false
-					})
+						err = gzr.Reset(br)
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							return "", err
+						}
+					}
+
+					return "", io.EOF
+				}
+
+				t.Run("Index", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/x86_64/APKINDEX.tar.gz", rootURL, branch, repository))
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					content, err := readIndexContent(resp.Body)
+					assert.NoError(t, err)
+
+					assert.Contains(t, content, "C:Q1/se1PjO94hYXbfpNR1/61hVORIc=\n")
+					assert.Contains(t, content, "P:"+packageName+"\n")
+					assert.Contains(t, content, "V:"+packageVersion+"\n")
+					assert.Contains(t, content, "A:x86_64\n")
+					assert.NotContains(t, content, "A:noarch\n")
+					assert.Contains(t, content, "T:Gitea Test Package\n")
+					assert.Contains(t, content, "U:https://gitea.io/\n")
+					assert.Contains(t, content, "L:MIT\n")
+					assert.Contains(t, content, "S:1353\n")
+					assert.Contains(t, content, "I:4096\n")
+					assert.Contains(t, content, "o:gitea-test\n")
+					assert.Contains(t, content, "m:KN4CK3R <kn4ck3r@gitea.io>\n")
+					assert.Contains(t, content, "t:1679498030\n")
 				})
 
 				t.Run("Download", func(t *testing.T) {
@@ -203,6 +239,35 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 
 					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/x86_64/%s-%s.apk", rootURL, branch, repository, packageName, packageVersion))
 					MakeRequest(t, req, http.StatusOK)
+				})
+
+				t.Run("NoArch", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s/%s", rootURL, branch, repository), bytes.NewReader(noarchContent)).
+						AddBasicAuth(user.Name)
+					MakeRequest(t, req, http.StatusCreated)
+
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/x86_64/APKINDEX.tar.gz", rootURL, branch, repository))
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					content, err := readIndexContent(resp.Body)
+					assert.NoError(t, err)
+
+					assert.Contains(t, content, "C:Q1/se1PjO94hYXbfpNR1/61hVORIc=\n")
+					assert.Contains(t, content, "A:x86_64\n")
+					assert.Contains(t, content, "C:Q1kbH5WoIPFccQYyATanaKXd2cJcc=\n")
+					assert.NotContains(t, content, "A:noarch\n")
+
+					// noarch package should be available with every architecture requested
+					for _, arch := range []string{alpine_module.NoArch, "x86_64", "my_arch"} {
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/%s/gitea-noarch-1.4-r0.apk", rootURL, branch, repository, arch))
+						MakeRequest(t, req, http.StatusOK)
+					}
+
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/gitea-noarch-1.4-r0.apk", rootURL, branch, repository)).
+						AddBasicAuth(user.Name)
+					MakeRequest(t, req, http.StatusNoContent)
 				})
 			})
 		}

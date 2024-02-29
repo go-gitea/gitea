@@ -11,6 +11,8 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
+import tailwindcss from 'tailwindcss';
+import tailwindConfig from './tailwind.config.js';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -145,6 +147,15 @@ export default {
               import: {filter: filterCssImport},
             },
           },
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                map: false, // https://github.com/postcss/postcss/issues/1914
+                plugins: [tailwindcss(tailwindConfig)],
+              },
+            },
+          }
         ],
       },
       {

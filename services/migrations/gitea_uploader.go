@@ -483,6 +483,10 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		switch cm.Type {
+		case issues_model.CommentTypeReopen:
+			cm.Content = ""
+		case issues_model.CommentTypeClose:
+			cm.Content = ""
 		case issues_model.CommentTypeAssignees:
 			if assigneeID, ok := comment.Meta["AssigneeID"].(int); ok {
 				cm.AssigneeID = int64(assigneeID)
@@ -503,6 +507,8 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
 				cm.Content = ""
 			}
+		case issues_model.CommentTypeMergePull:
+			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
 			cm.Content = ""
 		default:

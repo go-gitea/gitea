@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 

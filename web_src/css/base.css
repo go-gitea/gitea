@@ -29,6 +29,14 @@
   --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
 }
 
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
+}
+
 textarea {
   font-family: var(--fonts-regular);
 }
@@ -1568,7 +1576,7 @@ a.ui.active.label:hover {
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-grey);
+  color: var(--color-text-light-2);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -1609,6 +1617,10 @@ a.ui.active.label:hover {
 
 .top-line-blame {
   border-top: 1px solid var(--color-secondary);
+}
+
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
 }
 
 .lines-code .bottom-line,

@@ -37,7 +37,7 @@ func NewFuncMap() template.FuncMap {
 		"Eval":        Eval,
 		"SafeHTML":    SafeHTML,
 		"HTMLFormat":  HTMLFormat,
-		"Escape":      Escape,
+		"HTMLEscape":  HTMLEscape,
 		"QueryEscape": url.QueryEscape,
 		"JSEscape":    JSEscapeSafe,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
@@ -218,7 +218,7 @@ func Str2html(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-func Escape(s any) template.HTML {
+func HTMLEscape(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(html.EscapeString(v))

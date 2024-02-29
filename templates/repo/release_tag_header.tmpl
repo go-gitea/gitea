@@ -13,7 +13,7 @@
 		</div>
 		{{if .EnableFeed}}
 			<a class="ui small button" href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss">
-				{{svg "octicon-rss" 18}} {{ctx.Locale.Tr "rss_feed"}}
+				{{svg "octicon-rss" 16}} {{ctx.Locale.Tr "rss_feed"}}
 			</a>
 		{{end}}
 		{{if and (not .PageIsTagList) .CanCreateRelease}}

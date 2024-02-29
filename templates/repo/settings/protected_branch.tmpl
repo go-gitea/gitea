@@ -2,7 +2,7 @@
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
-				{{ctx.Locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape)}}
+				{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
 			</h4>
 			<div class="ui attached segment branch-protection">
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_patterns"}}</h5>

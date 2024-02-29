@@ -2,13 +2,14 @@ import {encode, decode} from 'uint8-to-base64';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
-  return path ? path.replace(/^.*\//, '') : '';
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
 // transform /path/to/file.ext to .ext
 export function extname(path = '') {
-  const [_, ext] = /.+(\.[^.]+)$/.exec(path) || [];
-  return ext || '';
+  const lastPointIndex = path.lastIndexOf('.');
+  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
 // test whether a variable is an object

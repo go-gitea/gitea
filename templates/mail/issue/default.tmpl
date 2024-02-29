@@ -36,26 +36,26 @@
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			{{.locale.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index}}
+			{{.locale.Tr "mail.issue.action.close" .Doer.Name .Issue.Index}}
 		{{else if eq .ActionName "reopen"}}
-			{{.locale.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index}}
+			{{.locale.Tr "mail.issue.action.reopen" .Doer.Name .Issue.Index}}
 		{{else if eq .ActionName "merge"}}
-			{{.locale.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch)}}
+			{{.locale.Tr "mail.issue.action.merge" .Doer.Name .Issue.Index .Issue.PullRequest.BaseBranch}}
 		{{else if eq .ActionName "approve"}}
-			{{.locale.Tr "mail.issue.action.approve" (Escape .Doer.Name)}}
+			{{.locale.Tr "mail.issue.action.approve" .Doer.Name}}
 		{{else if eq .ActionName "reject"}}
-			{{.locale.Tr "mail.issue.action.reject" (Escape .Doer.Name)}}
+			{{.locale.Tr "mail.issue.action.reject" .Doer.Name}}
 		{{else if eq .ActionName "review"}}
-			{{.locale.Tr "mail.issue.action.review" (Escape .Doer.Name)}}
+			{{.locale.Tr "mail.issue.action.review" .Doer.Name}}
 		{{else if eq .ActionName "review_dismissed"}}
-			{{.locale.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name)}}
+			{{.locale.Tr "mail.issue.action.review_dismissed" .Doer.Name .Comment.Review.Reviewer.Name}}
 		{{else if eq .ActionName "ready_for_review"}}
-			{{.locale.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name)}}
+			{{.locale.Tr "mail.issue.action.ready_for_review" .Doer.Name}}
 		{{end}}
 
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
-				{{.locale.Tr "mail.issue.action.new" (Escape .Doer.Name) .Issue.Index}}
+				{{.locale.Tr "mail.issue.action.new" .Doer.Name .Issue.Index}}
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
