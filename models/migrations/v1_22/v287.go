@@ -8,6 +8,7 @@ import (
 )
 
 type BadgeUnique struct {
+	ID   int64  `xorm:"pk autoincr"`
 	Slug string `xorm:"UNIQUE"`
 }
 
