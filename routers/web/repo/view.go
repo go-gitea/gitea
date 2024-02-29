@@ -768,7 +768,6 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 }
 
-
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if setting.Other.EnableFeed {
@@ -1084,7 +1083,6 @@ func checkOutdatedBranch(ctx *context.Context) {
 		return
 	}
 
-
 	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
 	if err != nil {
 		log.Error("GetBranch: %v", err)
@@ -1092,13 +1090,10 @@ func checkOutdatedBranch(ctx *context.Context) {
 		return
 	}
 
-	if commit.ID.String() != dbBranch.CommitID &&
-		time.Since(commit.)
-		{
-
+	if dbBranch.CommitID != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook"), true)
 	}
 }
-
 
 // RenderUserCards render a page show users according the input template
 func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*user_model.User, error), tpl base.TplName) {
@@ -1175,5 +1170,3 @@ func Forks(ctx *context.Context) {
 
 	ctx.HTML(http.StatusOK, tplForks)
 }
-
-
