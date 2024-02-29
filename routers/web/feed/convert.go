@@ -64,7 +64,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 	}
 	markdown, err := markdown.RenderString(markdownCtx, content)
 	if err != nil {
-		return templates.Str2html(content)
+		return templates.Str2html(content) // old code did so: use Str2html to render in tmpl
 	}
 	return markdown
 }
