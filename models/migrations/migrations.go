@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -558,6 +559,9 @@ var migrations = []Migration{
 	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
+	// v287 -> v288
+	NewMigration("Add milestone type in milestone table", v1_23.AddMilestoneType),
+	NewMigration("Add num_milestones in user table", v1_23.AddNumMilestoneInUser),
 }
 
 // GetCurrentDBVersion returns the current db version
