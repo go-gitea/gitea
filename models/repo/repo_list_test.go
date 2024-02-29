@@ -328,7 +328,7 @@ func TestSearchRepository(t *testing.T) {
 					}
 
 					if testCase.opts.Fork.Value() && testCase.opts.Mirror.Value() {
-						assert.True(t, repo.IsFork || repo.IsMirror)
+						assert.True(t, repo.IsFork && repo.IsMirror)
 					} else {
 						if testCase.opts.Fork.Has() {
 							assert.Equal(t, testCase.opts.Fork.Value(), repo.IsFork)
