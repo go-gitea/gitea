@@ -940,6 +940,30 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 	ctx.Data["OpenWithEditorApps"] = tmplApps
 }
 
+func checkGitHookStatus(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		return
+	}
+	status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeHook)
+	if err != nil {
+		log.Error("GetIndexerStatus: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of the default branch
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if status.CommitSha != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook"), true)
+	}
+}
+
 func renderHomeCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
@@ -1015,6 +1039,8 @@ func renderHomeCode(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+
+	checkGitHookStatus(ctx)
 
 	if entry.IsDir() {
 		renderDirectory(ctx)

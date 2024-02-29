@@ -473,10 +473,19 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		}
 	}
 
+	commitID, err := gitRepo.GetBranchCommitID(newBranchName)
+	if err != nil {
+		return err
+	}
+
 	oldDefaultBranchName := repo.DefaultBranch
 	repo.DefaultBranch = newBranchName
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
+			return err
+		}
+
+		if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeHook, commitID); err != nil {
 			return err
 		}
 
@@ -499,6 +508,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 				return err
 			}
 		}
+
 		return nil
 	}); err != nil {
 		return err

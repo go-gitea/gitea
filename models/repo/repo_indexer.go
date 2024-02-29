@@ -20,6 +20,8 @@ const (
 	RepoIndexerTypeCode RepoIndexerType = iota // 0
 	// RepoIndexerTypeStats repository stats indexer
 	RepoIndexerTypeStats // 1
+	// RepoIndexerTypeHook doesn't index anything, it's a health check for git hooks.
+	RepoIndexerTypeHook // 2
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
@@ -73,6 +75,8 @@ func GetIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoInd
 		if repo.StatsIndexerStatus != nil {
 			return repo.StatsIndexerStatus, nil
 		}
+	default:
+		// Do nothing since other types do not need to be patched to `repo`.
 	}
 	status := &RepoIndexerStatus{RepoID: repo.ID}
 	if has, err := db.GetEngine(ctx).Where("`indexer_type` = ?", indexerType).Get(status); err != nil {
@@ -86,6 +90,8 @@ func GetIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoInd
 		repo.CodeIndexerStatus = status
 	case RepoIndexerTypeStats:
 		repo.StatsIndexerStatus = status
+	default:
+		// Do nothing since other types do not need to be patched to `repo`.
 	}
 	return status, nil
 }
