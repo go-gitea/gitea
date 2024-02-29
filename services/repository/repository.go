@@ -124,7 +124,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 // LinkedRepository returns the linked repo if any
 func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
-	if a.IssueID != 0 {
+	if a.IssueID != 0 { // attachment for issues or comments
 		iss, err := issues_model.GetIssueByID(ctx, a.IssueID)
 		if err != nil {
 			return nil, unit.TypeIssues, err
@@ -135,13 +135,16 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 			unitType = unit.TypePullRequests
 		}
 		return repo, unitType, err
-	} else if a.ReleaseID != 0 {
+	} else if a.ReleaseID != 0 { // attachment for releases
 		rel, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}
 		repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
 		return repo, unit.TypeReleases, err
+	} else if a.RepoID > 0 { // attachment for repository upload
+		repo, err := repo_model.GetRepositoryByID(ctx, a.RepoID)
+		return repo, unit.TypeCode, err
 	}
 	return nil, -1, nil
 }

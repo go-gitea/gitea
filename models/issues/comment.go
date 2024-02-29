@@ -870,6 +870,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
+		}
 		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
@@ -895,8 +898,7 @@ func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment 
 	for i := range attachments {
 		attachments[i].IssueID = opts.Issue.ID
 		attachments[i].CommentID = comment.ID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("issue_id", "comment_id").Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 		}
 	}
