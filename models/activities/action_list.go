@@ -52,7 +52,7 @@ func (actions ActionList) getRepoIDs() []int64 {
 	return repoIDs.Values()
 }
 
-func (actions ActionList) GetOrgIds() []int64 {
+func (actions ActionList) GetOrgIDs() []int64 {
 	orgIDs := make(container.Set[int64], len(actions))
 	for _, action := range actions {
 		if action.Repo.Owner.IsOrganization() {

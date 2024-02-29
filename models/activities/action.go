@@ -468,7 +468,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	canActorViewAction := false
 	if opts.Actor != nil && opts.RequestedUser != nil {
 		canActorViewAction = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
-		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIds(), opts.Actor.ID)
+		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIDs(), opts.Actor.ID)
 		if err != nil {
 			return nil, 0, err
 		}
