@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -2519,7 +2520,7 @@ func SearchIssues(ctx *context.Context) {
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
-			Collaborate: util.OptionalBoolNone,
+			Collaborate: optional.None[bool](),
 			// This needs to be a column that is not nil in fixtures or
 			// MySQL will return different results when sorting by null in some cases
 			OrderBy: db.SearchOrderByAlphabetically,
@@ -2542,7 +2543,7 @@ func SearchIssues(ctx *context.Context) {
 			opts.OwnerID = owner.ID
 			opts.AllLimited = false
 			opts.AllPublic = false
-			opts.Collaborate = util.OptionalBoolFalse
+			opts.Collaborate = optional.Some(false)
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
