@@ -12,9 +12,7 @@ import (
 )
 
 func Test_UpdateBadgeColName(t *testing.T) {
-
 	type Badge struct {
-		ID          int64  `xorm:"pk autoincr"`
 		ID          int64  `xorm:"pk autoincr"`
 		Slug        string `xorm:"UNIQUE"`
 		Description string
@@ -36,5 +34,4 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	}
 
 	// TODO: check if badges have been updated
-
 }
