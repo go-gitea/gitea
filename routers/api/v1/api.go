@@ -1462,7 +1462,10 @@ func Routes() *web.Route {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
 			})
-			m.Get("/orgs", admin.GetAllOrgs)
+			m.Group("/orgs", func() {
+				m.Get("", admin.GetAllOrgs)
+				m.Delete("/{org}", admin.DeleteOrg)
+			})
 			m.Group("/users", func() {
 				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)

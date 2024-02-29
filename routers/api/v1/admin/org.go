@@ -77,6 +77,43 @@ func CreateOrg(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
+// DeleteOrg api for delete organization
+func DeleteOrg(ctx *context.APIContext) {
+	// swagger:operation DELETE /admin/orgs/{org} admin adminDeleteOrg
+	// ---
+	// summary: Delete an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	org, err := organization.GetOrgByName(ctx, ctx.Params(":org"))
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+		}
+	}
+
+	if err := organization.DeleteOrganization(ctx, org); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
 // GetAllOrgs API for getting information of all the organizations
 func GetAllOrgs(ctx *context.APIContext) {
 	// swagger:operation GET /admin/orgs admin adminGetAllOrgs
