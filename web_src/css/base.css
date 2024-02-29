@@ -1619,6 +1619,10 @@ a.ui.active.label:hover {
   border-top: 1px solid var(--color-secondary);
 }
 
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
+}
+
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
