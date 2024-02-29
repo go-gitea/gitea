@@ -14,7 +14,7 @@ import (
 
 // ListUserBadges lists all badges belonging to a user
 func ListUserBadges(ctx *context.APIContext) {
-	// swagger:operation GET /users/{username}/badges admin adminListUserBadges
+	// swagger:operation GET /admin/users/{username}/badges admin adminListUserBadges
 	// ---
 	// summary: List a user's badges
 	// produces:
