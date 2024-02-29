@@ -646,13 +646,17 @@ func sendActivateEmail(ctx *context.Context, u *user_model.User) {
 	mailer.SendActivateAccountMail(ctx.Locale, u)
 
 	activeCodeLives := timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
-	msgHTML := ctx.Locale.Tr("auth.confirmation_mail_sent_prompt", u.Email, activeCodeLives)
+	msgHTML := ctx.Locale.Tr("auth.confirmation_mail_sent_prompt_ex", u.Email, activeCodeLives)
 	renderActivationPromptMessage(ctx, msgHTML)
 }
 
 func renderActivationVerifyPassword(ctx *context.Context, code string) {
 	ctx.Data["ActivationCode"] = code
 	ctx.Data["NeedVerifyLocalPassword"] = true
+	ctx.HTML(http.StatusOK, TplActivate)
+}
+
+func renderActivationChangeEmail(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, TplActivate)
 }
 
@@ -674,7 +678,7 @@ func Activate(ctx *context.Context) {
 			return
 		}
 
-		// Resend confirmation email.
+		// Resend confirmation email. FIXME: ideally this should be in a POST request
 		sendActivateEmail(ctx, ctx.Doer)
 		return
 	}
@@ -698,7 +702,28 @@ func Activate(ctx *context.Context) {
 // ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
 	code := ctx.FormString("code")
-	if code == "" || (ctx.Doer != nil && ctx.Doer.IsActive) {
+	if ctx.Doer != nil && ctx.Doer.IsActive {
+		ctx.Redirect(setting.AppSubURL + "/user/activate") // it will redirect again to the correct page
+		return
+	}
+
+	if code == "" {
+		newEmail := strings.TrimSpace(ctx.FormString("change_email"))
+		if ctx.Doer != nil && newEmail != "" && !strings.EqualFold(ctx.Doer.Email, newEmail) {
+			if user_model.ValidateEmail(newEmail) != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("form.email_invalid"), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			err := user_model.ChangeInactivePrimaryEmail(ctx, ctx.Doer.ID, ctx.Doer.Email, newEmail)
+			if err != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("admin.emails.not_updated", newEmail), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			ctx.Doer.Email = newEmail
+		}
+		// FIXME: at the moment, GET request handles the "send confirmation email" action. But the old code does this redirect and then send a confirmation email.
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
 	}
