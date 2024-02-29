@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -161,8 +162,8 @@ func Milestones(ctx *context.Context) {
 		Private:       true,
 		AllPublic:     false, // Include also all public repositories of users and public organisations
 		AllLimited:    false, // Include also all public repositories of limited organisations
-		Archived:      util.OptionalBoolFalse,
-		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
+		Archived:      optional.Some(false),
+		HasMilestones: optional.Some(true), // Just needs display repos has milestones
 	}
 
 	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
@@ -465,9 +466,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		Private:     true,
 		AllPublic:   false,
 		AllLimited:  false,
-		Collaborate: util.OptionalBoolNone,
+		Collaborate: optional.None[bool](),
 		UnitType:    unitType,
-		Archived:    util.OptionalBoolFalse,
+		Archived:    optional.Some(false),
 	}
 	if team != nil {
 		repoOpts.TeamID = team.ID
