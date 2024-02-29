@@ -222,12 +222,12 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 	return err
 }
 
-// syncBranchToDB sync the branch information in the database. It will try to update the branch first,
+// SyncBranchToDB sync the branch information in the database. It will try to update the branch first,
 // if updated success with affect records > 0, then all are done. Because that means the branch has been in the database.
 // If no record is affected, that means the branch does not exist in database. So there are two possibilities.
 // One is this is a new branch, then we just need to insert the record. Another is the branches haven't been synced,
 // then we need to sync all the branches into database.
-func syncBranchToDB(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
+func SyncBranchToDB(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
 	cnt, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit)
 	if err != nil {
 		return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
