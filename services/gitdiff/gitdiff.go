@@ -397,7 +397,7 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	leftLineCount := getCommitFileLineCount(leftCommit, diffFile.Name)
 	rightLineCount := getCommitFileLineCount(rightCommit, diffFile.Name)
-	if leftLineCount - lastLine.LeftIdx <= 1 || rightLineCount - lastLine.RightIdx <= 1 {
+	if leftLineCount-lastLine.LeftIdx <= 1 || rightLineCount-lastLine.RightIdx <= 1 {
 		return nil
 	}
 	tailDiffLine := &DiffLine{
