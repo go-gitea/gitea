@@ -35,8 +35,8 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	} else if task.Status.IsDone() {
 		preStep.Stopped = task.Stopped
 		preStep.Status = actions_model.StatusFailure
-		if task.Job.Status == actions_model.StatusSkipped {
-			preStep.Status = actions_model.StatusCancelled
+		if task.Status.IsSkipped() {
+			preStep.Status = actions_model.StatusSkipped
 		}
 	}
 	logIndex += preStep.LogLength

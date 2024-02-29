@@ -82,9 +82,6 @@ func TestFullSteps(t *testing.T) {
 				Started:   10000,
 				Stopped:   10100,
 				LogLength: 100,
-				Job: &actions_model.ActionRunJob{
-					Status: actions_model.StatusFailure,
-				},
 			},
 			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusFailure, LogIndex: 0, LogLength: 100, Started: 10000, Stopped: 10100},
