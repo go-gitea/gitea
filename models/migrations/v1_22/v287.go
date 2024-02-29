@@ -32,7 +32,7 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err = sess.Exec("UPDATE `badge` SET `slug` = `id`")
+	_, err = sess.Exec("UPDATE `badge` SET `slug` = `id` Where `slug` IS NULL")
 	if err != nil {
 		return err
 	}
