@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
@@ -36,8 +37,8 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
-		Secrets:         actions.GetSecretsOfTask(ctx, t),
-		Vars:            actions.GetVariablesOfRun(ctx, t.Job.Run),
+		Secrets:         secret_model.GetSecretsOfTask(ctx, t),
+		Vars:            actions_model.GetVariablesOfRun(ctx, t.Job.Run),
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {

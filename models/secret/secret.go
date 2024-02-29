@@ -9,7 +9,10 @@ import (
 	"fmt"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -111,4 +114,40 @@ func UpdateSecret(ctx context.Context, secretID int64, data string) error {
 		return ErrSecretNotFound{}
 	}
 	return err
+}
+
+func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
+	secrets := map[string]string{}
+
+	secrets["GITHUB_TOKEN"] = task.Token
+	secrets["GITEA_TOKEN"] = task.Token
+
+	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
+		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
+		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
+		return secrets
+	}
+
+	ownerSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
+		// go on
+	}
+	repoSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
+		// go on
+	}
+
+	for _, secret := range append(ownerSecrets, repoSecrets...) {
+		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
+			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
+			// go on
+		} else {
+			secrets[secret.Name] = v
+		}
+	}
+
+	return secrets
 }
