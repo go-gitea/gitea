@@ -42,7 +42,7 @@
 				{{end}}
 				<div class="center gt-mt-5">
 					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-					{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message" (SafeHTML `<a href="https://github.com/go-gitea/gitea/issues" target="_blank">`) (SafeHTML `</a>`)}}</p>{{end}}
+					{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message" (SafeHTML `<a href="https://github.com/go-gitea/gitea/issues" target="_blank">GitHub</a>`)}}</p>{{end}}
 				</div>
 			</div>
 		</div>
