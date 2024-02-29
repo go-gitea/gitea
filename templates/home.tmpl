@@ -17,7 +17,11 @@
 				{{svg "octicon-flame"}} {{ctx.Locale.Tr "startpage.install"}}
 			</h1>
 			<p class="large">
-				{{ctx.Locale.Tr "startpage.install_desc"}}
+				{{ctx.Locale.Tr "startpage.install_desc"
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/installation/install-from-binary">`) (SafeHTML `</a>`)
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea/tree/master/docker">`) (SafeHTML `</a>`)
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/installation/install-from-package">`) (SafeHTML `</a>`)
+				}}
 			</p>
 		</div>
 		<div class="eight wide center column">
@@ -25,7 +29,9 @@
 				{{svg "octicon-device-desktop"}} {{ctx.Locale.Tr "startpage.platform"}}
 			</h1>
 			<p class="large">
-				{{ctx.Locale.Tr "startpage.platform_desc"}}
+				{{ctx.Locale.Tr "startpage.platform_desc"
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://go.dev/">`) (SafeHTML `</a>`)
+				}}
 			</p>
 		</div>
 	</div>
@@ -43,7 +49,10 @@
 				{{svg "octicon-code"}} {{ctx.Locale.Tr "startpage.license"}}
 			</h1>
 			<p class="large">
-				{{ctx.Locale.Tr "startpage.license_desc"}}
+				{{ctx.Locale.Tr "startpage.license_desc"
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://code.gitea.io/gitea">`) (SafeHTML `</a>`)
+					(SafeHTML `<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">`) (SafeHTML `</a>`)
+				}}
 			</p>
 		</div>
 	</div>

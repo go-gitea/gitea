@@ -10,17 +10,17 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc"}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" (SafeHTML `<a target="_blank" rel="noreferrer" href="https://github.com/gobwas/glob">`) (SafeHTML `</a>`)}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc"}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" (SafeHTML `<a target="_blank" rel="noreferrer" href="https://pkg.go.dev/github.com/gobwas/glob#Compile">`) (SafeHTML `</a>`)}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc"}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" (SafeHTML `<a target="_blank" rel="noreferrer" href='https://pkg.go.dev/github.com/gobwas/glob#Compile'>`) (SafeHTML `</a>`)}}</p>
 				</div>
 
 				{{.CsrfTokenHtml}}

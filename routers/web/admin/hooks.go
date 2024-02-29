@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
@@ -34,7 +35,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	}
 
 	sys["Title"] = ctx.Tr("admin.systemhooks")
-	sys["Description"] = ctx.Tr("admin.systemhooks.desc")
+	sys["Description"] = ctx.Tr("admin.systemhooks.desc", templates.SafeHTML(`<a target="_blank" rel="noopener" href="https://docs.gitea.com/usage/webhooks">`), templates.SafeHTML(`</a>`))
 	sys["Webhooks"], err = webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
 	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks"
 	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/system-hooks"
@@ -44,7 +45,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	}
 
 	def["Title"] = ctx.Tr("admin.defaulthooks")
-	def["Description"] = ctx.Tr("admin.defaulthooks.desc")
+	def["Description"] = ctx.Tr("admin.defaulthooks.desc", templates.SafeHTML(`<a target="_blank" rel="noopener" href="https://docs.gitea.com/usage/webhooks">`), templates.SafeHTML(`</a>`))
 	def["Webhooks"], err = webhook.GetDefaultWebhooks(ctx)
 	def["BaseLink"] = setting.AppSubURL + "/admin/hooks"
 	def["BaseLinkNew"] = setting.AppSubURL + "/admin/default-hooks"
