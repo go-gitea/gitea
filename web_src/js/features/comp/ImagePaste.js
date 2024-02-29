@@ -1,16 +1,12 @@
-import $ from 'jquery';
-
-const {csrfToken} = window.config;
+import {htmlEscape} from 'escape-goat';
+import {POST} from '../../modules/fetch.js';
+import {imageInfo} from '../../utils/image.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const res = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {'X-Csrf-Token': csrfToken},
-    body: formData,
-  });
+  const res = await POST(uploadUrl, {data: formData});
   return await res.json();
 }
 
@@ -95,13 +91,11 @@ class CodeMirrorEditor {
   }
 }
 
-
 const uploadClipboardImage = async (editor, dropzone, e) => {
-  const $dropzone = $(dropzone);
-  const uploadUrl = $dropzone.attr('data-upload-url');
-  const $files = $dropzone.find('.files');
+  const uploadUrl = dropzone.getAttribute('data-upload-url');
+  const filesContainer = dropzone.querySelector('.files');
 
-  if (!uploadUrl || !$files.length) return;
+  if (!uploadUrl || !filesContainer) return;
 
   const pastedImages = clipboardPastedImages(e);
   if (!pastedImages || pastedImages.length === 0) {
@@ -115,11 +109,27 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
 
     const placeholder = `![${name}](uploading ...)`;
     editor.insertPlaceholder(placeholder);
-    const data = await uploadFile(img, uploadUrl);
-    editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
 
-    const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
-    $files.append($input);
+    const {uuid} = await uploadFile(img, uploadUrl);
+    const {width, dppx} = await imageInfo(img);
+
+    const url = `/attachments/${uuid}`;
+    let text;
+    if (width > 0 && dppx > 1) {
+      // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
+      // method to change image size in Markdown that is supported by all implementations.
+      text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
+    } else {
+      text = `![${name}](${url})`;
+    }
+    editor.replacePlaceholder(placeholder, text);
+
+    const input = document.createElement('input');
+    input.setAttribute('name', 'files');
+    input.setAttribute('type', 'hidden');
+    input.setAttribute('id', uuid);
+    input.value = uuid;
+    filesContainer.append(input);
   }
 };
 
@@ -132,7 +142,7 @@ export function initEasyMDEImagePaste(easyMDE, dropzone) {
 
 export function initTextareaImagePaste(textarea, dropzone) {
   if (!dropzone) return;
-  $(textarea).on('paste', async (e) => {
-    return uploadClipboardImage(new TextareaEditor(textarea), dropzone, e.originalEvent);
+  textarea.addEventListener('paste', async (e) => {
+    return uploadClipboardImage(new TextareaEditor(textarea), dropzone, e);
   });
 }

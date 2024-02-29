@@ -1,5 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
+import {GET} from '../modules/fetch.js';
 
 export default {
   components: {SvgIcon},
@@ -93,7 +94,7 @@ export default {
     focusElem(elem, prevElem) {
       if (elem) {
         elem.tabIndex = 0;
-        prevElem.tabIndex = -1;
+        if (prevElem) prevElem.tabIndex = -1;
         elem.focus();
       }
     },
@@ -123,7 +124,7 @@ export default {
     },
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
-      const resp = await fetch(`${this.issueLink}/commits/list`);
+      const resp = await GET(`${this.issueLink}/commits/list`);
       const results = await resp.json();
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;
@@ -246,6 +247,7 @@ export default {
             <div class="gt-ellipsis text light-2">
               {{ commit.committer_or_author_name }}
               <span class="text right">
+                <!-- TODO: make this respect the PreferredTimestampTense setting -->
                 <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
               </span>
             </div>

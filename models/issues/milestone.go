@@ -86,7 +86,7 @@ func (m *Milestone) AfterLoad() {
 		return
 	}
 
-	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
+	m.DeadlineString = m.DeadlineUnix.FormatDate()
 	if m.IsClosed {
 		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
 	} else {
@@ -103,8 +103,8 @@ func (m *Milestone) State() api.StateType {
 }
 
 // NewMilestone creates new milestone of repository.
-func NewMilestone(m *Milestone) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewMilestone(ctx context.Context, m *Milestone) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -140,9 +140,9 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 }
 
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
-func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) {
+func GetMilestoneByRepoIDANDName(ctx context.Context, repoID int64, name string) (*Milestone, error) {
 	var mile Milestone
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&mile)
+	has, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, name).Get(&mile)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +153,8 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 }
 
 // UpdateMilestone updates information of given milestone.
-func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateMilestone(ctx context.Context, m *Milestone, oldIsClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -211,8 +211,8 @@ func UpdateMilestoneCounters(ctx context.Context, id int64) error {
 }
 
 // ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
-func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeMilestoneStatusByRepoIDAndID(ctx context.Context, repoID, milestoneID int64, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -238,8 +238,8 @@ func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool
 }
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
-func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -269,8 +269,8 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 }
 
 // DeleteMilestoneByRepoID deletes a milestone from a repository.
-func DeleteMilestoneByRepoID(repoID, id int64) error {
-	m, err := GetMilestoneByRepoID(db.DefaultContext, repoID, id)
+func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
+	m, err := GetMilestoneByRepoID(ctx, repoID, id)
 	if err != nil {
 		if IsErrMilestoneNotExist(err) {
 			return nil
@@ -278,33 +278,30 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, m.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, m.RepoID)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
-	if _, err = sess.ID(m.ID).Delete(new(Milestone)); err != nil {
+	if _, err = db.DeleteByID[Milestone](ctx, m.ID); err != nil {
 		return err
 	}
 
-	numMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+	numMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID: repo.ID,
-		State:  api.StateAll,
 	})
 	if err != nil {
 		return err
 	}
-	numClosedMilestones, err := CountMilestones(ctx, GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateClosed,
+	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
 	})
 	if err != nil {
 		return err
@@ -312,7 +309,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	repo.NumMilestones = int(numMilestones)
 	repo.NumClosedMilestones = int(numClosedMilestones)
 
-	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
+	if _, err = db.GetEngine(ctx).ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
 
@@ -332,7 +329,8 @@ func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
 	return err
 }
 
-func (m *Milestone) loadTotalTrackedTime(ctx context.Context) error {
+// LoadTotalTrackedTime loads the tracked time for the milestone
+func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
@@ -355,18 +353,13 @@ func (m *Milestone) loadTotalTrackedTime(ctx context.Context) error {
 	return nil
 }
 
-// LoadTotalTrackedTime loads the tracked time for the milestone
-func (m *Milestone) LoadTotalTrackedTime() error {
-	return m.loadTotalTrackedTime(db.DefaultContext)
-}
-
 // InsertMilestones creates milestones of repository.
-func InsertMilestones(ms ...*Milestone) (err error) {
+func InsertMilestones(ctx context.Context, ms ...*Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

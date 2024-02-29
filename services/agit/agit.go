@@ -36,9 +36,15 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	topicBranch = opts.GitPushOptions["topic"]
 	_, forcePush = opts.GitPushOptions["force-push"]
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
+	pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get user. Error: %w", err)
+	}
 
 	for i := range opts.OldCommitIDs {
-		if opts.NewCommitIDs[i] == git.EmptySHA {
+		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -115,11 +121,6 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
-			}
-
 			prIssue := &issues_model.Issue{
 				RepoID:   repo.ID,
 				Title:    title,
@@ -151,7 +152,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
-				OldOID:      git.EmptySHA,
+				OldOID:      objectFormat.EmptyObjectID().String(),
 				NewOID:      opts.NewCommitIDs[i],
 			})
 			continue
@@ -237,7 +238,7 @@ func UserNameChanged(ctx context.Context, user *user_model.User, newName string)
 	for _, pull := range pulls {
 		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
 		pull.HeadBranch = newName + "/" + pull.HeadBranch
-		if err = pull.UpdateCols("head_branch"); err != nil {
+		if err = pull.UpdateCols(ctx, "head_branch"); err != nil {
 			return err
 		}
 	}

@@ -15,7 +15,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -28,7 +28,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
-	users, err := user_model.GetUsersBySource(source.authSource)
+	users, err := user_model.GetUsersBySource(ctx, source.authSource)
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
@@ -77,7 +77,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.authSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = asymkey_model.RewriteAllPublicKeys()
+				err = asymkey_model.RewriteAllPublicKeys(ctx)
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -124,28 +124,28 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsAdmin:     su.IsAdmin,
 			}
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsRestricted: util.OptionalBoolOf(su.IsRestricted),
-				IsActive:     util.OptionalBoolTrue,
+				IsRestricted: optional.Some(su.IsRestricted),
+				IsActive:     optional.Some(true),
 			}
 
-			err = user_model.CreateUser(usr, overwriteDefault)
+			err = user_model.CreateUser(ctx, usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
 
 			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(usr, su.Avatar)
+				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -158,28 +158,30 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.authSource.Name, usr.Name)
 
-				usr.FullName = fullName
-				emailChanged := usr.Email != su.Mail
-				usr.Email = su.Mail
-				// Change existing admin flag only if AdminFilter option is set
-				if len(source.AdminFilter) > 0 {
-					usr.IsAdmin = su.IsAdmin
+				opts := &user_service.UpdateOptions{
+					FullName: optional.Some(fullName),
+					IsActive: optional.Some(true),
+				}
+				if source.AdminFilter != "" {
+					opts.IsAdmin = optional.Some(su.IsAdmin)
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
-				if !usr.IsAdmin && len(source.RestrictedFilter) > 0 {
-					usr.IsRestricted = su.IsRestricted
+				if !su.IsAdmin && source.RestrictedFilter != "" {
+					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
-				usr.IsActive = true
 
-				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
-				if err != nil {
+				if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
+				}
+
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, usr, su.Mail); err != nil {
+					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.authSource.Name, usr.Name, su.Mail, err)
 				}
 			}
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(usr, su.Avatar)
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}
@@ -193,7 +195,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = asymkey_model.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}
@@ -215,9 +217,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-			usr.IsActive = false
-			err = user_model.UpdateUserCols(ctx, usr, "is_active")
-			if err != nil {
+			opts := &user_service.UpdateOptions{
+				IsActive: optional.Some(false),
+			}
+			if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}

@@ -12,11 +12,11 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GenerateActionsRunnerToken generates a new runner token for a given scope
@@ -41,8 +41,8 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 		})
 	}
 
-	token, err := actions_model.GetUnactivatedRunnerToken(ctx, owner, repo)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err := actions_model.GetLatestRunnerToken(ctx, owner, repo)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
 		if err != nil {
 			err := fmt.Sprintf("error while creating runner token: %v", err)
@@ -83,7 +83,7 @@ func parseScope(ctx *context.PrivateContext, scope string) (ownerID, repoID int6
 		return ownerID, repoID, nil
 	}
 
-	r, err := repo_model.GetRepositoryByName(u.ID, repoName)
+	r, err := repo_model.GetRepositoryByName(ctx, u.ID, repoName)
 	if err != nil {
 		return ownerID, repoID, err
 	}

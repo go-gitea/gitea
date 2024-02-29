@@ -33,7 +33,7 @@ type Method interface {
 
 // PasswordAuthenticator represents a source of authentication
 type PasswordAuthenticator interface {
-	Authenticate(user *user_model.User, login, password string) (*user_model.User, error)
+	Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error)
 }
 
 // LocalTwoFASkipper represents a source of authentication that can skip local 2fa

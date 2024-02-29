@@ -17,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: dessant/lock-threads@v4
+      - uses: dessant/lock-threads@v5
         with:
-          issue-inactive-days: 45
+          issue-inactive-days: 10
+          issue-comment: |
+            Automatically locked because of our [CONTRIBUTING guidelines](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md#issue-locking)
+          pr-inactive-days: 7
+          pr-comment: |
+            Automatically locked because of our [CONTRIBUTING guidelines](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md#issue-locking)

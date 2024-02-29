@@ -1,4 +1,3 @@
-import {expect, test} from 'vitest';
 import {renderAnsi} from './ansi.js';
 
 test('renderAnsi', () => {

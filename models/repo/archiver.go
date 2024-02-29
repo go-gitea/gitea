@@ -33,7 +33,7 @@ type RepoArchiver struct { //revive:disable-line:exported
 	RepoID      int64           `xorm:"index unique(s)"`
 	Type        git.ArchiveType `xorm:"unique(s)"`
 	Status      ArchiverStatus
-	CommitID    string             `xorm:"VARCHAR(40) unique(s)"`
+	CommitID    string             `xorm:"VARCHAR(64) unique(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 }
 
@@ -68,14 +68,6 @@ func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	}, nil
 }
 
-var delRepoArchiver = new(RepoArchiver)
-
-// DeleteRepoArchiver delete archiver
-func DeleteRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(archiver.ID).Delete(delRepoArchiver)
-	return err
-}
-
 // GetRepoArchiver get an archiver
 func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
 	var archiver RepoArchiver
@@ -100,12 +92,6 @@ func ExistsRepoArchiverWithStoragePath(ctx context.Context, storagePath string) 
 	return db.GetEngine(ctx).Exist(archiver)
 }
 
-// AddRepoArchiver adds an archiver
-func AddRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
-	_, err := db.GetEngine(ctx).Insert(archiver)
-	return err
-}
-
 // UpdateRepoArchiverStatus updates archiver's status
 func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error {
 	_, err := db.GetEngine(ctx).ID(archiver.ID).Cols("status").Update(archiver)
@@ -113,8 +99,9 @@ func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error
 }
 
 // DeleteAllRepoArchives deletes all repo archives records
-func DeleteAllRepoArchives() error {
-	_, err := db.GetEngine(db.DefaultContext).Where("1=1").Delete(new(RepoArchiver))
+func DeleteAllRepoArchives(ctx context.Context) error {
+	// 1=1 to enforce delete all data, otherwise it will delete nothing
+	_, err := db.GetEngine(ctx).Where("1=1").Delete(new(RepoArchiver))
 	return err
 }
 
@@ -124,7 +111,7 @@ type FindRepoArchiversOption struct {
 	OlderThan time.Duration
 }
 
-func (opts FindRepoArchiversOption) toConds() builder.Cond {
+func (opts FindRepoArchiversOption) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OlderThan > 0 {
 		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-opts.OlderThan).Unix()})
@@ -132,19 +119,12 @@ func (opts FindRepoArchiversOption) toConds() builder.Cond {
 	return cond
 }
 
-// FindRepoArchives find repo archivers
-func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
-	archivers := make([]*RepoArchiver, 0, opts.PageSize)
-	start, limit := opts.GetSkipTake()
-	err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).
-		Asc("created_unix").
-		Limit(limit, start).
-		Find(&archivers)
-	return archivers, err
+func (opts FindRepoArchiversOption) ToOrders() string {
+	return "created_unix ASC"
 }
 
 // SetArchiveRepoState sets if a repo is archived
-func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
+func SetArchiveRepoState(ctx context.Context, repo *Repository, isArchived bool) (err error) {
 	repo.IsArchived = isArchived
 
 	if isArchived {
@@ -153,6 +133,6 @@ func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 		repo.ArchivedUnix = timeutil.TimeStamp(0)
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("is_archived", "archived_unix").NoAutoTime().Update(repo)
+	_, err = db.GetEngine(ctx).ID(repo.ID).Cols("is_archived", "archived_unix").NoAutoTime().Update(repo)
 	return err
 }

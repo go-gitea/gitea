@@ -30,7 +30,7 @@
   color: var(--color-red);
 }
 
-/* btn is a plain button without any opinionated styling */
+/* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
 
 .btn {
   background: transparent;
@@ -78,6 +78,20 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: none;
 }
 
+.ui.basic.buttons .button,
+.ui.basic.button,
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  box-shadow: none;
+}
+
+/* apply the vertical padding of .compact to non-compact buttons when they contain a svg as they
+   would otherwise appear too large. Seen on "RSS Feed" button on repo releases tab. */
+.ui.small.button:not(.compact):has(.svg) {
+  padding-top: 0.58928571em;
+  padding-bottom: 0.58928571em;
+}
+
 .ui.labeled.button.disabled > .button,
 .ui.basic.buttons .button,
 .ui.basic.button,
@@ -121,11 +135,13 @@ It needs some tricks to tweak the left/right borders with active state */
 .ui.primary.button:focus,
 .ui.primary.buttons .button:focus {
   background: var(--color-primary);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:hover,
 .ui.primary.buttons .button:hover {
   background: var(--color-primary-hover);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:active,

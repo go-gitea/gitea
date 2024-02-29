@@ -8,6 +8,7 @@
     - [How to report issues](#how-to-report-issues)
     - [Types of issues](#types-of-issues)
     - [Discuss your design before the implementation](#discuss-your-design-before-the-implementation)
+    - [Issue locking](#issue-locking)
   - [Building Gitea](#building-gitea)
   - [Dependencies](#dependencies)
     - [Backend](#backend)
@@ -47,6 +48,7 @@
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
   - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
+    - [TOC election process](#toc-election-process)
     - [Current TOC members](#current-toc-members)
     - [Previous TOC/owners members](#previous-tocowners-members)
   - [Governance Compensation](#governance-compensation)
@@ -102,6 +104,13 @@ the goals for the project and tools.
 
 Pull requests should not be the place for architecture discussions.
 
+### Issue locking
+
+Commenting on closed or merged issues/PRs is strongly discouraged.
+Such comments will likely be overlooked as some maintainers may not view notifications on closed issues, thinking that the item is resolved.
+As such, commenting on closed/merged issues/PRs may be disabled prior to the scheduled auto-locking if a discussion starts or if unrelated comments are posted.
+If further discussion is needed, we encourage you to open a new issue instead and we recommend linking to the issue/PR in question for context.
+
 ## Building Gitea
 
 See the [development setup instructions](https://docs.gitea.com/development/hacking-on-gitea).
@@ -110,7 +119,7 @@ See the [development setup instructions](https://docs.gitea.com/development/hack
 
 ### Backend
 
-Go dependencies are managed using [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance). \
+Go dependencies are managed using [Go Modules](https://go.dev/cmd/go/#hdr-Module_maintenance). \
 You can find more details in the [go mod documentation](https://go.dev/ref/mod) and the [Go Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
 Pull requests should only modify `go.mod` and `go.sum` where it is related to your change, be it a bugfix or a new feature. \
@@ -167,7 +176,7 @@ Here's how to run the test suite:
 
 |  Command                               | Action                                           |              |
 | :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  |
+|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
 |``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
 |``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
 
@@ -203,10 +212,20 @@ Some of the key points:
 
 In the PR title, describe the problem you are fixing, not how you are fixing it. \
 Use the first comment as a summary of your PR. \
-In the PR summary, you can describe exactly how you are fixing this problem. \
+In the PR summary, you can describe exactly how you are fixing this problem.
+
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \
-If you are not implementing a new feature, you should also post **before** screenshots for comparison. \
+If you are not implementing a new feature, you should also post **before** screenshots for comparison.
+
+If you are implementing a new feature, your PR will only be merged if your screenshots are up to date.\
+Furthermore, feature PRs will only be merged if their summary contains a clear usage description (understandable for users) and testing description (understandable for reviewers).
+You should strive to combine both into a single description.
+
+Another requirement for merging PRs is that the PR is labeled correctly.\
+However, this is not your job as a contributor, but the job of the person merging your PR.\
+If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
+
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
 ```text
@@ -225,17 +244,20 @@ PRs without a milestone may not be merged.
 
 ### Labels
 
-Every PR should be labeled correctly with every label that applies. \
-This includes especially the distinction between `bug` (fixing existing functionality), `feature` (new functionality), `enhancement` (upgrades for existing functionality), and `refactoring` (improving the internal code structure without changing the output (much)). \
-Furthermore,
+Almost all labels used inside Gitea can be classified as one of the following:
+
+- `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
+- `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
+- `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
+- `issue/…` / `pr/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `pr/need-2-approvals`
+
+Every PR should be labeled correctly with every label that applies.
+
+There are also some labels that will be managed automatically.\
+In particular, these are
 
 - the amount of pending required approvals
-- whether this PR is `blocked`, a `backport` or `breaking`
-- if it targets the `ui` or `api`
-- if it increases the application `speed`
-- reduces `memory usage`
-
-are oftentimes notable labels.
+- has all `backport`s or needs a manual backport
 
 ### Breaking PRs
 
@@ -252,13 +274,16 @@ Changing the default value of a setting or replacing the setting with another on
 
 #### How to handle breaking PRs?
 
-If your PR has a breaking change, you must add a `BREAKING` section to your PR summary, e.g.
+If your PR has a breaking change, you must add two things to the summary of your PR:
 
-```
+1. A reasoning why this breaking change is necessary
+2. A `BREAKING` section explaining in simple terms (understandable for a typical user) how this PR affects users and how to mitigate these changes. This section can look for example like
+
+```md
 ## :warning: BREAKING :warning:
 ```
 
-To explain how this will affect users and how to mitigate these changes.
+Breaking PRs will not be merged as long as not both of these requirements are met.
 
 ### Maintaining open PRs
 
@@ -470,36 +495,53 @@ if possible provide GPG signed commits.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
+Furthermore, any account with write access (like bots and TOC members) **must** use 2FA.
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+
 ## Technical Oversight Committee (TOC)
 
-At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions would be elected as it has been over the past years, and the other three would consist of appointed members from the Gitea company.
+At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the Gitea company.
 https://blog.gitea.com/quarterly-23q1/
 
-When the new community members have been elected, the old members will give up ownership to the newly elected members. For security reasons, TOC members or any account with write access (like a bot) must use 2FA.
-https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+### TOC election process
+
+Any maintainer is eligible to be part of the community TOC if they are not associated with the Gitea company.
+A maintainer can either nominate themselves, or can be nominated by other maintainers to be a candidate for the TOC election.
+If you are nominated by someone else, you must first accept your nomination before the vote starts to be a candidate.
+
+The TOC is elected for one year, the TOC election happens yearly.
+After the announcement of the results of the TOC election, elected members have two weeks time to confirm or refuse the seat.
+If an elected member does not answer within this timeframe, they are automatically assumed to refuse the seat.
+Refusals result in the person with the next highest vote getting the same choice.
+As long as seats are empty in the TOC, members of the previous TOC can fill them until an elected member accepts the seat.
+
+If an elected member that accepts the seat does not have 2FA configured yet, they will be temporarily counted as `answer pending` until they manage to configure 2FA, thus leaving their seat empty for this duration.
 
 ### Current TOC members
 
-- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.com/quarterly-23q1/
+- 2024-01-01 ~ 2024-12-31
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
   - Community
     - [6543](https://gitea.com/6543) <6543@obermui.de>
-    - [Andrew Thornton](https://gitea.com/zeripath) <art27@cantab.net>
+    - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
     - [John Olheiser](https://gitea.com/jolheiser) <john.olheiser@gmail.com>
 
 ### Previous TOC/owners members
 
 Here's the history of the owners and the time they served:
 
-- [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
+- [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Kim Carlbäcker](https://github.com/bkcsoft) - 2016, 2017
 - [Thomas Boerger](https://gitea.com/tboerger) - 2016, 2017
 - [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801)
-- [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
-- [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
+- [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
+- [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
+- [6543](https://gitea.com/6543) - 2023
+- [John Olheiser](https://gitea.com/jolheiser) - 2023
+- [Jason Song](https://gitea.com/wolfogre) - 2023
 
 ## Governance Compensation
 

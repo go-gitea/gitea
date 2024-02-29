@@ -4,6 +4,8 @@
 package repo
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 )
 
@@ -19,6 +21,8 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
+	// MergeStyleFastForwardOnly fast-forward merge if possible, otherwise fail
+	MergeStyleFastForwardOnly MergeStyle = "fast-forward-only"
 	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
 	MergeStyleManuallyMerged MergeStyle = "manually-merged"
 	// MergeStyleRebaseUpdate not a merge style, used to update pull head by rebase
@@ -26,7 +30,7 @@ const (
 )
 
 // UpdateDefaultBranch updates the default branch
-func UpdateDefaultBranch(repo *Repository) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("default_branch").Update(repo)
+func UpdateDefaultBranch(ctx context.Context, repo *Repository) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols("default_branch").Update(repo)
 	return err
 }

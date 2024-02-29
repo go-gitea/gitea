@@ -21,15 +21,16 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -80,7 +81,7 @@ func CommitInfoCache(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
@@ -119,7 +120,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return nil
 	}
 	if !ctx.Doer.IsAdmin {
-		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
+		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
@@ -178,6 +179,8 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
@@ -241,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
-		opts := repo_module.GenerateRepoOptions{
+		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
 			Private:         form.Private,
@@ -277,17 +280,18 @@ func CreatePost(ctx *context.Context) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
-			Name:          form.RepoName,
-			Description:   form.Description,
-			Gitignores:    form.Gitignores,
-			IssueLabels:   form.IssueLabels,
-			License:       form.License,
-			Readme:        form.Readme,
-			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
-			DefaultBranch: form.DefaultBranch,
-			AutoInit:      form.AutoInit,
-			IsTemplate:    form.Template,
-			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
+			Name:             form.RepoName,
+			Description:      form.Description,
+			Gitignores:       form.Gitignores,
+			IssueLabels:      form.IssueLabels,
+			License:          form.License,
+			Readme:           form.Readme,
+			IsPrivate:        form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch:    form.DefaultBranch,
+			AutoInit:         form.AutoInit,
+			IsTemplate:       form.Template,
+			TrustModel:       repo_model.DefaultTrustModel,
+			ObjectFormatName: form.ObjectFormatName,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -299,6 +303,11 @@ func CreatePost(ctx *context.Context) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
+const (
+	tplWatchUnwatch base.TplName = "repo/watch_unwatch"
+	tplStarUnstar   base.TplName = "repo/star_unstar"
+)
+
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -308,9 +317,9 @@ func Action(ctx *context.Context) {
 	case "unwatch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -331,6 +340,32 @@ func Action(ctx *context.Context) {
 		return
 	}
 
+	switch ctx.Params(":action") {
+	case "watch", "unwatch":
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	case "star", "unstar":
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	}
+
+	switch ctx.Params(":action") {
+	case "watch", "unwatch", "star", "unstar":
+		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
+		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+	}
+
+	switch ctx.Params(":action") {
+	case "watch", "unwatch":
+		ctx.HTML(http.StatusOK, tplWatchUnwatch)
+		return
+	case "star", "unstar":
+		ctx.HTML(http.StatusOK, tplStarUnstar)
+		return
+	}
+
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
@@ -344,7 +379,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
 		return errors.New("user does not have enough permissions")
 	}
 
@@ -359,7 +394,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 	} else {
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
@@ -377,7 +412,10 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:   curRepo.ID,
+		TagNames: tagNames,
+	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
 		return
@@ -396,7 +434,7 @@ func RedirectDownload(ctx *context.Context) {
 	} else if len(releases) == 0 && vTag == "latest" {
 		// GitHub supports the alias "latest" for the latest release
 		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
-		release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -606,7 +644,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatusForPairs: %v", err)
 		return
@@ -648,7 +686,7 @@ type branchTagSearchResponse struct {
 func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
@@ -683,7 +721,7 @@ func GetTagList(ctx *context.Context) {
 func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},

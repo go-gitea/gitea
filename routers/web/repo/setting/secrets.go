@@ -8,9 +8,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -42,6 +43,11 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
+		err := shared_user.LoadHeaderCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return nil, nil
+		}
 		return &secretsCtx{
 			OwnerID:         ctx.ContextUser.ID,
 			RepoID:          0,

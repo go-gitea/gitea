@@ -4,9 +4,11 @@
 package chef
 
 import (
+	"context"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -25,8 +27,6 @@ import (
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -63,7 +63,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, nil
 	}
 
-	pub, err := getUserPublicKey(u)
+	pub, err := getUserPublicKey(req.Context(), u)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +93,8 @@ func getUserFromRequest(req *http.Request) (*user_model.User, error) {
 	return user_model.GetUserByName(req.Context(), username)
 }
 
-func getUserPublicKey(u *user_model.User) (crypto.PublicKey, error) {
-	pubKey, err := user_model.GetSetting(u.ID, chef_module.SettingPublicPem)
+func getUserPublicKey(ctx context.Context, u *user_model.User) (crypto.PublicKey, error) {
+	pubKey, err := user_model.GetSetting(ctx, u.ID, chef_module.SettingPublicPem)
 	if err != nil {
 		return nil, err
 	}

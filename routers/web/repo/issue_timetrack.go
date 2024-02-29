@@ -9,9 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -22,7 +22,7 @@ func AddTimeManually(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
@@ -56,12 +56,12 @@ func DeleteTime(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	t, err := issues_model.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
+	t, err := issues_model.GetTrackedTimeByID(c, c.ParamsInt64(":timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			c.NotFound("time not found", err)
@@ -77,7 +77,7 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	if err = issues_model.DeleteTime(t); err != nil {
+	if err = issues_model.DeleteTime(c, t); err != nil {
 		c.ServerError("DeleteTime", err)
 		return
 	}

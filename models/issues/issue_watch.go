@@ -30,8 +30,8 @@ func init() {
 type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
-func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := GetIssueWatch(db.DefaultContext, userID, issueID)
+func CreateOrUpdateIssueWatch(ctx context.Context, userID, issueID int64, isWatching bool) error {
+	iw, exists, err := GetIssueWatch(ctx, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 			IsWatching: isWatching,
 		}
 
-		if _, err := db.GetEngine(db.DefaultContext).Insert(iw); err != nil {
+		if _, err := db.GetEngine(ctx).Insert(iw); err != nil {
 			return err
 		}
 	} else {
 		iw.IsWatching = isWatching
 
-		if _, err := db.GetEngine(db.DefaultContext).ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
+		if _, err := db.GetEngine(ctx).ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}
@@ -69,19 +69,19 @@ func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
-func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
-	iw, exist, err := GetIssueWatch(db.DefaultContext, user.ID, issue.ID)
+func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (bool, error) {
+	iw, exist, err := GetIssueWatch(ctx, user.ID, issue.ID)
 	if err != nil {
 		return false, err
 	}
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := repo_model.GetWatch(db.DefaultContext, user.ID, issue.RepoID)
+	w, err := repo_model.GetWatch(ctx, user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
-	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
+	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(ctx, user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id

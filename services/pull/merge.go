@@ -44,6 +44,9 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	if err := pr.LoadIssue(ctx); err != nil {
 		return "", "", err
 	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return "", "", err
+	}
 
 	isExternalTracker := pr.BaseRepo.UnitEnabled(ctx, unit.TypeExternalTracker)
 	issueReference := "#"
@@ -264,6 +267,10 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
 			return "", err
 		}
+	case repo_model.MergeStyleFastForwardOnly:
+		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
+			return "", err
+		}
 	default:
 		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
@@ -374,6 +381,13 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 				StdErr: ctx.errbuf.String(),
 				Err:    err,
 			}
+		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
+			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+			return models.ErrMergeDivergingFastForwardOnly{
+				StdOut: ctx.outbuf.String(),
+				StdErr: ctx.errbuf.String(),
+				Err:    err,
+			}
 		}
 		log.Error("git merge %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git merge %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
@@ -464,11 +478,11 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
+func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
 	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
@@ -483,7 +497,8 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 		}
 
-		if len(commitID) < git.SHAFullLength {
+		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
+		if len(commitID) != objectFormat.FullLength() {
 			return fmt.Errorf("Wrong commit ID")
 		}
 

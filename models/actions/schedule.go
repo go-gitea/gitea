@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -41,15 +42,15 @@ func init() {
 }
 
 // GetSchedulesMapByIDs returns the schedules by given id slice.
-func GetSchedulesMapByIDs(ids []int64) (map[int64]*ActionSchedule, error) {
+func GetSchedulesMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionSchedule, error) {
 	schedules := make(map[int64]*ActionSchedule, len(ids))
-	return schedules, db.GetEngine(db.DefaultContext).In("id", ids).Find(&schedules)
+	return schedules, db.GetEngine(ctx).In("id", ids).Find(&schedules)
 }
 
 // GetReposMapByIDs returns the repos by given id slice.
-func GetReposMapByIDs(ids []int64) (map[int64]*repo_model.Repository, error) {
+func GetReposMapByIDs(ctx context.Context, ids []int64) (map[int64]*repo_model.Repository, error) {
 	repos := make(map[int64]*repo_model.Repository, len(ids))
-	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
+	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
 var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
@@ -117,4 +118,23 @@ func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
 	}
 
 	return committer.Commit()
+}
+
+func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
+	// If actions disabled when there is schedule task, this will remove the outdated schedule tasks
+	// There is no other place we can do this because the app.ini will be changed manually
+	if err := DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
+		return fmt.Errorf("DeleteCronTaskByRepo: %v", err)
+	}
+	// cancel running cron jobs of this repository and delete old schedules
+	if err := CancelRunningJobs(
+		ctx,
+		repo.ID,
+		repo.DefaultBranch,
+		"",
+		webhook_module.HookEventSchedule,
+	); err != nil {
+		return fmt.Errorf("CancelRunningJobs: %v", err)
+	}
+	return nil
 }

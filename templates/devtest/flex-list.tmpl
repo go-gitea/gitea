@@ -27,10 +27,10 @@
 					<button class="ui tiny red button">
 						{{svg "octicon-warning" 14}} CJK文本测试
 					</button>
-					<button class="ui tiny green button">
+					<button class="ui tiny primary button">
 						{{svg "octicon-info" 14}} Button
 					</button>
-					<button class="ui tiny green button">
+					<button class="ui tiny primary button">
 						Button with long text
 					</button>
 				</div>
@@ -69,7 +69,7 @@
 							<a class="text primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
-							<span data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
 						<div class="flex-item-trailing">
 							<a class="muted" href="{{$.Link}}">

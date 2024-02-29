@@ -17,7 +17,7 @@ menu:
 
 # Installation from source
 
-You should [install go](https://golang.org/doc/install) and set up your go
+You should [install go](https://go.dev/doc/install) and set up your go
 environment correctly. In particular, it is recommended to set the `$GOPATH`
 environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
@@ -27,13 +27,7 @@ Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
 version is @minNodeVersion@ and the latest LTS version is recommended.
 
-**Note**: When executing make tasks that require external tools, like
-`make misspell-check`, Gitea will automatically download and build these as
-necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
-on the executable path. If you don't add the go bin directory to the
-executable path, you will have to manage this yourself.
-
-**Note 2**: Go version @minGoVersion@ or higher is required. However, it is recommended to
+**Note**: Go version @minGoVersion@ or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 [Hacking on Gitea](development/hacking-on-gitea.md)
 
@@ -82,7 +76,7 @@ git checkout v@version@  # or git checkout pr-xyz
 
 To build from source, the following programs must be present on the system:
 
-- `go` @minGoVersion@ or higher, see [here](https://golang.org/dl/)
+- `go` @minGoVersion@ or higher, see [here](https://go.dev/dl/)
 - `node` @minNodeVersion@ or higher with `npm`, see [here](https://nodejs.org/en/download/)
 - `make`, see [here](development/hacking-on-gitea.md#installing-make)
 
@@ -119,7 +113,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go @minGoVersion@](https://golang.org/dl/) or greater.
+- `make backend` which requires [Go @minGoVersion@](https://go.dev/dl/) or greater.
 - `make frontend` which requires [Node.js @minNodeVersion@](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
@@ -127,8 +121,6 @@ If pre-built frontend files are present it is possible to only build the backend
 ```bash
 TAGS="bindata" make backend
 ```
-
-Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `ENABLE_SOURCEMAP=true` environment variable.
 
 ## Test
 
@@ -167,7 +159,7 @@ Running `gitea help` will allow you to review what the computed settings will be
 
 ## Cross Build
 
-The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://go.dev/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
 
 To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
 
@@ -260,3 +252,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## Source Maps
+
+By default, gitea generates reduced source maps for frontend files to conserve space. This can be controlled with the `ENABLE_SOURCEMAP` environment variable:
+
+- `ENABLE_SOURCEMAP=true` generates all source maps, the default for development builds
+- `ENABLE_SOURCEMAP=reduced` generates limited source maps, the default for production builds
+- `ENABLE_SOURCEMAP=false` generates no source maps

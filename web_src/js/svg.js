@@ -1,4 +1,5 @@
 import {h} from 'vue';
+import {parseDom, serializeXml} from './utils.js';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
@@ -32,6 +33,7 @@ import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
+import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
@@ -65,6 +67,7 @@ import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethro
 import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
 import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
 import octiconTag from '../../public/assets/img/svg/octicon-tag.svg';
+import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
@@ -103,6 +106,7 @@ const svgs = {
   'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
+  'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-heading': octiconHeading,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
@@ -136,6 +140,7 @@ const svgs = {
   'octicon-sync': octiconSync,
   'octicon-table': octiconTable,
   'octicon-tag': octiconTag,
+  'octicon-trash': octiconTrash,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
@@ -145,22 +150,19 @@ const svgs = {
 //  At the moment, developers must check, pick and fill the names manually,
 //  most of the SVG icons in assets couldn't be used directly.
 
-const parser = new DOMParser();
-const serializer = new XMLSerializer();
-
 // retrieve an HTML string for given SVG icon name, size and additional classes
 export function svg(name, size = 16, className = '') {
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
-  const document = parser.parseFromString(svgs[name], 'image/svg+xml');
+  const document = parseDom(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
   if (size !== 16) {
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
   }
   if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
-  return serializer.serializeToString(svgNode);
+  return serializeXml(svgNode);
 }
 
 export function svgParseOuterInner(name) {
@@ -176,7 +178,7 @@ export function svgParseOuterInner(name) {
   if (p1 === -1 || p2 === -1) throw new Error(`Invalid SVG icon: ${name}`);
   const svgInnerHtml = svgStr.slice(p1 + 1, p2);
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
-  const svgDoc = parser.parseFromString(svgOuterHtml, 'image/svg+xml');
+  const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
   const svgOuter = svgDoc.firstChild;
   return {svgOuter, svgInnerHtml};
 }

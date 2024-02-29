@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -241,7 +241,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 
 	apiPrs := make([]*api.PullRequest, len(issues))
 	for i, currentIssue := range issues {
-		pr, err := currentIssue.GetPullRequest()
+		pr, err := currentIssue.GetPullRequest(ctx)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 			return

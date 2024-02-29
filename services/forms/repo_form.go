@@ -12,21 +12,14 @@ import (
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
-
-// _______________________________________    _________.______________________ _______________.___.
-// \______   \_   _____/\______   \_____  \  /   _____/|   \__    ___/\_____  \\______   \__  |   |
-//  |       _/|    __)_  |     ___//   |   \ \_____  \ |   | |    |    /   |   \|       _//   |   |
-//  |    |   \|        \ |    |   /    |    \/        \|   | |    |   /    |    \    |   \\____   |
-//  |____|_  /_______  / |____|   \_______  /_______  /|___| |____|   \_______  /____|_  // ______|
-//         \/        \/                   \/        \/                        \/       \/ \/
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
@@ -50,7 +43,9 @@ type CreateRepoForm struct {
 	Avatar          bool
 	Labels          bool
 	ProtectedBranch bool
-	TrustModel      string
+
+	ForkSingleBranch string
+	ObjectFormatName string
 }
 
 // Validate validates the fields
@@ -156,6 +151,7 @@ type RepoSettingForm struct {
 	PullsAllowRebase                      bool
 	PullsAllowRebaseMerge                 bool
 	PullsAllowSquash                      bool
+	PullsAllowFastForwardOnly             bool
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
@@ -209,6 +205,7 @@ type ProtectBranchForm struct {
 	BlockOnOfficialReviewRequests bool
 	BlockOnOutdatedBranch         bool
 	DismissStaleApprovals         bool
+	IgnoreStaleApprovals          bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
@@ -317,7 +314,7 @@ func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) bind
 		errs = append(errs, binding.Error{
 			FieldNames:     []string{"Channel"},
 			Classification: "",
-			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+			Message:        ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"),
 		})
 	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
@@ -602,8 +599,8 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,manually-merged
-	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
+	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
@@ -629,6 +626,7 @@ type CodeCommentForm struct {
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
+	Files          []string
 }
 
 // Validate validates the fields

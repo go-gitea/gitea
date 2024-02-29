@@ -9,6 +9,8 @@
 //     - An item can be a simple value, such as an integer, or a more complex structure that has multiple fields.
 //     Usually a item serves as a task or a message. Sets of items will be sent to a queue handler to be processed.
 //     - It's represented as a JSON-marshaled binary slice in the queue
+//     - Since the item is marshaled by JSON, and JSON doesn't have stable key-order/type support,
+//     so the decoded handler item may not be the same as the original "pushed" one if you use map/any types,
 //
 //  2. Batch:
 //     - A collection of items that are grouped together for processing. Each worker receives a batch of items.

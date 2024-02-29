@@ -19,7 +19,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	base_module "code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -138,8 +140,18 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
-	return err
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, g.repo)
+	if err != nil {
+		return err
+	}
+
+	// detect object format from git repository and update to database
+	objectFormat, err := g.gitRepo.GetObjectFormat()
+	if err != nil {
+		return err
+	}
+	g.repo.ObjectFormatName = objectFormat.Name()
+	return repo_model.UpdateRepositoryCols(g.ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
@@ -162,7 +174,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		c++
 	}
 	topics = topics[:c]
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
 }
 
 // CreateMilestones creates milestones
@@ -205,7 +217,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		mss = append(mss, &ms)
 	}
 
-	err := issues_model.InsertMilestones(mss...)
+	err := issues_model.InsertMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -236,7 +248,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 		})
 	}
 
-	err := issues_model.NewLabels(lbs...)
+	err := issues_model.NewLabels(g.ctx, lbs...)
 	if err != nil {
 		return err
 	}
@@ -350,12 +362,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		rels = append(rels, &rel)
 	}
 
-	return repo_model.InsertReleases(rels...)
+	return repo_model.InsertReleases(g.ctx, rels...)
 }
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return repo_module.SyncReleasesWithTags(g.ctx, g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
@@ -397,7 +409,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
-			Title:       issue.Title,
+			Title:       base_module.TruncateString(issue.Title, 255),
 			Content:     issue.Content,
 			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
@@ -430,7 +442,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	}
 
 	if len(iss) > 0 {
-		if err := issues_model.InsertIssues(iss...); err != nil {
+		if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
 			return err
 		}
 
@@ -471,6 +483,10 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		switch cm.Type {
+		case issues_model.CommentTypeReopen:
+			cm.Content = ""
+		case issues_model.CommentTypeClose:
+			cm.Content = ""
 		case issues_model.CommentTypeAssignees:
 			if assigneeID, ok := comment.Meta["AssigneeID"].(int); ok {
 				cm.AssigneeID = int64(assigneeID)
@@ -480,11 +496,21 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			}
 		case issues_model.CommentTypeChangeTitle:
 			if comment.Meta["OldTitle"] != nil {
-				cm.OldTitle = fmt.Sprintf("%s", comment.Meta["OldTitle"])
+				cm.OldTitle = fmt.Sprint(comment.Meta["OldTitle"])
 			}
 			if comment.Meta["NewTitle"] != nil {
-				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
+				cm.NewTitle = fmt.Sprint(comment.Meta["NewTitle"])
 			}
+		case issues_model.CommentTypeChangeTargetBranch:
+			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
+				cm.OldRef = fmt.Sprint(comment.Meta["OldRef"])
+				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
+				cm.Content = ""
+			}
+		case issues_model.CommentTypeMergePull:
+			cm.Content = ""
+		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
+			cm.Content = ""
 		default:
 		}
 
@@ -510,13 +536,12 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return issues_model.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(g.ctx, cms)
 }
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
-	ctx := db.DefaultContext
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
@@ -529,12 +554,12 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 
 		gprs = append(gprs, gpr)
 	}
-	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
+	if err := issues_model.InsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.AddToTaskQueue(g.ctx, pr)
 	}
 	return nil
 }
@@ -841,7 +866,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
+			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(g.ctx, issue.ID)
 			if err != nil {
 				return err
 			}
@@ -863,7 +888,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
-			} else {
+			} else if comment.DiffHunk != "" {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
@@ -893,7 +918,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			if !git.IsValidSHAPattern(comment.CommitID) {
+			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
+			if !objectFormat.IsValid(comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
@@ -918,7 +944,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 	}
 
-	return issues_model.InsertReviews(cms)
+	return issues_model.InsertReviews(g.ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
@@ -938,7 +964,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	// update issue_index
-	if err := issues_model.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+	if err := issues_model.RecalculateIssueIndexForRepo(g.ctx, g.repo.ID); err != nil {
 		return err
 	}
 
@@ -990,7 +1016,7 @@ func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrat
 func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(g.ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

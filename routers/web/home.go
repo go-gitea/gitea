@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -54,8 +54,7 @@ func Home(ctx *context.Context) {
 	}
 
 	// Check auto-login.
-	uname := ctx.GetSiteCookie(setting.CookieUserName)
-	if len(uname) != 0 {
+	if ctx.GetSiteCookie(setting.CookieRememberName) != "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
@@ -69,7 +68,7 @@ func Home(ctx *context.Context) {
 func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
 	if !setting.Service.Explore.DisableUsersPage {
-		_, cnt, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		_, cnt, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 			Type:        user_model.UserTypeIndividual,
 			ListOptions: db.ListOptions{PageSize: 1},
 			IsActive:    util.OptionalBoolTrue,

@@ -9,11 +9,11 @@ import (
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -55,7 +55,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	count, err := issues_model.CountLabelsByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -240,7 +240,7 @@ func EditLabel(ctx *context.APIContext) {
 		l.Description = *form.Description
 	}
 	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
-	if err := issues_model.UpdateLabel(l); err != nil {
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
@@ -276,7 +276,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

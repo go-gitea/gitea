@@ -10,8 +10,8 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	pwd "code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli/v2"
 )
@@ -115,7 +115,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(nil); n == 0 {
+	if n := user_model.CountUsers(ctx, nil); n == 0 {
 		changePassword = false
 	}
 
@@ -123,10 +123,10 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	restricted := util.OptionalBoolNone
+	restricted := optional.None[bool]()
 
 	if c.IsSet("restricted") {
-		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+		restricted = optional.Some(c.Bool("restricted"))
 	}
 
 	// default user visibility in app.ini
@@ -142,11 +142,11 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive:     util.OptionalBoolTrue,
+		IsActive:     optional.Some(true),
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
@@ -156,7 +156,7 @@ func runCreateUser(c *cli.Context) error {
 			UID:  u.ID,
 		}
 
-		if err := auth_model.NewAccessToken(t); err != nil {
+		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
 
