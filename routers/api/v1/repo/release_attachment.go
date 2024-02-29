@@ -4,8 +4,8 @@
 package repo
 
 import (
-	"net/http"
 	"io"
+	"net/http"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -215,6 +215,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetFile", err)
 			return
 		}
+		defer file.Close()
 
 		content = file
 		size = header.Size
@@ -226,7 +227,6 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		content = ctx.Req.Body
 		filename = ctx.FormString("name")
 	}
-	defer content.Close()
 
 	if filename == "" {
 		ctx.Error(http.StatusBadRequest, "CreateReleaseAttachment", "Could not determine name of attachment.")
