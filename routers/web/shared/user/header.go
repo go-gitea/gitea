@@ -35,8 +35,9 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
-	ctx.Data["ContextUserLocationMapURL"] = setting.Service.UserLocationMapURL + url.QueryEscape(ctx.ContextUser.Location)
-
+	if setting.Service.UserLocationMapURL != "" {
+		ctx.Data["ContextUserLocationMapURL"] = setting.Service.UserLocationMapURL + url.QueryEscape(ctx.ContextUser.Location)
+	}
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
 	if err != nil {
