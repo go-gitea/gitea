@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/markup"
@@ -177,9 +176,6 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    TabSizeClass,
-
-		// org
-		"IsOrganizationMember": organization.IsOrganizationMember,
 	}
 }
 

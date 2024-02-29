@@ -139,20 +139,21 @@ func (at ActionType) InActions(actions ...string) bool {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
-	OpType      ActionType
-	ActUserID   int64            // Action user id.
-	ActUser     *user_model.User `xorm:"-"`
-	RepoID      int64
-	Repo        *repo_model.Repository `xorm:"-"`
-	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *issues_model.Comment  `xorm:"-"`
-	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
-	RefName     string
-	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
-	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	ID            int64 `xorm:"pk autoincr"`
+	UserID        int64 `xorm:"INDEX"` // Receiver user id.
+	OpType        ActionType
+	ActUserID     int64            // Action user id.
+	ActUser       *user_model.User `xorm:"-"`
+	RepoID        int64
+	Repo          *repo_model.Repository `xorm:"-"`
+	CommentID     int64                  `xorm:"INDEX"`
+	Comment       *issues_model.Comment  `xorm:"-"`
+	IsDeleted     bool                   `xorm:"NOT NULL DEFAULT false"`
+	RefName       string
+	IsPrivate     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrivateView bool               `xorm:"-"`
+	Content       string             `xorm:"TEXT"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
 func init() {
@@ -453,14 +454,32 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
-	actions := make([]*Action, 0, opts.PageSize)
+	actions := make(ActionList, 0, opts.PageSize)
 	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
 	if err != nil {
 		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
-	if err := ActionList(actions).loadAttributes(ctx); err != nil {
+	if err := actions.loadAttributes(ctx); err != nil {
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	isOrgMemberMap := make(map[int64]bool, 0)
+	canActorViewAction := false
+	if opts.Actor != nil && opts.RequestedUser != nil {
+		canActorViewAction = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
+		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIds(), opts.Actor.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	for _, action := range actions {
+		action.IsPrivateView = canActorViewAction && action.IsPrivate
+
+		if action.IsPrivateView && action.Repo.Owner.IsOrganization() {
+			action.IsPrivateView = !isOrgMemberMap[action.Repo.Owner.ID]
+		}
 	}
 
 	return actions, count, nil
@@ -519,7 +538,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 
 	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActionsVisibility.ShowAll()
 	// check readable repositories by doer/actor
-	if !includePrivateRepos && !opts.Actor.IsAdmin {
+	if !includePrivateRepos && (opts.Actor == nil || !opts.Actor.IsAdmin) {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 

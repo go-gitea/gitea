@@ -52,6 +52,16 @@ func (actions ActionList) getRepoIDs() []int64 {
 	return repoIDs.Values()
 }
 
+func (actions ActionList) GetOrgIds() []int64 {
+	orgIDs := make(container.Set[int64], len(actions))
+	for _, action := range actions {
+		if action.Repo.Owner.IsOrganization() {
+			orgIDs.Add(action.Repo.Owner.ID)
+		}
+	}
+	return orgIDs.Values()
+}
+
 func (actions ActionList) loadRepositories(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil

@@ -1,19 +1,11 @@
 <div id="activity-feed" class="flex-list">
 	{{range .Feeds}}
-		{{$isPrivateView := and (not $.IsAdmin) .IsPrivate (ne $.ContextUser.ID $.SignedUserID)}}
-		{{if $isPrivateView}}
-			{{$isOrganizationMember := $.IsOrganizationMember}}
-			{{if eq $isOrganizationMember nil}}
-				{{$isOrganizationMember = IsOrganizationMember ctx .Repo.Owner.ID $.SignedUserID}}
-			{{end}}
-			{{$isPrivateView = and $isPrivateView (not $isOrganizationMember)}}
-		{{end}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>
 			<div class="flex-item-main gt-gap-3">
-				{{if $isPrivateView}}
+				{{if .IsPrivateView}}
 					<div>
 						{{if gt .ActUser.ID 0}}
 							<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetDisplayNameTitle ctx}}">{{.GetDisplayName ctx}}</a>
@@ -146,7 +138,7 @@
 				{{end}}
 			</div>
 			<div class="flex-item-trailing">
-				{{if $isPrivateView}}
+				{{if .IsPrivateView}}
 					{{svg "octicon-lock" 32 "text grey gt-mr-2"}}
 				{{else}}
 					{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey gt-mr-2"}}

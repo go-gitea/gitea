@@ -77,6 +77,27 @@ func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 		Exist()
 }
 
+// IsOrganizationsMember returns a map with key of orgID and value is true if given user is member of organization.
+func IsOrganizationsMember(ctx context.Context, orgIDs []int64, uid int64) (map[int64]bool, error) {
+	var orgUsers []*OrgUser
+
+	err := db.GetEngine(ctx).
+		Where("uid=?", uid).
+		And(builder.In("org_id", orgIDs)).
+		Table("org_user").
+		Find(&orgUsers)
+	if err != nil {
+		return nil, err
+	}
+
+	memberMap := make(map[int64]bool, len(orgIDs))
+	for _, orgUser := range orgUsers {
+		memberMap[orgUser.OrgID] = true
+	}
+
+	return memberMap, nil
+}
+
 // IsPublicMembership returns true if the given user's membership of given org is public.
 func IsPublicMembership(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
