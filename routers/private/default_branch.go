@@ -35,20 +35,5 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		})
 		return
 	}
-
-	commitID, err := ctx.Repo.GitRepo.GetBranchCommitID(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get commit ID for new default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
-		return
-	}
-	if err := repo_model.UpdateIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeHook, commitID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to update hook status for new default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
-		return
-	}
-
 	ctx.PlainText(http.StatusOK, "success")
 }

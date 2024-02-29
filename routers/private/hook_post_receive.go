@@ -89,33 +89,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	// Update the hook status
-	hookStatus :=
-	for i, update := range updates {
-		if !update.RefFullName.IsBranch() {
-			continue
-		}
-		if repo == nil {
-			repo = loadRepository(ctx, ownerName, repoName)
-			if ctx.Written() {
-				return
-			}
-		}
-		if repo.IsEmpty {
-
-		}
-		if ref.BranchName() != repo.DefaultBranch {
-			continue
-		}
-		if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeHook, opts.NewCommitIDs[i]); err != nil {
-			log.Error("Failed to update hook status: %s/%s Error: %v", ownerName, repoName, err)
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to update hook status: %s/%s Error: %v", ownerName, repoName, err),
-			})
-			return
-		}
-	}
-
 	// Handle Push Options
 	if len(opts.GitPushOptions) > 0 {
 		// load the repository
