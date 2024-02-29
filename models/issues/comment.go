@@ -224,9 +224,9 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
-	ProjectColumnID    int64  `json:"project_column_id"`
-	ProjectColumnTitle string `json:"project_column_title"`
-	ProjectTitle       string `json:"project_title"`
+	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
+	ProjectColumnTitle string `json:"project_column_title,omitempty"`
+	ProjectTitle       string `json:"project_title,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
