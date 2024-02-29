@@ -1500,7 +1500,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
 				return
 			}
-			ctx.JSONError(flashError)
+			ctx.Flash.Warning(flashError)
+			ctx.JSONRedirect(ctx.Link)
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
