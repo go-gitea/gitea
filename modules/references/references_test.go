@@ -459,6 +459,8 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"(ABC-123)",
 		"[ABC-123]",
 		"ABC-123:",
+		"\"ABC-123\"",
+		"'ABC-123'",
 	}
 	falseTestCases := []string{
 		"RC-08",
