@@ -227,7 +227,7 @@
   --color-nav-bg: #ffffff;
   --color-nav-hover-bg: #ebebeb;
   --color-nav-text: var(--color-text);
-  --color-label-text: #232323;
+  --color-label-text: var(--color-text);
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
   --color-label-active-bg: #cacacaff;
