@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
@@ -106,7 +107,15 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			if !update.IsDelRef() {
+			if update.IsDelRef() {
+				if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
+					log.Error("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
+				}
+			} else {
 				if gitRepo == nil {
 					var err error
 					gitRepo, err = gitrepo.OpenRepository(ctx, repo)
