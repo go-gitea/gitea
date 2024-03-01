@@ -54,7 +54,7 @@
 					<div class="ui attached segment comment-body" role="article">
 						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
-								{{.Issue.RenderedContent|Str2html}}
+								{{.Issue.RenderedContent}}
 							{{else}}
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
