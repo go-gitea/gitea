@@ -9,16 +9,16 @@
 	{{end}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
+	<form class="ui form md:tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
 	{{.CsrfTokenHtml}}
-	<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+	<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 		<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
-		<input id="user_name" class="tw-w-full" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+		<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 	</div>
 	{{if or (not .DisablePassword) .LinkAccountMode}}
-	<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+	<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 		<label for="password">{{ctx.Locale.Tr "password"}}</label>
-		<input id="password" class="tw-w-full" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
+		<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 	</div>
 	{{end}}
 	{{if not .LinkAccountMode}}
@@ -32,7 +32,7 @@
 
 	{{template "user/auth/captcha" .}}
 
-	<div class="inline field">
+	<div class="field">
 		<button class="ui primary button">
 			{{if .LinkAccountMode}}
 				{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
@@ -44,7 +44,7 @@
 	</div>
 
 	{{if .ShowRegistrationButton}}
-		<div class="inline field">
+		<div class="field">
 			<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
 		</div>
 	{{end}}

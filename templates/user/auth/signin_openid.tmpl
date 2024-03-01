@@ -13,12 +13,12 @@
 			<div class="inline field">
 				{{ctx.Locale.Tr "auth.openid_signin_desc"}}
 			</div>
-			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
+			<div class="required field {{if .Err_OpenID}}error{{end}}">
 				<label for="openid">
 				{{svg "fontawesome-openid"}}
 				OpenID URI
 				</label>
-				<input id="openid" class="tw-w-full" name="openid" value="{{.openid}}" autofocus required>
+				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
 			</div>
 			<div class="inline field">
 				<div class="ui checkbox">

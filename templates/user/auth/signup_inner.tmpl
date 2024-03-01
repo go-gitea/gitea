@@ -7,7 +7,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
+		<form class="ui form md:tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
 			{{template "base/alert" .}}
@@ -15,23 +15,23 @@
 			{{if .DisableRegistration}}
 				<p>{{ctx.Locale.Tr "auth.disable_register_prompt"}}</p>
 			{{else}}
-				<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+				<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
-					<input id="user_name" class="tw-w-full" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
-				<div class="required inline field {{if .Err_Email}}error{{end}}">
+				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
-					<input id="email" class="tw-w-full" name="email" type="email" value="{{.email}}" required>
+					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
 
 				{{if not .DisablePassword}}
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 						<label for="password">{{ctx.Locale.Tr "password"}}</label>
-						<input id="password" class="tw-w-full" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
+						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 					</div>
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 						<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
-						<input id="retype" class="tw-w-full" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
+						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
 					</div>
 				{{end}}
 

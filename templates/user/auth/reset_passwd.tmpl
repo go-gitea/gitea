@@ -17,9 +17,9 @@
 						</div>
 					{{end}}
 					{{if .IsResetForm}}
-						<div class="required inline field {{if .Err_Password}}error{{end}}">
+						<div class="required field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{ctx.Locale.Tr "settings.new_password"}}</label>
-							<input id="password" class="tw-w-full" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
+							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
 						<div class="inline field">
@@ -41,9 +41,9 @@
 						</div>
 						<input type="hidden" name="scratch_code" value="true">
 						{{else}}
-						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
+						<div class="required field {{if .Err_Passcode}}error{{end}}">
 							<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
-							<input id="passcode" class="tw-w-full" name="passcode" type="number" autocomplete="off" autofocus required>
+							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
 						</div>
 						{{end}}
 						{{end}}
