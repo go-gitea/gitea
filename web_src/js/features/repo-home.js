@@ -33,13 +33,15 @@ export function initRepoTopicBar() {
 
   saveBtn.on('click', async () => {
     const topics = $('input[name=topics]').val();
-    const formData = new FormData();
-    formData.append('topics', topics);
-    try {
-      const response = await POST(saveBtn.attr('data-link'), {data: formData});
-      const data = await response.json();
 
-      if (data.status === 'ok') {
+    const data = new FormData();
+    data.append('topics', topics);
+
+    const response = await POST(saveBtn.attr('data-link'), {data});
+
+    if (response.ok) {
+      const responseData = await response.json();
+      if (responseData.status === 'ok') {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
@@ -54,26 +56,25 @@ export function initRepoTopicBar() {
         hideElem(editDiv);
         showElem(viewDiv);
       }
-    } catch (error) {
-      if (error.response?.status === 422) {
-        const responseJSON = await error.response.json();
-        if (responseJSON.invalidTopics.length > 0) {
-          topicPrompts.formatPrompt = responseJSON.message;
+    } else if (response.status === 422) {
+      const responseData = await response.json();
+      if (responseData.invalidTopics.length > 0) {
+        topicPrompts.formatPrompt = responseData.message;
 
-          const {invalidTopics} = responseJSON;
-          const topicLabels = topicDropdown.children('a.ui.label');
-          for (const [index, value] of topics.split(',').entries()) {
-            if (invalidTopics.includes(value)) {
-              topicLabels.eq(index).removeClass('green').addClass('red');
-            }
+        const {invalidTopics} = responseData;
+        const topicLabels = topicDropdown.children('a.ui.label');
+        for (const [index, value] of topics.split(',').entries()) {
+          if (invalidTopics.includes(value)) {
+            topicLabels.eq(index).removeClass('green').addClass('red');
           }
-        } else {
-          topicPrompts.countPrompt = responseJSON.message;
         }
+      } else {
+        topicPrompts.countPrompt = responseData.message;
       }
-    } finally {
-      topicForm.form('validate form');
     }
+
+    // Always validate the form
+    topicForm.form('validate form');
   });
 
   topicDropdown.dropdown({
