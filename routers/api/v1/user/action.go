@@ -13,7 +13,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	secret_service "code.gitea.io/gitea/services/secrets"
@@ -152,7 +151,6 @@ func CreateVariable(ctx *context.APIContext) {
 
 // UpdateVariable update a user-level variable
 func UpdateVariable(ctx *context.APIContext) {
-
 	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
 
 	v, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
@@ -164,14 +162,14 @@ func UpdateVariable(ctx *context.APIContext) {
 		return
 	}
 	if len(v) == 0 {
-		ctx.Error(http.StatusNotFound, "FindVariable", fmt.Errorf("varibale not found"))
+		ctx.Error(http.StatusNotFound, "FindVariable", fmt.Errorf("variable not found"))
 		return
 	}
 
 	if opt.Name == "" {
 		opt.Name = ctx.Params("variablename")
 	}
-	if _, err := actions.UpdateVariable(ctx, v[0].ID, opt.Name, opt.Value); err != nil {
+	if _, err := actions_service.UpdateVariable(ctx, v[0].ID, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
@@ -183,7 +181,5 @@ func UpdateVariable(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// DeleteVaribale delete a user-level variable
-func DeleteVaribale(ctx *context.APIContext) {
-
-}
+// DeleteVariable delete a user-level variable
+func DeleteVariable(ctx *context.APIContext) {}

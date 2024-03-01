@@ -959,7 +959,7 @@ func Routes() *web.Route {
 					m.Combo("/{variablename}").
 						Post(bind(api.CreateVariableOption{}), user.CreateVariable).
 						Put(bind(api.UpdateVariableOption{}), user.UpdateVariable).
-						Delete(user.DeleteVaribale)
+						Delete(user.DeleteVariable)
 				})
 
 				m.Group("/runners", func() {
