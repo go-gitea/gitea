@@ -61,7 +61,7 @@
 					<div class="ui attached segment comment-body" role="article">
 						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
-								{{.RenderedContent|Str2html}}
+								{{.RenderedContent}}
 							{{else}}
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
@@ -69,7 +69,7 @@
 						<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
-							{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+							{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
@@ -162,7 +162,7 @@
 				</span>
 				<div class="detail">
 					{{svg "octicon-git-commit"}}
-					<span class="text grey muted-links">{{.Content | Str2html}}</span>
+					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 7}}
@@ -432,7 +432,7 @@
 						<div class="ui attached segment comment-body">
 							<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 								{{if .RenderedContent}}
-									{{.RenderedContent|Str2html}}
+									{{.RenderedContent}}
 								{{else}}
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
@@ -440,7 +440,7 @@
 							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 							<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
-								{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+								{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
@@ -631,7 +631,7 @@
 							<div class="ui attached segment">
 								<div class="render-content markup">
 									{{if .RenderedContent}}
-										{{.RenderedContent|Str2html}}
+										{{.RenderedContent}}
 									{{else}}
 										<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 									{{end}}
