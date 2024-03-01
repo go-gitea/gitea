@@ -1576,7 +1576,7 @@ a.ui.active.label:hover {
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-grey);
+  color: var(--color-text-light-2);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -1617,6 +1617,10 @@ a.ui.active.label:hover {
 
 .top-line-blame {
   border-top: 1px solid var(--color-secondary);
+}
+
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
 }
 
 .lines-code .bottom-line,
