@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
@@ -104,7 +105,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	for _, project := range projects {
-		project.RenderedContent = project.Description
+		project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -395,7 +396,7 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
-	project.RenderedContent = project.Description
+	project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
