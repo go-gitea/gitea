@@ -79,7 +79,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/minio/minio-go/v7 v7.0.66
 	github.com/msteinert/pam v1.2.0
-	github.com/nektos/act v0.2.52
+	github.com/nektos/act v0.2.59
 	github.com/niklasfasching/go-org v1.7.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
@@ -302,7 +302,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/nektos/act => gitea.com/pangliang/act v0.251.2-0.20231207083920-176e5f65fa26
+replace github.com/nektos/act => gitea.com/gitea/act v0.2.59
 
 replace github.com/gorilla/feeds => github.com/yardenshoham/feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
