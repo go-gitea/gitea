@@ -9,8 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nektos/act/pkg/jobparser"
-	"github.com/nektos/act/pkg/model"
 	"io"
 	"net/http"
 	"net/url"
@@ -36,6 +34,9 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+
+	"github.com/nektos/act/pkg/jobparser"
+	"github.com/nektos/act/pkg/model"
 
 	"xorm.io/builder"
 )
