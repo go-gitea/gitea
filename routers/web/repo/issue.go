@@ -1761,7 +1761,7 @@ func ViewIssue(ctx *context.Context) {
 				// so "|" is used as delimeter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
-					comment.RenderedContent = templates.Str2html(comment.Content)
+					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
 					comment.Content = ""
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend

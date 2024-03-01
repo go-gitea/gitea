@@ -105,7 +105,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	for _, project := range projects {
-		project.RenderedContent = templates.Str2html(project.Description) // FIXME: is it right? why not render?
+		project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -396,7 +396,7 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
-	project.RenderedContent = templates.Str2html(project.Description) // FIXME: is it right? why not render?
+	project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
