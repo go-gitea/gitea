@@ -54,12 +54,20 @@ type FindVariablesOpts struct {
 	db.ListOptions
 	OwnerID int64
 	RepoID  int64
+	Name    string
 }
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
 	return cond
 }
 
