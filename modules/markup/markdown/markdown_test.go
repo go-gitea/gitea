@@ -5,6 +5,7 @@ package markdown_test
 
 import (
 	"context"
+	"html/template"
 	"os"
 	"strings"
 	"testing"
@@ -56,7 +57,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
@@ -66,7 +67,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
 	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
@@ -90,7 +91,7 @@ func TestRender_Images(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
 	url := "../../.images/src/02/train.jpg"
@@ -299,7 +300,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			IsWiki: true,
 		}, sameCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, answers[i], line)
+		assert.Equal(t, template.HTML(answers[i]), line)
 	}
 
 	testCases := []string{
@@ -324,7 +325,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			IsWiki: true,
 		}, testCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, testCases[i+1], line)
+		assert.Equal(t, template.HTML(testCases[i+1]), line)
 	}
 }
 
@@ -343,7 +344,7 @@ func TestTotal_RenderString(t *testing.T) {
 			Metas: localMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, answers[i], line)
+		assert.Equal(t, template.HTML(answers[i]), line)
 	}
 
 	testCases := []string{}
@@ -356,7 +357,7 @@ func TestTotal_RenderString(t *testing.T) {
 			},
 		}, testCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, testCases[i+1], line)
+		assert.Equal(t, template.HTML(testCases[i+1]), line)
 	}
 }
 
@@ -423,7 +424,7 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 `
 	res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, res)
+	assert.Equal(t, template.HTML(expected), res)
 }
 
 func TestColorPreview(t *testing.T) {
@@ -457,7 +458,7 @@ func TestColorPreview(t *testing.T) {
 	for _, test := range positiveTests {
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
-		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 
 	}
 
@@ -524,7 +525,7 @@ func TestMathBlock(t *testing.T) {
 	for _, test := range testcases {
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
-		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 
 	}
 }
@@ -562,12 +563,12 @@ foo: bar
 	for _, test := range testcases {
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
-		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 	}
 }
 
 func TestRenderLinks(t *testing.T) {
-	input := `  space @mention-user  
+	input := `  space @mention-user${SPACE}${SPACE}
 /just/a/path.bin
 https://example.com/file.bin
 [local link](file.bin)
@@ -588,8 +589,9 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 mail@domain.com
 @mention-user test
 #123
-  space  
+  space${SPACE}${SPACE}
 `
+	input = strings.ReplaceAll(input, "${SPACE}", " ") // replace ${SPACE} with " ", to avoid some editor's auto-trimming
 	cases := []struct {
 		Links    markup.Links
 		IsWiki   bool
@@ -952,6 +954,6 @@ space</p>
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
-		assert.Equal(t, c.Expected, result, "Unexpected result in testcase %v", i)
+		assert.Equal(t, template.HTML(c.Expected), result, "Unexpected result in testcase %v", i)
 	}
 }
