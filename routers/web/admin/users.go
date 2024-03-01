@@ -276,7 +276,7 @@ func ViewUser(ctx *context.Context) {
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
+		Collaborate: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
