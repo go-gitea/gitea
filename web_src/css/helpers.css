@@ -73,12 +73,6 @@ Gitea's private styles use `g-` prefix.
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-overflow-y-hidden { overflow-y: hidden !important; }
 
-.gt-h-screen { height: 100vh !important; }
-.gt-h-full { height: 100% !important; }
-.gt-w-auto { width: auto !important; }
-.gt-w-screen { width: 100vw !important; }
-.gt-w-full { width: 100% !important; }
-
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
 .gt-clear-both { clear: both !important; }
