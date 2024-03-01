@@ -4,7 +4,7 @@
 	</div>
 	<div class="required inline field {{if .Err_Captcha}}error{{end}}">
 		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
-		<input id="captcha" class="gt-w-full" name="captcha" value="{{.captcha}}" autocomplete="off">
+		<input id="captcha" class="tw-w-full" name="captcha" value="{{.captcha}}" autocomplete="off">
 	</div>
 {{else if eq .CaptchaType "recaptcha"}}
 	<div class="inline field required">

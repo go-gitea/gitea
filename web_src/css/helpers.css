@@ -48,7 +48,6 @@ Gitea's private styles use `g-` prefix.
 
 .gt-max-width-12rem { max-width: 12rem !important; }
 .gt-max-width-24rem { max-width: 24rem !important; }
-.gt-max-width-36rem { max-width: 36rem !important; }
 
 /* below class names match Tailwind CSS */
 .gt-break-all { word-break: break-all !important; }
