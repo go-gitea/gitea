@@ -125,7 +125,7 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 	if err := validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required"); err != nil {
 		return err
 	}
-	if required, _ := field.Validations["required"].(bool); required && field.HideOnForm {
+	if required, _ := field.Validations["required"].(bool); required && !field.VisibleOnForm() {
 		return newErrorPosition(idx, field.Type).Errorf("can not require a hidden field")
 	}
 	return nil
@@ -256,7 +256,7 @@ func RenderToMarkdown(template *api.IssueTemplate, values url.Values) string {
 			IssueFormField: field,
 			Values:         values,
 		}
-		if f.ID == "" || f.NoSubmit() {
+		if f.ID == "" || !f.VisibleInContent() {
 			continue
 		}
 		f.WriteTo(builder)
@@ -331,15 +331,6 @@ func (f *valuedField) Label() string {
 		return label
 	}
 	return ""
-}
-
-func (f *valuedField) NoSubmit() bool {
-	// handle default case
-	if f.SkipSubmit == nil {
-		// markdown blocks do not appear in output by default
-		return f.Type != api.IssueFormFieldTypeMarkdown
-	}
-	return *f.SkipSubmit
 }
 
 func (f *valuedField) HideLabel() bool {

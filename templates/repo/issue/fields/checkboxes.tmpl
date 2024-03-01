@@ -1,4 +1,4 @@
-<div class="field {{if .item.HideOnForm}}gt-hidden{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}gt-hidden{{end}}">
 	{{template "repo/issue/fields/header" .}}
 	{{range $i, $opt := .item.Attributes.options}}
 		<div class="field inline">

@@ -141,8 +141,7 @@ body:
     attributes:
       value: |
         This issue was created by an issue **template** :)
-    hide_on_form: true
-    skip_submit: false
+    visible: [content]
   - type: input
     id: contact
     attributes:
@@ -196,9 +195,9 @@ body:
           required: true
         - label: I have also read the CONTRIBUTION.MD
           required: true
-          skip_submit: true
+          visible: [form]
         - label: This is a TODO only visible after issue creation
-          hide_on_form: true
+          visible: [content]
 ```
 
 ### Markdown
@@ -211,9 +210,7 @@ Attributes:
 |-------|--------------------------------------------------------------|----------|--------|---------|--------------|
 | value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
 
-skip_submit: Default is **true**
-
-hide_on_form: Default is **false**
+visible: Default is **[form]**
 
 ### Textarea
 
@@ -235,9 +232,7 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
-skip_submit: Default is **false**
-
-hide_on_form: Default is **false**
+visible: Default is **[form, content]**
 
 ### Input
 
@@ -260,9 +255,7 @@ Validations:
 | is_number | Prevents form submission until element is filled with a number.                                  | Optional | Boolean | false   | -                                                                        |
 | regex     | Prevents form submission until element is filled with a value that match the regular expression. | Optional | String  | -       | a [regular expression](https://en.wikipedia.org/wiki/Regular_expression) |
 
-skip_submit: Default is **false**
-
-hide_on_form: Default is **false**
+visible: Default is **[form, content]**
 
 ### Dropdown
 
@@ -283,9 +276,7 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
-skip_submit: Default is **false**
-
-hide_on_form: Default is **false**
+visible: Default is **[form, content]**
 
 ### Checkboxes
 
@@ -301,16 +292,13 @@ Attributes:
 
 For each value in the options array, you can set the following keys.
 
-| Key          | Description                                                                                                                              | Required | Type    | Default | Options |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
-| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
-| required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
-| skip_submit  | The specific checkbox that is rendered, will not be submitted.                                                                           | Optional | Boolean | false   | -       |
-| hide_on_form | Do not render in the form.                                                                                                               | Optional | Boolean | false   | -       |
+| Key          | Description                                                                                                                                    | Required | Type         | Default | Options |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|---------|---------|
+| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks.       | Required | String       | -       | -       |
+| required     | Prevents form submission until element is completed.                                                                                           | Optional | Boolean      | false   | -       |
+| visible      | Set visible to a specific checkbox. Valid options are "form" to render in only in the form, "content" to have it in the created issue and both | Optional | String array | false   | -       |
 
-skip_submit: Default is **false**
-
-hide_on_form: Default is **false**
+visible: Default is **[form, content]**
 
 ## Syntax for issue config
 

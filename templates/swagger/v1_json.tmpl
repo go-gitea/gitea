@@ -20612,17 +20612,9 @@
           "additionalProperties": {},
           "x-go-name": "Attributes"
         },
-        "hide_on_form": {
-          "type": "boolean",
-          "x-go-name": "HideOnForm"
-        },
         "id": {
           "type": "string",
           "x-go-name": "ID"
-        },
-        "skip_submit": {
-          "type": "boolean",
-          "x-go-name": "SkipSubmit"
         },
         "type": {
           "$ref": "#/definitions/IssueFormFieldType"
@@ -20631,6 +20623,18 @@
           "type": "object",
           "additionalProperties": {},
           "x-go-name": "Validations"
+        },
+        "visible": {
+          "type": "array",
+          "default": "[form,content]",
+          "enum": [
+            "form",
+            "content"
+          ],
+          "items": {
+            "$ref": "#/definitions/IssueFormFieldVisible"
+          },
+          "x-go-name": "Visible"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20638,6 +20642,11 @@
     "IssueFormFieldType": {
       "type": "string",
       "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldVisible": {
+      "description": "IssueFormFieldVisible defines issue form field visible",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
