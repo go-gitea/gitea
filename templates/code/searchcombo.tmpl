@@ -3,15 +3,12 @@
 <div class="ui user list">
 	{{if .CodeIndexerUnavailable}}
 		<div class="ui error message">
-			<p>{{ctx.Locale.Tr "explore.code_search_unavailable"}}</p>
+			<p>{{ctx.Locale.Tr "search.unavailable" (ctx.Locale.Tr "search.kind.code")}}</p>
 		</div>
 	{{else if .SearchResults}}
-		<h3>
-			{{ctx.Locale.Tr "explore.code_search_results" .Keyword}}
-		</h3>
 		{{template "code/searchresults" .}}
 	{{else if .Keyword}}
-		<div>{{ctx.Locale.Tr "explore.code_no_results"}}</div>
+		<div>{{ctx.Locale.Tr "search.no_results" (ctx.Locale.Tr "explore.code")}}</div>
 	{{end}}
 </div>
 {{template "base/paginate" .}}

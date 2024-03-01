@@ -75,9 +75,9 @@
 				<div class="gt-whitespace-nowrap">
 					<form class="ignore-dirty" method="get">
 						<div class="ui tiny search input">
-							<input name="q" placeholder="{{ctx.Locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
+							<input name="q" placeholder="{{ctx.Locale.Tr "search.search_kind" (ctx.Locale.Tr "repo.branch")}}" value="{{.Keyword}}" autofocus>
 						</div>
-						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
+						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "search.search"}}</button>
 					</form>
 				</div>
 			</h4>

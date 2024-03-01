@@ -12,14 +12,14 @@
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
-					<input name="q" placeholder="{{ctx.Locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+					<input name="q" placeholder="{{ctx.Locale.Tr "search.search_kind" (ctx.Locale.Tr "repo.commits.commits")}}" value="{{.Keyword}}" autofocus>
 				</div>
 
 				<div class="ui tiny checkbox">
 					<input type="checkbox" name="all" value="true" {{.All}}>
 					<label>{{ctx.Locale.Tr "repo.commits.search_all"}}</label>
 				</div>
-				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
+				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "search.search"}}</button>
 			</form>
 		{{else if .IsDiffCompare}}
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>

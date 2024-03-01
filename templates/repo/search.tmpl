@@ -5,13 +5,13 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
-					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.search.type.tooltip"}}">
+					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "search.search_kind" (ctx.Locale.Tr "repository")}}">
+					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
 						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{ctx.Locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
+						<div class="text">{{ctx.Locale.Tr (printf "search.%s" (or .queryType "fuzzy"))}}</div>
 						<div class="menu">
-							<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "repo.search.fuzzy.tooltip"}}">{{ctx.Locale.Tr "repo.search.fuzzy"}}</div>
-							<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "repo.search.match.tooltip"}}">{{ctx.Locale.Tr "repo.search.match"}}</div>
+							<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "search.fuzzy_tooltip"}}">{{ctx.Locale.Tr "search.fuzzy"}}</div>
+							<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "search.match_tooltip"}}">{{ctx.Locale.Tr "search.match"}}</div>
 						</div>
 					</div>
 					<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>
@@ -20,12 +20,9 @@
 		</div>
 		{{if .CodeIndexerUnavailable}}
 			<div class="ui error message">
-				<p>{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}</p>
+				<p>{{ctx.Locale.Tr "search.unavailable" (ctx.Locale.Tr "search.kind.code")}}</p>
 			</div>
 		{{else if .Keyword}}
-			<h3>
-				{{ctx.Locale.Tr "repo.search.results" .Keyword .RepoLink .RepoName}}
-			</h3>
 			{{if .SearchResults}}
 				<div class="flex-text-block gt-fw">
 					{{range $term := .SearchResultLanguages}}
@@ -65,7 +62,7 @@
 				</div>
 				{{template "base/paginate" .}}
 			{{else}}
-				<div>{{ctx.Locale.Tr "repo.search.code_no_results"}}</div>
+				<div>{{ctx.Locale.Tr "search.no_results" (ctx.Locale.Tr "explore.code")}}</div>
 			{{end}}
 		{{end}}
 	</div>
