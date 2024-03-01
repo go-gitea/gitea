@@ -1075,6 +1075,10 @@ func renderHomeCode(ctx *context.Context) {
 }
 
 func checkOutdatedBranch(ctx *context.Context) {
+	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+		return
+	}
+
 	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
 	if err != nil {
