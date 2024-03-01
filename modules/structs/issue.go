@@ -142,12 +142,11 @@ const (
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        IssueFormFieldType `json:"type" yaml:"type"`
-	ID          string             `json:"id" yaml:"id"`
-	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
-	Validations map[string]any     `json:"validations" yaml:"validations"`
-	// default: [form,content]
-	Visible []IssueFormFieldVisible `json:"visible,omitempty"`
+	Type        IssueFormFieldType      `json:"type" yaml:"type"`
+	ID          string                  `json:"id" yaml:"id"`
+	Attributes  map[string]any          `json:"attributes" yaml:"attributes"`
+	Validations map[string]any          `json:"validations" yaml:"validations"`
+	Visible     []IssueFormFieldVisible `json:"visible,omitempty"`
 }
 
 func (iff IssueFormField) VisibleOnForm() bool {
