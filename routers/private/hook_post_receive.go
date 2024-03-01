@@ -95,6 +95,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
+		var branchesToSync = make([]*repo_module.PushUpdateOptions, 0, len(updates))
 		for _, update := range updates {
 			if !update.RefFullName.IsBranch() {
 				continue
@@ -116,30 +117,38 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					return
 				}
 			} else {
-				if gitRepo == nil {
-					var err error
-					gitRepo, err = gitrepo.OpenRepository(ctx, repo)
-					if err != nil {
-						log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-							Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
-						})
-						return
-					}
-				}
-				commit, err := gitRepo.GetCommit(update.NewCommitID)
+				branchesToSync = append(branchesToSync, update)
+			}
+		}
+		if len(branchesToSync) > 0 {
+			if gitRepo == nil {
+				var err error
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 				if err != nil {
+					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", update.NewCommitID, ownerName, repoName, err),
+						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
 					})
 					return
 				}
-				if err := repo_service.SyncBranchToDB(ctx, repo.ID, update.PusherID, update.RefFullName.BranchName(), commit); err != nil {
-					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
-					})
-					return
-				}
+			}
+
+			var (
+				branchNames = make([]string, 0, len(branchesToSync))
+				commitIDs   = make([]string, 0, len(branchesToSync))
+			)
+			for _, update := range branchesToSync {
+				branchNames = append(branchNames, update.RefFullName.BranchName())
+				commitIDs = append(commitIDs, update.NewCommitID)
+			}
+
+			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, func(commitID string) (*git.Commit, error) {
+				return gitRepo.GetCommit(commitID)
+			}); err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
 			}
 		}
 	}
