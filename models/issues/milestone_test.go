@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -47,7 +48,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 			RepoID:   repo.ID,
-			IsClosed: isClosed,
+			IsClosed: isClosed.ToGeneric(),
 		})
 		assert.NoError(t, err)
 
@@ -84,7 +85,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 
 	milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoID:   unittest.NonexistentID,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
@@ -101,7 +102,7 @@ func TestGetMilestones(t *testing.T) {
 					PageSize: setting.UI.IssuePagingNum,
 				},
 				RepoID:   repo.ID,
-				IsClosed: util.OptionalBoolFalse,
+				IsClosed: optional.Some(false),
 				SortType: sortType,
 			})
 			assert.NoError(t, err)
@@ -118,7 +119,7 @@ func TestGetMilestones(t *testing.T) {
 					PageSize: setting.UI.IssuePagingNum,
 				},
 				RepoID:   repo.ID,
-				IsClosed: util.OptionalBoolTrue,
+				IsClosed: optional.Some(true),
 				Name:     "",
 				SortType: sortType,
 			})
@@ -178,7 +179,7 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		count, err := db.Count[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 			RepoID:   repoID,
-			IsClosed: util.OptionalBoolTrue,
+			IsClosed: optional.Some(true),
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumClosedMilestones, count)
@@ -189,7 +190,7 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 
 	count, err := db.Count[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoID:   unittest.NonexistentID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
@@ -206,7 +207,7 @@ func TestCountMilestonesByRepoIDs(t *testing.T) {
 
 	openCounts, err := issues_model.CountMilestonesMap(db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoIDs:  []int64{1, 2},
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1OpenCount, openCounts[1])
@@ -215,7 +216,7 @@ func TestCountMilestonesByRepoIDs(t *testing.T) {
 	closedCounts, err := issues_model.CountMilestonesMap(db.DefaultContext,
 		issues_model.FindMilestoneOptions{
 			RepoIDs:  []int64{1, 2},
-			IsClosed: util.OptionalBoolTrue,
+			IsClosed: optional.Some(true),
 		})
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1ClosedCount, closedCounts[1])
@@ -234,7 +235,7 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 					PageSize: setting.UI.IssuePagingNum,
 				},
 				RepoIDs:  []int64{repo1.ID, repo2.ID},
-				IsClosed: util.OptionalBoolFalse,
+				IsClosed: optional.Some(false),
 				SortType: sortType,
 			})
 			assert.NoError(t, err)
@@ -252,7 +253,7 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 						PageSize: setting.UI.IssuePagingNum,
 					},
 					RepoIDs:  []int64{repo1.ID, repo2.ID},
-					IsClosed: util.OptionalBoolTrue,
+					IsClosed: optional.Some(true),
 					SortType: sortType,
 				})
 			assert.NoError(t, err)

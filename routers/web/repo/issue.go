@@ -138,7 +138,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -239,18 +239,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var isShowClosed util.OptionalBool
+	var isShowClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isShowClosed = util.OptionalBoolTrue
+		isShowClosed = optional.Some(true)
 	case "all":
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	default:
-		isShowClosed = util.OptionalBoolFalse
+		isShowClosed = optional.Some(false)
 	}
 	// if there are closed issues and no open issues, default to showing all issues
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	}
 
 	if repo.IsTimetrackerEnabled(ctx) {
@@ -270,10 +270,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var total int
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		total = int(issueStats.ClosedCount)
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		total = int(issueStats.OpenCount + issueStats.ClosedCount)
 	default:
 		total = int(issueStats.OpenCount)
@@ -429,7 +429,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.IsTrue())
+	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.Value())
 	if err != nil {
 		ctx.ServerError("GetPinnedIssues", err)
 		return
@@ -459,10 +459,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["Keyword"] = keyword
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		ctx.Data["State"] = "closed"
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		ctx.Data["State"] = "all"
 	default:
 		ctx.Data["State"] = "open"
@@ -511,7 +511,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
 	if ctx.Written() {
 		return
 	}
@@ -553,7 +553,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	var err error
 	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -561,7 +561,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	}
 	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -2500,14 +2500,14 @@ func SearchIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	var (
@@ -2582,14 +2582,12 @@ func SearchIssues(ctx *context.Context) {
 		keyword = ""
 	}
 
-	var isPull util.OptionalBool
+	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
-	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.Some(false)
 	}
 
 	var includedAnyLabels []int64
@@ -2724,14 +2722,14 @@ func ListIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -2783,14 +2781,12 @@ func ListIssues(ctx *context.Context) {
 		projectID = &v
 	}
 
-	var isPull util.OptionalBool
+	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
-	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.Some(false)
 	}
 
 	// FIXME: we should be more efficient here

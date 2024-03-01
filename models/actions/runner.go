@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -159,7 +160,7 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
-	IsOnline      util.OptionalBool
+	IsOnline      optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -186,9 +187,9 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
 
-	if opts.IsOnline.IsTrue() {
+	if opts.IsOnline.Value() {
 		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
-	} else if opts.IsOnline.IsFalse() {
+	} else if !opts.IsOnline.ValueOrDefault(true) {
 		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
 	}
 	return cond

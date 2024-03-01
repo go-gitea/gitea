@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -53,7 +54,7 @@ func Branches(ctx *context.Context) {
 
 	kw := ctx.FormString("q")
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, kw, page, pageSize)
+	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return

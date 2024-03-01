@@ -22,7 +22,7 @@ type OptionalBool byte
 
 const (
 	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone OptionalBool = iota
+	_ OptionalBool = iota
 	// OptionalBoolTrue a "true" boolean value
 	OptionalBoolTrue
 	// OptionalBoolFalse a "false" boolean value
@@ -34,19 +34,9 @@ func (o OptionalBool) IsTrue() bool {
 	return o == OptionalBoolTrue
 }
 
-// IsFalse return true if equal to OptionalBoolFalse
-func (o OptionalBool) IsFalse() bool {
-	return o == OptionalBoolFalse
-}
-
-// IsNone return true if equal to OptionalBoolNone
-func (o OptionalBool) IsNone() bool {
-	return o == OptionalBoolNone
-}
-
 // ToGeneric converts OptionalBool to optional.Option[bool]
 func (o OptionalBool) ToGeneric() optional.Option[bool] {
-	if o.IsNone() {
+	if o == 0 {
 		return optional.None[bool]()
 	}
 	return optional.Some[bool](o.IsTrue())
@@ -57,7 +47,7 @@ func OptionalBoolFromGeneric(o optional.Option[bool]) OptionalBool {
 	if o.Has() {
 		return OptionalBoolOf(o.Value())
 	}
-	return OptionalBoolNone
+	return 0
 }
 
 // OptionalBoolOf get the corresponding OptionalBool of a bool

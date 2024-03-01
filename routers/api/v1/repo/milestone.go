@@ -70,7 +70,7 @@ func ListMilestones(ctx *context.APIContext) {
 	milestones, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		IsClosed:    isClosed,
+		IsClosed:    isClosed.ToGeneric(),
 		Name:        ctx.FormString("name"),
 	})
 	if err != nil {
