@@ -373,7 +373,7 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
-// getAttachmentCommentIDs only return the comment ids which possiblly has attachments
+// getAttachmentCommentIDs only return the comment ids which possibly has attachments
 func (comments CommentList) getAttachmentCommentIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
