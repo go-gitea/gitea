@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -61,7 +61,7 @@ func ProcessorHelper() *markup.ProcessorHelper {
 				return nil, fmt.Errorf("cannot access repository code")
 			}
 
-			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 			if err != nil {
 				return nil, err
 			}
