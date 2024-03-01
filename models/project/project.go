@@ -6,6 +6,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"html/template"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -100,7 +101,7 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent template.HTML `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`

@@ -18,14 +18,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -142,7 +143,7 @@ func SearchIssues(ctx *context.APIContext) {
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
-			Collaborate: util.OptionalBoolNone,
+			Collaborate: optional.None[bool](),
 			// This needs to be a column that is not nil in fixtures or
 			// MySQL will return different results when sorting by null in some cases
 			OrderBy: db.SearchOrderByAlphabetically,
@@ -165,7 +166,7 @@ func SearchIssues(ctx *context.APIContext) {
 			opts.OwnerID = owner.ID
 			opts.AllLimited = false
 			opts.AllPublic = false
-			opts.Collaborate = util.OptionalBoolFalse
+			opts.Collaborate = optional.Some(false)
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
