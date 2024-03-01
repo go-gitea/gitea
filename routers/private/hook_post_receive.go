@@ -95,7 +95,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		var branchesToSync = make([]*repo_module.PushUpdateOptions, 0, len(updates))
+		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
 		for _, update := range updates {
 			if !update.RefFullName.IsBranch() {
 				continue

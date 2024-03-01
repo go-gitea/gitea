@@ -227,7 +227,7 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 // If no record is affected, that means the branch does not exist in database. So there are two possibilities.
 // One is this is a new branch, then we just need to insert the record. Another is the branches haven't been synced,
 // then we need to sync all the branches into database.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames []string, commitIDs []string, getCommit func(commitID string) (*git.Commit, error)) error {
+func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, commitIDs []string, getCommit func(commitID string) (*git.Commit, error)) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
