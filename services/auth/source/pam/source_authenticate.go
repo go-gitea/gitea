@@ -39,13 +39,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if idx > -1 {
 		username = pamLogin[:idx]
 	}
-	if user_model.ValidateEmail(email) != nil {
+	if user_model.ValidateEmail(email, false) != nil {
 		if source.EmailDomain != "" {
 			email = fmt.Sprintf("%s@%s", username, source.EmailDomain)
 		} else {
 			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
 		}
-		if user_model.ValidateEmail(email) != nil {
+		if user_model.ValidateEmail(email, false) != nil {
 			email = uuid.New().String() + "@localhost"
 		}
 	}

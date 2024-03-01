@@ -19,7 +19,7 @@ func AddOrSetPrimaryEmailAddress(ctx context.Context, u *user_model.User, emailS
 		return nil
 	}
 
-	if err := user_model.ValidateEmail(emailStr); err != nil {
+	if err := user_model.ValidateEmail(emailStr, false); err != nil {
 		return err
 	}
 
@@ -72,7 +72,7 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return nil
 	}
 
-	if err := user_model.ValidateEmail(emailStr); err != nil {
+	if err := user_model.ValidateEmail(emailStr, false); err != nil {
 		return err
 	}
 
@@ -117,7 +117,7 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 
 func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
 	for _, emailStr := range emails {
-		if err := user_model.ValidateEmail(emailStr); err != nil {
+		if err := user_model.ValidateEmail(emailStr, false); err != nil {
 			return err
 		}
 

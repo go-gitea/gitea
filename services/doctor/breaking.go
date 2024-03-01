@@ -39,7 +39,7 @@ func checkUserEmail(ctx context.Context, logger log.Logger, _ bool) error {
 			return nil
 		}
 
-		if err := user.ValidateEmail(u.Email); err != nil {
+		if err := user.ValidateEmail(u.Email, false); err != nil {
 			invalidUserCount++
 			logger.Warn("User[id=%d name=%q] have not a valid e-mail: %v", u.ID, u.Name, err)
 		}

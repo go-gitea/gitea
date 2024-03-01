@@ -155,7 +155,7 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a allowed address
-func ValidateEmail(email string) error {
+func ValidateEmail(email string, skipDomainCheck bool) error {
 	if len(email) == 0 {
 		return ErrEmailInvalid{email}
 	}
@@ -172,16 +172,18 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// if there is no allow list, then check email against block list
-	if len(setting.Service.EmailDomainAllowList) == 0 &&
-		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
-		return ErrEmailInvalid{email}
-	}
+	if !skipDomainCheck {
+		// if there is no allow list, then check email against block list
+		if len(setting.Service.EmailDomainAllowList) == 0 &&
+			validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
+			return ErrEmailInvalid{email}
+		}
 
-	// if there is an allow list, then check email against allow list
-	if len(setting.Service.EmailDomainAllowList) > 0 &&
-		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
-		return ErrEmailInvalid{email}
+		// if there is an allow list, then check email against allow list
+		if len(setting.Service.EmailDomainAllowList) > 0 &&
+			!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+			return ErrEmailInvalid{email}
+		}
 	}
 
 	return nil

@@ -639,7 +639,7 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	if err := ValidateEmail(u.Email); err != nil {
+	if err := ValidateEmail(u.Email, false); err != nil {
 		return err
 	}
 
