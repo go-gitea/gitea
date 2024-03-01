@@ -61,7 +61,7 @@
 					<div class="ui attached segment comment-body" role="article">
 						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
-								{{.RenderedContent|Str2html}}
+								{{.RenderedContent}}
 							{{else}}
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
@@ -432,7 +432,7 @@
 						<div class="ui attached segment comment-body">
 							<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 								{{if .RenderedContent}}
-									{{.RenderedContent|Str2html}}
+									{{.RenderedContent}}
 								{{else}}
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
@@ -631,7 +631,7 @@
 							<div class="ui attached segment">
 								<div class="render-content markup">
 									{{if .RenderedContent}}
-										{{.RenderedContent|Str2html}}
+										{{.RenderedContent}}
 									{{else}}
 										<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 									{{end}}
