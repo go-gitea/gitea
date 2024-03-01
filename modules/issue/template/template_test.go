@@ -336,6 +336,26 @@ body:
 			wantErr: "body[0](input): can not require a hidden field",
 		},
 		{
+			name: "checkboxes is required but hidden",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: checkboxes
+    id: "1"
+    attributes:
+      label: Label of checkboxes
+      description: Description of checkboxes
+      options:
+        - label: Option 1
+          required: false
+        - label: Required and hidden
+          required: true
+          visible: [content]
+`,
+			wantErr: "body[0](checkboxes), option[1]: can not require a hidden checkbox",
+		},
+		{
 			name: "valid",
 			content: `
 name: Name
@@ -392,10 +412,10 @@ body:
         - label: Option 2 of checkboxes
           required: false
         - label: Hidden Option 3 of checkboxes
-          hide_on_form: true
+          visible: [content]
         - label: Required but not submitted
           required: true
-          skip_submit: true
+          visible: [form]
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -470,8 +490,8 @@ body:
 							"options": []any{
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
-								map[string]any{"label": "Hidden Option 3 of checkboxes", "hide_on_form": true},
-								map[string]any{"label": "Required but not submitted", "required": true, "skip_submit": true},
+								map[string]any{"label": "Hidden Option 3 of checkboxes", "visible": []string{"content"}},
+								map[string]any{"label": "Required but not submitted", "required": true, "visible": []string{"form"}},
 							},
 						},
 						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
@@ -716,9 +736,9 @@ body:
           required: false
         - label: Option 3 of checkboxes
           required: true
-          skip_submit: true
+          visible: [form]
         - label: Hidden Option of checkboxes
-          hide_on_form: true
+          visible: [content]
 `,
 				values: map[string][]string{
 					"form-field-id3":   {"Value of id3"},

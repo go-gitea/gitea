@@ -178,21 +178,37 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("'label' is required and should be a string")
 			}
 
+			if visible, ok := opt["visible"]; ok {
+				visibleList, ok := visible.([]any)
+				if !ok {
+					return position.Errorf("'visible' should be list")
+				}
+				for _, visibleType := range visibleList {
+					visibleType, ok := visibleType.(string)
+					if !ok || !(visibleType == "form" || visibleType == "content") {
+						return position.Errorf("'visible' list can only contain strings of 'form' and 'content'")
+					}
+				}
+			}
+
 			if required, ok := opt["required"]; ok {
 				if _, ok := required.(bool); !ok {
 					return position.Errorf("'required' should be a bool")
 				}
-			}
 
-			if skipSubmit, ok := opt["skip_submit"]; ok {
-				if _, ok := skipSubmit.(bool); !ok {
-					return position.Errorf("'skip_submit' should be a bool")
-				}
-			}
-
-			if hide, ok := opt["hide_on_form"]; ok {
-				if _, ok := hide.(bool); !ok {
-					return position.Errorf("'hide_on_form' should be a bool")
+				// validate if hidden field is required
+				if visible, ok := opt["visible"]; ok {
+					visibleList, _ := visible.([]any)
+					isVisible := false
+					for _, v := range visibleList {
+						if vv, _ := v.(string); vv == "form" {
+							isVisible = true
+							break
+						}
+					}
+					if !isVisible {
+						return position.Errorf("can not require a hidden checkbox")
+					}
 				}
 			}
 		}
@@ -282,7 +298,7 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	switch f.Type {
 	case api.IssueFormFieldTypeCheckboxes:
 		for _, option := range f.Options() {
-			if option.NoSubmit() {
+			if !option.VisibleInContent() {
 				continue
 			}
 			checked := " "
@@ -408,15 +424,20 @@ func (o *valuedOption) IsChecked() bool {
 	return false
 }
 
-func (o *valuedOption) NoSubmit() bool {
+func (o *valuedOption) VisibleInContent() bool {
 	if o.field.Type == api.IssueFormFieldTypeCheckboxes {
 		if vs, ok := o.data.(map[string]any); ok {
-			if v, ok := vs["skip_submit"].(bool); ok {
-				return v
+			if vl, ok := vs["visible"].([]any); ok {
+				for _, v := range vl {
+					if vv, _ := v.(string); vv == "content" {
+						return true
+					}
+				}
+				return false
 			}
 		}
 	}
-	return false
+	return true
 }
 
 var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
