@@ -162,7 +162,7 @@
 				</span>
 				<div class="detail">
 					{{svg "octicon-git-commit"}}
-					<span class="text grey muted-links">{{.Content | Str2html}}</span>
+					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 7}}
