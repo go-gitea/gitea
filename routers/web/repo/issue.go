@@ -589,7 +589,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolFalse,
+		IsClosed:    optional.Some(false),
 		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
@@ -599,7 +599,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolFalse,
+		IsClosed:    optional.Some(false),
 		Type:        repoOwnerType,
 	})
 	if err != nil {
@@ -612,7 +612,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolTrue,
+		IsClosed:    optional.Some(true),
 		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
@@ -622,7 +622,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolTrue,
+		IsClosed:    optional.Some(true),
 		Type:        repoOwnerType,
 	})
 	if err != nil {

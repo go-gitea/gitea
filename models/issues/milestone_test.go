@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -40,15 +39,15 @@ func TestGetMilestoneByRepoID(t *testing.T) {
 func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
-		var isClosed util.OptionalBool
+		var isClosed optional.Option[bool]
 		switch state {
 		case api.StateClosed, api.StateOpen:
-			isClosed = util.OptionalBoolOf(state == api.StateClosed)
+			isClosed = optional.Some(state == api.StateClosed)
 		}
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 			RepoID:   repo.ID,
-			IsClosed: isClosed.ToGeneric(),
+			IsClosed: isClosed,
 		})
 		assert.NoError(t, err)
 
