@@ -146,7 +146,6 @@ type IssueFormField struct {
 	ID          string             `json:"id" yaml:"id"`
 	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
 	Validations map[string]any     `json:"validations" yaml:"validations"`
-	// enum: form,content
 	// default: [form,content]
 	Visible []IssueFormFieldVisible `json:"visible,omitempty"`
 }
