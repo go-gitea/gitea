@@ -82,6 +82,8 @@ func TestContentHistory(t *testing.T) {
 func TestHasIssueContentHistoryForCommentOnly(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	_ = db.TruncateBeans(db.DefaultContext, &issues_model.ContentHistory{})
+
 	hasHistory1, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 0)
 	assert.False(t, hasHistory1)
 	hasHistory2, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 100)
