@@ -690,6 +690,33 @@
       }
     },
     "/admin/users/{username}/badges": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List a user's badges",
+        "operationId": "adminListUserBadges",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BadgeList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -16250,35 +16277,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ActivityFeedsList"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/users/{username}/badges": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "List a user's badges",
-        "operationId": "adminListUserBadges",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/BadgeList"
           },
           "404": {
             "$ref": "#/responses/notFound"
