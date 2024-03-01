@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -104,9 +103,6 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
-	// TODO: remove debug code
-	log.Info("Debug git hook, HookPreReceive: %v", time.Now().Format(time.RFC3339Nano))
-
 	opts := web.GetForm(ctx).(*private.HookOptions)
 
 	ourCtx := &preReceiveContext{

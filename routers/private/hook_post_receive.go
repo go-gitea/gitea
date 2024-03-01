@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -25,9 +24,6 @@ import (
 
 // HookPostReceive updates services and users
 func HookPostReceive(ctx *gitea_context.PrivateContext) {
-	// TODO: remove debug code
-	log.Info("Debug git hook, HookPostReceive: %v", time.Now().Format(time.RFC3339Nano))
-
 	opts := web.GetForm(ctx).(*private.HookOptions)
 
 	// We don't rely on RepoAssignment here because:
@@ -97,8 +93,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			})
 			return
 		}
-		// TODO: remove debug code
-		log.Info("Debug git hook, before sync %v branches: %v", len(updates), time.Now().Format(time.RFC3339Nano))
 
 		for _, update := range updates {
 			if !update.RefFullName.IsBranch() {
@@ -139,9 +133,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 		}
-
-		// TODO: remove debug code
-		log.Info("Debug git hook, after sync %v branches: %v", len(updates), time.Now().Format(time.RFC3339Nano))
 	}
 
 	// Handle Push Options
