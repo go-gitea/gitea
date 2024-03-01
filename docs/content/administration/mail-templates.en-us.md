@@ -224,7 +224,7 @@ Please check [Gitea's logs](administration/logging-config.md) for error messages
         {{if not (eq .Body "")}}
             <h3>Message content</h3>
             <hr>
-            {{.Body | Str2html}}
+            {{.Body | SanitizeHTML}}
         {{end}}
     </p>
     <hr>
@@ -260,19 +260,19 @@ The template system contains several functions that can be used to further proce
 the messages. Here's a list of some of them:
 
 | Name             | Parameters  | Available | Usage                                                                       |
-| ---------------- | ----------- | --------- | --------------------------------------------------------------------------- |
+| ---------------- | ----------- | --------- |-----------------------------------------------------------------------------|
 | `AppUrl`         | -           | Any       | Gitea's URL                                                                 |
 | `AppName`        | -           | Any       | Set from `app.ini`, usually "Gitea"                                         |
 | `AppDomain`      | -           | Any       | Gitea's host name                                                           |
 | `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed         |
-| `Str2html`       | string      | Body only | Sanitizes text by removing any HTML tags from it.                           |
+| `SanitizeHTML`   | string      | Body only | Sanitizes text by removing any dangerous HTML tags from it.                 |
 | `SafeHTML`       | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
 
 These are _functions_, not metadata, so they have to be used:
 
 ```html
-Like this:         {{Str2html "Escape<my>text"}}
-Or this:           {{"Escape<my>text" | Str2html}}
+Like this:         {{SanitizeHTML "Escape<my>text"}}
+Or this:           {{"Escape<my>text" | SanitizeHTML}}
 Or this:           {{AppUrl}}
 But not like this: {{.AppUrl}}
 ```
