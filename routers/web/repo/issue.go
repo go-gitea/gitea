@@ -1592,7 +1592,7 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 
-	if err := issue.Comments.LoadAttachments(ctx); err != nil {
+	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {
 		ctx.ServerError("LoadAttachments", err)
 		return
 	}

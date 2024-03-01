@@ -386,6 +386,28 @@ func (comments CommentList) getAttachmentCommentIDs() []int64 {
 	return ids.Values()
 }
 
+// LoadAttachmentsByIssue loads attachments by issue id
+func (comments CommentList) LoadAttachmentsByIssue(ctx context.Context) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	attachments := make([]*repo_model.Attachment, 0, len(comments)/2)
+	if err := db.GetEngine(ctx).Where("issue_id=? AND comment_id>0", comments[0].IssueID).Find(&attachments); err != nil {
+		return err
+	}
+
+	commentAttachmentsMap := make(map[int64][]*repo_model.Attachment, len(comments))
+	for _, attach := range attachments {
+		commentAttachmentsMap[attach.CommentID] = append(commentAttachmentsMap[attach.CommentID], attach)
+	}
+
+	for _, comment := range comments {
+		comment.Attachments = commentAttachmentsMap[comment.ID]
+	}
+	return nil
+}
+
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
