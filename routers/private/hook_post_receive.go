@@ -105,32 +105,32 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 				wasEmpty = repo.IsEmpty
 			}
-			if gitRepo == nil {
-				var err error
-				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+
+			if !update.IsDelRef() {
+				if gitRepo == nil {
+					var err error
+					gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+					if err != nil {
+						log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+							Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+						})
+						return
+					}
+				}
+				commit, err := gitRepo.GetCommit(update.NewCommitID)
 				if err != nil {
-					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+						Err: fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", update.NewCommitID, ownerName, repoName, err),
 					})
 					return
 				}
-			}
- var commit *git.Commit
-      if !opts.IsDelRef() {
-			    commit, err := gitRepo.GetCommit(update.NewCommitID)
-			    if err != nil {
-				    ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", update.NewCommitID, ownerName, repoName, err),
-				  })
-				  return
+				if err := repo_service.SyncBranchToDB(ctx, repo.ID, update.PusherID, update.RefFullName.BranchName(), commit); err != nil {
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
 				}
-			}
-			if err := repo_service.SyncBranchToDB(ctx, repo.ID, update.PusherID, update.RefFullName.BranchName(), commit); err != nil {
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
 			}
 		}
 	}
