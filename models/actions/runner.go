@@ -187,10 +187,12 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
 
-	if opts.IsOnline.Value() {
-		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
-	} else if !opts.IsOnline.ValueOrDefault(true) {
-		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	if opts.IsOnline.Has() {
+		if opts.IsOnline.Value() {
+			cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		} else {
+			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		}
 	}
 	return cond
 }
