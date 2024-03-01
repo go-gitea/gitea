@@ -55,7 +55,7 @@ func record(ctx context.Context, action audit_model.Action, actor *user_model.Us
 		log.Error("Error writing audit event to file: %v", err)
 	}
 	if err := writeToDatabase(ctx, e); err != nil {
-		log.Error("Error writing audit event to database: %v", err)
+		log.Error("Error writing audit event %+v to database: %v", e, err)
 	}
 }
 
@@ -277,7 +277,7 @@ func RecordUserKeyGPGRemove(ctx context.Context, doer, user *user_model.User, ke
 
 func RecordSecretAdd(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, secret *secret_model.Secret) {
 	if owner == nil {
-		record(ctx, audit_model.RepositorySecretAdd, doer, repo, secret, "Added secret %s for repository %s.", secret.Name, repo.Name)
+		record(ctx, audit_model.RepositorySecretAdd, doer, repo, secret, "Added secret %s for repository %s.", secret.Name, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationSecretAdd, doer, owner, secret, "Added secret %s for organization %s.", secret.Name, owner.Name)
 	} else {
@@ -287,7 +287,7 @@ func RecordSecretAdd(ctx context.Context, doer, owner *user_model.User, repo *re
 
 func RecordSecretUpdate(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, secret *secret_model.Secret) {
 	if owner == nil {
-		record(ctx, audit_model.RepositorySecretUpdate, doer, repo, secret, "Updated secret %s of repository %s.", secret.Name, repo.Name)
+		record(ctx, audit_model.RepositorySecretUpdate, doer, repo, secret, "Updated secret %s of repository %s.", secret.Name, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationSecretUpdate, doer, owner, secret, "Updated secret %s of organization %s.", secret.Name, owner.Name)
 	} else {
@@ -297,7 +297,7 @@ func RecordSecretUpdate(ctx context.Context, doer, owner *user_model.User, repo 
 
 func RecordSecretRemove(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, secret *secret_model.Secret) {
 	if owner == nil {
-		record(ctx, audit_model.RepositorySecretRemove, doer, repo, secret, "Removed secret %s of repository %s.", secret.Name, repo.Name)
+		record(ctx, audit_model.RepositorySecretRemove, doer, repo, secret, "Removed secret %s of repository %s.", secret.Name, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationSecretRemove, doer, owner, secret, "Removed secret %s of organization %s.", secret.Name, owner.Name)
 	} else {
@@ -309,7 +309,7 @@ func RecordWebhookAdd(ctx context.Context, doer, owner *user_model.User, repo *r
 	if owner == nil && repo == nil {
 		record(ctx, audit_model.SystemWebhookAdd, doer, &systemObject, hook, "Added instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
-		record(ctx, audit_model.RepositoryWebhookAdd, doer, repo, hook, "Added webhook %s for repository %s.", hook.URL, repo.Name)
+		record(ctx, audit_model.RepositoryWebhookAdd, doer, repo, hook, "Added webhook %s for repository %s.", hook.URL, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationWebhookAdd, doer, owner, hook, "Added webhook %s for organization %s.", hook.URL, owner.Name)
 	} else {
@@ -321,7 +321,7 @@ func RecordWebhookUpdate(ctx context.Context, doer, owner *user_model.User, repo
 	if owner == nil && repo == nil {
 		record(ctx, audit_model.SystemWebhookUpdate, doer, &systemObject, hook, "Updated instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
-		record(ctx, audit_model.RepositoryWebhookUpdate, doer, repo, hook, "Updated webhook %s of repository %s.", hook.URL, repo.Name)
+		record(ctx, audit_model.RepositoryWebhookUpdate, doer, repo, hook, "Updated webhook %s of repository %s.", hook.URL, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationWebhookUpdate, doer, owner, hook, "Updated webhook %s of organization %s.", hook.URL, owner.Name)
 	} else {
@@ -333,7 +333,7 @@ func RecordWebhookRemove(ctx context.Context, doer, owner *user_model.User, repo
 	if owner == nil && repo == nil {
 		record(ctx, audit_model.SystemWebhookRemove, doer, &systemObject, hook, "Removed instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
-		record(ctx, audit_model.RepositoryWebhookRemove, doer, repo, hook, "Removed webhook %s of repository %s.", hook.URL, repo.Name)
+		record(ctx, audit_model.RepositoryWebhookRemove, doer, repo, hook, "Removed webhook %s of repository %s.", hook.URL, repo.FullName())
 	} else if owner.IsOrganization() {
 		record(ctx, audit_model.OrganizationWebhookRemove, doer, owner, hook, "Removed webhook %s of organization %s.", hook.URL, owner.Name)
 	} else {
@@ -403,15 +403,15 @@ func RecordRepositoryConvertFork(ctx context.Context, doer *user_model.User, rep
 }
 
 func RecordRepositoryConvertMirror(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
-	record(ctx, audit_model.RepositoryConvertMirror, doer, repo, repo, "Converted repository %s from mirror to regular repository.", repo.FullName())
+	record(ctx, audit_model.RepositoryConvertMirror, doer, repo, repo, "Converted repository %s from pull mirror to regular repository.", repo.FullName())
 }
 
 func RecordRepositoryMirrorPushAdd(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, mirror *repository_model.PushMirror) {
-	record(ctx, audit_model.RepositoryMirrorPushAdd, doer, repo, mirror, "Added push mirror for repository %s.", repo.FullName())
+	record(ctx, audit_model.RepositoryMirrorPushAdd, doer, repo, mirror, "Added push mirror to %s for repository %s.", mirror.RemoteAddress, repo.FullName())
 }
 
 func RecordRepositoryMirrorPushRemove(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, mirror *repository_model.PushMirror) {
-	record(ctx, audit_model.RepositoryMirrorPushRemove, doer, repo, mirror, "Removed push mirror for repository %s.", repo.FullName())
+	record(ctx, audit_model.RepositoryMirrorPushRemove, doer, repo, mirror, "Removed push mirror to %s for repository %s.", mirror.RemoteAddress, repo.FullName())
 }
 
 func RecordRepositorySigningVerification(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
@@ -419,11 +419,11 @@ func RecordRepositorySigningVerification(ctx context.Context, doer *user_model.U
 }
 
 func RecordRepositoryTransferStart(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, newOwner *user_model.User) {
-	record(ctx, audit_model.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
+	record(ctx, audit_model.RepositoryTransferStart, doer, repo, repo, "Started repository transfer of %s to %s.", repo.FullName(), newOwner.Name)
 }
 
 func RecordRepositoryTransferAccept(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, oldOwner *user_model.User) {
-	record(ctx, audit_model.RepositoryTransferAccept, doer, repo, repo, "Accepted repository transfer from %s to %s.", oldOwner.Name, repo.OwnerName)
+	record(ctx, audit_model.RepositoryTransferAccept, doer, repo, repo, "Accepted repository transfer of %s from %s to %s.", repo.Fullname(), oldOwner.Name, repo.OwnerName)
 }
 
 func RecordRepositoryTransferReject(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
