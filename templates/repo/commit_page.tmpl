@@ -276,7 +276,7 @@
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{.NoteRendered | Str2html}}</pre>
+				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}
