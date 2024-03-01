@@ -19,7 +19,9 @@ type CommentList []*Comment
 func (comments CommentList) getPosterIDs() []int64 {
 	posterIDs := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		posterIDs.Add(comment.PosterID)
+		if comment.PosterID > 0 {
+			posterIDs.Add(comment.PosterID)
+		}
 	}
 	return posterIDs.Values()
 }
@@ -41,18 +43,12 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) getCommentIDs() []int64 {
-	ids := make([]int64, 0, len(comments))
-	for _, comment := range comments {
-		ids = append(ids, comment.ID)
-	}
-	return ids
-}
-
 func (comments CommentList) getLabelIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.LabelID)
+		if comment.LabelID > 0 {
+			ids.Add(comment.LabelID)
+		}
 	}
 	return ids.Values()
 }
@@ -100,7 +96,9 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 func (comments CommentList) getMilestoneIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.MilestoneID)
+		if comment.MilestoneID > 0 {
+			ids.Add(comment.MilestoneID)
+		}
 	}
 	return ids.Values()
 }
@@ -141,7 +139,9 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 func (comments CommentList) getOldMilestoneIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.OldMilestoneID)
+		if comment.OldMilestoneID > 0 {
+			ids.Add(comment.OldMilestoneID)
+		}
 	}
 	return ids.Values()
 }
@@ -182,7 +182,9 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 func (comments CommentList) getAssigneeIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.AssigneeID)
+		if comment.AssigneeID > 0 {
+			ids.Add(comment.AssigneeID)
+		}
 	}
 	return ids.Values()
 }
@@ -314,7 +316,9 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 		if comment.DependentIssue != nil {
 			continue
 		}
-		ids.Add(comment.DependentIssueID)
+		if comment.DependentIssueID > 0 {
+			ids.Add(comment.DependentIssueID)
+		}
 	}
 	return ids.Values()
 }
@@ -427,7 +431,9 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 func (comments CommentList) getReviewIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.ReviewID)
+		if comment.ReviewID > 0 {
+			ids.Add(comment.ReviewID)
+		}
 	}
 	return ids.Values()
 }
