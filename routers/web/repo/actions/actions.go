@@ -7,7 +7,7 @@ import (
 	"bytes"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 	"fmt"
 	"net/http"
 	"slices"
@@ -163,7 +163,7 @@ func List(ctx *context.Context) {
 
 				branchOpts := git_model.FindBranchOptions{
 					RepoID:          ctx.Repo.Repository.ID,
-					IsDeletedBranch: util.OptionalBoolFalse,
+					IsDeletedBranch: optional.Some(false),
 					ListOptions: db.ListOptions{
 						ListAll: true,
 					},
