@@ -87,7 +87,7 @@
 						<div class="text comment-content">
 							<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
-								{{.RenderedContent|Str2html}}
+								{{.RenderedContent}}
 							{{else}}
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
