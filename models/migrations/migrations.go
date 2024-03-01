@@ -558,6 +558,8 @@ var migrations = []Migration{
 	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
+	// v287 -> v288
+	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
 }
 
 // GetCurrentDBVersion returns the current db version

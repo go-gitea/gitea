@@ -369,6 +369,18 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
+func (comments CommentList) getAttachmentCommentIDs() []int64 {
+	ids := make(container.Set[int64], len(comments))
+	for _, comment := range comments {
+		if comment.Type == CommentTypeComment ||
+			comment.Type == CommentTypeReview ||
+			comment.Type == CommentTypeCode {
+			ids.Add(comment.ID)
+		}
+	}
+	return ids.Values()
+}
+
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
@@ -376,16 +388,15 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	}
 
 	attachments := make(map[int64][]*repo_model.Attachment, len(comments))
-	commentsIDs := comments.getCommentIDs()
+	commentsIDs := comments.getAttachmentCommentIDs()
 	left := len(commentsIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "comment", "comment.id = attachment.comment_id").
-			In("comment.id", commentsIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("comment_id", commentsIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err

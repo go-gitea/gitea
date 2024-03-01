@@ -323,10 +323,6 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := comments.LoadPosters(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
-		return
-	}
 	if err := comments.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
