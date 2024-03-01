@@ -15,8 +15,6 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-	fBool := false
-	tBool := true
 	tests := []struct {
 		name     string
 		filename string
@@ -333,7 +331,7 @@ body:
       label: "a"
     validations:
       required: true
-    hide_on_form: true
+    visible: [content]
 `,
 			wantErr: "body[0](input): can not require a hidden field",
 		},
@@ -412,8 +410,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						SkipSubmit: &tBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 					{
 						Type: "textarea",
@@ -428,8 +425,7 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						SkipSubmit: &fBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "input",
@@ -445,8 +441,7 @@ body:
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
 						},
-						SkipSubmit: &fBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "dropdown",
@@ -464,8 +459,7 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
-						SkipSubmit: &fBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "checkboxes",
@@ -480,8 +474,7 @@ body:
 								map[string]any{"label": "Required but not submitted", "required": true, "skip_submit": true},
 							},
 						},
-						SkipSubmit: &fBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 				},
 				FileName: "test.yaml",
@@ -505,8 +498,7 @@ body:
     id: id2
     attributes:
       value: Value of the markdown shown in created issue
-    hide_on_form: true
-    skip_submit: false
+    visible: [content]
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -521,8 +513,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in form",
 						},
-						SkipSubmit: &tBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 					{
 						Type: "markdown",
@@ -530,8 +521,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown shown in created issue",
 						},
-						SkipSubmit: &fBool,
-						HideOnForm: true,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleContent},
 					},
 				},
 				FileName: "test.yaml",
@@ -565,8 +555,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						SkipSubmit: &tBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 				},
 				FileName: "test.yaml",
@@ -600,8 +589,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
-						SkipSubmit: &tBool,
-						HideOnForm: false,
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 				},
 				FileName: "test.yaml",
@@ -681,8 +669,7 @@ body:
     id: id2
     attributes:
       value: Value of the markdown shown in created issue
-    hide_on_form: true
-    skip_submit: false
+    visible: [content]
   - type: textarea
     id: id3
     attributes:
