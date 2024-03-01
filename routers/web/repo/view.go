@@ -1095,10 +1095,7 @@ func checkOutdatedBranch(ctx *context.Context) {
 	}
 
 	if dbBranch.CommitID != commit.ID.String() {
-		ctx.Flash.Warning(ctx.Tr(
-			"repo.error.broken_git_hook",
-			"https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running",
-		), true)
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
 	}
 }
 
