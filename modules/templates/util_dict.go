@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"reflect"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -51,7 +52,7 @@ func dict(args ...any) (map[string]any, error) {
 	return m, nil
 }
 
-func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
+func dumpVarMarshalable(v any, dumped container.Set[uintptr]) (ret any, ok bool) {
 	if v == nil {
 		return nil, true
 	}
@@ -61,11 +62,10 @@ func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
 	}
 	if e.CanAddr() {
 		addr := e.UnsafeAddr()
-		if dumped[addr] {
+		if !dumped.Add(addr) {
 			return "[dumped]", false
 		}
-		dumped[addr] = true
-		defer delete(dumped, addr)
+		defer dumped.Remove(addr)
 	}
 	switch e.Kind() {
 	case reflect.Bool, reflect.String,
@@ -107,7 +107,7 @@ func dumpVar(v any) template.HTML {
 	if setting.IsProd {
 		return "<pre>dumpVar: only available in dev mode</pre>"
 	}
-	m, ok := dumpVarMarshalable(v, map[uintptr]bool{})
+	m, ok := dumpVarMarshalable(v, make(container.Set[uintptr]))
 	var dumpStr string
 	jsonBytes, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {

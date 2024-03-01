@@ -4,10 +4,10 @@
 	<div class="ui container">
 		<div class="ui center segment gt-py-5">
 			{{svg "octicon-book" 48}}
-			<h2>{{.locale.Tr "repo.wiki.welcome"}}</h2>
-			<p>{{.locale.Tr "repo.wiki.welcome_desc"}}</p>
+			<h2>{{ctx.Locale.Tr "repo.wiki.welcome"}}</h2>
+			<p>{{ctx.Locale.Tr "repo.wiki.welcome_desc"}}</p>
 			{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-				<a class="ui green button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.create_first_page"}}</a>
+				<a class="ui primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.create_first_page"}}</a>
 			{{end}}
 		</div>
 	</div>

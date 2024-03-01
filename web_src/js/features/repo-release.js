@@ -1,19 +1,19 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
-  $(document).on('click', '.remove-rel-attach', function() {
-    const uuid = $(this).data('uuid');
-    const id = $(this).data('id');
-    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
-    hideElem($(`#attachment-${id}`));
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.remove-rel-attach')) {
+      const uuid = e.target.getAttribute('data-uuid');
+      const id = e.target.getAttribute('data-id');
+      document.querySelector(`input[name='attachment-del-${uuid}']`).value = 'true';
+      hideElem(`#attachment-${id}`);
+    }
   });
 }
 
 export function initRepoReleaseNew() {
-  const $repoReleaseNew = $('.repository.new.release');
-  if (!$repoReleaseNew.length) return;
+  if (!document.querySelector('.repository.new.release')) return;
 
   initTagNameEditor();
   initRepoReleaseEditor();
@@ -45,9 +45,9 @@ function initTagNameEditor() {
 }
 
 function initRepoReleaseEditor() {
-  const $editor = $('.repository.new.release .combo-markdown-editor');
-  if ($editor.length === 0) {
+  const editor = document.querySelector('.repository.new.release .combo-markdown-editor');
+  if (!editor) {
     return;
   }
-  const _promise = initComboMarkdownEditor($editor);
+  initComboMarkdownEditor(editor);
 }

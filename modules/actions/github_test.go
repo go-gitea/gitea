@@ -103,6 +103,12 @@ func TestCanGithubEventMatch(t *testing.T) {
 			webhook_module.HookEventCreate,
 			true,
 		},
+		{
+			"create pull request comment",
+			GithubEventIssueComment,
+			webhook_module.HookEventPullRequestComment,
+			true,
+		},
 	}
 
 	for _, tc := range testCases {

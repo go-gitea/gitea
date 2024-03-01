@@ -5,27 +5,27 @@
 	{{$.CsrfTokenHtml}}
 </form>
 
-<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
+<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
-		<span class="text branch-name">{{if .Reference}}{{$.RefEndName}}{{else}}{{.locale.Tr "repo.issues.no_ref"}}{{end}}</span>
+		<span class="text branch-name">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
 	</div>
 	<div class="menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-filter" 16}}</i>
-			<input name="search" placeholder="{{.locale.Tr "repo.filter_branch_and_tag"}}...">
+			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="header">
 			<div class="ui grid">
 				<div class="two column row">
 					<a class="reference column" href="#" data-target="#branch-list">
 						<span class="text black">
-							{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.locale.Tr "repo.branches"}}
+							{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.branches"}}
 						</span>
 					</a>
 					<a class="reference column" href="#" data-target="#tag-list">
 						<span class="text">
-							{{svg "octicon-tag" 16 "gt-mr-2"}}{{.locale.Tr "repo.tags"}}
+							{{svg "octicon-tag" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.tags"}}
 						</span>
 					</a>
 				</div>
@@ -33,7 +33,7 @@
 		</div>
 		<div id="branch-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}">
 			{{if .Reference}}
-				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{$.locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
@@ -41,7 +41,7 @@
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} gt-hidden">
 			{{if .Reference}}
-				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>

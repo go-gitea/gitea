@@ -44,11 +44,17 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 	}
 	if _, err := stpl.New(name).
 		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+		log.Error("Failed to parse template [%s/subject]: %v", name, err)
+		if !setting.IsProd {
+			log.Fatal("Please fix the mail template error")
+		}
 	}
 	if _, err := btpl.New(name).
 		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+		log.Error("Failed to parse template [%s/body]: %v", name, err)
+		if !setting.IsProd {
+			log.Fatal("Please fix the mail template error")
+		}
 	}
 }
 

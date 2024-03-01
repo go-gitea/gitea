@@ -4,15 +4,15 @@
 	<div class="ui container">
 		<div id="git-graph-container" class="ui segment{{if eq .Mode "monochrome"}} monochrome{{end}}">
 			<h2 class="ui header dividing">
-				{{.locale.Tr "repo.commit_graph"}}
+				{{ctx.Locale.Tr "repo.commit_graph"}}
 				<div class="ui icon buttons tiny color-buttons">
 					<div class="ui multiple selection search dropdown" id="flow-select-refs-dropdown">
 						<input type="hidden" name="flow">
-						<div class="default text">{{.locale.Tr "repo.commit_graph.select"}}</div>
+						<div class="default text">{{ctx.Locale.Tr "repo.commit_graph.select"}}</div>
 						<div class="menu">
 							<div class="item" data-value="...flow-hide-pr-refs">
 								<span class="truncate">
-									{{svg "octicon-eye-closed" 16 "gt-mr-2"}}<span title="{{.locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{.locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
+									{{svg "octicon-eye-closed" 16 "gt-mr-2"}}<span title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
 								</span>
 							</div>
 							{{range .AllRefs}}
@@ -45,8 +45,8 @@
 							{{end}}
 						</div>
 					</div>
-					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.locale.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "gt-mr-2"}}{{.locale.Tr "repo.commit_graph.monochrome"}}</button>
-					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.locale.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "gt-mr-2"}}{{.locale.Tr "repo.commit_graph.color"}}</button>
+					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}</button>
+					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.commit_graph.color"}}</button>
 				</div>
 			</h2>
 			<div class="ui dividing"></div>

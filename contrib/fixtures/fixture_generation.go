@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ import (
 
 var (
 	generators = []struct {
-		gen  func() (string, error)
+		gen  func(ctx context.Context) (string, error)
 		name string
 	}{
 		{
@@ -41,16 +42,17 @@ func main() {
 		fmt.Printf("PrepareTestDatabase: %+v\n", err)
 		os.Exit(1)
 	}
+	ctx := context.Background()
 	if len(os.Args) == 0 {
 		for _, r := range os.Args {
-			if err := generate(r); err != nil {
+			if err := generate(ctx, r); err != nil {
 				fmt.Printf("generate '%s': %+v\n", r, err)
 				os.Exit(1)
 			}
 		}
 	} else {
 		for _, g := range generators {
-			if err := generate(g.name); err != nil {
+			if err := generate(ctx, g.name); err != nil {
 				fmt.Printf("generate '%s': %+v\n", g.name, err)
 				os.Exit(1)
 			}
@@ -58,10 +60,10 @@ func main() {
 	}
 }
 
-func generate(name string) error {
+func generate(ctx context.Context, name string) error {
 	for _, g := range generators {
 		if g.name == name {
-			data, err := g.gen()
+			data, err := g.gen(ctx)
 			if err != nil {
 				return err
 			}

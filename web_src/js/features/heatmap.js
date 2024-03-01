@@ -30,8 +30,8 @@ export function initHeatmap() {
     };
 
     const View = createApp(ActivityHeatmap, {values, locale});
-
     View.mount(el);
+    el.classList.remove('is-loading');
   } catch (err) {
     console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';

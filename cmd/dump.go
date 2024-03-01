@@ -22,7 +22,7 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/mholt/archiver/v3"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func addReader(w archiver.Writer, r io.ReadCloser, info os.FileInfo, customName string, verbose bool) error {
@@ -96,64 +96,71 @@ var outputTypeEnum = &outputType{
 }
 
 // CmdDump represents the available dump sub-command.
-var CmdDump = cli.Command{
+var CmdDump = &cli.Command{
 	Name:  "dump",
 	Usage: "Dump Gitea files and database",
 	Description: `Dump compresses all related files and database into zip file.
 It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "file, f",
-			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
-			Usage: "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
+		&cli.StringFlag{
+			Name:    "file",
+			Aliases: []string{"f"},
+			Value:   fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
+			Usage:   "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
 		},
-		cli.BoolFlag{
-			Name:  "verbose, V",
-			Usage: "Show process details",
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"V"},
+			Usage:   "Show process details",
 		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Only display warnings and errors",
+		&cli.BoolFlag{
+			Name:    "quiet",
+			Aliases: []string{"q"},
+			Usage:   "Only display warnings and errors",
 		},
-		cli.StringFlag{
-			Name:  "tempdir, t",
-			Value: os.TempDir(),
-			Usage: "Temporary dir path",
+		&cli.StringFlag{
+			Name:    "tempdir",
+			Aliases: []string{"t"},
+			Value:   os.TempDir(),
+			Usage:   "Temporary dir path",
 		},
-		cli.StringFlag{
-			Name:  "database, d",
-			Usage: "Specify the database SQL syntax",
+		&cli.StringFlag{
+			Name:    "database",
+			Aliases: []string{"d"},
+			Usage:   "Specify the database SQL syntax: sqlite3, mysql, mssql, postgres",
 		},
-		cli.BoolFlag{
-			Name:  "skip-repository, R",
-			Usage: "Skip the repository dumping",
+		&cli.BoolFlag{
+			Name:    "skip-repository",
+			Aliases: []string{"R"},
+			Usage:   "Skip the repository dumping",
 		},
-		cli.BoolFlag{
-			Name:  "skip-log, L",
-			Usage: "Skip the log dumping",
+		&cli.BoolFlag{
+			Name:    "skip-log",
+			Aliases: []string{"L"},
+			Usage:   "Skip the log dumping",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-custom-dir",
 			Usage: "Skip custom directory",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-lfs-data",
 			Usage: "Skip LFS data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-attachment-data",
 			Usage: "Skip attachment data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-index",
 			Usage: "Skip bleve index data",
 		},
-		cli.GenericFlag{
+		&cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
 			Usage: fmt.Sprintf("Dump output format: %s", outputTypeEnum.Join()),
@@ -445,7 +452,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		return err
 	}
 	for _, file := range files {
-		currentAbsPath := path.Join(absPath, file.Name())
+		currentAbsPath := filepath.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
 			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {

@@ -8,6 +8,8 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/validation"
+
+	"golang.org/x/net/html/charset"
 )
 
 // Metadata represents the metadata of a Maven package
@@ -52,7 +54,10 @@ type pomStruct struct {
 // ParsePackageMetaData parses the metadata of a pom file
 func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	var pom pomStruct
-	if err := xml.NewDecoder(r).Decode(&pom); err != nil {
+
+	dec := xml.NewDecoder(r)
+	dec.CharsetReader = charset.NewReaderLabel
+	if err := dec.Decode(&pom); err != nil {
 		return nil, err
 	}
 

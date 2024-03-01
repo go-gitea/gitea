@@ -109,21 +109,18 @@
   background-color: var(--color-secondary-alpha-30);
 }
 
-#git-graph-container #rev-list .tags a.button {
+#git-graph-container #rev-list .commit-refs .button {
   padding: 2px 4px;
+  margin-right: 0.25em;
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #git-graph-container #rev-list .sha.label {
   padding-top: 5px;
   padding-bottom: 3px;
-}
-
-#git-graph-container #rev-list .sha.label .shortsha {
-  padding-top: 0;
-}
-
-#git-graph-container #rev-list .sha.label .shortsha-pad {
-  padding-right: 10px;
 }
 
 #git-graph-container #rev-list .sha.label .ui.detail.icon.button {

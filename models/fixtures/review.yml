@@ -129,6 +129,44 @@
   type: 1
   reviewer_id: 6
   issue_id: 11
-  content: "singular review from user6 and final review for this pr"
+  content: "singular review from org6 and final review for this pr"
   updated_unix: 946684831
   created_unix: 946684831
+
+-
+  id: 16
+  type: 4
+  reviewer_id: 20
+  issue_id: 20
+  content: "review request for user20"
+  updated_unix: 946684832
+  created_unix: 946684832
+
+-
+  id: 17
+  type: 1
+  reviewer_id: 20
+  issue_id: 20
+  content: "review approved by user20"
+  updated_unix: 946684833
+  created_unix: 946684833
+
+-
+  id: 18
+  type: 4
+  reviewer_id: 0
+  reviewer_team_id: 5
+  issue_id: 20
+  content: "review request for team5"
+  updated_unix: 946684834
+  created_unix: 946684834
+
+-
+  id: 19
+  type: 4
+  reviewer_id: 15
+  reviewer_team_id: 0
+  issue_id: 20
+  content: "review request for user15"
+  updated_unix: 946684835
+  created_unix: 946684835

@@ -1,14 +1,10 @@
 {{if .HeatmapData}}
-	<div id="user-heatmap"
+	<div id="user-heatmap" class="is-loading"
 		data-heatmap-data="{{JsonUtils.EncodeToString .HeatmapData}}"
-		data-locale-total-contributions="{{$.locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" ($.locale.PrettyNumber .HeatmapTotalContributions)}}"
-		data-locale-no-contributions="{{.locale.Tr "heatmap.no_contributions"}}"
-		data-locale-more="{{.locale.Tr "heatmap.more"}}"
-		data-locale-less="{{.locale.Tr "heatmap.less"}}"
-	>
-		<div slot="loading">
-			<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.locale.Tr "user.heatmap.loading"}}</div>
-		</div>
-	</div>
+		data-locale-total-contributions="{{ctx.Locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" (ctx.Locale.PrettyNumber .HeatmapTotalContributions)}}"
+		data-locale-no-contributions="{{ctx.Locale.Tr "heatmap.no_contributions"}}"
+		data-locale-more="{{ctx.Locale.Tr "heatmap.more"}}"
+		data-locale-less="{{ctx.Locale.Tr "heatmap.less"}}"
+	></div>
 	<div class="divider"></div>
 {{end}}

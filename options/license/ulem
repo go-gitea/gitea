@@ -1,0 +1,4 @@
+Copyright 1989-2019 by Donald Arseneau (Vancouver, Canada, asnd@triumf.ca)
+
+This software may be freely transmitted, reproduced, or modified
+for any purpose provided that this copyright notice is left intact.

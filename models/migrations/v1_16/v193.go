@@ -16,7 +16,7 @@ func AddRepoIDForAttachment(x *xorm.Engine) error {
 		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
 		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
 	}
-	if err := x.Sync2(new(Attachment)); err != nil {
+	if err := x.Sync(new(Attachment)); err != nil {
 		return err
 	}
 

@@ -7,6 +7,8 @@
   creator_id: 2
   board_type: 1
   type: 2
+  created_unix: 1688973030
+  updated_unix: 1688973030
 
 -
   id: 2
@@ -17,6 +19,8 @@
   creator_id: 3
   board_type: 1
   type: 2
+  created_unix: 1688973010
+  updated_unix: 1688973010
 
 -
   id: 3
@@ -27,6 +31,8 @@
   creator_id: 5
   board_type: 1
   type: 2
+  created_unix: 1688973020
+  updated_unix: 1688973020
 
 -
   id: 4
@@ -37,3 +43,5 @@
   creator_id: 2
   board_type: 1
   type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000

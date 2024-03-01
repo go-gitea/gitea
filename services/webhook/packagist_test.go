@@ -115,6 +115,15 @@ func TestPackagistPayload(t *testing.T) {
 		require.Nil(t, pl)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(PackagistPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 

@@ -27,7 +27,7 @@ const (
 	PropertyName     = "conda.name"
 	PropertyChannel  = "conda.channel"
 	PropertySubdir   = "conda.subdir"
-	PropertyMetadata = "conda.metdata"
+	PropertyMetadata = "conda.metadata"
 )
 
 // Package represents a Conda package

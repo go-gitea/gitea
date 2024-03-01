@@ -42,8 +42,8 @@ func RenameTaskErrorsToMessage(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(Task)); err != nil {
-		return fmt.Errorf("error on Sync2: %w", err)
+	if err := sess.Sync(new(Task)); err != nil {
+		return fmt.Errorf("error on Sync: %w", err)
 	}
 
 	if messageExist {

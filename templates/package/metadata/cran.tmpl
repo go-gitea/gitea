@@ -1,5 +1,5 @@
 {{if eq .PackageDescriptor.Package.Type "cran"}}
-	{{if .PackageDescriptor.Metadata.License}}<div class="item" title="{{.locale.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "mr-3"}} {{.PackageDescriptor.Metadata.License}}</div>{{end}}
-	{{range .PackageDescriptor.Metadata.Authors}}<div class="item" title="{{$.locale.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "mr-3"}} {{.}}</div>{{end}}
-	{{range .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.}}" target="_blank" rel="noopener noreferrer me">{{$.locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.License}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "mr-3"}} {{.PackageDescriptor.Metadata.License}}</div>{{end}}
+	{{range .PackageDescriptor.Metadata.Authors}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "mr-3"}} {{.}}</div>{{end}}
+	{{range .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
 {{end}}

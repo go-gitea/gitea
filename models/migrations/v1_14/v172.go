@@ -15,5 +15,5 @@ func AddSessionTable(x *xorm.Engine) error {
 		Data   []byte `xorm:"BLOB"`
 		Expiry timeutil.TimeStamp
 	}
-	return x.Sync2(new(Session))
+	return x.Sync(new(Session))
 }

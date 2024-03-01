@@ -22,7 +22,7 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 		defer tests.PrepareTestEnv(t, 1)()
 	}
 	s := http.Server{
-		Handler: c,
+		Handler: testE2eWebRoutes,
 	}
 
 	u, err := url.Parse(setting.AppURL)

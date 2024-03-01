@@ -290,9 +290,23 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Release.URL,
+		p.Release.HTMLURL,
 		color,
 		&MSTeamsFact{"Tag:", p.Release.TagName},
+	), nil
+}
+
+func (m *MSTeamsPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Package.HTMLURL,
+		color,
+		&MSTeamsFact{"Package:", p.Package.Name},
 	), nil
 }
 
@@ -302,11 +316,12 @@ func GetMSTeamsPayload(p api.Payloader, event webhook_module.HookEventType, _ st
 }
 
 func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) *MSTeamsPayload {
-	facts := []MSTeamsFact{
-		{
+	facts := make([]MSTeamsFact, 0, 2)
+	if r != nil {
+		facts = append(facts, MSTeamsFact{
 			Name:  "Repository:",
 			Value: r.FullName,
-		},
+		})
 	}
 	if fact != nil {
 		facts = append(facts, *fact)

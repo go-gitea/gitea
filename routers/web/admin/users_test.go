@@ -10,8 +10,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ import (
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/users/new")
+	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -56,7 +56,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/users/new")
+	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -93,7 +93,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/users/new")
+	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -123,7 +123,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 
 func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/users/new")
+	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -161,7 +161,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/users/new")
+	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,

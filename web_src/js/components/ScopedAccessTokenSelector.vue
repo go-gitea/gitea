@@ -1,28 +1,3 @@
-<template>
-  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2 access-token-category">
-    <label class="category-label" :for="'access-token-scope-' + category">
-      {{ category }}
-    </label>
-    <div class="gitea-select">
-      <select
-        class="ui selection access-token-select"
-        name="scope"
-        :id="'access-token-scope-' + category"
-      >
-        <option value="">
-          {{ noAccessLabel }}
-        </option>
-        <option :value="'read:' + category">
-          {{ readLabel }}
-        </option>
-        <option :value="'write:' + category">
-          {{ writeLabel }}
-        </option>
-      </select>
-    </div>
-  </div>
-</template>
-
 <script>
 import {createApp} from 'vue';
 import {hideElem, showElem} from '../utils/dom.js';
@@ -111,3 +86,27 @@ export function initScopedAccessTokenCategories() {
 }
 
 </script>
+<template>
+  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2 access-token-category">
+    <label class="category-label" :for="'access-token-scope-' + category">
+      {{ category }}
+    </label>
+    <div class="gitea-select">
+      <select
+        class="ui selection access-token-select"
+        name="scope"
+        :id="'access-token-scope-' + category"
+      >
+        <option value="">
+          {{ noAccessLabel }}
+        </option>
+        <option :value="'read:' + category">
+          {{ readLabel }}
+        </option>
+        <option :value="'write:' + category">
+          {{ writeLabel }}
+        </option>
+      </select>
+    </div>
+  </div>
+</template>

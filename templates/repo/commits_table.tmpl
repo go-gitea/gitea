@@ -1,25 +1,25 @@
 <h4 class="ui top attached header commits-table gt-df gt-ac gt-sb">
 	<div class="commits-table-left gt-df gt-ac">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
-			{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}} {{if .RefName}}({{.RefName}}){{end}}
+			{{.CommitCount}} {{ctx.Locale.Tr "repo.commits.commits"}}
 		{{else if .IsNothingToCompare}}
-			{{.locale.Tr "repo.commits.nothing_to_compare"}} {{if .RefName}}({{.RefName}}){{end}}
+			{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}
 		{{else}}
-			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
+			{{ctx.Locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}}
 		{{end}}
 	</div>
-	<div class="commits-table-right">
+	<div class="commits-table-right gt-whitespace-nowrap">
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
-					<input name="q" placeholder="{{.locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+					<input name="q" placeholder="{{ctx.Locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 				</div>
 
 				<div class="ui tiny checkbox">
 					<input type="checkbox" name="all" value="true" {{.All}}>
-					<label>{{.locale.Tr "repo.commits.search_all"}}</label>
+					<label>{{ctx.Locale.Tr "repo.commits.search_all"}}</label>
 				</div>
-				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
 			</form>
 		{{else if .IsDiffCompare}}
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>

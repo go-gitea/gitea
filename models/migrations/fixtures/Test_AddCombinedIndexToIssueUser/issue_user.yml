@@ -1,0 +1,20 @@
+-
+  id: 1
+  uid: 1
+  issue_id: 1
+  is_read: true
+  is_mentioned: false
+
+-
+  id: 2
+  uid: 2
+  issue_id: 1
+  is_read: true
+  is_mentioned: false
+
+-
+  id: 3
+  uid: 2
+  issue_id: 1 # duplicated with id 2
+  is_read: false
+  is_mentioned: true

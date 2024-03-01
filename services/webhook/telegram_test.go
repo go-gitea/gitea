@@ -144,6 +144,18 @@ func TestTelegramPayload(t *testing.T) {
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created`, pl.(*TelegramPayload).Message)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(TelegramPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, `Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer:latest</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 

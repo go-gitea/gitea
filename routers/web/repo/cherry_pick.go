@@ -12,11 +12,11 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/repository/files"
 )
@@ -104,9 +104,9 @@ func CherryPickPost(ctx *context.Context) {
 	message := strings.TrimSpace(form.CommitSummary)
 	if message == "" {
 		if form.Revert {
-			message = ctx.Tr("repo.commit.revert-header", sha)
+			message = ctx.Locale.TrString("repo.commit.revert-header", sha)
 		} else {
-			message = ctx.Tr("repo.commit.cherry-pick-header", sha)
+			message = ctx.Locale.TrString("repo.commit.cherry-pick-header", sha)
 		}
 	}
 
@@ -171,10 +171,9 @@ func CherryPickPost(ctx *context.Context) {
 			} else if models.IsErrCommitIDDoesNotMatch(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
 				return
-			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
-				return
 			}
+			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+			return
 		}
 	}
 

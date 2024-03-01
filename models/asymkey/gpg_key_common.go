@@ -111,7 +111,7 @@ func populateHash(hashFunc crypto.Hash, msg []byte) (hash.Hash, error) {
 func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 	block, err := armor.Decode(r)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if block.Type != openpgp.SignatureType {
 		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)

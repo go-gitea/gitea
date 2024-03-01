@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,8 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -29,10 +28,10 @@ const (
 
 var (
 	// ErrMissingPrefix occurs if the content lacks the LFS prefix
-	ErrMissingPrefix = errors.New("Content lacks the LFS prefix")
+	ErrMissingPrefix = errors.New("content lacks the LFS prefix")
 
 	// ErrInvalidStructure occurs if the content has an invalid structure
-	ErrInvalidStructure = errors.New("Content has an invalid structure")
+	ErrInvalidStructure = errors.New("content has an invalid structure")
 
 	// ErrInvalidOIDFormat occurs if the oid has an invalid format
 	ErrInvalidOIDFormat = errors.New("OID has an invalid format")

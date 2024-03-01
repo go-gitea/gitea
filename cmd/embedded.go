@@ -19,70 +19,74 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdEmbedded represents the available extract sub-command.
 var (
-	CmdEmbedded = cli.Command{
+	CmdEmbedded = &cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdList,
 			subcmdView,
 			subcmdExtract,
 		},
 	}
 
-	subcmdList = cli.Command{
+	subcmdList = &cli.Command{
 		Name:   "list",
 		Usage:  "List files matching the given pattern",
 		Action: runList,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+			&cli.BoolFlag{
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
 		},
 	}
 
-	subcmdView = cli.Command{
+	subcmdView = &cli.Command{
 		Name:   "view",
 		Usage:  "View a file matching the given pattern",
 		Action: runView,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+			&cli.BoolFlag{
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
 		},
 	}
 
-	subcmdExtract = cli.Command{
+	subcmdExtract = &cli.Command{
 		Name:   "extract",
 		Usage:  "Extract resources",
 		Action: runExtract,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+			&cli.BoolFlag{
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "overwrite",
 				Usage: "Overwrite files if they already exist",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "rename",
 				Usage: "Rename files as {name}.bak if they already exist (overwrites previous .bak)",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "custom",
 				Usage: "Extract to the 'custom' directory as per app.ini",
 			},
-			cli.StringFlag{
-				Name:  "destination,dest-dir",
-				Usage: "Extract to the specified directory",
+			&cli.StringFlag{
+				Name:    "destination",
+				Aliases: []string{"dest-dir"},
+				Usage:   "Extract to the specified directory",
 			},
 		},
 	}
@@ -99,7 +103,7 @@ type assetFile struct {
 func initEmbeddedExtractor(c *cli.Context) error {
 	setupConsoleLogger(log.ERROR, log.CanColorStderr, os.Stderr)
 
-	patterns, err := compileCollectPatterns(c.Args())
+	patterns, err := compileCollectPatterns(c.Args().Slice())
 	if err != nil {
 		return err
 	}
@@ -175,7 +179,7 @@ func runExtractDo(c *cli.Context) error {
 		return err
 	}
 
-	if len(c.Args()) == 0 {
+	if c.NArg() == 0 {
 		return fmt.Errorf("a list of pattern of files to extract is mandatory (e.g. '**' for all)")
 	}
 

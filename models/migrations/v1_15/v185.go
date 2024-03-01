@@ -17,5 +17,5 @@ func AddRepoArchiver(x *xorm.Engine) error {
 		CommitID    string `xorm:"VARCHAR(40) unique(s)"`
 		CreatedUnix int64  `xorm:"INDEX NOT NULL created"`
 	}
-	return x.Sync2(new(RepoArchiver))
+	return x.Sync(new(RepoArchiver))
 }

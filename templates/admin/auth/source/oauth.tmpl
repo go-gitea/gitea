@@ -1,6 +1,6 @@
 <div class="oauth2 field {{if not (eq .type 6)}}gt-hidden{{end}}">
 	<div class="inline required field">
-		<label>{{.locale.Tr "admin.auths.oauth2_provider"}}</label>
+		<label>{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
 		<div class="ui selection type dropdown">
 			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
 			<div class="text">{{.oauth2_provider}}</div>
@@ -13,53 +13,53 @@
 		</div>
 	</div>
 	<div class="required field">
-		<label for="oauth2_key">{{.locale.Tr "admin.auths.oauth2_clientID"}}</label>
+		<label for="oauth2_key">{{ctx.Locale.Tr "admin.auths.oauth2_clientID"}}</label>
 		<input id="oauth2_key" name="oauth2_key" value="{{.oauth2_key}}">
 	</div>
 	<div class="required field">
-		<label for="oauth2_secret">{{.locale.Tr "admin.auths.oauth2_clientSecret"}}</label>
+		<label for="oauth2_secret">{{ctx.Locale.Tr "admin.auths.oauth2_clientSecret"}}</label>
 		<input id="oauth2_secret" name="oauth2_secret" value="{{.oauth2_secret}}">
 	</div>
 	<div class="optional field">
-		<label for="oauth2_icon_url">{{.locale.Tr "admin.auths.oauth2_icon_url"}}</label>
+		<label for="oauth2_icon_url">{{ctx.Locale.Tr "admin.auths.oauth2_icon_url"}}</label>
 		<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{.oauth2_icon_url}}">
 	</div>
 	<div class="open_id_connect_auto_discovery_url required field{{if .Err_DiscoveryURL}} error{{end}}">
-		<label for="open_id_connect_auto_discovery_url">{{.locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
+		<label for="open_id_connect_auto_discovery_url">{{ctx.Locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 		<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{.open_id_connect_auto_discovery_url}}">
 	</div>
 	<div class="optional field">
 		<div class="ui checkbox">
-			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+			<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
 
 	<div class="oauth2_use_custom_url inline field">
 		<div class="ui checkbox">
-			<label><strong>{{.locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
+			<label><strong>{{ctx.Locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
 			<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox">
 		</div>
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
-		<label for="oauth2_auth_url">{{.locale.Tr "admin.auths.oauth2_authURL"}}</label>
+		<label for="oauth2_auth_url">{{ctx.Locale.Tr "admin.auths.oauth2_authURL"}}</label>
 		<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{.oauth2_auth_url}}">
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_token_url required field">
-		<label for="oauth2_token_url">{{.locale.Tr "admin.auths.oauth2_tokenURL"}}</label>
+		<label for="oauth2_token_url">{{ctx.Locale.Tr "admin.auths.oauth2_tokenURL"}}</label>
 		<input id="oauth2_token_url" name="oauth2_token_url" value="{{.oauth2_token_url}}">
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_profile_url required field">
-		<label for="oauth2_profile_url">{{.locale.Tr "admin.auths.oauth2_profileURL"}}</label>
+		<label for="oauth2_profile_url">{{ctx.Locale.Tr "admin.auths.oauth2_profileURL"}}</label>
 		<input id="oauth2_profile_url" name="oauth2_profile_url" value="{{.oauth2_profile_url}}">
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_email_url required field">
-		<label for="oauth2_email_url">{{.locale.Tr "admin.auths.oauth2_emailURL"}}</label>
+		<label for="oauth2_email_url">{{ctx.Locale.Tr "admin.auths.oauth2_emailURL"}}</label>
 		<input id="oauth2_email_url" name="oauth2_email_url" value="{{.oauth2_email_url}}">
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_tenant required field">
-		<label for="oauth2_tenant">{{.locale.Tr "admin.auths.oauth2_tenant"}}</label>
+		<label for="oauth2_tenant">{{ctx.Locale.Tr "admin.auths.oauth2_tenant"}}</label>
 		<input id="oauth2_tenant" name="oauth2_tenant" value="{{.oauth2_tenant}}">
 	</div>
 
@@ -73,37 +73,37 @@
 	{{end}}{{end}}
 
 	<div class="field">
-		<label for="oauth2_scopes">{{.locale.Tr "admin.auths.oauth2_scopes"}}</label>
+		<label for="oauth2_scopes">{{ctx.Locale.Tr "admin.auths.oauth2_scopes"}}</label>
 		<input id="oauth2_scopes" name="oauth2_scopes" value="{{.oauth2_scopes}}">
 	</div>
 	<div class="field">
-		<label for="oauth2_required_claim_name">{{.locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
+		<label for="oauth2_required_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
 		<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{.oauth2_required_claim_name}}">
-		<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
 	</div>
 	<div class="field">
-		<label for="oauth2_required_claim_value">{{.locale.Tr "admin.auths.oauth2_required_claim_value"}}</label>
+		<label for="oauth2_required_claim_value">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_value"}}</label>
 		<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" value="{{.oauth2_required_claim_value}}">
-		<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
 	</div>
 	<div class="field">
-		<label for="oauth2_group_claim_name">{{.locale.Tr "admin.auths.oauth2_group_claim_name"}}</label>
+		<label for="oauth2_group_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_group_claim_name"}}</label>
 		<input id="oauth2_group_claim_name" name="oauth2_group_claim_name" value="{{.oauth2_group_claim_name}}">
 	</div>
 	<div class="field">
-		<label for="oauth2_admin_group">{{.locale.Tr "admin.auths.oauth2_admin_group"}}</label>
+		<label for="oauth2_admin_group">{{ctx.Locale.Tr "admin.auths.oauth2_admin_group"}}</label>
 		<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{.oauth2_admin_group}}">
 	</div>
 	<div class="field">
-		<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
+		<label for="oauth2_restricted_group">{{ctx.Locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
 		<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{.oauth2_restricted_group}}">
 	</div>
 	<div class="field">
-		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
+		<label>{{ctx.Locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
 		<textarea name="oauth2_group_team_map" rows="5" placeholder='{"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{.oauth2_group_team_map}}</textarea>
 	</div>
 	<div class="ui checkbox">
-		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
+		<label>{{ctx.Locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
 		<input name="oauth2_group_team_map_removal" type="checkbox" {{if .oauth2_group_team_map_removal}}checked{{end}}>
 	</div>
 </div>

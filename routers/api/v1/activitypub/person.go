@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/activitypub"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/go-ap/jsonld"
@@ -66,7 +66,7 @@ func Person(ctx *context.APIContext) {
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
 
-	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
+	publicKeyPem, err := activitypub.GetPublicKey(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("GetPublicKey", err)
 		return

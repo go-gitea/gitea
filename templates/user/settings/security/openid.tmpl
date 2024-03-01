@@ -1,38 +1,39 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "settings.manage_openid"}}
+	{{ctx.Locale.Tr "settings.manage_openid"}}
 </h4>
 <div class="ui attached segment">
-	<div class="ui openid list">
-		<div class="item">
-			{{.locale.Tr "settings.openid_desc"}}
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.openid_desc"}}
 		</div>
 		{{range .OpenIDs}}
-			<div class="item">
-				<div class="right floated content">
-						<button class="ui red tiny button delete-button" data-modal-id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
-							{{$.locale.Tr "settings.delete_key"}}
-						</button>
+			<div class="flex-item gt-ac">
+				<div class="flex-item-leading">
+					{{svg "fontawesome-openid" 20}}
 				</div>
-					<div class="right floated content">
-						<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.URI}}</div>
+				</div>
+				<div class="flex-item-trailing">
+					<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
 							<button class="ui tiny button">
 							{{svg "octicon-eye" 16 "icon"}}
-							{{$.locale.Tr "settings.hide_openid"}}
+							{{ctx.Locale.Tr "settings.hide_openid"}}
 							</button>
 						{{else}}
 							<button class="ui tiny button">
 							{{svg "octicon-eye-closed" 16 "icon"}}
-							{{$.locale.Tr "settings.show_openid"}}
+							{{ctx.Locale.Tr "settings.show_openid"}}
 							</button>
 						{{end}}
-						</form>
-					</div>
-					<div class="content">
-						<strong>{{.URI}}</strong>
-					</div>
+					</form>
+					<button class="ui red tiny button delete-button" data-modal-id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
+						{{ctx.Locale.Tr "settings.delete_key"}}
+					</button>
+				</div>
 			</div>
 		{{end}}
 	</div>
@@ -41,21 +42,21 @@
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/openid" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_OpenID}}error{{end}}">
-			<label for="openid">{{.locale.Tr "settings.add_new_openid"}}</label>
+			<label for="openid">{{ctx.Locale.Tr "settings.add_new_openid"}}</label>
 			<input id="openid" name="openid" type="text" required>
 		</div>
-		<button class="ui green button">
-			{{.locale.Tr "settings.add_openid"}}
+		<button class="ui primary button">
+			{{ctx.Locale.Tr "settings.add_openid"}}
 		</button>
 	</form>
 
 	<div class="ui g-modal-confirm delete modal" id="delete-openid">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.openid_deletion"}}
+			{{ctx.Locale.Tr "settings.openid_deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.openid_deletion_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.openid_deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

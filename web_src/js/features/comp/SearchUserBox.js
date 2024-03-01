@@ -17,14 +17,13 @@ export function initCompSearchUserBox() {
         const searchQuery = $searchUserBox.find('input').val();
         const searchQueryUppercase = searchQuery.toUpperCase();
         $.each(response.data, (_i, item) => {
-          let title = item.login;
-          if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEscape(item.full_name)})`;
-          }
           const resultItem = {
-            title,
+            title: item.login,
             image: item.avatar_url
           };
+          if (item.full_name) {
+            resultItem.description = htmlEscape(item.full_name);
+          }
           if (searchQueryUppercase === item.login.toUpperCase()) {
             items.unshift(resultItem);
           } else {

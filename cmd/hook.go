@@ -20,7 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -29,12 +29,12 @@ const (
 
 var (
 	// CmdHook represents the available hooks sub-command.
-	CmdHook = cli.Command{
+	CmdHook = &cli.Command{
 		Name:        "hook",
-		Usage:       "Delegate commands to corresponding Git hooks",
-		Description: "This should only be called by Git",
+		Usage:       "(internal) Should only be called by Git",
+		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
 			subcmdHookPostReceive,
@@ -42,47 +42,47 @@ var (
 		},
 	}
 
-	subcmdHookPreReceive = cli.Command{
+	subcmdHookPreReceive = &cli.Command{
 		Name:        "pre-receive",
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
-	subcmdHookUpdate = cli.Command{
+	subcmdHookUpdate = &cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
-	subcmdHookPostReceive = cli.Command{
+	subcmdHookPostReceive = &cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
 	// Note: new hook since git 2.29
-	subcmdHookProcReceive = cli.Command{
+	subcmdHookProcReceive = &cli.Command{
 		Name:        "proc-receive",
 		Usage:       "Delegate proc-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookProcReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
@@ -376,7 +376,9 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = git.RefName(fields[2])
-		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+
+		commitID, _ := git.NewIDFromString(newCommitIDs[count])
+		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
 			masterPushed = true
 		}
 		count++
@@ -669,7 +671,8 @@ Gitea or set your environment appropriately.`, "")
 		if err != nil {
 			return err
 		}
-		if rs.OldOID != git.EmptySHA {
+		commitID, _ := git.NewIDFromString(rs.OldOID)
+		if !commitID.IsZero() {
 			err = writeDataPktLine(ctx, os.Stdout, []byte("option old-oid "+rs.OldOID))
 			if err != nil {
 				return err

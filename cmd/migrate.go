@@ -11,11 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdMigrate represents the available migrate sub-command.
-var CmdMigrate = cli.Command{
+var CmdMigrate = &cli.Command{
 	Name:        "migrate",
 	Usage:       "Migrate the database",
 	Description: "This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.",

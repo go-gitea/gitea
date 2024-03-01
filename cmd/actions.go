@@ -9,30 +9,30 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
 	// CmdActions represents the available actions sub-commands.
-	CmdActions = cli.Command{
-		Name:        "actions",
-		Usage:       "",
-		Description: "Commands for managing Gitea Actions",
-		Subcommands: []cli.Command{
+	CmdActions = &cli.Command{
+		Name:  "actions",
+		Usage: "Manage Gitea Actions",
+		Subcommands: []*cli.Command{
 			subcmdActionsGenRunnerToken,
 		},
 	}
 
-	subcmdActionsGenRunnerToken = cli.Command{
+	subcmdActionsGenRunnerToken = &cli.Command{
 		Name:    "generate-runner-token",
 		Usage:   "Generate a new token for a runner to use to register with the server",
 		Action:  runGenerateActionsRunnerToken,
 		Aliases: []string{"grt"},
 		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "scope, s",
-				Value: "",
-				Usage: "{owner}[/{repo}] - leave empty for a global runner",
+			&cli.StringFlag{
+				Name:    "scope",
+				Aliases: []string{"s"},
+				Value:   "",
+				Usage:   "{owner}[/{repo}] - leave empty for a global runner",
 			},
 		},
 	}
@@ -50,6 +50,6 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("%s\n", respText)
+	_, _ = fmt.Printf("%s\n", respText.Text)
 	return nil
 }

@@ -30,7 +30,6 @@
 
 .issue-label-list .item .label-operation {
   width: 33%;
-  text-align: right;
 }
 
 .issue-label-list .item a {
@@ -41,4 +40,13 @@
 
 .issue-label-list .item.org-label {
   opacity: 0.7;
+}
+
+.label-operation .label {
+  height: fit-content;
+}
+
+.archived-label-hint {
+  float: right;
+  margin: -12px;
 }

@@ -1,0 +1,36 @@
+modifies/docs:
+  - "**/*.md"
+  - "docs/**"
+
+modifies/frontend:
+  - "web_src/**/*"
+
+modifies/templates:
+  - all: ["templates/**", "!templates/swagger/v1_json.tmpl"]
+
+modifies/api:
+  - "routers/api/**"
+  - "templates/swagger/v1_json.tmpl"
+
+modifies/cli:
+  - "cmd/**"
+
+modifies/translation:
+  - "options/locale/*.ini"
+
+modifies/migrations:
+  - "models/migrations/**/*"
+
+modifies/internal:
+  - "Makefile"
+  - "Dockerfile"
+  - "Dockerfile.rootless"
+  - "docker/**"
+  - "webpack.config.js"
+  - ".eslintrc.yaml"
+  - ".golangci.yml"
+  - ".markdownlint.yaml"
+  - ".spectral.yaml"
+  - ".stylelintrc.yaml"
+  - ".yamllint.yaml"
+  - ".github/**"

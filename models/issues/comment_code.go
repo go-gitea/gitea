@@ -99,19 +99,21 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		comments[n] = comment
 		n++
 
-		if err := comment.LoadResolveDoer(); err != nil {
+		if err := comment.LoadResolveDoer(ctx); err != nil {
 			return nil, err
 		}
 
-		if err := comment.LoadReactions(issue.Repo); err != nil {
+		if err := comment.LoadReactions(ctx, issue.Repo); err != nil {
 			return nil, err
 		}
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: issue.Repo.Link(),
-			Metas:     issue.Repo.ComposeMetas(),
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: issue.Repo.Link(),
+			},
+			Metas: issue.Repo.ComposeMetas(ctx),
 		}, comment.Content); err != nil {
 			return nil, err
 		}

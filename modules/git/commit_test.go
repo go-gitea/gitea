@@ -81,7 +81,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 
 empty commit`
 
-	sha := SHA1{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
+	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
@@ -254,4 +254,27 @@ func TestParseCommitFileStatus(t *testing.T) {
 		assert.Equal(t, kase.removed, fileStatus.Removed)
 		assert.Equal(t, kase.modified, fileStatus.Modified)
 	}
+}
+
+func TestGetCommitFileStatusMerges(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge")
+
+	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
+	assert.NoError(t, err)
+
+	expected := CommitFileStatus{
+		[]string{
+			"add_file.txt",
+		},
+		[]string{
+			"to_remove.txt",
+		},
+		[]string{
+			"to_modify.txt",
+		},
+	}
+
+	assert.Equal(t, commitFileStatus.Added, expected.Added)
+	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
+	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
 }

@@ -14,5 +14,5 @@ func ChangeSomeColumnsLengthOfExternalLoginUser(x *xorm.Engine) error {
 		RefreshToken      string `xorm:"TEXT"`
 	}
 
-	return x.Sync2(new(ExternalLoginUser))
+	return x.Sync(new(ExternalLoginUser))
 }

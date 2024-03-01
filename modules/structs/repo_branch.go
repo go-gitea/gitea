@@ -43,6 +43,7 @@ type BranchProtection struct {
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
+	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
@@ -75,6 +76,7 @@ type CreateBranchProtectionOption struct {
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
+	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
@@ -100,6 +102,7 @@ type EditBranchProtectionOption struct {
 	BlockOnOfficialReviewRequests *bool    `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         *bool    `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         *bool    `json:"dismiss_stale_approvals"`
+	IgnoreStaleApprovals          *bool    `json:"ignore_stale_approvals"`
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`

@@ -151,6 +151,9 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 			return nil, err
 		}
 		if typ != "commit" {
+			if err := DiscardFull(batchReader, size+1); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("unexpected type: %s for commit id: %s", typ, commitID)
 		}
 		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(batchReader, size))

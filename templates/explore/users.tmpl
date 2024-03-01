@@ -4,28 +4,7 @@
 	<div class="ui container">
 		{{template "explore/search" .}}
 
-		<div class="ui user list">
-			{{range .Users}}
-				<div class="item">
-					{{avatar $.Context .}}
-					<div class="content">
-						<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
-						<div class="description">
-							{{if .Location}}
-								{{svg "octicon-location"}} {{.Location}}
-							{{end}}
-							{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
-								{{svg "octicon-mail"}}
-								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
-							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}
-						</div>
-					</div>
-				</div>
-			{{else}}
-				<div>{{$.locale.Tr "explore.user_no_results"}}</div>
-			{{end}}
-		</div>
+		{{template "explore/user_list" .}}
 
 		{{template "base/paginate" .}}
 	</div>

@@ -18,8 +18,8 @@ func AddReviewCommitAndStale(x *xorm.Engine) error {
 	}
 
 	// Old reviews will have commit ID set to "" and not stale
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync(new(Review)); err != nil {
 		return err
 	}
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync(new(ProtectedBranch))
 }

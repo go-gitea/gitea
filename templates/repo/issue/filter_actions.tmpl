@@ -1,0 +1,128 @@
+<div class="ui secondary filter menu">
+	{{if not .Repository.IsArchived}}
+		<!-- Action Button -->
+		{{if .IsShowClosed}}
+			<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
+		{{else}}
+			<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_close"}}</button>
+		{{end}}
+		{{if $.IsRepoAdmin}}
+			<button class="ui red button issue-action"
+				data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
+				data-action-delete-confirm="{{ctx.Locale.Tr "confirm_delete_selected"}}"
+			>{{ctx.Locale.Tr "repo.issues.delete"}}</button>
+		{{end}}
+	<!-- Labels -->
+		<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.issues.action_label"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
+					{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
+				</div>
+				{{$previousExclusiveScope := "_no_scope"}}
+				{{range .Labels}}
+					{{$exclusiveScope := .ExclusiveScope}}
+					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+						<div class="divider"></div>
+					{{end}}
+					{{$previousExclusiveScope = $exclusiveScope}}
+					<div class="item issue-action gt-df gt-sb" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
+						{{template "repo/issue/labels/label_archived" .}}
+					</div>
+				{{end}}
+			</div>
+		</div>
+
+		<!-- Milestone -->
+		<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.issues.action_milestone"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
+				{{ctx.Locale.Tr "repo.issues.action_milestone_no_select"}}
+				</div>
+				{{if .OpenMilestones}}
+					<div class="divider"></div>
+					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+					{{range .OpenMilestones}}
+						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+							{{.Name}}
+						</div>
+					{{end}}
+				{{end}}
+				{{if .ClosedMilestones}}
+					<div class="divider"></div>
+					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+					{{range .ClosedMilestones}}
+						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+							{{.Name}}
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+
+		<!-- Projects -->
+		<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.project_board"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
+				{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}
+				</div>
+				{{if .OpenProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
+					</div>
+					{{range .OpenProjects}}
+						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+						</div>
+					{{end}}
+				{{end}}
+				{{if .ClosedProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
+					</div>
+					{{range .ClosedProjects}}
+						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+
+		<!-- Assignees -->
+		<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.issues.action_assignee"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
+					{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}
+				</div>
+				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
+					{{ctx.Locale.Tr "repo.issues.action_assignee_no_select"}}
+				</div>
+				{{range .Assignees}}
+					<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
+						{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+					</div>
+				{{end}}
+			</div>
+		</div>
+	{{end}}
+</div>
+

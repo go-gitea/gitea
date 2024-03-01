@@ -23,24 +23,8 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 )
-
-// numericEqualityQuery a numeric equality query for the given value and field
-func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
-	f := float64(value)
-	tru := true
-	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
-	q.SetField(field)
-	return q
-}
-
-func newMatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQuery {
-	q := bleve.NewMatchPhraseQuery(matchPhrase)
-	q.FieldVal = field
-	q.Analyzer = analyzer
-	return q
-}
 
 const unicodeNormalizeName = "unicodeNormalize"
 
@@ -74,9 +58,39 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.Store = false
 	textFieldMapping.IncludeInAll = false
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.Store = false
+	boolFieldMapping.IncludeInAll = false
+
+	numberFieldMapping := bleve.NewNumericFieldMapping()
+	numberFieldMapping.Store = false
+	numberFieldMapping.IncludeInAll = false
+
+	docMapping.AddFieldMappingsAt("is_public", boolFieldMapping)
+
 	docMapping.AddFieldMappingsAt("title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("comments", textFieldMapping)
+
+	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_board_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("reviewed_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("review_requested_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("subscriber_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("updated_unix", numberFieldMapping)
+
+	docMapping.AddFieldMappingsAt("created_unix", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("deadline_unix", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("comment_count", numberFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
@@ -115,7 +129,7 @@ func NewIndexer(indexDir string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
+func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexer_internal.Base36(issue.ID), (*IndexerData)(issue)); err != nil {
@@ -138,33 +152,127 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
-	var repoQueriesP []*query.NumericRangeQuery
-	for _, repoID := range repoIDs {
-		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "repo_id"))
-	}
-	repoQueries := make([]query.Query, len(repoQueriesP))
-	for i, v := range repoQueriesP {
-		repoQueries[i] = query.Query(v)
+func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+	var queries []query.Query
+
+	if options.Keyword != "" {
+		keywordQueries := []query.Query{
+			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer),
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(keywordQueries...))
 	}
 
-	indexerQuery := bleve.NewConjunctionQuery(
-		bleve.NewDisjunctionQuery(repoQueries...),
-		bleve.NewDisjunctionQuery(
-			newMatchPhraseQuery(keyword, "title", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "content", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "comments", issueIndexerAnalyzer),
-		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
-	search.SortBy([]string{"-_score"})
+	if len(options.RepoIDs) > 0 || options.AllPublic {
+		var repoQueries []query.Query
+		for _, repoID := range options.RepoIDs {
+			repoQueries = append(repoQueries, inner_bleve.NumericEqualityQuery(repoID, "repo_id"))
+		}
+		if options.AllPublic {
+			repoQueries = append(repoQueries, inner_bleve.BoolFieldQuery(true, "is_public"))
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(repoQueries...))
+	}
+
+	if !options.IsPull.IsNone() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.IsTrue(), "is_pull"))
+	}
+	if !options.IsClosed.IsNone() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.IsTrue(), "is_closed"))
+	}
+
+	if options.NoLabelOnly {
+		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_label"))
+	} else {
+		if len(options.IncludedLabelIDs) > 0 {
+			var includeQueries []query.Query
+			for _, labelID := range options.IncludedLabelIDs {
+				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
+			}
+			queries = append(queries, bleve.NewConjunctionQuery(includeQueries...))
+		} else if len(options.IncludedAnyLabelIDs) > 0 {
+			var includeQueries []query.Query
+			for _, labelID := range options.IncludedAnyLabelIDs {
+				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
+			}
+			queries = append(queries, bleve.NewDisjunctionQuery(includeQueries...))
+		}
+		if len(options.ExcludedLabelIDs) > 0 {
+			var excludeQueries []query.Query
+			for _, labelID := range options.ExcludedLabelIDs {
+				q := bleve.NewBooleanQuery()
+				q.AddMustNot(inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
+				excludeQueries = append(excludeQueries, q)
+			}
+			queries = append(queries, bleve.NewConjunctionQuery(excludeQueries...))
+		}
+	}
+
+	if len(options.MilestoneIDs) > 0 {
+		var milestoneQueries []query.Query
+		for _, milestoneID := range options.MilestoneIDs {
+			milestoneQueries = append(milestoneQueries, inner_bleve.NumericEqualityQuery(milestoneID, "milestone_id"))
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(milestoneQueries...))
+	}
+
+	if options.ProjectID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ProjectID, "project_id"))
+	}
+	if options.ProjectBoardID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ProjectBoardID, "project_board_id"))
+	}
+
+	if options.PosterID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.PosterID, "poster_id"))
+	}
+
+	if options.AssigneeID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.AssigneeID, "assignee_id"))
+	}
+
+	if options.MentionID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.MentionID, "mention_ids"))
+	}
+
+	if options.ReviewedID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ReviewedID, "reviewed_ids"))
+	}
+	if options.ReviewRequestedID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ReviewRequestedID, "review_requested_ids"))
+	}
+
+	if options.SubscriberID != nil {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.SubscriberID, "subscriber_ids"))
+	}
+
+	if options.UpdatedAfterUnix != nil || options.UpdatedBeforeUnix != nil {
+		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(options.UpdatedAfterUnix, options.UpdatedBeforeUnix, "updated_unix"))
+	}
+
+	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)
+	if len(queries) == 0 {
+		indexerQuery = bleve.NewMatchAllQuery()
+	}
+
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
+	search := bleve.NewSearchRequestOptions(indexerQuery, limit, skip, false)
+
+	if options.SortBy == "" {
+		options.SortBy = internal.SortByCreatedAsc
+	}
+
+	search.SortBy([]string{string(options.SortBy), "-_id"})
 
 	result, err := b.inner.Indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := internal.SearchResult{
-		Hits: make([]internal.Match, 0, len(result.Hits)),
+	ret := &internal.SearchResult{
+		Total: int64(result.Total),
+		Hits:  make([]internal.Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
 		id, err := indexer_internal.ParseBase36(hit.ID)
@@ -175,5 +283,5 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 			ID: id,
 		})
 	}
-	return &ret, nil
+	return ret, nil
 }

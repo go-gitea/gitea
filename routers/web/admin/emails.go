@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -68,14 +68,14 @@ func Emails(ctx *context.Context) {
 	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
 	if len(ctx.FormString("is_activated")) != 0 {
-		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
+		opts.IsActivated = optional.Some(ctx.FormBool("activated"))
 	}
 	if len(ctx.FormString("is_primary")) != 0 {
-		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
+		opts.IsPrimary = optional.Some(ctx.FormBool("primary"))
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		baseEmails, count, err = user_model.SearchEmails(opts)
+		baseEmails, count, err = user_model.SearchEmails(ctx, opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
@@ -121,7 +121,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
+	if err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))

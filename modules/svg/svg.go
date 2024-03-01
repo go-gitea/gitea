@@ -7,42 +7,35 @@ import (
 	"fmt"
 	"html/template"
 	"path"
-	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/html"
+	gitea_html "code.gitea.io/gitea/modules/html"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 )
 
-var (
-	// SVGs contains discovered SVGs
-	SVGs = map[string]string{}
-
-	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
-	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
-)
+var svgIcons map[string]string
 
 const defaultSize = 16
 
-// Init discovers SVGs and populates the `SVGs` variable
+// Init discovers SVG icons and populates the `svgIcons` variable
 func Init() error {
-	files, err := public.AssetFS().ListFiles("img/svg")
+	const svgAssetsPath = "assets/img/svg"
+	files, err := public.AssetFS().ListFiles(svgAssetsPath)
 	if err != nil {
 		return err
 	}
 
-	// Remove `xmlns` because inline SVG does not need it
-	reXmlns := regexp.MustCompile(`(<svg\b[^>]*?)\s+xmlns="[^"]*"`)
+	svgIcons = make(map[string]string, len(files))
 	for _, file := range files {
 		if path.Ext(file) != ".svg" {
 			continue
 		}
-		bs, err := public.AssetFS().ReadFile("img/svg", file)
+		bs, err := public.AssetFS().ReadFile(svgAssetsPath, file)
 		if err != nil {
 			log.Error("Failed to read SVG file %s: %v", file, err)
 		} else {
-			SVGs[file[:len(file)-4]] = reXmlns.ReplaceAllString(string(bs), "$1")
+			svgIcons[file[:len(file)-4]] = string(Normalize(bs, defaultSize))
 		}
 	}
 	return nil
@@ -50,12 +43,12 @@ func Init() error {
 
 // RenderHTML renders icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...any) template.HTML {
-	size, class := html.ParseSizeAndClass(defaultSize, "", others...)
-
-	if svgStr, ok := SVGs[icon]; ok {
+	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
+	if svgStr, ok := svgIcons[icon]; ok {
+		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
 		if size != defaultSize {
-			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
-			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+			svgStr = strings.Replace(svgStr, fmt.Sprintf(`width="%d"`, defaultSize), fmt.Sprintf(`width="%d"`, size), 1)
+			svgStr = strings.Replace(svgStr, fmt.Sprintf(`height="%d"`, defaultSize), fmt.Sprintf(`height="%d"`, size), 1)
 		}
 		if class != "" {
 			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)

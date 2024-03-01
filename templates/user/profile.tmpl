@@ -13,13 +13,11 @@
 				{{if eq .TabName "activity"}}
 					{{if .ContextUser.KeepActivityPrivate}}
 						<div class="ui info message">
-							<p>{{.locale.Tr "user.disabled_public_activity"}}</p>
+							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{end}}
 					{{template "user/heatmap" .}}
-					<div class="feeds">
-						{{template "user/dashboard/feeds" .}}
-					</div>
+					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "explore/repo_search" .}}
@@ -31,7 +29,7 @@
 				{{else if eq .TabName "followers"}}
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "overview"}}
-					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
+					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
 				{{else}}
 					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}

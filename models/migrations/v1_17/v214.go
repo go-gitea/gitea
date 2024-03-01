@@ -18,5 +18,5 @@ func AddAutoMergeTable(x *xorm.Engine) error {
 		CreatedUnix int64      `xorm:"created"`
 	}
 
-	return x.Sync2(&PullAutoMerge{})
+	return x.Sync(&PullAutoMerge{})
 }

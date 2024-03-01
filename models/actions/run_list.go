@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -52,9 +53,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	return nil
 }
 
-func (runs RunList) LoadRepos() error {
+func (runs RunList) LoadRepos(ctx context.Context) error {
 	repoIDs := runs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}
@@ -66,15 +67,17 @@ func (runs RunList) LoadRepos() error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID           int64
-	OwnerID          int64
-	WorkflowFileName string
-	TriggerUserID    int64
-	Approved         bool // not util.OptionalBool, it works only when it's true
-	Status           Status
+	RepoID        int64
+	OwnerID       int64
+	WorkflowID    string
+	Ref           string // the commit/tag/… that caused this workflow
+	TriggerUserID int64
+	TriggerEvent  webhook_module.HookEventType
+	Approved      bool // not util.OptionalBool, it works only when it's true
+	Status        []Status
 }
 
-func (opts FindRunOptions) toConds() builder.Cond {
+func (opts FindRunOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -82,8 +85,8 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.WorkflowFileName != "" {
-		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
+	if opts.WorkflowID != "" {
+		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowID})
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"trigger_user_id": opts.TriggerUserID})
@@ -91,24 +94,20 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.Approved {
 		cond = cond.And(builder.Gt{"approved_by": 0})
 	}
-	if opts.Status > StatusUnknown {
-		cond = cond.And(builder.Eq{"status": opts.Status})
+	if len(opts.Status) > 0 {
+		cond = cond.And(builder.In("status", opts.Status))
+	}
+	if opts.Ref != "" {
+		cond = cond.And(builder.Eq{"ref": opts.Ref})
+	}
+	if opts.TriggerEvent != "" {
+		cond = cond.And(builder.Eq{"trigger_event": opts.TriggerEvent})
 	}
 	return cond
 }
 
-func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var runs RunList
-	total, err := e.Desc("id").FindAndCount(&runs)
-	return runs, total, err
-}
-
-func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
+func (opts FindRunOptions) ToOrders() string {
+	return "`id` DESC"
 }
 
 type StatusInfo struct {

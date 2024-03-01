@@ -6,6 +6,7 @@ package typesniffer
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"strings"
 	"testing"
 
@@ -120,4 +121,16 @@ func TestDetectContentTypeFromReader(t *testing.T) {
 	st, err := DetectContentTypeFromReader(bytes.NewReader(mp3))
 	assert.NoError(t, err)
 	assert.True(t, st.IsAudio())
+}
+
+func TestDetectContentTypeOgg(t *testing.T) {
+	oggAudio, _ := hex.DecodeString("4f67675300020000000000000000352f0000000000007dc39163011e01766f72626973000000000244ac0000000000000071020000000000b8014f6767530000")
+	st, err := DetectContentTypeFromReader(bytes.NewReader(oggAudio))
+	assert.NoError(t, err)
+	assert.True(t, st.IsAudio())
+
+	oggVideo, _ := hex.DecodeString("4f676753000200000000000000007d9747ef000000009b59daf3012a807468656f7261030201001e00110001e000010e00020000001e00000001000001000001")
+	st, err = DetectContentTypeFromReader(bytes.NewReader(oggVideo))
+	assert.NoError(t, err)
+	assert.True(t, st.IsVideo())
 }

@@ -1,18 +1,20 @@
 <div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
-	<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
-		{{svg "octicon-repo"}} {{.locale.Tr "explore.repos"}}
-	</a>
-	{{if not .UsersIsDisabled}}
-		<a class="{{if .PageIsExploreUsers}}active {{end}}item" href="{{AppSubUrl}}/explore/users">
-			{{svg "octicon-person"}} {{.locale.Tr "explore.users"}}
+	<div class="new-menu-inner">
+		<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
+			{{svg "octicon-repo"}} {{ctx.Locale.Tr "explore.repos"}}
 		</a>
-	{{end}}
-	<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
-		{{svg "octicon-organization"}} {{.locale.Tr "explore.organizations"}}
-	</a>
-	{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
-	<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
-		{{svg "octicon-code"}} {{.locale.Tr "explore.code"}}
-	</a>
-	{{end}}
+		{{if not .UsersIsDisabled}}
+			<a class="{{if .PageIsExploreUsers}}active {{end}}item" href="{{AppSubUrl}}/explore/users">
+				{{svg "octicon-person"}} {{ctx.Locale.Tr "explore.users"}}
+			</a>
+		{{end}}
+		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
+			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
+		</a>
+		{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
+		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
+			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
+		</a>
+		{{end}}
+	</div>
 </div>

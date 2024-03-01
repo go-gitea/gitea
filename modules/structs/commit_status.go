@@ -4,7 +4,7 @@
 package structs
 
 // CommitStatusState holds the state of a CommitStatus
-// It can be "pending", "success", "error", "failure", and "warning"
+// It can be "pending", "success", "error" and "failure"
 type CommitStatusState string
 
 const (
@@ -18,24 +18,33 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
-	// CommitStatusRunning is for when the CommitStatus is Running
-	CommitStatusRunning CommitStatusState = "running"
 )
 
+var commitStatusPriorities = map[CommitStatusState]int{
+	CommitStatusError:   0,
+	CommitStatusFailure: 1,
+	CommitStatusWarning: 2,
+	CommitStatusPending: 3,
+	CommitStatusSuccess: 4,
+}
+
+func (css CommitStatusState) String() string {
+	return string(css)
+}
+
 // NoBetterThan returns true if this State is no better than the given State
+// This function only handles the states defined in CommitStatusPriorities
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	switch css {
-	case CommitStatusError:
-		return true
-	case CommitStatusFailure:
-		return css2 != CommitStatusError
-	case CommitStatusWarning:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure
-	case CommitStatusPending:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning
-	default:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning && css2 != CommitStatusPending
+	// NoBetterThan only handles the 5 states above
+	if _, exist := commitStatusPriorities[css]; !exist {
+		return false
 	}
+
+	if _, exist := commitStatusPriorities[css2]; !exist {
+		return false
+	}
+
+	return commitStatusPriorities[css] <= commitStatusPriorities[css2]
 }
 
 // IsPending represents if commit status state is pending

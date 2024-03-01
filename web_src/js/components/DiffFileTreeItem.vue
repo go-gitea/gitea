@@ -1,43 +1,3 @@
-<template>
-  <div v-show="show" :title="item.name">
-    <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="[item.isFile ? 'filewrapper gt-p-1 gt-ac' : '', store.selectedItem === '#diff-' + item.file?.NameHash ? 'selected' : '']">
-      <!-- Files -->
-      <SvgIcon
-        v-if="item.isFile"
-        name="octicon-file"
-        class="svg-icon file"
-      />
-      <a
-        v-if="item.isFile"
-        :class="['file gt-ellipsis', {'viewed': item.file.IsViewed}]"
-        :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
-      >{{ item.name }}</a>
-      <SvgIcon
-        v-if="item.isFile"
-        :name="getIconForDiffType(item.file.Type)"
-        :class="['svg-icon', getIconForDiffType(item.file.Type), 'status']"
-      />
-
-      <!-- Directories -->
-      <div v-if="!item.isFile" class="directory gt-p-1 gt-ac" @click.stop="handleClick(item.isFile)">
-        <SvgIcon
-          class="svg-icon"
-          :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
-        />
-        <SvgIcon
-          class="svg-icon directory"
-          name="octicon-file-directory-fill"
-        />
-        <span class="gt-ellipsis">{{ item.name }}</span>
-      </div>
-      <div v-show="!collapsed">
-        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list"/>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
 import {SvgIcon} from '../svg.js';
 import {diffTreeStore} from '../modules/stores.js';
@@ -49,107 +9,89 @@ export default {
       type: Object,
       required: true
     },
-    show: {
-      type: Boolean,
-      required: false,
-      default: true
-    },
   },
   data: () => ({
     store: diffTreeStore(),
     collapsed: false,
   }),
   methods: {
-    handleClick(itemIsFile) {
-      if (itemIsFile) {
-        return;
-      }
-      this.collapsed = !this.collapsed;
-    },
     getIconForDiffType(pType) {
       const diffTypes = {
-        1: 'octicon-diff-added',
-        2: 'octicon-diff-modified',
-        3: 'octicon-diff-removed',
-        4: 'octicon-diff-renamed',
-        5: 'octicon-diff-modified', // there is no octicon for copied, so modified should be ok
+        1: {name: 'octicon-diff-added', classes: ['text', 'green']},
+        2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
+        3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
+        4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
+        5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
       };
       return diffTypes[pType];
     },
   },
 };
 </script>
+<template>
+  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
+  <a
+    v-if="item.isFile" class="item-file"
+    :class="{'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed}"
+    :title="item.name" :href="'#diff-' + item.file.NameHash"
+  >
+    <!-- file -->
+    <SvgIcon name="octicon-file"/>
+    <span class="gt-ellipsis gt-f1">{{ item.name }}</span>
+    <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
+  </a>
+  <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+    <!-- directory -->
+    <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
+    <SvgIcon class="text primary" name="octicon-file-directory-fill"/>
+    <span class="gt-ellipsis">{{ item.name }}</span>
+  </div>
 
+  <div v-if="item.children?.length" v-show="!collapsed" class="sub-items">
+    <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+  </div>
+</template>
 <style scoped>
-.svg-icon.status {
-  float: right;
-}
-
-.svg-icon.file {
-  color: var(--color-secondary-dark-7);
-}
-
-.svg-icon.directory {
-  color: var(--color-primary);
-}
-
-.svg-icon.octicon-diff-modified {
-  color: var(--color-yellow);
-}
-
-.svg-icon.octicon-diff-added {
-  color: var(--color-green);
-}
-
-.svg-icon.octicon-diff-removed {
-  color: var(--color-red);
-}
-
-.svg-icon.octicon-diff-renamed {
-  color: var(--color-teal);
-}
-
-.item.filewrapper {
-  display: grid !important;
-  grid-template-columns: 20px 7fr 1fr;
-  padding-left: 18px !important;
-}
-
-.item.filewrapper:hover, div.directory:hover {
+a, a:hover {
+  text-decoration: none;
   color: var(--color-text);
-  background: var(--color-hover);
-  border-radius: 4px;
 }
 
-.item.filewrapper.selected {
+.sub-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 13px;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.sub-items .item-file {
+  padding-left: 18px;
+}
+
+.item-file.selected {
   color: var(--color-text);
   background: var(--color-active);
   border-radius: 4px;
 }
 
-div.directory {
-  display: grid;
-  grid-template-columns: 18px 20px auto;
-  user-select: none;
-  cursor: pointer;
-}
-
-div.list {
-  padding-bottom: 0 !important;
-  padding-top: inherit !important;
-}
-
-a {
-  text-decoration: none;
-  color: var(--color-text);
-}
-
-a:hover {
-  text-decoration: none;
-  color: var(--color-text);
-}
-
-a.file.viewed {
+.item-file.viewed {
   color: var(--color-text-light-3);
+}
+
+.item-file,
+.item-directory {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 3px 6px;
+}
+
+.item-file:hover,
+.item-directory:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>

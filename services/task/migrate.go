@@ -4,6 +4,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -17,12 +18,12 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func handleCreateError(owner *user_model.User, err error) error {
@@ -40,17 +41,16 @@ func handleCreateError(owner *user_model.User, err error) error {
 	}
 }
 
-func runMigrateTask(t *admin_model.Task) (err error) {
-	defer func() {
+func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
+	defer func(ctx context.Context) {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
 			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
-
 		if err == nil {
-			err = admin_model.FinishMigrateTask(t)
+			err = admin_model.FinishMigrateTask(ctx, t)
 			if err == nil {
-				notification.NotifyMigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
+				notify_service.MigrateRepository(ctx, t.Doer, t.Owner, t.Repo)
 				return
 			}
 
@@ -62,16 +62,15 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
-
-		if err := t.UpdateCols("status", "message", "end_time"); err != nil {
+		if err := t.UpdateCols(ctx, "status", "message", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)
 		}
 
 		// then, do not delete the repository, otherwise the users won't be able to see the last error
-	}()
+	}(graceful.GetManager().ShutdownContext()) // even if the parent ctx is canceled, this defer-function still needs to update the task record in database
 
-	if err = t.LoadRepo(); err != nil {
-		return
+	if err = t.LoadRepo(ctx); err != nil {
+		return err
 	}
 
 	// if repository is ready, then just finish the task
@@ -79,17 +78,17 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		return nil
 	}
 
-	if err = t.LoadDoer(); err != nil {
-		return
+	if err = t.LoadDoer(ctx); err != nil {
+		return err
 	}
-	if err = t.LoadOwner(); err != nil {
-		return
+	if err = t.LoadOwner(ctx); err != nil {
+		return err
 	}
 
 	var opts *migration.MigrateOptions
 	opts, err = t.MigrateConfig()
 	if err != nil {
-		return
+		return err
 	}
 
 	opts.MigrateToRepoID = t.RepoID
@@ -100,8 +99,8 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning
-	if err = t.UpdateCols("start_time", "status"); err != nil {
-		return
+	if err = t.UpdateCols(ctx, "start_time", "status"); err != nil {
+		return err
 	}
 
 	// check whether the task should be canceled, this goroutine is also managed by process manager
@@ -112,7 +111,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 			case <-ctx.Done():
 				return
 			}
-			task, _ := admin_model.GetMigratingTask(t.RepoID)
+			task, _ := admin_model.GetMigratingTask(ctx, t.RepoID)
 			if task != nil && task.Status != structs.TaskStatusRunning {
 				log.Debug("MigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] is canceled due to status is not 'running'", t.ID, t.DoerID, t.RepoID, t.OwnerID)
 				cancel()
@@ -128,17 +127,16 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		}
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
-		_ = t.UpdateCols("message")
+		_ = t.UpdateCols(ctx, "message")
 	})
 
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", t.Repo.ID, t.Owner.Name, t.Repo.Name)
-		return
+		return nil
 	}
 
 	if repo_model.IsErrRepoAlreadyExist(err) {
-		err = errors.New("the repository name is already used")
-		return
+		return errors.New("the repository name is already used")
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it

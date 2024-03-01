@@ -1,0 +1,115 @@
+{{template "base/head" .}}
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+<div class="page-content devtest">
+	<div class="ui container">
+		<h1>Flex List (standalone)</h1>
+		<div class="divider"></div>
+		<div class="flex-list">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-info" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						Flex Item
+						<span class="ui basic label">
+							with label
+						</span>
+					</div>
+					<div class="flex-item-body">
+						consists of leading/main/trailing part
+					</div>
+					<div class="flex-item-body">
+						main part contains title and (multiple) body lines
+					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui tiny red button">
+						{{svg "octicon-warning" 14}} CJK文本测试
+					</button>
+					<button class="ui tiny primary button">
+						{{svg "octicon-info" 14}} Button
+					</button>
+					<button class="ui tiny primary button">
+						Button with long text
+					</button>
+				</div>
+			</div>
+
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-info" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						Very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong title
+					</div>
+					<div class="flex-item-body">
+						consists of leading/main/trailing part
+					</div>
+					<div class="flex-item-body">
+						Very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content
+						<span class="text truncate">Truncate very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content</span>
+					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui tiny red button">
+						{{svg "octicon-warning" 12}} CJK文本测试 <!-- single CJK text test, it shouldn't be horizontal -->
+					</button>
+				</div>
+			</div>
+
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-repo" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-header">
+						<div class="flex-item-title">
+							<a class="text primary" href="{{$.Link}}">
+								gitea-org / gitea
+							</a>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+						</div>
+						<div class="flex-item-trailing">
+							<a class="muted" href="{{$.Link}}">
+								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: aqua"></i>Go</span>
+							</a>
+							<a class="text grey flex-text-inline" href="{{$.Link}}">{{svg "octicon-star" 16}}45000</a>
+							<a class="text grey flex-text-inline" href="{{$.Link}}">{{svg "octicon-git-branch" 16}}1234</a>
+						</div>
+					</div>
+					<div class="flex-item-body">
+						when inside header, the trailing part will wrap below the title
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="divider"></div>
+
+		<h1>Flex List (with "ui segment")</h1>
+		<div class="ui attached segment">
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+		<div class="ui attached segment">
+			<h1>Flex List (with "ui segment")</h1>
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+
+		<h1>If parent provides the padding/margin space:</h1>
+		<div class="gt-border-secondary gt-py-4">
+			<div class="flex-list flex-space-fitted">
+				<div class="flex-item">item 1 (no padding top)</div>
+				<div class="flex-item">item 2 (no padding bottom)</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -35,8 +35,8 @@ func TestPackageGeneric(t *testing.T) {
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
@@ -62,16 +62,16 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("Exists", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
 		t.Run("Additional", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url+"/dummy.bin", bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", url+"/dummy.bin", bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			// Check deduplication
@@ -84,16 +84,16 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("InvalidParameter", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, "%20test ", filename), bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, "%20test ", filename), bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inval+id.na me"), bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inval+id.na me"), bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})
@@ -187,15 +187,15 @@ func TestPackageGeneric(t *testing.T) {
 			req := NewRequest(t, "DELETE", url+"/"+filename)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename)
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", url+"/"+filename).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", url+"/"+filename)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename)
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", url+"/"+filename).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
@@ -205,8 +205,8 @@ func TestPackageGeneric(t *testing.T) {
 			t.Run("RemovesVersion", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req = NewRequest(t, "DELETE", url+"/dummy.bin")
-				AddBasicAuthHeader(req, user.Name)
+				req = NewRequest(t, "DELETE", url+"/dummy.bin").
+					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
@@ -218,15 +218,15 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("Version", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
-			AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			req = NewRequest(t, "DELETE", url)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", url)
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", url).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
@@ -236,8 +236,8 @@ func TestPackageGeneric(t *testing.T) {
 			req = NewRequest(t, "GET", url+"/"+filename)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "DELETE", url)
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", url).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 	})

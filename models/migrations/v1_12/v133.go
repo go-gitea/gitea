@@ -11,5 +11,5 @@ func AddEmailHashTable(x *xorm.Engine) error {
 		Hash  string `xorm:"pk varchar(32)"`
 		Email string `xorm:"UNIQUE NOT NULL"`
 	}
-	return x.Sync2(new(EmailHash))
+	return x.Sync(new(EmailHash))
 }

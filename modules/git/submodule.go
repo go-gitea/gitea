@@ -101,9 +101,8 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 				return ref.Scheme + "://" + ref.Host + ref.Path
 			} else if urlPrefixHostname == refHostname || refHostname == sshDomain {
 				return urlPrefix + path.Clean(path.Join("/", ref.Path))
-			} else {
-				return "http://" + refHostname + ref.Path
 			}
+			return "http://" + refHostname + ref.Path
 		}
 	}
 

@@ -1,0 +1,48 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin view user")}}
+
+<div class="admin-setting-content">
+	<div class="admin-responsive-columns">
+		<div class="gt-f1">
+			<h4 class="ui top attached header">
+				{{.Title}}
+				<div class="ui right">
+					<a class="ui primary tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				{{template "admin/user/view_details" .}}
+			</div>
+		</div>
+		<div class="gt-f1">
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "admin.emails"}}
+				<div class="ui right">
+					{{.EmailsTotal}}
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				{{template "admin/user/view_emails" .}}
+			</div>
+		</div>
+	</div>
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "admin.repositories"}}
+		<div class="ui right">
+			{{.ReposTotal}}
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/repo_list" .}}
+	</div>
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "settings.organization"}}
+		<div class="ui right">
+			{{.OrgsTotal}}
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/user_list" .}}
+	</div>
+</div>
+
+{{template "admin/layout_footer" .}}

@@ -17,14 +17,16 @@ type Indexer struct {
 	url, apiKey string
 	indexName   string
 	version     int
+	settings    *meilisearch.Settings
 }
 
-func NewIndexer(url, apiKey, indexName string, version int) *Indexer {
+func NewIndexer(url, apiKey, indexName string, version int, settings *meilisearch.Settings) *Indexer {
 	return &Indexer{
 		url:       url,
 		apiKey:    apiKey,
 		indexName: indexName,
 		version:   version,
+		settings:  settings,
 	}
 }
 
@@ -57,7 +59,7 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 
 	i.checkOldIndexes()
 
-	_, err = i.Client.Index(i.VersionedIndexName()).UpdateFilterableAttributes(&[]string{"repo_id"})
+	_, err = i.Client.Index(i.VersionedIndexName()).UpdateSettings(i.settings)
 	return false, err
 }
 
@@ -83,9 +85,6 @@ func (i *Indexer) Ping(ctx context.Context) error {
 // Close closes the indexer
 func (i *Indexer) Close() {
 	if i == nil {
-		return
-	}
-	if i.Client == nil {
 		return
 	}
 	i.Client = nil

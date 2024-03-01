@@ -8,13 +8,13 @@ import (
 	"strconv"
 
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/services/context"
 )
 
 // TaskStatus returns task's status
 func TaskStatus(ctx *context.Context) {
-	task, opts, err := admin_model.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.Doer.ID)
+	task, opts, err := admin_model.GetMigratingTaskByID(ctx, ctx.ParamsInt64("task"), ctx.Doer.ID)
 	if err != nil {
 		if admin_model.IsErrTaskDoesNotExist(err) {
 			ctx.JSON(http.StatusNotFound, map[string]any{
@@ -39,7 +39,7 @@ func TaskStatus(ctx *context.Context) {
 				Args:   []any{task.Message},
 			}
 		}
-		message = ctx.Tr(translatableMessage.Format, translatableMessage.Args...)
+		message = ctx.Locale.TrString(translatableMessage.Format, translatableMessage.Args...)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{

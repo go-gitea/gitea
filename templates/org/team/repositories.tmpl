@@ -10,48 +10,48 @@
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
 					<div class="ui attached segment gt-df gt-fw gt-gap-3">
-						<form class="ui form ignore-dirty gt-f1 gt-dif" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+						<form class="ui form ignore-dirty gt-f1 gt-df" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
-									<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+									<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui green button gt-ml-3">{{.locale.Tr "add"}}</button>
+							<button class="ui primary button gt-ml-3">{{ctx.Locale.Tr "add"}}</button>
 						</form>
 						<div class="gt-dib">
-							<button class="ui green button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
-							<button class="ui red button link-action" data-modal-confirm="{{.locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
+							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>
+							<button class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{ctx.Locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
 				{{end}}
-				<div class="ui bottom attached table segment repositories">
-					{{range .Team.Repos}}
-						<div class="item gt-df gt-ac gt-fw">
-							{{if .IsPrivate}}
-								{{svg "octicon-lock" 16 "gt-mr-3"}}
-							{{else if .IsFork}}
-								{{svg "octicon-repo-forked" 16 "gt-mr-3"}}
-							{{else if .IsMirror}}
-								{{svg "octicon-mirror" 16 "gt-mr-3"}}
-							{{else}}
-								{{svg "octicon-repo" 16 "gt-mr-3"}}
-							{{end}}
-							<a class="member gt-f1" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
-								<strong>{{$.Org.Name}}/{{.Name}}</strong>
-							</a>
-							{{if $canAddRemove}}
-								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
-									{{$.CsrfTokenHtml}}
-									<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
-								</form>
-							{{end}}
-						</div>
-					{{else}}
-						<div class="item">
-							<span class="text grey italic">{{$.locale.Tr "org.teams.repos.none"}}</span>
-						</div>
-					{{end}}
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .Team.Repos}}
+							<div class="flex-item gt-ac">
+								<div class="flex-item-leading">
+									{{template "repo/icon" .}}
+								</div>
+								<div class="flex-item-main">
+									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+										{{$.Org.Name}}/{{.Name}}
+									</a>
+								</div>
+								<div class="flex-item-trailing">
+									{{if $canAddRemove}}
+										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
+											{{$.CsrfTokenHtml}}
+											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+										</form>
+									{{end}}
+								</div>
+							</div>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
+							</div>
+						{{end}}
+					</div>
 				</div>
 			</div>
 		</div>

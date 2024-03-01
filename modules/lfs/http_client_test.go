@@ -177,7 +177,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -207,7 +207,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 6
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 7
 		{
@@ -217,27 +217,28 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
@@ -284,7 +285,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -319,7 +320,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 		// case 8
 		{
@@ -329,22 +330,23 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
 			return io.NopCloser(new(bytes.Buffer)), objectError

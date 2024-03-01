@@ -37,13 +37,12 @@
 .combo-markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
-  min-height: 200px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
   resize: vertical;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
 }
 
 /* use the same styles as markup/content.css */
@@ -83,9 +82,10 @@ text-expander .suggestions {
   margin-top: 24px;
   list-style: none;
   background: var(--color-box-body);
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 text-expander .suggestions li {
@@ -101,15 +101,15 @@ text-expander .suggestions li + li {
 }
 
 text-expander .suggestions li:first-child {
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 text-expander .suggestions li:last-child {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 text-expander .suggestions li:only-child {
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 text-expander .suggestions li:hover {

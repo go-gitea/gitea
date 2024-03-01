@@ -8,8 +8,8 @@
 
 {{$recover_url := printf "%suser/recover_account?code=%s" AppUrl (QueryEscape .Code)}}
 <body>
-	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape) | Str2html}}</p><br>
-	<p>{{.locale.Tr "mail.reset_password.text" .ResetPwdCodeLives | Str2html}}</p><p><a href="{{$recover_url}}">{{$recover_url}}</a></p><br>
+	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p><br>
+	<p>{{.locale.Tr "mail.reset_password.text" .ResetPwdCodeLives}}</p><p><a href="{{$recover_url}}">{{$recover_url}}</a></p><br>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 
 	<p>© <a target="_blank" rel="noopener noreferrer" href="{{AppUrl}}">{{AppName}}</a></p>

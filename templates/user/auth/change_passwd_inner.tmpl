@@ -2,25 +2,22 @@
 		{{template "base/alert" .}}
 		{{end}}
 		<h4 class="ui top attached header center">
-			{{.locale.Tr "settings.change_password"}}
+			{{ctx.Locale.Tr "settings.change_password"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.ChangePasscodeLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-				<label for="password">{{.locale.Tr "password"}}</label>
+				<label for="password">{{ctx.Locale.Tr "password"}}</label>
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 			</div>
-
-
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-				<label for="retype">{{.locale.Tr "re_type"}}</label>
+				<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
 				<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 			</div>
-
 			<div class="inline field">
 				<label></label>
-				<button class="ui green button">{{.locale.Tr "settings.change_password"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
 			</div>
 			</form>
 		</div>

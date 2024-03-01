@@ -1,17 +1,17 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.repos.unadopted"}}
+			{{ctx.Locale.Tr "admin.repos.unadopted"}}
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos">{{.locale.Tr "admin.repos.repo_manage_panel"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos">{{ctx.Locale.Tr "admin.repos.repo_manage_panel"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
 				<input name="search" value="true" type="hidden">
-				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "repo.adopt_search"}}" autofocus>
-				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+				<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "repo.adopt_search"}}" autofocus>
+				<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -23,13 +23,13 @@
 							<div class="item gt-df gt-ac">
 								<span class="gt-f1"> {{svg "octicon-file-directory-fill"}} {{$dir}}</span>
 								<div>
-									<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{$.locale.Tr "repo.adopt_preexisting_label"}}</button>
+									<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</button>
 									<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 										<div class="header">
-											<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
+											<span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting"}}</span>
 										</div>
 										<div class="content">
-											<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
+											<p>{{ctx.Locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 										</div>
 										<form class="ui form" method="post" action="{{AppSubUrl}}/admin/repos/unadopted">
 											{{$.CsrfTokenHtml}}
@@ -37,16 +37,16 @@
 											<input type="hidden" name="action" value="adopt">
 											<input type="hidden" name="q" value="{{$.Keyword}}">
 											<input type="hidden" name="page" value="{{$.CurrentPage}}">
-											{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
+											{{template "base/modal_actions_confirm"}}
 										</form>
 									</div>
-									<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{$.locale.Tr "repo.delete_preexisting_label"}}</button>
+									<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.delete_preexisting_label"}}</button>
 									<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 										<div class="header">
-											<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
+											<span class="label">{{ctx.Locale.Tr "repo.delete_preexisting"}}</span>
 										</div>
 										<div class="content">
-											<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
+											<p>{{ctx.Locale.Tr "repo.delete_preexisting_content" $dir}}</p>
 										</div>
 										<form class="ui form" method="post" action="{{AppSubUrl}}/admin/repos/unadopted">
 											{{$.CsrfTokenHtml}}
@@ -54,7 +54,7 @@
 											<input type="hidden" name="action" value="delete">
 											<input type="hidden" name="q" value="{{$.Keyword}}">
 											<input type="hidden" name="page" value="{{$.CurrentPage}}">
-											{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
+											{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "yellow")}}
 										</form>
 									</div>
 								</div>
@@ -64,7 +64,7 @@
 					{{template "base/paginate" .}}
 				{{else}}
 					<div class="item">
-						{{.locale.Tr "admin.repos.unadopted.no_more"}}
+						{{ctx.Locale.Tr "admin.repos.unadopted.no_more"}}
 					</div>
 					{{template "base/paginate" .}}
 				{{end}}

@@ -1,16 +1,16 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message">
-				{{.locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
+			<div class="ui warning message gt-text-center">
+				{{ctx.Locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
 			</div>
 		{{else}}
 			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.default_branch"}}
+				{{ctx.Locale.Tr "repo.default_branch"}}
 			</h4>
 			<div class="ui attached segment">
 				<p>
-					{{.locale.Tr "repo.settings.default_branch_desc"}}
+					{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
 				<form class="gt-df" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
@@ -26,38 +26,39 @@
 								{{end}}
 							</div>
 						</div>
-						<button class="ui green button">{{$.locale.Tr "repo.settings.branches.update_default_branch"}}</button>
+						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					{{end}}
 				</form>
 			</div>
 
 			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.settings.protected_branch"}}
+				{{ctx.Locale.Tr "repo.settings.protected_branch"}}
 				<div class="ui right">
-					<a class="ui primary tiny button" href="{{$.Repository.Link}}/settings/branches/edit">{{$.locale.Tr "repo.settings.branches.add_new_rule"}}</a>
+					<a class="ui primary tiny button" href="{{$.Repository.Link}}/settings/branches/edit">{{ctx.Locale.Tr "repo.settings.branches.add_new_rule"}}</a>
 				</div>
 			</h4>
 
-			<div class="ui attached table segment">
-				<div class="ui grid padded">
-					<div class="sixteen wide column">
-						<table class="ui single line table padded">
-							<tbody>
-								{{range .ProtectedBranches}}
-									<tr>
-										<td><div class="ui basic primary label">{{.RuleName}}</div></td>
-										<td class="right aligned">
-										<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
-										<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
-										{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}</button>
-										</td>
-									</tr>
-								{{else}}
-									<tr class="center aligned"><td>{{.locale.Tr "repo.settings.no_protected_branch"}}</td></tr>
-								{{end}}
-							</tbody>
-						</table>
-					</div>
+			<div class="ui attached segment">
+				<div class="flex-list">
+					{{range .ProtectedBranches}}
+						<div class="flex-item gt-ac">
+							<div class="flex-item-main">
+								<div class="flex-item-title">
+									<div class="ui basic primary label">{{.RuleName}}</div>
+								</div>
+							</div>
+							<div class="flex-item-trailing">
+								<a class="rm ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{ctx.Locale.Tr "repo.settings.edit_protected_branch"}}</a>
+								<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
+									{{ctx.Locale.Tr "repo.settings.protected_branch.delete_rule"}}
+								</button>
+							</div>
+						</div>
+					{{else}}
+						<div class="flex-item center aligned">
+							{{ctx.Locale.Tr "repo.settings.no_protected_branch"}}
+						</div>
+					{{end}}
 				</div>
 			</div>
 		{{end}}
@@ -66,10 +67,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.settings.protected_branch_deletion"}}
+		{{ctx.Locale.Tr "repo.settings.protected_branch_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p>
+		<p>{{ctx.Locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

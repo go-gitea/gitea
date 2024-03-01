@@ -9,15 +9,15 @@ import (
 
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -45,7 +45,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(file, allowedTypes, header.Size, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -77,7 +77,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
-	err = repo_model.DeleteAttachment(attach, true)
+	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
@@ -122,7 +122,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 	}
 
-	if err := attach.IncreaseDownloadCount(); err != nil {
+	if err := attach.IncreaseDownloadCount(ctx); err != nil {
 		ctx.ServerError("IncreaseDownloadCount", err)
 		return
 	}

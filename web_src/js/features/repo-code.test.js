@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {singleAnchorRegex, rangeAnchorRegex} from './repo-code.js';
 
 test('singleAnchorRegex', () => {

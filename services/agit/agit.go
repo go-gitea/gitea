@@ -14,8 +14,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/private"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -36,9 +36,15 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	topicBranch = opts.GitPushOptions["topic"]
 	_, forcePush = opts.GitPushOptions["force-push"]
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
+	pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get user. Error: %w", err)
+	}
 
 	for i := range opts.OldCommitIDs {
-		if opts.NewCommitIDs[i] == git.EmptySHA {
+		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -115,11 +121,6 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
-			}
-
 			prIssue := &issues_model.Issue{
 				RepoID:   repo.ID,
 				Title:    title,
@@ -151,7 +152,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
-				OldOID:      git.EmptySHA,
+				OldOID:      objectFormat.EmptyObjectID().String(),
 				NewOID:      opts.NewCommitIDs[i],
 			})
 			continue
@@ -197,7 +198,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("Failed to update pull ref. Error: %w", err)
 		}
 
-		pull_service.AddToTaskQueue(pr)
+		pull_service.AddToTaskQueue(ctx, pr)
 		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
@@ -208,9 +209,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
+			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notification.NotifyPullRequestSynchronized(ctx, pusher, pr)
+		notify_service.PullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{
@@ -237,7 +238,7 @@ func UserNameChanged(ctx context.Context, user *user_model.User, newName string)
 	for _, pull := range pulls {
 		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
 		pull.HeadBranch = newName + "/" + pull.HeadBranch
-		if err = pull.UpdateCols("head_branch"); err != nil {
+		if err = pull.UpdateCols(ctx, "head_branch"); err != nil {
 			return err
 		}
 	}

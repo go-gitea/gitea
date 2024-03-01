@@ -5,7 +5,6 @@ package wiki
 
 import (
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,14 +12,15 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
+
+	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestWebPathSegments(t *testing.T) {
@@ -59,6 +59,7 @@ func TestWebPathToDisplayName(t *testing.T) {
 		{"name with / slash", "name-with %2F slash"},
 		{"name with % percent", "name-with %25 percent"},
 		{"2000-01-02 meeting", "2000-01-02+meeting.-.md"},
+		{"a b", "a%20b.md"},
 	} {
 		_, displayName := WebPathToUserTitle(test.WebPath)
 		assert.EqualValues(t, test.Expected, displayName)
@@ -73,7 +74,8 @@ func TestWebPathToGitPath(t *testing.T) {
 	for _, test := range []test{
 		{"wiki-name.md", "wiki%20name"},
 		{"wiki-name.md", "wiki+name"},
-		{"wiki%20name.md", "wiki%20name.md"},
+		{"wiki name.md", "wiki%20name.md"},
+		{"wiki%20name.md", "wiki%2520name.md"},
 		{"2000-01-02-meeting.md", "2000-01-02+meeting"},
 		{"2000-01-02 meeting.-.md", "2000-01-02%20meeting.-"},
 	} {
@@ -163,8 +165,10 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			webPath := UserTitleToWebPath("", userTitle)
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
-			assert.NoError(t, err)
+			gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+			if !assert.NoError(t, err) {
+				return
+			}
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
@@ -209,7 +213,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", webPath, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+		gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
@@ -233,8 +237,10 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
-	assert.NoError(t, err)
+	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
@@ -246,9 +252,11 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
-	assert.NoError(t, err)
 
 	tests := []struct {
 		name      string
@@ -295,15 +303,29 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 
-	err := git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true, git.Sha1ObjectFormat.Name())
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
-	assert.NoError(t, err)
 
 	existence, newWikiPath, err := prepareGitPath(gitRepo, "Home")
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "Home.md", newWikiPath)
+}
+
+func TestWebPathConversion(t *testing.T) {
+	assert.Equal(t, "path/wiki", WebPathToURLPath(WebPath("path/wiki")))
+	assert.Equal(t, "wiki", WebPathToURLPath(WebPath("wiki")))
+	assert.Equal(t, "", WebPathToURLPath(WebPath("")))
+}
+
+func TestWebPathFromRequest(t *testing.T) {
+	assert.Equal(t, WebPath("a%2Fb"), WebPathFromRequest("a/b"))
+	assert.Equal(t, WebPath("a"), WebPathFromRequest("a"))
+	assert.Equal(t, WebPath("b"), WebPathFromRequest("a/../b"))
 }

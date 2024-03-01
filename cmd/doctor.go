@@ -14,61 +14,72 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/doctor"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/doctor"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"xorm.io/xorm"
 )
 
 // CmdDoctor represents the available doctor sub-command.
-var CmdDoctor = cli.Command{
+var CmdDoctor = &cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose and optionally fix problems",
+	Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
 	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-	Action:      runDoctor,
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "list",
-			Usage: "List the available checks",
-		},
-		cli.BoolFlag{
-			Name:  "default",
-			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
-		},
-		cli.StringSliceFlag{
-			Name:  "run",
-			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
-		},
-		cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run all the available checks",
-		},
-		cli.BoolFlag{
-			Name:  "fix",
-			Usage: "Automatically fix what we can",
-		},
-		cli.StringFlag{
-			Name:  "log-file",
-			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
-		},
-		cli.BoolFlag{
-			Name:  "color, H",
-			Usage: "Use color for outputted information",
-		},
-	},
-	Subcommands: []cli.Command{
+
+	Subcommands: []*cli.Command{
+		cmdDoctorCheck,
 		cmdRecreateTable,
+		cmdDoctorConvert,
 	},
 }
 
-var cmdRecreateTable = cli.Command{
+var cmdDoctorCheck = &cli.Command{
+	Name:        "check",
+	Usage:       "Diagnose and optionally fix problems",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+	Action:      runDoctorCheck,
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "list",
+			Usage: "List the available checks",
+		},
+		&cli.BoolFlag{
+			Name:  "default",
+			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
+		},
+		&cli.StringSliceFlag{
+			Name:  "run",
+			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
+		},
+		&cli.BoolFlag{
+			Name:  "all",
+			Usage: "Run all the available checks",
+		},
+		&cli.BoolFlag{
+			Name:  "fix",
+			Usage: "Automatically fix what we can",
+		},
+		&cli.StringFlag{
+			Name:  "log-file",
+			Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
+		},
+		&cli.BoolFlag{
+			Name:    "color",
+			Aliases: []string{"H"},
+			Usage:   "Use color for outputted information",
+		},
+	},
+}
+
+var cmdRecreateTable = &cli.Command{
 	Name:      "recreate-table",
 	Usage:     "Recreate tables from XORM definitions and copy the data.",
 	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "debug",
 			Usage: "Print SQL commands sent",
 		},
@@ -132,16 +143,9 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
 	logFile := ctx.String("log-file")
-	if !ctx.IsSet("log-file") {
-		logFile = "doctor.log"
-	}
-
-	if len(logFile) == 0 {
-		// if no doctor log-file is set, do not show any log from default logger
-		return
-	}
-
-	if logFile == "-" {
+	if logFile == "" {
+		return // if no doctor log-file is set, do not show any log from default logger
+	} else if logFile == "-" {
 		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
 	} else {
 		logFile, _ = filepath.Abs(logFile)
@@ -155,7 +159,7 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	}
 }
 
-func runDoctor(ctx *cli.Context) error {
+func runDoctorCheck(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
@@ -174,6 +178,7 @@ func runDoctor(ctx *cli.Context) error {
 	if ctx.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
+		doctor.SortChecks(doctor.Checks)
 		for _, check := range doctor.Checks {
 			if check.IsDefault {
 				_, _ = w.Write([]byte{'*'})
@@ -189,25 +194,19 @@ func runDoctor(ctx *cli.Context) error {
 
 	var checks []*doctor.Check
 	if ctx.Bool("all") {
-		checks = doctor.Checks
+		checks = make([]*doctor.Check, len(doctor.Checks))
+		copy(checks, doctor.Checks)
 	} else if ctx.IsSet("run") {
 		addDefault := ctx.Bool("default")
-		names := ctx.StringSlice("run")
-		for i, name := range names {
-			names[i] = strings.ToLower(strings.TrimSpace(name))
-		}
-
+		runNamesSet := container.SetOf(ctx.StringSlice("run")...)
 		for _, check := range doctor.Checks {
-			if addDefault && check.IsDefault {
+			if (addDefault && check.IsDefault) || runNamesSet.Contains(check.Name) {
 				checks = append(checks, check)
-				continue
+				runNamesSet.Remove(check.Name)
 			}
-			for _, name := range names {
-				if name == check.Name {
-					checks = append(checks, check)
-					break
-				}
-			}
+		}
+		if len(runNamesSet) > 0 {
+			return fmt.Errorf("unknown checks: %q", strings.Join(runNamesSet.Values(), ","))
 		}
 	} else {
 		for _, check := range doctor.Checks {
@@ -216,6 +215,5 @@ func runDoctor(ctx *cli.Context) error {
 			}
 		}
 	}
-
 	return doctor.RunChecks(stdCtx, colorize, ctx.Bool("fix"), checks)
 }

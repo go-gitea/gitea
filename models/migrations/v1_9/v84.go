@@ -13,5 +13,5 @@ func AddGPGKeyImport(x *xorm.Engine) error {
 		Content string `xorm:"TEXT NOT NULL"`
 	}
 
-	return x.Sync2(new(GPGKeyImport))
+	return x.Sync(new(GPGKeyImport))
 }

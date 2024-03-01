@@ -1,7 +1,8 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
 import {showElem} from '../utils/dom.js';
+import {GET, POST} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export async function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
@@ -13,7 +14,7 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  const res = await fetch(`${appSubUrl}/user/webauthn/assertion`);
+  const res = await GET(`${appSubUrl}/user/webauthn/assertion`);
   if (res.status !== 200) {
     webAuthnError('unknown');
     return;
@@ -53,12 +54,8 @@ async function verifyAssertion(assertedCredential) {
   const sig = new Uint8Array(assertedCredential.response.signature);
   const userHandle = new Uint8Array(assertedCredential.response.userHandle);
 
-  const res = await fetch(`${appSubUrl}/user/webauthn/assertion`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    },
-    body: JSON.stringify({
+  const res = await POST(`${appSubUrl}/user/webauthn/assertion`, {
+    data: {
       id: assertedCredential.id,
       rawId: encodeURLEncodedBase64(rawId),
       type: assertedCredential.type,
@@ -69,7 +66,7 @@ async function verifyAssertion(assertedCredential) {
         signature: encodeURLEncodedBase64(sig),
         userHandle: encodeURLEncodedBase64(userHandle),
       },
-    }),
+    },
   });
   if (res.status === 500) {
     webAuthnError('unknown');
@@ -88,13 +85,8 @@ async function webauthnRegistered(newCredential) {
   const clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
   const rawId = new Uint8Array(newCredential.rawId);
 
-  const res = await fetch(`${appSubUrl}/user/settings/security/webauthn/register`, {
-    method: 'POST',
-    headers: {
-      'X-Csrf-Token': csrfToken,
-      'Content-Type': 'application/json; charset=utf-8',
-    },
-    body: JSON.stringify({
+  const res = await POST(`${appSubUrl}/user/settings/security/webauthn/register`, {
+    data: {
       id: newCredential.id,
       rawId: encodeURLEncodedBase64(rawId),
       type: newCredential.type,
@@ -102,7 +94,7 @@ async function webauthnRegistered(newCredential) {
         attestationObject: encodeURLEncodedBase64(attestationObject),
         clientDataJSON: encodeURLEncodedBase64(clientDataJSON),
       },
-    }),
+    },
   });
 
   if (res.status === 409) {
@@ -165,15 +157,11 @@ export function initUserAuthWebAuthnRegister() {
 async function webAuthnRegisterRequest() {
   const elNickname = document.getElementById('nickname');
 
-  const body = new FormData();
-  body.append('name', elNickname.value);
+  const formData = new FormData();
+  formData.append('name', elNickname.value);
 
-  const res = await fetch(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
-    method: 'POST',
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    body,
+  const res = await POST(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
+    data: formData,
   });
 
   if (res.status === 409) {

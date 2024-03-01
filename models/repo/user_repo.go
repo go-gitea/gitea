@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
@@ -78,7 +79,8 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	if err = e.Table("team_user").
 		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-		Where("`team_repo`.repo_id = ? AND `team_unit`.access_mode >= ?", repo.ID, perm.AccessModeWrite).
+		Where("`team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
+			repo.ID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
 		Distinct("`team_user`.uid").
 		Select("`team_user`.uid").
 		Find(&additionalUserIDs); err != nil {

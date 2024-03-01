@@ -15,18 +15,28 @@ export async function renderMath() {
     import(/* webpackChunkName: "katex" */'katex/dist/katex.css'),
   ]);
 
+  const MAX_CHARS = 1000;
+  const MAX_SIZE = 25;
+  const MAX_EXPAND = 1000;
+
   for (const el of els) {
     const target = targetElement(el);
     if (target.hasAttribute('data-render-done')) continue;
     const source = el.textContent;
+
+    if (source.length > MAX_CHARS) {
+      displayError(target, new Error(`Math source of ${source.length} characters exceeds the maximum allowed length of ${MAX_CHARS}.`));
+      continue;
+    }
+
     const displayMode = el.classList.contains('display');
     const nodeName = displayMode ? 'p' : 'span';
 
     try {
       const tempEl = document.createElement(nodeName);
       katex.render(source, tempEl, {
-        maxSize: 25,
-        maxExpand: 50,
+        maxSize: MAX_SIZE,
+        maxExpand: MAX_EXPAND,
         displayMode,
       });
       target.replaceWith(tempEl);

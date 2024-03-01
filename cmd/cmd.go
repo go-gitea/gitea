@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // argsSet checks that all the required arguments are set. args is a list of
@@ -109,15 +109,24 @@ func setupConsoleLogger(level log.Level, colorize bool, out io.Writer) {
 	log.GetManager().GetLogger(log.DEFAULT).ReplaceAllWriters(writer)
 }
 
+func globalBool(c *cli.Context, name string) bool {
+	for _, ctx := range c.Lineage() {
+		if ctx.Bool(name) {
+			return true
+		}
+	}
+	return false
+}
+
 // PrepareConsoleLoggerLevel by default, use INFO level for console logger, but some sub-commands (for git/ssh protocol) shouldn't output any log to stdout.
 // Any log appears in git stdout pipe will break the git protocol, eg: client can't push and hangs forever.
 func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(*cli.Context) error {
 	return func(c *cli.Context) error {
 		level := defaultLevel
-		if c.Bool("quiet") || c.GlobalBoolT("quiet") {
+		if globalBool(c, "quiet") {
 			level = log.FATAL
 		}
-		if c.Bool("debug") || c.GlobalBool("debug") || c.Bool("verbose") || c.GlobalBool("verbose") {
+		if globalBool(c, "debug") || globalBool(c, "verbose") {
 			level = log.TRACE
 		}
 		log.SetConsoleLogger(log.DEFAULT, "console-default", level)

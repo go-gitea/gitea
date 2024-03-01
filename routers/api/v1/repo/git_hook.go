@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -34,6 +34,8 @@ func ListGitHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitHookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {

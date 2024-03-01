@@ -3,5 +3,5 @@
 	id="label_{{.label.ID}}"
 	href="{{.root.RepoLink}}/{{if or .root.IsPull .root.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.label.ID}}"{{/* FIXME: use .root.Issue.Link or create .root.Link */}}
 >
-	{{RenderLabel $.Context .label}}
+	{{- RenderLabel $.Context .label -}}
 </a>

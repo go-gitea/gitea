@@ -1,24 +1,24 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit githook")}}
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.githooks"}}
+			{{ctx.Locale.Tr "repo.settings.githooks"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.locale.Tr "repo.settings.githook_edit_desc"}}</p>
+			<p>{{ctx.Locale.Tr "repo.settings.githook_edit_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				{{with .Hook}}
 					<div class="inline field">
-						<label>{{$.locale.Tr "repo.settings.githook_name"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.githook_name"}}</label>
 						<span class="hook-filename">{{.Name}}</span>
 					</div>
 					<div class="field">
-						<label for="content">{{$.locale.Tr "repo.settings.githook_content"}}</label>
+						<label for="content">{{ctx.Locale.Tr "repo.settings.githook_content"}}</label>
 						<textarea id="content" name="content" class="gt-hidden">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 					<div class="inline field">
-						<button class="ui green button">{{$.locale.Tr "repo.settings.update_githook"}}</button>
+						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_githook"}}</button>
 					</div>
 				{{end}}
 			</form>

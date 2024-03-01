@@ -1,25 +1,25 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.users.edit_account"}}
+			{{ctx.Locale.Tr "admin.users.edit_account"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
-					<label for="user_name">{{.locale.Tr "username"}}</label>
+					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal}}disabled{{end}} maxlength="40">
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
-					<label>{{.locale.Tr "admin.users.auth_source"}}</label>
+					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
-						<div class="text">{{.locale.Tr "admin.users.local"}}</div>
+						<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-value="0-0">{{.locale.Tr "admin.users.local"}}</div>
+							<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
 								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
@@ -28,25 +28,25 @@
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .User.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .User.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
 						{{if .User.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
-							{{if .User.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .User.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .User.Visibility.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{end}}
+							{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+							{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+							{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -54,81 +54,81 @@
 				</div>
 
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}gt-hidden{{end}}">
-					<label for="login_name">{{.locale.Tr "admin.users.auth_login_name"}}</label>
+					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
-					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
+					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.locale.Tr "email"}}</label>
+					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}gt-hidden{{end}}">
-					<label for="password">{{.locale.Tr "password"}}</label>
+					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
-					<p class="help">{{.locale.Tr "admin.users.password_helper"}}</p>
+					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
-					<label for="website">{{.locale.Tr "settings.website"}}</label>
+					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="http://mydomain.com or https://mydomain.com" maxlength="255">
 				</div>
 				<div class="field {{if .Err_Location}}error{{end}}">
-					<label for="location">{{.locale.Tr "settings.location"}}</label>
+					<label for="location">{{ctx.Locale.Tr "settings.location"}}</label>
 					<input id="location" name="location" value="{{.User.Location}}" maxlength="50">
 				</div>
 
 				<div class="divider"></div>
 
 				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-					<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
+					<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
 					<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.User.MaxRepoCreation}}">
-					<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
+					<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 				</div>
 
 				<div class="divider"></div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.is_activated"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.is_activated"}}</strong></label>
 						<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.prohibit_login"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.prohibit_login"}}</strong></label>
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.is_admin"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.is_admin"}}</strong></label>
 						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.is_restricted"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.is_restricted"}}</strong></label>
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field {{if DisableGitHooks}}gt-hidden{{end}}">
-					<div class="ui checkbox" data-tooltip-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
-						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
+					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.users.allow_git_hook_tooltip"}}">
+						<label><strong>{{ctx.Locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.allow_import_local"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
 					</div>
 				</div>
 				{{if not .DisableRegularOrgCreation}}
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.allow_create_organization"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.allow_create_organization"}}</strong></label>
 						<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
 					</div>
 				</div>
@@ -138,7 +138,7 @@
 				<div class="divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.users.reset_2fa"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.users.reset_2fa"}}</strong></label>
 						<input name="reset_2fa" type="checkbox">
 					</div>
 				</div>
@@ -147,27 +147,27 @@
 				<div class="divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<button class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.users.update_profile"}}</button>
+					<button class="ui red button show-modal" data-modal="#delete-user-modal">{{ctx.Locale.Tr "admin.users.delete_account"}}</button>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.avatar"}}
+			{{ctx.Locale.Tr "settings.avatar"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+			<form class="ui form" action="./avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not (DisableGravatar $.Context)}}
+				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .User.UseCustomAvatar}}checked{{end}}>
-						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
+						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
 				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
-					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
+					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}">
 				</div>
 				{{end}}
@@ -175,18 +175,18 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .User.UseCustomAvatar}}checked{{end}}>
-						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
+						<label>{{ctx.Locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field gt-pl-4">
-					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
+					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+					<button class="ui red button link-action" data-url="./avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -195,18 +195,18 @@
 <div class="ui g-modal-confirm delete modal" id="delete-user-modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.delete_account_title"}}
+		{{ctx.Locale.Tr "settings.delete_account_title"}}
 	</div>
-	<form class="ui form" method="post" action="{{.Link}}/delete">
+	<form class="ui form" method="post" action="./delete">
 		<div class="content">
-			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.delete_account_desc"}}</p>
 			{{$.CsrfTokenHtml}}
 			<div class="field">
 				<div class="ui checkbox">
-					<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
+					<label for="purge">{{ctx.Locale.Tr "admin.users.purge"}}</label>
 					<input name="purge" type="checkbox">
 				</div>
-				<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
+				<p class="help">{{ctx.Locale.Tr "admin.users.purge_help"}}</p>
 			</div>
 		</div>
 		{{template "base/modal_actions_confirm" .}}

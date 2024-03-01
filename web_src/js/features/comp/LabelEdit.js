@@ -36,7 +36,7 @@ export function initCompLabelEdit(selector) {
     $('.new-label.modal').modal({
       onApprove() {
         $('.new-label.form').trigger('submit');
-      }
+      },
     }).modal('show');
     return false;
   });
@@ -48,6 +48,9 @@ export function initCompLabelEdit(selector) {
 
     const nameInput = $('.edit-label .label-name-input');
     nameInput.val($(this).data('title'));
+
+    const isArchivedCheckbox = $('.edit-label .label-is-archived-input');
+    isArchivedCheckbox.prop('checked', this.hasAttribute('data-is-archived'));
 
     const exclusiveCheckbox = $('.edit-label .label-exclusive-input');
     exclusiveCheckbox.prop('checked', this.hasAttribute('data-exclusive'));
@@ -64,7 +67,7 @@ export function initCompLabelEdit(selector) {
     $('.edit-label.modal').modal({
       onApprove() {
         $('.edit-label.form').trigger('submit');
-      }
+      },
     }).modal('show');
     return false;
   });

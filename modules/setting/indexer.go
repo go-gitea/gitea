@@ -53,21 +53,24 @@ var Indexer = struct {
 func loadIndexerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
-	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
-	if !filepath.IsAbs(Indexer.IssuePath) {
-		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
-	}
-	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
-
-	if Indexer.IssueType == "meilisearch" {
-		u, err := url.Parse(Indexer.IssueConnStr)
-		if err != nil {
-			log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
-			u = &url.URL{}
+	if Indexer.IssueType == "bleve" {
+		Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
+		if !filepath.IsAbs(Indexer.IssuePath) {
+			Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 		}
-		Indexer.IssueConnAuth, _ = u.User.Password()
-		u.User = nil
-		Indexer.IssueConnStr = u.String()
+		fatalDuplicatedPath("issue_indexer", Indexer.IssuePath)
+	} else {
+		Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+		if Indexer.IssueType == "meilisearch" {
+			u, err := url.Parse(Indexer.IssueConnStr)
+			if err != nil {
+				log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
+				u = &url.URL{}
+			}
+			Indexer.IssueConnAuth, _ = u.User.Password()
+			u.User = nil
+			Indexer.IssueConnStr = u.String()
+		}
 	}
 
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)

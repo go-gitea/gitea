@@ -76,7 +76,8 @@ func (i *Indexer) Ping(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if resp.Status != "green" {
+	if resp.Status != "green" && resp.Status != "yellow" {
+		// It's healthy if the status is green, and it's available if the status is yellow,
 		// see https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-health.html
 		return fmt.Errorf("status of elasticsearch cluster is %s", resp.Status)
 	}

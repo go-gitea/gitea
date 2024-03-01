@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -57,14 +56,15 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		content bytes.Buffer
 	)
 
-	destination := locale.Tr("mail.repo.transfer.to_you")
-	subject := locale.Tr("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
+	destination := locale.TrString("mail.repo.transfer.to_you")
+	subject := locale.TrString("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
 	if newOwner.IsOrganization() {
 		destination = newOwner.DisplayName()
-		subject = locale.Tr("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
+		subject = locale.TrString("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
 	}
 
 	data := map[string]any{
+		"locale":      locale,
 		"Doer":        doer,
 		"User":        repo.Owner,
 		"Repo":        repo.FullName(),
@@ -72,10 +72,6 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Subject":     subject,
 		"Language":    locale.Language(),
 		"Destination": destination,
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {

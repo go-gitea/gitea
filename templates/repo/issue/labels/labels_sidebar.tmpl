@@ -1,5 +1,5 @@
 <div class="ui labels list">
-	<span class="no-select item {{if .root.HasSelectedLabel}}gt-hidden{{end}}">{{.root.locale.Tr "repo.issues.new.no_label"}}</span>
+	<span class="no-select item {{if .root.HasSelectedLabel}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_label"}}</span>
 	<span class="labels-list">
 		{{range .root.Labels}}
 			{{template "repo/issue/labels/label" dict "root" $.root "label" .}}

@@ -1,0 +1,2 @@
+@import "./theme-gitea-light.css" (prefers-color-scheme: light);
+@import "./theme-gitea-dark.css" (prefers-color-scheme: dark);

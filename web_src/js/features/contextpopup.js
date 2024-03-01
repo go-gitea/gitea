@@ -1,11 +1,10 @@
-import $ from 'jquery';
 import {createApp} from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
 import {createTippy} from '../modules/tippy.js';
 
 export function initContextPopups() {
-  const refIssues = $('.ref-issue');
+  const refIssues = document.querySelectorAll('.ref-issue');
   attachRefIssueContextPopup(refIssues);
 }
 

@@ -1,48 +1,44 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
-<div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}} repository-summary-language-stats{{end}} gt-mt-2 gt-mb-0">
+<div class="ui segments repository-summary gt-mt-2 gt-mb-0">
 	<div class="ui segment sub-menu repository-menu">
-		<div class="ui two horizontal center list">
-			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
-				<div class="item{{if .PageIsCommits}} active{{end}}">
-					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
-				</div>
-				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
-				</div>
-				{{if $.Permission.CanRead $.UnitTypeCode}}
-					<div class="item{{if .PageIsTagList}} active{{end}}">
-						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
-					</div>
-				{{end}}
-				<div class="item" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
-					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
-					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
-					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
-				</div>
+		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
+			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">
+				{{svg "octicon-history"}} <b>{{ctx.Locale.PrettyNumber .CommitsCount}}</b> {{ctx.Locale.TrN .CommitsCount "repo.commit" "repo.commits"}}
+			</a>
+			<a class="item muted {{if .PageIsBranches}}active{{end}}" href="{{.RepoLink}}/branches">
+				{{svg "octicon-git-branch"}} <b>{{ctx.Locale.PrettyNumber .BranchesCount}}</b> {{ctx.Locale.TrN .BranchesCount "repo.branch" "repo.branches"}}
+			</a>
+			{{if $.Permission.CanRead $.UnitTypeCode}}
+				<a class="item muted {{if .PageIsTagList}}active{{end}}" href="{{.RepoLink}}/tags">
+					{{svg "octicon-tag"}} <b>{{ctx.Locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
+				</a>
 			{{end}}
-		</div>
+			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
+				{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
+				{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
+				{{svg "octicon-database"}} <b>{{ctx.Locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}
+			</span>
+		{{end}}
 	</div>
 	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
 	<div class="ui segment sub-menu language-stats-details gt-hidden">
-		<div class="ui horizontal center list">
-			{{range .LanguageStats}}
-			<div class="item gt-df gt-ac gt-jc">
-				<i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>
-				<span class="gt-font-semibold gt-mr-3">
-					{{if eq .Language "other"}}
-						{{$.locale.Tr "repo.language_other"}}
-					{{else}}
-						{{.Language}}
-					{{end}}
-				</span>
-				{{.Percentage}}%
-			</div>
-			{{end}}
-		</div>
-	</div>
-	<a class="ui segment language-stats">
 		{{range .LanguageStats}}
-		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}}>&nbsp;</div>
+		<div class="item">
+			<i class="color-icon" style="background-color: {{.Color}}"></i>
+			<span class="gt-font-semibold">
+				{{if eq .Language "other"}}
+					{{ctx.Locale.Tr "repo.language_other"}}
+				{{else}}
+					{{.Language}}
+				{{end}}
+			</span>
+			{{.Percentage}}%
+		</div>
+		{{end}}
+	</div>
+	<a class="ui segment language-stats show-panel toggle" data-panel=".repository-summary > .sub-menu">
+		{{range .LanguageStats}}
+		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
 		{{end}}
 	</a>
 	{{end}}

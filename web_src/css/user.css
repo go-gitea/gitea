@@ -22,16 +22,14 @@
 
 .user.profile .ui.card .extra.content > ul > li {
   padding: 10px;
+  display: flex;
   list-style: none;
+  align-items: center;
+  gap: 0.25em;
 }
 
 .user.profile .ui.card .extra.content > ul > li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.user.profile .ui.card .extra.content > ul > li .svg {
-  margin-left: 1px;
-  margin-right: 5px;
 }
 
 .user.profile .ui.card .extra.content > ul > li.follow .ui.button {
@@ -58,19 +56,6 @@
   .user.profile .ui.card {
     width: 100%;
   }
-}
-
-.user.profile .ui.repository.list {
-  margin-top: 25px;
-}
-
-.user.profile .ui.repository.list .repo-title .labels {
-  word-break: normal;
-  flex-shrink: 0;
-}
-
-.user.profile #loading-heatmap {
-  margin-bottom: 1em;
 }
 
 .user.profile .ui.secondary.stackable.pointing.menu {
@@ -107,7 +92,6 @@
   display: flex;
   border-bottom: 0 !important;
   padding: 3px !important;
-  width: 20%;
   max-width: 60px;
 }
 
@@ -122,8 +106,8 @@
 }
 
 #readme_profile {
-  padding: 10px;
-  border-radius: 0.28571429rem;
+  padding: 1em 2em;
+  border-radius: var(--border-radius);
   background: var(--color-card);
   border: 1px solid var(--color-secondary);
 }

@@ -37,9 +37,9 @@ func init() {
 }
 
 // IncreaseDownloadCount is update download count + 1
-func (a *Attachment) IncreaseDownloadCount() error {
+func (a *Attachment) IncreaseDownloadCount(ctx context.Context) error {
 	// Update download count.
-	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := db.GetEngine(ctx).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %w", err)
 	}
 
@@ -64,13 +64,6 @@ func (a *Attachment) DownloadURL() string {
 
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
-
-//    _____   __    __                .__                           __
-//   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
-//  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
-// /    |    \  |  |  |  / __ \\  \___|   Y  \  Y Y  \  ___/|   |  \  |
-// \____|__  /__|  |__| (____  /\___  >___|  /__|_|  /\___  >___|  /__|
-//         \/                \/     \/     \/      \/     \/     \/
 
 // ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
 type ErrAttachmentNotExist struct {
@@ -171,8 +164,8 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
-func DeleteAttachment(a *Attachment, remove bool) error {
-	_, err := DeleteAttachments(db.DefaultContext, []*Attachment{a}, remove)
+func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
+	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)
 	return err
 }
 
@@ -203,23 +196,23 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 }
 
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
-func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByIssueID(db.DefaultContext, issueID)
+func DeleteAttachmentsByIssue(ctx context.Context, issueID int64, remove bool) (int, error) {
+	attachments, err := GetAttachmentsByIssueID(ctx, issueID)
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(db.DefaultContext, attachments, remove)
+	return DeleteAttachments(ctx, attachments, remove)
 }
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
-func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByCommentID(db.DefaultContext, commentID)
+func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove bool) (int, error) {
+	attachments, err := GetAttachmentsByCommentID(ctx, commentID)
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(db.DefaultContext, attachments, remove)
+	return DeleteAttachments(ctx, attachments, remove)
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid

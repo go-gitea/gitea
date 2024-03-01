@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// doMergeStyleMerge merges the tracking into the current HEAD - which is assumed to tbe staging branch (equal to the pr.BaseBranch)
+// doMergeStyleMerge merges the tracking branch into the current HEAD - which is assumed to be the staging branch (equal to the pr.BaseBranch)
 func doMergeStyleMerge(ctx *mergeContext, message string) error {
 	cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleMerge, cmd); err != nil {

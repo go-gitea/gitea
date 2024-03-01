@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/tests"
 )
 
-var c *web.Route
+var testE2eWebRoutes *web.Route
 
 func TestMain(m *testing.M) {
 	defer log.GetManager().Close()
@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	tests.InitTest(false)
-	c = routers.NormalRoutes()
+	testE2eWebRoutes = routers.NormalRoutes()
 
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")

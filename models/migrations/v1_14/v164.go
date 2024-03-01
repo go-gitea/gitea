@@ -30,8 +30,8 @@ func (grant *OAuth2Grant) TableName() string {
 }
 
 func AddScopeAndNonceColumnsToOAuth2Grant(x *xorm.Engine) error {
-	if err := x.Sync2(new(OAuth2Grant)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(OAuth2Grant)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

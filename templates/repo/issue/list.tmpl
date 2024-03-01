@@ -6,61 +6,8 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
-					{{if eq $.Project.CardType 1}}
-						<div class="card-attachment-images">
-							{{range (index $.issuesAttachmentMap .ID)}}
-								<img src="{{.DownloadURL}}" alt="{{.Name}}">
-							{{end}}
-						</div>
-					{{end}}
-					<div class="content gt-p-0">
-						<div class="header gt-df gt-items-start">
-							<div class="pinned-issue-icon">
-								{{template "shared/issueicon" .}}
-							</div>
-							<a class="pinned-issue-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
-							{{if $.IsRepoAdmin}}
-								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.Index}}">
-									{{svg "octicon-x" 16}}
-								</a>
-							{{end}}
-						</div>
-						<div class="meta gt-my-2">
-							<span class="text light grey muted-links">
-								#{{.Index}}
-								{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
-								{{if .OriginalAuthor}}
-									{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
-								{{else if gt .Poster.ID 0}}
-									{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
-								{{else}}
-									{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
-								{{end}}
-							</span>
-						</div>
-						{{- if .MilestoneID}}
-						<div class="meta gt-my-2">
-							<a class="milestone" href="{{$.RepoLink}}/milestone/{{.MilestoneID}}">
-								{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
-								<span class="gt-vm">{{.Milestone.Name}}</span>
-							</a>
-						</div>
-						{{- end}}
-					</div>
-
-					{{if or .Labels .Assignees}}
-					<div class="extra content labels-list gt-p-0 gt-pt-2">
-						{{range .Labels}}
-							<a href="{{$.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel $.Context .}}</a>
-						{{end}}
-						<div class="right floated">
-							{{range .Assignees}}
-								<a href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
-							{{end}}
-						</div>
-					</div>
-					{{end}}
+				<div class="issue-card gt-word-break {{if $.IsRepoAdmin}}gt-cursor-grab{{end}}" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
+					{{template "repo/issue/card" (dict "Issue" . "Page" $ "isPinnedIssueCard" true)}}
 				</div>
 			{{end}}
 		</div>
@@ -71,339 +18,34 @@
 			{{template "repo/issue/search" .}}
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
-					<a class="ui small green button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				{{else}}
-					<a class="ui small green button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				{{end}}
 			{{else}}
 				{{if not .PageIsIssueList}}
-					<a class="ui small green small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
+					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
-		<div id="issue-filters" class="issue-list-toolbar">
-			<div class="issue-list-toolbar-left">
-				{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
-				{{end}}
-				{{template "repo/issue/openclose" .}}
-			</div>
-			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter menu labels">
-					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_label"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
-							</div>
-							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
-							<div class="divider"></div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
-							{{$previousExclusiveScope := "_no_scope"}}
-							{{range .Labels}}
-								{{$exclusiveScope := .ExclusiveScope}}
-								{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-									<div class="divider"></div>
-								{{end}}
-								{{$previousExclusiveScope = $exclusiveScope}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}</a>
-							{{end}}
-						</div>
-					</div>
 
-					<!-- Milestone -->
-					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_milestone"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
-							</div>
-							<div class="divider"></div>
-							<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_all"}}</a>
-							<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_none"}}</a>
-							{{if .OpenMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
-								{{range .OpenMilestones}}
-								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-									{{svg "octicon-milestone" 16 "mr-2"}}
-									{{.Name}}
-								</a>
-								{{end}}
-							{{end}}
-							{{if .ClosedMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_closed"}}</div>
-								{{range .ClosedMilestones}}
-								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-									{{svg "octicon-milestone" 16 "mr-2"}}
-									{{.Name}}
-								</a>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Project -->
-					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_project"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
-							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
-							{{if .OpenProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.open_projects"}}
-								</div>
-								{{range .OpenProjects}}
-									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{svg .IconName 18 "gt-mr-3 gt-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
-									</a>
-								{{end}}
-							{{end}}
-							{{if .ClosedProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.closed_projects"}}
-								</div>
-								{{range .ClosedProjects}}
-									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-									</a>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Author -->
-					<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
-						data-search-url="{{$.Link}}/posters"
-						data-selected-user-id="{{$.PosterID}}"
-						data-action-jump-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={user_id}"
-					>
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_poster"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
-							</div>
-							<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
-						</div>
-					</div>
-
-					<!-- Assignee -->
-					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_assignee"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
-							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee=-1&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
-							{{range .Assignees}}
-								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar $.Context . 20}}{{template "repo/search_name" .}}
-								</a>
-							{{end}}
-						</div>
-					</div>
-
-					{{if .IsSigned}}
-						<!-- Type -->
-						<div class="ui dropdown type jump item">
-							<span class="text">
-								{{.locale.Tr "repo.issues.filter_type"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							</span>
-							<div class="menu">
-								<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.all_issues"}}</a>
-								<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
-								<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
-								{{if .PageIsPullList}}
-									<a class="{{if eq .ViewType "review_requested"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=review_requested&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.review_requested"}}</a>
-									<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=reviewed_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
-								{{end}}
-								<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
-							</div>
-						</div>
-					{{end}}
-
-					<!-- Sort -->
-					<div class="list-header-sort ui small dropdown downward type jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.filter_sort"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=farduedate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+		{{template "repo/issue/filters" .}}
 
 		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
 			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
+				<!-- Total Tracked Time -->
+				{{if .TotalTrackedTime}}
+					<div class="ui compact tiny secondary menu">
+						<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+							{{svg "octicon-clock"}}
+							{{.TotalTrackedTime | Sec2Time}}
+						</span>
+					</div>
+				{{end}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter menu">
-					{{if not .Repository.IsArchived}}
-					<!-- Action Button -->
-					{{if .IsShowClosed}}
-						<button class="ui green basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
-					{{else}}
-						<button class="ui red basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
-					{{end}}
-					{{if $.IsRepoAdmin}}
-						<button class="ui red button issue-action gt-ml-auto"
-							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
-							data-action-delete-confirm="{{.locale.Tr "confirm_delete_selected"}}"
-						>{{.locale.Tr "repo.issues.delete"}}</button>
-					{{end}}
-					<!-- Labels -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_label"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
-								{{.locale.Tr "repo.issues.new.clear_labels"}}
-							</div>
-							{{$previousExclusiveScope := "_no_scope"}}
-							{{range .Labels}}
-								{{$exclusiveScope := .ExclusiveScope}}
-								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-									<div class="divider"></div>
-								{{end}}
-								{{$previousExclusiveScope = $exclusiveScope}}
-								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Milestone -->
-					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_milestone"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
-							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
-							</div>
-							{{if .OpenMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
-								{{range .OpenMilestones}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-										{{.Name}}
-									</div>
-								{{end}}
-							{{end}}
-							{{if .ClosedMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
-								{{range .ClosedMilestones}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-										{{.Name}}
-									</div>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Projects -->
-					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.project_board"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
-							{{.locale.Tr "repo.issues.new.clear_projects"}}
-							</div>
-							{{if .OpenProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.open_projects"}}
-								</div>
-								{{range .OpenProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-									</div>
-								{{end}}
-							{{end}}
-							{{if .ClosedProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.closed_projects"}}
-								</div>
-								{{range .ClosedProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-									</div>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Assignees -->
-					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_assignee"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.new.clear_assignees"}}
-							</div>
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.action_assignee_no_select"}}
-							</div>
-							{{range .Assignees}}
-								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar $.Context . 20}} {{.GetDisplayName}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-					{{end}}
-				</div>
+				{{template "repo/issue/filter_actions" .}}
 			</div>
 		</div>
 		{{template "shared/issuelist" dict "." . "listType" "repo"}}

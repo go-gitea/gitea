@@ -6,9 +6,9 @@ package actions
 import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func Init() {
@@ -22,5 +22,5 @@ func Init() {
 	}
 	go graceful.GetManager().RunWithCancel(jobEmitterQueue)
 
-	notification.RegisterNotifier(NewNotifier())
+	notify_service.RegisterNotifier(NewNotifier())
 }

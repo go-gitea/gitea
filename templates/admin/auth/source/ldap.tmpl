@@ -1,6 +1,6 @@
 <div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}gt-hidden{{end}}">
 	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
-		<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
+		<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
 		<div class="ui selection security-protocol dropdown">
 			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
 			<div class="text">{{.CurrentSecurityProtocol}}</div>
@@ -13,103 +13,103 @@
 		</div>
 	</div>
 	<div class="required field">
-		<label for="host">{{.locale.Tr "admin.auths.host"}}</label>
+		<label for="host">{{ctx.Locale.Tr "admin.auths.host"}}</label>
 		<input id="host" name="host" value="{{.host}}" placeholder="mydomain.com">
 	</div>
 	<div class="required field">
-		<label for="port">{{.locale.Tr "admin.auths.port"}}</label>
+		<label for="port">{{ctx.Locale.Tr "admin.auths.port"}}</label>
 		<input id="port" name="port" value="{{.port}}"  placeholder="636">
 	</div>
 	<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 		<div class="ui checkbox">
-			<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+			<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 		</div>
 	</div>
 	<div class="ldap field {{if not (eq .type 2)}}gt-hidden{{end}}">
-		<label for="bind_dn">{{.locale.Tr "admin.auths.bind_dn"}}</label>
+		<label for="bind_dn">{{ctx.Locale.Tr "admin.auths.bind_dn"}}</label>
 		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="cn=Search,dc=mydomain,dc=com">
 	</div>
 	<div class="ldap field {{if not (eq .type 2)}}gt-hidden{{end}}">
-		<label for="bind_password">{{.locale.Tr "admin.auths.bind_password"}}</label>
+		<label for="bind_password">{{ctx.Locale.Tr "admin.auths.bind_password"}}</label>
 		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
 	</div>
 	<div class="binddnrequired {{if (eq .type 2)}}required{{end}} field">
-		<label for="user_base">{{.locale.Tr "admin.auths.user_base"}}</label>
+		<label for="user_base">{{ctx.Locale.Tr "admin.auths.user_base"}}</label>
 		<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="ou=Users,dc=mydomain,dc=com">
 	</div>
 	<div class="dldap required field {{if not (eq .type 5)}}gt-hidden{{end}}">
-		<label for="user_dn">{{.locale.Tr "admin.auths.user_dn"}}</label>
+		<label for="user_dn">{{ctx.Locale.Tr "admin.auths.user_dn"}}</label>
 		<input id="user_dn" name="user_dn" value="{{.user_dn}}" placeholder="uid=%s,ou=Users,dc=mydomain,dc=com">
 	</div>
 	<div class="required field">
-		<label for="filter">{{.locale.Tr "admin.auths.filter"}}</label>
+		<label for="filter">{{ctx.Locale.Tr "admin.auths.filter"}}</label>
 		<input id="filter" name="filter" value="{{.filter}}" placeholder="(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))">
 	</div>
 	<div class="field">
-		<label for="admin_filter">{{.locale.Tr "admin.auths.admin_filter"}}</label>
+		<label for="admin_filter">{{ctx.Locale.Tr "admin.auths.admin_filter"}}</label>
 		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
 	</div>
 	<div class="field">
-		<label for="restricted_filter">{{.locale.Tr "admin.auths.restricted_filter"}}</label>
+		<label for="restricted_filter">{{ctx.Locale.Tr "admin.auths.restricted_filter"}}</label>
 		<input id="restricted_filter" name="restricted_filter" value="{{.restricted_filter}}">
-		<p class="help">{{.locale.Tr "admin.auths.restricted_filter_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.restricted_filter_helper"}}</p>
 	</div>
 	<div class="field">
-		<label for="attribute_username">{{.locale.Tr "admin.auths.attribute_username"}}</label>
-		<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.locale.Tr "admin.auths.attribute_username_placeholder"}}">
+		<label for="attribute_username">{{ctx.Locale.Tr "admin.auths.attribute_username"}}</label>
+		<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{ctx.Locale.Tr "admin.auths.attribute_username_placeholder"}}">
 	</div>
 	<div class="field">
-		<label for="attribute_name">{{.locale.Tr "admin.auths.attribute_name"}}</label>
+		<label for="attribute_name">{{ctx.Locale.Tr "admin.auths.attribute_name"}}</label>
 		<input id="attribute_name" name="attribute_name" value="{{.attribute_name}}">
 	</div>
 	<div class="field">
-		<label for="attribute_surname">{{.locale.Tr "admin.auths.attribute_surname"}}</label>
+		<label for="attribute_surname">{{ctx.Locale.Tr "admin.auths.attribute_surname"}}</label>
 		<input id="attribute_surname" name="attribute_surname" value="{{.attribute_surname}}">
 	</div>
 	<div class="required field">
-		<label for="attribute_mail">{{.locale.Tr "admin.auths.attribute_mail"}}</label>
+		<label for="attribute_mail">{{ctx.Locale.Tr "admin.auths.attribute_mail"}}</label>
 		<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="mail">
 	</div>
 	<div class="field">
-		<label for="attribute_ssh_public_key">{{.locale.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+		<label for="attribute_ssh_public_key">{{ctx.Locale.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 		<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="SshPublicKey">
 	</div>
 	<div class="field">
-		<label for="attribute_avatar">{{.locale.Tr "admin.auths.attribute_avatar"}}</label>
+		<label for="attribute_avatar">{{ctx.Locale.Tr "admin.auths.attribute_avatar"}}</label>
 		<input id="attribute_avatar" name="attribute_avatar" value="{{.attribute_avatar}}" placeholder="jpegPhoto">
 	</div>
 
 	<!-- ldap group begin -->
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label><strong>{{.locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
+			<label><strong>{{ctx.Locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
 			<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if .groups_enabled}}checked{{end}}>
 		</div>
 	</div>
 	<div id="ldap-group-options" class="ui segment secondary">
 		<div class="field">
-			<label>{{.locale.Tr "admin.auths.group_search_base"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.group_search_base"}}</label>
 			<input name="group_dn" value="{{.group_dn}}" placeholder="ou=group,dc=mydomain,dc=com">
 		</div>
 		<div class="field">
-			<label>{{.locale.Tr "admin.auths.group_attribute_list_users"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.group_attribute_list_users"}}</label>
 			<input name="group_member_uid" value="{{.group_member_uid}}" placeholder="memberUid">
 		</div>
 		<div class="field">
-			<label>{{.locale.Tr "admin.auths.user_attribute_in_group"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.user_attribute_in_group"}}</label>
 			<input name="user_uid" value="{{.user_uid}}" placeholder="uid">
 		</div>
 		<div class="field">
-			<label>{{.locale.Tr "admin.auths.verify_group_membership"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.verify_group_membership"}}</label>
 			<input name="group_filter" value="{{.group_filter}}" placeholder="(|(cn=gitea_users)(cn=admins))">
 		</div>
 		<div class="field">
-			<label>{{.locale.Tr "admin.auths.map_group_to_team"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team"}}</label>
 			<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{.group_team_map}}</textarea>
 		</div>
 		<div class="ui checkbox">
-			<label>{{.locale.Tr "admin.auths.map_group_to_team_removal"}}</label>
+			<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team_removal"}}</label>
 			<input name="group_team_map_removal" type="checkbox" {{if .group_team_map_removal}}checked{{end}}>
 		</div>
 	</div>
@@ -117,24 +117,24 @@
 
 	<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
 		<div class="ui checkbox">
-			<label for="use_paged_search"><strong>{{.locale.Tr "admin.auths.use_paged_search"}}</strong></label>
+			<label for="use_paged_search"><strong>{{ctx.Locale.Tr "admin.auths.use_paged_search"}}</strong></label>
 			<input id="use_paged_search" name="use_paged_search" class="use-paged-search" type="checkbox" {{if .use_paged_search}}checked{{end}}>
 		</div>
 	</div>
 	<div class="ldap field search-page-size required {{if or (not (eq .type 2)) (not .use_paged_search)}}gt-hidden{{end}}">
-		<label for="search_page_size">{{.locale.Tr "admin.auths.search_page_size"}}</label>
+		<label for="search_page_size">{{ctx.Locale.Tr "admin.auths.search_page_size"}}</label>
 		<input id="search_page_size" name="search_page_size" value="{{.search_page_size}}">
 	</div>
 	<div class="optional field">
 		<div class="ui checkbox">
-			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+			<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label for="allow_deactivate_all"><strong>{{.locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
+			<label for="allow_deactivate_all"><strong>{{ctx.Locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
 			<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if .allow_deactivate_all}}checked{{end}}>
 		</div>
 	</div>

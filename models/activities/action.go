@@ -126,12 +126,21 @@ func (at ActionType) String() string {
 	}
 }
 
+func (at ActionType) InActions(actions ...string) bool {
+	for _, action := range actions {
+		if action == at.String() {
+			return true
+		}
+	}
+	return false
+}
+
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 // Receiver user id.
+	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
 	ActUserID   int64            // Action user id.
 	ActUser     *user_model.User `xorm:"-"`
@@ -199,91 +208,91 @@ func (a *Action) loadRepo(ctx context.Context) {
 }
 
 // GetActFullName gets the action's user full name.
-func (a *Action) GetActFullName() string {
-	a.LoadActUser(db.DefaultContext)
+func (a *Action) GetActFullName(ctx context.Context) string {
+	a.LoadActUser(ctx)
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
-func (a *Action) GetActUserName() string {
-	a.LoadActUser(db.DefaultContext)
+func (a *Action) GetActUserName(ctx context.Context) string {
+	a.LoadActUser(ctx)
 	return a.ActUser.Name
 }
 
 // ShortActUserName gets the action's user name trimmed to max 20
 // chars.
-func (a *Action) ShortActUserName() string {
-	return base.EllipsisString(a.GetActUserName(), 20)
+func (a *Action) ShortActUserName(ctx context.Context) string {
+	return base.EllipsisString(a.GetActUserName(ctx), 20)
 }
 
 // GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
-func (a *Action) GetDisplayName() string {
+func (a *Action) GetDisplayName(ctx context.Context) string {
 	if setting.UI.DefaultShowFullName {
-		trimmedFullName := strings.TrimSpace(a.GetActFullName())
+		trimmedFullName := strings.TrimSpace(a.GetActFullName(ctx))
 		if len(trimmedFullName) > 0 {
 			return trimmedFullName
 		}
 	}
-	return a.ShortActUserName()
+	return a.ShortActUserName(ctx)
 }
 
 // GetDisplayNameTitle gets the action's display name used for the title (tooltip) based on DEFAULT_SHOW_FULL_NAME
-func (a *Action) GetDisplayNameTitle() string {
+func (a *Action) GetDisplayNameTitle(ctx context.Context) string {
 	if setting.UI.DefaultShowFullName {
-		return a.ShortActUserName()
+		return a.ShortActUserName(ctx)
 	}
-	return a.GetActFullName()
+	return a.GetActFullName(ctx)
 }
 
 // GetRepoUserName returns the name of the action repository owner.
-func (a *Action) GetRepoUserName() string {
-	a.loadRepo(db.DefaultContext)
+func (a *Action) GetRepoUserName(ctx context.Context) string {
+	a.loadRepo(ctx)
 	return a.Repo.OwnerName
 }
 
 // ShortRepoUserName returns the name of the action repository owner
 // trimmed to max 20 chars.
-func (a *Action) ShortRepoUserName() string {
-	return base.EllipsisString(a.GetRepoUserName(), 20)
+func (a *Action) ShortRepoUserName(ctx context.Context) string {
+	return base.EllipsisString(a.GetRepoUserName(ctx), 20)
 }
 
 // GetRepoName returns the name of the action repository.
-func (a *Action) GetRepoName() string {
-	a.loadRepo(db.DefaultContext)
+func (a *Action) GetRepoName(ctx context.Context) string {
+	a.loadRepo(ctx)
 	return a.Repo.Name
 }
 
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
-func (a *Action) ShortRepoName() string {
-	return base.EllipsisString(a.GetRepoName(), 33)
+func (a *Action) ShortRepoName(ctx context.Context) string {
+	return base.EllipsisString(a.GetRepoName(ctx), 33)
 }
 
 // GetRepoPath returns the virtual path to the action repository.
-func (a *Action) GetRepoPath() string {
-	return path.Join(a.GetRepoUserName(), a.GetRepoName())
+func (a *Action) GetRepoPath(ctx context.Context) string {
+	return path.Join(a.GetRepoUserName(ctx), a.GetRepoName(ctx))
 }
 
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
-func (a *Action) ShortRepoPath() string {
-	return path.Join(a.ShortRepoUserName(), a.ShortRepoName())
+func (a *Action) ShortRepoPath(ctx context.Context) string {
+	return path.Join(a.ShortRepoUserName(ctx), a.ShortRepoName(ctx))
 }
 
 // GetRepoLink returns relative link to action repository.
-func (a *Action) GetRepoLink() string {
+func (a *Action) GetRepoLink(ctx context.Context) string {
 	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), url.PathEscape(a.GetRepoName(ctx)))
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
-func (a *Action) GetRepoAbsoluteLink() string {
-	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
+func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + url.PathEscape(a.GetRepoName(ctx))
 }
 
 // GetCommentHTMLURL returns link to action comment.
-func (a *Action) GetCommentHTMLURL() string {
-	return a.getCommentHTMLURL(db.DefaultContext)
+func (a *Action) GetCommentHTMLURL(ctx context.Context) string {
+	return a.getCommentHTMLURL(ctx)
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {
@@ -300,7 +309,7 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	}
 	_ = a.loadComment(ctx)
 	if a.Comment != nil {
-		return a.Comment.HTMLURL()
+		return a.Comment.HTMLURL(ctx)
 	}
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
@@ -325,8 +334,8 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 }
 
 // GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
+func (a *Action) GetCommentLink(ctx context.Context) string {
+	return a.getCommentLink(ctx)
 }
 
 func (a *Action) getCommentLink(ctx context.Context) string {
@@ -335,7 +344,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	}
 	_ = a.loadComment(ctx)
 	if a.Comment != nil {
-		return a.Comment.Link()
+		return a.Comment.Link(ctx)
 	}
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
@@ -365,8 +374,8 @@ func (a *Action) GetBranch() string {
 }
 
 // GetRefLink returns the action's ref link.
-func (a *Action) GetRefLink() string {
-	return git.RefURL(a.GetRepoLink(), a.RefName)
+func (a *Action) GetRefLink(ctx context.Context) string {
+	return git.RefURL(a.GetRepoLink(ctx), a.RefName)
 }
 
 // GetTag returns the action's repository tag.
@@ -390,11 +399,10 @@ func (a *Action) GetIssueInfos() []string {
 	return strings.SplitN(a.Content, "|", 3)
 }
 
-// GetIssueTitle returns the title of first issue associated
-// with the action.
-func (a *Action) GetIssueTitle() string {
+// GetIssueTitle returns the title of first issue associated with the action.
+func (a *Action) GetIssueTitle(ctx context.Context) string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -404,9 +412,9 @@ func (a *Action) GetIssueTitle() string {
 
 // GetIssueContent returns the content of first issue associated with
 // this action.
-func (a *Action) GetIssueContent() string {
+func (a *Action) GetIssueContent(ctx context.Context) string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -433,7 +441,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
-	cond, err := activityQueryCondition(opts)
+	cond, err := activityQueryCondition(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -464,11 +472,11 @@ func ActivityReadable(user, doer *user_model.User) bool {
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
-func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
+func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
-		org, err := user_model.GetUserByID(db.DefaultContext, opts.RequestedTeam.OrgID)
+		org, err := user_model.GetUserByID(ctx, opts.RequestedTeam.OrgID)
 		if err != nil {
 			return nil, err
 		}
@@ -516,7 +524,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(ctx, opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
@@ -555,12 +563,12 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 }
 
 // DeleteOldActions deletes all old actions from database.
-func DeleteOldActions(olderThan time.Duration) (err error) {
+func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) {
 	if olderThan <= 0 {
 		return nil
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	_, err = db.GetEngine(ctx).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
 	return err
 }
 
@@ -670,8 +678,8 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 }
 
 // NotifyWatchersActions creates batch of actions for every watcher.
-func NotifyWatchersActions(acts []*Action) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NotifyWatchersActions(ctx context.Context, acts []*Action) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -685,18 +693,33 @@ func NotifyWatchersActions(acts []*Action) error {
 }
 
 // DeleteIssueActions delete all actions related with issueID
-func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) error {
 	// delete actions assigned to this issue
-	subQuery := builder.Select("`id`").
-		From("`comment`").
-		Where(builder.Eq{"`issue_id`": issueID})
-	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
-		return err
+	e := db.GetEngine(ctx)
+
+	// MariaDB has a performance bug: https://jira.mariadb.org/browse/MDEV-16289
+	// so here it uses "DELETE ... WHERE IN" with pre-queried IDs.
+	var lastCommentID int64
+	commentIDs := make([]int64, 0, db.DefaultMaxInSize)
+	for {
+		commentIDs = commentIDs[:0]
+		err := e.Select("`id`").Table(&issues_model.Comment{}).
+			Where(builder.Eq{"issue_id": issueID}).And("`id` > ?", lastCommentID).
+			OrderBy("`id`").Limit(db.DefaultMaxInSize).
+			Find(&commentIDs)
+		if err != nil {
+			return err
+		} else if len(commentIDs) == 0 {
+			break
+		} else if _, err = db.GetEngine(ctx).In("comment_id", commentIDs).Delete(&Action{}); err != nil {
+			return err
+		}
+		lastCommentID = commentIDs[len(commentIDs)-1]
 	}
 
-	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+	_, err := e.Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
 		Delete(&Action{})
 	return err
 }

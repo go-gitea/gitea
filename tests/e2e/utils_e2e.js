@@ -18,7 +18,7 @@ export async function login_user(browser, workerInfo, user) {
   // Fill out form
   await page.type('input[name=user_name]', user);
   await page.type('input[name=password]', LOGIN_PASSWORD);
-  await page.click('form button.ui.green.button:visible');
+  await page.click('form button.ui.primary.button:visible');
 
   await page.waitForLoadState('networkidle');
 

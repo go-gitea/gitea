@@ -13,11 +13,8 @@ import (
 func newHTTPServer(network, address, name string, handler http.Handler) (*Server, ServeFunction) {
 	server := NewServer(network, address, name)
 	httpServer := http.Server{
-		ReadTimeout:    DefaultReadTimeOut,
-		WriteTimeout:   DefaultWriteTimeOut,
-		MaxHeaderBytes: DefaultMaxHeaderBytes,
-		Handler:        handler,
-		BaseContext:    func(net.Listener) context.Context { return GetManager().HammerContext() },
+		Handler:     handler,
+		BaseContext: func(net.Listener) context.Context { return GetManager().HammerContext() },
 	}
 	server.OnShutdown = func() {
 		httpServer.SetKeepAlivesEnabled(false)

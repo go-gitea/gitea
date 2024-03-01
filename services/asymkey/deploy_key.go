@@ -4,6 +4,8 @@
 package asymkey
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -11,19 +13,19 @@ import (
 )
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *user_model.User, id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := models.DeleteDeployKey(ctx, doer, id); err != nil {
+	if err := models.DeleteDeployKey(dbCtx, doer, id); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
 		return err
 	}
 
-	return asymkey_model.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys(ctx)
 }

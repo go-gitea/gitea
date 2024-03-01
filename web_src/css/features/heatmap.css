@@ -2,7 +2,15 @@
   width: 100%;
   font-size: 9px;
   position: relative;
-  min-height: 125px;
+}
+
+/* before the Vue component is mounted, show a loading indicator with dummy size */
+/* the ratio is guesswork, see https://github.com/razorness/vue3-calendar-heatmap/issues/26 */
+#user-heatmap.is-loading {
+  aspect-ratio: 5.415; /* the size is about 790 x 145 */
+}
+.user.profile #user-heatmap.is-loading {
+  aspect-ratio: 5.645; /* the size is about 953 x 169 */
 }
 
 #user-heatmap text {
@@ -32,37 +40,15 @@
 }
 
 @media (max-width: 1200px) {
-  #user-heatmap {
-    min-height: 105px;
-  }
   #user-heatmap .total-contributions {
     left: 21px;
   }
 }
 
 @media (max-width: 1000px) {
-  #user-heatmap {
-    min-height: 80px;
-  }
   #user-heatmap .total-contributions {
     font-size: 10px;
     left: 17px;
     bottom: -4px;
-  }
-}
-
-.user.profile #user-heatmap {
-  min-height: 135px;
-}
-
-@media (max-width: 1200px) {
-  .user.profile #user-heatmap {
-    min-height: 115px;
-  }
-}
-
-@media (max-width: 1000px) {
-  .user.profile #user-heatmap {
-    min-height: 90px;
   }
 }

@@ -6,56 +6,52 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
 				<div class="ui right floated secondary menu">
-					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
+					<a class="ui primary button" href="{{$.RepoLink}}/milestones/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}
 		</div>
 		<div class="divider"></div>
 		<h2 class="ui dividing header">
 			{{if .PageIsEditMilestone}}
-				{{.locale.Tr "repo.milestones.edit"}}
-				<div class="sub header">{{.locale.Tr "repo.milestones.edit_subheader"}}</div>
+				{{ctx.Locale.Tr "repo.milestones.edit"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.milestones.edit_subheader"}}</div>
 			{{else}}
-				{{.locale.Tr "repo.milestones.new"}}
-				<div class="sub header">{{.locale.Tr "repo.milestones.new_subheader"}}</div>
+				{{ctx.Locale.Tr "repo.milestones.new"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.milestones.new_subheader"}}</div>
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui form grid" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<label>{{.locale.Tr "repo.milestones.title"}}</label>
-					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
+					<label>{{ctx.Locale.Tr "repo.milestones.title"}}</label>
+					<input name="title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
-						{{.locale.Tr "repo.milestones.due_date"}}
-						<a id="clear-date">{{.locale.Tr "repo.milestones.clear"}}</a>
+						{{ctx.Locale.Tr "repo.milestones.due_date"}}
+						<a id="clear-date">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.locale.Tr "repo.issues.due_date_form"}}">
+					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.milestones.desc"}}</label>
+					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
 					<textarea name="content">{{.content}}</textarea>
 				</div>
-			</div>
-			<div class="ui container">
 				<div class="divider"></div>
-				<div class="ui right">
+				<div class="gt-text-right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
-							{{.locale.Tr "repo.milestones.cancel"}}
+							{{ctx.Locale.Tr "repo.milestones.cancel"}}
 						</a>
-						<button class="ui green button">
-							{{.locale.Tr "repo.milestones.modify"}}
+						<button class="ui primary button">
+							{{ctx.Locale.Tr "repo.milestones.modify"}}
 						</button>
 					{{else}}
-						<button class="ui green button">
-							{{.locale.Tr "repo.milestones.create"}}
+						<button class="ui primary button">
+							{{ctx.Locale.Tr "repo.milestones.create"}}
 						</button>
 					{{end}}
-				</div>
 			</div>
 		</form>
 	</div>

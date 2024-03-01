@@ -1,6 +1,6 @@
 <div class="smtp field {{if not (eq .type 3)}}gt-hidden{{end}}">
 	<div class="inline required field">
-		<label>{{.locale.Tr "admin.auths.smtp_auth"}}</label>
+		<label>{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
 		<div class="ui selection type dropdown">
 			<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{.smtp_auth}}">
 			<div class="text">{{.smtp_auth}}</div>
@@ -13,47 +13,47 @@
 		</div>
 	</div>
 	<div class="required field">
-		<label for="smtp_host">{{.locale.Tr "admin.auths.smtphost"}}</label>
+		<label for="smtp_host">{{ctx.Locale.Tr "admin.auths.smtphost"}}</label>
 		<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
 	</div>
 	<div class="required field">
-		<label for="smtp_port">{{.locale.Tr "admin.auths.smtpport"}}</label>
+		<label for="smtp_port">{{ctx.Locale.Tr "admin.auths.smtpport"}}</label>
 		<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label for="force_smtps"><strong>{{.locale.Tr "admin.auths.force_smtps"}}</strong></label>
+			<label for="force_smtps"><strong>{{ctx.Locale.Tr "admin.auths.force_smtps"}}</strong></label>
 			<input id="force_smtps" name="force_smtps" type="checkbox" {{if .force_smtps}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.force_smtps_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.force_smtps_helper"}}</p>
 		</div>
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+			<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 		</div>
 	</div>
 	<div class="field">
-		<label for="helo_hostname">{{.locale.Tr "admin.auths.helo_hostname"}}</label>
+		<label for="helo_hostname">{{ctx.Locale.Tr "admin.auths.helo_hostname"}}</label>
 		<input id="helo_hostname" name="helo_hostname" value="{{.helo_hostname}}">
-		<p class="help">{{.locale.Tr "admin.auths.helo_hostname_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.helo_hostname_helper"}}</p>
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label for="disable_helo"><strong>{{.locale.Tr "admin.auths.disable_helo"}}</strong></label>
+			<label for="disable_helo"><strong>{{ctx.Locale.Tr "admin.auths.disable_helo"}}</strong></label>
 			<input id="disable_helo" name="disable_helo" type="checkbox" {{if .disable_helo}}checked{{end}}>
 		</div>
 	</div>
 	<div class="field">
-		<label for="allowed_domains">{{.locale.Tr "admin.auths.allowed_domains"}}</label>
+		<label for="allowed_domains">{{ctx.Locale.Tr "admin.auths.allowed_domains"}}</label>
 		<input id="allowed_domains" name="allowed_domains" value="{{.allowed_domains}}">
-		<p class="help">{{.locale.Tr "admin.auths.allowed_domains_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.allowed_domains_helper"}}</p>
 	</div>
 	<div class="optional field">
 		<div class="ui checkbox">
-			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+			<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
 </div>

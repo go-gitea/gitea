@@ -2,7 +2,10 @@
 <div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
 	<div class="new-menu-inner">
 		<a class="{{if .PageIsLogin}}active {{end}}item" rel="nofollow" href="{{AppSubUrl}}/user/login">
-			{{.locale.Tr "auth.login_userpass"}}
+			{{ctx.Locale.Tr "auth.login_userpass"}}
+		</a>
+		<a class="{{if .PageIsSignUp}}active{{end}} item" rel="nofollow" href="{{AppSubUrl}}/user/sign_up">
+			{{ctx.Locale.Tr "auth.create_new_account"}}
 		</a>
 		{{if .EnableOpenIDSignIn}}
 		<a class="{{if .PageIsLoginOpenID}}active {{end}}item" rel="nofollow" href="{{AppSubUrl}}/user/login/openid">

@@ -5,6 +5,7 @@ package translation
 
 import (
 	"context"
+	"html/template"
 	"sort"
 	"strings"
 	"sync"
@@ -27,8 +28,11 @@ var ContextKey any = &contextKey{}
 // Locale represents an interface to translation
 type Locale interface {
 	Language() string
-	Tr(string, ...any) string
-	TrN(cnt any, key1, keyN string, args ...any) string
+	TrString(string, ...any) string
+
+	Tr(key string, args ...any) template.HTML
+	TrN(cnt any, key1, keyN string, args ...any) template.HTML
+
 	PrettyNumber(v any) string
 }
 
@@ -144,6 +148,8 @@ type locale struct {
 	msgPrinter     *message.Printer
 }
 
+var _ Locale = (*locale)(nil)
+
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
 	if lock != nil {
@@ -216,8 +222,12 @@ var trNLangRules = map[string]func(int64) int{
 	},
 }
 
+func (l *locale) Tr(s string, args ...any) template.HTML {
+	return l.TrHTML(s, args...)
+}
+
 // TrN returns translated message for plural text translation
-func (l *locale) TrN(cnt any, key1, keyN string, args ...any) string {
+func (l *locale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	var c int64
 	if t, ok := cnt.(int); ok {
 		c = int64(t)

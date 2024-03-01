@@ -5,17 +5,15 @@ package integration
 
 import (
 	"bytes"
-	"flag"
-	"io"
 	"net/url"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli"
+	"github.com/stretchr/testify/assert"
+	"github.com/urfave/cli/v2"
 )
 
 func Test_CmdKeys(t *testing.T) {
@@ -38,26 +36,18 @@ func Test_CmdKeys(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				realStdout := os.Stdout // Backup Stdout
-				r, w, _ := os.Pipe()
-				os.Stdout = w
-
-				set := flag.NewFlagSet("keys", 0)
-				_ = set.Parse(tt.args)
-				context := cli.NewContext(&cli.App{Writer: os.Stdout}, set, nil)
-				err := cmd.CmdKeys.Run(context)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("CmdKeys.Run() error = %v, wantErr %v", err, tt.wantErr)
+				out := new(bytes.Buffer)
+				app := cli.NewApp()
+				app.Writer = out
+				app.Commands = []*cli.Command{cmd.CmdKeys}
+				cmd.CmdKeys.HideHelp = true
+				err := app.Run(append([]string{"prog"}, tt.args...))
+				if tt.wantErr {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
 				}
-				w.Close()
-				var buf bytes.Buffer
-				io.Copy(&buf, r)
-				commandOutput := buf.String()
-				if tt.expectedOutput != commandOutput {
-					t.Errorf("expectedOutput: %#v, commandOutput: %#v", tt.expectedOutput, commandOutput)
-				}
-				// Restore stdout
-				os.Stdout = realStdout
+				assert.Equal(t, tt.expectedOutput, out.String())
 			})
 		}
 	})

@@ -8,8 +8,8 @@
 
 {{$activate_url := printf "%suser/activate_email?code=%s&email=%s" AppUrl (QueryEscape .Code) (QueryEscape .Email)}}
 <body>
-	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape) | Str2html}}</p><br>
-	<p>{{.locale.Tr "mail.activate_email.text" .ActiveCodeLives | Str2html}}</p><p><a href="{{$activate_url}}">{{$activate_url}}</a></p><br>
+	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p><br>
+	<p>{{.locale.Tr "mail.activate_email.text" .ActiveCodeLives}}</p><p><a href="{{$activate_url}}">{{$activate_url}}</a></p><br>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 
 	<p>© <a target="_blank" rel="noopener noreferrer" href="{{AppUrl}}">{{AppName}}</a></p>

@@ -22,7 +22,7 @@ func RenameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(Repository)); err != nil {
+	if err := sess.Sync(new(Repository)); err != nil {
 		return err
 	}
 	if _, err := sess.Exec("UPDATE repository SET is_empty = is_bare;"); err != nil {

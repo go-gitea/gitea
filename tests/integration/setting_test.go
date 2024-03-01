@@ -24,7 +24,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	assert.Contains(t,
-		htmlDoc.doc.Find(".ui.user.list").Text(),
+		htmlDoc.doc.Find(".explore.users").Text(),
 		"user34@example.com",
 	)
 
@@ -34,7 +34,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.NotContains(t,
-		htmlDoc.doc.Find(".ui.user.list").Text(),
+		htmlDoc.doc.Find(".explore.users").Text(),
 		"user34@example.com",
 	)
 

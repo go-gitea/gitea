@@ -3,11 +3,16 @@
   width: fit-content;
 }
 
-.ui.modal.g-modal-confirm > .inside.close {
+.ui.modal.g-modal-confirm > .inside.close.icon {
   padding: 0;
   width: 1em;
   height: 1em;
   top: 1.2em;
+}
+
+.ui.modal > .close.icon[height="16"] {
+  top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
+  color: var(--color-text-dark);
 }
 
 .ui.modal > .header {
@@ -30,21 +35,34 @@
   box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
 }
 
-/* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly */
+/* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly
+Fomantic UI only supports the layout: <div .modal><div .content/><div .actions/></div>
+However, Gitea uses the following layouts:
+* <div .modal><div .content><div .actions/></div></div>
+* <div .modal><form><div .content/><div .actions/></form></div>
+* <div .modal><div .content><form><div .actions/></form></div></div>
+* <div .modal><div .content></div><form><div .actions/></form></div>
+* ...
+These inconsistent layouts should be refactored to simple ones.
+*/
 
 .ui.modal > .content,
-.ui.modal > form > .content {
+.ui.modal form > .content {
   padding: 1.5em;
   background: var(--color-body);
 }
 
 .ui.modal > .actions,
-.ui.modal > form > .actions {
+.ui.modal .content + .actions,
+.ui.modal .content + form > .actions {
   background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
-
-  /* these styles are from Fomantic UI */
   padding: 1rem;
+  text-align: right;
+}
+
+.ui.modal .content > .actions {
+  padding-top: 1em; /* if the "actions" is in the "content", some paddings are already added by the "content" */
   text-align: right;
 }
 
@@ -53,6 +71,7 @@
   display: inline-flex;
   align-items: center;
   padding: 10px 12px 10px 10px;
+  margin-right: 0;
 }
 
 .ui.modal .actions > .ui.button.danger {

@@ -17,14 +17,15 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   ${svg('octicon-x', 16, 'close icon inside')}
   <div class="header gt-df gt-ac gt-sb">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options gt-df gt-ac gt-mr-5 gt-hidden">
-      ${i18nTextOptions}${svg('octicon-triangle-down', 14, 'dropdown icon')}
+    <div class="ui dropdown dialog-header-options gt-mr-5 gt-hidden">
+      ${i18nTextOptions}
+      ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
-  <div class="comment-diff-data gt-tl gt-p-3 is-loading"></div>
+  <div class="comment-diff-data is-loading"></div>
 </div>`);
   $dialog.appendTo($('body'));
   $dialog.find('.dialog-header-options').dropdown({

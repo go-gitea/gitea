@@ -1,0 +1,24 @@
+/* container for full-page content with sidebar on left */
+
+.flex-container {
+  display: flex !important;
+  gap: 16px;
+}
+
+.flex-container-nav {
+  width: 240px;
+}
+
+.flex-container-main {
+  flex: 1;
+  min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
+}
+
+@media (max-width: 767.98px) {
+  .flex-container {
+    flex-direction: column;
+  }
+  .flex-container-nav {
+    width: auto;
+  }
+}

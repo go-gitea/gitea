@@ -1,0 +1,19 @@
+<div class="flex-list">
+	{{range .Emails}}
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-text-block">
+					{{.Email}}
+					{{if .IsPrimary}}
+						<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
+					{{end}}
+					{{if .IsActivated}}
+						<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
+					{{else}}
+						<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
+</div>

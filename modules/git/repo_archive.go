@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -62,11 +63,15 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	cmd.AddOptionFormat("--format=%s", format.String())
 	cmd.AddDynamicArguments(commitID)
 
+	// Avoid LFS hooks getting installed because of /etc/gitconfig, which can break pull requests.
+	env := append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1")
+
 	var stderr strings.Builder
 	err := cmd.Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: target,
 		Stderr: &stderr,
+		Env:    env,
 	})
 	if err != nil {
 		return ConcatenateError(err, stderr.String())

@@ -22,16 +22,16 @@ func TestRepoActivity(t *testing.T) {
 		// Create PRs (1 merged & 2 proposed)
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/better_readme", "README.md", "Hello, World (Edited Again)\n")
-		testPullCreate(t, session, "user1", "repo1", "feat/better_readme", "This is a pull title")
+		testPullCreate(t, session, "user1", "repo1", false, "master", "feat/better_readme", "This is a pull title")
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/much_better_readme", "README.md", "Hello, World (Edited More)\n")
-		testPullCreate(t, session, "user1", "repo1", "feat/much_better_readme", "This is a pull title")
+		testPullCreate(t, session, "user1", "repo1", false, "master", "feat/much_better_readme", "This is a pull title")
 
 		// Create issues (3 new issues)
 		testNewIssue(t, session, "user2", "repo1", "Issue 1", "Description 1")

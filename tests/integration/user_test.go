@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -84,7 +85,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("form.username_error"),
+			translation.NewLocale("en-US").TrString("form.username_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -146,7 +147,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").TrString("user.form.name_reserved", reservedUsername),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
@@ -261,7 +262,7 @@ func TestListStopWatches(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	req := NewRequestf(t, "GET", "/user/stopwatches")
+	req := NewRequest(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
@@ -275,4 +276,24 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
+}
+
+func TestUserLocationMapLink(t *testing.T) {
+	setting.Service.UserLocationMapURL = "https://example/foo/"
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"name":     "user2",
+		"email":    "user@example.com",
+		"language": "en-US",
+		"location": "A/b",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	req = NewRequest(t, "GET", "/user2/")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	htmlDoc.AssertElement(t, `a[href="https://example/foo/A%2Fb"]`, true)
 }

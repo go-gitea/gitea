@@ -28,6 +28,7 @@ type (
 	TelegramMeta struct {
 		BotToken string `json:"bot_token"`
 		ChatID   string `json:"chat_id"`
+		ThreadID string `json:"thread_id"`
 	}
 )
 
@@ -181,6 +182,12 @@ func (t *TelegramPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 // Release implements PayloadConvertor Release method
 func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayload(text), nil
+}
+
+func (t *TelegramPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text), nil
 }

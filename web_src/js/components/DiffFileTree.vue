@@ -1,15 +1,3 @@
-<template>
-  <div v-if="store.fileTreeIsVisible" class="gt-mr-3 gt-mt-3 diff-detail-box">
-    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
-    </div>
-    <div v-if="store.isIncomplete" class="gt-pt-2">
-      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
-    </div>
-  </div>
-</template>
-
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {loadMoreFiles} from '../features/repo-diff.js';
@@ -137,3 +125,20 @@ export default {
   },
 };
 </script>
+<template>
+  <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
+    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
+    <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
+    <div v-if="store.isIncomplete" class="gt-pt-2">
+      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
+    </div>
+  </div>
+</template>
+<style scoped>
+.diff-file-tree-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: .5rem;
+}
+</style>

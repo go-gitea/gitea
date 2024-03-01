@@ -5,24 +5,48 @@ package password
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/auth/password/pwn"
 	"code.gitea.io/gitea/modules/setting"
 )
 
+var ErrIsPwned = errors.New("password has been pwned")
+
+type ErrIsPwnedRequest struct {
+	err error
+}
+
+func IsErrIsPwnedRequest(err error) bool {
+	_, ok := err.(ErrIsPwnedRequest)
+	return ok
+}
+
+func (err ErrIsPwnedRequest) Error() string {
+	return fmt.Sprintf("using Have-I-Been-Pwned service failed: %v", err.err)
+}
+
+func (err ErrIsPwnedRequest) Unwrap() error {
+	return err.err
+}
+
 // IsPwned checks whether a password has been pwned
-// NOTE: This func returns true if it encounters an error under the assumption that you ALWAYS want to check against
-// HIBP, so not getting a response should block a password until it can be verified.
-func IsPwned(ctx context.Context, password string) (bool, error) {
+// If a password has not been pwned, no error is returned.
+func IsPwned(ctx context.Context, password string) error {
 	if !setting.PasswordCheckPwn {
-		return false, nil
+		return nil
 	}
 
 	client := pwn.New(pwn.WithContext(ctx))
 	count, err := client.CheckPassword(password, true)
 	if err != nil {
-		return true, err
+		return ErrIsPwnedRequest{err}
 	}
 
-	return count > 0, nil
+	if count > 0 {
+		return ErrIsPwned
+	}
+
+	return nil
 }

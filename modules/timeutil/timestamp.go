@@ -13,27 +13,27 @@ import (
 type TimeStamp int64
 
 var (
-	// mock is NOT concurrency-safe!!
-	mock time.Time
+	// mockNow is NOT concurrency-safe!!
+	mockNow time.Time
 
 	// Used for IsZero, to check if timestamp is the zero time instant.
 	timeZeroUnix = time.Time{}.Unix()
 )
 
-// Set sets the time to a mocked time.Time
-func Set(now time.Time) {
-	mock = now
+// MockSet sets the time to a mocked time.Time
+func MockSet(now time.Time) {
+	mockNow = now
 }
 
-// Unset will unset the mocked time.Time
-func Unset() {
-	mock = time.Time{}
+// MockUnset will unset the mocked time.Time
+func MockUnset() {
+	mockNow = time.Time{}
 }
 
 // TimeStampNow returns now int64
 func TimeStampNow() TimeStamp {
-	if !mock.IsZero() {
-		return TimeStamp(mock.Unix())
+	if !mockNow.IsZero() {
+		return TimeStamp(mockNow.Unix())
 	}
 	return TimeStamp(time.Now().Unix())
 }
@@ -89,19 +89,9 @@ func (ts TimeStamp) FormatInLocation(f string, loc *time.Location) string {
 	return ts.AsTimeInLocation(loc).Format(f)
 }
 
-// FormatLong formats as RFC1123Z
-func (ts TimeStamp) FormatLong() string {
-	return ts.Format(time.RFC1123Z)
-}
-
-// FormatShort formats as short
-func (ts TimeStamp) FormatShort() string {
-	return ts.Format("Jan 02, 2006")
-}
-
-// FormatDate formats a date in YYYY-MM-DD server time zone
+// FormatDate formats a date in YYYY-MM-DD
 func (ts TimeStamp) FormatDate() string {
-	return time.Unix(int64(ts), 0).String()[:10]
+	return ts.Format("2006-01-02")
 }
 
 // IsZero is zero time

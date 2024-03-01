@@ -34,8 +34,8 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 }
 
 // NumIssues return counter of all issues assigned to a project
-func (p *Project) NumIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+func (p *Project) NumIssues(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", p.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
@@ -48,8 +48,8 @@ func (p *Project) NumIssues() int {
 }
 
 // NumClosedIssues return counter of closed issues assigned to a project
-func (p *Project) NumClosedIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+func (p *Project) NumClosedIssues(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
 		Cols("issue_id").
@@ -62,8 +62,8 @@ func (p *Project) NumClosedIssues() int {
 }
 
 // NumOpenIssues return counter of open issues assigned to a project
-func (p *Project) NumOpenIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+func (p *Project) NumOpenIssues(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
 		Cols("issue_id").
@@ -76,8 +76,8 @@ func (p *Project) NumOpenIssues() int {
 }
 
 // MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
 		issueIDs := make([]int64, 0, len(sortedIssueIDs))

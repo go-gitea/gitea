@@ -29,14 +29,14 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 
 	// Step2: click the fork button
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/fork/\"]").Attr("href")
+	link, exists := htmlDoc.doc.Find(`a.ui.button[href*="/fork"]`).Attr("href")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	// Step3: fill the form of the forking
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/fork/\"]").Attr("action")
+	link, exists = htmlDoc.doc.Find(`form.ui.form[action*="/fork"]`).Attr("action")
 	assert.True(t, exists, "The template has changed")
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
 	assert.True(t, exists, fmt.Sprintf("Fork owner '%s' is not present in select box", forkOwnerName))
@@ -63,13 +63,13 @@ func TestRepoFork(t *testing.T) {
 func TestRepoForkToOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoFork(t, session, "user2", "repo1", "user3", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "org3", "repo1")
 
 	// Check that no more forking is allowed as user2 owns repository
-	//  and user3 organization that owner user2 is also now has forked this repository
+	//  and org3 organization that owner user2 is also now has forked this repository
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	_, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/fork/\"]").Attr("href")
+	_, exists := htmlDoc.doc.Find(`a.ui.button[href*="/fork"]`).Attr("href")
 	assert.False(t, exists, "Forking should not be allowed anymore")
 }

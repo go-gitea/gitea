@@ -78,8 +78,8 @@ func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 }
 
 // IsPublicMembership returns true if the given user's membership of given org is public.
-func IsPublicMembership(orgID, uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
+func IsPublicMembership(ctx context.Context, orgID, uid int64) (bool, error) {
+	return db.GetEngine(ctx).
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		And("is_public=?", true).
@@ -98,12 +98,12 @@ func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
-func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
+func IsUserOrgOwner(ctx context.Context, users user_model.UserList, orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	ownerMaps, err := loadOrganizationOwners(db.DefaultContext, users, orgID)
+	ownerMaps, err := loadOrganizationOwners(ctx, users, orgID)
 	if err == nil {
 		for _, owner := range ownerMaps {
 			results[owner.UID] = true

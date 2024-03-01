@@ -13,7 +13,7 @@
 		</div>
 		<div class="content gt-f1">
 			<div class="header">{{.Process.Description}}</div>
-			<div class="description">{{if ne .Process.Type "none"}}{{TimeSince .Process.Start .root.locale}}{{end}}</div>
+			<div class="description">{{if ne .Process.Type "none"}}{{TimeSince .Process.Start ctx.Locale}}{{end}}</div>
 		</div>
 		<div>
 			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}
@@ -27,7 +27,7 @@
 				<div class="item">
 					<details>
 						<summary>
-							<div class="gt-dif content">
+							<div class="flex-text-inline">
 								<div class="header gt-ml-3">
 									<span class="icon gt-mr-3">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
 								</div>

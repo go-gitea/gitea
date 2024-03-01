@@ -40,8 +40,8 @@ func HashAppToken(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(AccessToken)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(AccessToken)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	if err := sess.Commit(); err != nil {
@@ -112,8 +112,8 @@ func resyncHashAppTokenWithUniqueHash(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := sess.Sync2(new(AccessToken)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(AccessToken)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return sess.Commit()
 }

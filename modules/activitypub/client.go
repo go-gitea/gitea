@@ -5,6 +5,7 @@ package activitypub
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -61,21 +62,21 @@ type Client struct {
 }
 
 // NewClient function
-func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
+func NewClient(ctx context.Context, user *user_model.User, pubID string) (c *Client, err error) {
 	if err = containsRequiredHTTPHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
-		return
+		return nil, err
 	} else if err = containsRequiredHTTPHeaders(http.MethodPost, setting.Federation.PostHeaders); err != nil {
-		return
+		return nil, err
 	}
 
-	priv, err := GetPrivateKey(user)
+	priv, err := GetPrivateKey(ctx, user)
 	if err != nil {
-		return
+		return nil, err
 	}
 	privPem, _ := pem.Decode([]byte(priv))
 	privParsed, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	c = &Client{
@@ -99,14 +100,14 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	buf := bytes.NewBuffer(b)
 	req, err = http.NewRequest(http.MethodPost, to, buf)
 	if err != nil {
-		return
+		return nil, err
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Date", CurrentTime())
 	req.Header.Add("User-Agent", "Gitea/"+setting.AppVer)
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = signer.SignRequest(c.priv, c.pubID, req, b)
 	return req, err
@@ -116,7 +117,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 func (c *Client) Post(b []byte, to string) (resp *http.Response, err error) {
 	var req *http.Request
 	if req, err = c.NewRequest(b, to); err != nil {
-		return
+		return nil, err
 	}
 	resp, err = c.client.Do(req)
 	return resp, err

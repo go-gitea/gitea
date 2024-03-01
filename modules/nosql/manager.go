@@ -71,7 +71,7 @@ func valToTimeDuration(vs []string) (result time.Duration) {
 			result = time.Duration(val)
 		}
 		if err == nil {
-			return
+			return result
 		}
 	}
 	return result

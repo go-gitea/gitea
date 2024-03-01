@@ -1,0 +1,11 @@
+{{if .comment.OriginalAuthor}}
+	<span class="text black">
+		{{svg (MigrationIcon .ctxData.Repository.GetOriginalURLHostname)}}
+		{{.comment.OriginalAuthor}}
+	</span>
+	{{if .ctxData.Repository.OriginalURL}}
+		<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" .ctxData.Repository.OriginalURL .ctxData.Repository.GetOriginalURLHostname}})</span>
+	{{end}}
+{{else}}
+	{{template "shared/user/authorlink" .comment.Poster}}
+{{end}}

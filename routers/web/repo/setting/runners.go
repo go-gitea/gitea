@@ -11,9 +11,10 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -53,6 +54,11 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
+		err := shared_user.LoadHeaderCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return nil, nil
+		}
 		return &runnersCtx{
 			RepoID:             0,
 			OwnerID:            ctx.Org.Organization.ID,

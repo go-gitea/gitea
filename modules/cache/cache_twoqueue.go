@@ -11,13 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	mc "gitea.com/go-chi/cache"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // TwoQueueCache represents a LRU 2Q cache adapter implementation
 type TwoQueueCache struct {
 	lock     sync.Mutex
-	cache    *lru.TwoQueueCache
+	cache    *lru.TwoQueueCache[string, any]
 	interval int
 }
 
@@ -146,7 +146,7 @@ func (c *TwoQueueCache) Flush() error {
 	return nil
 }
 
-func (c *TwoQueueCache) checkAndInvalidate(key any) {
+func (c *TwoQueueCache) checkAndInvalidate(key string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	cached, ok := c.cache.Peek(key)
@@ -155,7 +155,7 @@ func (c *TwoQueueCache) checkAndInvalidate(key any) {
 	}
 	item, ok := cached.(*MemoryItem)
 	if !ok || item.hasExpired() {
-		c.cache.Remove(item)
+		c.cache.Remove(key)
 	}
 }
 
@@ -187,9 +187,9 @@ func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
 			GhostRatio:  lru.Default2QGhostEntries,
 		}
 		_ = json.Unmarshal([]byte(opts.AdapterConfig), cfg)
-		c.cache, err = lru.New2QParams(cfg.Size, cfg.RecentRatio, cfg.GhostRatio)
+		c.cache, err = lru.New2QParams[string, any](cfg.Size, cfg.RecentRatio, cfg.GhostRatio)
 	} else {
-		c.cache, err = lru.New2Q(size)
+		c.cache, err = lru.New2Q[string, any](size)
 	}
 	c.interval = opts.Interval
 	if c.interval > 0 {

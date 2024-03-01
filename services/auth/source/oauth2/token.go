@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // ___________     __
@@ -49,6 +49,9 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
 	var token *Token
 	var ok bool

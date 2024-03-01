@@ -1,20 +1,20 @@
 {{if or .OpenMilestones .ClosedMilestones}}
 	<div class="ui icon search input">
-		<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-		<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
+		<i class="icon">{{svg "octicon-search" 16}}</i>
+		<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestones"}}">
 	</div>
 	<div class="divider"></div>
 {{end}}
-<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_milestone"}}</div>
+<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
 {{if and (not .OpenMilestones) (not .ClosedMilestones)}}
 	<div class="disabled item">
-		{{.locale.Tr "repo.issues.new.no_items"}}
+		{{ctx.Locale.Tr "repo.issues.new.no_items"}}
 	</div>
 {{else}}
 	{{if .OpenMilestones}}
 		<div class="divider"></div>
 		<div class="header">
-			{{.locale.Tr "repo.issues.new.open_milestone"}}
+			{{ctx.Locale.Tr "repo.issues.new.open_milestone"}}
 		</div>
 		{{range .OpenMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
@@ -26,7 +26,7 @@
 	{{if .ClosedMilestones}}
 		<div class="divider"></div>
 		<div class="header">
-			{{.locale.Tr "repo.issues.new.closed_milestone"}}
+			{{ctx.Locale.Tr "repo.issues.new.closed_milestone"}}
 		</div>
 		{{range .ClosedMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">

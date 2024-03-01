@@ -20,7 +20,7 @@ func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
 	}
 
 	type PackageVersion struct {
-		ID           int64  `xorm:"pk"`
+		ID           int64  `xorm:"pk autoincr"`
 		MetadataJSON string `xorm:"metadata_json"`
 	}
 

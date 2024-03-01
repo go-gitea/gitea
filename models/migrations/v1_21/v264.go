@@ -89,5 +89,5 @@ func AddBranchTable(x *xorm.Engine) error {
 		}
 	}
 
-	return x.DropTables("deleted_branches")
+	return x.DropTables(new(DeletedBranch))
 }

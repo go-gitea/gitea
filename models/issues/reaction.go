@@ -71,11 +71,11 @@ type Reaction struct {
 }
 
 // LoadUser load user of reaction
-func (r *Reaction) LoadUser() (*user_model.User, error) {
+func (r *Reaction) LoadUser(ctx context.Context) (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := user_model.GetUserByID(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByID(ctx, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,16 +141,16 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 }
 
 // FindCommentReactions returns a ReactionList of all reactions from an comment
-func FindCommentReactions(issueID, commentID int64) (ReactionList, int64, error) {
-	return FindReactions(db.DefaultContext, FindReactionsOptions{
+func FindCommentReactions(ctx context.Context, issueID, commentID int64) (ReactionList, int64, error) {
+	return FindReactions(ctx, FindReactionsOptions{
 		IssueID:   issueID,
 		CommentID: commentID,
 	})
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issueID int64, listOptions db.ListOptions) (ReactionList, int64, error) {
-	return FindReactions(db.DefaultContext, FindReactionsOptions{
+func FindIssueReactions(ctx context.Context, issueID int64, listOptions db.ListOptions) (ReactionList, int64, error) {
+	return FindReactions(ctx, FindReactionsOptions{
 		ListOptions: listOptions,
 		IssueID:     issueID,
 		CommentID:   -1,
@@ -218,12 +218,12 @@ type ReactionOptions struct {
 }
 
 // CreateReaction creates reaction for issue or comment.
-func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
+func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
 	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -241,8 +241,8 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 }
 
 // CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(doerID, issueID int64, content string) (*Reaction, error) {
-	return CreateReaction(&ReactionOptions{
+func CreateIssueReaction(ctx context.Context, doerID, issueID int64, content string) (*Reaction, error) {
+	return CreateReaction(ctx, &ReactionOptions{
 		Type:    content,
 		DoerID:  doerID,
 		IssueID: issueID,
@@ -250,8 +250,8 @@ func CreateIssueReaction(doerID, issueID int64, content string) (*Reaction, erro
 }
 
 // CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(doerID, issueID, commentID int64, content string) (*Reaction, error) {
-	return CreateReaction(&ReactionOptions{
+func CreateCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) (*Reaction, error) {
+	return CreateReaction(ctx, &ReactionOptions{
 		Type:      content,
 		DoerID:    doerID,
 		IssueID:   issueID,
@@ -279,8 +279,8 @@ func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
-func DeleteIssueReaction(doerID, issueID int64, content string) error {
-	return DeleteReaction(db.DefaultContext, &ReactionOptions{
+func DeleteIssueReaction(ctx context.Context, doerID, issueID int64, content string) error {
+	return DeleteReaction(ctx, &ReactionOptions{
 		Type:      content,
 		DoerID:    doerID,
 		IssueID:   issueID,
@@ -289,8 +289,8 @@ func DeleteIssueReaction(doerID, issueID int64, content string) error {
 }
 
 // DeleteCommentReaction deletes a reaction on comment.
-func DeleteCommentReaction(doerID, issueID, commentID int64, content string) error {
-	return DeleteReaction(db.DefaultContext, &ReactionOptions{
+func DeleteCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) error {
+	return DeleteReaction(ctx, &ReactionOptions{
 		Type:      content,
 		DoerID:    doerID,
 		IssueID:   issueID,
@@ -377,7 +377,7 @@ func (list ReactionList) GetFirstUsers() string {
 		if buffer.Len() > 0 {
 			buffer.WriteString(", ")
 		}
-		buffer.WriteString(reaction.User.DisplayName())
+		buffer.WriteString(reaction.User.Name)
 		if rem--; rem == 0 {
 			break
 		}

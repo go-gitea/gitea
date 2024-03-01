@@ -12,13 +12,13 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 
@@ -55,7 +55,11 @@ func LinkAccount(ctx *context.Context) {
 	}
 
 	gu, _ := gothUser.(goth.User)
-	uname := getUserName(&gu)
+	uname, err := getUserName(&gu)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
 	email := gu.Email
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
@@ -142,7 +146,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, _, err := auth_service.UserSignIn(ctx, signInForm.UserName, signInForm.Password)
 	if err != nil {
 		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, "UserLinkAccount", err)
 		return
@@ -152,19 +156,19 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
-	_, err := auth.GetTwoFactorByUID(u.ID)
+	_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserLinkAccount", err)
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(u, gothUser)
+		err = externalaccount.LinkAccountToUser(ctx, u, gothUser)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
@@ -185,7 +189,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -271,7 +275,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return
