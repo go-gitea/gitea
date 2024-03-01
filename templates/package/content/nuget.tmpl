@@ -11,7 +11,7 @@
 				<div class="markup"><pre class="code-block"><code>dotnet add package --source {{.PackageDescriptor.Owner.Name}} --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "NuGet" "https://docs.gitea.com/usage/packages/nuget/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "NuGet" "https://docs.gitea.com/usage/packages/nuget/"}}</label>
 			</div>
 		</div>
 	</div>
@@ -20,7 +20,7 @@
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
-			{{if .PackageDescriptor.Metadata.ReleaseNotes}}{{Str2html .PackageDescriptor.Metadata.ReleaseNotes}}{{end}}
+			{{if .PackageDescriptor.Metadata.ReleaseNotes}}{{.PackageDescriptor.Metadata.ReleaseNotes}}{{end}}
 		</div>
 	{{end}}
 

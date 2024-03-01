@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/optional"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -42,6 +44,22 @@ func (o OptionalBool) IsNone() bool {
 	return o == OptionalBoolNone
 }
 
+// ToGeneric converts OptionalBool to optional.Option[bool]
+func (o OptionalBool) ToGeneric() optional.Option[bool] {
+	if o.IsNone() {
+		return optional.None[bool]()
+	}
+	return optional.Some[bool](o.IsTrue())
+}
+
+// OptionalBoolFromGeneric converts optional.Option[bool] to OptionalBool
+func OptionalBoolFromGeneric(o optional.Option[bool]) OptionalBool {
+	if o.Has() {
+		return OptionalBoolOf(o.Value())
+	}
+	return OptionalBoolNone
+}
+
 // OptionalBoolOf get the corresponding OptionalBool of a bool
 func OptionalBoolOf(b bool) OptionalBool {
 	if b {
@@ -50,13 +68,13 @@ func OptionalBoolOf(b bool) OptionalBool {
 	return OptionalBoolFalse
 }
 
-// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
-func OptionalBoolParse(s string) OptionalBool {
-	b, e := strconv.ParseBool(s)
+// OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
+func OptionalBoolParse(s string) optional.Option[bool] {
+	v, e := strconv.ParseBool(s)
 	if e != nil {
-		return OptionalBoolNone
+		return optional.None[bool]()
 	}
-	return OptionalBoolOf(b)
+	return optional.Some(v)
 }
 
 // IsEmptyString checks if the provided string is empty

@@ -32,14 +32,14 @@
 									<div class="ui radio checkbox">
 										<input type="radio" name="repo_access" value="specific" {{if not .Team.IncludesAllRepositories}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.specific_repositories"}}</label>
-										<span class="help">{{ctx.Locale.Tr "org.teams.specific_repositories_helper" | Str2html}}</span>
+										<span class="help">{{ctx.Locale.Tr "org.teams.specific_repositories_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
 										<input type="radio" name="repo_access" value="all" {{if .Team.IncludesAllRepositories}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.all_repositories"}}</label>
-										<span class="help">{{ctx.Locale.Tr "org.teams.all_repositories_helper" | Str2html}}</span>
+										<span class="help">{{ctx.Locale.Tr "org.teams.all_repositories_helper"}}</span>
 									</div>
 								</div>
 

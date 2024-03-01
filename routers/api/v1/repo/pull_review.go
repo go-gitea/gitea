@@ -12,11 +12,11 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -362,6 +362,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			true, // pending review
 			0,    // no reply
 			opts.CommitID,
+			nil,
 		); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateCodeComment", err)
 			return
