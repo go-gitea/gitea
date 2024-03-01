@@ -15,11 +15,13 @@ import (
 	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -222,5 +224,45 @@ func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink st
 			repoLink, label.ID, RenderLabel(ctx, label))
 	}
 	htmlCode += "</span>"
+	return template.HTML(htmlCode)
+}
+
+func RenderLabelsFromIDs(ctx context.Context, labelIDs []int64, repoLink string) template.HTML {
+	labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs)
+	if err != nil {
+		log.Error("GetLabelsByIDs", err)
+		return ""
+	}
+
+	htmlCode := `<span class="labels-list">`
+	for _, label := range labels {
+		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+		if label == nil {
+			continue
+		}
+		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+			repoLink, label.ID, RenderLabel(ctx, label))
+	}
+	htmlCode += "</span>"
+	return template.HTML(htmlCode)
+}
+
+func RenderMilestone(ctx context.Context, milestoneID, repoID int64, classes ...string) template.HTML {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		log.Error("GetRepositoryByID", err)
+		return ""
+	}
+
+	milestone, err := issues_model.GetMilestoneByRepoID(ctx, repo.ID, milestoneID)
+	if err != nil {
+		log.Error("GetMilestoneByRepoID", err)
+		return ""
+	}
+
+	htmlCode := fmt.Sprintf("<a class='milestone %s' href='%s/milestone/%d'>", strings.Join(classes, " "), repo.Link(), milestone.ID)
+	htmlCode += string(svg.RenderHTML("octicon-milestone", 16, "gt-mr-2 gt-vm"))
+	htmlCode += fmt.Sprintf("<span class'gt-vm'>%s</span>", milestone.Name)
+	htmlCode += "</a>"
 	return template.HTML(htmlCode)
 }

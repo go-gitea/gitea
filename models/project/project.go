@@ -85,6 +85,44 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrBoardNoteNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrBoardNoteNotExist struct {
+	BoardNoteID int64
+}
+
+// IsErrBoardNoteNotExist checks if an error is a ErrBoardNoteNotExist
+func IsErrBoardNoteNotExist(err error) bool {
+	_, ok := err.(ErrBoardNoteNotExist)
+	return ok
+}
+
+func (err ErrBoardNoteNotExist) Error() string {
+	return fmt.Sprintf("project-board-note does not exist [id: %d]", err.BoardNoteID)
+}
+
+func (err ErrBoardNoteNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// ErrBoardNoteLabelNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrBoardNoteLabelNotExist struct {
+	BoardNoteLabelID int64
+}
+
+// IsErrBoardNoteLabelNotExist checks if an error is a ErrBoardNoteLabelNotExist
+func IsErrBoardNoteLabelNotExist(err error) bool {
+	_, ok := err.(ErrBoardNoteLabelNotExist)
+	return ok
+}
+
+func (err ErrBoardNoteLabelNotExist) Error() string {
+	return fmt.Sprintf("project-board-note-label does not exist [id: %d]", err.BoardNoteLabelID)
+}
+
+func (err ErrBoardNoteLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // Project represents a project board
 type Project struct {
 	ID          int64                  `xorm:"pk autoincr"`
@@ -100,7 +138,8 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent      string     `xorm:"-"`
+	FirstPinnedBoardNote *BoardNote `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -408,6 +447,10 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 		}
 
 		if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
+			return err
+		}
+
+		if err := deleteBoardNoteByProjectID(ctx, id); err != nil {
 			return err
 		}
 

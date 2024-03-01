@@ -1,3 +1,23 @@
+.ui.modal .content {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.ui.modal .ui.selection {
+  flex-wrap: wrap;
+}
+
+.ui.modal .ui.selection > a > .desc {
+  display: none;
+}
+
+#pinned-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .board {
   display: flex;
   flex-direction: row;
@@ -14,7 +34,6 @@
   width: 320px;
   height: calc(100vh - 450px);
   min-height: 60vh;
-  overflow-y: scroll;
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
@@ -44,20 +63,46 @@
 }
 
 .project-column-title {
+  white-space: unset !important;
   background: none !important;
   line-height: 1.25 !important;
 }
 
-.project-column > .cards {
+.cards-wrapper {
   flex: 1;
   display: flex;
-  align-content: baseline;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex-wrap: nowrap !important;
   flex-direction: column;
   overflow-x: auto;
+}
+
+.cards-wrapper > .cards {
+  flex-grow: 1;
+  margin: 0 !important;
+  flex-direction: column;
   gap: .25rem;
+  max-width: 100%;
+}
+
+.cards-wrapper > .note-cards {
+  flex-grow: unset;
+}
+
+.cards-wrapper > .cards * {
+  max-width: 100%;
+}
+
+/* don't show divider, if currently no note-cards are draged and note-cards are empty */
+#project-board:not(:has(.note-cards > .card-ghost)) .cards-wrapper > .note-cards:not(:has(> *)) + .divider,
+/* don't show divider, if there are no childs in issue-cards */
+.project-column:not(:has(.issue-cards > *)) .note-cards + .divider {
+  display: none;
+}
+
+/* give empty cards a min-height, if there is currently a child-card been draged */
+#project-board:has(.note-cards > .card-ghost) .cards-wrapper > .note-cards:not(:has(> *)),
+/* set min-height if issue-cards, this helps when note-cards are higher then 100% */
+#project-board:has(.card-ghost) .cards-wrapper > .issue-cards:not(:has(> *)) {
+  min-height: 5%;
 }
 
 .project-column > .divider {
@@ -70,6 +115,11 @@
 
 .project-column:last-child {
   margin-right: auto !important;
+}
+
+.project-column-note-content {
+  max-height: 250px;
+  overflow-y: hidden;
 }
 
 .card-attachment-images {

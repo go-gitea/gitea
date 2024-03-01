@@ -94,6 +94,10 @@ var (
 			MaxPinned   int
 		} `ini:"repository.issue"`
 
+		Project struct {
+			MaxPinned int64
+		} `ini:"repository.project"`
+
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
@@ -235,6 +239,12 @@ var (
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 			MaxPinned:   3,
+		},
+
+		Project: struct {
+			MaxPinned int64
+		}{
+			MaxPinned: 3,
 		},
 
 		Release: struct {

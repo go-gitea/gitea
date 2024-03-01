@@ -2,34 +2,35 @@ import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
-function updateIssueCount(cards) {
-  const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('issue-card').length;
-  parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
+function updateIssueAndNoteCount(cards) {
+  const column = $(cards).closest('.project-column');
+  const cnt = column.find('.issue-card, .note-card').length;
+  column.find('.project-column-issue-note-count').text(cnt);
 }
 
-function createNewColumn(url, columnTitle, projectColorInput) {
+function createNewColumn(url, form, data) {
   $.ajax({
     url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
+    data: JSON.stringify(data),
     headers: {
       'X-Csrf-Token': csrfToken,
     },
     contentType: 'application/json',
     method: 'POST',
   }).done(() => {
-    columnTitle.closest('form').removeClass('dirty');
+    form.removeClass('dirty');
     window.location.reload();
   });
 }
 
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('issue-card');
-  updateIssueCount(from);
-  updateIssueCount(to);
+  updateIssueAndNoteCount(from);
+  updateIssueAndNoteCount(to);
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
@@ -52,7 +53,62 @@ function moveIssue({item, from, to, oldIndex}) {
   });
 }
 
+function moveNote({item, from, to, oldIndex}) {
+  const columnCards = to.getElementsByClassName('note-card');
+  updateIssueAndNoteCount(from);
+  updateIssueAndNoteCount(to);
+
+  const columnSorting = {
+    projectBoardNotes: Array.from(columnCards, (card, i) => ({
+      projectBoardNoteID: parseInt($(card).data('note')),
+      sorting: i,
+    })),
+  };
+
+  $.ajax({
+    url: `${to.getAttribute('data-url')}/move`,
+    data: JSON.stringify(columnSorting),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+    error: () => {
+      from.insertBefore(item, from.children[oldIndex]);
+    },
+  });
+}
+
+function movePinned({newIndex, item}) {
+  const newPosition = newIndex + 1;
+  const id = $(item).data('note');
+  const url = `${$(item).data('url')}/${id}/pin/move`;
+
+  $.ajax({
+    url,
+    data: JSON.stringify({position: newPosition}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+  });
+}
+
 async function initRepoProjectSortable() {
+  const pinnedNotesCards = document.querySelector('#pinned-notes.sortable');
+  if (pinnedNotesCards) {
+    createSortable(pinnedNotesCards, {
+      group: 'pinned-shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: movePinned,
+      onUpdate: movePinned,
+      delayOnTouchOnly: true,
+      delay: 500
+    });
+  }
+
   const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
@@ -87,25 +143,66 @@ async function initRepoProjectSortable() {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName('cards')[0];
-    createSortable(boardCardList, {
-      group: 'shared',
+    const boardIssueCardList = boardColumn.getElementsByClassName('issue-cards')[0];
+    const boardNoteCardList = boardColumn.getElementsByClassName('note-cards')[0];
+    createSortable(boardIssueCardList, {
+      group: 'issue-shared',
       animation: 150,
       ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
       delayOnTouchOnly: true,
-      delay: 500,
+      delay: 500
+    });
+    createSortable(boardNoteCardList, {
+      group: 'note-shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: moveNote,
+      onUpdate: moveNote,
+      delayOnTouchOnly: true,
+      delay: 500
     });
   }
 }
 
 export function initRepoProject() {
-  if (!$('.repository.projects').length) {
+  const mainContent = $('.repository.projects');
+  if (!mainContent.length) {
     return;
   }
 
+  const modalButtons = mainContent.find(':where(.project-column, #pinned-notes) button[data-modal]');
+  modalButtons.each(function() {
+    const modalButton = $(this);
+    const modalId = modalButton.data('modal');
+
+    const markdownEditor = $(`${modalId} .combo-markdown-editor`);
+    if (!markdownEditor.length) return;
+
+    modalButton.one('click', () => {
+      const comboMarkdownEditor = getComboMarkdownEditor(markdownEditor);
+      if (comboMarkdownEditor) return; // only init once
+      initComboMarkdownEditor(markdownEditor, {easyMDEOptions: {maxHeight: '50vh', minHeight: '50vh'}});
+    });
+  });
+
   const _promise = initRepoProjectSortable();
+
+  $('.create-project-issue-from-note').each(function () {
+    const anchorLink = $(this);
+    const wrapperCard = anchorLink.closest('.note-card');
+    const showEditModalButton = wrapperCard.find('button[data-modal^="#edit-project-column-note-modal-"]');
+    const editModalId = showEditModalButton.data('modal');
+    const editModal = $(editModalId);
+    const titleInput = editModal.find('[name="title"]');
+    const contentTextarea = editModal.find('.markdown-text-editor');
+
+    anchorLink.on('click', () => {
+      sessionStorage.setItem('board-note-title', titleInput.val());
+      sessionStorage.setItem('board-note-content', contentTextarea.val());
+    });
+  });
 
   $('.edit-project-column-modal').each(function () {
     const projectHeader = $(this).closest('.project-column-header');
@@ -130,7 +227,7 @@ export function initRepoProject() {
         contentType: 'application/json',
         method: 'PUT',
       }).done(() => {
-        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleLabel.contents().last().replaceWith(projectTitleInput.val());
         projectTitleInput.closest('form').removeClass('dirty');
         if (projectColorInput.val()) {
           setLabelColor(projectHeader, projectColorInput.val());
@@ -163,27 +260,30 @@ export function initRepoProject() {
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = $(this).attr('data-url');
+    const deleteColumnModalId = $(this).data('modal');
+    const deleteColumnUrl = $(this).data('url');
 
+    const columnToDelete = $(this).closest('.project-column');
+    const deleteColumnModal = $(deleteColumnModalId);
+
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
     deleteColumnButton.on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
-        url: deleteUrl,
+        url: deleteColumnUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
         contentType: 'application/json',
         method: 'DELETE',
       }).done(() => {
-        window.location.reload();
+        columnToDelete.remove();
       });
     });
   });
 
-  $('#new_project_column_submit').on('click', (e) => {
+  $('#new_project_column_submit').on('click', function (e) {
     e.preventDefault();
     const columnTitle = $('#new_project_column');
     const projectColorInput = $('#new_project_column_color_picker');
@@ -191,7 +291,31 @@ export function initRepoProject() {
       return;
     }
     const url = $(this).data('url');
-    createNewColumn(url, columnTitle, projectColorInput);
+    const form = columnTitle.closest('form');
+    createNewColumn(url, form, {title: columnTitle.val(), color: projectColorInput.val()});
+  });
+
+  $('.pin-project-column-note').each(function () {
+    const pinButton = $(this);
+    const pinUrl = pinButton.data('url');
+    const ajaxMethod = pinButton.data('method');
+
+    pinButton.on('click', (e) => {
+      e.preventDefault();
+
+      if (pinButton.hasClass('disabled')) return;
+
+      $.ajax({
+        url: pinUrl,
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: ajaxMethod,
+      }).done(() => {
+        window.location.reload();
+      });
+    });
   });
 }
 

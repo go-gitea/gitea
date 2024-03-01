@@ -7,6 +7,7 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -36,6 +37,11 @@ var (
 var (
 	renderContextKey = parser.NewContextKey()
 	renderConfigKey  = parser.NewContextKey()
+)
+
+var (
+	MarkdownTasksRegex     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
+	MarkdownTasksDoneRegex = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
 )
 
 type limitWriter struct {

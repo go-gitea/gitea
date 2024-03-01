@@ -82,6 +82,27 @@ func (b *Board) NumIssues(ctx context.Context) int {
 	return int(c)
 }
 
+// NumBoardNotes return counter of all notes assigned to the board
+func (b *Board) NumBoardNotes(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("project_board_note").
+		Where("project_id=?", b.ProjectID).
+		And("board_id=?", b.ID).
+		GroupBy("id").
+		Cols("id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumIssuesAndNotes return counter of all issues and notes assigned to the board
+func (b *Board) NumIssuesAndNotes(ctx context.Context) int {
+	numIssues := b.NumIssues(ctx)
+	numBoardNotes := b.NumBoardNotes(ctx)
+	return numIssues + numBoardNotes
+}
+
 func init() {
 	db.RegisterModel(new(Board))
 }
@@ -177,6 +198,10 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 	}
 
 	if err = board.removeIssues(ctx); err != nil {
+		return err
+	}
+
+	if err = board.removeBoardNotes(ctx); err != nil {
 		return err
 	}
 

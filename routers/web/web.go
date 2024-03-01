@@ -1005,6 +1005,22 @@ func registerRoutes(m *web.Route) {
 						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
 
 						m.Post("/move", org.MoveIssues)
+
+						m.Group("/note", func() {
+							m.Post("", web.Bind(forms.BoardNoteForm{}), org.AddBoardNoteToBoard)
+							m.Post("/move", org.MoveBoardNote)
+
+							m.Group("/{noteID}", func() {
+								m.Put("", web.Bind(forms.BoardNoteForm{}), org.EditBoardNote)
+								m.Delete("", org.DeleteBoardNote)
+
+								m.Group("/pin", func() {
+									m.Post("", web.Bind(forms.BoardNoteForm{}), org.PinBoardNote)
+									m.Delete("", org.UnPinBoardNote)
+									m.Post("/move", org.PinMoveBoardNote)
+								})
+							})
+						})
 					})
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
@@ -1343,6 +1359,22 @@ func registerRoutes(m *web.Route) {
 						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
 
 						m.Post("/move", repo.MoveIssues)
+
+						m.Group("/note", func() {
+							m.Post("", web.Bind(forms.BoardNoteForm{}), repo.AddBoardNoteToBoard)
+							m.Post("/move", repo.MoveBoardNote)
+
+							m.Group("/{noteID}", func() {
+								m.Put("", web.Bind(forms.BoardNoteForm{}), repo.EditBoardNote)
+								m.Delete("", repo.DeleteBoardNote)
+
+								m.Group("/pin", func() {
+									m.Post("", web.Bind(forms.BoardNoteForm{}), repo.PinBoardNote)
+									m.Delete("", repo.UnPinBoardNote)
+									m.Post("/move", repo.PinMoveBoardNote)
+								})
+							})
+						})
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
