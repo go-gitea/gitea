@@ -116,7 +116,7 @@ func UpdateSecret(ctx context.Context, secretID int64, data string) error {
 	return err
 }
 
-func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
+func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[string]string, error) {
 	secrets := map[string]string{}
 
 	secrets["GITHUB_TOKEN"] = task.Token
@@ -126,28 +126,28 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
 		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
 		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
-		return secrets
+		return secrets, nil
 	}
 
 	ownerSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
 		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
-		// go on
+		return nil, err
 	}
 	repoSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{RepoID: task.Job.Run.RepoID})
 	if err != nil {
 		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
-		// go on
+		return nil, err
 	}
 
 	for _, secret := range append(ownerSecrets, repoSecrets...) {
 		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
 			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
-			// go on
+			return nil, err
 		} else {
 			secrets[secret.Name] = v
 		}
 	}
 
-	return secrets
+	return secrets, nil
 }

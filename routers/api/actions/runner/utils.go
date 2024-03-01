@@ -31,14 +31,24 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetSecretsOfTask: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
 	actions.CreateCommitStatus(ctx, t.Job)
 
 	task := &runnerv1.Task{
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
-		Secrets:         secret_model.GetSecretsOfTask(ctx, t),
-		Vars:            actions_model.GetVariablesOfRun(ctx, t.Job.Run),
+		Secrets:         secrets,
+		Vars:            vars,
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {

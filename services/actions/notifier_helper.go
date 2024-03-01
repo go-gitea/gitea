@@ -297,11 +297,17 @@ func handleWorkflows(
 		}
 
 		if err := run.LoadAttributes(ctx); err != nil {
-			log.Error("LoadAttributes %v", err)
+			log.Error("LoadAttributes: %v", err)
 			continue
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(actions_model.GetVariablesOfRun(ctx, run)))
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
