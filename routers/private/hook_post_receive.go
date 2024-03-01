@@ -116,12 +116,15 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					return
 				}
 			}
-			commit, err := gitRepo.GetCommit(update.NewCommitID)
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+ var commit *git.Commit
+      if !opts.IsDelRef() {
+			    commit, err := gitRepo.GetCommit(update.NewCommitID)
+			    if err != nil {
+				    ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", update.NewCommitID, ownerName, repoName, err),
-				})
-				return
+				  })
+				  return
+				}
 			}
 			if err := repo_service.SyncBranchToDB(ctx, repo.ID, update.PusherID, update.RefFullName.BranchName(), commit); err != nil {
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
