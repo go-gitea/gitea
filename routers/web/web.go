@@ -966,10 +966,6 @@ func registerRoutes(m *web.Route) {
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
-		m.Group("/fork", func() {
-			m.Combo("/{repoid}").Get(repo.Fork).
-				Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
@@ -1265,6 +1261,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+
+		m.Combo("/fork", reqRepoCodeReader).Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Tags

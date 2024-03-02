@@ -14,8 +14,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -278,15 +278,15 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	var isPull util.OptionalBool
+	var isPull optional.Option[bool]
 	canReadIssue := ctx.Repo.CanRead(unit.TypeIssues)
 	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
 	if canReadIssue && canReadPull {
-		isPull = util.OptionalBoolNone
+		isPull = optional.None[bool]()
 	} else if canReadIssue {
-		isPull = util.OptionalBoolFalse
+		isPull = optional.Some(false)
 	} else if canReadPull {
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	} else {
 		ctx.NotFound()
 		return

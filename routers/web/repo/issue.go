@@ -9,6 +9,7 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
+	"html/template"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -38,9 +39,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -138,7 +141,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -239,18 +242,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var isShowClosed util.OptionalBool
+	var isShowClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isShowClosed = util.OptionalBoolTrue
+		isShowClosed = optional.Some(true)
 	case "all":
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	default:
-		isShowClosed = util.OptionalBoolFalse
+		isShowClosed = optional.Some(false)
 	}
 	// if there are closed issues and no open issues, default to showing all issues
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	}
 
 	if repo.IsTimetrackerEnabled(ctx) {
@@ -270,10 +273,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var total int
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		total = int(issueStats.ClosedCount)
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		total = int(issueStats.OpenCount + issueStats.ClosedCount)
 	default:
 		total = int(issueStats.OpenCount)
@@ -429,7 +432,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.IsTrue())
+	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.Value())
 	if err != nil {
 		ctx.ServerError("GetPinnedIssues", err)
 		return
@@ -459,10 +462,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["Keyword"] = keyword
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		ctx.Data["State"] = "closed"
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		ctx.Data["State"] = "all"
 	default:
 		ctx.Data["State"] = "open"
@@ -511,7 +514,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
 	if ctx.Written() {
 		return
 	}
@@ -553,7 +556,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	var err error
 	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -561,7 +564,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	}
 	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -589,7 +592,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolFalse,
+		IsClosed:    optional.Some(false),
 		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
@@ -599,7 +602,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolFalse,
+		IsClosed:    optional.Some(false),
 		Type:        repoOwnerType,
 	})
 	if err != nil {
@@ -612,7 +615,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolTrue,
+		IsClosed:    optional.Some(true),
 		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
@@ -622,7 +625,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolTrue,
+		IsClosed:    optional.Some(true),
 		Type:        repoOwnerType,
 	})
 	if err != nil {
@@ -1015,7 +1018,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
-func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string {
+func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) template.HTML {
 	var files []string
 	for k := range errs {
 		files = append(files, k)
@@ -1027,14 +1030,14 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
 	}
 
-	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+	flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
 		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
 		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
-		flashError = ctx.Locale.TrString("repo.issues.choose.ignore_invalid_templates")
+		flashError = ctx.Locale.Tr("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
 }
@@ -1762,7 +1765,7 @@ func ViewIssue(ctx *context.Context) {
 				// so "|" is used as delimeter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
-					comment.RenderedContent = comment.Content
+					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
 					comment.Content = ""
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend
@@ -2510,14 +2513,14 @@ func SearchIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	var (
@@ -2530,7 +2533,7 @@ func SearchIssues(ctx *context.Context) {
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
-			Collaborate: util.OptionalBoolNone,
+			Collaborate: optional.None[bool](),
 			// This needs to be a column that is not nil in fixtures or
 			// MySQL will return different results when sorting by null in some cases
 			OrderBy: db.SearchOrderByAlphabetically,
@@ -2553,7 +2556,7 @@ func SearchIssues(ctx *context.Context) {
 			opts.OwnerID = owner.ID
 			opts.AllLimited = false
 			opts.AllPublic = false
-			opts.Collaborate = util.OptionalBoolFalse
+			opts.Collaborate = optional.Some(false)
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
@@ -2592,14 +2595,12 @@ func SearchIssues(ctx *context.Context) {
 		keyword = ""
 	}
 
-	var isPull util.OptionalBool
+	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
-	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.Some(false)
 	}
 
 	var includedAnyLabels []int64
@@ -2734,14 +2735,14 @@ func ListIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -2793,14 +2794,12 @@ func ListIssues(ctx *context.Context) {
 		projectID = &v
 	}
 
-	var isPull util.OptionalBool
+	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
-	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.Some(false)
 	}
 
 	// FIXME: we should be more efficient here
@@ -3313,7 +3312,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]any{
+	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
@@ -3420,7 +3419,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]any{
+	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
@@ -3563,8 +3562,8 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
-	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]any{
+func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) template.HTML {
+	attachHTML, err := ctx.RenderToHTML(tplAttachment, map[string]any{
 		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,
