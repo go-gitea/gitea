@@ -146,7 +146,7 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 		log.Debug("Queue %q starts new worker", q.GetName())
 		defer log.Debug("Queue %q stops idle worker", q.GetName())
 
-		atomic.AddInt32(&q.workerStartedCounter, 1)
+		atomic.AddInt32(&q.workerStartedCounter, 1) // Only increase counter, used for debugging
 
 		t := time.NewTicker(workerIdleDuration)
 		defer t.Stop()
