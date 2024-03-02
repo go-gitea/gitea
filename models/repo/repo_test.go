@@ -12,17 +12,17 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	countRepospts        = repo_model.CountRepositoryOptions{OwnerID: 10}
-	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolFalse}
-	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolTrue}
+	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(false)}
+	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(true)}
 )
 
 func TestGetRepositoryCount(t *testing.T) {
