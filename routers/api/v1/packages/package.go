@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -60,7 +60,7 @@ func ListPackages(ctx *context.APIContext) {
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages.Type(packageType),
 		Name:       packages.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  &listOptions,
 	})
 	if err != nil {
