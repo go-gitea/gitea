@@ -53,7 +53,9 @@ const update = throttle(100, (overflowMenu) => {
       content,
     });
   } else {
-    overflowMenu.querySelector('.overflow-menu-button')?.remove();
+    const btn = overflowMenu.querySelector('.overflow-menu-button');
+    btn?._tippy?.destroy();
+    btn?.remove();
   }
 });
 
