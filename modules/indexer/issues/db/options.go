@@ -11,6 +11,7 @@ import (
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
@@ -75,7 +76,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
 		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
 		PriorityRepoID:     0,
-		IsArchived:         0,
+		IsArchived:         optional.None[bool](),
 		Org:                nil,
 		Team:               nil,
 		User:               nil,

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -131,7 +130,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 	}
 	projectCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(false),
+		IsClosed: optional.Some(false),
 		Type:     projectType,
 	})
 	if err != nil {
