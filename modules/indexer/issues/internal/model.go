@@ -5,8 +5,8 @@ package internal
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerData data stored in the issue indexer
@@ -77,8 +77,8 @@ type SearchOptions struct {
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
 
-	IsPull   util.OptionalBool // if the issues is a pull request
-	IsClosed util.OptionalBool // if the issues is closed
+	IsPull   optional.Option[bool] // if the issues is a pull request
+	IsClosed optional.Option[bool] // if the issues is closed
 
 	IncludedLabelIDs    []int64 // labels the issues have
 	ExcludedLabelIDs    []int64 // labels the issues don't have

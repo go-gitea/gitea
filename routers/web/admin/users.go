@@ -96,7 +96,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["login_type"] = "0-0"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -117,7 +117,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -276,7 +276,7 @@ func ViewUser(ctx *context.Context) {
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
+		Collaborate: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
