@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -125,11 +126,11 @@ type SearchRepoOptions struct {
 	// None -> include public and private
 	// True -> include just private
 	// False -> include just public
-	IsPrivate util.OptionalBool
+	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> include just non-collaborative
-	Collaborate util.OptionalBool
+	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
 	// TypeInvalid means any unit type.
@@ -137,19 +138,19 @@ type SearchRepoOptions struct {
 	// None -> include forks AND non-forks
 	// True -> include just forks
 	// False -> include just non-forks
-	Fork util.OptionalBool
+	Fork optional.Option[bool]
 	// None -> include templates AND non-templates
 	// True -> include just templates
 	// False -> include just non-templates
-	Template util.OptionalBool
+	Template optional.Option[bool]
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
-	Mirror util.OptionalBool
+	Mirror optional.Option[bool]
 	// None -> include archived AND non-archived
 	// True -> include just archived
 	// False -> include just non-archived
-	Archived util.OptionalBool
+	Archived optional.Option[bool]
 	// only search topic name
 	TopicOnly bool
 	// only search repositories with specified primary language
@@ -159,7 +160,7 @@ type SearchRepoOptions struct {
 	// None -> include has milestones AND has no milestone
 	// True -> include just has milestones
 	// False -> include just has no milestone
-	HasMilestones util.OptionalBool
+	HasMilestones optional.Option[bool]
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
 	// When specified true, apply some filters over the conditions:
@@ -359,12 +360,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			)))
 	}
 
-	if opts.IsPrivate != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.IsTrue()})
+	if opts.IsPrivate.Has() {
+		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.Value()})
 	}
 
-	if opts.Template != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_template": opts.Template == util.OptionalBoolTrue})
+	if opts.Template.Has() {
+		cond = cond.And(builder.Eq{"is_template": opts.Template.Value()})
 	}
 
 	// Restrict to starred repositories
@@ -380,11 +381,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
 	if opts.OwnerID > 0 {
 		accessCond := builder.NewCond()
-		if opts.Collaborate != util.OptionalBoolTrue {
+		if !opts.Collaborate.Value() {
 			accessCond = builder.Eq{"owner_id": opts.OwnerID}
 		}
 
-		if opts.Collaborate != util.OptionalBoolFalse {
+		if opts.Collaborate.ValueOrDefault(true) {
 			// A Collaboration is:
 
 			collaborateCond := builder.NewCond()
@@ -472,31 +473,32 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
-		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
+	if opts.Fork.Has() || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && !opts.Fork.Has() {
 			cond = cond.And(builder.Eq{"is_fork": false})
 		} else {
-			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork.Value()})
 		}
 	}
 
-	if opts.Mirror != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
+	if opts.Mirror.Has() {
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror.Value()})
 	}
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	}
 
-	if opts.Archived != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_archived": opts.Archived == util.OptionalBoolTrue})
+	if opts.Archived.Has() {
+		cond = cond.And(builder.Eq{"is_archived": opts.Archived.Value()})
 	}
 
-	switch opts.HasMilestones {
-	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Gt{"num_milestones": 0})
-	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	if opts.HasMilestones.Has() {
+		if opts.HasMilestones.Value() {
+			cond = cond.And(builder.Gt{"num_milestones": 0})
+		} else {
+			cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+		}
 	}
 
 	if opts.OnlyShowRelevant {

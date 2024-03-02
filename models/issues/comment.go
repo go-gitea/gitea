@@ -8,6 +8,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strconv"
 	"unicode/utf8"
 
@@ -259,8 +260,8 @@ type Comment struct {
 	CommitID        int64
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
-	Content         string `xorm:"LONGTEXT"`
-	RenderedContent string `xorm:"-"`
+	Content         string        `xorm:"LONGTEXT"`
+	RenderedContent template.HTML `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
