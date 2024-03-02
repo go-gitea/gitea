@@ -3,16 +3,16 @@ import {svg} from '../svg.js';
 import {createTippy} from '../modules/tippy.js';
 
 const update = throttle(100, (overflowMenu) => {
-  let dropdownParent = overflowMenu.querySelector('.overflow-menu-dropdown');
-  if (!dropdownParent) {
+  let tippyContent = overflowMenu.querySelector('.overflow-menu-tippy-content');
+  if (!tippyContent) {
     const div = document.createElement('div');
-    div.classList.add('overflow-menu-dropdown', 'ui', 'vertical', 'menu', 'tippy-target');
+    div.classList.add('overflow-menu-tippy-content', 'ui', 'vertical', 'menu', 'tippy-target');
     overflowMenu.append(div);
-    dropdownParent = div;
+    tippyContent = div;
   }
 
   const menuParent = overflowMenu.querySelector('.overflow-menu-items');
-  const dropdownItems = dropdownParent?.querySelectorAll('.item') || [];
+  const dropdownItems = tippyContent?.querySelectorAll('.item') || [];
   for (const item of dropdownItems) {
     menuParent.append(item);
   }
@@ -29,10 +29,10 @@ const update = throttle(100, (overflowMenu) => {
 
   if (itemsToMove?.length) {
     for (const item of itemsToMove) {
-      dropdownParent.append(item);
+      tippyContent.append(item);
     }
 
-    const content = dropdownParent.cloneNode(true);
+    const content = tippyContent.cloneNode(true);
     const existingBtn = overflowMenu.querySelector('.overflow-menu-button');
     if (existingBtn?._tippy) {
       existingBtn._tippy.setContent(content);
