@@ -98,7 +98,7 @@ func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total 
 				Maintainers: []npm_module.User{}, // npm cli needs this field
 				Keywords:    metadata.Keywords,
 				Links: &npm_module.PackageSearchPackageLinks{
-					Registry: pd.FullWebLink(),
+					Registry: pd.VersionWebLink(), // TODO: is it right to use VersionWebLink here?
 					Homepage: metadata.ProjectURL,
 				},
 			},
