@@ -18,10 +18,13 @@ var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
 	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3", "libsql": "libSQL"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
+
+	// EnableLibSQL use libSQL, set by build flag
+	EnableLibSQL bool
 
 	// Database holds the database settings
 	Database = struct {
@@ -115,12 +118,17 @@ func DBConnStr() (string, error) {
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
+	case "libsql":
+		if !EnableLibSQL {
+			return "", errors.New("this Gitea binary was not built with libSQL support")
+		}
+		fallthrough
 	case "sqlite3":
-		if !EnableSQLite3 {
+		if (!EnableSQLite3 && Database.Type == "sqlite3") || (!EnableLibSQL && Database.Type == "libsql") {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
 		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
-			return "", fmt.Errorf("Failed to create directories: %w", err)
+			return "", fmt.Errorf("failed to create directories: %w", err)
 		}
 		journalMode := ""
 		if Database.SQLiteJournalMode != "" {

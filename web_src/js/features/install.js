@@ -32,7 +32,7 @@ function initPreInstall() {
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
 
-    if (dbType !== 'sqlite3') {
+    if (dbType !== 'sqlite3' && dbType !== 'libsql') {
       // for most remote database servers
       showElem('div[data-db-setting-for=common-host]');
       const lastDbHost = dbHost.value;
@@ -44,7 +44,7 @@ function initPreInstall() {
         dbUser.value = defaultDbUser;
         dbName.value = defaultDbName;
       }
-    } // else: for SQLite3, the default path is always prepared by backend code (setting)
+    } // else: for SQLite3/libSQL, the default path is always prepared by backend code (setting)
   });
   document.getElementById('db_type').dispatchEvent(new Event('change'));
 

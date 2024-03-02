@@ -170,7 +170,7 @@ func Install(ctx *context.Context) {
 func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	var err error
 
-	if (setting.Database.Type == "sqlite3") &&
+	if (setting.Database.Type == "sqlite3" || setting.Database.Type == "libsql") &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
