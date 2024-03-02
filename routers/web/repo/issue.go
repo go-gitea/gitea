@@ -9,6 +9,7 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
+	"html/template"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -1016,7 +1017,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
-func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string {
+func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) template.HTML {
 	var files []string
 	for k := range errs {
 		files = append(files, k)
@@ -1028,14 +1029,14 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
 	}
 
-	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+	flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
 		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
 		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
-		flashError = ctx.Locale.TrString("repo.issues.choose.ignore_invalid_templates")
+		flashError = ctx.Locale.Tr("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
 }
@@ -3296,7 +3297,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]any{
+	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
@@ -3403,7 +3404,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]any{
+	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
@@ -3546,8 +3547,8 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
-	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]any{
+func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) template.HTML {
+	attachHTML, err := ctx.RenderToHTML(tplAttachment, map[string]any{
 		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,
