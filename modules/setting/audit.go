@@ -25,7 +25,7 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 
 	sec, err := rootCfg.GetSection("audit.file")
 	if err == nil {
-		if !sec.Key("ENABLED").MustBool(false) {
+		if !ConfigSectionKeyBool(sec, "ENABLED") {
 			return
 		}
 
