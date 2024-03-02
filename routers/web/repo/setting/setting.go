@@ -835,7 +835,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.RecordRepositoryTransferReject(ctx, ctx.Doer, ctx.Repo.Repository)
+		audit.RecordRepositoryTransferCancel(ctx, ctx.Doer, ctx.Repo.Repository)
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))

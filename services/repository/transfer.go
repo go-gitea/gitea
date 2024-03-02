@@ -54,7 +54,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
-	audit.RecordRepositoryTransferAccept(ctx, doer, newRepo, oldOwner)
+	audit.RecordRepositoryTransferFinish(ctx, doer, newRepo, oldOwner)
 
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
@@ -360,7 +360,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 
 	repo.Name = newRepoName
 
-	audit.RecordRepositoryName(ctx, doer, repo)
+	audit.RecordRepositoryName(ctx, doer, repo, oldRepoName)
 
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 

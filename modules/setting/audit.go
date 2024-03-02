@@ -25,6 +25,10 @@ func loadAuditFrom(rootCfg ConfigProvider) {
 
 	sec, err := rootCfg.GetSection("audit.file")
 	if err == nil {
+		if !sec.Key("ENABLED").MustBool(false) {
+			return
+		}
+
 		opts := &log.WriterFileOption{
 			FileName:         path.Join(Log.RootPath, "audit.log"),
 			LogRotate:        true,

@@ -399,7 +399,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 			return err
 		}
 
-		audit.RecordRepositoryTransferReject(ctx, ctx.Doer, ctx.Repo.Repository)
+		audit.RecordRepositoryTransferCancel(ctx, ctx.Doer, ctx.Repo.Repository)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}

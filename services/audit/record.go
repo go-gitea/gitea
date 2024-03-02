@@ -126,8 +126,8 @@ func RecordUserPassword(ctx context.Context, doer, user *user_model.User) {
 	record(ctx, audit_model.UserPassword, doer, user, user, "Changed password of user %s.", user.Name)
 }
 
-func RecordUserPasswordReset(ctx context.Context, doer *user_model.User) {
-	record(ctx, audit_model.UserPasswordReset, doer, doer, doer, "Requested passwort reset for user %s.", doer.Name)
+func RecordUserPasswordResetRequest(ctx context.Context, doer, user *user_model.User) {
+	record(ctx, audit_model.UserPasswordResetRequest, doer, user, user, "Requested passwort reset for user %s.", user.Name)
 }
 
 func RecordUserVisibility(ctx context.Context, doer, user *user_model.User) {
@@ -385,8 +385,8 @@ func RecordRepositoryDelete(ctx context.Context, doer *user_model.User, repo *re
 	record(ctx, audit_model.RepositoryDelete, doer, repo, repo, "Deleted repository %s.", repo.FullName())
 }
 
-func RecordRepositoryName(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
-	record(ctx, audit_model.RepositoryName, doer, repo, repo, "Changed repository name to %s.", repo.FullName())
+func RecordRepositoryName(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, previousName string) {
+	record(ctx, audit_model.RepositoryName, doer, repo, repo, "Changed repository name from %s to %s.", previousName, repo.FullName())
 }
 
 func RecordRepositoryVisibility(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
@@ -422,12 +422,12 @@ func RecordRepositoryTransferStart(ctx context.Context, doer *user_model.User, r
 	record(ctx, audit_model.RepositoryTransferStart, doer, repo, repo, "Started repository transfer of %s to %s.", repo.FullName(), newOwner.Name)
 }
 
-func RecordRepositoryTransferAccept(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, oldOwner *user_model.User) {
-	record(ctx, audit_model.RepositoryTransferAccept, doer, repo, repo, "Accepted repository transfer of %s from %s to %s.", repo.Fullname(), oldOwner.Name, repo.OwnerName)
+func RecordRepositoryTransferFinish(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, oldOwner *user_model.User) {
+	record(ctx, audit_model.RepositoryTransferFinish, doer, repo, repo, "Transferred repository %s from %s to %s.", repo.FullName(), oldOwner.Name, repo.OwnerName)
 }
 
-func RecordRepositoryTransferReject(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
-	record(ctx, audit_model.RepositoryTransferReject, doer, repo, repo, "Rejected transfer of repository %s.", repo.FullName())
+func RecordRepositoryTransferCancel(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {
+	record(ctx, audit_model.RepositoryTransferCancel, doer, repo, repo, "Canceled transfer of repository %s.", repo.FullName())
 }
 
 func RecordRepositoryWikiDelete(ctx context.Context, doer *user_model.User, repo *repository_model.Repository) {

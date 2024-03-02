@@ -48,7 +48,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `user:admin` | Changed admin status of user |
 | `user:name` | Changed user name |
 | `user:password` | Changed password of user |
-| `user:password:reset` | Requested a password reset |
+| `user:password:resetrequest` | Requested a password reset |
 | `user:visibility` | Changed visibility of user |
 | `user:email:primary` | Changed primary email of user |
 | `user:email:add` | Added email to user |
@@ -126,8 +126,8 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `repository:mirror:push:remove` | Removed push mirror from repository |
 | `repository:signingverification` | Changed signing verification of repository |
 | `repository:transfer:start` | Started repository transfer |
-| `repository:transfer:accept` | Accepted repository transfer |
-| `repository:transfer:reject` | Rejected repository transfer |
+| `repository:transfer:finish` | Transferred repository to new owner |
+| `repository:transfer:cancel` | Canceled repository transfer |
 | `repository:wiki:delete` | Deleted wiki of repository |
 | `repository:collaborator:add` | Added user as collaborator for repository |
 | `repository:collaborator:access` | Changed access mode of collaborator |
