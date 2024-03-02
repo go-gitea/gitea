@@ -1501,7 +1501,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
+			ctx.JSONRedirect(ctx.Link + "?" + ctx.Req.URL.RawQuery) // FIXME: it's unfriendly, and will make the content lost
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
