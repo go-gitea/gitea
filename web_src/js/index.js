@@ -88,7 +88,6 @@ import {initRepoCodeFrequency} from './features/code-frequency.js';
 import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
-import {initOverflowMenu} from './behaviours/overflow-menu.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -190,5 +189,4 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
-  initOverflowMenu();
 });
