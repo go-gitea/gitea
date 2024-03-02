@@ -71,6 +71,7 @@ require (
 	github.com/klauspost/compress v1.17.4
 	github.com/klauspost/cpuid/v2 v2.2.6
 	github.com/lib/pq v1.10.9
+	github.com/libsql/go-libsql v0.0.0-20240219083324-cbcdf96c10a5
 	github.com/markbates/goth v1.78.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v1.14.19
@@ -222,7 +223,6 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/libdns/libdns v0.2.1 // indirect
-	github.com/libsql/go-libsql v0.0.0-20240219083324-cbcdf96c10a5 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
