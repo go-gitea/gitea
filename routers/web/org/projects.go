@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -67,7 +67,7 @@ func Projects(ctx *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
 		Title:    keyword,
@@ -79,7 +79,7 @@ func Projects(ctx *context.Context) {
 
 	opTotal, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(!isShowClosed),
+		IsClosed: optional.Some(!isShowClosed),
 		Type:     projectType,
 	})
 	if err != nil {
@@ -388,7 +388,7 @@ func ViewProject(ctx *context.Context) {
 			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIDs,
-					IsPull:   util.OptionalBoolTrue,
+					IsPull:   optional.Some(true),
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
 				}
