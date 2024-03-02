@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/automerge"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -317,11 +316,6 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		}
 	}
 
-	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
-	if review.Type == issues_model.ReviewTypeApprove {
-		automerge.MergeScheduledPullRequest(pr)
-	}
-
 	return review, comm, nil
 }
 
@@ -437,9 +431,6 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Issue = review.Issue
 
 	notify_service.PullReviewDismiss(ctx, doer, review, comment)
-
-	// as reviews could have blocked a pending automerge let's recheck
-	automerge.MergeScheduledPullRequest(review.Issue.PullRequest)
 
 	return comment, nil
 }
