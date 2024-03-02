@@ -912,6 +912,7 @@ Default templates for project boards:
 
 ## File Audit Log (`audit.file`)
 
+- `ENABLED`: **false**: Enable logging of audit events to file
 - `FILENAME`: **\<empty\>**: Set the file name for the logger. If this is a relative path this will be relative to `log.ROOT_PATH`. Defaults to `log.ROOT_PATH/audit.log`.
 - `ROTATE`: **true**: This enables automated audit log rotate, default is true
 - `MAXIMUM_SIZE`: **256 MB**: Maximum file size in bytes before rotating takes place (format `1000`, `1 MB`, `1 GiB`)
