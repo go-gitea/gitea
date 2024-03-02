@@ -44,7 +44,7 @@ function initTagNameEditor() {
     }
   };
   hideTargetInput(tagNameInput); // update on page load because the input may have a value
-  tagNameInput.addEventListener('change', (e) => {
+  tagNameInput.addEventListener('input', (e) => {
     hideTargetInput(e.target);
   });
 }
