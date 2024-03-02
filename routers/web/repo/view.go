@@ -867,6 +867,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	for _, f := range files {
 		if f.Commit == nil {
 			ctx.Data["HasFilesWithoutLatestCommit"] = true
+			break
 		}
 	}
 
