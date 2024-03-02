@@ -101,7 +101,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	if !IsValidObjectFormat(objectFormatName) {
 		return fmt.Errorf("invalid object format: %s", objectFormatName)
 	}
-	if SupportHashSha256 {
+	if DefaultFeatures.SupportHashSha256 {
 		cmd.AddOptionValues("--object-format", objectFormatName)
 	}
 

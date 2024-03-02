@@ -15,16 +15,17 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -203,7 +204,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			StarredByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
@@ -225,7 +226,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			WatchedByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
@@ -270,7 +271,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
@@ -324,6 +325,7 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
 	} else if ctx.ContextUser.IsOrganization() {
+		ctx.Data["Org"] = ctx.ContextUser
 		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
 		return

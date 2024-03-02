@@ -88,7 +88,7 @@
 												{{.CsrfTokenHtml}}
 												<div class="field">
 													<label>
-														{{ctx.Locale.Tr "repo.branch.new_branch_from" (`<span class="text" id="modal-create-branch-from-span"></span>`|Safe)}}
+														{{ctx.Locale.Tr "repo.branch.new_branch_from" (`<span class="text" id="modal-create-branch-from-span"></span>`|SafeHTML)}}
 													</label>
 												</div>
 												<div class="required field">
@@ -113,7 +113,7 @@
 												<input type="hidden" name="create_tag" value="true">
 												<div class="field">
 													<label>
-														{{ctx.Locale.Tr "repo.tag.create_tag_from" (`<span class="text" id="modal-create-tag-from-span"></span>`|Safe)}}
+														{{ctx.Locale.Tr "repo.tag.create_tag_from" (`<span class="text" id="modal-create-tag-from-span"></span>`|SafeHTML)}}
 													</label>
 												</div>
 												<div class="required field">
@@ -276,7 +276,7 @@
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{.NoteRendered | Str2html}}</pre>
+				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}
