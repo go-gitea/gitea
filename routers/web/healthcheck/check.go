@@ -101,6 +101,20 @@ func checkDatabase(ctx context.Context, checks checks) status {
 		st.Time = getCheckTime()
 	}
 
+	if setting.Database.Type.IsLibSQL() && st.Status == pass {
+		if !setting.EnableLibSQL {
+			st.Status = fail
+			st.Time = getCheckTime()
+			log.Error("libSQL health check failed with error: %v", "this Gitea binary is built without libSQL enabled")
+		} else {
+			if _, err := os.Stat(setting.Database.Path); err != nil {
+				st.Status = fail
+				st.Time = getCheckTime()
+				log.Error("libSQL file exists check failed with error: %v", err)
+			}
+		}
+	}
+
 	if setting.Database.Type.IsSQLite3() && st.Status == pass {
 		if !setting.EnableSQLite3 {
 			st.Status = fail

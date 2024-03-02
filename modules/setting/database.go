@@ -220,6 +220,10 @@ func (t DatabaseType) IsSQLite3() bool {
 	return t == "sqlite3"
 }
 
+func (t DatabaseType) IsLibSQL() bool {
+	return t == "libsql"
+}
+
 func (t DatabaseType) IsMySQL() bool {
 	return t == "mysql"
 }

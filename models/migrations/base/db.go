@@ -151,7 +151,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 	}
 
 	switch {
-	case setting.Database.Type.IsSQLite3():
+	case setting.Database.Type.IsSQLite3() || setting.Database.Type.IsLibSQL():
 		// SQLite will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)

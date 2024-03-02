@@ -134,6 +134,12 @@ func InitWebInstalled(ctx context.Context) {
 		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
+	if setting.EnableLibSQL {
+		log.Info("libSQL support is enabled")
+	} else if setting.Database.Type.IsLibSQL() {
+		log.Fatal("libSQL support is disabled, but it is used for database setting. Please get or build a Gitea release with libSQL support.")
+	}
+
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)

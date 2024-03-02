@@ -15,7 +15,7 @@ import (
 // BuildCaseInsensitiveLike returns a condition to check if the given value is like the given key case-insensitively.
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
-	if setting.Database.Type.IsSQLite3() {
+	if setting.Database.Type.IsSQLite3() || setting.Database.Type.IsLibSQL() {
 		return builder.Like{"UPPER(" + key + ")", util.ToUpperASCII(value)}
 	}
 	return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}
@@ -25,7 +25,7 @@ func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveIn(key string, values []string) builder.Cond {
 	uppers := make([]string, 0, len(values))
-	if setting.Database.Type.IsSQLite3() {
+	if setting.Database.Type.IsSQLite3() || setting.Database.Type.IsLibSQL() {
 		for _, value := range values {
 			uppers = append(uppers, util.ToUpperASCII(value))
 		}
@@ -43,6 +43,8 @@ func BuilderDialect() string {
 	switch {
 	case setting.Database.Type.IsMySQL():
 		return builder.MYSQL
+	case setting.Database.Type.IsLibSQL():
+		fallthrough
 	case setting.Database.Type.IsSQLite3():
 		return builder.SQLITE
 	case setting.Database.Type.IsPostgreSQL():
