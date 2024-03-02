@@ -689,6 +689,109 @@
         }
       }
     },
+    "/admin/users/{username}/badges": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List a user's badges",
+        "operationId": "adminListUserBadges",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BadgeList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a badge to a user",
+        "operationId": "adminAddUserBadges",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserBadgeOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove a badge from a user",
+        "operationId": "adminDeleteUserBadges",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserBadgeOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/keys": {
       "post": {
         "consumes": [
@@ -17003,6 +17106,45 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Badge": {
+      "description": "Badge represents a user badge",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "image_url": {
+          "type": "string",
+          "x-go-name": "ImageURL"
+        },
+        "slug": {
+          "type": "string",
+          "x-go-name": "Slug"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "BadgeList": {
+      "description": "BadgeList",
+      "type": "object",
+      "properties": {
+        "body": {
+          "description": "in:body",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Badge"
+          },
+          "x-go-name": "Body"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Branch": {
       "description": "Branch represents a repository branch",
       "type": "object",
@@ -23047,6 +23189,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UserBadgeOption": {
+      "description": "UserBadgeOption options for link between users and badges",
+      "type": "object",
+      "properties": {
+        "badge_slugs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BadgeSlugs",
+          "example": [
+            "badge1",
+            "badge2"
+          ]
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "UserHeatmapData": {
       "description": "UserHeatmapData represents the data needed to create a heatmap",
       "type": "object",
@@ -23333,6 +23493,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Attachment"
+        }
+      }
+    },
+    "BadgeList": {
+      "description": "BadgeList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Badge"
         }
       }
     },
@@ -24249,7 +24418,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/BadgeList"
       }
     },
     "redirect": {

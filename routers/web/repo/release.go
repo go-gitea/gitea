@@ -113,7 +113,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.Note, err = markdown.RenderString(&markup.RenderContext{
+		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
 			Links: markup.Links{
 				Base: ctx.Repo.RepoLink,
 			},
