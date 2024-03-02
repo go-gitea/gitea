@@ -55,7 +55,7 @@
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
 							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
-							<div class="ui active tiny slow centered inline">…</div>
+							<div class="ui active tiny slow centered inline"></div>
 						{{end}}
 					</span>
 				</td>
