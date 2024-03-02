@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/setting"
@@ -110,7 +111,7 @@ func SearchPackages(ctx *context.Context) {
 			OwnerID:    ctx.Package.Owner.ID,
 			Type:       packages_model.TypeCargo,
 			Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 			Paginator:  &paginator,
 		},
 	)

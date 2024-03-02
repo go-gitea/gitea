@@ -20,8 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -78,7 +78,7 @@ func Projects(ctx *context.Context) {
 			Page:     page,
 		},
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
 		Title:    keyword,
@@ -349,7 +349,7 @@ func ViewProject(ctx *context.Context) {
 			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIDs,
-					IsPull:   util.OptionalBoolTrue,
+					IsPull:   optional.Some(true),
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
 				}

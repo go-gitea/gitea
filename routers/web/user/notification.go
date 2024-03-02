@@ -233,26 +233,25 @@ func NotificationSubscriptions(ctx *context.Context) {
 	if !util.SliceContainsString([]string{"all", "open", "closed"}, state, true) {
 		state = "all"
 	}
+
 	ctx.Data["State"] = state
-	var showClosed util.OptionalBool
+	// default state filter is "all"
+	showClosed := optional.None[bool]()
 	switch state {
-	case "all":
-		showClosed = util.OptionalBoolNone
 	case "closed":
-		showClosed = util.OptionalBoolTrue
+		showClosed = optional.Some(true)
 	case "open":
-		showClosed = util.OptionalBoolFalse
+		showClosed = optional.Some(false)
 	}
 
-	var issueTypeBool util.OptionalBool
 	issueType := ctx.FormString("issueType")
+	// default issue type is no filter
+	issueTypeBool := optional.None[bool]()
 	switch issueType {
 	case "issues":
-		issueTypeBool = util.OptionalBoolFalse
+		issueTypeBool = optional.Some(false)
 	case "pulls":
-		issueTypeBool = util.OptionalBoolTrue
-	default:
-		issueTypeBool = util.OptionalBoolNone
+		issueTypeBool = optional.Some(true)
 	}
 	ctx.Data["IssueType"] = issueType
 
