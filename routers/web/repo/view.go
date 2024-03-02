@@ -858,11 +858,16 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
+	}
+	ctx.Data["Files"] = files
+	for _, f := range files {
+		if f.Commit == nil {
+			ctx.Data["HasFilesWithoutLatestCommit"] = true
+		}
 	}
 
 	if !loadLatestCommitData(ctx, latestCommit) {
