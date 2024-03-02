@@ -161,7 +161,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(pd.FullWebLink())
+	ctx.Redirect(pd.VersionWebLink())
 }
 
 // ViewPackageVersion displays a single package version
