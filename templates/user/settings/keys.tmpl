@@ -2,6 +2,8 @@
 	<div class="user-setting-content">
 		{{template "user/settings/keys_ssh" .}}
 		{{template "user/settings/keys_principal" .}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_gpg_keys")}}
 		{{template "user/settings/keys_gpg" .}}
+		{{end}}
 	</div>
 {{template "user/settings/layout_footer" .}}

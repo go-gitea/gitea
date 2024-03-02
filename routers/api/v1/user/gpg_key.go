@@ -10,6 +10,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -132,6 +133,11 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		return
+	}
+
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -267,6 +273,11 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		return
+	}
 
 	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
