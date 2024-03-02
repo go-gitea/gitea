@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -47,8 +48,8 @@ type Milestone struct {
 	RepoID          int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
 	Name            string
-	Content         string `xorm:"TEXT"`
-	RenderedContent string `xorm:"-"`
+	Content         string        `xorm:"TEXT"`
+	RenderedContent template.HTML `xorm:"-"`
 	IsClosed        bool
 	NumIssues       int
 	NumClosedIssues int

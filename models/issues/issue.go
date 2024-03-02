@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"regexp"
 	"slices"
 
@@ -105,7 +106,7 @@ type Issue struct {
 	OriginalAuthorID int64                  `xorm:"index"`
 	Title            string                 `xorm:"name"`
 	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
+	RenderedContent  template.HTML          `xorm:"-"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`

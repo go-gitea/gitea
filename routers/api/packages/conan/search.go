@@ -9,9 +9,9 @@ import (
 
 	conan_model "code.gitea.io/gitea/models/packages/conan"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
+	"code.gitea.io/gitea/services/context"
 )
 
 // SearchResult contains the found recipe names
