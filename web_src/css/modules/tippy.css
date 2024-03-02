@@ -5,6 +5,10 @@
   display: none !important;
 }
 
+.tippy-content .tippy-target {
+  display: unset !important;
+}
+
 [data-tippy-root] {
   max-width: calc(100vw - 32px);
 }

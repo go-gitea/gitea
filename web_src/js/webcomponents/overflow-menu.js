@@ -32,7 +32,13 @@ const update = throttle(100, (overflowMenu) => {
       dropdownParent.append(item);
     }
 
-    overflowMenu.querySelector('.overflow-menu-button')?.remove();
+    const content = dropdownParent.cloneNode(true);
+    const existingBtn = overflowMenu.querySelector('.overflow-menu-button');
+    if (existingBtn?._tippy) {
+      existingBtn._tippy.setContent(content);
+      return;
+    }
+
     const btn = document.createElement('button');
     btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2');
     btn.innerHTML = svg('octicon-kebab-horizontal');
@@ -44,7 +50,7 @@ const update = throttle(100, (overflowMenu) => {
       interactive: true,
       placement: 'bottom-end',
       role: 'menu',
-      content: dropdownParent.cloneNode(true),
+      content,
     });
   } else {
     overflowMenu.querySelector('.overflow-menu-button')?.remove();
