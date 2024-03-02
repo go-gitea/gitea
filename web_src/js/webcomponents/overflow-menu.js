@@ -22,7 +22,7 @@ const update = throttle(100, (overflowMenu) => {
   const menuRight = overflowMenu.parentNode.getBoundingClientRect().right;
   for (const item of menuParent.querySelectorAll('.item')) {
     const itemRight = item.getBoundingClientRect().right;
-    if (menuRight - itemRight < 22) { // slightly less than width of .overflow-menu-button
+    if (menuRight - itemRight < 24) { // slightly less than width of .overflow-menu-button
       itemsToMove.push(item);
     }
   }
