@@ -5,6 +5,7 @@
   display: none !important;
 }
 
+/* show target element once it's been moved by tippy.js */
 .tippy-content .tippy-target {
   display: unset !important;
 }

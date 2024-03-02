@@ -40,13 +40,6 @@ export function createTippy(target, opts = {}) {
     ...other,
   });
 
-  // for popups where content refers to a DOM element, we use the 'tippy-target' class
-  // to initially hide the content, now we can remove it as the content has been removed
-  // from the DOM by tippy
-  if (other.content instanceof Element) {
-    other.content.classList.remove('tippy-target');
-  }
-
   return instance;
 }
 
