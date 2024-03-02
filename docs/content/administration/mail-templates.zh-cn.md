@@ -207,7 +207,7 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://go.dev/pkg/text/
         {{if not (eq .Body "")}}
             <h3>消息内容：</h3>
             <hr>
-            {{.Body | Str2html}}
+            {{.Body | SanitizeHTML}}
         {{end}}
     </p>
     <hr>
@@ -242,20 +242,20 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://go.dev/pkg/text/
 
 模板系统包含一些函数，可用于进一步处理和格式化消息。以下是其中一些函数的列表：
 
-| 函数名              | 参数        | 可用于       | 用法                                                                              |
-|------------------| ----------- | ------------ | --------------------------------------------------------------------------------- |
-| `AppUrl`         | -           | 任何地方     | Gitea 的 URL                                                                     |
-| `AppName`        | -           | 任何地方     | 从 `app.ini` 中设置，通常为 "Gitea"                                               |
-| `AppDomain`      | -           | 任何地方     | Gitea 的主机名                                                                   |
-| `EllipsisString` | string, int | 任何地方     | 将字符串截断为指定长度；根据需要添加省略号                                        |
-| `Str2html`       | string      | 仅正文部分   | 通过删除其中的 HTML 标签对文本进行清理                                              |
-| `SafeHTML`       | string      | 仅正文部分   | 将输入作为 HTML 处理；可用于 `.ReviewComments.RenderedContent` 等字段               |
+| 函数名              | 参数        | 可用于       | 用法                                                      |
+|------------------| ----------- | ------------ |---------------------------------------------------------|
+| `AppUrl`         | -           | 任何地方     | Gitea 的 URL                                             |
+| `AppName`        | -           | 任何地方     | 从 `app.ini` 中设置，通常为 "Gitea"                             |
+| `AppDomain`      | -           | 任何地方     | Gitea 的主机名                                              |
+| `EllipsisString` | string, int | 任何地方     | 将字符串截断为指定长度；根据需要添加省略号                                   |
+| `SanitizeHTML`   | string      | 仅正文部分   | 通过删除其中的危险 HTML 标签对文本进行清理                                |
+| `SafeHTML`       | string      | 仅正文部分   | 将输入作为 HTML 处理；可用于 `.ReviewComments.RenderedContent` 等字段 |
 
 这些都是 _函数_，而不是元数据，因此必须按以下方式使用：
 
 ```html
-像这样使用：         {{Str2html "Escape<my>text"}}
-或者这样使用：       {{"Escape<my>text" | Str2html}}
+像这样使用：         {{SanitizeHTML "Escape<my>text"}}
+或者这样使用：       {{"Escape<my>text" | SanitizeHTML}}
 或者这样使用：       {{AppUrl}}
 但不要像这样使用：   {{.AppUrl}}
 ```

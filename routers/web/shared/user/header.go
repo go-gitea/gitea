@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -114,7 +115,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
-		Collaborate:        util.OptionalBoolFalse,
+		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
