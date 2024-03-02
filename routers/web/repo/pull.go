@@ -112,7 +112,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 }
 
 func getForkRepository(ctx *context.Context) *repo_model.Repository {
-	forkRepo := getRepository(ctx, ctx.ParamsInt64(":repoid"))
+	forkRepo := ctx.Repo.Repository
 	if ctx.Written() {
 		return nil
 	}

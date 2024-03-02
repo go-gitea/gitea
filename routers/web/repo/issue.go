@@ -38,9 +38,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1762,7 +1764,7 @@ func ViewIssue(ctx *context.Context) {
 				// so "|" is used as delimeter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
-					comment.RenderedContent = comment.Content
+					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
 					comment.Content = ""
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend
@@ -2523,7 +2525,7 @@ func SearchIssues(ctx *context.Context) {
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
-			Collaborate: util.OptionalBoolNone,
+			Collaborate: optional.None[bool](),
 			// This needs to be a column that is not nil in fixtures or
 			// MySQL will return different results when sorting by null in some cases
 			OrderBy: db.SearchOrderByAlphabetically,
@@ -2546,7 +2548,7 @@ func SearchIssues(ctx *context.Context) {
 			opts.OwnerID = owner.ID
 			opts.AllLimited = false
 			opts.AllPublic = false
-			opts.Collaborate = util.OptionalBoolFalse
+			opts.Collaborate = optional.Some(false)
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
