@@ -1,27 +1,46 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_22 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID            int64  `xorm:"pk autoincr"`
-		Action        string `xorm:"INDEX NOT NULL"`
-		ActorID       int64  `xorm:"INDEX NOT NULL"`
-		ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType    string `xorm:"NOT NULL"`
-		TargetID      int64  `xorm:"NOT NULL"`
-		Message       string
-		IPAddress     string
-		TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+type BadgeUnique struct {
+	ID   int64  `xorm:"pk autoincr"`
+	Slug string `xorm:"UNIQUE"`
+}
+
+func (BadgeUnique) TableName() string {
+	return "badge"
+}
+
+func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
+	type Badge struct {
+		Slug string
 	}
 
-	return x.Sync(&AuditEvent{})
+	err := x.Sync(new(Badge))
+	if err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	_, err = sess.Exec("UPDATE `badge` SET `slug` = `id` Where `slug` IS NULL")
+	if err != nil {
+		return err
+	}
+
+	err = sess.Sync(new(BadgeUnique))
+	if err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

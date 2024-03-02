@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/audit"
+	gitea_context "code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -175,7 +176,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		// If we've pushed a branch (and not deleted it)
-		if git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
+		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
 			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)

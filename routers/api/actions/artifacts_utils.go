@@ -43,6 +43,17 @@ func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	return task, runID, true
 }
 
+func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) {
+	task := ctx.ActionTask
+	runID, err := strconv.ParseInt(rawRunID, 10, 64)
+	if err != nil || task.Job.RunID != runID {
+		log.Error("Error runID not match")
+		ctx.Error(http.StatusBadRequest, "run-id does not match")
+		return nil, 0, false
+	}
+	return task, runID, true
+}
+
 func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 	paramHash := ctx.Params("artifact_hash")
 	// use artifact name to create upload url

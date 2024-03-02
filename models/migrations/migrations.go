@@ -559,6 +559,8 @@ var migrations = []Migration{
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 	// v287 -> v288
+	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
 	NewMigration("Add audit_event table", v1_22.AddAuditEventTable),
 }
 

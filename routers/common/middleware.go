@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"

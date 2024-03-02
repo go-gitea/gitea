@@ -5,16 +5,17 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/audit"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -82,6 +83,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+			return
+		}
+
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -238,6 +244,11 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+			return
+		}
+
 		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.ServerError("GetGPGKeyForUserByID", err)

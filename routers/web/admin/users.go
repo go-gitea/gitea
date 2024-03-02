@@ -19,7 +19,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/routers/web/explore"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/audit"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -97,7 +97,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["login_type"] = "0-0"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -118,7 +118,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -280,7 +280,7 @@ func ViewUser(ctx *context.Context) {
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
+		Collaborate: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

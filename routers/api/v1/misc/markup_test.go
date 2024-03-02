@@ -10,19 +10,19 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	AppURL    = "http://localhost:3000/"
-	Repo      = "gogits/gogs"
-	AppSubURL = AppURL + Repo + "/"
+	AppURL  = "http://localhost:3000/"
+	Repo    = "gogits/gogs"
+	FullURL = AppURL + Repo + "/"
 )
 
 func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, responseCode int) {
@@ -74,20 +74,20 @@ func TestAPI_RenderGFM(t *testing.T) {
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
 <ul>
-<li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
+<li><a href="` + FullURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + FullURL + `wiki/Tips" rel="nofollow">Tips</a></li>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p><a href="` + FullURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
+		`<p><a href="` + FullURL + `wiki/Link" rel="nofollow">Name</a></p>
 `,
 		// empty
 		``,
@@ -111,8 +111,8 @@ Here are some links to the most important topics. You can find the full list of 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 <h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-<p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
-<a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
+<p><a href="` + FullURL + `wiki/Configuration" rel="nofollow">Configuration</a>
+<a href="` + FullURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + FullURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 	}
 
