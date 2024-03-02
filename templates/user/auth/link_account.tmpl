@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user link-account">
-	<div class="ui secondary pointing tabular top attached borderless menu overflow-menu navbar">
+	<overflow-menu class="ui secondary pointing tabular top attached borderless menu navbar">
 		<div class="overflow-menu-items">
 			<!-- TODO handle .ShowRegistrationButton once other login bugs are fixed -->
 			{{if not .AllowOnlyInternalRegistration}}
@@ -14,7 +14,7 @@
 				{{ctx.Locale.Tr "auth.oauth_signin_tab"}}
 			</a>
 		</div>
-	</div>
+	</overflow-menu>
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<div class="ui tab {{if not .user_exists}}active{{end}}"

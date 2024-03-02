@@ -51,7 +51,7 @@ const update = throttle(100, (overflowMenu) => {
   }
 });
 
-window.customElements.define('gitea-overflow-menu', class extends HTMLElement {
+window.customElements.define('overflow-menu', class extends HTMLElement {
   connectedCallback() {
     // raf is needed, otherwise the first update will no see all children
     requestAnimationFrame(() => {

@@ -74,13 +74,13 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .overflow-menu {
+.repository .header-wrapper overflow-menu {
   padding-top: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
 
-.repository .header-wrapper .overflow-menu .item {
+.repository .header-wrapper overflow-menu .item {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
