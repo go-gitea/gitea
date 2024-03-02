@@ -1873,7 +1873,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-body);
   border-color: var(--color-secondary);
   color: var(--color-text);
-  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
 .ui.segment .ui.tabular.menu .active.item,
