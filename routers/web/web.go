@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -42,7 +41,7 @@ import (
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 
@@ -790,7 +789,7 @@ func registerRoutes(m *web.Route) {
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
+	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.Action)
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
@@ -957,10 +956,6 @@ func registerRoutes(m *web.Route) {
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
-		m.Group("/fork", func() {
-			m.Combo("/{repoid}").Get(repo.Fork).
-				Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
@@ -1019,7 +1014,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
-	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
+	}, ignSignIn, context.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
@@ -1256,6 +1251,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+
+		m.Combo("/fork", reqRepoCodeReader).Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Tags
@@ -1371,6 +1368,9 @@ func registerRoutes(m *web.Route) {
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+			})
+			m.Group("/workflows/{workflow_name}", func() {
+				m.Get("/badge.svg", actions.GetWorkflowBadge)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

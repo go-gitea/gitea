@@ -68,13 +68,13 @@ func OptionalBoolOf(b bool) OptionalBool {
 	return OptionalBoolFalse
 }
 
-// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
-func OptionalBoolParse(s string) OptionalBool {
-	b, e := strconv.ParseBool(s)
+// OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
+func OptionalBoolParse(s string) optional.Option[bool] {
+	v, e := strconv.ParseBool(s)
 	if e != nil {
-		return OptionalBoolNone
+		return optional.None[bool]()
 	}
-	return OptionalBoolOf(b)
+	return optional.Some(v)
 }
 
 // IsEmptyString checks if the provided string is empty
