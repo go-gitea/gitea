@@ -58,7 +58,7 @@
 							{{end}}
 						</p>
 						<div class="markup desc">
-							{{Str2html $release.Note}}
+							{{$release.RenderedNote}}
 						</div>
 						<div class="divider"></div>
 						<details class="download" {{if eq $idx 0}}open{{end}}>

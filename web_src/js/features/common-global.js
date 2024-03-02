@@ -11,7 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
-import {request, POST} from '../modules/fetch.js';
+import {request, POST, GET} from '../modules/fetch.js';
 import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
@@ -37,11 +37,10 @@ export function initHeadNavbarContentToggle() {
 }
 
 export function initFootLanguageMenu() {
-  function linkLanguageAction() {
+  async function linkLanguageAction() {
     const $this = $(this);
-    $.get($this.data('url')).always(() => {
-      window.location.reload();
-    });
+    await GET($this.data('url'));
+    window.location.reload();
   }
 
   $('.language-menu a[lang]').on('click', linkLanguageAction);
@@ -309,27 +308,26 @@ export function initGlobalLinkActions() {
 
     dialog.modal({
       closable: false,
-      onApprove() {
+      onApprove: async () => {
         if ($this.data('type') === 'form') {
           $($this.data('form')).trigger('submit');
           return;
         }
-
-        const postData = {
-          _csrf: csrfToken,
-        };
+        const postData = new FormData();
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.slice(4)] = value;
+            postData.append(key.slice(4), value);
           }
           if (key === 'id') {
-            postData['id'] = value;
+            postData.append('id', value);
           }
         }
 
-        $.post($this.data('url'), postData).done((data) => {
+        const response = await POST($this.data('url'), {data: postData});
+        if (response.ok) {
+          const data = await response.json();
           window.location.href = data.redirect;
-        });
+        }
       }
     }).modal('show');
   }
