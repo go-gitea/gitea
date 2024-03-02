@@ -6,6 +6,7 @@ const isProduction = env.NODE_ENV !== 'development';
 
 export default {
   prefix: 'tw-',
+  important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
     isProduction && '!./templates/devtest/**/*',
     isProduction && '!./web_src/js/standalone/devtest.js',

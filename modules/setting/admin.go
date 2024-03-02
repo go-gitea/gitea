@@ -20,5 +20,6 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 }
 
 const (
-	UserFeatureDeletion = "deletion"
+	UserFeatureDeletion      = "deletion"
+	UserFeatureManageGPGKeys = "manage_gpg_keys"
 )

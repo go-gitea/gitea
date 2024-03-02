@@ -21,6 +21,13 @@
 						<input name="code" type="hidden" value="{{.ActivationCode}}">
 					{{else}}
 						<p>{{ctx.Locale.Tr "auth.has_unconfirmed_mail" .SignedUser.Name .SignedUser.Email}}</p>
+						<details>
+							<summary>{{ctx.Locale.Tr "auth.change_unconfirmed_mail_address"}}</summary>
+							<div class="tw-py-2">
+								<label for="change-email">{{ctx.Locale.Tr "email"}}</label>
+								<input id="change-email" name="change_email" type="email" value="{{.SignedUser.Email}}">
+							</div>
+						</details>
 						<div class="divider"></div>
 						<div class="text right">
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.resend_mail"}}</button>

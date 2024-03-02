@@ -85,6 +85,13 @@ It needs some tricks to tweak the left/right borders with active state */
   box-shadow: none;
 }
 
+/* apply the vertical padding of .compact to non-compact buttons when they contain a svg as they
+   would otherwise appear too large. Seen on "RSS Feed" button on repo releases tab. */
+.ui.small.button:not(.compact):has(.svg) {
+  padding-top: 0.58928571em;
+  padding-bottom: 0.58928571em;
+}
+
 .ui.labeled.button.disabled > .button,
 .ui.basic.buttons .button,
 .ui.basic.button,

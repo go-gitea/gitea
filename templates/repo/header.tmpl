@@ -82,7 +82,7 @@
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
 								{{else if not $.UserAndOrgForks}}
-									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
+									href="{{$.RepoLink}}/fork"
 								{{else}}
 									data-modal="#fork-repo-modal"
 								{{end}}
@@ -103,7 +103,7 @@
 									</div>
 									{{if $.CanSignedUserFork}}
 									<div class="divider"></div>
-									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
+									<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
 									{{end}}
 								</div>
 							</div>
