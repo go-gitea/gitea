@@ -185,6 +185,11 @@ func Releases(ctx *context.Context) {
 		ctx.ServerError("getReleaseInfos", err)
 		return
 	}
+	for _, rel := range releases {
+		if rel.Release.IsTag && rel.Release.Title == "" {
+			rel.Release.Title = rel.Release.TagName
+		}
+	}
 
 	ctx.Data["Releases"] = releases
 
@@ -295,6 +300,9 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	release := releases[0].Release
+	if release.IsTag && release.Title == "" {
+		release.Title = release.TagName
+	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
 	if release.IsTag {

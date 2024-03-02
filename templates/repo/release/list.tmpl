@@ -18,13 +18,13 @@
 					<div class="ui twelve wide column detail">
 						<div class="gt-df gt-ac gt-sb gt-fw gt-mb-3">
 							<h4 class="release-list-title gt-word-break">
-								<a href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>
+								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "gt-df"}}
 								{{if $release.IsDraft}}
 									<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
 								{{else if $release.IsPrerelease}}
 									<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-								{{else}}
+								{{else if (not $release.IsTag)}}
 									<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
 								{{end}}
 							</h4>
