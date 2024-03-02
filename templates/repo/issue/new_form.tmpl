@@ -1,10 +1,8 @@
+{{if .Flash}}
+{{template "base/alert" .}}
+{{end}}
 <form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
-	{{if .Flash}}
-		<div class="sixteen wide column">
-			{{template "base/alert" .}}
-		</div>
-	{{end}}
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
