@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
@@ -859,21 +858,8 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	selected := make(container.Set[string])
-	selected.AddMultiple(ctx.FormStrings("f[]")...)
-
-	entries := allEntries
-	if len(selected) > 0 {
-		entries = make(git.Entries, 0, len(selected))
-		for _, entry := range allEntries {
-			if selected.Contains(entry.Name()) {
-				entries = append(entries, entry)
-			}
-		}
-	}
-
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	ctx.Data["Files"], latestCommit, err = allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
