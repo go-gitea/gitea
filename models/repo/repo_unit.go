@@ -244,9 +244,9 @@ func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
 
 	if m == ProjectsModeNone {
 		return true
-	} else {
-		return projectsMode == m || projectsMode == ProjectsModeAll
 	}
+
+	return projectsMode == m || projectsMode == ProjectsModeAll
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
