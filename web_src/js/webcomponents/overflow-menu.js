@@ -6,7 +6,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
-      div.classList.add('overflow-menu-tippy-content', 'ui', 'vertical', 'menu', 'tippy-target');
+      div.classList.add('ui', 'vertical', 'menu', 'tippy-target');
       this.append(div);
       this.tippyContent = div;
     }
