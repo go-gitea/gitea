@@ -12,17 +12,16 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       tippyContent = div;
     }
 
-    const menuParent = this.querySelector('.overflow-menu-items');
-    const dropdownItems = tippyContent?.querySelectorAll('.item');
-    for (const item of dropdownItems) {
-      menuParent.append(item);
+    const tippyItems = tippyContent?.querySelectorAll('.item');
+    for (const item of tippyItems) {
+      this.menuItemsEl.append(item);
     }
 
     // measure which items are partially outside the element boundary and move them into the button menu
     const itemsToMove = [];
-    const menuRight = this.offsetLeft + this.offsetWidth;
-    for (const item of menuParent.querySelectorAll('.item')) {
-      const itemRight = item.offsetLeft + item.offsetWidth;
+    const menuRight = this.getBoundingClientRect().right;
+    for (const item of this.menuItemsEl.querySelectorAll('.item')) {
+      const itemRight = item.getBoundingClientRect().right;
       if (menuRight - itemRight < 38) { // slightly less than width of .overflow-menu-button
         itemsToMove.push(item);
       }
@@ -61,24 +60,27 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   });
 
   init() {
-    this.updateItems();
-    let lastWidth;
+    // ResizeObserver seems to reliably trigger on page load, so we don't manually call updateItems()
+    // for the initial rendering, which also avoids a full-page FOUC in Firefox that happens when
+    // updateItems is called too soon.
     (new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = entry.contentBoxSize[0].inlineSize;
-        if (newWidth !== lastWidth) {
+        if (newWidth !== this.lastWidth) {
           this.updateItems();
-          lastWidth = newWidth;
+          this.lastWidth = newWidth;
         }
       }
     })).observe(this);
   }
 
   connectedCallback() {
-    // check whether the mandatory .overflow-menu-items child element is present initially which can
-    // happen when used with Vue. If it's not there, wait for its addition via Mutationobserver, which
-    // is generally what happens when rendered via templates.
-    if (this.querySelector('.overflow-menu-items')) {
+    // check whether the mandatory .overflow-menu-items child element is present initially which happens
+    // with Vue which renders differently than browsers. If it's not there, like in the case of browser
+    // template rendering, wait for its addition.
+    const menuItemsEl = this.querySelector('.overflow-menu-items');
+    if (menuItemsEl) {
+      this.menuItemsEl = menuItemsEl;
       this.init();
     } else {
       const observer = new MutationObserver((mutations) => {
@@ -86,6 +88,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           for (const node of mutation.addedNodes) {
             if (!isDocumentFragmentOrElementNode(node)) continue;
             if (node.classList.contains('overflow-menu-items')) {
+              this.menuItemsEl = node;
               observer?.disconnect();
               this.init();
             }
