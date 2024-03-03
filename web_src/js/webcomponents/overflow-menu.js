@@ -31,7 +31,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       for (const item of itemsToMove) {
         this.tippyContent.append(item);
       }
-      const content = this.tippyContent.cloneNode(true);
+      const content = this.tippyContent;
 
       // update existing tippy
       if (this.button?._tippy) {
