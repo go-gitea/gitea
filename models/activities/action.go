@@ -465,9 +465,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	isOrgMemberMap := make(map[int64]bool, 0)
-	canActorViewAction := false
+	isPrivateForActor := false
 	if opts.Actor != nil && opts.RequestedUser != nil {
-		canActorViewAction = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
+		isPrivateForActor = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
 		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIDs(), opts.Actor.ID)
 		if err != nil {
 			return nil, 0, err
@@ -475,7 +475,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	for _, action := range actions {
-		action.IsPrivateView = canActorViewAction && action.IsPrivate
+		action.IsPrivateView = isPrivateForActor && action.IsPrivate
 
 		if action.IsPrivateView && action.Repo.Owner.IsOrganization() {
 			action.IsPrivateView = !isOrgMemberMap[action.Repo.Owner.ID]
