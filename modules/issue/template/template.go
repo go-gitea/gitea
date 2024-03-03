@@ -178,12 +178,12 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("'label' is required and should be a string")
 			}
 
-			if visible, ok := opt["visible"]; ok {
-				visibleList, ok := visible.([]any)
+			if visibility, ok := opt["visible"]; ok {
+				visibilityList, ok := visibility.([]any)
 				if !ok {
 					return position.Errorf("'visible' should be list")
 				}
-				for _, visibleType := range visibleList {
+				for _, visibleType := range visibilityList {
 					visibleType, ok := visibleType.(string)
 					if !ok || !(visibleType == "form" || visibleType == "content") {
 						return position.Errorf("'visible' list can only contain strings of 'form' and 'content'")
@@ -197,10 +197,10 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				}
 
 				// validate if hidden field is required
-				if visible, ok := opt["visible"]; ok {
-					visibleList, _ := visible.([]any)
+				if visibility, ok := opt["visible"]; ok {
+					visibilityList, _ := visibility.([]any)
 					isVisible := false
-					for _, v := range visibleList {
+					for _, v := range visibilityList {
 						if vv, _ := v.(string); vv == "form" {
 							isVisible = true
 							break
