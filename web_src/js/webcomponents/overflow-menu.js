@@ -4,15 +4,14 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
   updateItems = throttle(100, () => {
-    let tippyContent = this.querySelector('.overflow-menu-tippy-content');
-    if (!tippyContent) {
+    if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('overflow-menu-tippy-content', 'ui', 'vertical', 'menu', 'tippy-target');
       this.append(div);
-      tippyContent = div;
+      this.tippyContent = div;
     }
 
-    const tippyItems = tippyContent?.querySelectorAll('.item');
+    const tippyItems = this.tippyContent?.querySelectorAll('.item');
     for (const item of tippyItems) {
       this.menuItemsEl.append(item);
     }
@@ -29,10 +28,10 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
     if (itemsToMove?.length) {
       for (const item of itemsToMove) {
-        tippyContent.append(item);
+        this.tippyContent.append(item);
       }
 
-      const content = tippyContent.cloneNode(true);
+      const content = this.tippyContent.cloneNode(true);
       const existingBtn = this.querySelector('.overflow-menu-button');
       if (existingBtn?._tippy) {
         existingBtn._tippy.setContent(content);
