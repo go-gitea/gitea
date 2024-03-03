@@ -72,9 +72,6 @@ export default {
     webcomponents: [
       fileURLToPath(new URL('web_src/js/webcomponents/index.js', import.meta.url)),
     ],
-    'webcomponents.defer': [
-      fileURLToPath(new URL('web_src/js/webcomponents/defer.js', import.meta.url)),
-    ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
