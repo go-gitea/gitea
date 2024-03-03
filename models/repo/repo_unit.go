@@ -212,6 +212,8 @@ const (
 	ProjectsModeOwner ProjectsMode = "owner"
 	// ProjectsModeAll allows both kinds of projects
 	ProjectsModeAll ProjectsMode = "all"
+	// ProjectsModeNone doesn't allow projects
+	ProjectsModeNone ProjectsMode = "none"
 )
 
 // ProjectsConfig describes projects config
@@ -227,6 +229,24 @@ func (cfg *ProjectsConfig) FromDB(bs []byte) error {
 // ToDB exports a ProjectsConfig to a serialized format.
 func (cfg *ProjectsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
+}
+
+func (cfg *ProjectsConfig) GetProjectsMode() ProjectsMode {
+	if cfg.ProjectsMode != "" {
+		return cfg.ProjectsMode
+	}
+
+	return ProjectsModeNone
+}
+
+func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
+	projectsMode := cfg.GetProjectsMode()
+
+	if m == ProjectsModeNone {
+		return true
+	} else {
+		return projectsMode == m || projectsMode == ProjectsModeAll
+	}
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.

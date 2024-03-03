@@ -33,8 +33,8 @@ const (
 	tplProjectsView base.TplName = "repo/projects/view"
 )
 
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
+// MustEnableRepoProjects check if repo projects are enabled in settings
+func MustEnableRepoProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
@@ -48,11 +48,11 @@ func MustEnableProjects(ctx *context.Context) {
 				ctx.ServerError("GetUnit", err)
 				return
 			}
-			isProjectsEnabled = projectsUnit.ProjectsConfig().ProjectsMode != repo_model.ProjectsModeOwner
+			isProjectsEnabled = projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo)
 		}
 
 		if !isProjectsEnabled {
-			ctx.NotFound("MustEnableProjects", nil)
+			ctx.NotFound("MustEnableRepoProjects", nil)
 			return
 		}
 	}
