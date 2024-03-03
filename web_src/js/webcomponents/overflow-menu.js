@@ -11,12 +11,12 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       this.tippyContent = div;
     }
 
-    const tippyItems = this.tippyContent?.querySelectorAll('.item');
-    for (const item of tippyItems) {
+    // move items in tippy back into the menu items for subsequent measurement
+    for (const item of this.tippyContent?.querySelectorAll('.item')) {
       this.menuItemsEl.append(item);
     }
 
-    // measure which items are partially outside the element boundary and move them into the button menu
+    // measure which items are partially outside the element and move them into the button menu
     const itemsToMove = [];
     const menuRight = this.getBoundingClientRect().right;
     for (const item of this.menuItemsEl.querySelectorAll('.item')) {
@@ -27,14 +27,15 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     if (itemsToMove?.length) {
+      // move all items that overflow into tippy
       for (const item of itemsToMove) {
         this.tippyContent.append(item);
       }
-
       const content = this.tippyContent.cloneNode(true);
-      const existingBtn = this.querySelector('.overflow-menu-button');
-      if (existingBtn?._tippy) {
-        existingBtn._tippy.setContent(content);
+
+      // update existing tippy
+      if (this.button?._tippy) {
+        this.button._tippy.setContent(content);
         return;
       }
 
@@ -42,6 +43,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
       btn.innerHTML = '<svg viewBox="0 0 16 16" class="svg octicon-kebab-horizontal" width="16" height="16" aria-hidden="true"><path d="M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/></svg>';
       this.append(btn);
+      this.button = btn;
 
       createTippy(btn, {
         trigger: 'click',
@@ -59,9 +61,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   });
 
   init() {
-    // ResizeObserver seems to reliably trigger on page load, so we don't manually call updateItems()
-    // for the initial rendering, which also avoids a full-page FOUC in Firefox that happens when
-    // updateItems is called too soon.
+    // ResizeObserver triggers on initial render, so we don't manually call `updateItems` there which
+    // also avoids a full-page FOUC in Firefox that happens when `updateItems` is called too soon.
     (new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = entry.contentBoxSize[0].inlineSize;
@@ -74,7 +75,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   }
 
   connectedCallback() {
-    // check whether the mandatory .overflow-menu-items child element is present initially which happens
+    // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
     // template rendering, wait for its addition.
     const menuItemsEl = this.querySelector('.overflow-menu-items');
