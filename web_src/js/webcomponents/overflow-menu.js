@@ -60,7 +60,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   });
 
   init() {
-    // ResizeObserver triggers on initial render, so we don't manually call `updateItems` there which
+    // ResizeObserver triggers on initial render, so we don't manually call `updateItems` here which
     // also avoids a full-page FOUC in Firefox that happens when `updateItems` is called too soon.
     (new ResizeObserver((entries) => {
       for (const entry of entries) {
