@@ -132,7 +132,7 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			if v.ID == "" {
 				v.ID = strconv.Itoa(i)
 			}
-			// set default submit value
+			// set default visibility
 			if v.Visible == nil {
 				v.Visible = []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm}
 				// markdown is not submitted by default
