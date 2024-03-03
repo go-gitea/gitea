@@ -184,7 +184,13 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 	_, _ []*issues_model.Label,
 ) {
 	ctx = withMethod(ctx, "IssueChangeLabels")
-	notifyIssueChange(ctx, doer, issue, webhook_module.HookEventPullRequestLabel, api.HookIssueLabelUpdated)
+
+	hookEvent := webhook_module.HookEventIssueLabel
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequestLabel
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated)
 }
 
 func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction) {
