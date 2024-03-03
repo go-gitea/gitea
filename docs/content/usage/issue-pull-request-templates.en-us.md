@@ -136,7 +136,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-  # some markdown which will be visible only in the created issue
+  # some markdown that will only be visible once the issue has been created
   - type: markdown
     attributes:
       value: |
