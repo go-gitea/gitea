@@ -61,8 +61,7 @@ const update = throttle(100, (overflowMenu) => {
 });
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  init(observer) {
-    observer?.disconnect();
+  init() {
     update(this);
     let lastWidth;
     (new ResizeObserver((entries) => {
@@ -88,7 +87,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           for (const node of mutation.addedNodes) {
             if (!isDocumentFragmentOrElementNode(node)) continue;
             if (node.classList.contains('overflow-menu-items')) {
-              this.init(observer);
+              observer?.disconnect();
+              this.init();
             }
           }
         }
