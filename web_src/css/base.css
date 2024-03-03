@@ -1354,22 +1354,6 @@ overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
-  justify-content: space-evenly;
-}
-
-.ui.secondary.pointing.menu.repos-filter .item {
-  padding-left: 4.5px;
-  padding-right: 4.5px;
-}
-
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);

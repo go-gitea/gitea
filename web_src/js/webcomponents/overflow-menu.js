@@ -18,9 +18,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
     // measure which items are partially outside the element and move them into the button menu
     this.tippyItems = [];
-    const menuRight = this.getBoundingClientRect().right;
+    const menuRight = this.offsetLeft + this.offsetWidth;
     for (const item of this.menuItemsEl.querySelectorAll('.item')) {
-      const itemRight = item.getBoundingClientRect().right;
+      const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // slightly less than width of .overflow-menu-button
         this.tippyItems.push(item);
       }
