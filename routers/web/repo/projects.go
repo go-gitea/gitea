@@ -41,17 +41,8 @@ func MustEnableRepoProjects(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository != nil {
-		isProjectsEnabled := false
-		if ctx.Repo.CanRead(unit.TypeProjects) {
-			projectsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeProjects)
-			if err != nil {
-				ctx.ServerError("GetUnit", err)
-				return
-			}
-			isProjectsEnabled = projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo)
-		}
-
-		if !isProjectsEnabled {
+		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
+		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
 			ctx.NotFound("MustEnableRepoProjects", nil)
 			return
 		}
