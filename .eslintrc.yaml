@@ -828,7 +828,7 @@ rules:
   wc/guard-super-call: [2]
   wc/max-elements-per-file: [0]
   wc/no-child-traversal-in-attributechangedcallback: [2]
-  wc/no-child-traversal-in-connectedcallback: [0] # neccesary for custom elements in Vue
+  wc/no-child-traversal-in-connectedcallback: [0] # neccessary for custom elements in Vue
   wc/no-closed-shadow-root: [2]
   wc/no-constructor-attributes: [2]
   wc/no-constructor-params: [2]
