@@ -41,7 +41,7 @@ const update = throttle(100, (overflowMenu) => {
     }
 
     const btn = document.createElement('button');
-    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2');
+    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
     btn.innerHTML = svg('octicon-kebab-horizontal');
     overflowMenu.append(btn);
 
@@ -61,30 +61,39 @@ const update = throttle(100, (overflowMenu) => {
 });
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  connectedCallback() {
-    // wait for the addition of .overflow-menu-items and then update once and install a ResizeObserver
-    // to detect future resize events where we need to update again
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (!isDocumentFragmentOrElementNode(node)) continue;
-          if (node.classList.contains('overflow-menu-items')) {
-            observer.disconnect();
-            update(this);
-            let lastWidth;
-            (new ResizeObserver((entries) => {
-              for (const entry of entries) {
-                const newWidth = entry.contentBoxSize[0].inlineSize;
-                if (newWidth !== lastWidth) {
-                  update(entry.target);
-                  lastWidth = newWidth;
-                }
-              }
-            })).observe(this);
-          }
+  init(observer) {
+    observer?.disconnect();
+    update(this);
+    let lastWidth;
+    (new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = entry.contentBoxSize[0].inlineSize;
+        if (newWidth !== lastWidth) {
+          update(entry.target);
+          lastWidth = newWidth;
         }
       }
-    });
-    observer.observe(this, {childList: true});
+    })).observe(this);
+  }
+
+  connectedCallback() {
+    // check whether the mandatory .overflow-menu-items child element is present initially which can
+    // happen when used with Vue. If it's not there, wait for its addition via Mutationobserver, which
+    // is generally what happens when rendered via templates.
+    if (this.querySelector('.overflow-menu-items')) {
+      this.init();
+    } else {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (!isDocumentFragmentOrElementNode(node)) continue;
+            if (node.classList.contains('overflow-menu-items')) {
+              this.init(observer);
+            }
+          }
+        }
+      });
+      observer.observe(this, {childList: true});
+    }
   }
 });

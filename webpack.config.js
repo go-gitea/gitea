@@ -119,6 +119,11 @@ export default {
         test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
+        options: {
+          compilerOptions: {
+            isCustomElement: (tag) => ['origin-url', 'overflow-menu'].includes(tag),
+          },
+        },
       },
       {
         test: /\.js$/i,

@@ -1342,11 +1342,12 @@ strong.attention-caution, span.attention-caution {
 overflow-menu {
   margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
+  display: flex;
 }
 
 overflow-menu .overflow-menu-items {
   display: flex;
-  width: 100%;
+  flex: 1;
 }
 
 overflow-menu .overflow-menu-items .item {
