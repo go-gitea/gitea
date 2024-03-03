@@ -117,11 +117,11 @@ func Home(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		Archived:           util.OptionalBoolFromGeneric(archived),
-		Fork:               util.OptionalBoolFromGeneric(fork),
-		Mirror:             util.OptionalBoolFromGeneric(mirror),
-		Template:           util.OptionalBoolFromGeneric(template),
-		IsPrivate:          util.OptionalBoolFromGeneric(private),
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -141,11 +140,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 		OnlyShowRelevant:   opts.OnlyShowRelevant,
-		Archived:           util.OptionalBoolFromGeneric(archived),
-		Fork:               util.OptionalBoolFromGeneric(fork),
-		Mirror:             util.OptionalBoolFromGeneric(mirror),
-		Template:           util.OptionalBoolFromGeneric(template),
-		IsPrivate:          util.OptionalBoolFromGeneric(private),
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

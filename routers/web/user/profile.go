@@ -223,11 +223,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
-			Archived:           util.OptionalBoolFromGeneric(archived),
-			Fork:               util.OptionalBoolFromGeneric(fork),
-			Mirror:             util.OptionalBoolFromGeneric(mirror),
-			Template:           util.OptionalBoolFromGeneric(template),
-			IsPrivate:          util.OptionalBoolFromGeneric(private),
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -250,11 +250,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
-			Archived:           util.OptionalBoolFromGeneric(archived),
-			Fork:               util.OptionalBoolFromGeneric(fork),
-			Mirror:             util.OptionalBoolFromGeneric(mirror),
-			Template:           util.OptionalBoolFromGeneric(template),
-			IsPrivate:          util.OptionalBoolFromGeneric(private),
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -300,11 +300,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
-			Archived:           util.OptionalBoolFromGeneric(archived),
-			Fork:               util.OptionalBoolFromGeneric(fork),
-			Mirror:             util.OptionalBoolFromGeneric(mirror),
-			Template:           util.OptionalBoolFromGeneric(template),
-			IsPrivate:          util.OptionalBoolFromGeneric(private),
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
