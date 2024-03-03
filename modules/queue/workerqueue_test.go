@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -175,11 +176,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 }
 
 func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
-	oldWorkerIdleDuration := workerIdleDuration
-	workerIdleDuration = 300 * time.Millisecond
-	defer func() {
-		workerIdleDuration = oldWorkerIdleDuration
-	}()
+	defer test.MockVariableValue(&workerIdleDuration, 300*time.Millisecond)()
 
 	handler := func(items ...int) (unhandled []int) {
 		time.Sleep(100 * time.Millisecond)
@@ -249,4 +246,26 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	// no item was ever handled, so we still get all of them again
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
 	assert.EqualValues(t, 20, q.GetQueueItemNumber())
+}
+
+func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {
+	defer test.MockVariableValue(&workerIdleDuration, 10*time.Millisecond)()
+
+	handler := func(items ...int) (unhandled []int) {
+		time.Sleep(50 * time.Millisecond)
+		return nil
+	}
+
+	q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 2, Length: 100}, handler, false)
+	stop := runWorkerPoolQueue(q)
+	for i := 0; i < 20; i++ {
+		assert.NoError(t, q.Push(i))
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	assert.EqualValues(t, 2, q.GetWorkerNumber())
+	assert.EqualValues(t, 2, q.GetWorkerActiveNumber())
+	// when the queue never becomes empty, the existing workers should keep working
+	assert.EqualValues(t, 2, q.workerStartedCounter)
+	stop()
 }
