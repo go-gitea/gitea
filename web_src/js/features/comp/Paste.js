@@ -145,11 +145,10 @@ export function initEasyMDEImagePaste(easyMDE, dropzone) {
 export function initTextareaImagePaste(textarea, dropzone) {
   textarea.addEventListener('paste', (e) => {
     const {images, text} = getPastedContent(e);
-    if (text) {
-      handleClipboardText(textarea, text, e);
-    }
     if (images.length) {
       handleClipboardImages(new TextareaEditor(textarea), dropzone, images, e);
+    } else if (text) {
+      handleClipboardText(textarea, text, e);
     }
   });
 }

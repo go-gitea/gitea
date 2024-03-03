@@ -246,16 +246,13 @@ export function isElemVisible(element) {
 
 // extract text and images from "paste" event
 export function getPastedContent(e) {
-  if (!e.clipboardData) return {text: '', images: []};
-
   const images = [];
-  for (const item of e.clipboardData.items || []) {
+  for (const item of e.clipboardData?.items ?? []) {
     if (item.type?.startsWith('image/')) {
       images.push(item.getAsFile());
     }
   }
-
-  const text = e.clipboardData.getData('text');
+  const text = e.clipboardData?.getData?.('text') ?? '';
   return {text, images};
 }
 
