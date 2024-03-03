@@ -38,7 +38,6 @@ import (
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
-
 	"xorm.io/builder"
 )
 
