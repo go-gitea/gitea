@@ -1341,7 +1341,6 @@ strong.attention-caution, span.attention-caution {
 
 overflow-menu {
   margin-bottom: 15px !important;
-  background: var(--color-header-wrapper) !important;
   border-bottom: 1px solid var(--color-secondary) !important;
 }
 
