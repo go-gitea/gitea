@@ -1,6 +1,7 @@
 import {throttle} from 'throttle-debounce';
 import {svg} from '../svg.js';
 import {createTippy} from '../modules/tippy.js';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 
 const update = throttle(100, (overflowMenu) => {
   let tippyContent = overflowMenu.querySelector('.overflow-menu-tippy-content');
@@ -61,19 +62,29 @@ const update = throttle(100, (overflowMenu) => {
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
   connectedCallback() {
-    // raf is needed, otherwise the first update will not see all children
-    requestAnimationFrame(() => {
-      update(this);
-      let lastWidth;
-      (new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const newWidth = entry.contentBoxSize[0].inlineSize;
-          if (newWidth !== lastWidth) {
-            update(entry.target);
-            lastWidth = newWidth;
+    // wait for the addition of .overflow-menu-items and then update once and install a ResizeObserver
+    // to detect future resize events where we need to update again
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!isDocumentFragmentOrElementNode(node)) continue;
+          if (node.classList.contains('overflow-menu-items')) {
+            observer.disconnect();
+            update(this);
+            let lastWidth;
+            (new ResizeObserver((entries) => {
+              for (const entry of entries) {
+                const newWidth = entry.contentBoxSize[0].inlineSize;
+                if (newWidth !== lastWidth) {
+                  update(entry.target);
+                  lastWidth = newWidth;
+                }
+              }
+            })).observe(this);
           }
         }
-      })).observe(this);
+      }
     });
+    observer.observe(this, {childList: true});
   }
 });
