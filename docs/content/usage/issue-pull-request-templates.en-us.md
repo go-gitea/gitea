@@ -292,11 +292,11 @@ Attributes:
 
 For each value in the options array, you can set the following keys.
 
-| Key          | Description                                                                                                                                    | Required | Type         | Default | Options |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|---------|---------|
-| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks.       | Required | String       | -       | -       |
-| required     | Prevents form submission until element is completed.                                                                                           | Optional | Boolean      | false   | -       |
-| visible      | Set visible to a specific checkbox. Valid options are "form" to render in only in the form, "content" to have it in the created issue and both | Optional | String array | false   | -       |
+| Key          | Description                                                                                                                              | Required | Type         | Default | Options |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|---------|---------|
+| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String       | -       | -       |
+| required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean      | false   | -       |
+| visible      | Whether a specific checkbox appears in the form only, in the created issue only, or both. Valid options are "form" and "content".        | Optional | String array | false   | -       |
 
 visible: Default is **[form, content]**
 
