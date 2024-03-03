@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
+import {initEasyMDEImagePaste, initTextareaImagePaste} from './Paste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
@@ -83,6 +83,17 @@ class ComboMarkdownEditor {
       // the editor usually is in a form, so the buttons should have "type=button", avoiding conflicting with the form's submit.
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
+
+    this.textarea.addEventListener('keydown', (e) => {
+      if (e.shiftKey) {
+        e.target._giteaShiftDown = true;
+      }
+    });
+    this.textarea.addEventListener('keyup', (e) => {
+      if (!e.shiftKey) {
+        e.target._giteaShiftDown = false;
+      }
+    });
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
     const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
