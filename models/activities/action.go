@@ -465,7 +465,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	isOrgMemberMap := make(map[int64]bool, 0)
-	isPrivateForActor := false
+	isPrivateForActor := true
 	if opts.Actor != nil && opts.RequestedUser != nil {
 		isPrivateForActor = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
 		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIDs(), opts.Actor.ID)
