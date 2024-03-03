@@ -62,15 +62,18 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   init() {
     // ResizeObserver triggers on initial render, so we don't manually call `updateItems` here which
     // also avoids a full-page FOUC in Firefox that happens when `updateItems` is called too soon.
-    (new ResizeObserver((entries) => {
+    this.resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = entry.contentBoxSize[0].inlineSize;
         if (newWidth !== this.lastWidth) {
-          this.updateItems();
+          requestAnimationFrame(() => {
+            this.updateItems();
+          });
           this.lastWidth = newWidth;
         }
       }
-    })).observe(this);
+    });
+    this.resizeObserver.observe(this);
   }
 
   connectedCallback() {
@@ -82,19 +85,24 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       this.menuItemsEl = menuItemsEl;
       this.init();
     } else {
-      const observer = new MutationObserver((mutations) => {
+      this.mutationObserver = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (!isDocumentFragmentOrElementNode(node)) continue;
             if (node.classList.contains('overflow-menu-items')) {
               this.menuItemsEl = node;
-              observer?.disconnect();
+              this.mutationObserver?.disconnect();
               this.init();
             }
           }
         }
       });
-      observer.observe(this, {childList: true});
+      this.mutationObserver.observe(this, {childList: true});
     }
+  }
+
+  disconnectedCallback() {
+    this.mutationObserver?.disconnect();
+    this.resizeObserver?.disconnect();
   }
 });
