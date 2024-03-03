@@ -5,6 +5,7 @@ package templates
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"regexp"
 	"strings"
@@ -33,7 +34,7 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	}
 }
 
-func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) error {
 	// Split template into subject and body
 	var subjectContent []byte
 	bodyContent := content
@@ -42,20 +43,13 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		subjectContent = content[0:loc[0]]
 		bodyContent = content[loc[1]:]
 	}
-	if _, err := stpl.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Error("Failed to parse template [%s/subject]: %v", name, err)
-		if !setting.IsProd {
-			log.Fatal("Please fix the mail template error")
-		}
+	if _, err := stpl.New(name).Parse(string(subjectContent)); err != nil {
+		return fmt.Errorf("failed to parse template [%s/subject]: %w", name, err)
 	}
-	if _, err := btpl.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Error("Failed to parse template [%s/body]: %v", name, err)
-		if !setting.IsProd {
-			log.Fatal("Please fix the mail template error")
-		}
+	if _, err := btpl.New(name).Parse(string(bodyContent)); err != nil {
+		return fmt.Errorf("failed to parse template [%s/body]: %w", name, err)
 	}
+	return nil
 }
 
 // Mailer provides the templates required for sending notification mails.
@@ -87,7 +81,13 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			if firstRun {
 				log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
 			}
-			buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content)
+			if err = buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content); err != nil {
+				if firstRun {
+					log.Fatal("Failed to parse mail template, err: %v", err)
+				} else {
+					log.Error("Failed to parse mail template, err: %v", err)
+				}
+			}
 		}
 	}
 
