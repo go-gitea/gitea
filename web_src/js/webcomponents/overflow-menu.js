@@ -12,30 +12,29 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     // move items in tippy back into the menu items for subsequent measurement
-    for (const item of this.tippyContent?.querySelectorAll('.item')) {
+    for (const item of this.tippyItems || []) {
       this.menuItemsEl.append(item);
     }
 
     // measure which items are partially outside the element and move them into the button menu
-    const itemsToMove = [];
+    this.tippyItems = [];
     const menuRight = this.getBoundingClientRect().right;
     for (const item of this.menuItemsEl.querySelectorAll('.item')) {
       const itemRight = item.getBoundingClientRect().right;
       if (menuRight - itemRight < 38) { // slightly less than width of .overflow-menu-button
-        itemsToMove.push(item);
+        this.tippyItems.push(item);
       }
     }
 
-    if (itemsToMove?.length) {
+    if (this.tippyItems?.length) {
       // move all items that overflow into tippy
-      for (const item of itemsToMove) {
+      for (const item of this.tippyItems) {
         this.tippyContent.append(item);
       }
-      const content = this.tippyContent;
 
       // update existing tippy
       if (this.button?._tippy) {
-        this.button._tippy.setContent(content);
+        this.button._tippy.setContent(this.tippyContent);
         return;
       }
 
@@ -51,7 +50,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         interactive: true,
         placement: 'bottom-end',
         role: 'menu',
-        content,
+        content: this.tippyContent,
       });
     } else {
       const btn = this.querySelector('.overflow-menu-button');
