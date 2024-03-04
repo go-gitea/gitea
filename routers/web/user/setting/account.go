@@ -253,11 +253,11 @@ func DeleteAccount(ctx *context.Context) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
-		case base.IsError[db.ErrUserPasswordNotSet](err):
+		case errors.As(err, &db.ErrUserPasswordNotSet{}):
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
-		case base.IsError[db.ErrUserPasswordInvalid](err):
+		case errors.As(err, &db.ErrUserPasswordInvalid{}):
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
