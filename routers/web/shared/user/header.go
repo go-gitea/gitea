@@ -72,6 +72,14 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	if _, ok := ctx.Data["NumFollowing"]; !ok {
 		_, ctx.Data["NumFollowing"], _ = user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{PageSize: 1, Page: 1})
 	}
+
+	if ctx.Doer != nil {
+		if block, err := user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+			ctx.ServerError("GetBlocking", err)
+		} else {
+			ctx.Data["UserBlocking"] = block
+		}
+	}
 }
 
 func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
