@@ -86,12 +86,12 @@ class ComboMarkdownEditor {
 
     this.textarea.addEventListener('keydown', (e) => {
       if (e.shiftKey) {
-        e.target._giteaShiftDown = true;
+        e.target._shiftDown = true;
       }
     });
     this.textarea.addEventListener('keyup', (e) => {
       if (!e.shiftKey) {
-        e.target._giteaShiftDown = false;
+        e.target._shiftDown = false;
       }
     });
 

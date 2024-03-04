@@ -122,8 +122,8 @@ async function handleClipboardImages(editor, dropzone, images, e) {
 
 function handleClipboardText(textarea, text, e) {
   // when pasting links over selected text, turn it into [text](link), except when shift key is held
-  const {value, selectionStart, selectionEnd, _giteaShiftDown} = textarea;
-  if (_giteaShiftDown) return;
+  const {value, selectionStart, selectionEnd, _shiftDown} = textarea;
+  if (_shiftDown) return;
   const selectedText = value.substring(selectionStart, selectionEnd);
   const trimmedText = text.trim();
   if (selectedText && isUrl(trimmedText)) {
