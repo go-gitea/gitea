@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -118,7 +119,11 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.InternalServerError(err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else {
+			ctx.InternalServerError(err)
+		}
 		return
 	}
 

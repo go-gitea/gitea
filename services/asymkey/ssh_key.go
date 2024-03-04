@@ -51,10 +51,10 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	if key.Type == asymkey_model.KeyTypePrincipal {
 		audit.RecordUserKeyPrincipalRemove(ctx, doer, owner, key)
 
-		return asymkey_model.RewriteAllPrincipalKeys(ctx)
+		return RewriteAllPrincipalKeys(ctx)
 	}
 
 	audit.RecordUserKeySSHRemove(ctx, doer, owner, key)
 
-	return asymkey_model.RewriteAllPublicKeys(ctx)
+	return RewriteAllPublicKeys(ctx)
 }

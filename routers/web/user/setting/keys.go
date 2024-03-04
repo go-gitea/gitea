@@ -63,7 +63,7 @@ func KeysPost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		key, err := asymkey_model.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0)
+		key, err := asymkey_service.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0)
 		if err != nil {
 			ctx.Data["HasPrincipalError"] = true
 			switch {
@@ -169,6 +169,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		content, err := asymkey_model.CheckPublicKeyString(form.Content)
 		if err != nil {
 			if db.IsErrSSHDisabled(err) {
@@ -212,6 +217,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -267,6 +277,11 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("error.occurred"))
 		}
 	case "ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		keyID := ctx.FormInt64("id")
 		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
@@ -345,4 +360,5 @@ func loadKeysData(ctx *context.Context) {
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
+	ctx.Data["UserDisabledFeatures"] = &setting.Admin.UserDisabledFeatures
 }

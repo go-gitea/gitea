@@ -9,19 +9,18 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID            int64  `xorm:"pk autoincr"`
-		Action        string `xorm:"INDEX NOT NULL"`
-		ActorID       int64  `xorm:"INDEX NOT NULL"`
-		ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType    string `xorm:"NOT NULL"`
-		TargetID      int64  `xorm:"NOT NULL"`
-		Message       string
-		IPAddress     string
-		TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
-	}
+type Blocking struct {
+	ID          int64 `xorm:"pk autoincr"`
+	BlockerID   int64 `xorm:"UNIQUE(block)"`
+	BlockeeID   int64 `xorm:"UNIQUE(block)"`
+	Note        string
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
 
-	return x.Sync(&AuditEvent{})
+func (*Blocking) TableName() string {
+	return "user_blocking"
+}
+
+func AddUserBlockingTable(x *xorm.Engine) error {
+	return x.Sync(&Blocking{})
 }

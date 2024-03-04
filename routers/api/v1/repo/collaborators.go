@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -55,15 +54,10 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	count, err := db.Count[repo_model.Collaboration](ctx, repo_model.FindCollaborationOptions{
-		RepoID: ctx.Repo.Repository.ID,
+	collaborators, total, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
 	})
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -74,7 +68,7 @@ func ListCollaborators(ctx *context.APIContext) {
 		users[i] = convert.ToUser(ctx, collaborator.User, ctx.Doer)
 	}
 
-	ctx.SetTotalCountHeader(count)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, users)
 }
 
@@ -160,6 +154,8 @@ func AddCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -183,7 +179,11 @@ func AddCollaborator(ctx *context.APIContext) {
 	}
 
 	if err := repo_module.AddCollaborator(ctx, ctx.Repo.Repository, collaborator); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "AddCollaborator", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
+		}
 		return
 	}
 
@@ -243,7 +243,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}

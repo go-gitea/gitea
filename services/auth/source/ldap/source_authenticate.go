@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/optional"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
@@ -77,7 +78,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 					audit.RecordUserKeySSHRemove(ctx, user_model.NewAuthenticationSourceUser(), user, key)
 				}
 
-				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+				if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 					return user, err
 				}
 			}
@@ -111,7 +112,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 					audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), user, key)
 				}
 
-				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+				if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 					return user, err
 				}
 			}

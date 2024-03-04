@@ -14,7 +14,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
-	attachment_model "code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
@@ -33,16 +33,17 @@ const (
 	tplProjectsView base.TplName = "repo/projects/view"
 )
 
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
+// MustEnableRepoProjects check if repo projects are enabled in settings
+func MustEnableRepoProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
-			ctx.NotFound("MustEnableProjects", nil)
+		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
+		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+			ctx.NotFound("MustEnableRepoProjects", nil)
 			return
 		}
 	}
@@ -325,10 +326,10 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
-		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		issuesAttachmentMap := make(map[int64][]*repo_model.Attachment)
 		for _, issuesList := range issuesMap {
 			for _, issue := range issuesList {
-				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+				if issueAttachment, err := repo_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
 					issuesAttachmentMap[issue.ID] = issueAttachment
 				}
 			}

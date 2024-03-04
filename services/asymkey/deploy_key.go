@@ -44,5 +44,5 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 
 	audit.RecordRepositoryDeployKeyRemove(ctx, doer, repo, key)
 
-	return asymkey_model.RewriteAllPublicKeys(ctx)
+	return RewriteAllPublicKeys(ctx)
 }

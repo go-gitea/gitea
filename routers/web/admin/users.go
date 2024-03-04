@@ -443,6 +443,7 @@ func EditUserPost(ctx *context.Context) {
 		AllowCreateOrganization: optional.Some(form.AllowCreateOrganization),
 		IsRestricted:            optional.Some(form.Restricted),
 		Visibility:              optional.Some(form.Visibility),
+		Language:                optional.Some(form.Language),
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.Doer, u, opts); err != nil {

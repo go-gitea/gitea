@@ -5,6 +5,7 @@
 package org
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -78,12 +79,12 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
+		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err == nil {
 			audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
 		}
 	case "leave":
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -106,13 +107,13 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
-		if err != nil {
+		user, _ := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+		if user == nil {
 			ctx.Redirect(ctx.Org.OrgLink + "/teams")
 			return
 		}
 
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, u.ID)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, user)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -125,7 +126,7 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		} else {
-			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, u)
+			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, user)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
@@ -169,7 +170,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
+			err = models.AddTeamMember(ctx, ctx.Org.Team, u)
 			if err == nil {
 				audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, u)
 			}
@@ -200,6 +201,8 @@ func TeamsAction(ctx *context.Context) {
 	if err != nil {
 		if org_model.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
 		} else {
 			log.Error("Action(%s): %v", ctx.Params(":action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{
@@ -634,7 +637,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.AddTeamMember(ctx, team, ctx.Doer.ID); err != nil {
+	if err := models.AddTeamMember(ctx, team, ctx.Doer); err != nil {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}

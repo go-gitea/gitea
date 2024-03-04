@@ -561,6 +561,8 @@ var migrations = []Migration{
 	// v287 -> v288
 	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
 	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
 	NewMigration("Add audit_event table", v1_22.AddAuditEventTable),
 }
 
