@@ -243,11 +243,17 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		prefixQuery := bleve.NewPrefixQuery(keyword)
 		prefixQuery.FieldVal = "Content"
 		keywordQuery = prefixQuery
-	} else {
+	} else if !setting.Indexer.DefaultFuzzy {
 		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 		phraseQuery.FieldVal = "Content"
 		phraseQuery.Analyzer = repoIndexerAnalyzer
 		keywordQuery = phraseQuery
+	} else {
+		fuzzyQuery := bleve.NewFuzzyQuery(keyword)
+		fuzzyQuery.FieldVal = "Content"
+		fuzzyQuery.SetPrefix(len(keyword))
+		fuzzyQuery.Fuzziness = 2 //Levenshtein distance
+		keywordQuery = fuzzyQuery
 	}
 
 	if len(repoIDs) > 0 {
