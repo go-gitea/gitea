@@ -6,6 +6,6 @@ https://developer.mozilla.org/en-US/docs/Web/Web_Components
 
 # Guidelines
 
-* These components are loaded in `<head>` (before DOM body),
-  so they should have their own dependencies and should be very light,
-  then they won't affect the page loading time too much.
+* All our components must start with `wc-` prefix. Any used third party component names should be added to webpack config.
+* These components are loaded in `<head>` (before DOM body) in a separate entry point, they need to be lightweight to not affect the page loading time too much.
+* Do not import `svg.js` into a web component because that file is currently not tree-shakeable, import svg files individually insteat.

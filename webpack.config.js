@@ -41,6 +41,13 @@ if ('ENABLE_SOURCEMAP' in env) {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
 
+// define which web components we use for Vue to not interpret them as Vue components
+const isCustomElement = (tag) => {
+  if (tag.startsWith('wc-')) return true; // first-party
+  if (['markdown-toolbar', 'relative-time', 'text-expander'].includes(tag)) return true;
+  return false;
+};
+
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
@@ -121,7 +128,7 @@ export default {
         loader: 'vue-loader',
         options: {
           compilerOptions: {
-            isCustomElement: (tag) => tag.startsWith('wc-'),
+            isCustomElement,
           },
         },
       },
