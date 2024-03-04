@@ -41,7 +41,7 @@
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keey the same layout as Fomantic UI generated labels */}}
-						<a class="ui label transition visible gt-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+						<a class="ui label transition visible tw-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 					{{end}}
 					<div class="text"></div>
 				</div>
@@ -53,7 +53,7 @@
 		</div>
 		{{end}}
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message gt-text-center">
+			<div class="ui warning message tw-text-center">
 				{{if .Repository.ArchivedUnix.IsZero}}
 					{{ctx.Locale.Tr "repo.archive.title"}}
 				{{else}}
