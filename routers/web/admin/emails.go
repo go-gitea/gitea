@@ -12,8 +12,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -68,10 +68,10 @@ func Emails(ctx *context.Context) {
 	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
 	if len(ctx.FormString("is_activated")) != 0 {
-		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
+		opts.IsActivated = optional.Some(ctx.FormBool("activated"))
 	}
 	if len(ctx.FormString("is_primary")) != 0 {
-		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
+		opts.IsPrimary = optional.Some(ctx.FormBool("primary"))
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {

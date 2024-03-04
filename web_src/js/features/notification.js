@@ -112,7 +112,7 @@ export function initNotificationCount() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = appSubUrl;
+        window.location.href = `${appSubUrl}/`;
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',

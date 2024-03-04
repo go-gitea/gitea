@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -170,11 +169,8 @@ func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int6
 		applyReviewedCondition(sess, opts.ReviewedID)
 	}
 
-	switch opts.IsPull {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?", false)
+	if opts.IsPull.Has() {
+		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
 	return sess

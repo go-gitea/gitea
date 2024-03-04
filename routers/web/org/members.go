@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -78,40 +79,43 @@ func Members(ctx *context.Context) {
 
 // MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
-	uid := ctx.FormInt64("uid")
-	if uid == 0 {
+	member, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+	}
+	if member == nil {
 		ctx.Redirect(ctx.Org.OrgLink + "/members")
 		return
 	}
 
 	org := ctx.Org.Organization
-	var err error
+
 	switch ctx.Params(":action") {
 	case "private":
-		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = organization.ChangeOrgUserStatus(ctx, org.ID, uid, false)
+		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, false)
 	case "public":
-		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = organization.ChangeOrgUserStatus(ctx, org.ID, uid, true)
+		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.RemoveOrgUser(ctx, org.ID, uid)
+		err = models.RemoveOrgUser(ctx, org, member)
 		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 			return
 		}
 	case "leave":
-		err = models.RemoveOrgUser(ctx, org.ID, ctx.Doer.ID)
+		err = models.RemoveOrgUser(ctx, org, ctx.Doer)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
 			ctx.JSON(http.StatusOK, map[string]any{

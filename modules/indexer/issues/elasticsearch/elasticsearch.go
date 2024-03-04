@@ -153,11 +153,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(q)
 	}
 
-	if !options.IsPull.IsNone() {
-		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.IsTrue()))
+	if options.IsPull.Has() {
+		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.Value()))
 	}
-	if !options.IsClosed.IsNone() {
-		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.IsTrue()))
+	if options.IsClosed.Has() {
+		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
 	}
 
 	if options.NoLabelOnly {

@@ -15,7 +15,7 @@ _test
 
 # MS VSCode
 .vscode
-__debug_bin
+__debug_bin*
 
 *.cgo1.go
 *.cgo2.c

@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -72,6 +72,14 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	if _, ok := ctx.Data["NumFollowing"]; !ok {
 		_, ctx.Data["NumFollowing"], _ = user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{PageSize: 1, Page: 1})
 	}
+
+	if ctx.Doer != nil {
+		if block, err := user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+			ctx.ServerError("GetBlocking", err)
+		} else {
+			ctx.Data["UserBlocking"] = block
+		}
+	}
 }
 
 func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
@@ -114,7 +122,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
-		Collaborate:        util.OptionalBoolFalse,
+		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
@@ -130,7 +138,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 	}
 	projectCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(false),
+		IsClosed: optional.Some(false),
 		Type:     projectType,
 	})
 	if err != nil {

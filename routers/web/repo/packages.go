@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -37,7 +37,7 @@ func Packages(ctx *context.Context) {
 		RepoID:     ctx.Repo.Repository.ID,
 		Type:       packages.Type(packageType),
 		Name:       packages.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)

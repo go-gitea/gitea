@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -210,13 +210,13 @@ func searchIssueIsPull(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				IsPull: util.OptionalBoolFalse,
+				IsPull: optional.Some(false),
 			},
 			[]int64{17, 16, 15, 14, 13, 6, 5, 18, 10, 7, 4, 1},
 		},
 		{
 			SearchOptions{
-				IsPull: util.OptionalBoolTrue,
+				IsPull: optional.Some(true),
 			},
 			[]int64{22, 21, 12, 11, 20, 19, 9, 8, 3, 2},
 		},
@@ -237,13 +237,13 @@ func searchIssueIsClosed(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				IsClosed: util.OptionalBoolFalse,
+				IsClosed: optional.Some(false),
 			},
 			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 19, 18, 10, 7, 9, 8, 3, 2, 1},
 		},
 		{
 			SearchOptions{
-				IsClosed: util.OptionalBoolTrue,
+				IsClosed: optional.Some(true),
 			},
 			[]int64{5, 4},
 		},

@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -52,7 +51,7 @@ func TestMirrorPull(t *testing.T) {
 
 	ctx := context.Background()
 
-	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
+	mirror, err := repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)

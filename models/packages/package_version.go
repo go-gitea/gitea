@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -105,7 +106,7 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 			ExactMatch: true,
 			Value:      version,
 		},
-		IsInternal: util.OptionalBoolOf(isInternal),
+		IsInternal: optional.Some(isInternal),
 		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	})
 	if err != nil {
@@ -122,7 +123,7 @@ func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Ty
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
 		OwnerID:    ownerID,
 		Type:       packageType,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	return pvs, err
 }
@@ -136,7 +137,7 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 			ExactMatch: true,
 			Value:      name,
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	return pvs, err
 }
@@ -182,18 +183,18 @@ type PackageSearchOptions struct {
 	Name            SearchValue       // only results with the specific name are found
 	Version         SearchValue       // only results with the specific version are found
 	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
-	IsInternal      util.OptionalBool
-	HasFileWithName string            // only results are found which are associated with a file with the specific name
-	HasFiles        util.OptionalBool // only results are found which have associated files
+	IsInternal      optional.Option[bool]
+	HasFileWithName string                // only results are found which are associated with a file with the specific name
+	HasFiles        optional.Option[bool] // only results are found which have associated files
 	Sort            VersionSort
 	db.Paginator
 }
 
 func (opts *PackageSearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if !opts.IsInternal.IsNone() {
+	if opts.IsInternal.Has() {
 		cond = builder.Eq{
-			"package_version.is_internal": opts.IsInternal.IsTrue(),
+			"package_version.is_internal": opts.IsInternal.Value(),
 		}
 	}
 
@@ -250,10 +251,10 @@ func (opts *PackageSearchOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Exists(builder.Select("package_file.id").From("package_file").Where(fileCond)))
 	}
 
-	if !opts.HasFiles.IsNone() {
+	if opts.HasFiles.Has() {
 		filesCond := builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
 
-		if opts.HasFiles.IsFalse() {
+		if !opts.HasFiles.Value() {
 			filesCond = builder.Not{filesCond}
 		}
 
@@ -307,8 +308,8 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 		And(builder.Expr("pv2.id IS NULL"))
 
 	joinCond := builder.Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))")
-	if !opts.IsInternal.IsNone() {
-		joinCond = joinCond.And(builder.Eq{"pv2.is_internal": opts.IsInternal.IsTrue()})
+	if opts.IsInternal.Has() {
+		joinCond = joinCond.And(builder.Eq{"pv2.is_internal": opts.IsInternal.Value()})
 	}
 
 	sess := db.GetEngine(ctx).

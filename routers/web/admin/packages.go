@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
@@ -36,7 +36,7 @@ func Packages(ctx *context.Context) {
 		Type:       packages_model.Type(packageType),
 		Name:       packages_model.SearchValue{Value: query},
 		Sort:       sort,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,

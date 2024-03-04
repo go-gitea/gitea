@@ -27,6 +27,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 		user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
 
 		testCtx := NewAPITestContext(t, repo2Owner.Name, repo2.Name, auth_model.AccessTokenScopeWriteRepository)
 
@@ -84,6 +85,12 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission", repo2Owner.Name, repo2.Name, "non-existent-user").
 				AddTokenAuth(testCtx.Token)
 			MakeRequest(t, req, http.StatusNotFound)
+		})
+
+		t.Run("CollaboratorBlocked", func(t *testing.T) {
+			ctx := NewAPITestContext(t, repo2Owner.Name, repo2.Name, auth_model.AccessTokenScopeWriteRepository)
+			ctx.ExpectedCode = http.StatusForbidden
+			doAPIAddCollaborator(ctx, user34.Name, perm.AccessModeAdmin)(t)
 		})
 
 		t.Run("CollaboratorCanQueryItsPermissions", func(t *testing.T) {

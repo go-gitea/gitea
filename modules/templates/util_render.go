@@ -208,7 +208,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
-	return template.HTML(output)
+	return output
 }
 
 func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {

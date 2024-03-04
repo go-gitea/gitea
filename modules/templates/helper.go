@@ -33,16 +33,16 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Eval":        Eval,
-		"SafeHTML":    SafeHTML,
-		"HTMLFormat":  HTMLFormat,
-		"HTMLEscape":  HTMLEscape,
-		"QueryEscape": url.QueryEscape,
-		"JSEscape":    JSEscapeSafe,
-		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
-		"URLJoin":     util.URLJoin,
-		"DotEscape":   DotEscape,
+		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Eval":         Eval,
+		"SafeHTML":     SafeHTML,
+		"HTMLFormat":   HTMLFormat,
+		"HTMLEscape":   HTMLEscape,
+		"QueryEscape":  url.QueryEscape,
+		"JSEscape":     JSEscapeSafe,
+		"SanitizeHTML": SanitizeHTML,
+		"URLJoin":      util.URLJoin,
+		"DotEscape":    DotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -207,8 +207,8 @@ func SafeHTML(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// Str2html sanitizes the input by pre-defined markdown rules
-func Str2html(s any) template.HTML {
+// SanitizeHTML sanitizes the input by pre-defined markdown rules
+func SanitizeHTML(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(markup.Sanitize(v))

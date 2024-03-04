@@ -8,8 +8,8 @@ import (
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -35,7 +35,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 	sys["Title"] = ctx.Tr("admin.systemhooks")
 	sys["Description"] = ctx.Tr("admin.systemhooks.desc")
-	sys["Webhooks"], err = webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
+	sys["Webhooks"], err = webhook.GetSystemWebhooks(ctx, optional.None[bool]())
 	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks"
 	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/system-hooks"
 	if err != nil {

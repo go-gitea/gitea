@@ -31,9 +31,9 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_]+\/?[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+\/?[0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\')([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\')`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)

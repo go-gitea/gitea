@@ -8,7 +8,7 @@
 			<div class="gt-f1 gt-p-3">
 				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					{{if FilenameIsImage .Name}}
-						{{if not (StringUtils.Contains $.Content .UUID)}}
+						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
 							{{$hasThumbnails = true}}
 						{{end}}
 						{{svg "octicon-file"}}
@@ -29,7 +29,7 @@
 		<div class="ui small thumbnails">
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
-					{{if not (StringUtils.Contains $.Content .UUID)}}
+					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
 					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
 						<img alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					</a>

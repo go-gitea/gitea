@@ -5,6 +5,7 @@ package user
 
 import (
 	std_ctx "context"
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -198,6 +199,11 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
@@ -262,6 +268,11 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
 
 	id := ctx.ParamsInt64(":id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)

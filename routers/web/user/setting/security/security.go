@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
 )
@@ -112,7 +112,7 @@ func loadSecurityData(ctx *context.Context) {
 	ctx.Data["AccountLinks"] = sources
 
 	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{
-		IsActive:  util.OptionalBoolNone,
+		IsActive:  optional.None[bool](),
 		LoginType: auth_model.OAuth2,
 	})
 	if err != nil {
