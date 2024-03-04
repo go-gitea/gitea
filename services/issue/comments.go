@@ -81,7 +81,7 @@ func getDiffAttaches(oldAttaches, newAttaches container.Set[string]) (addedAttac
 			delAttaches.Add(attach)
 		}
 	}
-	return
+	return addedAttaches, delAttaches
 }
 
 // UpdateComment updates information of comment.
@@ -105,7 +105,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 			return err
 		}
 
-		if !ignoreUpdateAttachments {
+		if ignoreUpdateAttachments {
 			oldAttaches, err := markdown.ParseAttachments(oldContent)
 			if err != nil {
 				return err
@@ -117,7 +117,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 			}
 
 			addedAttaches, delAttaches := getDiffAttaches(oldAttaches, newAttaches)
-			for _, attach := range addedAttaches.Values() {
+			for attach := range addedAttaches {
 				attachments = append(attachments, attach)
 			}
 
@@ -127,8 +127,14 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 				}
 			}
 
-			// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
-			if err := updateAttachments(ctx, c, attachments); err != nil {
+			// update all these attachments's issue_id or comment_id if it's zero
+			// warning don't update those attachments with issue_id and comment_id not zero
+			// because those maybe copied from other respositories.
+			if _, err := db.GetEngine(ctx).Where("issue_id = 0 AND comment_id = 0").
+				In("uuid", attachments).Cols("issue_id, comment_id").Update(&repo_model.Attachment{
+				IssueID:   c.IssueID,
+				CommentID: c.ID,
+			}); err != nil {
 				return err
 			}
 		}
