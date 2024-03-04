@@ -19570,6 +19570,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "projects_mode": {
+          "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
+          "type": "string",
+          "x-go-name": "ProjectsMode"
+        },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
           "type": "boolean",
@@ -20623,6 +20628,13 @@
           "type": "object",
           "additionalProperties": {},
           "x-go-name": "Validations"
+        },
+        "visible": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormFieldVisible"
+          },
+          "x-go-name": "Visible"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20630,6 +20642,11 @@
     "IssueFormFieldType": {
       "type": "string",
       "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldVisible": {
+      "description": "IssueFormFieldVisible defines issue form field visible",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
@@ -22478,6 +22495,10 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "projects_mode": {
+          "type": "string",
+          "x-go-name": "ProjectsMode"
         },
         "release_counter": {
           "type": "integer",

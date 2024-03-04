@@ -411,6 +411,11 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 			Type:   tp,
 			Config: new(ActionsConfig),
 		}
+	} else if tp == unit.TypeProjects {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(ProjectsConfig),
+		}
 	}
 
 	return &RepoUnit{

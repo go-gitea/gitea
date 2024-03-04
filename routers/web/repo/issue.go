@@ -587,52 +587,63 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	if repo.Owner.IsOrganization() {
 		repoOwnerType = project_model.TypeOrganization
 	}
+
+	projectsUnit := repo.MustGetUnit(ctx, unit.TypeProjects)
+
+	var openProjects []*project_model.Project
+	var closedProjects []*project_model.Project
 	var err error
-	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		RepoID:      repo.ID,
-		IsClosed:    optional.Some(false),
-		Type:        project_model.TypeRepository,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		OwnerID:     repo.OwnerID,
-		IsClosed:    optional.Some(false),
-		Type:        repoOwnerType,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+
+	if projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		openProjects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
+			IsClosed:    optional.Some(false),
+			Type:        project_model.TypeRepository,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		closedProjects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
+			IsClosed:    optional.Some(true),
+			Type:        project_model.TypeRepository,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
 	}
 
-	ctx.Data["OpenProjects"] = append(projects, projects2...)
-
-	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		RepoID:      repo.ID,
-		IsClosed:    optional.Some(true),
-		Type:        project_model.TypeRepository,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+	if projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeOwner) {
+		openProjects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			OwnerID:     repo.OwnerID,
+			IsClosed:    optional.Some(false),
+			Type:        repoOwnerType,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		openProjects = append(openProjects, openProjects2...)
+		closedProjects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			OwnerID:     repo.OwnerID,
+			IsClosed:    optional.Some(true),
+			Type:        repoOwnerType,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		closedProjects = append(closedProjects, closedProjects2...)
 	}
-	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		OwnerID:     repo.OwnerID,
-		IsClosed:    optional.Some(true),
-		Type:        repoOwnerType,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
 
-	ctx.Data["ClosedProjects"] = append(projects, projects2...)
+	ctx.Data["OpenProjects"] = openProjects
+	ctx.Data["ClosedProjects"] = closedProjects
 }
 
 // repoReviewerSelection items to bee shown
