@@ -354,6 +354,8 @@ func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
 		"password":             "allowedUser1_pass",
 		"must_change_password": "true",
 	}).AddTokenAuth(token)
-
 	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "DELETE", "/api/v1/admin/users/allowedUser1").AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
 }
