@@ -89,7 +89,6 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	}
 	hasPullRequests := false
 	ignoreWhitespaceConflicts := false
-	showDependencies := false
 	allowMerge := false
 	allowRebase := false
 	allowRebaseMerge := false
@@ -103,7 +102,6 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
-		showDependencies = config.ShowDependencies
 		allowMerge = config.AllowMerge
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
@@ -223,7 +221,6 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,
-		ShowDependencies:              showDependencies,
 		AllowMerge:                    allowMerge,
 		AllowRebase:                   allowRebase,
 		AllowRebaseMerge:              allowRebaseMerge,

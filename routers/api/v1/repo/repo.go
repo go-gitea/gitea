@@ -881,7 +881,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &repo_model.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     false,
-					ShowDependencies:              false,
 					AllowMerge:                    true,
 					AllowRebase:                   true,
 					AllowRebaseMerge:              true,
@@ -900,9 +899,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			if opts.IgnoreWhitespaceConflicts != nil {
 				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
-			}
-			if opts.ShowDependencies != nil {
-				config.ShowDependencies = *opts.ShowDependencies
 			}
 			if opts.AllowMerge != nil {
 				config.AllowMerge = *opts.AllowMerge

@@ -95,7 +95,6 @@ type Repository struct {
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
-	ShowDependencies              bool             `json:"show_dependencies"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
@@ -192,8 +191,6 @@ type EditRepoOption struct {
 	HasActions *bool `json:"has_actions,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
-	// either `true` to show `depends on` and `blocks` in Pull Request list, or `false` to not show them.
-	ShowDependencies *bool `json:"show_dependencies,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
 	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.
