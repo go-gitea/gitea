@@ -222,11 +222,10 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 	return err
 }
 
-// SyncBranchesToDB sync the branch information in the database. It will try to update the branch first,
-// if updated success with affect records > 0, then all are done. Because that means the branch has been in the database.
-// If no record is affected, that means the branch does not exist in database. So there are two possibilities.
-// One is this is a new branch, then we just need to insert the record. Another is the branches haven't been synced,
-// then we need to sync all the branches into database.
+// SyncBranchesToDB sync the branch information in the database.
+// It will check whether the branches of the repository have never been synced before.
+// If so, it will sync all branches of the repository.
+// Otherwise, it will sync the branches that need to be updated.
 func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, commitIDs []string, getCommit func(commitID string) (*git.Commit, error)) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
@@ -248,18 +247,36 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
+
+		if len(branches) == 0 {
+			// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
+			// we cannot simply insert the branch but need to check we have branches or not
+			hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
+				RepoID:          repoID,
+				IsDeletedBranch: optional.Some(false),
+			}.ToConds())
+			if err != nil {
+				return err
+			}
+			if !hasBranch {
+				if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
+					return fmt.Errorf("repo_module.SyncRepoBranches %d failed: %v", repoID, err)
+				}
+				return nil
+			}
+		}
+
 		branchMap := make(map[string]*git_model.Branch, len(branches))
 		for _, branch := range branches {
 			branchMap[branch.Name] = branch
 		}
 
-		hasBranch := len(branches) > 0
-
 		newBranches := make([]*git_model.Branch, 0, len(branchNames))
 
 		for i, branchName := range branchNames {
 			commitID := commitIDs[i]
-			if branch, ok := branchMap[branchName]; ok && branch.CommitID == commitID {
+			branch, exist := branchMap[branchName]
+			if exist && branch.CommitID == commitID {
 				continue
 			}
 
@@ -268,31 +285,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
 			}
 
-			cnt, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit)
-			if err != nil {
-				return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
-			}
-			if cnt > 0 { // This means branch does exist, so it's a normal update. It also means the branch has been synced.
-				hasBranch = true
-				continue
-			}
-
-			if !hasBranch {
-				// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
-				// we cannot simply insert the branch but need to check we have branches or not
-				hasBranch, err = db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
-					RepoID:          repoID,
-					IsDeletedBranch: optional.Some(false),
-				}.ToConds())
-				if err != nil {
-					return err
+			if exist {
+				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 				}
-				if !hasBranch {
-					if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
-						return fmt.Errorf("repo_module.SyncRepoBranches %d:%s failed: %v", repoID, branchName, err)
-					}
-					return nil
-				}
+				return nil
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
