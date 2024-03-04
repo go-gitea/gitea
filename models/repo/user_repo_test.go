@@ -25,10 +25,8 @@ func TestRepoAssignees(t *testing.T) {
 	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 21})
 	users, err = repo_model.GetRepoAssignees(db.DefaultContext, repo21)
 	assert.NoError(t, err)
-	assert.Len(t, users, 3)
-	assert.Equal(t, users[0].ID, int64(15))
-	assert.Equal(t, users[1].ID, int64(18))
-	assert.Equal(t, users[2].ID, int64(16))
+	assert.Len(t, users, 4)
+	assert.ElementsMatch(t, []int64{10, 15, 16, 18}, []int64{users[0].ID, users[1].ID, users[2].ID, users[3].ID})
 }
 
 func TestRepoGetReviewers(t *testing.T) {

@@ -57,6 +57,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -1223,6 +1224,14 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
+	if projectID > 0 {
+		if !ctx.Repo.CanRead(unit.TypeProjects) {
+			// User must also be able to see the project.
+			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+			return
+		}
+	}
+
 	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
@@ -1255,25 +1264,15 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-			return
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
+		} else {
+			ctx.ServerError("NewIssue", err)
 		}
-		ctx.ServerError("NewIssue", err)
 		return
-	}
-
-	if projectID > 0 {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
-			// User must also be able to see the project.
-			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
-			return
-		}
-		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
-			return
-		}
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
@@ -2047,6 +2046,10 @@ func ViewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
@@ -2250,7 +2253,11 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
-		ctx.ServerError("ChangeContent", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
+		} else {
+			ctx.ServerError("ChangeContent", err)
+		}
 		return
 	}
 
@@ -3108,7 +3115,11 @@ func NewComment(ctx *context.Context) {
 
 	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
-		ctx.ServerError("CreateIssueComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		} else {
+			ctx.ServerError("CreateIssueComment", err)
+		}
 		return
 	}
 
@@ -3152,7 +3163,11 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
-		ctx.ServerError("UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		} else {
+			ctx.ServerError("UpdateComment", err)
+		}
 		return
 	}
 
@@ -3260,9 +3275,9 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content)
+		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Content)
 		if err != nil {
-			if issues_model.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}
@@ -3367,9 +3382,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
+		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
 		if err != nil {
-			if issues_model.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}

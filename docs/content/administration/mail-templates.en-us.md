@@ -224,7 +224,7 @@ Please check [Gitea's logs](administration/logging-config.md) for error messages
         {{if not (eq .Body "")}}
             <h3>Message content</h3>
             <hr>
-            {{.Body | SanitizeHTML}}
+            {{.Body}}
         {{end}}
     </p>
     <hr>

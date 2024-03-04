@@ -153,7 +153,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}
