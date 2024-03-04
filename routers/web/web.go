@@ -650,6 +650,11 @@ func registerRoutes(m *web.Route) {
 			})
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
+
+		m.Group("/blocked_users", func() {
+			m.Get("", user_setting.BlockedUsers)
+			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
+		})
 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
@@ -948,6 +953,11 @@ func registerRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
+
+				m.Group("/blocked_users", func() {
+					m.Get("", org.BlockedUsers)
+					m.Post("", web.Bind(forms.BlockUserForm{}), org.BlockedUsersPost)
+				})
 			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
@@ -959,10 +969,6 @@ func registerRoutes(m *web.Route) {
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
-		m.Group("/fork", func() {
-			m.Combo("/{repoid}").Get(repo.Fork).
-				Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
@@ -1258,6 +1264,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+
+		m.Combo("/fork", reqRepoCodeReader).Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Tags
@@ -1349,7 +1357,7 @@ func registerRoutes(m *web.Route) {
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableProjects)
+		}, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 
 		m.Group("/actions", func() {
 			m.Get("", actions.List)
@@ -1373,6 +1381,9 @@ func registerRoutes(m *web.Route) {
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+			})
+			m.Group("/workflows/{workflow_name}", func() {
+				m.Get("/badge.svg", actions.GetWorkflowBadge)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

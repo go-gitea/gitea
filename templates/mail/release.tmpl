@@ -22,7 +22,7 @@
 		{{.locale.Tr "mail.release.note"}}<br>
 		{{- if eq .Release.RenderedNote ""}}
 		{{else}}
-			{{.Release.RenderedNote | Str2html}}
+			{{.Release.RenderedNote}}
 		{{end -}}
 	</p>
 	<br><br>

@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -112,7 +113,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.Note, err = markdown.RenderString(&markup.RenderContext{
+		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
 			Links: markup.Links{
 				Base: ctx.Repo.RepoLink,
 			},
@@ -184,6 +185,11 @@ func Releases(ctx *context.Context) {
 		ctx.ServerError("getReleaseInfos", err)
 		return
 	}
+	for _, rel := range releases {
+		if rel.Release.IsTag && rel.Release.Title == "" {
+			rel.Release.Title = rel.Release.TagName
+		}
+	}
 
 	ctx.Data["Releases"] = releases
 
@@ -223,7 +229,7 @@ func TagsList(ctx *context.Context) {
 		// the drafts should also be included because a real tag might be used as a draft.
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue,
+		HasSha1:       optional.Some(true),
 		RepoID:        ctx.Repo.Repository.ID,
 	}
 
@@ -282,6 +288,7 @@ func SingleRelease(ctx *context.Context) {
 		TagNames:    []string{ctx.Params("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
+		IncludeTags:   true,
 	})
 	if err != nil {
 		ctx.ServerError("getReleaseInfos", err)
@@ -293,6 +300,9 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	release := releases[0].Release
+	if release.IsTag && release.Title == "" {
+		release.Title = release.TagName
+	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
 	if release.IsTag {
