@@ -517,6 +517,15 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 	if err != nil {
 		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %w", issue.ID, err)
 	}
+
+	notBlocked := make([]*user_model.User, 0, len(mentions))
+	for _, user := range mentions {
+		if !user_model.IsUserBlockedBy(ctx, doer, user.ID) {
+			notBlocked = append(notBlocked, user)
+		}
+	}
+	mentions = notBlocked
+
 	if err = UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
 		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %w", issue.ID, err)
 	}

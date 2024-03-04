@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -653,6 +654,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
@@ -707,12 +709,14 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
-			return
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "NewIssue", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "NewIssue", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "NewIssue", err)
 		return
 	}
 
@@ -848,7 +852,11 @@ func EditIssue(ctx *context.APIContext) {
 
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.Error(http.StatusForbidden, "UpdateAssignees", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+			}
 			return
 		}
 	}
