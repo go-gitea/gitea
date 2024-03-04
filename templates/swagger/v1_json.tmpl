@@ -20623,6 +20623,13 @@
           "type": "object",
           "additionalProperties": {},
           "x-go-name": "Validations"
+        },
+        "visible": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormFieldVisible"
+          },
+          "x-go-name": "Visible"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20630,6 +20637,11 @@
     "IssueFormFieldType": {
       "type": "string",
       "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldVisible": {
+      "description": "IssueFormFieldVisible defines issue form field visible",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
