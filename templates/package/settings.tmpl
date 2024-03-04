@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "user/overview/header" .}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
+		<p><a href="{{.PackageDescriptor.VersionWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
