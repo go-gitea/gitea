@@ -246,8 +246,8 @@ export function initRepoBranchTagSelector(selector) {
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
-  <div class="ui dropdown custom gt-w-full gt-h-full">
-    <button type="button" class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-sb gt-m-0 gt-w-full gt-h-full" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+  <div class="ui dropdown custom tw-w-full tw-h-full">
+    <button type="button" class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-sb gt-m-0 tw-w-full tw-h-full" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
       <span class="text gt-df gt-ac gt-mr-2 gt-ellipsis">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>

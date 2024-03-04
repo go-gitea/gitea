@@ -18,7 +18,7 @@
 					<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 					{{if not .Repository.IsEmpty}}
 						{{template "repo/branch_dropdown" dict "root" .
-							"ContainerClasses" "tw-w-96 gt-mr-4"
+							"ContainerClasses" "tw-w-96 tw-mr-4"
 							"branchForm" "js-default-branch"
 							"noTag" true
 						}}
