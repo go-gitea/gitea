@@ -206,7 +206,7 @@ func TestEmailAddressValidate(t *testing.T) {
 	}
 	for kase, err := range kases {
 		t.Run(kase, func(t *testing.T) {
-			assert.EqualValues(t, err, user_model.ValidateEmail(kase, false))
+			assert.EqualValues(t, err, user_model.ValidateEmail(kase))
 		})
 	}
 }

@@ -710,7 +710,7 @@ func ActivatePost(ctx *context.Context) {
 	if code == "" {
 		newEmail := strings.TrimSpace(ctx.FormString("change_email"))
 		if ctx.Doer != nil && newEmail != "" && !strings.EqualFold(ctx.Doer.Email, newEmail) {
-			if user_model.ValidateEmail(newEmail, false) != nil {
+			if user_model.ValidateEmail(newEmail) != nil {
 				ctx.Flash.Error(ctx.Locale.Tr("form.email_invalid"), true)
 				renderActivationChangeEmail(ctx)
 				return
