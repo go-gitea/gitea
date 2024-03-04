@@ -6,7 +6,7 @@
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.generic.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>
 {{- range .PackageDescriptor.Files -}}
-curl -OJ <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></origin-url>
+curl -OJ <wc-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></wc-origin-url>
 {{end -}}
 				</code></pre></div>
 			</div>

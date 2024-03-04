@@ -49,6 +49,7 @@ HTML 页面由[Go HTML Template](https://pkg.go.dev/html/template)渲染。
 11. 推荐使用自定义事件名称前缀`ce-`。
 12. Gitea 的 tailwind-style CSS 类使用`gt-`前缀（`gt-relative`），而 Gitea 自身的私有框架级 CSS 类使用`g-`前缀（`g-modal-confirm`）。
 13. 尽量避免内联脚本和样式，建议将JS代码放入JS文件中并使用CSS类。如果内联脚本和样式不可避免，请解释无法避免的原因。
+1. Gitea 的 Web 组件使用 `wc-` 前缀。
 
 ### 可访问性 / ARIA
 

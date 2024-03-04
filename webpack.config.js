@@ -121,7 +121,7 @@ export default {
         loader: 'vue-loader',
         options: {
           compilerOptions: {
-            isCustomElement: (tag) => ['origin-url', 'overflow-menu'].includes(tag),
+            isCustomElement: (tag) => tag.startsWith('wc-'),
           },
         },
       },
