@@ -115,7 +115,7 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 }
 
 func apiUnauthorizedError(ctx *context.Context) {
-	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
+	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="https://gitea.cnoe.localtest.me/v2/token",service="container_registry",scope="*"`)
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
