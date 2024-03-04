@@ -154,7 +154,7 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-// ValidateEmail check if email is a valied address
+// ValidateEmail check if email is a valid address
 func ValidateEmail(email string) error {
 	if err := validateEmailBasic(email); err != nil {
 		return err
@@ -162,9 +162,10 @@ func ValidateEmail(email string) error {
 	return validateEmailDomain(email)
 }
 
-// ValidateEmailForAdmin check if email is a valied address when admins manually add users
+// ValidateEmailForAdmin check if email is a valid address when admins manually add users
 func ValidateEmailForAdmin(email string) error {
 	return validateEmailBasic(email)
+	// In this case we do not need to check the email domain
 }
 
 func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
@@ -515,6 +516,7 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 	return committer.Commit()
 }
 
+// validateEmailBasic checks whether the email complies with the rules
 func validateEmailBasic(email string) error {
 	if len(email) == 0 {
 		return ErrEmailInvalid{email}
@@ -535,6 +537,7 @@ func validateEmailBasic(email string) error {
 	return nil
 }
 
+// validateEmailDomain checks whether the email domain is allowed or blocked
 func validateEmailDomain(email string) error {
 	// if there is no allow list, then check email against block list
 	if len(setting.Service.EmailDomainAllowList) == 0 &&
