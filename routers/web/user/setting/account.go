@@ -19,6 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/db"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -242,11 +244,24 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		switch {
+		case user_model.IsErrUserNotExist(err):
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
+		case err == smtp.ErrUnsupportedLoginType:
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
+		case base.IsError[db.ErrUserPasswordNotSet](err):
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
+		case base.IsError[db.ErrUserPasswordInvalid](err):
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
-		} else {
+		default:
 			ctx.ServerError("UserSignIn", err)
 		}
 		return
