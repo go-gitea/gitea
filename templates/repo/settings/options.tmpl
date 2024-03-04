@@ -460,19 +460,19 @@
 					</p>
 					<div class="ui dropdown selection">
 						<select name="projects_mode">
-							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
-							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
-							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
 						</select>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="default text">
-							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "repo")}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
 								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
 							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
 								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
 							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "all")}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
 								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
 							{{end}}
 						</div>
