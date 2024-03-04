@@ -33,9 +33,11 @@ func TestCreateAuthorizationToken(t *testing.T) {
 	acClaim, ok := claims["ac"]
 	assert.True(t, ok, "Has ac claim in jwt token")
 	ac, ok := acClaim.(string)
-	assert.True(t, ok, "ac claim is a string")
-	err = json.Unmarshal([]byte(ac), &[]struct{}{})
-	assert.NoError(t, err, "ac claim is a json list")
+	assert.True(t, ok, "ac claim is a string for buildx gha cache")
+	scopes := []actionsCacheScope{}
+	err = json.Unmarshal([]byte(ac), &scopes)
+	assert.NoError(t, err, "ac claim is a json list for buildx gha cache")
+	assert.GreaterOrEqual(t, len(scopes), 1, "Expected at least one action cache scope for buildx gha cache")
 }
 
 func TestParseAuthorizationToken(t *testing.T) {
