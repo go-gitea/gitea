@@ -32,7 +32,6 @@ export default {
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
     './templates/**/*.tmpl',
-    './templates/**/*.tmpl',
     './web_src/js/**/*.{js,vue}',
   ].filter(Boolean),
   blocklist: [
