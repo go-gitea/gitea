@@ -21,20 +21,11 @@ document.body.addEventListener('htmx:responseError', (e) => {
   showErrorToast(`Error ${e.detail.xhr.status} when calling ${e.detail.requestConfig.path}`);
 });
 
-let webSocket;
-
-// TODO: move websocket creation to shared webworker
-htmx.createWebSocket = (url) => {
-  if (![0, 1].includes(webSocket?.readyState)) return webSocket;
-  const ws = new WebSocket(url, []);
-  ws.binaryType = htmx.config.wsBinaryType;
-  webSocket = ws;
-  return ws;
-};
+// TODO: move websocket creation to shared webworker by overriding htmx.createWebSocket
 
 document.body.addEventListener('htmx:wsOpen', (e) => {
   const socket = e.detail.socketWrapper;
   socket.send(
-    JSON.stringify({ action: 'subscribe', data: { url: window.location.href } })
+    JSON.stringify({action: 'subscribe', data: {url: window.location.href}})
   );
 });
