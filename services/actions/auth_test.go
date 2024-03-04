@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -29,6 +30,12 @@ func TestCreateAuthorizationToken(t *testing.T) {
 	taskIDClaim, ok := claims["TaskID"]
 	assert.True(t, ok, "Has TaskID claim in jwt token")
 	assert.Equal(t, float64(taskID), taskIDClaim, "Supplied taskid must match stored one")
+	acClaim, ok := claims["ac"]
+	assert.True(t, ok, "Has ac claim in jwt token")
+	ac, ok := acClaim.(string)
+	assert.True(t, ok, "ac claim is a string")
+	err = json.Unmarshal([]byte(ac), &[]struct{}{})
+	assert.NoError(t, err, "ac claim is a json list")
 }
 
 func TestParseAuthorizationToken(t *testing.T) {

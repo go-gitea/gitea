@@ -21,6 +21,7 @@ type actionsClaims struct {
 	TaskID int64
 	RunID  int64
 	JobID  int64
+	Ac     string `json:"ac"`
 }
 
 func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
@@ -32,6 +33,7 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
+		Ac:     "[]",
 		TaskID: taskID,
 		RunID:  runID,
 		JobID:  jobID,
