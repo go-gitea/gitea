@@ -14,7 +14,7 @@
 					We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
 					The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
 					-->
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<a href="{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
