@@ -208,7 +208,7 @@
 					<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
-				<div class="ui warning message gt-text-center">
+				<div class="ui warning message tw-text-center">
 					{{if .Repository.ArchivedUnix.IsZero}}
 						{{ctx.Locale.Tr "repo.archive.title"}}
 					{{else}}

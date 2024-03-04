@@ -1354,7 +1354,7 @@ func registerRoutes(m *web.Route) {
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableProjects)
+		}, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 
 		m.Group("/actions", func() {
 			m.Get("", actions.List)

@@ -93,6 +93,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 					AllowRebaseUpdate: true,
 				},
 			})
+		} else if tp == unit.TypeProjects {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.ProjectsConfig{ProjectsMode: repo_model.ProjectsModeAll},
+			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
