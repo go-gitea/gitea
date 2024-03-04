@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -416,8 +417,8 @@ type SearchEmailOptions struct {
 	db.ListOptions
 	Keyword     string
 	SortType    SearchEmailOrderBy
-	IsPrimary   util.OptionalBool
-	IsActivated util.OptionalBool
+	IsPrimary   optional.Option[bool]
+	IsActivated optional.Option[bool]
 }
 
 // SearchEmailResult is an e-mail address found in the user or email_address table
@@ -444,18 +445,12 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 		))
 	}
 
-	switch {
-	case opts.IsPrimary.IsTrue():
-		cond = cond.And(builder.Eq{"email_address.is_primary": true})
-	case opts.IsPrimary.IsFalse():
-		cond = cond.And(builder.Eq{"email_address.is_primary": false})
+	if opts.IsPrimary.Has() {
+		cond = cond.And(builder.Eq{"email_address.is_primary": opts.IsPrimary.Value()})
 	}
 
-	switch {
-	case opts.IsActivated.IsTrue():
-		cond = cond.And(builder.Eq{"email_address.is_activated": true})
-	case opts.IsActivated.IsFalse():
-		cond = cond.And(builder.Eq{"email_address.is_activated": false})
+	if opts.IsActivated.Has() {
+		cond = cond.And(builder.Eq{"email_address.is_activated": opts.IsActivated.Value()})
 	}
 
 	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.ID = email_address.uid").

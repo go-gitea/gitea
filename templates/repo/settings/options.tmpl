@@ -80,7 +80,7 @@
 			</h4>
 			<div class="ui attached segment">
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message gt-text-center">
+					<div class="ui warning message tw-text-center">
 						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
 					</div>
 				{{else}}
@@ -446,13 +446,45 @@
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
+				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} gt-pl-4" id="projects_box">
+					<p>
+						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
+					</p>
+					<div class="ui dropdown selection">
+						<select name="projects_mode">
+							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+						</select>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="default text">
+							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "repo")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.ProjectsMode "all")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
+							{{end}}
+						</div>
+						<div class="menu">
+							<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
+							<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
+							<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
 				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}

@@ -154,7 +154,7 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 
 // GetExpandDirection gets DiffLineExpandDirection
 func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
-	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return DiffLineExpandNone
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {

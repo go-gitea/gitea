@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -78,7 +78,7 @@ func List(ctx *context.Context) {
 		// Get all runner labels
 		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
-			IsOnline:      util.OptionalBoolTrue,
+			IsOnline:      optional.Some(true),
 			WithAvailable: true,
 		})
 		if err != nil {
