@@ -562,7 +562,7 @@
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
-				<span class="gt-float-right comparebox">
+				<span class="tw-float-right comparebox">
 					<a href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow" class="ui compare label">{{ctx.Locale.Tr "repo.issues.force_push_compare"}}</a>
 				</span>
 				{{end}}
