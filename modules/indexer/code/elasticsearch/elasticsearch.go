@@ -288,6 +288,9 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	}
 
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
+	if !setting.Indexer.DefaultFuzzy {
+		kwQuery = kwQuery.Fuzziness("0")
+	}
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {

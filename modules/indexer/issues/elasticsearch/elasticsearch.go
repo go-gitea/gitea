@@ -13,6 +13,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -141,7 +142,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments"))
+		keywordQuery := elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
+		if !setting.Indexer.DefaultFuzzy {
+			keywordQuery = keywordQuery.Fuzziness("0")
+		}
+		query.Must(keywordQuery)
 	}
 
 	if len(options.RepoIDs) > 0 {
