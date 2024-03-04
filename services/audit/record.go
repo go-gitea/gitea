@@ -127,7 +127,7 @@ func RecordUserPassword(ctx context.Context, doer, user *user_model.User) {
 }
 
 func RecordUserPasswordResetRequest(ctx context.Context, doer, user *user_model.User) {
-	record(ctx, audit_model.UserPasswordResetRequest, doer, user, user, "Requested passwort reset for user %s.", user.Name)
+	record(ctx, audit_model.UserPasswordResetRequest, doer, user, user, "Requested password reset for user %s.", user.Name)
 }
 
 func RecordUserVisibility(ctx context.Context, doer, user *user_model.User) {
