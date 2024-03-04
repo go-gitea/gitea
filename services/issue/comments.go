@@ -11,6 +11,8 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/timeutil"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -68,8 +70,22 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 	return comment, nil
 }
 
+func getDiffAttaches(oldAttaches, newAttaches container.Set[string]) (addedAttaches, delAttaches container.Set[string]) {
+	for attach := range newAttaches {
+		if !oldAttaches.Contains(attach) {
+			addedAttaches.Add(attach)
+		}
+	}
+	for attach := range oldAttaches {
+		if !newAttaches.Contains(attach) {
+			delAttaches.Add(attach)
+		}
+	}
+	return
+}
+
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
+func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string, attachments []string, ignoreUpdateAttachments bool) error {
 	needsContentHistory := c.Content != oldContent && c.Type.HasContentSupport()
 	if needsContentHistory {
 		hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, c.IssueID, c.ID)
@@ -84,15 +100,48 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
-		return err
-	}
-
-	if needsContentHistory {
-		err := issues_model.SaveIssueContentHistory(ctx, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
-		if err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
 			return err
 		}
+
+		if !ignoreUpdateAttachments {
+			oldAttaches, err := markdown.ParseAttachments(oldContent)
+			if err != nil {
+				return err
+			}
+
+			newAttaches, err := markdown.ParseAttachments(c.Content)
+			if err != nil {
+				return err
+			}
+
+			addedAttaches, delAttaches := getDiffAttaches(oldAttaches, newAttaches)
+			for _, attach := range addedAttaches.Values() {
+				attachments = append(attachments, attach)
+			}
+
+			if len(delAttaches) > 0 {
+				if err := issues_model.ClearCommentAttaches(ctx, c, delAttaches.Values()); err != nil {
+					return err
+				}
+			}
+
+			// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+			if err := updateAttachments(ctx, c, attachments); err != nil {
+				return err
+			}
+		}
+
+		if needsContentHistory {
+			err := issues_model.SaveIssueContentHistory(ctx, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	notify_service.UpdateComment(ctx, doer, c, oldContent)
