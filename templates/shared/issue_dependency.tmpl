@@ -2,7 +2,7 @@
 	<div class="flex-text-inline">
 		{{ctx.Locale.Tr .TitleKey}}
 		{{range $i, $dependency := .Dependencies}}
-			{{if gt $i 0}}<span class="gt-ml--2">, </span>{{end}}
+			{{if gt $i 0}}<span class="-tw-ml-1">, </span>{{end}}
 			{{template "shared/issue_link" $dependency.Issue}}
 		{{end}}
 	</div>
