@@ -141,12 +141,12 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 	}
 
 	for _, secret := range append(ownerSecrets, repoSecrets...) {
-		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
+		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
+		if err != nil {
 			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
 			return nil, err
-		} else {
-			secrets[secret.Name] = v
 		}
+		secrets[secret.Name] = v
 	}
 
 	return secrets, nil

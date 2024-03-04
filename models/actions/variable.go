@@ -105,6 +105,7 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	repoVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{RepoID: run.RepoID})
 	if err != nil {
 		log.Error("find variables of repo: %d, error: %v", run.RepoID, err)
+		return nil, err
 	}
 
 	// Level precedence: Repo > Org / User > Global
