@@ -605,12 +605,11 @@ func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsM
 
 	err = db.GetEngine(ctx).
 		Table("issue").
-		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where(builder.In("issue_dependency.dependency_id", issues.getIssueIDs())).
-		// sort by repo id then created date
-		Asc("issue.repo_id").
-		Asc("issue.created_unix").
+		// sort by repo id then index
+		Asc("`issue`.`repo_id`").
+		Asc("`issue`.`index`").
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
@@ -631,12 +630,11 @@ func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDeps
 
 	err = db.GetEngine(ctx).
 		Table("issue").
-		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where(builder.In("issue_dependency.issue_id", issues.getIssueIDs())).
-		// sort by repo id then created date
-		Asc("issue.repo_id").
-		Asc("issue.created_unix").
+		// sort by repo id then index
+		Asc("`issue`.`repo_id`").
+		Asc("`issue`.`index`").
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
