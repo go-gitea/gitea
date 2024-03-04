@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -78,7 +78,7 @@ func List(ctx *context.Context) {
 		// Get all runner labels
 		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
-			IsOnline:      util.OptionalBoolTrue,
+			IsOnline:      optional.Some(true),
 			WithAvailable: true,
 		})
 		if err != nil {
@@ -100,7 +100,7 @@ func List(ctx *context.Context) {
 			}
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				workflows = append(workflows, workflow)
 				continue
 			}
@@ -115,7 +115,7 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_online_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}

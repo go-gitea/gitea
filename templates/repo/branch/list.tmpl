@@ -72,7 +72,7 @@
 				<div class="gt-df gt-ac">
 					{{ctx.Locale.Tr "repo.branches"}}
 				</div>
-				<div class="gt-whitespace-nowrap">
+				<div class="tw-whitespace-nowrap">
 					<form class="ignore-dirty" method="get">
 						<div class="ui tiny search input">
 							<input name="q" placeholder="{{ctx.Locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
@@ -210,7 +210,7 @@
 		{{ctx.Locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
+		<p>{{ctx.Locale.Tr "repo.branch.delete_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

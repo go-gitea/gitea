@@ -93,11 +93,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repo.FullName(), err)
-	}
-
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
@@ -105,6 +100,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
 	var pusher *user_model.User
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
 	for _, opts := range optsList {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
@@ -321,14 +317,9 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		return nil
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
-
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		RepoID:   repo.ID,
-		TagNames: lowerTags,
+		TagNames: tags,
 	})
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
@@ -336,6 +327,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.LowerTagName] = rel
+	}
+
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))

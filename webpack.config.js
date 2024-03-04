@@ -11,6 +11,8 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
+import tailwindcss from 'tailwindcss';
+import tailwindConfig from './tailwind.config.js';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -145,6 +147,15 @@ export default {
               import: {filter: filterCssImport},
             },
           },
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                map: false, // https://github.com/postcss/postcss/issues/1914
+                plugins: [tailwindcss(tailwindConfig)],
+              },
+            },
+          }
         ],
       },
       {
@@ -169,9 +180,13 @@ export default {
     ],
   },
   plugins: [
+    new webpack.ProvidePlugin({ // for htmx extensions
+      htmx: 'htmx.org',
+    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // https://github.com/vuejs/vue-cli/pull/7443
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
@@ -206,6 +221,7 @@ export default {
       override: {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
         'htmx.org@1.9.10': {licenseName: 'BSD-2-Clause'}, // "BSD 2-Clause" -> "BSD-2-Clause"
+        'idiomorph@0.3.0': {licenseName: 'BSD-2-Clause'}, // "BSD 2-Clause" -> "BSD-2-Clause"
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',

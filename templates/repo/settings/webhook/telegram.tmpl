@@ -1,5 +1,5 @@
 {{if eq .HookType "telegram"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://core.telegram.org/bots" (ctx.Locale.Tr "repo.settings.web_hook_name_telegram") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://core.telegram.org/bots" (ctx.Locale.Tr "repo.settings.web_hook_name_telegram")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/telegram/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_BotToken}}error{{end}}">

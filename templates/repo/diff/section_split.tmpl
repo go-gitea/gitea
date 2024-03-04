@@ -18,17 +18,17 @@
 					<td class="lines-num lines-num-old">
 						<div class="gt-df">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</button>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</button>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
-							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
 							</button>
 						{{end}}

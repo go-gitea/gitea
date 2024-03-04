@@ -15,7 +15,7 @@ menu:
     identifier: "windows-service"
 ---
 
-# 准备工作
+## 准备工作
 
 在 C:\gitea\custom\conf\app.ini 中进行了以下更改：
 
@@ -27,7 +27,7 @@ RUN_USER = COMPUTERNAME$
 
 COMPUTERNAME 是从命令行中运行 `echo %COMPUTERNAME%` 后得到的响应。如果响应是 `USER-PC`，那么 `RUN_USER = USER-PC$`。
 
-## 使用绝对路径
+### 使用绝对路径
 
 如果您使用 SQLite3，请将 `PATH` 更改为包含完整路径：
 
@@ -36,7 +36,7 @@ COMPUTERNAME 是从命令行中运行 `echo %COMPUTERNAME%` 后得到的响应�
 PATH     = c:/gitea/data/gitea.db
 ```
 
-# 注册为Windows服务
+## 注册为Windows服务
 
 要注册为Windows服务，首先以Administrator身份运行 `cmd`，然后执行以下命令：
 
@@ -48,7 +48,16 @@ sc.exe create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"
 
 之后在控制面板打开 "Windows Services"，搜索 "gitea"，右键选择 "Run"。在浏览器打开 `http://localhost:3000` 就可以访问了。（如果你修改了端口，请访问对应的端口，3000是默认端口）。
 
-## 添加启动依赖项
+### 服务启动类型
+
+据观察，在启动期间加载的系统上，Gitea 服务可能无法启动，并在 Windows 事件日志中记录超时。
+在这种情况下，将启动类型更改为`Automatic-Delayed`。这可以在服务创建期间完成，或者通过运行配置命令来完成。
+
+```
+sc.exe config gitea start= delayed-auto
+```
+
+### 添加启动依赖项
 
 要将启动依赖项添加到 Gitea Windows 服务（例如 Mysql、Mariadb），作为管理员，然后运行以下命令：
 
