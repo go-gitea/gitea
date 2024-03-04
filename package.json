@@ -23,7 +23,6 @@
     "chartjs-plugin-zoom": "2.0.1",
     "clippie": "4.0.7",
     "css-loader": "6.10.0",
-    "css-variables-parser": "1.0.1",
     "dayjs": "1.11.10",
     "dropzone": "6.0.0-beta.2",
     "easymde": "2.18.0",
