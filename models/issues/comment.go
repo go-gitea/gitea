@@ -8,6 +8,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strconv"
 	"unicode/utf8"
 
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -262,8 +264,8 @@ type Comment struct {
 	CommitID        int64
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
-	Content         string `xorm:"LONGTEXT"`
-	RenderedContent string `xorm:"-"`
+	Content         string        `xorm:"LONGTEXT"`
+	RenderedContent template.HTML `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
@@ -1038,8 +1040,8 @@ type FindCommentsOptions struct {
 	TreePath    string
 	Type        CommentType
 	IssueIDs    []int64
-	Invalidated util.OptionalBool
-	IsPull      util.OptionalBool
+	Invalidated optional.Option[bool]
+	IsPull      optional.Option[bool]
 }
 
 // ToConds implements FindOptions interface
@@ -1071,11 +1073,11 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
 	}
-	if !opts.Invalidated.IsNone() {
-		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
+	if opts.Invalidated.Has() {
+		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.Value()})
 	}
-	if opts.IsPull != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+	if opts.IsPull.Has() {
+		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.Value()})
 	}
 	return cond
 }
@@ -1084,7 +1086,7 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 || opts.IsPull != util.OptionalBoolNone {
+	if opts.RepoID > 0 || opts.IsPull.Has() {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 
