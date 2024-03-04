@@ -67,7 +67,7 @@ func TestAPIRepoLicense(t *testing.T) {
 	})
 }
 
-func checkRepoLicense(t *testing.T, owner, repo string, excepted []string) {
+func checkRepoLicense(t *testing.T, owner, repo string, expected []string) {
 	reqURL := fmt.Sprintf("/api/v1/repos/%s/%s/licenses", owner, repo)
 	req := NewRequest(t, "GET", reqURL)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -75,5 +75,5 @@ func checkRepoLicense(t *testing.T, owner, repo string, excepted []string) {
 	var licenses []string
 	DecodeJSON(t, resp, &licenses)
 
-	assert.ElementsMatch(t, excepted, licenses, 0)
+	assert.ElementsMatch(t, expected, licenses, 0)
 }
