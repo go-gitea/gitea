@@ -1,8 +1,9 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
@@ -30,50 +31,50 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  saveBtn.on('click', () => {
+  saveBtn.on('click', async () => {
     const topics = $('input[name=topics]').val();
 
-    $.post(saveBtn.attr('data-link'), {
-      _csrf: csrfToken,
-      topics
-    }, (_data, _textStatus, xhr) => {
-      if (xhr.responseJSON.status === 'ok') {
+    const data = new FormData();
+    data.append('topics', topics);
+
+    const response = await POST(saveBtn.attr('data-link'), {data});
+
+    if (response.ok) {
+      const responseData = await response.json();
+      if (responseData.status === 'ok') {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
-          for (let i = 0; i < topicArray.length; i++) {
+          for (const topic of topicArray) {
             const link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
-            link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
-            link.text(topicArray[i]);
+            link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
+            link.text(topic);
             link.insertBefore(mgrBtn); // insert all new topics before manage button
           }
         }
         hideElem(editDiv);
         showElem(viewDiv);
       }
-    }).fail((xhr) => {
-      if (xhr.status === 422) {
-        if (xhr.responseJSON.invalidTopics.length > 0) {
-          topicPrompts.formatPrompt = xhr.responseJSON.message;
+    } else if (response.status === 422) {
+      const responseData = await response.json();
+      if (responseData.invalidTopics.length > 0) {
+        topicPrompts.formatPrompt = responseData.message;
 
-          const {invalidTopics} = xhr.responseJSON;
-          const topicLabels = topicDropdown.children('a.ui.label');
-
-          for (const [index, value] of topics.split(',').entries()) {
-            for (let i = 0; i < invalidTopics.length; i++) {
-              if (invalidTopics[i] === value) {
-                topicLabels.eq(index).removeClass('green').addClass('red');
-              }
-            }
+        const {invalidTopics} = responseData;
+        const topicLabels = topicDropdown.children('a.ui.label');
+        for (const [index, value] of topics.split(',').entries()) {
+          if (invalidTopics.includes(value)) {
+            topicLabels.eq(index).removeClass('green').addClass('red');
           }
-        } else {
-          topicPrompts.countPrompt = xhr.responseJSON.message;
         }
+      } else {
+        topicPrompts.countPrompt = responseData.message;
       }
-    }).always(() => {
-      topicForm.form('validate form');
-    });
+    }
+
+    // Always validate the form
+    topicForm.form('validate form');
   });
 
   topicDropdown.dropdown({
