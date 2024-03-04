@@ -134,17 +134,16 @@ func getDivergenceFromCache(repoID int64, branchName string) *git.DivergeObject 
 	return &res
 }
 
-func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) {
+func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) error {
 	bs, err := json.Marshal(divergence)
 	if err != nil {
-		log.Error("json.Marshal failed: %v", err)
-		return
+		return err
 	}
-	cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), bs, 30*24*60*60)
+	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), bs, 30*24*60*60)
 }
 
-func DelDivergenceFromCache(repoID int64, branchName string) {
-	cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
+func DelDivergenceFromCache(repoID int64, branchName string) error {
+	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
 }
 
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
@@ -171,7 +170,9 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 			if err != nil {
 				log.Error("CountDivergingCommits: %v", err)
 			} else {
-				putDivergenceFromCache(repo.ID, dbBranch.Name, divergence)
+				if err = putDivergenceFromCache(repo.ID, dbBranch.Name, divergence); err != nil {
+					log.Error("putDivergenceFromCache: %v", err)
+				}
 			}
 		}
 	}

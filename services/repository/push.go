@@ -222,7 +222,9 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				// delete cache for divergence
-				DelDivergenceFromCache(repo.ID, branch)
+				if err := DelDivergenceFromCache(repo.ID, branch); err != nil {
+					log.Error("DelDivergenceFromCache: %v", err)
+				}
 
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
