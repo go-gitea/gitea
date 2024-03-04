@@ -162,6 +162,21 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 	ctx.Data["NumFollowing"] = numFollowing
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
@@ -208,6 +223,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -230,6 +250,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -275,6 +300,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)

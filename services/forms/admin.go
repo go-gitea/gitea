@@ -41,6 +41,7 @@ type AdminEditUserForm struct {
 	Password                string `binding:"MaxSize(255)"`
 	Website                 string `binding:"ValidUrl;MaxSize(255)"`
 	Location                string `binding:"MaxSize(50)"`
+	Language                string `binding:"MaxSize(5)"`
 	MaxRepoCreation         int
 	Active                  bool
 	Admin                   bool

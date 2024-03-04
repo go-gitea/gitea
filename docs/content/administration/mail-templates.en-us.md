@@ -259,14 +259,14 @@ This template produces something along these lines:
 The template system contains several functions that can be used to further process and format
 the messages. Here's a list of some of them:
 
-| Name             | Parameters  | Available | Usage                                                                       |
-| ---------------- | ----------- | --------- |-----------------------------------------------------------------------------|
-| `AppUrl`         | -           | Any       | Gitea's URL                                                                 |
-| `AppName`        | -           | Any       | Set from `app.ini`, usually "Gitea"                                         |
-| `AppDomain`      | -           | Any       | Gitea's host name                                                           |
-| `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed         |
-| `SanitizeHTML`   | string      | Body only | Sanitizes text by removing any dangerous HTML tags from it.                 |
-| `SafeHTML`       | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
+| Name             | Parameters  | Available | Usage                                                               |
+| ---------------- | ----------- | --------- | ------------------------------------------------------------------- |
+| `AppUrl`         | -           | Any       | Gitea's URL                                                         |
+| `AppName`        | -           | Any       | Set from `app.ini`, usually "Gitea"                                 |
+| `AppDomain`      | -           | Any       | Gitea's host name                                                   |
+| `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed |
+| `SanitizeHTML`   | string      | Body only | Sanitizes text by removing any dangerous HTML tags from it          |
+| `SafeHTML`       | string      | Body only | Takes the input as HTML, can be used for outputing raw HTML content |
 
 These are _functions_, not metadata, so they have to be used:
 

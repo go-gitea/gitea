@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -302,7 +303,7 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	}
 	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		return err
