@@ -365,24 +365,26 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 		}
 	}
 
-	teamUsers, err := organization.GetTeamUsersByTeamID(ctx, t.ID)
+	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+		TeamID: t.ID,
+	})
 	if err != nil {
-		return fmt.Errorf("getTeamUsersByTeamID: %w", err)
+		return fmt.Errorf("GetTeamMembers: %w", err)
 	}
-	for _, teamUser := range teamUsers {
-		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
+	for _, member := range teamMembers {
+		has, err := access_model.HasAccess(ctx, member.ID, repo)
 		if err != nil {
 			return err
 		} else if has {
 			continue
 		}
 
-		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, member.ID, repo.ID); err != nil {
 			return err
 		}
 	}
