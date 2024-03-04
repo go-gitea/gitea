@@ -20,18 +20,18 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -135,33 +135,33 @@ func Search(ctx *context.APIContext) {
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
-		Collaborate:        util.OptionalBoolNone,
+		Collaborate:        optional.None[bool](),
 		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
-		Template:           util.OptionalBoolNone,
+		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
 
 	if ctx.FormString("template") != "" {
-		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
+		opts.Template = optional.Some(ctx.FormBool("template"))
 	}
 
 	if ctx.FormBool("exclusive") {
-		opts.Collaborate = util.OptionalBoolFalse
+		opts.Collaborate = optional.Some(false)
 	}
 
 	mode := ctx.FormString("mode")
 	switch mode {
 	case "source":
-		opts.Fork = util.OptionalBoolFalse
-		opts.Mirror = util.OptionalBoolFalse
+		opts.Fork = optional.Some(false)
+		opts.Mirror = optional.Some(false)
 	case "fork":
-		opts.Fork = util.OptionalBoolTrue
+		opts.Fork = optional.Some(true)
 	case "mirror":
-		opts.Mirror = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(true)
 	case "collaborative":
-		opts.Mirror = util.OptionalBoolFalse
-		opts.Collaborate = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(false)
+		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
@@ -169,11 +169,11 @@ func Search(ctx *context.APIContext) {
 	}
 
 	if ctx.FormString("archived") != "" {
-		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
+		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
 	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
+		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
 	sortMode := ctx.FormString("sort")
@@ -358,7 +358,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	opts := repo_module.GenerateRepoOptions{
+	opts := repo_service.GenerateRepoOptions{
 		Name:            form.Name,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
@@ -944,13 +944,33 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
-		if *opts.HasProjects {
+	currHasProjects := repo.UnitEnabled(ctx, unit_model.TypeProjects)
+	newHasProjects := currHasProjects
+	if opts.HasProjects != nil {
+		newHasProjects = *opts.HasProjects
+	}
+	if currHasProjects || newHasProjects {
+		if newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
+			unit, err := repo.GetUnit(ctx, unit_model.TypeProjects)
+			var config *repo_model.ProjectsConfig
+			if err != nil {
+				config = &repo_model.ProjectsConfig{
+					ProjectsMode: repo_model.ProjectsModeAll,
+				}
+			} else {
+				config = unit.ProjectsConfig()
+			}
+
+			if opts.ProjectsMode != nil {
+				config.ProjectsMode = repo_model.ProjectsMode(*opts.ProjectsMode)
+			}
+
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
+				Config: config,
 			})
-		} else {
+		} else if !newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 	}

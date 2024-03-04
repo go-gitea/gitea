@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -446,6 +446,17 @@ type PackageSettingForm struct {
 
 // Validate validates the fields
 func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type BlockUserForm struct {
+	Action  string `binding:"Required;In(block,unblock,note)"`
+	Blockee string `binding:"Required"`
+	Note    string
+}
+
+func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

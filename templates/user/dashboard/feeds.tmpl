@@ -8,7 +8,7 @@
 				{{if .IsPrivateView}}
 					<div>
 						{{if gt .ActUser.ID 0}}
-							<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetDisplayNameTitle ctx}}">{{.GetDisplayName ctx}}</a>
+							<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetActDisplayNameTitle ctx}}">{{.GetActDisplayName ctx}}</a>
 						{{else}}
 							{{.ShortActUserName ctx}}
 						{{end}}
@@ -25,7 +25,7 @@
 				{{else}}
 					<div>
 						{{if gt .ActUser.ID 0}}
-							<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetDisplayNameTitle ctx}}">{{.GetDisplayName ctx}}</a>
+							<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetActDisplayNameTitle ctx}}">{{.GetActDisplayName ctx}}</a>
 						{{else}}
 							{{.ShortActUserName ctx}}
 						{{end}}

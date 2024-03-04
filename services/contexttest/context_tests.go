@@ -12,16 +12,17 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +62,8 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	base.Locale = &translation.MockLocale{}
 
 	ctx := context.NewWebContext(base, opt.Render, nil)
-
+	ctx.PageData = map[string]any{}
+	ctx.Data["PageStartTime"] = time.Now()
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp

@@ -21,7 +21,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -31,6 +30,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -244,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
-		opts := repo_module.GenerateRepoOptions{
+		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
 			Private:         form.Private,
@@ -313,13 +313,13 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "star":
-		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -336,8 +336,12 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
-		return
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+		} else {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
 	}
 
 	switch ctx.Params(":action") {
@@ -553,33 +557,33 @@ func SearchRepo(ctx *context.Context) {
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
-		Collaborate:        util.OptionalBoolNone,
+		Collaborate:        optional.None[bool](),
 		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
-		Template:           util.OptionalBoolNone,
+		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
 
 	if ctx.FormString("template") != "" {
-		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
+		opts.Template = optional.Some(ctx.FormBool("template"))
 	}
 
 	if ctx.FormBool("exclusive") {
-		opts.Collaborate = util.OptionalBoolFalse
+		opts.Collaborate = optional.Some(false)
 	}
 
 	mode := ctx.FormString("mode")
 	switch mode {
 	case "source":
-		opts.Fork = util.OptionalBoolFalse
-		opts.Mirror = util.OptionalBoolFalse
+		opts.Fork = optional.Some(false)
+		opts.Mirror = optional.Some(false)
 	case "fork":
-		opts.Fork = util.OptionalBoolTrue
+		opts.Fork = optional.Some(true)
 	case "mirror":
-		opts.Mirror = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(true)
 	case "collaborative":
-		opts.Mirror = util.OptionalBoolFalse
-		opts.Collaborate = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(false)
+		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
@@ -587,11 +591,11 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	if ctx.FormString("archived") != "" {
-		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
+		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
 	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
+		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
 	sortMode := ctx.FormString("sort")
