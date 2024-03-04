@@ -370,7 +370,8 @@ export default {
     </div>
     <div class="contributor-grid">
       <div
-        v-for="(contributor, index) in sortedContributors" :key="index" class="stats-table"
+        v-for="(contributor, index) in sortedContributors"
+        :key="index"
         v-memo="[sortedContributors, type]"
       >
         <div class="ui top attached header gt-df gt-f1">
@@ -406,11 +407,23 @@ export default {
 <style scoped>
 .main-graph {
   height: 260px;
+  padding-top: 2px;
 }
+
 .contributor-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+.contributor-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .contributor-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .contributor-name {
