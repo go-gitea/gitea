@@ -1,16 +1,26 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_22 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
-	}
+type Blocking struct {
+	ID          int64 `xorm:"pk autoincr"`
+	BlockerID   int64 `xorm:"UNIQUE(block)"`
+	BlockeeID   int64 `xorm:"UNIQUE(block)"`
+	Note        string
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
 
-	return x.Sync(new(Issue))
+func (*Blocking) TableName() string {
+	return "user_blocking"
+}
+
+func AddUserBlockingTable(x *xorm.Engine) error {
+	return x.Sync(&Blocking{})
 }

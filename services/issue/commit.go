@@ -6,6 +6,7 @@ package issue
 import (
 	"code.gitea.io/gitea/modules/util"
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/url"
@@ -105,6 +106,9 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			if err = CreateRefComment(ctx, doer, refRepo, refIssue, message, c.Sha1); err != nil {
+				if errors.Is(err, user_model.ErrBlockedUser) {
+					continue
+				}
 				return err
 			}
 

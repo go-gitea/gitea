@@ -4,10 +4,12 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -154,6 +156,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/error"
 	//   "423":
@@ -199,7 +203,11 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	}
 
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
-		ctx.ServerError("UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+		} else {
+			ctx.ServerError("UpdateComment", err)
+		}
 		return
 	}
 
