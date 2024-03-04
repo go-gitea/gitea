@@ -33,7 +33,7 @@
 			<div class="comment-header-right actions gt-df gt-ac">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
@@ -63,7 +63,7 @@
 			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
 			{{if .Attachments}}
-				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}

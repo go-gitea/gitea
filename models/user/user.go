@@ -731,7 +731,7 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 
 // IsLastAdminUser check whether user is the last admin
 func IsLastAdminUser(ctx context.Context, user *User) bool {
-	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: optional.Some(true)}) <= 1 {
 		return true
 	}
 	return false
@@ -740,7 +740,7 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
-	IsAdmin        util.OptionalBool
+	IsAdmin        optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -758,8 +758,8 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
 		}
 
-		if !opts.IsAdmin.IsNone() {
-			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+		if opts.IsAdmin.Has() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
 		}
 	}
 
@@ -1183,7 +1183,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		// If they follow - they see each over
+		// If they follow - they see each other
 		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true
