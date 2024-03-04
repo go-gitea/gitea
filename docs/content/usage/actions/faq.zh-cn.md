@@ -45,25 +45,25 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 
 ## 使用`actions/checkout@v4`等Actions时，Job容器会从何处下载脚本？
 
-您可能知道GitHub上有成千上万个[Actions市场](https://github.com/marketplace?type=actions)。
-然而，当您编写`uses: actions/checkout@v4`时，它实际上默认从[gitea.com/actions/checkout](http://gitea.com/actions/checkout)下载脚本（而不是从GitHub下载）。
-这是[github.com/actions/checkout](http://github.com/actions/checkout)的镜像，但无法将它们全部镜像。
-这就是为什么在尝试使用尚未镜像的某些Actions时可能会遇到失败的原因。
+GitHub 上有成千上万个 [Actions 脚本](https://github.com/marketplace?type=actions)。
+当您编写 `uses: actions/checkout@v4` 时，它默认会从 [github.com/actions/checkout](https://github.com/actions/checkout) 下载脚本。
+那如果您想使用一些托管在其它平台上的脚本呢，比如在 gitea.com 上的？
 
 好消息是，您可以指定要从任何位置使用Actions的URL前缀。
 这是Gitea Actions中的额外语法。
 例如：
 
-- `uses: https://github.com/xxx/xxx@xxx`
 - `uses: https://gitea.com/xxx/xxx@xxx`
+- `uses: https://github.com/xxx/xxx@xxx`
 - `uses: http://your_gitea_instance.com/xxx@xxx`
 
 注意，`https://`或`http://`前缀是必需的！
 
-另外，如果您希望您的Runner默认从GitHub或您自己的Gitea实例下载Actions，可以通过设置 `[actions].DEFAULT_ACTIONS_URL`进行配置。
-参见[配置速查表](administration/config-cheat-sheet.md#actions-actions)。
+这是与 GitHub Actions 的一个区别，GitHub Actions 只允许使用托管在 GitHub 上的 actions 脚本。
+但用户理应拥有权利去灵活决定如何运行 Actions。
 
-这是与GitHub Actions的一个区别，但它应该允许用户以更灵活的方式运行Actions。
+另外，如果您希望您的 Runner 默认从您自己的 Gitea 实例下载 Actions，可以通过设置 `[actions].DEFAULT_ACTIONS_URL`进行配置。
+参见[配置速查表](administration/config-cheat-sheet.md#actions-actions)。
 
 ## 如何限制Runner的权限？
 

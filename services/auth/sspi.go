@@ -14,13 +14,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	gitea_context "code.gitea.io/gitea/services/context"
 
 	gouuid "github.com/google/uuid"
 )
@@ -132,7 +131,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive:  util.OptionalBoolTrue,
+		IsActive:  optional.Some(true),
 		LoginType: auth.SSPI,
 	})
 	if err != nil {
