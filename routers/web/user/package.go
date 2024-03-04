@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
@@ -54,7 +55,7 @@ func ListPackages(ctx *context.Context) {
 		OwnerID:    ctx.ContextUser.ID,
 		Type:       packages_model.Type(packageType),
 		Name:       packages_model.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -145,7 +146,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID:  p.ID,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetPackageByName", err)
@@ -162,7 +163,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(pd.FullWebLink())
+	ctx.Redirect(pd.VersionWebLink())
 }
 
 // ViewPackageVersion displays a single package version
@@ -255,7 +256,7 @@ func ViewPackageVersion(ctx *context.Context) {
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 		})
 	}
 	if err != nil {
@@ -359,7 +360,7 @@ func ListPackageVersions(ctx *context.Context) {
 				ExactMatch: false,
 				Value:      query,
 			},
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 			Sort:       sort,
 		})
 		if err != nil {
@@ -467,7 +468,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 		// redirect to the package if there are still versions available
-		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: util.OptionalBoolFalse}); has {
+		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
 			redirectURL = ctx.Package.Descriptor.PackageWebLink()
 		}
 

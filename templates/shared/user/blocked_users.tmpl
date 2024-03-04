@@ -1,0 +1,83 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "user.block.title"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{ctx.Locale.Tr "user.block.info_1"}}</p>
+	<ul>
+		<li>{{ctx.Locale.Tr "user.block.info_2"}}</li>
+		<li>{{ctx.Locale.Tr "user.block.info_3"}}</li>
+		<li>{{ctx.Locale.Tr "user.block.info_4"}}</li>
+		<li>{{ctx.Locale.Tr "user.block.info_5"}}</li>
+		<li>{{ctx.Locale.Tr "user.block.info_6"}}</li>
+		<li>{{ctx.Locale.Tr "user.block.info_7"}}</li>
+	</ul>
+</div>
+<div class="ui segment">
+	<form class="ui form ignore-dirty" action="{{$.Link}}" method="post">
+		{{.CsrfTokenHtml}}
+		<input type="hidden" name="action" value="block" />
+		<div id="search-user-box" class="field ui fluid search input">
+			<input class="prompt gt-mr-3" name="blockee" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
+			<button class="ui red button">{{ctx.Locale.Tr "user.block.block"}}</button>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "user.block.note.title"}}</label>
+			<input name="note">
+			<p class="help">{{ctx.Locale.Tr "user.block.note.info"}}</p>
+		</div>
+	</form>
+</div>
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "user.block.list"}}
+</h4>
+<div class="ui attached segment">
+	<div class="flex-list">
+		{{range .UserBlocks}}
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{ctx.AvatarUtils.Avatar .Blockee}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						<a class="item" href="{{.Blockee.HTMLURL}}">{{.Blockee.GetDisplayName}}</a>
+					</div>
+					{{if .Note}}
+					<div class="flex-item-body">
+						<i>{{ctx.Locale.Tr "user.block.note"}}:</i> {{.Note}}
+					</div>
+					{{end}}
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui compact mini button show-modal" data-modal="#block-user-note-modal" data-modal-modal-blockee="{{.Blockee.Name}}" data-modal-modal-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
+					<form action="{{$.Link}}" method="post">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="action" value="unblock" />
+						<input type="hidden" name="blockee" value="{{.Blockee.Name}}" />
+						<button class="ui compact mini button">{{ctx.Locale.Tr "user.block.unblock"}}</button>
+					</form>
+				</div>
+			</div>
+		{{else}}
+			<div class="item">{{ctx.Locale.Tr "user.block.list.none"}}</div>
+		{{end}}
+	</div>
+</div>
+<div class="ui small modal" id="block-user-note-modal">
+	<div class="header">{{ctx.Locale.Tr "user.block.note.edit"}}</div>
+	<div class="content">
+		<form class="ui form" action="{{$.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="note" />
+			<input type="hidden" name="blockee" class="modal-blockee" />
+			<div class="field">
+				<label>{{ctx.Locale.Tr "user.block.note.title"}}</label>
+				<input name="note" class="modal-note" />
+				<p class="help">{{ctx.Locale.Tr "user.block.note.info"}}</p>
+			</div>
+			<div class="text right actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+			</div>
+		</form>
+	</div>
+</div>

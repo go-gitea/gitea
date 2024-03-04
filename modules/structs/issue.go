@@ -6,6 +6,7 @@ package structs
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -141,11 +142,36 @@ const (
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        IssueFormFieldType `json:"type" yaml:"type"`
-	ID          string             `json:"id" yaml:"id"`
-	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
-	Validations map[string]any     `json:"validations" yaml:"validations"`
+	Type        IssueFormFieldType      `json:"type" yaml:"type"`
+	ID          string                  `json:"id" yaml:"id"`
+	Attributes  map[string]any          `json:"attributes" yaml:"attributes"`
+	Validations map[string]any          `json:"validations" yaml:"validations"`
+	Visible     []IssueFormFieldVisible `json:"visible,omitempty"`
 }
+
+func (iff IssueFormField) VisibleOnForm() bool {
+	if len(iff.Visible) == 0 {
+		return true
+	}
+	return slices.Contains(iff.Visible, IssueFormFieldVisibleForm)
+}
+
+func (iff IssueFormField) VisibleInContent() bool {
+	if len(iff.Visible) == 0 {
+		// we have our markdown exception
+		return iff.Type != IssueFormFieldTypeMarkdown
+	}
+	return slices.Contains(iff.Visible, IssueFormFieldVisibleContent)
+}
+
+// IssueFormFieldVisible defines issue form field visible
+// swagger:model
+type IssueFormFieldVisible string
+
+const (
+	IssueFormFieldVisibleForm    IssueFormFieldVisible = "form"
+	IssueFormFieldVisibleContent IssueFormFieldVisible = "content"
+)
 
 // IssueTemplate represents an issue template for a repository
 // swagger:model

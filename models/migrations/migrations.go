@@ -560,6 +560,8 @@ var migrations = []Migration{
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 	// v287 -> v288
 	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -69,7 +69,7 @@
 					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 				{{end}}
 			{{else}}
-				{{template "explore/repo_search" .}}
+				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
 			{{end}}

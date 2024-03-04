@@ -20,7 +20,7 @@
 					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
-						{{template "explore/repo_search" .}}
+						{{template "shared/repo_search" .}}
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
 					</div>
@@ -31,7 +31,7 @@
 				{{else if eq .TabName "overview"}}
 					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
 				{{else}}
-					{{template "explore/repo_search" .}}
+					{{template "shared/repo_search" .}}
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
 				{{end}}

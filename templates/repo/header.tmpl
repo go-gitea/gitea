@@ -93,7 +93,7 @@
 								<div class="header">
 									{{ctx.Locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content gt-text-left">
+								<div class="content tw-text-left">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
 											<div class="ui item gt-py-3">
@@ -174,7 +174,8 @@
 					</a>
 				{{end}}
 
-				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
+				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}

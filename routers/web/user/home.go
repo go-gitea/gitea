@@ -30,7 +30,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -215,7 +214,7 @@ func Milestones(ctx *context.Context) {
 	counts, err := issues_model.CountMilestonesMap(ctx, issues_model.FindMilestoneOptions{
 		RepoCond: userRepoCond,
 		Name:     keyword,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 	})
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
@@ -228,7 +227,7 @@ func Milestones(ctx *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoCond: repoCond,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 	})
@@ -440,9 +439,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	isPullList := unitType == unit.TypePullRequests
 	opts := &issues_model.IssuesOptions{
-		IsPull:     util.OptionalBoolOf(isPullList),
+		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
-		IsArchived: util.OptionalBoolFalse,
+		IsArchived: optional.Some(false),
 		Org:        org,
 		Team:       team,
 		User:       ctx.Doer,
@@ -516,7 +515,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.FormString("state") == "closed"
-	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
+	opts.IsClosed = optional.Some(isShowClosed)
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := ctx.FormInt("page")
@@ -800,12 +799,12 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		case issues_model.FilterModeReviewed:
 			openClosedOpts.ReviewedID = &doerID
 		}
-		openClosedOpts.IsClosed = util.OptionalBoolFalse
+		openClosedOpts.IsClosed = optional.Some(false)
 		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
 		}
-		openClosedOpts.IsClosed = util.OptionalBoolTrue
+		openClosedOpts.IsClosed = optional.Some(true)
 		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -188,7 +188,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(ctx, org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org, u); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
 						err = org_service.DeleteOrganization(ctx, org, true)
 						if err != nil {
@@ -252,10 +252,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	committer.Close()
 
-	if err = asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(ctx); err != nil {
+	if err = asymkey_service.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 

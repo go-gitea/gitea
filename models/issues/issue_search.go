@@ -13,7 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -34,8 +34,8 @@ type IssuesOptions struct { //nolint
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
-	IsClosed           util.OptionalBool
-	IsPull             util.OptionalBool
+	IsClosed           optional.Option[bool]
+	IsPull             optional.Option[bool]
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
@@ -46,7 +46,7 @@ type IssuesOptions struct { //nolint
 	UpdatedBeforeUnix  int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
-	IsArchived     util.OptionalBool
+	IsArchived     optional.Option[bool]
 	Org            *organization.Organization // issues permission scope
 	Team           *organization.Team         // issues permission scope
 	User           *user_model.User           // issues permission scope
@@ -217,8 +217,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyRepoConditions(sess, opts)
 
-	if !opts.IsClosed.IsNone() {
-		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
+	if opts.IsClosed.Has() {
+		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
 	if opts.AssigneeID > 0 {
@@ -260,21 +260,18 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectBoardCondition(sess, opts)
 
-	switch opts.IsPull {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?", false)
+	if opts.IsPull.Has() {
+		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
-	if opts.IsArchived != util.OptionalBoolNone {
-		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+	if opts.IsArchived.Has() {
+		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.Value()})
 	}
 
 	applyLabelsCondition(sess, opts)
 
 	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
 	}
 
 	return sess

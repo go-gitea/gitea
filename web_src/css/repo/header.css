@@ -89,9 +89,6 @@
   .repo-header .flex-item {
     flex-grow: 1;
   }
-  .repo-buttons .ui.labeled.button .text {
-    display: none;
-  }
   .repo-header .flex-item-trailing .label {
     display: none;
   }

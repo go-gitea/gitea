@@ -1,5 +1,5 @@
 {{$useMarkdownEditor := not .item.Attributes.render}}
-<div class="field {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}gt-hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
 
 	{{/* the real form element to provide the value */}}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	goproxy_module "code.gitea.io/gitea/modules/packages/goproxy"
 	"code.gitea.io/gitea/modules/util"
@@ -129,7 +130,7 @@ func resolvePackage(ctx *context.Context, ownerID int64, name, version string) (
 				Value:      name,
 				ExactMatch: true,
 			},
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 			Sort:       packages_model.SortCreatedDesc,
 		})
 		if err != nil {

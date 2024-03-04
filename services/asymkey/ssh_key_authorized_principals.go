@@ -13,31 +13,22 @@ import (
 	"strings"
 	"time"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
-//  _____          __  .__                 .__                  .___
-// /  _  \  __ ___/  |_|  |__   ___________|__|_______ ____   __| _/
-// /  /_\  \|  |  \   __\  |  \ /  _ \_  __ \  \___   // __ \ / __ |
-// /    |    \  |  /|  | |   Y  (  <_> )  | \/  |/    /\  ___// /_/ |
-// \____|__  /____/ |__| |___|  /\____/|__|  |__/_____ \\___  >____ |
-//         \/                 \/                      \/    \/     \/
-// __________       .__              .__             .__
-// \______   _______|__| ____   ____ |_____________  |  |   ______
-//  |     ___\_  __ |  |/    \_/ ___\|  \____ \__  \ |  |  /  ___/
-//  |    |    |  | \|  |   |  \  \___|  |  |_> / __ \|  |__\___ \
-//  |____|    |__|  |__|___|  /\___  |__|   __(____  |____/____  >
-//                          \/     \/   |__|       \/          \/
-//
 // This file contains functions for creating authorized_principals files
 //
 // There is a dependence on the database within RewriteAllPrincipalKeys & RegeneratePrincipalKeys
 // The sshOpLocker is used from ssh_key_authorized_keys.go
 
-const authorizedPrincipalsFile = "authorized_principals"
+const (
+	authorizedPrincipalsFile = "authorized_principals"
+	tplCommentPrefix         = `# gitea public key`
+)
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
 // Note: db.GetEngine(ctx).Iterate does not get latest data after insert/delete, so we have to call this function
@@ -48,9 +39,12 @@ func RewriteAllPrincipalKeys(ctx context.Context) error {
 		return nil
 	}
 
-	sshOpLocker.Lock()
-	defer sshOpLocker.Unlock()
+	return asymkey_model.WithSSHOpLocker(func() error {
+		return rewriteAllPrincipalKeys(ctx)
+	})
+}
 
+func rewriteAllPrincipalKeys(ctx context.Context) error {
 	if setting.SSH.RootPath != "" {
 		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
 		// This of course doesn't guarantee that this is the right directory for authorized_keys
@@ -97,8 +91,8 @@ func RewriteAllPrincipalKeys(ctx context.Context) error {
 }
 
 func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
-	if err := db.GetEngine(ctx).Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
-		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+	if err := db.GetEngine(ctx).Where("type = ?", asymkey_model.KeyTypePrincipal).Iterate(new(asymkey_model.PublicKey), func(idx int, bean any) (err error) {
+		_, err = t.WriteString((bean.(*asymkey_model.PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {
 		return err

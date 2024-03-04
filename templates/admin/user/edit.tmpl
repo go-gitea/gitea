@@ -70,6 +70,21 @@
 					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
 				</div>
+
+				<div class="field {{if .Err_Language}}error{{end}}">
+					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
+					<div class="ui selection dropdown">
+						<input name="language" type="hidden" value="{{.User.Language}}">
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="text">{{range .AllLangs}}{{if eq $.User.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
+						<div class="menu">
+						{{range .AllLangs}}
+							<div class="item{{if eq $.User.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+						{{end}}
+						</div>
+					</div>
+				</div>
+
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="http://mydomain.com or https://mydomain.com" maxlength="255">

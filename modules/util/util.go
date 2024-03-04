@@ -17,57 +17,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// OptionalBool a boolean that can be "null"
-type OptionalBool byte
-
-const (
-	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone OptionalBool = iota
-	// OptionalBoolTrue a "true" boolean value
-	OptionalBoolTrue
-	// OptionalBoolFalse a "false" boolean value
-	OptionalBoolFalse
-)
-
-// IsTrue return true if equal to OptionalBoolTrue
-func (o OptionalBool) IsTrue() bool {
-	return o == OptionalBoolTrue
-}
-
-// IsFalse return true if equal to OptionalBoolFalse
-func (o OptionalBool) IsFalse() bool {
-	return o == OptionalBoolFalse
-}
-
-// IsNone return true if equal to OptionalBoolNone
-func (o OptionalBool) IsNone() bool {
-	return o == OptionalBoolNone
-}
-
-// ToGeneric converts OptionalBool to optional.Option[bool]
-func (o OptionalBool) ToGeneric() optional.Option[bool] {
-	if o.IsNone() {
-		return optional.None[bool]()
-	}
-	return optional.Some[bool](o.IsTrue())
-}
-
-// OptionalBoolFromGeneric converts optional.Option[bool] to OptionalBool
-func OptionalBoolFromGeneric(o optional.Option[bool]) OptionalBool {
-	if o.Has() {
-		return OptionalBoolOf(o.Value())
-	}
-	return OptionalBoolNone
-}
-
-// OptionalBoolOf get the corresponding OptionalBool of a bool
-func OptionalBoolOf(b bool) OptionalBool {
-	if b {
-		return OptionalBoolTrue
-	}
-	return OptionalBoolFalse
-}
-
 // OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
 func OptionalBoolParse(s string) optional.Option[bool] {
 	v, e := strconv.ParseBool(s)

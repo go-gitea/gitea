@@ -647,6 +647,11 @@ func registerRoutes(m *web.Route) {
 			})
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
+
+		m.Group("/blocked_users", func() {
+			m.Get("", user_setting.BlockedUsers)
+			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
+		})
 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
@@ -945,6 +950,11 @@ func registerRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
+
+				m.Group("/blocked_users", func() {
+					m.Get("", org.BlockedUsers)
+					m.Post("", web.Bind(forms.BlockUserForm{}), org.BlockedUsersPost)
+				})
 			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
@@ -1344,7 +1354,7 @@ func registerRoutes(m *web.Route) {
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableProjects)
+		}, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 
 		m.Group("/actions", func() {
 			m.Get("", actions.List)

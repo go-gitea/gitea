@@ -4,8 +4,8 @@
 package cmd
 
 import (
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/graceful"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/urfave/cli/v2"
@@ -42,5 +42,5 @@ func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return asymkey_model.RewriteAllPublicKeys(ctx)
+	return asymkey_service.RewriteAllPublicKeys(ctx)
 }
