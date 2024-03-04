@@ -16,6 +16,8 @@ import (
 
 // Indexer settings
 var Indexer = struct {
+	DefaultFuzzy bool
+
 	IssueType        string
 	IssuePath        string
 	IssueConnStr     string
@@ -34,6 +36,8 @@ var Indexer = struct {
 	ExcludePatterns      []glob.Glob
 	ExcludeVendored      bool
 }{
+	DefaultFuzzy: true,
+
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
 	IssueConnStr:     "",
@@ -52,6 +56,9 @@ var Indexer = struct {
 
 func loadIndexerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("indexer")
+
+	Indexer.DefaultFuzzy = sec.Key("INDEXER_DEFAULT_FUZZY").MustBool(Indexer.DefaultFuzzy)
+
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
 	if Indexer.IssueType == "bleve" {
 		Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))

@@ -467,6 +467,7 @@ relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
+- `INDEXER_DEFAULT_FUZZY`: **true**: If the indexer type supports fuzzy search use it by default. Is used by issue- and repo-indexer alike.
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db`, `elasticsearch` or `meilisearch`.
 - `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch (e.g. http://elastic:password@localhost:9200) or meilisearch (e.g. http://:apikey@localhost:7700)
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch or meilisearch.
