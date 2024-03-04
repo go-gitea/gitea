@@ -594,7 +594,7 @@ func IsUserParticipantsOfIssue(ctx context.Context, user *user_model.User, issue
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
-// this type is used in func `BlockingDependenciesMap` and `BlockedByDependenciesMap` as xorm intermediet type to retrieve info from joined tables
+// this type is used in func `BlockingDependenciesMap` and `BlockedByDependenciesMap` as xorm intermediate type to retrieve info from joined tables
 type DependencyInfo struct {
 	Issue                 `xorm:"extends"` // an issue/pull that depend on issue_id or is blocked by issue_id. the exact usage is determined by the function using this type
 	repo_model.Repository `xorm:"extends"` // the repo, that owns Issue
