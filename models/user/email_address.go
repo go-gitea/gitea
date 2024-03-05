@@ -154,7 +154,7 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-// ValidateEmail check if email is a valid address
+// ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
 	if err := validateEmailBasic(email); err != nil {
 		return err
