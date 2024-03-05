@@ -9,13 +9,13 @@ export function initUserAuthOauth2() {
 
   for (const link of outer.querySelectorAll('.oauth-login-link')) {
     link.addEventListener('click', () => {
-      inner.classList.add('gt-invisible');
+      inner.classList.add('tw-invisible');
       outer.classList.add('is-loading');
       setTimeout(() => {
         // recover previous content to let user try again
         // usually redirection will be performed before this action
         outer.classList.remove('is-loading');
-        inner.classList.remove('gt-invisible');
+        inner.classList.remove('tw-invisible');
       }, 5000);
     });
   }

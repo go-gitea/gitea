@@ -33,11 +33,7 @@ import {
   initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
 } from './features/repo-issue.js';
-import {
-  initRepoEllipsisButton,
-  initRepoCommitLastCommitLoader,
-  initCommitStatuses,
-} from './features/repo-commit.js';
+import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -84,8 +80,11 @@ import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoContributors} from './features/contributors.js';
+import {initRepoCodeFrequency} from './features/code-frequency.js';
+import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
+import {initRepositorySearch} from './features/repo-search.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -146,7 +145,6 @@ onDomReady(() => {
   initRepoCommentForm();
   initRepoEllipsisButton();
   initRepoDiffCommitBranchesAndTags();
-  initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
@@ -173,7 +171,10 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
+  initRepositorySearch();
   initRepoContributors();
+  initRepoCodeFrequency();
+  initRepoRecentCommits();
 
   initCommitStatuses();
   initCaptcha();

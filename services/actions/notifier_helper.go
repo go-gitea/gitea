@@ -117,6 +117,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 		return nil
 	}
+	if input.Repo.IsEmpty {
+		return nil
+	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
 		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
 			log.Error("CleanRepoScheduleTasks: %v", err)
@@ -136,12 +139,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if input.Event == webhook_module.HookEventDelete {
-		// The event is deleting a reference, so it will fail to get the commit for a deleted reference.
-		// Set ref to empty string to fall back to the default branch.
-		ref = ""
+	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+		if ref != "" {
+			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
+				input.Event, ref)
+		}
+		ref = input.Repo.DefaultBranch
 	}
 	if ref == "" {
+		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
 		ref = input.Repo.DefaultBranch
 	}
 
@@ -480,6 +486,10 @@ func handleSchedules(
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
 func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	if repo.IsEmpty {
+		return nil
+	}
+
 	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)

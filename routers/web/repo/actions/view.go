@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,12 +22,13 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
-	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	context_module "code.gitea.io/gitea/services/context"
 
 	"xorm.io/builder"
 )
@@ -262,10 +264,14 @@ func ViewPost(ctx *context_module.Context) {
 }
 
 // Rerun will rerun jobs in the given run
-// jobIndex = 0 means rerun all jobs
+// If jobIndexStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
-	jobIndex := ctx.ParamsInt64("job")
+	jobIndexStr := ctx.Params("job")
+	var jobIndex int64
+	if jobIndexStr != "" {
+		jobIndex, _ = strconv.ParseInt(jobIndexStr, 10, 64)
+	}
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -297,7 +303,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndex != 0 {
+	if jobIndexStr != "" {
 		jobs = []*actions_model.ActionRunJob{job}
 	}
 
@@ -597,6 +603,28 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
+	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
+	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
+	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
+		art := artifacts[0]
+		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath)
+			if u != nil && err == nil {
+				ctx.Redirect(u.String())
+				return
+			}
+		}
+		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		_, _ = io.Copy(ctx.Resp, f)
+		return
+	}
+
+	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
+	// Those need to be zipped for download
 	writer := zip.NewWriter(ctx.Resp)
 	defer writer.Close()
 	for _, art := range artifacts {
