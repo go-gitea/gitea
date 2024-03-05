@@ -78,7 +78,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		if setting.UserFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
 			return
 		}
@@ -159,7 +159,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
-		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		if setting.UserFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}
@@ -203,7 +203,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
-		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		if setting.UserFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}
@@ -240,7 +240,7 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
-		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		if setting.UserFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
 			return
 		}
@@ -250,7 +250,7 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		if setting.UserFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}
@@ -333,5 +333,5 @@ func loadKeysData(ctx *context.Context) {
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
-	ctx.Data["UserDisabledFeatures"] = &setting.Admin.UserDisabledFeatures
+	ctx.Data["UserDisabledFeatures"] = setting.UserDisabledFeaturesWithLoginType(ctx.Doer)
 }
