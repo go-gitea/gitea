@@ -32,7 +32,7 @@
 									{{else}}
 										<span class="icon gt-dib gt-pt-3">{{svg "octicon-file-directory-fill"}}</span>
 										<span class="name gt-dib gt-pt-3">{{$.ContextUser.Name}}/{{$dir}}</span>
-										<div class="gt-float-right">
+										<div class="tw-float-right">
 											{{if $.allowAdopt}}
 												<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
