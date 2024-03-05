@@ -55,7 +55,7 @@
 		<div class="ui attached segment comment-body">
 			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
-				{{.RenderedContent|Str2html}}
+				{{.RenderedContent}}
 			{{else}}
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
@@ -63,7 +63,7 @@
 			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
 			{{if .Attachments}}
-				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
