@@ -79,7 +79,7 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 func TestWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
 	ctx.SetParams("*", "Home")
 	contexttest.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
