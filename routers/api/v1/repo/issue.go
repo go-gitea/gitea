@@ -707,7 +707,7 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 			return

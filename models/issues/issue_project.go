@@ -100,8 +100,8 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
