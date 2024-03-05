@@ -239,7 +239,6 @@ textarea:focus,
   }
 }
 
-.user.activate form,
 .user.forgot.password form,
 .user.reset.password form,
 .user.signup form {
