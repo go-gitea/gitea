@@ -461,7 +461,7 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
