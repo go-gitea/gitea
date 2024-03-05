@@ -22,7 +22,7 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
     const menuRight = this.offsetLeft + this.offsetWidth;
     for (const item of this.menuItemsEl.querySelectorAll('.item')) {
       const itemRight = item.offsetLeft + item.offsetWidth;
-      if (menuRight - itemRight < 38) { // slightly less than width of .wc-overflow-menu-button
+      if (menuRight - itemRight < 38) { // roughly the width of .wc-overflow-menu-button
         this.tippyItems.push(item);
       }
     }
