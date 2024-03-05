@@ -61,8 +61,8 @@
   --color-secondary-hover: var(--color-secondary-dark-3);
   --color-secondary-active: var(--color-secondary-dark-2);
   /* console colors - used for actions console and console files */
-  --color-console-fg: #ced4da;
-  --color-console-fg-subtle: #7f8488;
+  --color-console-fg: #d9dde2;
+  --color-console-fg-subtle: #95989c;
   --color-console-bg: #1c2023;
   --color-console-border: #272b2e;
   --color-console-hover-bg: #ffffff16;
@@ -184,15 +184,15 @@
   --color-box-header: #202427;
   --color-box-body: #191d20;
   --color-box-body-highlight: #1d2124;
-  --color-text-dark: #c4cace;
-  --color-text: #babfc3;
-  --color-text-light: #a8acb0;
-  --color-text-light-1: #9ca0a5;
-  --color-text-light-2: #8f9397;
-  --color-text-light-3: #828689;
-  --color-footer: #1b1f22;
+  --color-text-dark: #f8f8f9;
+  --color-text: #ced2d5;
+  --color-text-light: #bec4c8;
+  --color-text-light-1: #acb3b8;
+  --color-text-light-2: #8d969c;
+  --color-text-light-3: #747f87;
+  --color-footer: var(--color-nav-bg);
   --color-timeline: #383c3f;
-  --color-input-text: #c7ccd1;
+  --color-input-text: var(--color-text-dark);
   --color-input-background: #161a1d;
   --color-input-toggle-background: #313538;
   --color-input-border: var(--color-secondary);
@@ -213,7 +213,7 @@
   --color-shadow: #00000058;
   --color-secondary-bg: #2f3135;
   --color-expand-button: #414348;
-  --color-placeholder-text: #777b7f;
+  --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
   --color-project-board-dark-label: #111111;
@@ -227,7 +227,7 @@
   --color-nav-bg: #1b1f22;
   --color-nav-hover-bg: #272b2e;
   --color-nav-text: var(--color-text);
-  --color-label-text: #ced2d7;
+  --color-label-text: var(--color-text);
   --color-label-bg: #7a7f834b;
   --color-label-hover-bg: #7a7f83a0;
   --color-label-active-bg: #7a7f83ff;

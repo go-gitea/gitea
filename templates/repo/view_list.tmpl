@@ -1,7 +1,7 @@
-<table id="repo-files-table" class="ui single line table gt-mt-0" data-last-commit-loader-url="{{.LastCommitLoaderURL}}">
+<table id="repo-files-table" class="ui single line table gt-mt-0" {{if .HasFilesWithoutLatestCommit}}hx-indicator="tr.notready td.message span" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
 	<thead>
 		<tr class="commit-list">
-			<th colspan="2" {{if not .LatestCommit}}class="notready"{{end}}>
+			<th colspan="2">
 				{{template "repo/latest_commit" .}}
 			</th>
 			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
@@ -55,7 +55,7 @@
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
 							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
-							<div class="ui active tiny slow centered inline">…</div>
+							<div class="ui active tiny slow centered inline"></div>
 						{{end}}
 					</span>
 				</td>
