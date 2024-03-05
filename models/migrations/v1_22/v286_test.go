@@ -46,7 +46,7 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 
 	type Release struct {
 		ID   int64
-		SHA1 string
+		Sha1 string
 	}
 
 	type RepoIndexerStatus struct {
