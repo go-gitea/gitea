@@ -25,8 +25,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	topicBranch := opts.GitPushOptions["topic"]
 	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
-	title := opts.GitPushOptions["title"]
-	description := opts.GitPushOptions["description"] // TODO: Add more options?
+	title := strings.TrimSpace(opts.GitPushOptions["title"])
+	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -97,13 +97,23 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				return nil, fmt.Errorf("failed to get unmerged agit flow pull request in repository: %s Error: %w", repo.FullName(), err)
 			}
 
-			// create a new pull request
-			if len(title) == 0 {
-				commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])
+			var commit *git.Commit
+			if title == "" || description == "" {
+				commit, err = gitRepo.GetCommit(opts.NewCommitIDs[i])
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
+			}
+
+			// create a new pull request
+			if title == "" {
 				title = strings.Split(commit.CommitMessage, "\n")[0]
+			}
+			if description == "" {
+				_, description, _ = strings.Cut(commit.CommitMessage, "\n\n")
+			}
+			if description == "" {
+				description = title
 			}
 
 			prIssue := &issues_model.Issue{
@@ -164,7 +174,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
+				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
+				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
 				return nil, fmt.Errorf("fail to detect force push: %w", err)
 			} else if len(output) > 0 {
