@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
@@ -73,7 +74,7 @@ func SettingsPost(ctx *context.Context) {
 	org := ctx.Org.Organization
 
 	if org.Name != form.Name {
-		if err := user_service.RenameUser(ctx, org.AsUser(), form.Name); err != nil {
+		if err := user_service.RenameUser(ctx, ctx.Doer, org.AsUser(), form.Name); err != nil {
 			if user_model.IsErrUserAlreadyExist(err) {
 				ctx.Data["Err_Name"] = true
 				ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
@@ -93,12 +94,14 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Doer, org.AsUser(), form.Email); err != nil {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
 		}
 	}
+
+	oldVisibility := org.Visibility
 
 	opts := &user_service.UpdateOptions{
 		FullName:                  optional.Some(form.FullName),
@@ -111,16 +114,13 @@ func SettingsPost(ctx *context.Context) {
 	if ctx.Doer.IsAdmin {
 		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
 	}
-
-	visibilityChanged := org.Visibility != form.Visibility
-
-	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
 	// update forks visibility
-	if visibilityChanged {
+	if org.Visibility != oldVisibility {
 		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
@@ -177,7 +177,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -230,9 +230,17 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetWebhookByOwnerID", err)
+		return
+	}
+
 	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.RecordWebhookRemove(ctx, ctx.Doer, ctx.Org.Organization.AsUser(), nil, hook)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

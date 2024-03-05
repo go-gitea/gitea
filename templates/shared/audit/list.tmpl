@@ -1,0 +1,61 @@
+<div class="ui attached table segment">
+	<table class="ui very basic striped table unstackable">
+		<thead>
+			<tr>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.actor"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.scope"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.action"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.target"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.ip_address"}}</th>
+				<th data-sortt-asc="created_asc" data-sortt-desc="created_desc" data-sortt-default="true">{{ctx.Locale.Tr "admin.monitor.audit.timestamp"}}{{SortArrow "timestamp_asc" "timestamp_desc" $.AuditSort true}}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .AuditEvents}}
+				<tr>
+					<td>
+						{{if .Actor.Object}}
+							{{if gt .Actor.ID 0}}
+								<a href="{{.Actor.HTMLURL}}">{{.Actor.DisplayName}}</a>
+							{{else}}
+								{{.Actor.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.actor"}}</span>
+						{{end}}
+					</td>
+					<td>
+						{{if or .Scope.Object (eq .Scope.Type "system")}}
+							{{$url := .Scope.HTMLURL}}
+							{{if $url}}
+								<a href="{{$url}}">{{.Scope.DisplayName}}</a>
+							{{else}}
+								{{.Scope.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.type" .Scope.Type .Scope.ID}}</span>
+						{{end}}
+					</td>
+					<td>{{.Message}}</td>
+					<td>
+						{{if or .Target.Object (eq .Scope.Type "system")}}
+							{{$url := .Target.HTMLURL}}
+							{{if $url}}
+								<a href="{{$url}}">{{.Target.DisplayName}}</a>
+							{{else}}
+								{{.Target.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.type" .Target.Type .Target.ID}}</span>
+						{{end}}
+					</td>
+					<td>{{.IPAddress}}</td>
+					<td>{{DateTime "full" .Time}}</td>
+				</tr>
+			{{else}}
+				<tr><td colspan="6">{{ctx.Locale.Tr "admin.monitor.audit.no_events"}}</td></tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+{{template "base/paginate" .}}

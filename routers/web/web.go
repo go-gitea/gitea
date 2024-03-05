@@ -380,6 +380,13 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	auditLogsEnabled := func(ctx *context.Context) {
+		if !setting.Audit.Enabled {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
@@ -648,6 +655,8 @@ func registerRoutes(m *web.Route) {
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
+		m.Get("/audit_logs", auditLogsEnabled, user_setting.ViewAuditLogs)
+
 		m.Group("/blocked_users", func() {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
@@ -694,6 +703,7 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/audit_logs", auditLogsEnabled, admin.ViewAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/stacktrace", admin.Stacktrace)
@@ -930,6 +940,8 @@ func registerRoutes(m *web.Route) {
 					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
+				m.Get("/audit_logs", auditLogsEnabled, org_setting.ViewAuditLogs)
+
 				m.Methods("GET,POST", "/delete", org.SettingsDelete)
 
 				m.Group("/packages", func() {
@@ -1109,6 +1121,7 @@ func registerRoutes(m *web.Route) {
 				addSettingsSecretsRoutes()
 				addSettingsVariablesRoutes()
 			}, actions.MustEnableActions)
+			m.Get("/audit_logs", auditLogsEnabled, repo_setting.ViewAuditLogs)
 			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 			m.Group("/migrate", func() {
 				m.Post("/retry", repo.MigrateRetryPost)

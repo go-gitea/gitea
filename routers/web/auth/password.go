@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -88,6 +89,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	audit.RecordUserPasswordResetRequest(ctx, user_model.NewGhostUser(), u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -186,6 +189,8 @@ func ResetPasswdPost(ctx *context.Context) {
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {
+				audit.RecordUserAuthenticationFailTwoFactor(ctx, u)
+
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
 				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
@@ -204,7 +209,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {
@@ -223,7 +228,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
 	remember := len(ctx.FormString("remember")) != 0
 
@@ -287,7 +291,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		Password:           optional.Some(form.Password),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
@@ -309,8 +313,6 @@ func MustChangePasswordPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
-
-	log.Trace("User updated password: %s", ctx.Doer.Name)
 
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)

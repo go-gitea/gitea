@@ -95,7 +95,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		opts := &user_service.UpdateOptions{
 			Language: optional.Some(lc.Language()),
 		}
-		if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
+		if err := user_service.UpdateUser(req.Context(), user, user, opts); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

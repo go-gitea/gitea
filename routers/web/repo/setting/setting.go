@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -179,6 +180,11 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
+
+		if visibilityChanged {
+			audit.RecordRepositoryVisibility(ctx, ctx.Doer, repo)
+		}
+
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -368,6 +374,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		audit.RecordRepositoryMirrorPushRemove(ctx, ctx.Doer, repo, m)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -430,6 +438,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
 		}
+
+		audit.RecordRepositoryMirrorPushAdd(ctx, ctx.Doer, repo, m)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -608,6 +618,7 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 		}
+
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -626,6 +637,8 @@ func SettingsPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
+
+			audit.RecordRepositorySigningVerification(ctx, ctx.Doer, repo)
 		}
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -703,6 +716,9 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
+
+		audit.RecordRepositoryConvertMirror(ctx, ctx.Doer, repo)
+
 		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
 		ctx.Redirect(repo.Link())
@@ -734,7 +750,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(ctx, ctx.Doer, repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -786,7 +802,7 @@ func SettingsPost(ctx *context.Context) {
 			} else if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 			} else {
-				ctx.ServerError("TransferOwnership", err)
+				ctx.ServerError("StartRepositoryTransfer", err)
 			}
 
 			return
@@ -823,6 +839,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
+
+		audit.RecordRepositoryTransferCancel(ctx, ctx.Doer, ctx.Repo.Repository)
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
@@ -862,10 +880,11 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := wiki_service.DeleteWiki(ctx, repo)
-		if err != nil {
-			log.Error("Delete Wiki: %v", err.Error())
+		if err := wiki_service.DeleteWiki(ctx, ctx.Doer, repo); err != nil {
+			ctx.ServerError("DeleteWiki", err)
+			return
 		}
+
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
@@ -890,6 +909,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		audit.RecordRepositoryArchive(ctx, ctx.Doer, repo)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -907,6 +928,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
 		}
+
+		audit.RecordRepositoryUnarchive(ctx, ctx.Doer, repo)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

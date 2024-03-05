@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -62,6 +63,8 @@ func NewProtectedTagPost(ctx *context.Context) {
 		ctx.ServerError("InsertProtectedTag", err)
 		return
 	}
+
+	audit.RecordRepositoryTagProtectionAdd(ctx, ctx.Doer, repo, pt)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -116,6 +119,8 @@ func EditProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
+	audit.RecordRepositoryTagProtectionUpdate(ctx, ctx.Doer, ctx.Repo.Repository, pt)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")
 }
@@ -131,6 +136,8 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 		ctx.ServerError("DeleteProtectedTag", err)
 		return
 	}
+
+	audit.RecordRepositoryTagProtectionRemove(ctx, ctx.Doer, ctx.Repo.Repository, pt)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")

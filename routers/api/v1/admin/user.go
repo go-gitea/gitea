@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/mailer"
@@ -147,6 +148,9 @@ func CreateUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.RecordUserCreate(ctx, ctx.Doer, u)
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -194,7 +198,7 @@ func EditUser(ctx *context.APIContext) {
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, ctx.ContextUser, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
@@ -209,7 +213,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if form.Email != nil {
-		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
+		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, ctx.Doer, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Error(http.StatusBadRequest, "EmailInvalid", err)
@@ -237,16 +241,14 @@ func EditUser(ctx *context.APIContext) {
 		IsRestricted:            optional.FromPtr(form.Restricted),
 	}
 
-	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.ContextUser, opts); err != nil {
 		if models.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusBadRequest, "LastAdmin", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+			ctx.Error(http.StatusInternalServerError, "UpdateOrSetPrimaryEmail", err)
 		}
 		return
 	}
-
-	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
 }
@@ -289,7 +291,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
+	if err := user_service.DeleteUser(ctx, ctx.Doer, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
 			models.IsErrUserOwnPackages(err) ||
@@ -470,7 +472,7 @@ func RenameUser(ctx *context.APIContext) {
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
 	// Check if user name has been changed
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Doer, ctx.ContextUser, newName); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))

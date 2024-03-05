@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/audit"
 )
 
 type UpdateOptions struct {
@@ -39,7 +40,7 @@ type UpdateOptions struct {
 	RepoAdminChangeTeamAccess    optional.Option[bool]
 }
 
-func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
+func UpdateUser(ctx context.Context, doer, u *user_model.User, opts *UpdateOptions) error {
 	cols := make([]string, 0, 20)
 
 	if opts.KeepEmailPrivate.Has() {
@@ -101,12 +102,17 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "max_repo_creation")
 	}
 
+	isActiveChanged, isRestrictedChanged, isAdminChanged := false, false, false
 	if opts.IsActive.Has() {
+		isActiveChanged = u.IsActive != opts.IsActive.Value()
+
 		u.IsActive = opts.IsActive.Value()
 
 		cols = append(cols, "is_active")
 	}
 	if opts.IsRestricted.Has() {
+		isRestrictedChanged = u.IsActive != opts.IsRestricted.Value()
+
 		u.IsRestricted = opts.IsRestricted.Value()
 
 		cols = append(cols, "is_restricted")
@@ -116,15 +122,21 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 			return models.ErrDeleteLastAdminUser{UID: u.ID}
 		}
 
+		isAdminChanged = u.IsAdmin != opts.IsAdmin.Value()
+
 		u.IsAdmin = opts.IsAdmin.Value()
 
 		cols = append(cols, "is_admin")
 	}
 
+	visibilityChanged := false
 	if opts.Visibility.Has() {
 		if !u.IsOrganization() && !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(opts.Visibility.Value()) {
 			return fmt.Errorf("visibility mode not allowed: %s", opts.Visibility.Value().String())
 		}
+
+		visibilityChanged = u.Visibility != opts.Visibility.Value()
+
 		u.Visibility = opts.Visibility.Value()
 
 		cols = append(cols, "visibility")
@@ -158,7 +170,24 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "last_login_unix")
 	}
 
-	return user_model.UpdateUserCols(ctx, u, cols...)
+	if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+		return err
+	}
+
+	if isActiveChanged {
+		audit.RecordUserActive(ctx, doer, u)
+	}
+	if isAdminChanged {
+		audit.RecordUserAdmin(ctx, doer, u)
+	}
+	if isRestrictedChanged {
+		audit.RecordUserRestricted(ctx, doer, u)
+	}
+	if visibilityChanged {
+		audit.RecordUserVisibility(ctx, doer, u)
+	}
+
+	return nil
 }
 
 type UpdateAuthOptions struct {
@@ -169,12 +198,15 @@ type UpdateAuthOptions struct {
 	ProhibitLogin      optional.Option[bool]
 }
 
-func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
+func UpdateAuth(ctx context.Context, doer, u *user_model.User, opts *UpdateAuthOptions) error {
+	loginSourceChanged := false
 	if opts.LoginSource.Has() {
 		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
 		if err != nil {
 			return err
 		}
+
+		loginSourceChanged = u.LoginSource != source.ID
 
 		u.LoginType = source.Type
 		u.LoginSource = source.ID
@@ -183,8 +215,10 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		u.LoginName = opts.LoginName.Value()
 	}
 
-	deleteAuthTokens := false
+	passwordChanged := false
 	if opts.Password.Has() && (u.IsLocal() || u.IsOAuth2()) {
+		passwordChanged = true
+
 		password := opts.Password.Value()
 
 		if len(password) < setting.MinPasswordLength {
@@ -200,8 +234,6 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		if err := u.SetPassword(password); err != nil {
 			return err
 		}
-
-		deleteAuthTokens = true
 	}
 
 	if opts.MustChangePassword.Has() {
@@ -215,8 +247,16 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		return err
 	}
 
-	if deleteAuthTokens {
+	if passwordChanged {
 		return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
 	}
+
+	if passwordChanged {
+		audit.RecordUserPassword(ctx, doer, u)
+	}
+	if loginSourceChanged {
+		audit.RecordUserAuthenticationSource(ctx, doer, u)
+	}
+
 	return nil
 }

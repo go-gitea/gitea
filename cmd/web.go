@@ -15,6 +15,8 @@ import (
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
+	"code.gitea.io/gitea/services/audit"
 
 	"github.com/felixge/fgprof"
 	"github.com/urfave/cli/v2"
@@ -209,7 +212,13 @@ func serveInstalled(ctx *cli.Context) error {
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
+
+	audit.RecordSystemStartup(db.DefaultContext, user_model.NewCLIUser(), setting.AppVer)
+
 	err := listen(webRoutes, true)
+
+	audit.RecordSystemShutdown(db.DefaultContext, user_model.NewCLIUser())
+
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.GetManager().Close()

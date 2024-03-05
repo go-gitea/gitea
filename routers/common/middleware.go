@@ -33,7 +33,15 @@ func ProtocolMiddlewares() (handlers []any) {
 					RenderPanicErrorPage(resp, req, err) // it should never panic
 				}
 			}()
-			req = req.WithContext(middleware.WithContextData(req.Context()))
+
+			req = req.WithContext(
+				middleware.WithContextData(
+					middleware.WithContextRequest(
+						req.Context(),
+						req,
+					),
+				),
+			)
 			next.ServeHTTP(resp, req)
 		})
 	})

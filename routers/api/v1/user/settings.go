@@ -56,7 +56,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		KeepEmailPrivate:    optional.FromPtr(form.HideEmail),
 		KeepActivityPrivate: optional.FromPtr(form.HideActivity),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

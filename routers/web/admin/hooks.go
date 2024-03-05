@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -61,9 +62,17 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
+	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetSystemOrDefaultWebhook", err)
+		return
+	}
+
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDefaultWebhook: " + err.Error())
 	} else {
+		audit.RecordWebhookRemove(ctx, ctx.Doer, nil, nil, hook)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

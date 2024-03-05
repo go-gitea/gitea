@@ -25,6 +25,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -461,7 +462,7 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
@@ -502,6 +503,8 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 	}); err != nil {
 		return err
 	}
+
+	audit.RecordRepositoryBranchDefault(ctx, doer, repo)
 
 	notify_service.ChangeDefaultBranch(ctx, repo)
 

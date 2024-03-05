@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	gitea_context "code.gitea.io/gitea/services/context"
 
@@ -179,6 +180,8 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return nil, err
 	}
+
+	audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), user)
 
 	return user, nil
 }

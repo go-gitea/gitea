@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
@@ -22,8 +24,8 @@ const (
 )
 
 type secretsCtx struct {
-	OwnerID         int64
-	RepoID          int64
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	IsRepo          bool
 	IsOrg           bool
 	IsUser          bool
@@ -34,8 +36,8 @@ type secretsCtx struct {
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
-			OwnerID:         0,
-			RepoID:          ctx.Repo.Repository.ID,
+			Owner:           nil,
+			Repo:            ctx.Repo.Repository,
 			IsRepo:          true,
 			SecretsTemplate: tplRepoSecrets,
 			RedirectLink:    ctx.Repo.RepoLink + "/settings/actions/secrets",
@@ -49,8 +51,8 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 			return nil, nil
 		}
 		return &secretsCtx{
-			OwnerID:         ctx.ContextUser.ID,
-			RepoID:          0,
+			Owner:           ctx.ContextUser,
+			Repo:            nil,
 			IsOrg:           true,
 			SecretsTemplate: tplOrgSecrets,
 			RedirectLink:    ctx.Org.OrgLink + "/settings/actions/secrets",
@@ -59,8 +61,8 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &secretsCtx{
-			OwnerID:         ctx.Doer.ID,
-			RepoID:          0,
+			Owner:           ctx.Doer,
+			Repo:            nil,
 			IsUser:          true,
 			SecretsTemplate: tplUserSecrets,
 			RedirectLink:    setting.AppSubURL + "/user/settings/actions/secrets",
@@ -85,7 +87,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)
+	shared.SetSecretsContext(ctx, sCtx.Owner, sCtx.Repo)
 	if ctx.Written() {
 		return
 	}
@@ -106,8 +108,9 @@ func SecretsPost(ctx *context.Context) {
 
 	shared.PerformSecretsPost(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		ctx.Doer,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }
@@ -120,8 +123,9 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared.PerformSecretsDelete(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		ctx.Doer,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }

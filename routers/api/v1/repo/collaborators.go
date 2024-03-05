@@ -16,6 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -186,11 +187,16 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
+	audit.RecordRepositoryCollaboratorAdd(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
+
 	if form.Permission != nil {
-		if err := repo_model.ChangeCollaborationAccessMode(ctx, ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		accessMode := perm.ParseAccessMode(*form.Permission)
+		if err := repo_model.ChangeCollaborationAccessMode(ctx, ctx.Repo.Repository, collaborator.ID, accessMode); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
+
+		audit.RecordRepositoryCollaboratorAccess(ctx, ctx.Doer, ctx.Repo.Repository, collaborator, accessMode)
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -241,6 +247,9 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
+
+	audit.RecordRepositoryCollaboratorRemove(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
+
 	ctx.Status(http.StatusNoContent)
 }
 
