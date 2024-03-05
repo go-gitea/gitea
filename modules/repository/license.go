@@ -59,7 +59,7 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 			continue
 		}
 
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
 			continue
