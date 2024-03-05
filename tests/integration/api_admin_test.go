@@ -14,9 +14,11 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -332,4 +334,28 @@ func TestAPICron(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	setting.Service.EmailDomainAllowList = []glob.Glob{glob.MustCompile("example.org")}
+	defer func() {
+		setting.Service.EmailDomainAllowList = []glob.Glob{}
+	}()
+
+	adminUsername := "user1"
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
+
+	req := NewRequestWithValues(t, "POST", "/api/v1/admin/users", map[string]string{
+		"email":                "allowedUser1@example1.org",
+		"login_name":           "allowedUser1",
+		"username":             "allowedUser1",
+		"password":             "allowedUser1_pass",
+		"must_change_password": "true",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "DELETE", "/api/v1/admin/users/allowedUser1").AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
 }
