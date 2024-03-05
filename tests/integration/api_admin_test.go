@@ -346,15 +346,17 @@ func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
 
-	req := NewRequestWithValues(t, "POST", "/api/v1/admin/users", map[string]string{
+	createURL := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
+	req := NewRequestWithValues(t, "POST", createURL, map[string]string{
 		"email":                "allowedUser1@example1.org",
 		"login_name":           "allowedUser1",
 		"username":             "allowedUser1",
 		"password":             "allowedUser1_pass",
 		"must_change_password": "true",
-	}).AddTokenAuth(token)
+	})
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "DELETE", "/api/v1/admin/users/allowedUser1").AddTokenAuth(token)
+	deleteURL := fmt.Sprintf("/api/v1/admin/users/allowedUser1?token=%s", token)
+	req = NewRequest(t, "DELETE", deleteURL)
 	MakeRequest(t, req, http.StatusNoContent)
 }
