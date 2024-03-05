@@ -262,24 +262,60 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 
 	filename := "image.png"
 	buff := generateImg()
-	body := &bytes.Buffer{}
 
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("attachment", filename)
-	assert.NoError(t, err)
-	_, err = io.Copy(part, &buff)
-	assert.NoError(t, err)
-	err = writer.Close()
-	assert.NoError(t, err)
+	assetURL := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets", owner.Name, repo.Name, r.ID)
 
-	req := NewRequestWithBody(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets?name=test-asset", owner.Name, repo.Name, r.ID), body).
-		AddTokenAuth(token)
-	req.Header.Add("Content-Type", writer.FormDataContentType())
-	resp := MakeRequest(t, req, http.StatusCreated)
+	t.Run("multipart/form-data", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	var attachment *api.Attachment
-	DecodeJSON(t, resp, &attachment)
+		body := &bytes.Buffer{}
 
-	assert.EqualValues(t, "test-asset", attachment.Name)
-	assert.EqualValues(t, 104, attachment.Size)
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("attachment", filename)
+		assert.NoError(t, err)
+		_, err = io.Copy(part, bytes.NewReader(buff.Bytes()))
+		assert.NoError(t, err)
+		err = writer.Close()
+		assert.NoError(t, err)
+
+		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(body.Bytes())).
+			AddTokenAuth(token).
+			SetHeader("Content-Type", writer.FormDataContentType())
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var attachment *api.Attachment
+		DecodeJSON(t, resp, &attachment)
+
+		assert.EqualValues(t, filename, attachment.Name)
+		assert.EqualValues(t, 104, attachment.Size)
+
+		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=test-asset", bytes.NewReader(body.Bytes())).
+			AddTokenAuth(token).
+			SetHeader("Content-Type", writer.FormDataContentType())
+		resp = MakeRequest(t, req, http.StatusCreated)
+
+		var attachment2 *api.Attachment
+		DecodeJSON(t, resp, &attachment2)
+
+		assert.EqualValues(t, "test-asset", attachment2.Name)
+		assert.EqualValues(t, 104, attachment2.Size)
+	})
+
+	t.Run("application/octet-stream", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(buff.Bytes())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusBadRequest)
+
+		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(buff.Bytes())).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var attachment *api.Attachment
+		DecodeJSON(t, resp, &attachment)
+
+		assert.EqualValues(t, "stream.bin", attachment.Name)
+		assert.EqualValues(t, 104, attachment.Size)
+	})
 }

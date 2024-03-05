@@ -30,14 +30,6 @@ func IsTeamMember(ctx context.Context, orgID, teamID, userID int64) (bool, error
 		Exist()
 }
 
-// GetTeamUsersByTeamID returns team users for a team
-func GetTeamUsersByTeamID(ctx context.Context, teamID int64) ([]*TeamUser, error) {
-	teamUsers := make([]*TeamUser, 0, 10)
-	return teamUsers, db.GetEngine(ctx).
-		Where("team_id=?", teamID).
-		Find(&teamUsers)
-}
-
 // SearchMembersOptions holds the search options
 type SearchMembersOptions struct {
 	db.ListOptions

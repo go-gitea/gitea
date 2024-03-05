@@ -96,7 +96,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["login_type"] = "0-0"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -117,7 +117,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -177,7 +177,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.AdminCreateUser(ctx, u, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -412,7 +412,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Email != "" {
-		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
+		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Data["Err_Email"] = true
@@ -439,6 +439,7 @@ func EditUserPost(ctx *context.Context) {
 		AllowCreateOrganization: optional.Some(form.AllowCreateOrganization),
 		IsRestricted:            optional.Some(form.Restricted),
 		Visibility:              optional.Some(form.Visibility),
+		Language:                optional.Some(form.Language),
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
