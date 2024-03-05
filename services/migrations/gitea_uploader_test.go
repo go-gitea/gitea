@@ -23,8 +23,8 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
