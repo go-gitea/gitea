@@ -6,7 +6,6 @@ package code
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"html/template"
 	"strings"
 
@@ -76,7 +75,6 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 
 	contentLines := strings.SplitAfter(result.Content[startIndex:endIndex], "\n")
 	lines := make([]ResultLine, 0, len(contentLines))
-	highlightedLines := make([]string, 0, len(contentLines))
 	index := startIndex
 	for i, line := range contentLines {
 		var err error
@@ -101,22 +99,15 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 
 		lines = append(lines, ResultLine{Num: startLineNum + i})
 		index += len(line)
-
-		// highlight.Code will remove the last `\n`, e.g. if input is `a\n`, output will be `a`
-		// Then the length of `lines` and `highlightedLines` will not be equal, so we need to add an empty line manually
-		if line == "" {
-			highlightedLines = append(highlightedLines, "")
-		}
 	}
 
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
 	hl, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
-	highlightedLines = append(strings.Split(string(hl), "\n"), highlightedLines...)
+	highlightedLines := strings.Split(string(hl), "\n")
 
-	if len(highlightedLines) != len(lines) {
-		return nil, fmt.Errorf("the length of line numbers [%d] don't match the length of highlighted contents [%d]", len(lines), len(highlightedLines))
-	}
-
+	// The lines outputted by highlight.Code might not match the original lines, because "highlight" removes the last `\n`
+	lines = lines[:min(len(highlightedLines), len(lines))]
+	highlightedLines = highlightedLines[:len(lines)]
 	for i := 0; i < len(lines); i++ {
 		lines[i].FormattedContent = template.HTML(highlightedLines[i])
 	}
