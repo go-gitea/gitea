@@ -71,6 +71,8 @@ func Test_RepositoryFormat(t *testing.T) {
 	x, deferable := PrepareOldRepository(t)
 	defer deferable()
 
+	assert.NoError(t, AdjustDBForSha256(x))
+
 	type Repository struct {
 		ID               int64  `xorm:"pk autoincr"`
 		ObjectFormatName string `xorg:"not null default('sha1')"`
@@ -82,8 +84,6 @@ func Test_RepositoryFormat(t *testing.T) {
 	count, err := x.Count(new(Repository))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
-
-	assert.NoError(t, AdjustDBForSha256(x))
 
 	repo.ID = 20
 	repo.ObjectFormatName = "sha256"
