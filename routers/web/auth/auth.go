@@ -16,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -123,9 +123,21 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	return nil
 }
 
+func RedirectAfterLogin(ctx *context.Context) {
+	redirectTo := ctx.FormString("redirect_to")
+	if redirectTo == "" {
+		redirectTo = ctx.GetSiteCookie("redirect_to")
+	}
+	middleware.DeleteRedirectToCookie(ctx.Resp)
+	nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
+	if setting.LandingPageURL == setting.LandingPageLogin {
+		nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+	}
+	ctx.RedirectToFirst(redirectTo, nextRedirectTo)
+}
+
 func CheckAutoLogin(ctx *context.Context) bool {
-	// Check auto-login
-	isSucceed, err := autoSignIn(ctx)
+	isSucceed, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
 		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
 			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
@@ -138,17 +150,10 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	} else {
-		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
-		if setting.LandingPageURL == setting.LandingPageLogin {
-			nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
-		}
-		ctx.RedirectToFirst(redirectTo, nextRedirectTo)
+		RedirectAfterLogin(ctx)
 		return true
 	}
 
@@ -163,7 +168,12 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	if ctx.IsSigned {
+		RedirectAfterLogin(ctx)
+		return
+	}
+
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -186,7 +196,7 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -410,7 +420,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -439,7 +449,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -646,13 +656,17 @@ func sendActivateEmail(ctx *context.Context, u *user_model.User) {
 	mailer.SendActivateAccountMail(ctx.Locale, u)
 
 	activeCodeLives := timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
-	msgHTML := ctx.Locale.Tr("auth.confirmation_mail_sent_prompt", u.Email, activeCodeLives)
+	msgHTML := ctx.Locale.Tr("auth.confirmation_mail_sent_prompt_ex", u.Email, activeCodeLives)
 	renderActivationPromptMessage(ctx, msgHTML)
 }
 
 func renderActivationVerifyPassword(ctx *context.Context, code string) {
 	ctx.Data["ActivationCode"] = code
 	ctx.Data["NeedVerifyLocalPassword"] = true
+	ctx.HTML(http.StatusOK, TplActivate)
+}
+
+func renderActivationChangeEmail(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, TplActivate)
 }
 
@@ -674,7 +688,7 @@ func Activate(ctx *context.Context) {
 			return
 		}
 
-		// Resend confirmation email.
+		// Resend confirmation email. FIXME: ideally this should be in a POST request
 		sendActivateEmail(ctx, ctx.Doer)
 		return
 	}
@@ -698,7 +712,28 @@ func Activate(ctx *context.Context) {
 // ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
 	code := ctx.FormString("code")
-	if code == "" || (ctx.Doer != nil && ctx.Doer.IsActive) {
+	if ctx.Doer != nil && ctx.Doer.IsActive {
+		ctx.Redirect(setting.AppSubURL + "/user/activate") // it will redirect again to the correct page
+		return
+	}
+
+	if code == "" {
+		newEmail := strings.TrimSpace(ctx.FormString("change_email"))
+		if ctx.Doer != nil && newEmail != "" && !strings.EqualFold(ctx.Doer.Email, newEmail) {
+			if user_model.ValidateEmail(newEmail) != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("form.email_invalid"), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			err := user_model.ChangeInactivePrimaryEmail(ctx, ctx.Doer.ID, ctx.Doer.Email, newEmail)
+			if err != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("admin.emails.not_updated", newEmail), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			ctx.Doer.Email = newEmail
+		}
+		// FIXME: at the moment, GET request handles the "send confirmation email" action. But the old code does this redirect and then send a confirmation email.
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
 	}

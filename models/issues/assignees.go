@@ -64,6 +64,27 @@ func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.U
 	return db.Exist[IssueAssignees](ctx, builder.Eq{"assignee_id": user.ID, "issue_id": issue.ID})
 }
 
+type AssignedIssuesOptions struct {
+	db.ListOptions
+	AssigneeID  int64
+	RepoOwnerID int64
+}
+
+func (opts *AssignedIssuesOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.AssigneeID != 0 {
+		cond = cond.And(builder.In("issue.id", builder.Select("issue_id").From("issue_assignees").Where(builder.Eq{"assignee_id": opts.AssigneeID})))
+	}
+	if opts.RepoOwnerID != 0 {
+		cond = cond.And(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.RepoOwnerID})))
+	}
+	return cond
+}
+
+func GetAssignedIssues(ctx context.Context, opts *AssignedIssuesOptions) ([]*Issue, int64, error) {
+	return db.FindAndCount[Issue](ctx, opts)
+}
+
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
 	ctx, committer, err := db.TxContext(ctx)

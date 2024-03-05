@@ -1,12 +1,12 @@
 <div {{if .ReadmeInList}}id="readme" {{end}}class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	{{- if .FileError}}
 		<div class="ui error message">
-			<div class="text left gt-whitespace-pre">{{.FileError}}</div>
+			<div class="text left tw-whitespace-pre">{{.FileError}}</div>
 		</div>
 	{{end}}
 	{{- if .FileWarning}}
 		<div class="ui warning message">
-			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
+			<div class="text left tw-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
 
