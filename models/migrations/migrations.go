@@ -562,6 +562,8 @@ var migrations = []Migration{
 	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
 	// v288 -> v289
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> 290
+	NewMigration("Change KeepActivityPrivate to AddActionsVisibility", v1_22.AddActionsVisibility),
 }
 
 // GetCurrentDBVersion returns the current db version

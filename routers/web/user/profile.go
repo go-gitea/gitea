@@ -75,14 +75,13 @@ func userProfile(ctx *context.Context) {
 	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileGitRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, profileDbRepo, profileGitRepo, profileReadmeBlob)
 	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -190,7 +189,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
-			IncludePrivate:  showPrivate,
+			IncludePrivate:  true,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            date,

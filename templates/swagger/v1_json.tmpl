@@ -17190,6 +17190,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionsVisibility": {
+      "description": "ActionsVisibility defines the activities shown",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Activity": {
       "type": "object",
       "properties": {
@@ -23530,6 +23536,9 @@
       "description": "UserSettings represents user settings",
       "type": "object",
       "properties": {
+        "actions_visibility": {
+          "$ref": "#/definitions/ActionsVisibility"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -23541,10 +23550,6 @@
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
-        },
-        "hide_activity": {
-          "type": "boolean",
-          "x-go-name": "HideActivity"
         },
         "hide_email": {
           "description": "Privacy",
@@ -23574,6 +23579,9 @@
       "description": "UserSettingsOptions represents options to change user settings",
       "type": "object",
       "properties": {
+        "actions_visibility": {
+          "$ref": "#/definitions/ActionsVisibility"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -23585,10 +23593,6 @@
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
-        },
-        "hide_activity": {
-          "type": "boolean",
-          "x-go-name": "HideActivity"
         },
         "hide_email": {
           "description": "Privacy",
