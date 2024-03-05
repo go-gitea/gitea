@@ -208,14 +208,8 @@ func SafeHTML(s any) template.HTML {
 }
 
 // SanitizeHTML sanitizes the input by pre-defined markdown rules
-func SanitizeHTML(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(markup.Sanitize(v))
-	case template.HTML:
-		return template.HTML(markup.Sanitize(string(v)))
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
+func SanitizeHTML(s string) template.HTML {
+	return template.HTML(markup.Sanitize(s))
 }
 
 func HTMLEscape(s any) template.HTML {
