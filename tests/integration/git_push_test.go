@@ -33,7 +33,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 			}
 			pushed = append(pushed, "master")
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
-			return
+			return pushed, deleted
 		})
 	})
 
@@ -45,7 +45,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 				doGitPushTestRepository(gitPath, "origin", branchName)(t)
 				pushed = append(pushed, branchName)
 			}
-			return
+			return pushed, deleted
 		})
 	})
 
@@ -66,7 +66,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 				doGitPushTestRepository(gitPath, "origin", "--delete", branchName)(t)
 				deleted = append(deleted, branchName)
 			}
-			return
+			return pushed, deleted
 		})
 	})
 }
