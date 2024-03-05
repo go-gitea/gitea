@@ -408,26 +408,6 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
-// RepoIDAssignment returns a handler which assigns the repo to the context.
-func RepoIDAssignment() func(ctx *Context) {
-	return func(ctx *Context) {
-		repoID := ctx.ParamsInt64(":repoid")
-
-		// Get repository.
-		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", nil)
-			} else {
-				ctx.ServerError("GetRepositoryByID", err)
-			}
-			return
-		}
-
-		repoAssignment(ctx, repo)
-	}
-}
-
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) context.CancelFunc {
 	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {

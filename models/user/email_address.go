@@ -154,37 +154,18 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-// ValidateEmail check if email is a allowed address
+// ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
-	if len(email) == 0 {
-		return ErrEmailInvalid{email}
+	if err := validateEmailBasic(email); err != nil {
+		return err
 	}
+	return validateEmailDomain(email)
+}
 
-	if !emailRegexp.MatchString(email) {
-		return ErrEmailCharIsNotSupported{email}
-	}
-
-	if email[0] == '-' {
-		return ErrEmailInvalid{email}
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is no allow list, then check email against block list
-	if len(setting.Service.EmailDomainAllowList) == 0 &&
-		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is an allow list, then check email against allow list
-	if len(setting.Service.EmailDomainAllowList) > 0 &&
-		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	return nil
+// ValidateEmailForAdmin check if email is a valid address when admins manually add or edit users
+func ValidateEmailForAdmin(email string) error {
+	return validateEmailBasic(email)
+	// In this case we do not need to check the email domain
 }
 
 func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
@@ -533,4 +514,42 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 	}
 
 	return committer.Commit()
+}
+
+// validateEmailBasic checks whether the email complies with the rules
+func validateEmailBasic(email string) error {
+	if len(email) == 0 {
+		return ErrEmailInvalid{email}
+	}
+
+	if !emailRegexp.MatchString(email) {
+		return ErrEmailCharIsNotSupported{email}
+	}
+
+	if email[0] == '-' {
+		return ErrEmailInvalid{email}
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrEmailInvalid{email}
+	}
+
+	return nil
+}
+
+// validateEmailDomain checks whether the email domain is allowed or blocked
+func validateEmailDomain(email string) error {
+	// if there is no allow list, then check email against block list
+	if len(setting.Service.EmailDomainAllowList) == 0 &&
+		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
+		return ErrEmailInvalid{email}
+	}
+
+	// if there is an allow list, then check email against allow list
+	if len(setting.Service.EmailDomainAllowList) > 0 &&
+		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+		return ErrEmailInvalid{email}
+	}
+
+	return nil
 }
