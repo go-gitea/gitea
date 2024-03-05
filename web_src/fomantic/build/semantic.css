@@ -18959,7 +18959,16 @@ input::selection {
 .ui.table td.sixteen.wide {
   width: 100%;
 }
-
+@media only screen and (min-width: 768px) and (max-width:992px){
+  .ui.table th.two.wide,
+  .ui.table td.two.wide {
+    width: 10.5%;
+  }
+  .ui.table th.three.wide,
+  .ui.table td.three.wide {
+    width: 20.75%;
+  }
+}
 /*--------------
       Sortable
   ---------------*/
