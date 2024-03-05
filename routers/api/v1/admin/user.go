@@ -209,7 +209,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if form.Email != nil {
-		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
+		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Error(http.StatusBadRequest, "EmailInvalid", err)
