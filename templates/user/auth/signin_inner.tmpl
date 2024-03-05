@@ -9,7 +9,7 @@
 	{{end}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form md:tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
+	<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 		<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>

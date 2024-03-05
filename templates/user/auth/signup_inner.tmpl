@@ -7,7 +7,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form md:tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
+		<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
 			{{template "base/alert" .}}
