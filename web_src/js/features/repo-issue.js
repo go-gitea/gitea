@@ -180,9 +180,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('tw-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
           }
           $conversationHolder.remove();
         }
