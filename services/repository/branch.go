@@ -504,7 +504,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 	}
 
 	if !repo.IsEmpty {
-		if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{
 			RepoID: repo.ID,
 		}); err != nil {
 			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)

@@ -195,7 +195,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			branch := refFullName.BranchName()
 
 			if branch == baseRepo.DefaultBranch {
-				if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+				if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
 					RepoID: repo.ID,
 				}); err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})

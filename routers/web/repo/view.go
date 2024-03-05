@@ -49,6 +49,7 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
@@ -77,7 +78,7 @@ func renderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
-	subfolder, readmeFile, err := repo_module.FindFileInEntries(util.FileTypeReadme, entries, ctx.Repo.TreePath, ctx.Locale.Language(), true)
+	subfolder, readmeFile, err := repo_service.FindFileInEntries(util.FileTypeReadme, entries, ctx.Repo.TreePath, ctx.Locale.Language(), true)
 	if err != nil {
 		ctx.ServerError("findFileInEntries", err)
 		return
@@ -946,7 +947,7 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["DetectedLicenseFileName"], err = repo_module.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	ctx.Data["DetectedLicenseFileName"], err = repo_service.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
 		ctx.ServerError("GetDetectedLicenseFileName", err)
 		return

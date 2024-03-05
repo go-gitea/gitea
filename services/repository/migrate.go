@@ -152,7 +152,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		// Update repo license
-		if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
 			log.Error("Failed to add repo to license updater queue: %v", err)
 		}
 	}

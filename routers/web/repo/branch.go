@@ -85,7 +85,7 @@ func Branches(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.Data["DetectedLicenseFileName"], err = repo_module.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	ctx.Data["DetectedLicenseFileName"], err = repo_service.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
 		ctx.ServerError("GetDetectedLicenseFileName", err)
 		return

@@ -10,8 +10,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	gitea_context "code.gitea.io/gitea/services/context"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // SetDefaultBranch updates the default branch
@@ -37,7 +37,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+	if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	}); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{

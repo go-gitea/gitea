@@ -749,7 +749,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	if updateRepoLicense {
-		if err := repo_module.AddRepoToLicenseUpdaterQueue(&repo_module.LicenseUpdaterOptions{
+		if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
 			RepoID: ctx.Repo.Repository.ID,
 		}); err != nil {
 			ctx.Error(http.StatusInternalServerError, "AddRepoToLicenseUpdaterQueue", err)
