@@ -88,7 +88,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
 
-			objectFormat, _ := gitRepo.GetObjectFormat()
+			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
 			commits := repository.NewPushCommits()
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
 			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())

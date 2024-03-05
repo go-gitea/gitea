@@ -6,6 +6,7 @@ package markdown
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
 	"sync"
@@ -262,12 +263,12 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 }
 
 // RenderString renders Markdown string to HTML with all specific handling stuff and return string
-func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String()), nil
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.

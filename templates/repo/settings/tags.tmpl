@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message gt-text-center">
+			<div class="ui warning message tw-text-center">
 				{{ctx.Locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -21,7 +21,7 @@
 										<div class="ui input">
 											<input class="prompt" name="name_pattern" autocomplete="off" value="{{.name_pattern}}" placeholder="v*" autofocus required>
 										</div>
-										<div class="help">{{ctx.Locale.Tr "repo.settings.tags.protection.pattern.description" | Safe}}</div>
+										<div class="help">{{ctx.Locale.Tr "repo.settings.tags.protection.pattern.description"}}</div>
 									</div>
 								</div>
 								<div class="whitelist field">
