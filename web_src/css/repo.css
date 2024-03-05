@@ -939,8 +939,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
+  gap: 0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
