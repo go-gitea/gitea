@@ -1236,14 +1236,14 @@ func GetOrderByName() string {
 // FeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
 // user if applicable
 func FeatureDisabledWithLoginType(user *User, feature string) bool {
-	return setting.Admin.ExternalUserDisableFeatures && user.LoginType > auth.Plain ||
+	return (setting.Admin.ExternalUserDisableFeatures && user != nil && user.LoginType > auth.Plain) ||
 		setting.Admin.UserDisabledFeatures.Contains(feature)
 }
 
 // DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type
 // of the user if applicable
 func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
-	if setting.Admin.ExternalUserDisableFeatures && user.LoginType > auth.Plain {
+	if setting.Admin.ExternalUserDisableFeatures && user != nil && user.LoginType > auth.Plain {
 		return &setting.DefaultUserFeatureSet
 	}
 	return &setting.Admin.UserDisabledFeatures
