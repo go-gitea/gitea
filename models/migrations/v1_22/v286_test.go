@@ -17,8 +17,28 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 		ID int64 `xorm:"pk autoincr"`
 	}
 
+	type CommitStatus struct {
+		ID          int64
+		ContextHash string
+	}
+
+	type RepoArchiver struct {
+		ID       int64
+		CommitID string
+	}
+
+	type ReviewState struct {
+		ID        int64
+		CommitSHA string
+	}
+
 	// Prepare and load the testing database
-	return base.PrepareTestEnv(t, 0, new(Repository))
+	return base.PrepareTestEnv(t, 0,
+		new(Repository),
+		new(CommitStatus),
+		new(RepoArchiver),
+		new(ReviewState),
+	)
 }
 
 func Test_RepositoryFormat(t *testing.T) {
