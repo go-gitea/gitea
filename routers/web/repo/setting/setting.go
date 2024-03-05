@@ -488,8 +488,8 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		if form.ChangeDefaultWikiBranch != "" {
-			if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.ChangeDefaultWikiBranch); err != nil {
+		if form.DefaultWikiBranch != "" {
+			if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
 				log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
 				ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
 			}

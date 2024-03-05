@@ -337,7 +337,7 @@
 					</div>
 					<div class="inline field gt-pl-4">
 						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
-						<input name="change_default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
