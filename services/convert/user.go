@@ -7,8 +7,10 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToUser convert user_model.User to api.User
@@ -23,7 +25,7 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 		signed = true
 		authed = doer.ID == user.ID || doer.IsAdmin
 	}
-	return toUser(ctx, user, signed, authed)
+	return toUser(ctx, user, doer, signed, authed)
 }
 
 // ToUsers convert list of user_model.User to list of api.User
@@ -37,16 +39,23 @@ func ToUsers(ctx context.Context, doer *user_model.User, users []*user_model.Use
 
 // ToUserWithAccessMode convert user_model.User to api.User
 // AccessMode is not none show add some more information
-func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode perm.AccessMode) *api.User {
+func ToUserWithAccessMode(ctx context.Context, user, owner *user_model.User, accessMode perm.AccessMode) *api.User {
 	if user == nil {
 		return nil
 	}
-	return toUser(ctx, user, accessMode != perm.AccessModeNone, false)
+	return toUser(ctx, user, owner, accessMode != perm.AccessModeNone, false)
 }
 
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
+func toUser(ctx context.Context, user, doer *user_model.User, signed, authed bool) *api.User {
+	starCount, _ := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+		Actor:       doer,
+		Private:     signed,
+		StarredByID: user.ID,
+		Collaborate: util.OptionalBoolFalse,
+	})
+
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
@@ -61,7 +70,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		// counter's
 		Followers:    user.NumFollowers,
 		Following:    user.NumFollowing,
-		StarredRepos: user.NumStars,
+		StarredRepos: int(starCount),
 	}
 
 	result.Visibility = user.Visibility.String()
