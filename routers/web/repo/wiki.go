@@ -93,10 +93,10 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiGitRepo, errCommit := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
-	if errCommit != nil {
-		ctx.ServerError("OpenRepository", errCommit)
-		return nil, nil, errCommit
+	wikiGitRepo, errGitRepo := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
+	if errGitRepo != nil {
+		ctx.ServerError("OpenRepository", errGitRepo)
+		return nil, nil, errGitRepo
 	}
 
 	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
@@ -104,7 +104,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 		// if the default branch recorded in database is out of sync, then re-sync it
 		gitRepoDefaultBranch, errBranch := wikiGitRepo.GetDefaultBranch()
 		if errBranch != nil {
-			return wikiGitRepo, nil, errCommit
+			return wikiGitRepo, nil, errBranch
 		}
 		// update the default branch in the database
 		errDb := repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")

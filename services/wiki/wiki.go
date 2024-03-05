@@ -360,6 +360,9 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 }
 
 func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, newBranch string) error {
+	if !git.IsValidRefPattern(newBranch) {
+		return fmt.Errorf("invalid branch name: %s", newBranch)
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.DefaultWikiBranch = newBranch
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
