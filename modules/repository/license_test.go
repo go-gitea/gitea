@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -210,7 +209,7 @@ func Test_detectLicense(t *testing.T) {
 			Owner: "Gitea",
 			Email: "teabot@gitea.io",
 			Repo:  "gitea",
-			Year:  time.Now().Format("2006"),
+			Year:  "2024",
 		})
 		assert.NoError(t, err)
 
