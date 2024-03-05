@@ -474,6 +474,10 @@ func pushOptions() map[string]string {
 			}
 		}
 	}
+
+	k := repo_module.EnvRemoteAddr
+	opts[k] = os.Getenv(k)
+
 	return opts
 }
 

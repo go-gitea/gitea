@@ -32,6 +32,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
+	remoteAddr, _ := opts.GitPushOptions[repo_module.EnvRemoteAddr]
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
 	var repo *repo_model.Repository
@@ -64,6 +65,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				PusherName:   opts.UserName,
 				RepoUserName: ownerName,
 				RepoName:     repoName,
+				RemoteAddr:   remoteAddr,
 			}
 			updates = append(updates, option)
 			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {

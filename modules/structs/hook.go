@@ -274,6 +274,7 @@ type PushPayload struct {
 	Before       string           `json:"before"`
 	After        string           `json:"after"`
 	CompareURL   string           `json:"compare_url"`
+	RemoteAddr   string           `json:"remote_addr"`
 	Commits      []*PayloadCommit `json:"commits"`
 	TotalCommits int              `json:"total_commits"`
 	HeadCommit   *PayloadCommit   `json:"head_commit"`

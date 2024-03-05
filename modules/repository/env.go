@@ -28,6 +28,7 @@ const (
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"
 	EnvActionPerm   = "GITEA_ACTION_PERM"
+	EnvRemoteAddr   = "GITEA_REMOTE_ADDR"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push

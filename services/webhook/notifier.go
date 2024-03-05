@@ -604,6 +604,7 @@ func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
 		Pusher:       apiPusher,
 		Sender:       apiPusher,
+		RemoteAddr:   opts.RemoteAddr,
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

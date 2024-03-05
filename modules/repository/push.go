@@ -16,6 +16,7 @@ type PushUpdateOptions struct {
 	RefFullName  git.RefName // branch, tag or other name to push
 	OldCommitID  string
 	NewCommitID  string
+	RemoteAddr   string
 }
 
 // IsNewRef return true if it's a first-time push to a branch, tag or etc.
