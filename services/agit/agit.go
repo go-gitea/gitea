@@ -178,7 +178,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
 				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
-				return nil, fmt.Errorf("fail to detect force push: %w", err)
+				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {
 				results = append(results, private.HookProcReceiveRefResult{
 					OriginalRef: opts.RefFullNames[i],
