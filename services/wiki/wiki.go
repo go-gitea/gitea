@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
@@ -369,7 +370,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(ctx, repo.WikiPath())
+		gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
 		if errors.Is(err, util.ErrNotExist) {
 			return nil // no git repo on storage, no need to do anything else
 		} else if err != nil {
