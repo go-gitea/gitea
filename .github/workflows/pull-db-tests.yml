@@ -217,7 +217,9 @@ jobs:
         env:
           TAGS: bindata
       - name: run migration tests
-        run: make test-mssql-migration
+        run: make migrations.mssql.test
+      - name: run individual migration tests
+        run: make migrations.individual.mssql.test
       - name: run tests
         run: make test-mssql
         timeout-minutes: 50
