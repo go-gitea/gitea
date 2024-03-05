@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

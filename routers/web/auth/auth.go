@@ -123,7 +123,7 @@ func RedirectAfterLogin(ctx *context.Context) {
 }
 
 func checkAutoLogin(ctx *context.Context) bool {
-	isSucceed, err := autoSignIn(ctx) // try to auto-login
+	isSucceed, err := AutoSignIn(ctx) // try to auto-login
 	if err != nil {
 		ctx.ServerError("AutoSignIn", err)
 		return true
