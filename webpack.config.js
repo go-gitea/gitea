@@ -42,11 +42,15 @@ if ('ENABLE_SOURCEMAP' in env) {
 }
 
 // define which web components we use for Vue to not interpret them as Vue components
-const isCustomElement = (tag) => {
-  if (tag.startsWith('wc-')) return true; // first-party
-  if (['markdown-toolbar', 'relative-time', 'text-expander'].includes(tag)) return true;
-  return false;
-};
+const webComponents = new Set([
+  // our own, in web_src/js/webcomponents
+  'overflow-menu',
+  'origin-url',
+  // from dependencies
+  'markdown-toolbar',
+  'relative-time',
+  'text-expander',
+]);
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
@@ -128,7 +132,7 @@ export default {
         loader: 'vue-loader',
         options: {
           compilerOptions: {
-            isCustomElement,
+            isCustomElement: (tag) => webComponents.has(tag),
           },
         },
       },

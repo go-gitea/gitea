@@ -3,7 +3,7 @@ import {createTippy} from '../modules/tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
-window.customElements.define('wc-overflow-menu', class extends HTMLElement {
+window.customElements.define('overflow-menu', class extends HTMLElement {
   updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
@@ -22,7 +22,7 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
     const menuRight = this.offsetLeft + this.offsetWidth;
     for (const item of this.menuItemsEl.querySelectorAll('.item')) {
       const itemRight = item.offsetLeft + item.offsetWidth;
-      if (menuRight - itemRight < 38) { // roughly the width of .wc-overflow-menu-button
+      if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button
         this.tippyItems.push(item);
       }
     }
@@ -40,7 +40,7 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
       }
 
       const btn = document.createElement('button');
-      btn.classList.add('wc-overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
+      btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
       btn.innerHTML = octiconKebabHorizontal;
       this.append(btn);
       this.button = btn;
@@ -54,7 +54,7 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
         content: this.tippyContent,
       });
     } else {
-      const btn = this.querySelector('.wc-overflow-menu-button');
+      const btn = this.querySelector('.overflow-menu-button');
       btn?._tippy?.destroy();
       btn?.remove();
     }
@@ -78,10 +78,10 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
   }
 
   connectedCallback() {
-    // check whether the mandatory `.wc-overflow-menu-items` element is present initially which happens
+    // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
     // template rendering, wait for its addition.
-    const menuItemsEl = this.querySelector('.wc-overflow-menu-items');
+    const menuItemsEl = this.querySelector('.overflow-menu-items');
     if (menuItemsEl) {
       this.menuItemsEl = menuItemsEl;
       this.init();
@@ -90,7 +90,7 @@ window.customElements.define('wc-overflow-menu', class extends HTMLElement {
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (!isDocumentFragmentOrElementNode(node)) continue;
-            if (node.classList.contains('wc-overflow-menu-items')) {
+            if (node.classList.contains('overflow-menu-items')) {
               this.menuItemsEl = node;
               this.mutationObserver?.disconnect();
               this.init();

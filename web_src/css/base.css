@@ -248,7 +248,7 @@ a.label,
 }
 
 .page-content .header-wrapper,
-.page-content wc-overflow-menu {
+.page-content overflow-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
 }
@@ -1339,18 +1339,18 @@ strong.attention-caution, span.attention-caution {
   }
 }
 
-wc-overflow-menu {
+overflow-menu {
   margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
 }
 
-wc-overflow-menu .wc-overflow-menu-items {
+overflow-menu .overflow-menu-items {
   display: flex;
   flex: 1;
 }
 
-wc-overflow-menu .wc-overflow-menu-items .item {
+overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 

@@ -1,4 +1,4 @@
 import './polyfills.js';
 import '@github/relative-time-element';
-import './wc-origin-url.js';
-import './wc-overflow-menu.js';
+import './origin-url.js';
+import './overflow-menu.js';

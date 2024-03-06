@@ -49,7 +49,6 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 11. Custom event names are recommended to use `ce-` prefix.
 12. Gitea's tailwind-style CSS classes use `gt-` prefix (`gt-relative`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
 13. Avoid inline scripts & styles as much as possible, it's recommended to put JS code into JS files and use CSS classes. If inline scripts & styles are unavoidable, explain the reason why it can't be avoided.
-14. Gitea's web components use the `wc-` prefix.
 
 ### Accessibility / ARIA
 

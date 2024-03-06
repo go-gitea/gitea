@@ -384,8 +384,8 @@ export default sfc; // activate the IDE's Vue plugin
             </div>
           </div>
         </div>
-        <wc-overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
-          <div class="wc-overflow-menu-items tw-justify-center">
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
+          <div class="overflow-menu-items tw-justify-center">
             <a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
               <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
@@ -407,7 +407,7 @@ export default sfc; // activate the IDE's Vue plugin
               <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
           </div>
-        </wc-overflow-menu>
+        </overflow-menu>
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
