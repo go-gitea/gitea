@@ -28,46 +28,49 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       }
     }
 
-    if (this.tippyItems?.length) {
-      // remove aria-role from items that moved from tippy to menu
-      for (const item of menuItems) {
-        if (!this.tippyItems.includes(item)) {
-          item.removeAttribute('aria-role');
-        }
-      }
-
-      // move all items that overflow into tippy
-      for (const item of this.tippyItems) {
-        item.setAttribute('aria-role', 'menuitem');
-        this.tippyContent.append(item);
-      }
-
-      // update existing tippy
-      if (this.button?._tippy) {
-        this.button._tippy.setContent(this.tippyContent);
-        return;
-      }
-
-      const btn = document.createElement('button');
-      btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
-      btn.setAttribute('aria-label', window.config.i18n.additional_options);
-      btn.innerHTML = octiconKebabHorizontal;
-      this.append(btn);
-      this.button = btn;
-
-      createTippy(btn, {
-        trigger: 'click',
-        hideOnClick: true,
-        interactive: true,
-        placement: 'bottom-end',
-        role: 'menu',
-        content: this.tippyContent,
-      });
-    } else {
+    // if there are no overflown items, remove any previously created button
+    if (!this.tippyItems?.length) {
       const btn = this.querySelector('.overflow-menu-button');
       btn?._tippy?.destroy();
       btn?.remove();
+      return;
     }
+
+    // remove aria-role from items that moved from tippy to menu
+    for (const item of menuItems) {
+      if (!this.tippyItems.includes(item)) {
+        item.removeAttribute('aria-role');
+      }
+    }
+
+    // move all items that overflow into tippy
+    for (const item of this.tippyItems) {
+      item.setAttribute('aria-role', 'menuitem');
+      this.tippyContent.append(item);
+    }
+
+    // update existing tippy
+    if (this.button?._tippy) {
+      this.button._tippy.setContent(this.tippyContent);
+      return;
+    }
+
+    // create button initially
+    const btn = document.createElement('button');
+    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
+    btn.setAttribute('aria-label', window.config.i18n.additional_options);
+    btn.innerHTML = octiconKebabHorizontal;
+    this.append(btn);
+    this.button = btn;
+
+    createTippy(btn, {
+      trigger: 'click',
+      hideOnClick: true,
+      interactive: true,
+      placement: 'bottom-end',
+      role: 'menu',
+      content: this.tippyContent,
+    });
   });
 
   init() {
