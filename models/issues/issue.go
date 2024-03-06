@@ -12,10 +12,8 @@ import (
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -442,28 +440,6 @@ func (issue *Issue) HashTag() string {
 // IsPoster returns true if given user by ID is the poster.
 func (issue *Issue) IsPoster(uid int64) bool {
 	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
-}
-
-func (issues IssueList) FilterValidByDoer(ctx context.Context, doer *user_model.User) (IssueList, error) {
-	repos, err := issues.LoadRepositories(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	validRepoIDs := make(container.Set[int64], len(repos))
-	for _, repo := range repos {
-		if access_model.CheckRepoUnitUser(ctx, repo, doer, unit.TypeIssues) {
-			validRepoIDs.Add(repo.ID)
-		}
-	}
-
-	issueList := issues[:0]
-	for _, issue := range issues {
-		if validRepoIDs.Contains(issue.RepoID) {
-			issueList = append(issueList, issue)
-		}
-	}
-	return issueList, nil
 }
 
 // GetTasks returns the amount of tasks in the issues content

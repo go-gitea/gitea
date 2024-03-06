@@ -53,17 +53,22 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed optional.Option[bool]) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)
 
+	opts := &IssuesOptions{
+		ProjectID: b.ProjectID,
+		SortType:  "project-column-sorting",
+		IsClosed:  isClosed,
+	}
+
+	if doer != nil {
+		opts.User = doer
+	} else {
+		// non-login user can only access public repos
+		opts.AllPublic = true
+	}
+
 	if b.ID > 0 {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: b.ID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
-			IsClosed:       isClosed,
-		})
-		if err != nil {
-			return nil, err
-		}
-		issues, err = issues.FilterValidByDoer(ctx, doer)
+		opts.ProjectBoardID = b.ID
+		issues, err := Issues(ctx, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -71,16 +76,8 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 	}
 
 	if b.Default {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: db.NoConditionID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
-			IsClosed:       isClosed,
-		})
-		if err != nil {
-			return nil, err
-		}
-		issues, err = issues.FilterValidByDoer(ctx, doer)
+		opts.ProjectBoardID = db.NoConditionID
+		issues, err := Issues(ctx, opts)
 		if err != nil {
 			return nil, err
 		}
