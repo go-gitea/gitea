@@ -11,7 +11,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 // LoadProject load the project the issue was assigned to
@@ -50,7 +50,7 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed optional.Option[bool]) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)
 
 	if b.ID > 0 {
@@ -95,7 +95,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, isClosed util.OptionalBool) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, isClosed optional.Option[bool]) (map[int64]IssueList, error) {
 	if unit.TypeIssues.UnitGlobalDisabled() {
 		return nil, nil
 	}
@@ -111,7 +111,7 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, do
 }
 
 // NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
-func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer *user_model.User, isClosed util.OptionalBool) (map[int64]int, error) {
+func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer *user_model.User, isClosed optional.Option[bool]) (map[int64]int, error) {
 	numMap := make(map[int64]int, len(pl))
 	for _, p := range pl {
 		num, err := NumIssuesInProject(ctx, p, doer, isClosed)
@@ -125,7 +125,7 @@ func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer
 }
 
 // NumIssuesInProject returns counter of all issues assigned to a project which doer can access
-func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, isClosed util.OptionalBool) (int, error) {
+func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, isClosed optional.Option[bool]) (int, error) {
 	numIssuesInProject := int(0)
 	bs, err := p.GetBoards(ctx)
 	if err != nil {

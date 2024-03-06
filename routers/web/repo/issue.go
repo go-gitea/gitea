@@ -591,8 +591,8 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	projectsUnit := repo.MustGetUnit(ctx, unit.TypeProjects)
 
-	var openProjects []*project_model.Project
-	var closedProjects []*project_model.Project
+	var openProjects project_model.ProjectList
+	var closedProjects project_model.ProjectList
 	var err error
 
 	if projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
@@ -629,11 +629,11 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
-    openProjects2, err = openProjects2.FilterWritableByDoer(ctx, repo, ctx.Doer)
-    if err != nil {
-      ctx.ServerError("FilterWritableByDoer", err)
-      return
-    }
+		openProjects2, err = project_model.ProjectList(openProjects2).FilterWritableByDoer(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("FilterWritableByDoer", err)
+			return
+		}
 		openProjects = append(openProjects, openProjects2...)
 		closedProjects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 			ListOptions: db.ListOptionsAll,
@@ -645,11 +645,11 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
-    closedProjects2, err = closedProjects2.FilterWritableByDoer(ctx, repo, ctx.Doer)
-    if err != nil {
-      ctx.ServerError("FilterWritableByDoer", err)
-      return
-    }
+		closedProjects2, err = project_model.ProjectList(closedProjects2).FilterWritableByDoer(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("FilterWritableByDoer", err)
+			return
+		}
 		closedProjects = append(closedProjects, closedProjects2...)
 	}
 
@@ -1195,7 +1195,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				ctx.Data["project_id"] = form.ProjectID
 
 				projectID = form.ProjectID
-				projectLink = p.Link()
+				projectLink = p.Link(ctx)
 			}
 		}
 	}
@@ -2834,11 +2834,6 @@ func ListIssues(ctx *context.Context) {
 	var projectID *int64
 	if v := ctx.FormInt64("project"); v > 0 {
 		projectID = &v
-  }
-
-	listOptions := db.ListOptions{
-		Page:     ctx.FormInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}
 
 	isPull := optional.None[bool]()
