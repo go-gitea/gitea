@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -220,4 +221,33 @@ func TestWikiRaw(t *testing.T) {
 			assert.EqualValues(t, filetype, ctx.Resp.Header().Get("Content-Type"), "filepath: %s", filepath)
 		}
 	}
+}
+
+func TestDefaultWikiBranch(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	assert.NoError(t, repo_model.UpdateRepositoryCols(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
+	ctx.SetParams("*", "Home")
+	contexttest.LoadRepo(t, ctx, 1)
+	assert.Equal(t, "wrong-branch", ctx.Repo.Repository.DefaultWikiBranch)
+	Wiki(ctx) // after the visiting, the out-of-sync database record will update the branch name to "master"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", ctx.Repo.Repository.DefaultWikiBranch)
+
+	// invalid branch name should fail
+	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "the bad name"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", repo.DefaultWikiBranch)
+
+	// the same branch name, should succeed (actually a no-op)
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "master"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", repo.DefaultWikiBranch)
+
+	// change to another name
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "main"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "main", repo.DefaultWikiBranch)
 }
