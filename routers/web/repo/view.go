@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
@@ -859,24 +858,17 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	selected := make(container.Set[string])
-	selected.AddMultiple(ctx.FormStrings("f[]")...)
-
-	entries := allEntries
-	if len(selected) > 0 {
-		entries = make(git.Entries, 0, len(selected))
-		for _, entry := range allEntries {
-			if selected.Contains(entry.Name()) {
-				entries = append(entries, entry)
-			}
-		}
-	}
-
-	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
+	}
+	ctx.Data["Files"] = files
+	for _, f := range files {
+		if f.Commit == nil {
+			ctx.Data["HasFilesWithoutLatestCommit"] = true
+			break
+		}
 	}
 
 	if !loadLatestCommitData(ctx, latestCommit) {
@@ -1006,6 +998,8 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
+	checkOutdatedBranch(ctx)
+
 	checkCitationFile(ctx, entry)
 	if ctx.Written() {
 		return
@@ -1070,6 +1064,31 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+func checkOutdatedBranch(ctx *context.Context) {
+	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+		return
+	}
+
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranch: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if dbBranch.CommitID != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
+	}
 }
 
 // RenderUserCards render a page show users according the input template
