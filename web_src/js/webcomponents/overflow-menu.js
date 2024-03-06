@@ -90,8 +90,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   connectedCallback() {
     // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
-    // template rendering, wait for its addition.
-    const menuItemsEl = this.querySelector('.overflow-menu-items');
+    // template rendering, wait for its addition. The eslint rule is not sophisticated enough or aware of
+    // this problem.
+    const menuItemsEl = this.querySelector('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback
     if (menuItemsEl) {
       this.menuItemsEl = menuItemsEl;
       this.init();
