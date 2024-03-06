@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -259,10 +258,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				if err = syncBranchToDB(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
-					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
-				}
-
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
@@ -274,10 +269,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
-				}
-
-				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
-					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 
