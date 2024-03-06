@@ -118,7 +118,15 @@ func (g *Manager) start(ctx context.Context) {
 		defer close(startupDone)
 		// Wait till we're done getting all of the listeners and then close
 		// the unused ones
-		g.createServerWaitGroup.Wait()
+		func() {
+			// FIXME: there is a fundamental design problem of the "manager" and the "wait group".
+			// If nothing has started, the "Wait" just panics: sync: WaitGroup is reused before previous Wait has returned
+			// There is no clear solution besides a complete rewriting of the "manager"
+			defer func() {
+				_ = recover()
+			}()
+			g.createServerWaitGroup.Wait()
+		}()
 		// Ignore the error here there's not much we can do with it
 		// They're logged in the CloseProvidedListeners function
 		_ = CloseProvidedListeners()
