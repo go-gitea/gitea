@@ -105,8 +105,10 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`server error: ${resp.status}`);
     }
   } catch (e) {
-    console.error('error when doRequest', e);
-    showErrorToast(`${i18n.network_error} ${e}`);
+    if (e.name !== 'AbortError') {
+      console.error('error when doRequest', e);
+      showErrorToast(`${i18n.network_error} ${e}`);
+    }
   }
   actionElem.classList.remove('is-loading', 'small-loading-icon');
 }
