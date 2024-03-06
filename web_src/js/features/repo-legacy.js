@@ -150,7 +150,7 @@ export function initRepoCommentForm() {
 
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('gt-invisible');
+          $(this).find('.octicon-check').addClass('tw-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -164,7 +164,7 @@ export function initRepoCommentForm() {
           }
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('gt-invisible');
+          $(this).find('.octicon-check').removeClass('tw-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -218,7 +218,7 @@ export function initRepoCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('gt-invisible');
+        $(this).find('.octicon-check').addClass('tw-invisible');
       });
 
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {

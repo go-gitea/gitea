@@ -935,18 +935,11 @@
 
 .repository.view.issue .comment-list .comment .merge-section .item-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 0;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
-}
-
-@media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .comment .merge-section .item-section {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  gap: 0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
