@@ -38,7 +38,7 @@
 			<div class="ui container gt-my-5">
 				{{if .ErrorMsg}}
 					<p>{{ctx.Locale.Tr "error.occurred"}}:</p>
-					<pre class="tw-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>
+					<pre class="tw-whitespace-pre-wrap tw-break-all">{{.ErrorMsg}}</pre>
 				{{end}}
 				<div class="center gt-mt-5">
 					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
