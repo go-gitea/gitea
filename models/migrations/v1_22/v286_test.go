@@ -54,12 +54,18 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 		CommitSHA string
 	}
 
+	type Review struct {
+		ID       int64
+		CommitID string
+	}
+
 	// Prepare and load the testing database
 	return base.PrepareTestEnv(t, 0,
 		new(Repository),
 		new(CommitStatus),
 		new(RepoArchiver),
 		new(ReviewState),
+		new(Review),
 		new(Comment),
 		new(PullRequest),
 		new(Release),
