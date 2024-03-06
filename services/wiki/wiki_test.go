@@ -170,7 +170,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 				return
 			}
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree(DefaultBranch)
+			masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 			assert.NoError(t, err)
 			gitPath := WebPathToGitPath(webPath)
 			entry, err := masterTree.GetTreeEntryByPath(gitPath)
@@ -215,7 +215,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree(DefaultBranch)
+		masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 		assert.NoError(t, err)
 		gitPath := WebPathToGitPath(webPath)
 		entry, err := masterTree.GetTreeEntryByPath(gitPath)
@@ -242,7 +242,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree(DefaultBranch)
+	masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 	assert.NoError(t, err)
 	gitPath := WebPathToGitPath("Home")
 	_, err = masterTree.GetTreeEntryByPath(gitPath)
@@ -280,7 +280,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			webPath := UserTitleToWebPath("", tt.arg)
-			existence, newWikiPath, err := prepareGitPath(gitRepo, webPath)
+			existence, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, webPath)
 			if (err != nil) != tt.wantErr {
 				assert.NoError(t, err)
 				return
@@ -312,7 +312,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	}
 	defer gitRepo.Close()
 
-	existence, newWikiPath, err := prepareGitPath(gitRepo, "Home")
+	existence, newWikiPath, err := prepareGitPath(gitRepo, "master", "Home")
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "Home.md", newWikiPath)
