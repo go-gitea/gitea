@@ -51,6 +51,7 @@
 .tippy-box[data-theme="menu"] {
   background-color: var(--color-menu);
   color: var(--color-text);
+  box-shadow: 0 6px 18px var(--color-shadow);
 }
 
 .tippy-box[data-theme="menu"] .tippy-content {
@@ -62,12 +63,11 @@
 }
 
 .tippy-box[data-theme="menu"] .item {
-  display: block;
-  padding: 10px 16px;
-  color: inherit;
-  text-decoration: none;
   display: flex;
   align-items: center;
+  padding: 9px 18px;
+  color: inherit;
+  text-decoration: none;
   gap: 10px;
 }
 
