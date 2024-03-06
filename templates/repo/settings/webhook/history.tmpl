@@ -1,9 +1,13 @@
+{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
 {{if .PageIsSettingsHooksEdit}}
 	<h4 class="ui top attached header">
-		{{.locale.Tr "repo.settings.recent_deliveries"}}
+		{{ctx.Locale.Tr "repo.settings.recent_deliveries"}}
 		{{if .Permission.IsAdmin}}
 			<div class="ui right">
-				<button class="ui teal tiny button" id="test-delivery" data-tooltip-content="{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+				<!-- the button is wrapped with a span because the tooltip doesn't show on hover if we put data-tooltip-content directly on the button -->
+				<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc_disabled"}}{{end}}">
+					<button class="ui teal tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+			</span>
 			</div>
 		{{end}}
 	</h4>
@@ -11,24 +15,24 @@
 		<div class="ui list">
 			{{range .History}}
 				<div class="item">
-					<div class="meta">
-						{{if .IsSucceed}}
-							<span class="text green">{{svg "octicon-check"}}</span>
-						{{else}}
-							<span class="text red">{{svg "octicon-alert"}}</span>
-						{{end}}
-						<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
-						<div class="ui right">
-							<span class="text grey time">
-								{{TimeSince .Delivered.AsTime $.locale}}
-							</span>
+					<div class="flex-text-block gt-sb">
+						<div class="flex-text-inline">
+							{{if .IsSucceed}}
+								<span class="text green">{{svg "octicon-check"}}</span>
+							{{else}}
+								<span class="text red">{{svg "octicon-alert"}}</span>
+							{{end}}
+							<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
 						</div>
+						<span class="text grey">
+							{{TimeSince .Delivered.AsTime ctx.Locale}}
+						</span>
 					</div>
 					<div class="info gt-hidden" id="info-{{.ID}}">
 						<div class="ui top attached tabular menu">
-							<a class="item active" data-tab="request-{{.ID}}">{{$.locale.Tr "repo.settings.webhook.request"}}</a>
+							<a class="item active" data-tab="request-{{.ID}}">{{ctx.Locale.Tr "repo.settings.webhook.request"}}</a>
 							<a class="item" data-tab="response-{{.ID}}">
-								{{$.locale.Tr "repo.settings.webhook.response"}}
+								{{ctx.Locale.Tr "repo.settings.webhook.response"}}
 								{{if .ResponseInfo}}
 									{{if .IsSucceed}}
 										<span class="ui green label">{{.ResponseInfo.Status}}</span>
@@ -43,19 +47,21 @@
 							<div class="right menu">
 								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									{{$.CsrfTokenHtml}}
-									<button class="ui tiny button" data-tooltip-content="{{$.locale.Tr "repo.settings.webhook.replay.description"}}">{{svg "octicon-sync"}}</button>
+									<span data-tooltip-content="{{if $.Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">
+										<button class="ui tiny button{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
+									</span>
 								</form>
 							</div>
 							{{end}}
 						</div>
 						<div class="ui bottom attached tab segment active" data-tab="request-{{.ID}}">
 							{{if .RequestInfo}}
-								<h5>{{$.locale.Tr "repo.settings.webhook.headers"}}</h5>
+								<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="webhook-info"><strong>Request URL:</strong> {{.RequestInfo.URL}}
 <strong>Request method:</strong> {{if .RequestInfo.HTTPMethod}}{{.RequestInfo.HTTPMethod}}{{else}}POST{{end}}
 {{range $key, $val := .RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
-								<h5>{{$.locale.Tr "repo.settings.webhook.payload"}}</h5>
+								<h5>{{ctx.Locale.Tr "repo.settings.webhook.payload"}}</h5>
 								<pre class="webhook-info"><code class="json">{{.PayloadContent}}</code></pre>
 							{{else}}
 								-
@@ -63,10 +69,10 @@
 						</div>
 						<div class="ui bottom attached tab segment" data-tab="response-{{.ID}}">
 							{{if .ResponseInfo}}
-								<h5>{{$.locale.Tr "repo.settings.webhook.headers"}}</h5>
+								<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="webhook-info">{{range $key, $val := .ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
-								<h5>{{$.locale.Tr "repo.settings.webhook.body"}}</h5>
+								<h5>{{ctx.Locale.Tr "repo.settings.webhook.body"}}</h5>
 								<pre class="webhook-info"><code>{{.ResponseInfo.Body}}</code></pre>
 							{{else}}
 								-

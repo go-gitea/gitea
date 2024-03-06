@@ -15,8 +15,8 @@ func AddReviewMigrateInfo(x *xorm.Engine) error {
 		OriginalAuthorID int64
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Review)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

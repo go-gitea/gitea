@@ -61,7 +61,7 @@ Please note: authentication is only supported when the SMTP server communication
 
 - STARTTLS (also known as Opportunistic TLS) via port 587. Initial connection is done over cleartext, but then be upgraded over TLS if the server supports it.
 - SMTPS connection (SMTP over TLS) via the default port 465. Connection to the server use TLS from the beginning.
-- Forced SMTPS connection with `IS_TLS_ENABLED=true`. (These are both known as Implicit TLS.)
+- Forced SMTPS connection with `PROTOCOL=smtps`. (These are both known as Implicit TLS.)
 This is due to protections imposed by the Go internal libraries against STRIPTLS attacks.
 
 Note that Implicit TLS is recommended by [RFC8314](https://tools.ietf.org/html/rfc8314#section-3) since 2018.
@@ -79,8 +79,7 @@ SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
 PASSWD         = `***`
-PROTOCOL       = smtp
-IS_TLS_ENABLED = true
+PROTOCOL       = smtps
 ```
 
 Note that you'll need to create and use an [App password](https://support.google.com/accounts/answer/185833?hl=en) by enabling 2FA on your Google

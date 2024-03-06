@@ -1,38 +1,34 @@
 import $ from 'jquery';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
 
-const {csrfToken} = window.config;
-
-function getArchive($target, url, first) {
-  $.ajax({
-    url,
-    type: 'POST',
-    data: {
-      _csrf: csrfToken,
-    },
-    complete(xhr) {
-      if (xhr.status === 200) {
-        if (!xhr.responseJSON) {
-          // XXX Shouldn't happen?
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          return;
-        }
-
-        if (!xhr.responseJSON.complete) {
-          $target.closest('.dropdown').children('i').addClass('loading');
-          // Wait for only three quarters of a second initially, in case it's
-          // quickly archived.
-          setTimeout(() => {
-            getArchive($target, url, false);
-          }, first ? 750 : 2000);
-        } else {
-          // We don't need to continue checking.
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          window.location.href = url;
-        }
+async function getArchive($target, url, first) {
+  try {
+    const response = await POST(url);
+    if (response.status === 200) {
+      const data = await response.json();
+      if (!data) {
+        // XXX Shouldn't happen?
+        $target.closest('.dropdown').children('i').removeClass('loading');
+        return;
       }
-    },
-  });
+
+      if (!data.complete) {
+        $target.closest('.dropdown').children('i').addClass('loading');
+        // Wait for only three quarters of a second initially, in case it's
+        // quickly archived.
+        setTimeout(() => {
+          getArchive($target, url, false);
+        }, first ? 750 : 2000);
+      } else {
+        // We don't need to continue checking.
+        $target.closest('.dropdown').children('i').removeClass('loading');
+        window.location.href = url;
+      }
+    }
+  } catch {
+    $target.closest('.dropdown').children('i').removeClass('loading');
+  }
 }
 
 export function initRepoArchiveLinks() {
@@ -52,12 +48,6 @@ export function initRepoCloneLink() {
   if ((!$repoCloneSsh.length && !$repoCloneHttps.length) || !$inputLink.length) {
     return;
   }
-
-  // restore animation after first init
-  setTimeout(() => {
-    $repoCloneSsh.removeClass('gt-no-transition');
-    $repoCloneHttps.removeClass('gt-no-transition');
-  }, 100);
 
   $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
@@ -96,14 +86,4 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     },
     message: {noResults: $dropdown.attr('data-no-results')},
   });
-}
-
-export function initRepoCommonLanguageStats() {
-  // Language stats
-  if ($('.language-stats').length > 0) {
-    $('.language-stats').on('click', (e) => {
-      e.preventDefault();
-      toggleElem($('.language-stats-details, .repository-menu'));
-    });
-  }
 }

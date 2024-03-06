@@ -1,7 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new authentication")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.auths.new"}}
+			{{ctx.Locale.Tr "admin.auths.new"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -9,7 +9,7 @@
 				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
-					<label>{{.locale.Tr "admin.auths.auth_type"}}</label>
+					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
 						<div class="text">{{.CurrentTypeName}}</div>
@@ -22,7 +22,7 @@
 					</div>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
-					<label for="auth_name">{{.locale.Tr "admin.auths.auth_name"}}</label>
+					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.name}}" autofocus required>
 				</div>
 
@@ -34,16 +34,16 @@
 
 				<!-- PAM -->
 				<div class="pam required field {{if not (eq .type 4)}}gt-hidden{{end}}">
-					<label for="pam_service_name">{{.locale.Tr "admin.auths.pam_service_name"}}</label>
+					<label for="pam_service_name">{{ctx.Locale.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
-					<label for="pam_email_domain">{{.locale.Tr "admin.auths.pam_email_domain"}}</label>
+					<label for="pam_email_domain">{{ctx.Locale.Tr "admin.auths.pam_email_domain"}}</label>
 					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
 				<div class="pam optional field {{if not (eq .type 4)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
-						<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+						<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
-						<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 					</div>
 				</div>
 
@@ -55,67 +55,67 @@
 
 				<div class="ldap field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
 				<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.auths.syncenabled"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "admin.auths.activated"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "admin.auths.activated"}}</strong></label>
 						<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
 					</div>
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "admin.auths.new"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.auths.new"}}</button>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.auths.tips"}}
+			{{ctx.Locale.Tr "admin.auths.tips"}}
 		</h4>
 		<div class="ui attached segment">
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
 
-			<h5 class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
-			<p class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
+			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
+			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 
-			<h5 class="ui top attached header">{{.locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
+			<h5 class="ui top attached header">{{ctx.Locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
 			<div class="ui attached segment">
 				<li>Bitbucket</li>
-				<span>{{.locale.Tr "admin.auths.tip.bitbucket"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.bitbucket"}}</span>
 				<li>Dropbox</li>
-				<span>{{.locale.Tr "admin.auths.tip.dropbox"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.dropbox"}}</span>
 				<li>Facebook</li>
-				<span>{{.locale.Tr "admin.auths.tip.facebook"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.facebook"}}</span>
 				<li>GitHub</li>
-				<span>{{.locale.Tr "admin.auths.tip.github"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.github"}}</span>
 				<li>GitLab</li>
-				<span>{{.locale.Tr "admin.auths.tip.gitlab"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.gitlab"}}</span>
 				<li>Google</li>
-				<span>{{.locale.Tr "admin.auths.tip.google_plus"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.google_plus"}}</span>
 				<li>OpenID Connect</li>
-				<span>{{.locale.Tr "admin.auths.tip.openid_connect"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.openid_connect"}}</span>
 				<li>Twitter</li>
-				<span>{{.locale.Tr "admin.auths.tip.twitter"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.twitter"}}</span>
 				<li>Discord</li>
-				<span>{{.locale.Tr "admin.auths.tip.discord"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.discord"}}</span>
 				<li>Gitea</li>
-				<span>{{.locale.Tr "admin.auths.tip.gitea"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.gitea"}}</span>
 				<li>Nextcloud</li>
-				<span>{{.locale.Tr "admin.auths.tip.nextcloud"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.nextcloud"}}</span>
 				<li>Yandex</li>
-				<span>{{.locale.Tr "admin.auths.tip.yandex"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.yandex"}}</span>
 				<li>Mastodon</li>
-				<span>{{.locale.Tr "admin.auths.tip.mastodon"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.mastodon"}}</span>
 			</div>
 		</div>
 	</div>

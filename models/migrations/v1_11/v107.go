@@ -13,5 +13,5 @@ func AddTemplateToRepo(x *xorm.Engine) error {
 		TemplateID int64 `xorm:"INDEX"`
 	}
 
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

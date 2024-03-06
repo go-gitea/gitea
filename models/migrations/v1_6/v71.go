@@ -27,8 +27,8 @@ func AddScratchHash(x *xorm.Engine) error {
 		UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(TwoFactor)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(TwoFactor)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	sess := x.NewSession()

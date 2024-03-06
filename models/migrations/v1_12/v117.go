@@ -12,5 +12,5 @@ func AddBlockOnRejectedReviews(x *xorm.Engine) error {
 		BlockOnRejectedReviews bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync(new(ProtectedBranch))
 }

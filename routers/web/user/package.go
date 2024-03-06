@@ -15,15 +15,17 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
+	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -53,7 +55,7 @@ func ListPackages(ctx *context.Context) {
 		OwnerID:    ctx.ContextUser.ID,
 		Type:       packages_model.Type(packageType),
 		Name:       packages_model.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -101,6 +103,12 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
 		org := org_model.OrgFromUser(ctx.ContextUser)
@@ -138,7 +146,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID:  p.ID,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetPackageByName", err)
@@ -155,7 +163,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(pd.FullWebLink())
+	ctx.Redirect(pd.VersionWebLink())
 }
 
 // ViewPackageVersion displays a single package version
@@ -189,9 +197,9 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 
-		ctx.Data["Branches"] = branches.Values()
-		ctx.Data["Repositories"] = repositories.Values()
-		ctx.Data["Architectures"] = architectures.Values()
+		ctx.Data["Branches"] = util.Sorted(branches.Values())
+		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeDebian:
 		distributions := make(container.Set[string])
 		components := make(container.Set[string])
@@ -210,9 +218,26 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 
-		ctx.Data["Distributions"] = distributions.Values()
-		ctx.Data["Components"] = components.Values()
-		ctx.Data["Architectures"] = architectures.Values()
+		ctx.Data["Distributions"] = util.Sorted(distributions.Values())
+		ctx.Data["Components"] = util.Sorted(components.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
+	case packages_model.TypeRpm:
+		groups := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case rpm_module.PropertyGroup:
+					groups.Add(pp.Value)
+				case rpm_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Groups"] = util.Sorted(groups.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	}
 
 	var (
@@ -231,7 +256,7 @@ func ViewPackageVersion(ctx *context.Context) {
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 		})
 	}
 	if err != nil {
@@ -254,6 +279,12 @@ func ViewPackageVersion(ctx *context.Context) {
 		hasRepositoryAccess = permission.HasAccess()
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
@@ -329,7 +360,7 @@ func ListPackageVersions(ctx *context.Context) {
 				ExactMatch: false,
 				Value:      query,
 			},
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 			Sort:       sort,
 		})
 		if err != nil {
@@ -345,6 +376,12 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	ctx.Data["Total"] = total
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	for k, v := range pagerParams {
@@ -365,12 +402,18 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
@@ -415,7 +458,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
@@ -425,7 +468,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 		// redirect to the package if there are still versions available
-		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID}); has {
+		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
 			redirectURL = ctx.Package.Descriptor.PackageWebLink()
 		}
 

@@ -43,7 +43,7 @@ gitea embedded list [--include-vendored] [patterns...]
 
 如果未提供模式，则列出所有文件。
 
-### 示例
+### 示例：列出所有嵌入文件
 
 列出所有路径中包含 `openid` 的嵌入文件：
 
@@ -83,7 +83,7 @@ gitea [--config {file}] embedded extract [--destination {dir}|--custom] [--overw
 
 请确保**只提取需要自定义的文件**。位于 `custom` 目录中的文件不会受到 Gitea 的升级过程的影响。当 Gitea 升级到新版本（通过替换可执行文件）时，许多嵌入文件将发生变化。Gitea 将尊重并使用在 `custom` 目录中找到的任何文件，即使这些文件是旧的和不兼容的。
 
-### 示例
+### 示例：提取邮件模板
 
 将邮件模板提取到临时目录：
 

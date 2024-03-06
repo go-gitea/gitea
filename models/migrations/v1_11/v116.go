@@ -24,7 +24,7 @@ func ExtendTrackedTimes(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(TrackedTime)); err != nil {
+	if err := sess.Sync(new(TrackedTime)); err != nil {
 		return err
 	}
 

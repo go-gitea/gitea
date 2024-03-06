@@ -16,8 +16,8 @@ func AddUserRedirect(x *xorm.Engine) (err error) {
 		RedirectUserID int64
 	}
 
-	if err := x.Sync2(new(UserRedirect)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(UserRedirect)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

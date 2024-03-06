@@ -5,17 +5,16 @@
 package templates
 
 import (
-	"context"
 	"fmt"
 	"html"
 	"html/template"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
-	system_model "code.gitea.io/gitea/models/system"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -28,19 +27,22 @@ import (
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
 	return map[string]any{
+		"ctx": func() any { return nil }, // template context function
+
 		"DumpVar": dumpVar,
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Eval":        Eval,
-		"Safe":        Safe,
-		"Escape":      html.EscapeString,
-		"QueryEscape": url.QueryEscape,
-		"JSEscape":    template.JSEscapeString,
-		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
-		"URLJoin":     util.URLJoin,
-		"DotEscape":   DotEscape,
+		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Eval":         Eval,
+		"SafeHTML":     SafeHTML,
+		"HTMLFormat":   HTMLFormat,
+		"HTMLEscape":   HTMLEscape,
+		"QueryEscape":  url.QueryEscape,
+		"JSEscape":     JSEscapeSafe,
+		"SanitizeHTML": SanitizeHTML,
+		"URLJoin":      util.URLJoin,
+		"DotEscape":    DotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -52,15 +54,10 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
-		"ActionIcon":     ActionIcon,
+		"svg":           svg.RenderHTML,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
+		"ActionIcon":    ActionIcon,
 
 		"SortArrow": SortArrow,
 
@@ -103,9 +100,6 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
-		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
 		},
@@ -139,8 +133,11 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
+		"ThemeName": func(user *user_model.User) string {
+			if user == nil || user.Theme == "" {
+				return setting.UI.DefaultTheme
+			}
+			return user.Theme
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
@@ -163,9 +160,7 @@ func NewFuncMap() template.FuncMap {
 		"RenderCodeBlock":  RenderCodeBlock,
 		"RenderIssueTitle": RenderIssueTitle,
 		"RenderEmoji":      RenderEmoji,
-		"RenderEmojiPlain": emoji.ReplaceAliases,
 		"ReactionToEmoji":  ReactionToEmoji,
-		"RenderNote":       RenderNote,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
 		"RenderLabel":          RenderLabel,
@@ -184,14 +179,51 @@ func NewFuncMap() template.FuncMap {
 	}
 }
 
-// Safe render raw as HTML
-func Safe(raw string) template.HTML {
-	return template.HTML(raw)
+func HTMLFormat(s string, rawArgs ...any) template.HTML {
+	args := slices.Clone(rawArgs)
+	for i, v := range args {
+		switch v := v.(type) {
+		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
+			// for most basic types (including template.HTML which is safe), just do nothing and use it
+		case string:
+			args[i] = template.HTMLEscapeString(v)
+		case fmt.Stringer:
+			args[i] = template.HTMLEscapeString(v.String())
+		default:
+			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
+		}
+	}
+	return template.HTML(fmt.Sprintf(s, args...))
 }
 
-// Str2html render Markdown text to HTML
-func Str2html(raw string) template.HTML {
-	return template.HTML(markup.Sanitize(raw))
+// SafeHTML render raw as HTML
+func SafeHTML(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(v)
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+// SanitizeHTML sanitizes the input by pre-defined markdown rules
+func SanitizeHTML(s string) template.HTML {
+	return template.HTML(markup.Sanitize(s))
+}
+
+func HTMLEscape(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(html.EscapeString(v))
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func JSEscapeSafe(s string) template.HTML {
+	return template.HTML(template.JSEscapeString(s))
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls

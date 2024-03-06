@@ -62,7 +62,7 @@ type FindTaskOptions struct {
 	IDOrderDesc   bool
 }
 
-func (opts FindTaskOptions) toConds() builder.Cond {
+func (opts FindTaskOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -88,18 +88,9 @@ func (opts FindTaskOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
+func (opts FindTaskOptions) ToOrders() string {
 	if opts.IDOrderDesc {
-		e.OrderBy("id DESC")
+		return "`id` DESC"
 	}
-	var tasks TaskList
-	return tasks, e.Find(&tasks)
-}
-
-func CountTasks(ctx context.Context, opts FindTaskOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionTask))
+	return ""
 }

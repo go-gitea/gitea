@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -232,7 +233,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := activities_model.GetStatistic()
+	stats := activities_model.GetStatistic(db.DefaultContext)
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,

@@ -300,7 +300,7 @@ func InitSigningKey() error {
 	case "HS384":
 		fallthrough
 	case "HS512":
-		key, err = loadSymmetricKey()
+		key = setting.GetGeneralTokenSigningSecret()
 	case "RS256":
 		fallthrough
 	case "RS384":
@@ -331,21 +331,6 @@ func InitSigningKey() error {
 	DefaultSigningKey = signingKey
 
 	return nil
-}
-
-// loadSymmetricKey checks if the configured secret is valid.
-// If it is not valid, it will return an error.
-func loadSymmetricKey() (any, error) {
-	key := make([]byte, 32)
-	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
-	if err != nil {
-		return nil, err
-	}
-	if n != 32 {
-		return nil, fmt.Errorf("JWT secret must be 32 bytes long")
-	}
-
-	return key, nil
 }
 
 // loadOrCreateAsymmetricKey checks if the configured private key exists.

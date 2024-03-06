@@ -88,3 +88,16 @@ menu:
 4. 选择**添加推送镜像**以保存配置。
 
 仓库会很快进行推送。要强制推送，请选择**立即同步**按钮。
+
+### 镜像现有的 ssh 仓库
+
+当前，Gitea 不支持从 ssh 仓库进行镜像。如果您想要镜像一个 ssh 仓库，您需要将其转换为 http 仓库。您可以使用以下命令将现有的 ssh 仓库转换为 http 仓库：
+
+1. 确保运行 gitea 的用户有权限访问您试图从 shell 镜像到的 git 仓库。
+2. 在 Web 界面的版本库设置 > git 钩子中为镜像添加一个接收后钩子。
+
+```
+#!/usr/bin/env bash
+git push --mirror --quiet git@github.com:username/repository.git &>/dev/null &
+echo "GitHub mirror initiated .."
+```

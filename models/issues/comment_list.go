@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // CommentList defines a list of comments
@@ -224,6 +225,10 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 
 	for _, comment := range comments {
 		comment.Assignee = assignees[comment.AssigneeID]
+		if comment.Assignee == nil {
+			comment.AssigneeID = user_model.GhostUserID
+			comment.Assignee = user_model.NewGhostUser()
+		}
 	}
 	return nil
 }
@@ -422,37 +427,19 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 
 	reviewIDs := comments.getReviewIDs()
 	reviews := make(map[int64]*Review, len(reviewIDs))
-	left := len(reviewIDs)
-	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
-		rows, err := db.GetEngine(ctx).
-			In("id", reviewIDs[:limit]).
-			Rows(new(Review))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var review Review
-			err = rows.Scan(&review)
-			if err != nil {
-				_ = rows.Close()
-				return err
-			}
-
-			reviews[review.ID] = &review
-		}
-		_ = rows.Close()
-
-		left -= limit
-		reviewIDs = reviewIDs[limit:]
+	if err := db.GetEngine(ctx).In("id", reviewIDs).Find(&reviews); err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
+		if comment.Review == nil {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so don't log errors for them.
+			if comment.ReviewID > 0 && comment.Type != CommentTypeReviewRequest {
+				log.Error("comment with review id [%d] but has no review record", comment.ReviewID)
+			}
+			continue
+		}
 
 		// If the comment dismisses a review, we need to load the reviewer to show whose review has been dismissed.
 		// Otherwise, the reviewer is the poster of the comment, so we don't need to load it.

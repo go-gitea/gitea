@@ -14,8 +14,8 @@ func AddKeepActivityPrivateUserColumn(x *xorm.Engine) error {
 		KeepActivityPrivate bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(User)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(User)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

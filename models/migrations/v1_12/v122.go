@@ -12,5 +12,5 @@ func AddRequireSignedCommits(x *xorm.Engine) error {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync(new(ProtectedBranch))
 }

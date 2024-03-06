@@ -21,5 +21,5 @@ func CreateProtectedTagTable(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	return x.Sync2(new(ProtectedTag))
+	return x.Sync(new(ProtectedTag))
 }

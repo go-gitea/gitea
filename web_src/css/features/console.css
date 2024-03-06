@@ -4,7 +4,7 @@
   background: var(--color-console-bg);
   color: var(--color-console-fg);
   font-family: var(--fonts-monospace);
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   word-break: break-word;
   overflow-wrap: break-word;
 }

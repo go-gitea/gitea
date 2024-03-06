@@ -16,13 +16,15 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	nuget_model "code.gitea.io/gitea/models/packages/nuget"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -115,13 +117,13 @@ func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
-	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -166,13 +168,12 @@ func SearchServiceV2(ctx *context.Context) {
 
 // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
 func SearchServiceV2Count(ctx *context.Context) {
-	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+	count, err := nuget_model.CountPackages(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -184,11 +185,10 @@ func SearchServiceV2Count(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchServiceV3(ctx *context.Context) {
-	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, count, err := nuget_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeNuGet,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
@@ -314,7 +314,7 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      packageName,
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -359,7 +359,7 @@ func EnumeratePackageVersionsV2Count(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      strings.Trim(ctx.FormTrim("id"), "'"),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -432,6 +432,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	_, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -504,6 +505,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	_, err = packages_service.AddFileToExistingPackage(
+		ctx,
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -530,6 +532,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	for _, pdb := range pdbs {
 		_, err := packages_service.AddFileToExistingPackage(
+			ctx,
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -648,6 +651,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

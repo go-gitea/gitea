@@ -143,17 +143,20 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 	}
 
 	// Our "line" must look like: <commitid> SP (<parent> SP) * NUL
-	ret.CommitID = string(g.next[0:40])
-	parents := string(g.next[41:])
+	commitIDs := string(g.next)
 	if g.buffull {
 		more, err := g.rd.ReadString('\x00')
 		if err != nil {
 			return nil, err
 		}
-		parents += more
+		commitIDs += more
 	}
-	parents = parents[:len(parents)-1]
-	ret.ParentIDs = strings.Split(parents, " ")
+	commitIDs = commitIDs[:len(commitIDs)-1]
+	splitIDs := strings.Split(commitIDs, " ")
+	ret.CommitID = splitIDs[0]
+	if len(splitIDs) > 1 {
+		ret.ParentIDs = splitIDs[1:]
+	}
 
 	// now read the next "line"
 	g.buffull = false
@@ -374,27 +377,25 @@ heaploop:
 			break heaploop
 		}
 		parentRemaining.Remove(current.CommitID)
-		if current.Paths != nil {
-			for i, found := range current.Paths {
-				if !found {
-					continue
+		for i, found := range current.Paths {
+			if !found {
+				continue
+			}
+			changed[i] = false
+			if results[i] == "" {
+				results[i] = current.CommitID
+				if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+					return nil, err
 				}
-				changed[i] = false
-				if results[i] == "" {
-					results[i] = current.CommitID
-					if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+				delete(path2idx, paths[i])
+				remaining--
+				if results[0] == "" {
+					results[0] = current.CommitID
+					if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
 						return nil, err
 					}
-					delete(path2idx, paths[i])
+					delete(path2idx, "")
 					remaining--
-					if results[0] == "" {
-						results[0] = current.CommitID
-						if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
-							return nil, err
-						}
-						delete(path2idx, "")
-						remaining--
-					}
 				}
 			}
 		}

@@ -5,7 +5,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,18 +12,22 @@ import (
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
 )
 
-const tplConfig base.TplName = "admin/config"
+const (
+	tplConfig         base.TplName = "admin/config"
+	tplConfigSettings base.TplName = "admin/config_settings"
+)
 
 // SendTestMail send test mail to confirm mail service is OK
 func SendTestMail(ctx *context.Context) {
@@ -98,18 +101,9 @@ func shadowPassword(provider, cfgItem string) string {
 
 // Config show admin config page
 func Config(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.config")
+	ctx.Data["Title"] = ctx.Tr("admin.config_summary")
 	ctx.Data["PageIsAdminConfig"] = true
-
-	systemSettings, err := system_model.GetAllSettings(ctx)
-	if err != nil {
-		ctx.ServerError("system_model.GetAllSettings", err)
-		return
-	}
-
-	// All editable settings from UI
-	ctx.Data["SystemSettings"] = systemSettings
-	ctx.PageData["adminConfigPage"] = true
+	ctx.Data["PageIsAdminConfigSummary"] = true
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
@@ -170,59 +164,75 @@ func Config(ctx *context.Context) {
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
-
+	config.GetDynGetter().InvalidateCache()
 	prepareDeprecatedWarningsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }
 
-func ChangeConfig(ctx *context.Context) {
-	key := strings.TrimSpace(ctx.FormString("key"))
-	if key == "" {
-		ctx.JSONRedirect(ctx.Req.URL.String())
-		return
-	}
-	value := ctx.FormString("value")
-	version := ctx.FormInt("version")
-
-	if check, ok := changeConfigChecks[key]; ok {
-		if err := check(ctx, value); err != nil {
-			log.Warn("refused to set setting: %v", err)
-			ctx.JSON(http.StatusOK, map[string]string{
-				"err": ctx.Tr("admin.config.set_setting_failed", key),
-			})
-			return
-		}
-	}
-
-	if err := system_model.SetSetting(ctx, &system_model.Setting{
-		SettingKey:   key,
-		SettingValue: value,
-		Version:      version,
-	}); err != nil {
-		log.Error("set setting failed: %v", err)
-		ctx.JSON(http.StatusOK, map[string]string{
-			"err": ctx.Tr("admin.config.set_setting_failed", key),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"version": version + 1,
-	})
+func ConfigSettings(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
+	ctx.Data["PageIsAdminConfig"] = true
+	ctx.Data["PageIsAdminConfigSettings"] = true
+	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
+	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
-var changeConfigChecks = map[string]func(ctx *context.Context, newValue string) error{
-	system_model.KeyPictureDisableGravatar: func(_ *context.Context, newValue string) error {
-		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && !v {
-			return fmt.Errorf("%q should be true when OFFLINE_MODE is true", system_model.KeyPictureDisableGravatar)
+func ChangeConfig(ctx *context.Context) {
+	key := strings.TrimSpace(ctx.FormString("key"))
+	value := ctx.FormString("value")
+	cfg := setting.Config()
+
+	marshalBool := func(v string) (string, error) {
+		if b, _ := strconv.ParseBool(v); b {
+			return "true", nil
 		}
-		return nil
-	},
-	system_model.KeyPictureEnableFederatedAvatar: func(_ *context.Context, newValue string) error {
-		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && v {
-			return fmt.Errorf("%q cannot be false when OFFLINE_MODE is true", system_model.KeyPictureEnableFederatedAvatar)
+		return "false", nil
+	}
+	marshalOpenWithApps := func(value string) (string, error) {
+		lines := strings.Split(value, "\n")
+		var openWithEditorApps setting.OpenWithEditorAppsType
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			displayName, openURL, ok := strings.Cut(line, "=")
+			displayName, openURL = strings.TrimSpace(displayName), strings.TrimSpace(openURL)
+			if !ok || displayName == "" || openURL == "" {
+				continue
+			}
+			openWithEditorApps = append(openWithEditorApps, setting.OpenWithEditorApp{
+				DisplayName: strings.TrimSpace(displayName),
+				OpenURL:     strings.TrimSpace(openURL),
+			})
 		}
-		return nil
-	},
+		b, err := json.Marshal(openWithEditorApps)
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+	}
+	marshallers := map[string]func(string) (string, error){
+		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
+		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
+		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
+	}
+	marshaller, hasMarshaller := marshallers[key]
+	if !hasMarshaller {
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+		return
+	}
+	marshaledValue, err := marshaller(value)
+	if err != nil {
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+		return
+	}
+	if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+		return
+	}
+
+	config.GetDynGetter().InvalidateCache()
+	ctx.JSONOK()
 }

@@ -11,6 +11,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -48,6 +49,10 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 				returnedStatus = targetStatus
 			}
 		}
+	}
+
+	if matchedCount != len(requiredContexts) {
+		return structs.CommitStatusPending
 	}
 
 	if matchedCount == 0 {
@@ -116,7 +121,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 
 	// check if all required status checks are successful
-	headGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		return "", errors.Wrap(err, "OpenRepository")
 	}

@@ -32,7 +32,7 @@ func NewHashedBuffer() (*HashedBuffer, error) {
 	return NewHashedBufferWithSize(DefaultMemorySize)
 }
 
-// NewHashedBuffer creates a hashed buffer with a specific memory size
+// NewHashedBufferWithSize creates a hashed buffer with a specific memory size
 func NewHashedBufferWithSize(maxMemorySize int) (*HashedBuffer, error) {
 	b, err := filebuffer.New(maxMemorySize)
 	if err != nil {

@@ -81,7 +81,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	}
 
 	if len(syncModels) > 0 {
-		if err := x.Sync2(syncModels...); err != nil {
+		if err := x.Sync(syncModels...); err != nil {
 			t.Errorf("error during sync: %v", err)
 			return x, deferFn
 		}

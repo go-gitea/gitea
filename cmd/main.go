@@ -6,17 +6,16 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli/v2"
 )
 
 // cmdHelp is our own help subcommand with more information
+// Keep in mind that the "./gitea help"(subcommand) is different from "./gitea --help"(flag), the flag doesn't parse the config or output "DEFAULT CONFIGURATION:" information
 func cmdHelp() *cli.Command {
 	c := &cli.Command{
 		Name:      "help",
@@ -48,17 +47,10 @@ DEFAULT CONFIGURATION:
 	return c
 }
 
-var helpFlag = cli.HelpFlag
-
-func init() {
-	// cli.HelpFlag = nil TODO: after https://github.com/urfave/cli/issues/1794 we can use this
-}
-
 func appGlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		// make the builtin flags at the top
-		helpFlag,
-		cli.VersionFlag,
+		cli.HelpFlag,
 
 		// shared configuration flags, they are for global and for each sub-command at the same time
 		// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
@@ -120,49 +112,25 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 	}
 }
 
-func reflectGet(v any, fieldName string) any {
-	e := reflect.ValueOf(v).Elem()
-	return e.FieldByName(fieldName).Interface()
-}
-
-// https://cli.urfave.org/migrate-v1-to-v2/#flag-aliases-are-done-differently
-// Sadly v2 doesn't warn you if a comma is in the name. (https://github.com/urfave/cli/issues/1103)
-func checkCommandFlags(c any) bool {
-	var cmds []*cli.Command
-	if app, ok := c.(*cli.App); ok {
-		cmds = app.Commands
-	} else {
-		cmds = c.(*cli.Command).Subcommands
-	}
-	ok := true
-	for _, cmd := range cmds {
-		for _, flag := range cmd.Flags {
-			flagName := reflectGet(flag, "Name").(string)
-			if strings.Contains(flagName, ",") {
-				ok = false
-				log.Error("cli.Flag can't have comma in its Name: %q, use Aliases instead", flagName)
-			}
-		}
-		if !checkCommandFlags(cmd) {
-			ok = false
-		}
-	}
-	return ok
-}
-
-func NewMainApp() *cli.App {
+func NewMainApp(version, versionExtra string) *cli.App {
 	app := cli.NewApp()
+	app.Name = "Gitea"
+	app.HelpName = "gitea"
+	app.Usage = "A painless self-hosted Git service"
+	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
+	app.Version = version + versionExtra
 	app.EnableBashCompletion = true
 
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
+		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 		CmdWeb,
 		CmdServ,
 		CmdHook,
+		CmdKeys,
 		CmdDump,
 		CmdAdmin,
 		CmdMigrate,
-		CmdKeys,
 		CmdDoctor,
 		CmdManager,
 		CmdEmbedded,
@@ -170,12 +138,7 @@ func NewMainApp() *cli.App {
 		CmdDumpRepository,
 		CmdRestoreRepository,
 		CmdActions,
-		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 	}
-
-	cmdConvert := util.ToPointer(*cmdDoctorConvert)
-	cmdConvert.Hidden = true // still support the legacy "./gitea doctor" by the hidden sub-command, remove it in next release
-	subCmdWithConfig = append(subCmdWithConfig, cmdConvert)
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
@@ -187,6 +150,7 @@ func NewMainApp() *cli.App {
 	app.DefaultCommand = CmdWeb.Name
 
 	globalFlags := appGlobalFlags()
+	app.Flags = append(app.Flags, cli.VersionFlag)
 	app.Flags = append(app.Flags, globalFlags...)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
@@ -196,8 +160,20 @@ func NewMainApp() *cli.App {
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
-	if !checkCommandFlags(app) {
-		panic("some flags are incorrect") // this is a runtime check to help developers
-	}
 	return app
+}
+
+func RunMainApp(app *cli.App, args ...string) error {
+	err := app.Run(args)
+	if err == nil {
+		return nil
+	}
+	if strings.HasPrefix(err.Error(), "flag provided but not defined:") {
+		// the cli package should already have output the error message, so just exit
+		cli.OsExiter(1)
+		return err
+	}
+	_, _ = fmt.Fprintf(app.ErrWriter, "Command error: %v\n", err)
+	cli.OsExiter(1)
+	return err
 }

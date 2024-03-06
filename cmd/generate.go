@@ -18,7 +18,7 @@ var (
 	// CmdGenerate represents the available generate sub-command.
 	CmdGenerate = &cli.Command{
 		Name:  "generate",
-		Usage: "Command line interface for running generators",
+		Usage: "Generate Gitea's secrets/keys/tokens",
 		Subcommands: []*cli.Command{
 			subcmdSecret,
 		},
@@ -70,12 +70,12 @@ func runGenerateInternalToken(c *cli.Context) error {
 }
 
 func runGenerateLfsJwtSecret(c *cli.Context) error {
-	JWTSecretBase64, err := generate.NewJwtSecretBase64()
+	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%s", JWTSecretBase64)
+	fmt.Printf("%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		fmt.Printf("\n")

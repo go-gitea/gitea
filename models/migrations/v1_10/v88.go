@@ -21,7 +21,7 @@ func AddCommitStatusContext(x *xorm.Engine) error {
 		Context     string `xorm:"TEXT"`
 	}
 
-	if err := x.Sync2(new(CommitStatus)); err != nil {
+	if err := x.Sync(new(CommitStatus)); err != nil {
 		return err
 	}
 

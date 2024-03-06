@@ -1,11 +1,11 @@
 {{range .comments}}
 
-{{$createdStr:= TimeSinceUnix .CreatedUnix $.root.locale}}
+{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor}}
-		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+		<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>
 	{{else}}
-		{{template "shared/user/avatarlink" dict "Context" $.root.Context "user" .Poster}}
+		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
@@ -16,35 +16,35 @@
 						{{.OriginalAuthor}}
 					</span>
 					<span class="text grey muted-links">
-						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{$.root.locale.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe}})
+							({{ctx.Locale.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname}})
 						{{end}}
 					</span>
 				{{else}}
 					<span class="text grey muted-links">
 						{{template "shared/user/namelink" .Poster}}
-						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 				{{end}}
 			</div>
 			<div class="comment-header-right actions gt-df gt-ac">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.outdated_description"}}">
-						{{$.root.locale.Tr "repo.issues.review.outdated"}}
+					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
-						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">
-						{{$.root.locale.Tr "repo.issues.review.pending"}}
+						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.pending.tooltip" (ctx.Locale.Tr "repo.diff.review") (ctx.Locale.Tr "repo.diff.review.approve") (ctx.Locale.Tr "repo.diff.review.comment") (ctx.Locale.Tr "repo.diff.review.reject")}}">
+						{{ctx.Locale.Tr "repo.issues.review.pending"}}
 						</div>
 					{{else}}
 						<div class="ui label basic small">
-						{{$.root.locale.Tr "repo.issues.review.review"}}
+						{{ctx.Locale.Tr "repo.issues.review.review"}}
 						</div>
 					{{end}}
 				{{end}}
@@ -55,13 +55,16 @@
 		<div class="ui attached segment comment-body">
 			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
-				{{.RenderedContent|Str2html}}
+				{{.RenderedContent}}
 			{{else}}
-				<span class="no-content">{{$.root.locale.Tr "repo.issues.no_content"}}</span>
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
 			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
+			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			{{if .Attachments}}
+				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}

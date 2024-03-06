@@ -7,16 +7,16 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 func Queues(ctx *context.Context) {
 	if !setting.IsProd {
 		initTestQueueOnce()
 	}
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue")
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queues")
 	ctx.Data["PageIsAdminMonitorQueue"] = true
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(http.StatusOK, tplQueue)

@@ -6,15 +6,10 @@ package explore
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-)
-
-const (
-	// tplExploreOrganizations explore organizations page template
-	tplExploreOrganizations base.TplName = "explore/organizations"
+	"code.gitea.io/gitea/services/context"
 )
 
 // Organizations render explore organizations page
@@ -30,8 +25,16 @@ func Organizations(ctx *context.Context) {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
-	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+	supportedSortOrders := container.SetOf(
+		"newest",
+		"oldest",
+		"alphabetically",
+		"reversealphabetically",
+	)
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = "newest"
+		ctx.SetFormString("sort", sortOrder)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
@@ -39,5 +42,7 @@ func Organizations(ctx *context.Context) {
 		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
-	}, tplExploreOrganizations)
+
+		SupportedSortOrders: supportedSortOrders,
+	}, tplExploreUsers)
 }

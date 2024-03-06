@@ -18,6 +18,7 @@ type Release struct {
 	HTMLURL      string `json:"html_url"`
 	TarURL       string `json:"tarball_url"`
 	ZipURL       string `json:"zipball_url"`
+	UploadURL    string `json:"upload_url"`
 	IsDraft      bool   `json:"draft"`
 	IsPrerelease bool   `json:"prerelease"`
 	// swagger:strfmt date-time

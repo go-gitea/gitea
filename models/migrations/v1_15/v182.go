@@ -20,7 +20,7 @@ func AddIssueResourceIndexTable(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Table("issue_index").Sync2(new(ResourceIndex)); err != nil {
+	if err := sess.Table("issue_index").Sync(new(ResourceIndex)); err != nil {
 		return err
 	}
 

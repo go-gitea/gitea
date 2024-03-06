@@ -18,7 +18,7 @@ func AddAuthorizeColForTeamUnit(x *xorm.Engine) error {
 		AccessMode int
 	}
 
-	if err := x.Sync2(new(TeamUnit)); err != nil {
+	if err := x.Sync(new(TeamUnit)); err != nil {
 		return fmt.Errorf("sync2: %w", err)
 	}
 

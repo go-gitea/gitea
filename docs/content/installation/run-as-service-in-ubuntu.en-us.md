@@ -1,6 +1,6 @@
 ---
 date: "2017-07-21T12:00:00+02:00"
-title: "Run as service in Linux"
+title: "Run as a Linux service"
 slug: "linux-service"
 sidebar_position: 40
 toc: false
@@ -15,11 +15,11 @@ menu:
     identifier: "linux-service"
 ---
 
-### Run Gitea as Linux service
+# Run as a Linux service
 
-You can run Gitea as service, using either systemd or supervisor. The steps below tested on Ubuntu 16.04, but those should work on any Linux distributions (with little modification).
+You can run Gitea as a Linux service, using either systemd or supervisor. The steps below tested on Ubuntu 16.04, but those should work on any Linux distributions (with little modification).
 
-#### Using systemd
+## Using systemd
 
 Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/main/contrib/systemd/gitea.service) to `/etc/systemd/system/gitea.service`, then edit the file with your favorite editor.
 
@@ -41,7 +41,7 @@ If you have systemd version 220 or later, you can enable and immediately start G
 sudo systemctl enable gitea --now
 ```
 
-#### Using supervisor
+## Using supervisor
 
 Install supervisor by running below command in terminal:
 

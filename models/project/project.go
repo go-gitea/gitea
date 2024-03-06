@@ -6,6 +6,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"html/template"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -16,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -108,7 +110,7 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent template.HTML `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -132,16 +134,18 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 }
 
 // Link returns the project's relative URL.
-func (p *Project) Link() string {
+func (p *Project) Link(ctx context.Context) string {
 	if p.OwnerID > 0 {
-		if err := p.LoadOwner(db.DefaultContext); err != nil {
+		err := p.LoadOwner(ctx)
+		if err != nil {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
 		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
 	}
 	if p.RepoID > 0 {
-		if err := p.LoadRepo(db.DefaultContext); err != nil {
+		err := p.LoadRepo(ctx)
+		if err != nil {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
@@ -339,24 +343,22 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
+	db.ListOptions
 	OwnerID  int64
 	RepoID   int64
-	Page     int
-	IsClosed util.OptionalBool
+	IsClosed optional.Option[bool]
 	OrderBy  db.SearchOrderBy
 	Type     Type
+	Title    string
 }
 
-func (opts *SearchOptions) toConds() builder.Cond {
+func (opts SearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	switch opts.IsClosed {
-	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Eq{"is_closed": true})
-	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"is_closed": false})
+	if opts.IsClosed.Has() {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
 	}
 
 	if opts.Type > 0 {
@@ -365,12 +367,15 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
+
+	if len(opts.Title) != 0 {
+		cond = cond.And(db.BuildCaseInsensitiveLike("title", opts.Title))
+	}
 	return cond
 }
 
-// CountProjects counts projects
-func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
+func (opts SearchOptions) ToOrders() string {
+	return opts.OrderBy.String()
 }
 
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
@@ -386,24 +391,8 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 	}
 }
 
-// FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.OrderBy.String() != "" {
-		e = e.OrderBy(opts.OrderBy.String())
-	}
-	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
-
-	if opts.Page > 0 {
-		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
-	}
-
-	count, err := e.FindAndCount(&projects)
-	return projects, count, err
-}
-
 // NewProject creates a new Project
-func NewProject(p *Project) error {
+func NewProject(ctx context.Context, p *Project) error {
 	if !IsBoardTypeValid(p.BoardType) {
 		p.BoardType = BoardTypeNone
 	}
@@ -416,7 +405,7 @@ func NewProject(p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -450,6 +439,18 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 		return nil, ErrProjectNotExist{ID: id}
 	}
 
+	return p, nil
+}
+
+// GetProjectForRepoByID returns the projects in a repository
+func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, error) {
+	p := new(Project)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{ID: id}
+	}
 	return p, nil
 }
 
@@ -490,8 +491,8 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 }
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
-func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatusByRepoIDAndID(ctx context.Context, repoID, projectID int64, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -514,8 +515,8 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
-func ChangeProjectStatus(p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

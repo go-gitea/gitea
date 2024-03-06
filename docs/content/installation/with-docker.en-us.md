@@ -261,7 +261,7 @@ documented above, please note that `db` must be used as the database hostname.
 
 ## Customization
 
-Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
+Customization files described [here](administration/customizing-gitea.md) should
 be placed in `/data/gitea` directory. If using host volumes, it's quite easy to access these
 files; for named volumes, this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
@@ -309,7 +309,7 @@ services:
       - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-Gitea will generate new secrets/tokens for every new installation automatically and write them into the app.ini. If you want to set the secrets/tokens manually, you can use the following docker commands to use of Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate). Do not lose/change your SECRET_KEY after the installation, otherwise the encrypted data can not be decrypted anymore.
+Gitea will generate new secrets/tokens for every new installation automatically and write them into the app.ini. If you want to set the secrets/tokens manually, you can use the following docker commands to use of Gitea's built-in [generate utility functions](administration/command-line.md#generate). Do not lose/change your SECRET_KEY after the installation, otherwise the encrypted data can not be decrypted anymore.
 
 The following commands will output a new `SECRET_KEY` and `INTERNAL_TOKEN` to `stdout`, which you can then place in your environment variables.
 
@@ -553,7 +553,7 @@ In this option, the idea is that the host SSH uses an `AuthorizedKeysCommand` in
 
 Now all attempts to login as the `git` user on the host will be forwarded to the docker - including the `SSH_ORIGINAL_COMMAND`. We now need to set-up SSH authentication on the host.
 
-We will do this by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by Gitea.
+We will do this by leveraging the [SSH AuthorizedKeysCommand](administration/command-line.md#keys) to match the keys against those accepted by Gitea.
 
 Add the following block to `/etc/ssh/sshd_config`, on the host:
 

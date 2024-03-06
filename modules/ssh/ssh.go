@@ -186,6 +186,12 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			return false
 		}
 
+		if cert.CertType != gossh.UserCert {
+			log.Warn("Certificate Rejected: Not a user certificate")
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+			return false
+		}
+
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {

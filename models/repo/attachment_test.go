@@ -21,7 +21,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 
 	// increase download count
-	err = attachment.IncreaseDownloadCount()
+	err = attachment.IncreaseDownloadCount(db.DefaultContext)
 	assert.NoError(t, err)
 
 	attachment, err = repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
@@ -45,15 +45,15 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 func TestDeleteAttachments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := repo_model.DeleteAttachmentsByIssue(4, false)
+	count, err := repo_model.DeleteAttachmentsByIssue(db.DefaultContext, 4, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 
-	count, err = repo_model.DeleteAttachmentsByComment(2, false)
+	count, err = repo_model.DeleteAttachmentsByComment(db.DefaultContext, 2, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 
-	err = repo_model.DeleteAttachment(&repo_model.Attachment{ID: 8}, false)
+	err = repo_model.DeleteAttachment(db.DefaultContext, &repo_model.Attachment{ID: 8}, false)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")

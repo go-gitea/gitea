@@ -18,7 +18,7 @@ menu:
 # Mail templates
 
 To craft the e-mail subject and contents for certain operations, Gitea can be customized by using templates. The templates
-for these functions are located under the [`custom` directory](https://docs.gitea.io/en-us/customizing-gitea/).
+for these functions are located under the [`custom` directory](administration/customizing-gitea.md).
 Gitea has an internal template that serves as default in case there's no custom alternative.
 
 Custom templates are loaded when Gitea starts. Changes made to them are not recognized until Gitea is restarted again.
@@ -85,7 +85,7 @@ Text and macros for the mail body
 Specifying a _subject_ section is optional (and therefore also the dash line separator). When used, the separator between
 _subject_ and _mail body_ templates requires at least three dashes; no other characters are allowed in the separator line.
 
-_Subject_ and _mail body_ are parsed by [Golang's template engine](https://golang.org/pkg/text/template/) and
+_Subject_ and _mail body_ are parsed by [Golang's template engine](https://go.dev/pkg/text/template/) and
 are provided with a _metadata context_ assembled for each notification. The context contains the following elements:
 
 | Name               | Type             | Available     | Usage                                                                                                                                                                                                                                             |
@@ -110,7 +110,7 @@ All names are case sensitive.
 
 ### The _subject_ part of the template
 
-The template engine used for the mail _subject_ is golang's [`text/template`](https://golang.org/pkg/text/template/).
+The template engine used for the mail _subject_ is golang's [`text/template`](https://go.dev/pkg/text/template/).
 Please refer to the linked documentation for details about its syntax.
 
 The _subject_ is built using the following steps:
@@ -138,7 +138,7 @@ the two templates, even if a valid subject template is present.
 
 ### The _mail body_ part of the template
 
-The template engine used for the _mail body_ is golang's [`html/template`](https://golang.org/pkg/html/template/).
+The template engine used for the _mail body_ is golang's [`html/template`](https://go.dev/pkg/html/template/).
 Please refer to the linked documentation for details about its syntax.
 
 The _mail body_ is parsed after the mail subject, so there is an additional _metadata_ field which is
@@ -146,7 +146,7 @@ the actual rendered subject, after all considerations.
 
 The expected result is HTML (including structural elements like`<html>`, `<body>`, etc.). Styling
 through `<style>` blocks, `class` and `style` attributes is possible. However, `html/template`
-does some [automatic escaping](https://golang.org/pkg/html/template/#hdr-Contexts) that should be considered.
+does some [automatic escaping](https://go.dev/pkg/html/template/#hdr-Contexts) that should be considered.
 
 Attachments (such as images or external style sheets) are not supported. However, other templates can
 be referenced too, for example to provide the contents of a `<style>` element in a centralized fashion.
@@ -165,7 +165,7 @@ If the template fails to render, it will be noticed only at the moment the mail 
 A default subject is used if the subject template fails, and whatever was rendered successfully
 from the the _mail body_ is used, disregarding the rest.
 
-Please check [Gitea's logs](https://docs.gitea.io/en-us/logging-configuration/) for error messages in case of trouble.
+Please check [Gitea's logs](administration/logging-config.md) for error messages in case of trouble.
 
 ## Example
 
@@ -222,9 +222,9 @@ Please check [Gitea's logs](https://docs.gitea.io/en-us/logging-configuration/) 
         <a href="{{.Link}}">{{.Repo}}#{{.Issue.Index}}</a>.
         </p>
         {{if not (eq .Body "")}}
-            <h3>Message content:</h3>
+            <h3>Message content</h3>
             <hr>
-            {{.Body | Str2html}}
+            {{.Body}}
         {{end}}
     </p>
     <hr>
@@ -245,7 +245,7 @@ This template produces something along these lines:
 
 > [@rhonda](#) (Rhonda Myers) updated [mike/stuff#38](#).
 >
-> #### Message content:
+> #### Message content
 >
 > \_********************************\_********************************
 >
@@ -259,20 +259,20 @@ This template produces something along these lines:
 The template system contains several functions that can be used to further process and format
 the messages. Here's a list of some of them:
 
-| Name             | Parameters  | Available | Usage                                                                       |
-| ---------------- | ----------- | --------- | --------------------------------------------------------------------------- |
-| `AppUrl`         | -           | Any       | Gitea's URL                                                                 |
-| `AppName`        | -           | Any       | Set from `app.ini`, usually "Gitea"                                         |
-| `AppDomain`      | -           | Any       | Gitea's host name                                                           |
-| `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed         |
-| `Str2html`       | string      | Body only | Sanitizes text by removing any HTML tags from it.                           |
-| `Safe`           | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`. |
+| Name             | Parameters  | Available | Usage                                                               |
+| ---------------- | ----------- | --------- | ------------------------------------------------------------------- |
+| `AppUrl`         | -           | Any       | Gitea's URL                                                         |
+| `AppName`        | -           | Any       | Set from `app.ini`, usually "Gitea"                                 |
+| `AppDomain`      | -           | Any       | Gitea's host name                                                   |
+| `EllipsisString` | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed |
+| `SanitizeHTML`   | string      | Body only | Sanitizes text by removing any dangerous HTML tags from it          |
+| `SafeHTML`       | string      | Body only | Takes the input as HTML, can be used for outputing raw HTML content |
 
 These are _functions_, not metadata, so they have to be used:
 
 ```html
-Like this:         {{Str2html "Escape<my>text"}}
-Or this:           {{"Escape<my>text" | Str2html}}
+Like this:         {{SanitizeHTML "Escape<my>text"}}
+Or this:           {{"Escape<my>text" | SanitizeHTML}}
 Or this:           {{AppUrl}}
 But not like this: {{.AppUrl}}
 ```

@@ -6,6 +6,7 @@ package templates
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -39,27 +40,28 @@ var (
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any) error {
+func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any, ctx context.Context) error { //nolint:revive
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 		}
 		respWriter.WriteHeader(status)
 	}
-	t, err := h.TemplateLookup(name)
+	t, err := h.TemplateLookup(name, ctx)
 	if err != nil {
 		return texttemplate.ExecError{Name: name, Err: err}
 	}
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
+func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized
 	}
-
-	return tmpls.Executor(name, NewFuncMap())
+	m := NewFuncMap()
+	m["ctx"] = func() any { return ctx }
+	return tmpls.Executor(name, m)
 }
 
 func (h *HTMLRender) CompileTemplates() error {
@@ -208,9 +210,8 @@ func (p *templateErrorPrettier) handleTemplateRenderingError(err error) string {
 	} else if execErr, ok := err.(texttemplate.ExecError); ok {
 		layerName := p.assets.GetFileLayerName(execErr.Name + ".tmpl")
 		return fmt.Sprintf("asset from: %s, %s", layerName, err.Error())
-	} else {
-		return err.Error()
 	}
+	return err.Error()
 }
 
 func HandleTemplateRenderingError(err error) string {

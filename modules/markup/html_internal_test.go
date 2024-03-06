@@ -262,9 +262,33 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	})
 }
 
+func TestRender_IssueIndexPattern_Document(t *testing.T) {
+	setting.AppURL = TestAppURL
+	metas := map[string]string{
+		"format": "https://someurl.com/{user}/{repo}/{index}",
+		"user":   "someUser",
+		"repo":   "someRepo",
+		"style":  IssueNameStyleNumeric,
+		"mode":   "document",
+	}
+
+	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "#1312", "#1312", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "!1", "!1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+}
+
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
-	if ctx.URLPrefix == "" {
-		ctx.URLPrefix = TestAppURL
+	if ctx.Links.Base == "" {
+		ctx.Links.Base = TestRepoURL
 	}
 
 	var buf strings.Builder
@@ -279,19 +303,23 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas: localMetas,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 
 		buffer.Reset()
 		err = PostProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
-			IsWiki:    true,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas:  localMetas,
+			IsWiki: true,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
@@ -318,9 +346,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result.String())
@@ -360,10 +390,10 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, sha1CurrentPattern.MatchString(testCase))
+		assert.True(t, hashCurrentPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, sha1CurrentPattern.MatchString(testCase))
+		assert.False(t, hashCurrentPattern.MatchString(testCase))
 	}
 }
 
@@ -397,7 +427,7 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		assert.Equal(t, anySHA1Pattern.FindStringSubmatch(k)[1:], v)
+		assert.Equal(t, anyHashPattern.FindStringSubmatch(k)[1:], v)
 	}
 }
 

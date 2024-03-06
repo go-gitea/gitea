@@ -22,7 +22,6 @@ menu:
 macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装](installation/from-binary.md)。在你安装了 `brew` 之后， 你可以执行以下命令：
 
 ```
-brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
 brew install gitea
 ```
 
@@ -50,6 +49,14 @@ pacman -S gitea
 
 ```sh
 pacman -S gitea
+```
+
+## Gentoo Linux
+
+滚动发布的发行版在其官方社区软件仓库中提供了 [Gitea](https://packages.gentoo.org/packages/www-apps/gitea)，并且会随着新的 Gitea 发布提供软件包更新。
+
+```sh
+emerge gitea -va
 ```
 
 ## Canonical Snap

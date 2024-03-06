@@ -118,6 +118,13 @@ func TestDetectMatched(t *testing.T) {
 			yamlOn:       "on: gollum",
 			expected:     true,
 		},
+		{
+			desc:         "HookEventSchedue(schedule) matches GithubEventSchedule(schedule)",
+			triggedEvent: webhook_module.HookEventSchedule,
+			payload:      nil,
+			yamlOn:       "on: schedule",
+			expected:     true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -125,7 +132,7 @@ func TestDetectMatched(t *testing.T) {
 			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
-			assert.Equal(t, tc.expected, detectMatched(tc.commit, tc.triggedEvent, tc.payload, evts[0]))
+			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
 		})
 	}
 }

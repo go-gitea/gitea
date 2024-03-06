@@ -14,8 +14,8 @@ func AddOrgIDLabelColumn(x *xorm.Engine) error {
 		OrgID int64 `xorm:"INDEX"`
 	}
 
-	if err := x.Sync2(new(Label)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Label)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }
