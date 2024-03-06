@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package milestone
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,6 +22,7 @@ import (
 type ErrMilestoneNotExist struct {
 	ID     int64
 	RepoID int64
+	OrgID  int64
 	Name   string
 }
 
@@ -32,8 +34,15 @@ func IsErrMilestoneNotExist(err error) bool {
 
 func (err ErrMilestoneNotExist) Error() string {
 	if len(err.Name) > 0 {
+		if err.OrgID > 0 {
+			return fmt.Sprintf("milestone does not exist [name: %s, org_id: %d]", err.Name, err.OrgID)
+		}
 		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
 	}
+	if err.OrgID > 0 {
+		return fmt.Sprintf("milestone does not exist [id: %d, org_id: %d]", err.ID, err.OrgID)
+	}
+
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 
@@ -41,20 +50,33 @@ func (err ErrMilestoneNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+type MilestoneType uint8
+
+const (
+	// MilestoneTypeRepository is a milestone that is tied to a repository
+	MilestoneTypeRepository MilestoneType = iota + 1
+
+	// MilestoneTypeOrganization is a milestone that is tied to an organisation
+	MilestoneTypeOrganization
+)
+
 // Milestone represents a milestone of repository.
 type Milestone struct {
-	ID              int64                  `xorm:"pk autoincr"`
-	RepoID          int64                  `xorm:"INDEX"`
-	Repo            *repo_model.Repository `xorm:"-"`
+	ID              int64                   `xorm:"pk autoincr"`
+	RepoID          int64                   `xorm:"INDEX"`
+	Repo            *repo_model.Repository  `xorm:"-"`
+	OrgID           int64                   `xorm:"INDEX"`
+	Org             *org_model.Organization `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 	IsClosed        bool
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	Completeness    int  // Percentage(1-100).
-	IsOverdue       bool `xorm:"-"`
+	NumOpenIssues   int           `xorm:"-"`
+	Completeness    int           // Percentage(1-100).
+	IsOverdue       bool          `xorm:"-"`
+	Type            MilestoneType `xorm:"INT NOT NULL DEFAULT 1"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -102,7 +124,7 @@ func (m *Milestone) State() api.StateType {
 	return api.StateOpen
 }
 
-// NewMilestone creates new milestone of repository.
+// NewMilestone creates new milestone of repository and organization.
 func NewMilestone(ctx context.Context, m *Milestone) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -116,15 +138,29 @@ func NewMilestone(ctx context.Context, m *Milestone) (err error) {
 		return err
 	}
 
+	if m.OrgID > 0 {
+		if _, err = db.Exec(ctx, "UPDATE `user` SET num_milestones = num_milestones + 1 WHERE id = ?", m.OrgID); err != nil {
+			return err
+		}
+
+		return committer.Commit()
+	}
+
 	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
+
 	return committer.Commit()
 }
 
 // HasMilestoneByRepoID returns if the milestone exists in the repository.
 func HasMilestoneByRepoID(ctx context.Context, repoID, id int64) (bool, error) {
 	return db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
+}
+
+// HasMilestoneByOrgID returns if the milestone exists in the organization.
+func HasMilestoneByOrgID(ctx context.Context, orgID, id int64) (bool, error) {
+	return db.GetEngine(ctx).ID(id).Where("org_id=?", orgID).Exist(new(Milestone))
 }
 
 // GetMilestoneByRepoID returns the milestone in a repository.
@@ -139,6 +175,31 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 	return m, nil
 }
 
+// GetMilestoneByOrgID returns the milestone in a organization.
+func GetMilestoneByOrgID(ctx context.Context, orgID, id int64) (*Milestone, error) {
+	m := new(Milestone)
+	has, err := db.GetEngine(ctx).ID(id).Where("org_id=?", orgID).Get(m)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrMilestoneNotExist{ID: id, OrgID: orgID}
+	}
+	return m, nil
+}
+
+// GetMilestoneByID return a milestone by ID
+func GetMilestoneByID(ctx context.Context, id int64) (*Milestone, error) {
+	var mile Milestone
+	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&mile)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrMilestoneNotExist{ID: id}
+	}
+	return &mile, nil
+}
+
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
 func GetMilestoneByRepoIDANDName(ctx context.Context, repoID int64, name string) (*Milestone, error) {
 	var mile Milestone
@@ -148,6 +209,19 @@ func GetMilestoneByRepoIDANDName(ctx context.Context, repoID int64, name string)
 	}
 	if !has {
 		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
+	}
+	return &mile, nil
+}
+
+// GetMilestoneByOrgIDANDName return a milestone if one exist by name and org
+func GetMilestoneByOrgIDANDName(ctx context.Context, orgID int64, name string) (*Milestone, error) {
+	var mile Milestone
+	has, err := db.GetEngine(ctx).Where("org_id=? AND name=?", orgID, name).Get(&mile)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrMilestoneNotExist{Name: name, OrgID: orgID}
 	}
 	return &mile, nil
 }
@@ -170,8 +244,17 @@ func UpdateMilestone(ctx context.Context, m *Milestone, oldIsClosed bool) error 
 
 	// if IsClosed changed, update milestone numbers of repository
 	if oldIsClosed != m.IsClosed {
-		if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
-			return err
+		if m.OrgID > 0 {
+
+			if err := updateOrgMilestoneNum(ctx, m.OrgID); err != nil {
+				return err
+			}
+		}
+		if m.RepoID > 0 {
+
+			if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -237,6 +320,33 @@ func ChangeMilestoneStatusByRepoIDAndID(ctx context.Context, repoID, milestoneID
 	return committer.Commit()
 }
 
+// ChangeMilestoneStatusByOrgIDAndID changes a milestone open/closed status if the milestone ID is in the org.
+func ChangeMilestoneStatusByOrgIDAndID(ctx context.Context, orgID, milestoneID int64, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	m := &Milestone{
+		ID:    milestoneID,
+		OrgID: orgID,
+	}
+
+	has, err := db.GetEngine(ctx).ID(milestoneID).Where("org_id = ?", orgID).Get(m)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrMilestoneNotExist{ID: milestoneID, OrgID: orgID}
+	}
+
+	if err := changeMilestoneStatus(ctx, m, isClosed); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
@@ -256,6 +366,17 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 	m.IsClosed = isClosed
 	if isClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
+	}
+
+	if m.OrgID > 0 {
+		count, err := db.GetEngine(ctx).ID(m.ID).Where("org_id = ? AND is_closed = ?", m.OrgID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
+		if err != nil {
+			return err
+		}
+		if count < 1 {
+			return nil
+		}
+		return updateOrgMilestoneNum(ctx, m.OrgID)
 	}
 
 	count, err := db.GetEngine(ctx).ID(m.ID).Where("repo_id = ? AND is_closed = ?", m.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
@@ -319,12 +440,73 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	return committer.Commit()
 }
 
+// DeleteMilestoneByOrgID deletes a milestone from a organisation.
+func DeleteMilestoneByOrgID(ctx context.Context, orgID, id int64) error {
+	m, err := GetMilestoneByOrgID(ctx, orgID, id)
+	if err != nil {
+		if IsErrMilestoneNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	org, err := org_model.GetOrgByID(ctx, m.OrgID)
+	if err != nil {
+		return err
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if _, err = db.DeleteByID[Milestone](ctx, m.ID); err != nil {
+		return err
+	}
+
+	numMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
+		OrgID: org.ID,
+	})
+	if err != nil {
+		return err
+	}
+	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
+		OrgID:    org.ID,
+		IsClosed: util.OptionalBoolTrue,
+	})
+	if err != nil {
+		return err
+	}
+	org.NumMilestones = int(numMilestones)
+	org.NumClosedMilestones = int(numClosedMilestones)
+
+	if _, err = db.GetEngine(ctx).ID(org.ID).Cols("num_milestones, num_closed_milestones").Update(org); err != nil {
+		return err
+	}
+
+	if _, err = db.Exec(ctx, "UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
+		return err
+	}
+	return committer.Commit()
+}
+
 func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
 	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
 		repoID,
 		repoID,
 		true,
 		repoID,
+	)
+	return err
+}
+
+func updateOrgMilestoneNum(ctx context.Context, orgID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `user` SET num_milestones=(SELECT count(*) FROM milestone WHERE org_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE org_id=? AND is_closed=?) WHERE id=?",
+		orgID,
+		orgID,
+		true,
+		orgID,
 	)
 	return err
 }
@@ -353,7 +535,7 @@ func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 	return nil
 }
 
-// InsertMilestones creates milestones of repository.
+// InsertMilestones creates milestones of repository or organization
 func InsertMilestones(ctx context.Context, ms ...*Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
@@ -371,6 +553,16 @@ func InsertMilestones(ctx context.Context, ms ...*Milestone) (err error) {
 		if _, err = sess.NoAutoTime().Insert(m); err != nil {
 			return err
 		}
+	}
+
+	if ms[0].OrgID > 0 {
+
+		if _, err = db.Exec(ctx, "UPDATE `user` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+			return err
+		}
+
+		return committer.Commit()
+
 	}
 
 	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {

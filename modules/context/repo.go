@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -531,6 +532,14 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
+
+	org, err := organization.GetOrgByID(ctx, ctx.Repo.Repository.OwnerID)
+	if err != nil {
+		ctx.ServerError("GetOrgByID", err)
+		return nil
+	}
+	ctx.Data["OrgLink"] = org.HomeLink()
+
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
 	if setting.Other.EnableFeed {

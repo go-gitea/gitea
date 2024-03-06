@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package milestone
 
 import (
 	"context"
@@ -27,16 +27,21 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 // FindMilestoneOptions contain options to get milestones
 type FindMilestoneOptions struct {
 	db.ListOptions
+	OrgID    int64
 	RepoID   int64
 	IsClosed util.OptionalBool
 	Name     string
 	SortType string
 	RepoCond builder.Cond
 	RepoIDs  []int64
+	Type     MilestoneType
 }
 
 func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
+	if opts.OrgID != 0 {
+		cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	}
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
