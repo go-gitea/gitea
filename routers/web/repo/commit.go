@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
-	git_service "code.gitea.io/gitea/services/repository"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -275,7 +274,7 @@ func FileHistory(ctx *context.Context) {
 }
 
 func LoadBranchesAndTags(ctx *context.Context) {
-	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	response, err := repo_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
 	if err == nil {
 		ctx.JSON(http.StatusOK, response)
 		return
