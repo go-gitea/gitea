@@ -1,6 +1,6 @@
 <div class="ui ignored info message project-column-header" >
-	<span class="ui left floated text middle">This workflow has a workflow_dispatch event trigger.</span>
-	<button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+	<span class="ui left floated text middle">{{ctx.Locale.Tr "actions.workflow.has_workflow_dispatch"}}</span>
+	<button class="ui right floated mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
 </div>
 <div id="runWorkflowDispatchModal" class="ui mini modal">
 	<div class="content">
@@ -14,7 +14,7 @@
 					<span class="text">{{index .Branches 0}}</span>
 					<div class="menu">
 						<div class="ui icon search input">
-							<i class="search icon"></i>
+							<i class="search icon">{{svg "octicon-search" 16 "search icon"}}</i>
 							<input type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}">
 						</div>
 						<div class="scrolling menu">
@@ -23,7 +23,7 @@
 								Branches
 							</div>
 							{{range $key, $item := .Branches}}
-							<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
+								<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
 							{{end}}
 							<div class="divider"></div>
 							<div class="header">
@@ -66,7 +66,7 @@
 				{{end}}
 			</div>
 			{{end}}
-			<button class="ui tiny blue button" type="submit">Submit</button>
+			<button class="ui tiny primary button" type="submit">Submit</button>
 		</form>
 	</div>
 </div>
