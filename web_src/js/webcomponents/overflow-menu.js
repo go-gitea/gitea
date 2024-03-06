@@ -20,7 +20,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     // measure which items are partially outside the element and move them into the button menu
     this.tippyItems = [];
     const menuRight = this.offsetLeft + this.offsetWidth;
-    for (const item of this.menuItemsEl.querySelectorAll('.item')) {
+    const menuItems = this.menuItemsEl.querySelectorAll('.item');
+    for (const item of menuItems) {
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button
         this.tippyItems.push(item);
@@ -28,8 +29,16 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     if (this.tippyItems?.length) {
+      // remove aria-role from items that moved from tippy to menu
+      for (const item of menuItems) {
+        if (!this.tippyItems.includes(item)) {
+          item.removeAttribute('aria-role');
+        }
+      }
+
       // move all items that overflow into tippy
       for (const item of this.tippyItems) {
+        item.setAttribute('aria-role', 'menuitem');
         this.tippyContent.append(item);
       }
 
@@ -41,6 +50,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
       const btn = document.createElement('button');
       btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
+      btn.setAttribute('aria-haspopup', 'true');
+      btn.setAttribute('aria-label', window.config.i18n.additional_options);
       btn.innerHTML = octiconKebabHorizontal;
       this.append(btn);
       this.button = btn;
