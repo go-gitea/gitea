@@ -6,7 +6,8 @@ const visibleInstances = new Set();
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, ...other} = opts;
+  const {onHide, onShow, onDestroy, trigger, ...other} = opts;
+
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -37,8 +38,13 @@ export function createTippy(target, opts = {}) {
     role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
     theme: other.role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
     plugins: [followCursor],
+    trigger,
     ...other,
   });
+
+  if (trigger === 'click') {
+    target.setAttribute('aria-haspopup', 'menu');
+  }
 
   return instance;
 }
