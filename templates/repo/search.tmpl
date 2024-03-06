@@ -44,20 +44,7 @@
 								<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments .Filename}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 							</h4>
 							<div class="ui attached table segment">
-								<div class="file-body file-code code-view">
-									<table>
-										<tbody>
-											<tr>
-												<td class="lines-num">
-													{{range .LineNumbers}}
-														<a href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
-													{{end}}
-												</td>
-												<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines}}</code></td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
+								{{template "shared/searchfile" dict "RepoLink" $.SourcePath "SearchResult" .}}
 							</div>
 							{{template "shared/searchbottom" dict "root" $ "result" .}}
 						</div>
