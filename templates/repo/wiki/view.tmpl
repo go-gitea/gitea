@@ -79,19 +79,19 @@
 			{{if .sidebarPresent}}
 			<div class="markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.sidebarContent | SafeHTML}}
 			</div>
 			{{end}}
 
-			<div class="gt-clear-both"></div>
+			<div class="tw-clear-both"></div>
 
 			{{if .footerPresent}}
 			<div class="markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.footerContent | SafeHTML}}
