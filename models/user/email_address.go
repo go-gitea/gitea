@@ -162,7 +162,7 @@ func ValidateEmail(email string) error {
 	return validateEmailDomain(email)
 }
 
-// ValidateEmailForAdmin check if email is a valid address when admins manually add users
+// ValidateEmailForAdmin check if email is a valid address when admins manually add or edit users
 func ValidateEmailForAdmin(email string) error {
 	return validateEmailBasic(email)
 	// In this case we do not need to check the email domain
