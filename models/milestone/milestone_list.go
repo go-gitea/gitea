@@ -34,6 +34,7 @@ type FindMilestoneOptions struct {
 	SortType string
 	RepoCond builder.Cond
 	RepoIDs  []int64
+	OrgIDs   []int64
 	Type     MilestoneType
 }
 
@@ -49,7 +50,11 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.IsTrue()})
 	}
 	if opts.RepoCond != nil && opts.RepoCond.IsValid() {
-		cond = cond.And(builder.In("repo_id", builder.Select("id").From("repository").Where(opts.RepoCond)))
+		if len(opts.OrgIDs) > 0 {
+			cond = cond.And(builder.Or(builder.In("org_id", opts.OrgIDs), builder.In("repo_id", builder.Select("id").From("repository").Where(opts.RepoCond))))
+		} else {
+			cond = cond.And(builder.In("repo_id", builder.Select("id").From("repository").Where(opts.RepoCond)))
+		}
 	}
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("repo_id", opts.RepoIDs))

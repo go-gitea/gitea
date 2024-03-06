@@ -1016,6 +1016,24 @@ func registerRoutes(m *web.Route) {
 			})
 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
+		m.Group("/milestones", func() {
+			m.Group("", func() {
+				m.Get("", org.Milestones)
+				m.Get("/{param}/posters", org.MilestonePoster)
+				m.Get("/{id}", org.ViewMilestone)
+			})
+			m.Group("", func() { //nolint:dupl
+				m.Get("/new", org.RenderNewMilestone)
+				m.Post("/new", web.Bind(forms.CreateMilestoneForm{}), org.NewMilestonePost)
+				m.Group("/{id}", func() {
+					m.Post("/delete", org.DeleteMilestone)
+					m.Get("/edit", org.EditMilestone)
+					m.Post("/edit", web.Bind(forms.CreateMilestoneForm{}), org.EditMilestonePost)
+					m.Post("/{action:open|close}", org.ChangeMilestoneStatus)
+				})
+			}, reqSignIn)
+		}, individualPermsChecker)
+
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)

@@ -218,7 +218,7 @@ function initArchivedLabelFilter() {
 }
 
 export function initRepoIssueList() {
-  if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
+  if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list, .page-content.organization.milestone').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();

@@ -14,6 +14,12 @@
 			{{end}}
 		</a>
 		{{end}}
+		<a class="{{if .PageIsViewMilestones}}active {{end}}item" href="{{$.Org.HomeLink}}/-/milestones">
+			{{svg "octicon-milestone"}} {{ctx.Locale.Tr "milestones"}}
+			{{if .MilestoneCount}}
+				<div class="ui small label">{{.MilestoneCount}}</div>
+			{{end}} 
+		</a>
 		{{if and .IsPackageEnabled .CanReadPackages}}
 		<a class="{{if .IsPackagesPage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/packages">
 			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}

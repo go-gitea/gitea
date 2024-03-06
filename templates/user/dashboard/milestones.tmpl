@@ -77,10 +77,14 @@
 							<div class="milestone-header">
 								<h3 class="flex-text-block gt-m-0">
 									<span class="ui large label">
+										{{if .RepoID}}
 										{{.Repo.FullName}}
+										{{else if .OrgID}}
+										{{.Org.Name}}
+										{{end}}
 									</span>
 									{{svg "octicon-milestone" 16}}
-									<a class="muted" href="{{.Repo.Link}}/milestone/{{.ID}}">{{.Name}}</a>
+									<a class="muted" href="{{if .RepoID}}{{.Repo.Link}}/milestone/{{.ID}}{{else if .OrgID}}{{.Org.HomeLink}}/-/milestones/{{.ID}}{{end}}">{{.Name}}</a>
 								</h3>
 								<div class="gt-df gt-ac">
 									<span class="gt-mr-3">{{.Completeness}}%</span>

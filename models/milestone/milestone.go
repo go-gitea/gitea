@@ -502,8 +502,9 @@ func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
 }
 
 func updateOrgMilestoneNum(ctx context.Context, orgID int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `user` SET num_milestones=(SELECT count(*) FROM milestone WHERE org_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE org_id=? AND is_closed=?) WHERE id=?",
+	_, err := db.GetEngine(ctx).Exec("UPDATE `user` SET num_milestones=(SELECT count(*) FROM milestone WHERE org_id=? AND is_closed=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE org_id=? AND is_closed=?) WHERE id=?",
 		orgID,
+		false,
 		orgID,
 		true,
 		orgID,

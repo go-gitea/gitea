@@ -53,6 +53,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -546,6 +547,27 @@ func renderMilestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
+
+	orgMilestones, err := db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
+		OrgID: ctx.Repo.Owner.ID,
+	})
+
+	if err != nil {
+		ctx.ServerError("GetAllOrgMilestones", err)
+		return
+	}
+
+	orgOpenMilestones, orgClosedMilestones := milestone_model.MilestoneList{}, milestone_model.MilestoneList{}
+	for _, milestone := range orgMilestones {
+		if milestone.IsClosed {
+			orgClosedMilestones = append(orgClosedMilestones, milestone)
+		} else {
+			orgOpenMilestones = append(orgOpenMilestones, milestone)
+		}
+	}
+
+	ctx.Data["OrgOpenMilestones"] = orgOpenMilestones
+	ctx.Data["OrgClosedMilestones"] = orgClosedMilestones
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
@@ -560,6 +582,23 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 	ctx.Data["ClosedMilestones"], err = db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
+	})
+	if err != nil {
+		ctx.ServerError("GetMilestones", err)
+		return
+	}
+
+	ctx.Data["OrgOpenMilestones"], err = db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
+		OrgID:    repo.Owner.ID,
+		IsClosed: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("GetMilestones", err)
+		return
+	}
+	ctx.Data["OrgClosedMilestones"], err = db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
 		IsClosed: util.OptionalBoolTrue,
 	})
@@ -1994,6 +2033,15 @@ func ViewIssue(ctx *context.Context) {
 		pinAllowed = true
 	}
 
+	if issue.MilestoneID > 0 {
+		milestone, err := milestone_model.GetMilestoneByID(ctx, issue.MilestoneID)
+		if err != nil {
+			ctx.ServerError("GetMilestoneByID", err)
+			return
+		}
+		issue.Milestone = milestone
+	}
+
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
@@ -2316,7 +2364,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
+		if err := milestone_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}

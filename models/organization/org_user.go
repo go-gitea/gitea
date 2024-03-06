@@ -136,3 +136,30 @@ func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgI
 	}
 	return ownerMaps, nil
 }
+
+// GetOrgPostersWithSearch returns users with limit of 30 with prefix that have authored an milestone for the given org
+// If isShowFullName is set to true, also include full name prefix search
+func GetOrgPostersWithSearch(ctx context.Context, org *Organization, search string, isShowFullName bool) ([]*user_model.User, error) {
+	users := make([]*user_model.User, 0, 30)
+	var prefixCond builder.Cond = builder.Like{"name", search + "%"}
+	if isShowFullName {
+		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + search + "%"})
+	}
+
+	cond := builder.In("`user`.id",
+		builder.Select("org_id").From("milestone").Where(
+			builder.And(
+				builder.Eq{"org_id": org.ID},
+				builder.NotIn("org_id",
+					builder.Select("org_id").
+						From("org_user")),
+			),
+		).GroupBy("org_id")).And(prefixCond)
+
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		OrderBy("name").
+		Limit(30).
+		Find(&users)
+}

@@ -146,6 +146,8 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+	NumMilestones       int    `xorm:"INT NOT NULL DEFAULT 0"`
+	NumClosedMilestones int    `xorm:"INT NOT NULL DEFAULT 0"`
 }
 
 func init() {

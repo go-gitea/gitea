@@ -600,6 +600,20 @@ func GetOrgByID(ctx context.Context, id int64) (*Organization, error) {
 	return u, nil
 }
 
+// GetOrgsByID returns the user object by given IDs if exists.
+func GetOrgsByID(ctx context.Context, ids []int64) ([]*Organization, error) {
+	var orgs []*Organization
+	for _, id := range ids {
+		org, err := GetOrgByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, org)
+	}
+
+	return orgs, nil
+}
+
 // RemoveOrgRepo removes all team-repository relations of organization.
 func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 	teamRepos := make([]*TeamRepo, 0, 10)

@@ -1,0 +1,114 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization milestone">
+	{{template "org/header" .}}
+	<div class="ui container">
+			{{template "base/alert" .}}
+	
+			<div class="list-header">
+				{{template "repo/issue/search" .}}
+					<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
+
+			</div>
+
+			<div id="issue-filters" class="issue-list-toolbar">
+				{{template "repo/issue/openclose" .}}
+				<div class="issue-list-toolbar-right">
+					<div class="ui secondary filter menu labels">
+							{{template "repo/issue/milestone/filter_list" .}}
+					</div>
+				</div>
+			</div>
+	
+			
+	
+			<!-- milestone list -->
+			<div class="milestone-list">
+				{{range .Milestones}}
+					<li class="milestone-card">
+						<div class="milestone-header">
+							<h3 class="flex-text-block gt-m-0">
+								{{svg "octicon-milestone" 16}}
+								<a class="muted" href="{{$.Link}}/{{.ID}}">{{.Name}}</a>
+							</h3>
+							<div class="gt-df gt-ac">
+								<span class="gt-mr-3">{{.Completeness}}%</span>
+								<progress value="{{.Completeness}}" max="100"></progress>
+							</div>
+						</div>
+						<div class="milestone-toolbar">
+							<div class="group">
+								<div class="flex-text-block">
+									{{svg "octicon-issue-opened" 14}}
+									{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+								</div>
+								<div class="flex-text-block">
+									{{svg "octicon-check" 14}}
+									{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+								</div>
+								{{if .TotalTrackedTime}}
+									<div class="flex-text-block">
+										{{svg "octicon-clock"}}
+										{{.TotalTrackedTime|Sec2Time}}
+									</div>
+								{{end}}
+								{{if .UpdatedUnix}}
+									<div class="flex-text-block">
+										{{svg "octicon-clock"}}
+										{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
+									</div>
+								{{end}}
+								<div class="flex-text-block">
+									{{if .IsClosed}}
+										{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
+										{{svg "octicon-clock" 14}}
+										{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
+									{{else}}
+										{{if .DeadlineString}}
+											<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
+												{{svg "octicon-calendar" 14}}
+												{{DateTime "short" .DeadlineString}}
+											</span>
+										{{else}}
+											{{svg "octicon-calendar" 14}}
+											{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
+										{{end}}
+									{{end}}
+								</div>
+							</div>
+							{{if $.CanWriteMilestone}}
+								<div class="group">
+									<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+									{{if .IsClosed}}
+										<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
+									{{else}}
+										<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
+									{{end}}
+									<a class="delete-button flex-text-inline" href="#" data-url="{{$.Link}}/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+								</div>
+							{{end}}
+						</div>
+						{{if .Content}}
+							<div class="markup content">
+								{{.RenderedContent|Str2html}}
+							</div>
+						{{end}}
+					</li>
+				{{end}}
+	
+				{{template "base/paginate" .}}
+			</div>
+	</div>
+</div>
+{{if $.CanWriteMilestone}}
+	<div class="ui g-modal-confirm delete modal">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "repo.milestones.deletion"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
+{{end}}
+{{template "base/footer" .}}

@@ -1,0 +1,51 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization milestone">
+	{{template "org/header" .}}
+	<div class="ui container">
+			{{template "base/alert" .}}
+		<h2 class="ui dividing header">
+			{{if .PageIsEditMilestone}}
+				{{ctx.Locale.Tr "repo.milestones.edit"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.milestones.edit_subheader"}}</div>
+			{{else}}
+				{{ctx.Locale.Tr "repo.milestones.new"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.milestones.new_subheader"}}</div>
+			{{end}}
+		</h2>
+		{{template "base/alert" .}}
+		<form class="ui form" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+				<div class="field {{if .Err_Title}}error{{end}}">
+					<label>{{ctx.Locale.Tr "repo.milestones.title"}}</label>
+					<input name="title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
+				</div>
+				<div class="field {{if .Err_Deadline}}error{{end}}">
+					<label>
+						{{ctx.Locale.Tr "repo.milestones.due_date"}}
+						<a id="clear-date">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>
+					</label>
+					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
+					<textarea name="content">{{.content}}</textarea>
+				</div>
+				<div class="divider"></div>
+				<div class="gt-text-right">
+					{{if .PageIsEditMilestone}}
+						<a class="ui primary basic button" href="{{.OrgLink}}/milestones">
+							{{ctx.Locale.Tr "repo.milestones.cancel"}}
+						</a>
+						<button class="ui primary button">
+							{{ctx.Locale.Tr "repo.milestones.modify"}}
+						</button>
+					{{else}}
+						<button class="ui primary button">
+							{{ctx.Locale.Tr "repo.milestones.create"}}
+						</button>
+					{{end}}
+			</div>
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

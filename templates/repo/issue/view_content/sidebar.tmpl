@@ -143,10 +143,10 @@
 		<span class="no-select item {{if .Issue.Milestone}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 		<div class="selected">
 			{{if .Issue.Milestone}}
-				<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
-					{{svg "octicon-milestone" 18 "gt-mr-3"}}
-					{{.Issue.Milestone.Name}}
-				</a>
+			<a class="item muted sidebar-item-link" href="{{if eq .Issue.Milestone.Type  2}}{{(print .OrgLink "/-/milestones")}}{{else}}{{(print .RepoLink "/milestones")}}{{end}}/{{.Issue.Milestone.ID}}">
+				{{svg "octicon-milestone" 18 "gt-mr-3"}}
+				{{.Issue.Milestone.Name}} 
+			</a>
 			{{end}}
 		</div>
 	</div>

@@ -213,6 +213,18 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
+	userOrgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserOrgsList", err)
+		return
+	}
+
+	var userOrgIDs []int64
+
+	for _, userOrg := range userOrgs {
+		userOrgIDs = append(userOrgIDs, userOrg.ID)
+	}
+
 	counts, err := milestone_model.CountMilestonesMap(ctx, milestone_model.FindMilestoneOptions{
 		RepoCond: userRepoCond,
 		Name:     keyword,
@@ -232,6 +244,7 @@ func Milestones(ctx *context.Context) {
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
+		OrgIDs:   userOrgIDs,
 	})
 	if err != nil {
 		ctx.ServerError("SearchMilestones", err)
@@ -245,6 +258,12 @@ func Milestones(ctx *context.Context) {
 	}
 	sort.Sort(showRepos)
 
+	orgs, err := organization.GetOrgsByID(ctx, userOrgIDs)
+	if err != nil {
+		ctx.ServerError("GetOrgsByID", err)
+		return
+	}
+
 	for i := 0; i < len(milestones); {
 		for _, repo := range showRepos {
 			if milestones[i].RepoID == repo.ID {
@@ -252,28 +271,53 @@ func Milestones(ctx *context.Context) {
 				break
 			}
 		}
-		if milestones[i].Repo == nil {
+		for _, org := range orgs {
+			if milestones[i].OrgID == org.ID {
+				milestones[i].Org = org
+				break
+			}
+		}
+		if milestones[i].Repo == nil && milestones[i].OrgID == 0 {
 			log.Warn("Cannot find milestone %d 's repository %d", milestones[i].ID, milestones[i].RepoID)
 			milestones = append(milestones[:i], milestones[i+1:]...)
 			continue
 		}
 
-		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: milestones[i].Repo.Link(),
-			},
-			Metas: milestones[i].Repo.ComposeMetas(ctx),
-			Ctx:   ctx,
-		}, milestones[i].Content)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-
-		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
-			err := milestones[i].LoadTotalTrackedTime(ctx)
+		if milestones[i].Repo != nil {
+			milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				Links: markup.Links{
+					Base: milestones[i].Repo.Link(),
+				},
+				Metas: milestones[i].Repo.ComposeMetas(ctx),
+				Ctx:   ctx,
+			}, milestones[i].Content)
 			if err != nil {
-				ctx.ServerError("LoadTotalTrackedTime", err)
+				ctx.ServerError("RenderString", err)
+				return
+			}
+
+			if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
+				err := milestones[i].LoadTotalTrackedTime(ctx)
+				if err != nil {
+					ctx.ServerError("LoadTotalTrackedTime", err)
+					return
+				}
+			}
+		}
+		if milestones[i].Org != nil {
+			metas := map[string]string{
+				"org":     milestones[i].Org.FullName,
+				"orgPath": milestones[i].Org.HomeLink(),
+			}
+			milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				Links: markup.Links{
+					Base: milestones[i].Org.HomeLink(),
+				},
+				Metas: metas,
+				Ctx:   ctx,
+			}, milestones[i].Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
 				return
 			}
 		}
@@ -320,6 +364,16 @@ func Milestones(ctx *context.Context) {
 		ctx.Data["Total"] = totalMilestoneStats.OpenCount
 		pagerCount = int(milestoneStats.OpenCount)
 	}
+
+	var userOrgMilestoneStat milestone_model.MilestonesStats
+
+	for _, org := range orgs {
+		userOrgMilestoneStat.OpenCount += int64(org.NumMilestones)
+		userOrgMilestoneStat.ClosedCount += int64(org.NumClosedMilestones)
+	}
+
+	milestoneStats.OpenCount += userOrgMilestoneStat.OpenCount
+	milestoneStats.ClosedCount += userOrgMilestoneStat.ClosedCount
 
 	ctx.Data["Milestones"] = milestones
 	ctx.Data["Repos"] = showRepos

@@ -135,6 +135,15 @@ func LoadHeaderCount(ctx *context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	if ctx.Org.Organization != nil {
+		user, exist, err := db.GetByID[user_model.User](ctx, ctx.Org.Organization.ID)
+		if err != nil || !exist {
+			return err
+		}
+		ctx.Data["MilestoneCount"] = user.NumMilestones
+	}
+
 	ctx.Data["ProjectCount"] = projectCount
 
 	return nil

@@ -64,10 +64,30 @@
 		<div class="divider"></div>
 		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
 		<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
+		{{if .OrgOpenMilestones}}
+			<div class="divider"></div>
+			<div class="header">{{ctx.Locale.Tr "repo.issues.new.org.open_milestone"}}</div>
+			{{range .OrgOpenMilestones}}
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{.Name}}
+			</a>
+			{{end}}
+		{{end}}
 		{{if .OpenMilestones}}
 			<div class="divider"></div>
 			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 			{{range .OpenMilestones}}
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{.Name}}
+			</a>
+			{{end}}
+		{{end}}
+		{{if .OrgClosedMilestones}}
+			<div class="divider"></div>
+			<div class="header">{{ctx.Locale.Tr "repo.issues.new.org.closed_milestone"}}</div>
+			{{range .OrgClosedMilestones}}
 			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
 				{{svg "octicon-milestone" 16 "mr-2"}}
 				{{.Name}}
@@ -128,7 +148,7 @@
 
 <!-- Author -->
 <div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.author_search_tooltip"}}"
-	data-search-url="{{if .Milestone}}{{$.RepoLink}}/issues/posters{{else}}{{$.Link}}/posters{{end}}"
+	data-search-url="{{if and (.Milestone) (not .PageIsOrgMilestone)}}{{$.RepoLink}}/issues/posters{{else}}{{$.Link}}/posters{{end}}"
 	data-selected-user-id="{{$.PosterID}}"
 	data-action-jump-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={user_id}{{if $.ShowArchivedLabels}}&archived=true{{end}}"
 >
