@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -153,7 +154,7 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 
 // GetExpandDirection gets DiffLineExpandDirection
 func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
-	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return DiffLineExpandNone
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
@@ -285,15 +286,15 @@ type DiffInline struct {
 
 // DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
 func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(string(s), locale)
-	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+	status, content := charset.EscapeControlHTML(s, locale)
+	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
 	highlighted, _ := highlight.Code(fileName, language, code)
 	status, content := charset.EscapeControlHTML(highlighted, locale)
-	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
@@ -1115,10 +1116,15 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	}
 
 	cmdDiff := git.NewCommand(gitRepo.Ctx)
-	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String()) && commit.ParentCount() == 0 {
 		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 			AddArguments(opts.WhitespaceBehavior...).
-			AddArguments("4b825dc642cb6eb9a060e54bf8d69288fbee4904"). // append empty tree ref
+			AddDynamicArguments(objectFormat.EmptyTree().String()).
 			AddDynamicArguments(opts.AfterCommitID)
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
@@ -1176,41 +1182,30 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 	for _, diffFile := range diff.Files {
 
-		gotVendor := false
-		gotGenerated := false
+		isVendored := optional.None[bool]()
+		isGenerated := optional.None[bool]()
 		if checker != nil {
 			attrs, err := checker.CheckPath(diffFile.Name)
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						diffFile.IsVendored = true
-						gotVendor = true
-					} else {
-						gotVendor = vendored == "false"
-					}
-				}
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						diffFile.IsGenerated = true
-						gotGenerated = true
-					} else {
-						gotGenerated = generated == "false"
-					}
-				}
-				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
-				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
+				isVendored = git.AttributeToBool(attrs, git.AttributeLinguistVendored)
+				isGenerated = git.AttributeToBool(attrs, git.AttributeLinguistGenerated)
+
+				language := git.TryReadLanguageAttribute(attrs)
+				if language.Has() {
+					diffFile.Language = language.Value()
 				}
 			}
 		}
 
-		if !gotVendor {
-			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		if !isVendored.Has() {
+			isVendored = optional.Some(analyze.IsVendor(diffFile.Name))
 		}
-		if !gotGenerated {
-			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		diffFile.IsVendored = isVendored.Value()
+
+		if !isGenerated.Has() {
+			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
+		diffFile.IsGenerated = isGenerated.Value()
 
 		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommitID, opts.AfterCommitID)
 		if tailSection != nil {
@@ -1224,8 +1219,8 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	}
 
 	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
+		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
@@ -1256,12 +1251,15 @@ func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStat
 		separator = ".."
 	}
 
-	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return nil, err
 	}
 
-	var err error
+	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
+		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
+	}
 
 	_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {

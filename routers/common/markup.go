@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 
 	"mvdan.cc/xurls/v2"
 )
@@ -32,8 +32,10 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	case "markdown":
 		// Raw markdown
 		if err := markdown.RenderRaw(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: urlPrefix,
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: urlPrefix,
+			},
 		}, strings.NewReader(text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 		}
@@ -75,8 +77,10 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	if err := markup.Render(&markup.RenderContext{
-		Ctx:          ctx,
-		URLPrefix:    urlPrefix,
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: urlPrefix,
+		},
 		Metas:        meta,
 		IsWiki:       wiki,
 		Type:         markupType,

@@ -51,7 +51,7 @@ func TestSearchRepo(t *testing.T) {
 }
 
 func testSearch(t *testing.T, url string, expected []string) {
-	req := NewRequestf(t, "GET", url)
+	req := NewRequest(t, "GET", url)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	filenames := resultFilenames(t, NewHTMLParser(t, resp.Body))

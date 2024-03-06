@@ -41,7 +41,8 @@ func TestDeleteUser(t *testing.T) {
 		orgUsers := make([]*organization.OrgUser, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
-			if err := models.RemoveOrgUser(db.DefaultContext, orgUser.OrgID, orgUser.UID); err != nil {
+			org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: orgUser.OrgID})
+			if err := models.RemoveOrgUser(db.DefaultContext, org, user); err != nil {
 				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}
@@ -107,7 +108,7 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Same username", func(t *testing.T) {
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user.Name), user_model.ErrUsernameNotChanged{UID: user.ID, Name: user.Name})
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user.Name))
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {

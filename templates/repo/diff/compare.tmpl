@@ -11,14 +11,6 @@
 			{{ctx.Locale.Tr "action.compare_commits_general"}}
 		{{end}}
 	</h2>
-	{{if .Flash.WarningMsg}}
-		{{/*
-			There's already an importing of alert.tmpl in new_form.tmpl,
-			but only the negative message will be displayed within forms for some reasons, see semantic.css:10659.
-			To avoid repeated negative messages, the importing here if for .Flash.WarningMsg only.
-		*/}}
-		{{template "base/alert" .}}
-	{{end}}
 	{{$BaseCompareName := $.BaseName -}}
 	{{- $HeadCompareName := $.HeadRepo.OwnerName -}}
 	{{- if and (eq $.BaseName $.HeadRepo.OwnerName) (ne $.Repository.Name $.HeadRepo.Name) -}}
@@ -36,7 +28,7 @@
 		{{- end -}}
 	{{- end -}}
 	<div class="ui segment choose branch">
-		<a href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
+		<a class="gt-mr-3" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 		<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
 			<div class="ui basic small button">
 				<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{$BaseCompareName}}:{{$.BaseBranch}}</span>
@@ -105,7 +97,7 @@
 				</div>
 			</div>
 		</div>
-		<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{.CompareSeparator}}</a>
+		<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{.CompareSeparator}}</div></a>
 		<div class="ui floating filter dropdown">
 			<div class="ui basic small button">
 				<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{$HeadCompareName}}:{{$.HeadBranch}}</span>
@@ -177,7 +169,7 @@
 	</div>
 
 	{{if .IsNothingToCompare}}
-		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
+		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) .PageIsComparePull}}
 			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 				<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
@@ -185,26 +177,28 @@
 			<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 				{{template "repo/issue/new_form" .}}
 			</div>
-		{{else}}
+		{{else if and .HeadIsBranch .BaseIsBranch}}
 			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}</div>
+		{{else}}
+			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_have_tag"}}</div>
 		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
 			<div class="ui segment grid title">
 				<div class="twelve wide column issue-title">
-					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print (Escape $.RepoLink) "/pulls/" .PullRequest.Issue.Index) (Escape $.RepoRelPath) .PullRequest.Index | Safe}}
+					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print $.RepoLink "/pulls/" .PullRequest.Issue.Index) $.RepoRelPath .PullRequest.Index}}
 					<h1>
-						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title $.RepoLink ($.Repository.ComposeMetas ctx)}}</span>
+						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}</span>
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</h1>
 				</div>
 				<div class="four wide column middle aligned text right">
 				{{- if .PullRequest.HasMerged -}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else if .Issue.IsClosed}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{end}}
 				</div>
 			</div>
@@ -214,11 +208,11 @@
 					<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
-				<div class="ui warning message gt-text-center">
+				<div class="ui warning message tw-text-center">
 					{{if .Repository.ArchivedUnix.IsZero}}
 						{{ctx.Locale.Tr "repo.archive.title"}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix) | Safe}}
+						{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
 					{{end}}
 				</div>
 			{{end}}
@@ -229,7 +223,7 @@
 			{{end}}
 			{{$showDiffBox = true}}
 		{{end}}
-	{{else}}
+	{{else if not .IsNothingToCompare}}
 		{{$showDiffBox = true}}
 	{{end}}
 	</div>

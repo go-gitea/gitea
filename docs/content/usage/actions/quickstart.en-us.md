@@ -61,8 +61,8 @@ It is always a bad idea to use a loopback address such as `127.0.0.1` or `localh
 If you are unsure which address to use, the LAN address is usually the right choice.
 
 `token` is used for authentication and identification, such as `P2U1U0oB4XaRCi8azcngmPCLbRpUGapalhmddh23`.
-It is one-time use only and cannot be used to register multiple runners.
-You can obtain different levels of 'tokens' from the following places to create the corresponding level of' runners':
+Each token can be used to create multiple runners, until it is replaced with a new token using the reset link.
+You can obtain different levels of 'tokens' from the following places to create the corresponding level of 'runners':
 
 - Instance level: The admin settings page, like `<your_gitea.com>/admin/actions/runners`.
 - Organization level: The organization settings page, like `<your_gitea.com>/<org>/settings/actions/runners`.
@@ -113,7 +113,7 @@ jobs:
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by Gitea!"
       - run: echo "🔎 The name of your branch is ${{ gitea.ref }} and your repository is ${{ gitea.repository }}."
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: echo "💡 The ${{ gitea.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository

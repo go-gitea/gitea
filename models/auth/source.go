@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -243,14 +244,14 @@ func CreateSource(ctx context.Context, source *Source) error {
 
 type FindSourcesOptions struct {
 	db.ListOptions
-	IsActive  util.OptionalBool
+	IsActive  optional.Option[bool]
 	LoginType Type
 }
 
 func (opts FindSourcesOptions) ToConds() builder.Cond {
 	conds := builder.NewCond()
-	if !opts.IsActive.IsNone() {
-		conds = conds.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	if opts.IsActive.Has() {
+		conds = conds.And(builder.Eq{"is_active": opts.IsActive.Value()})
 	}
 	if opts.LoginType != NoType {
 		conds = conds.And(builder.Eq{"`type`": opts.LoginType})
@@ -261,16 +262,12 @@ func (opts FindSourcesOptions) ToConds() builder.Cond {
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled(ctx context.Context) bool {
-	if !db.HasEngine {
-		return false
-	}
-
-	exist, err := db.Exists[Source](ctx, FindSourcesOptions{
-		IsActive:  util.OptionalBoolTrue,
+	exist, err := db.Exist[Source](ctx, FindSourcesOptions{
+		IsActive:  optional.Some(true),
 		LoginType: SSPI,
-	})
+	}.ToConds())
 	if err != nil {
-		log.Error("Active SSPI Sources: %v", err)
+		log.Error("IsSSPIEnabled: failed to query active SSPI sources: %v", err)
 		return false
 	}
 	return exist

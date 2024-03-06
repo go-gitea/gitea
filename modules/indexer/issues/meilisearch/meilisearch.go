@@ -131,11 +131,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(q)
 	}
 
-	if !options.IsPull.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.IsTrue()))
+	if options.IsPull.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.Value()))
 	}
-	if !options.IsClosed.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.IsTrue()))
+	if options.IsClosed.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
 	}
 
 	if options.NoLabelOnly {
@@ -211,10 +211,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
-		Filter: query.Statement(),
-		Limit:  int64(limit),
-		Offset: int64(skip),
-		Sort:   sortBy,
+		Filter:           query.Statement(),
+		Limit:            int64(limit),
+		Offset:           int64(skip),
+		Sort:             sortBy,
+		MatchingStrategy: "all",
 	})
 	if err != nil {
 		return nil, err

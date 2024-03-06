@@ -12,9 +12,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
-	"unsafe"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"code.gitea.io/gitea/modules/log"
@@ -345,6 +345,17 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
 	}
 
+	// We need to check if the context is canceled by the program on Windows.
+	// This is because Windows does not have signal checking when terminating the process.
+	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	if runtime.GOOS == "windows" &&
+		err != nil &&
+		err.Error() == "" &&
+		cmd.ProcessState.ExitCode() == 1 &&
+		ctx.Err() == context.Canceled {
+		return ctx.Err()
+	}
+
 	if err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
@@ -389,15 +400,11 @@ func (r *runStdError) IsExitCode(code int) bool {
 	return false
 }
 
-func bytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
-}
-
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
-	stdout = bytesToString(stdoutBytes)
-	stderr = bytesToString(stderrBytes)
+	stdout = util.UnsafeBytesToString(stdoutBytes)
+	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
 		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
@@ -432,7 +439,7 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 	err := c.Run(newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
+		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil

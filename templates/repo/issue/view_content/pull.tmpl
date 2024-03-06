@@ -24,6 +24,7 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
+			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
 			"is_context_required" .is_context_required
 		)}}
@@ -38,7 +39,7 @@
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (HTMLFormat "<code>%s</code>" .HeadTarget)}}
 							</div>
 						</div>
 						<div class="item-section-right">
@@ -80,14 +81,14 @@
 					{{ctx.Locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
+				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 					<div class="item-section-left flex-text-inline gt-f1">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 						<button class="ui compact button">
-							{{ctx.Locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}
 				</div>
@@ -126,7 +127,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}
@@ -197,7 +198,7 @@
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
 							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix ctx.Locale}}
@@ -269,6 +270,13 @@
 									'hideAutoMerge': generalHideAutoMerge,
 								},
 								{
+									'name': 'fast-forward-only',
+									'allowed': {{and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0)}},
+									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}},
+									'hideMergeMessageTexts': true,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
 									'name': 'manually-merged',
 									'allowed': {{$prUnit.PullRequestsConfig.AllowManualMerge}},
 									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.merge_manually"}},
@@ -326,7 +334,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}

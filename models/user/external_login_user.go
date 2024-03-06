@@ -98,9 +98,10 @@ func GetExternalLogin(ctx context.Context, externalLoginUser *ExternalLoginUser)
 
 // LinkExternalToUser link the external user to the user
 func LinkExternalToUser(ctx context.Context, user *User, externalLoginUser *ExternalLoginUser) error {
-	has, err := db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
-		NoAutoCondition().
-		Exist(externalLoginUser)
+	has, err := db.Exist[ExternalLoginUser](ctx, builder.Eq{
+		"external_id":     externalLoginUser.ExternalID,
+		"login_source_id": externalLoginUser.LoginSourceID,
+	})
 	if err != nil {
 		return err
 	} else if has {
@@ -145,9 +146,10 @@ func GetUserIDByExternalUserID(ctx context.Context, provider, userID string) (in
 
 // UpdateExternalUserByExternalID updates an external user's information
 func UpdateExternalUserByExternalID(ctx context.Context, external *ExternalLoginUser) error {
-	has, err := db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).
-		NoAutoCondition().
-		Exist(external)
+	has, err := db.Exist[ExternalLoginUser](ctx, builder.Eq{
+		"external_id":     external.ExternalID,
+		"login_source_id": external.LoginSourceID,
+	})
 	if err != nil {
 		return err
 	} else if !has {

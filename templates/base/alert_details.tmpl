@@ -2,6 +2,6 @@
 <details>
 	<summary>{{.Summary}}</summary>
 	<code>
-		{{.Details | Str2html}}
+		{{.Details | SanitizeHTML}}
 	</code>
 </details>

@@ -4,16 +4,18 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
 )
@@ -133,11 +135,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
 	//   type: boolean
-	// - name: per_page
-	//   in: query
-	//   description: page size of results, deprecated - use limit
-	//   type: integer
-	//   deprecated: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -152,9 +149,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
-		listOptions.PageSize = ctx.FormInt("per_page")
-	}
 
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
@@ -162,9 +156,10 @@ func ListReleases(ctx *context.APIContext) {
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
+		RepoID:        ctx.Repo.Repository.ID,
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	releases, err := db.Find[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
@@ -178,7 +173,7 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 
-	filteredCount, err := repo_model.CountReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	filteredCount, err := db.Count[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -221,6 +216,10 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		return
+	}
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {

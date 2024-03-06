@@ -7,6 +7,7 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';
+import {submitEventSubmitter} from '../utils/dom.js';
 
 const {csrfToken, pageData, i18n} = window.config;
 
@@ -46,8 +47,8 @@ function initRepoDiffConversationForm() {
     e.preventDefault();
 
     const $form = $(e.target);
-    const $textArea = $form.find('textarea');
-    if (!validateTextareaNonEmpty($textArea)) {
+    const textArea = e.target.querySelector('textarea');
+    if (!validateTextareaNonEmpty(textArea)) {
       return;
     }
 
@@ -57,7 +58,7 @@ function initRepoDiffConversationForm() {
       const formData = new FormData($form[0]);
 
       // if the form is submitted by a button, append the button's name and value to the form data
-      const submitter = e.originalEvent?.submitter;
+      const submitter = submitEventSubmitter(e);
       const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
       if (isSubmittedByButton && submitter.name) {
         formData.append(submitter.name, submitter.value);
@@ -68,9 +69,9 @@ function initRepoDiffConversationForm() {
 
       $form.closest('.conversation-holder').replaceWith($newConversationHolder);
       if ($form.closest('tr').data('line-type') === 'same') {
-        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('gt-invisible');
+        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('tw-invisible');
       } else {
-        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('gt-invisible');
+        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('tw-invisible');
       }
       $newConversationHolder.find('.dropdown').dropdown();
       initCompReactionSelector($newConversationHolder);

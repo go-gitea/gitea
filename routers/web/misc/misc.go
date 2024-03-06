@@ -15,7 +15,7 @@ import (
 )
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
-	if !git.SupportProcReceive {
+	if !git.DefaultFeatures.SupportProcReceive {
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -31,10 +31,6 @@ func SSHInfo(rw http.ResponseWriter, req *http.Request) {
 
 func DummyOK(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
-}
-
-func DummyBadRequest(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
 }
 
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {

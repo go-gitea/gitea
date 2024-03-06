@@ -190,9 +190,9 @@
   --color-text-light-1: #6a6a6a;
   --color-text-light-2: #808080;
   --color-text-light-3: #a0a0a0;
-  --color-footer: #ffffff;
+  --color-footer: var(--color-nav-bg);
   --color-timeline: #ececec;
-  --color-input-text: #212121;
+  --color-input-text: var(--color-text-dark);
   --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
   --color-input-border: var(--color-secondary);
@@ -213,7 +213,7 @@
   --color-shadow: #00000026;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
-  --color-placeholder-text: #aaa;
+  --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
   --color-project-board-dark-label: #111111;
@@ -227,7 +227,7 @@
   --color-nav-bg: #ffffff;
   --color-nav-hover-bg: #ebebeb;
   --color-nav-text: var(--color-text);
-  --color-label-text: #232323;
+  --color-label-text: var(--color-text);
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
   --color-label-active-bg: #cacacaff;

@@ -8,7 +8,7 @@
 			<div class="ui attached segment">
 				{{template "base/alert" .}}
 
-				<p>{{ctx.Locale.Tr "install.docker_helper" "https://docs.gitea.com/installation/install-with-docker" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "install.docker_helper" "https://docs.gitea.com/installation/install-with-docker"}}</p>
 
 				<form class="ui form" action="{{AppSubUrl}}/" method="post">
 					<!-- Database Settings -->
@@ -72,7 +72,7 @@
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{ctx.Locale.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
-							<span class="help">{{ctx.Locale.Tr "install.sqlite_helper" | Safe}}</span>
+							<span class="help">{{ctx.Locale.Tr "install.sqlite_helper"}}</span>
 						</div>
 					</div>
 

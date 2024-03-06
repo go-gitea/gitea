@@ -156,7 +156,6 @@
   width: 1.28571429em;
   height: 1.28571429em;
   border-radius: 500rem;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid currentColor;
   color: #FFFFFF;
@@ -530,7 +529,6 @@
   border-top-left-radius: inherit;
   border-bottom-left-radius: inherit;
   text-align: center;
-  -webkit-animation: none;
   animation: none;
   padding: 0.78571429em 0 0.78571429em 0;
   margin: 0;
@@ -594,7 +592,6 @@
 /* Loading Icon in Labeled Button */
 
 .ui.labeled.icon.button > .loading.icon:before {
-  -webkit-animation: loader 2s linear infinite;
   animation: loader 2s linear infinite;
 }
 
@@ -2350,7 +2347,6 @@
 .ui.checkbox {
   position: relative;
   display: inline-block;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   outline: none;
   vertical-align: baseline;
@@ -3227,9 +3223,7 @@
   background: rgba(0, 0, 0, 0.85);
   opacity: 0;
   line-height: 1;
-  -webkit-animation-fill-mode: both;
   animation-fill-mode: both;
-  -webkit-animation-duration: 0.5s;
   animation-duration: 0.5s;
   transition: background-color 0.5s linear;
   flex-direction: column;
@@ -3458,42 +3452,23 @@ body.dimmable > .dimmer {
 }
 
 .ui[class*="center dimmer"].transition[class*="fade up"].in {
-  -webkit-animation-name: fadeInUpCenter;
   animation-name: fadeInUpCenter;
 }
 
 .ui[class*="center dimmer"].transition[class*="fade down"].in {
-  -webkit-animation-name: fadeInDownCenter;
   animation-name: fadeInDownCenter;
 }
 
 .ui[class*="center dimmer"].transition[class*="fade up"].out {
-  -webkit-animation-name: fadeOutUpCenter;
   animation-name: fadeOutUpCenter;
 }
 
 .ui[class*="center dimmer"].transition[class*="fade down"].out {
-  -webkit-animation-name: fadeOutDownCenter;
   animation-name: fadeOutDownCenter;
 }
 
 .ui[class*="center dimmer"].bounce.transition {
-  -webkit-animation-name: bounceCenter;
   animation-name: bounceCenter;
-}
-
-@-webkit-keyframes fadeInUpCenter {
-  0% {
-    opacity: 0;
-    transform: translateY(-40%);
-    -webkit-transform: translateY(calc(-40% - 0.5px));
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(-50%);
-    -webkit-transform: translateY(calc(-50% - 0.5px));
-  }
 }
 
 @keyframes fadeInUpCenter {
@@ -3501,20 +3476,6 @@ body.dimmable > .dimmer {
     opacity: 0;
     transform: translateY(-40%);
     -webkit-transform: translateY(calc(-40% - 0.5px));
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(-50%);
-    -webkit-transform: translateY(calc(-50% - 0.5px));
-  }
-}
-
-@-webkit-keyframes fadeInDownCenter {
-  0% {
-    opacity: 0;
-    transform: translateY(-60%);
-    -webkit-transform: translateY(calc(-60% - 0.5px));
   }
 
   100% {
@@ -3538,20 +3499,6 @@ body.dimmable > .dimmer {
   }
 }
 
-@-webkit-keyframes fadeOutUpCenter {
-  0% {
-    opacity: 1;
-    transform: translateY(-50%);
-    -webkit-transform: translateY(calc(-50% - 0.5px));
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(-45%);
-    -webkit-transform: translateY(calc(-45% - 0.5px));
-  }
-}
-
 @keyframes fadeOutUpCenter {
   0% {
     opacity: 1;
@@ -3566,20 +3513,6 @@ body.dimmable > .dimmer {
   }
 }
 
-@-webkit-keyframes fadeOutDownCenter {
-  0% {
-    opacity: 1;
-    transform: translateY(-50%);
-    -webkit-transform: translateY(calc(-50% - 0.5px));
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(-55%);
-    -webkit-transform: translateY(calc(-55% - 0.5px));
-  }
-}
-
 @keyframes fadeOutDownCenter {
   0% {
     opacity: 1;
@@ -3591,21 +3524,6 @@ body.dimmable > .dimmer {
     opacity: 0;
     transform: translateY(-55%);
     -webkit-transform: translateY(calc(-55% - 0.5px));
-  }
-}
-
-@-webkit-keyframes bounceCenter {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(-50%);
-    -webkit-transform: translateY(calc(-50% - 0.5px));
-  }
-
-  40% {
-    transform: translateY(calc(-50% - 30px));
-  }
-
-  60% {
-    transform: translateY(calc(-50% - 15px));
   }
 }
 
@@ -3672,7 +3590,6 @@ body.dimmable > .dimmer {
   display: none;
   outline: none;
   top: 100%;
-  min-width: -webkit-max-content;
   min-width: -moz-max-content;
   min-width: max-content;
   margin: 0;
@@ -4068,7 +3985,6 @@ select.ui.dropdown {
 .ui.selection.dropdown .menu {
   overflow-x: hidden;
   overflow-y: auto;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-overflow-scrolling: touch;
   border-top-width: 0 !important;
@@ -4280,7 +4196,6 @@ select.ui.dropdown {
 @supports (-webkit-touch-callout: none) or (-webkit-overflow-scrolling: touch) or (-moz-appearance:none) {
 @media (-moz-touch-enabled), (pointer: coarse) {
     .ui.dropdown .scrollhint.menu:not(.hidden):before {
-      -webkit-animation: scrollhint 2s ease 2;
       animation: scrollhint 2s ease 2;
       content: '';
       z-index: 15;
@@ -4300,18 +4215,6 @@ select.ui.dropdown {
       -o-border-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0)) 1 100%;
       border-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0)) 1 100%;
     }
-
-@-webkit-keyframes scrollhint {
-      0% {
-        opacity: 1;
-        top: 100%;
-      }
-
-      100% {
-        opacity: 0;
-        top: 0;
-      }
-}
 
 @keyframes scrollhint {
       0% {
@@ -4414,7 +4317,6 @@ select.ui.dropdown {
 .ui.search.dropdown .menu {
   overflow-x: hidden;
   overflow-y: auto;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-overflow-scrolling: touch;
 }
@@ -4682,7 +4584,6 @@ select.ui.dropdown {
   margin: -0.64285714em 0 0 -0.64285714em;
   width: 1.28571429em;
   height: 1.28571429em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
@@ -5072,7 +4973,6 @@ select.ui.dropdown {
 .ui.scrolling.dropdown .menu {
   overflow-x: hidden;
   overflow-y: auto;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-overflow-scrolling: touch;
   min-width: 100% !important;
@@ -5564,7 +5464,6 @@ select.ui.dropdown {
   line-height: 1;
   height: 1em;
   width: 1.23em;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   font-weight: normal;
   font-style: normal;
@@ -7052,7 +6951,6 @@ select.ui.dropdown {
   margin: -1.5em 0 0 -1.5em;
   width: 3em;
   height: 3em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
@@ -10299,7 +10197,6 @@ a.ui.black.header:hover {
   margin: -0.64285714em 0 0 -0.64285714em;
   width: 1.28571429em;
   height: 1.28571429em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
@@ -13306,7 +13203,6 @@ ol.ui.suffixed.list li:before,
   left: 100%;
   /* IE needs 0, all others support max-content to show dropdown icon inline, so keep both settings! */
   min-width: 0;
-  min-width: -webkit-max-content;
   min-width: -moz-max-content;
   min-width: max-content;
   margin: 0 0 0 0;
@@ -16722,7 +16618,6 @@ Floated Menu / Item
   margin: -0.64285714em 0 0 -0.64285714em;
   width: 1.28571429em;
   height: 1.28571429em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
@@ -16904,7 +16799,6 @@ Floated Menu / Item
 .ui.search.short > .results {
   overflow-x: hidden;
   overflow-y: auto;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-overflow-scrolling: touch;
 }
@@ -17201,7 +17095,6 @@ Floated Menu / Item
   justify-content: center;
   align-items: stretch;
   max-width: initial;
-  -webkit-animation: none;
   animation: none;
   overflow: visible;
   padding: 1em 1em;
@@ -17494,7 +17387,6 @@ Floated Menu / Item
   margin: -1.5em 0 0 -1.5em;
   width: 3em;
   height: 3em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
@@ -17996,7 +17888,6 @@ input::selection {
   margin: -1.25em 0 0 -1.25em;
   width: 2.5em;
   height: 2.5em;
-  -webkit-animation: loader 0.6s infinite linear;
   animation: loader 0.6s infinite linear;
   border: 0.2em solid #767676;
   border-radius: 500rem;
