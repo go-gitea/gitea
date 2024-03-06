@@ -393,10 +393,14 @@ func (a *Action) GetCreate() time.Time {
 	return a.CreatedUnix.AsTime()
 }
 
-// GetIssueInfos returns a list of issues associated with
-// the action.
+// GetIssueInfos returns a list of associated information with the action.
 func (a *Action) GetIssueInfos() []string {
-	return strings.SplitN(a.Content, "|", 3)
+	// make sure it always returns 3 elements, because there are some access to the a[1] and a[2] without checking the length
+	ret := strings.SplitN(a.Content, "|", 3)
+	for len(ret) < 3 {
+		ret = append(ret, "")
+	}
+	return ret
 }
 
 // GetIssueTitle returns the title of first issue associated with the action.
