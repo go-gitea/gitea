@@ -63,7 +63,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		issues, err = IssueList(issues).FilterValidByDoer(ctx, doer)
+		issues, err = issues.FilterValidByDoer(ctx, doer)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 		if err != nil {
 			return nil, err
 		}
-		issues, err = IssueList(issues).FilterValidByDoer(ctx, doer)
+		issues, err = issues.FilterValidByDoer(ctx, doer)
 		if err != nil {
 			return nil, err
 		}
