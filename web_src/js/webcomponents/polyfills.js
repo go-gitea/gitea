@@ -1,5 +1,3 @@
-import '@webcomponents/custom-elements'; // polyfill for some browsers like PaleMoon
-
 try {
   // some browsers like PaleMoon don't have full support for Intl.NumberFormat, so do the minimum polyfill to support "relative-time-element"
   // https://repo.palemoon.org/MoonchildProductions/UXP/issues/2289
