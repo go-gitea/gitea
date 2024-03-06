@@ -44,7 +44,7 @@
 							<td>{{if .InRepo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .Exists}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .Accessible}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td class="gt-text-right">
+							<td class="tw-text-right">
 								<a class="ui primary button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>
 						</tr>
