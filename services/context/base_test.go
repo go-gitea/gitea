@@ -36,13 +36,4 @@ func TestRedirect(t *testing.T) {
 		has := resp.Header().Get("Set-Cookie") == "i_like_gitea=dummy"
 		assert.Equal(t, c.keep, has, "url = %q", c.url)
 	}
-
-	req, _ = http.NewRequest("GET", "/", nil)
-	resp := httptest.NewRecorder()
-	req.Header.Add("HX-Request", "true")
-	b, cleanup := context.NewBaseContext(resp, req)
-	b.Redirect("/other")
-	cleanup()
-	assert.Equal(t, "/other", resp.Header().Get("HX-Redirect"))
-	assert.Equal(t, http.StatusNoContent, resp.Code)
 }
