@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 )
@@ -48,32 +49,35 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, org *organization.Organization) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)
 
-	if b.ID > 0 {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: b.ID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
-		})
-		if err != nil {
-			return nil, err
-		}
-		issueList = issues
+	opts := &IssuesOptions{
+		ProjectID: b.ProjectID,
+		SortType:  "project-column-sorting",
 	}
 
-	if b.Default {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: db.NoConditionID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
-		})
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
+	if doer != nil {
+		opts.User = doer
+		opts.Org = org
+	} else {
+		// non-login user can only access public repos
+		opts.AllPublic = true
 	}
+
+	if b.ID > 0 {
+		opts.ProjectBoardID = b.ID
+	} else if b.Default {
+		opts.ProjectBoardID = db.NoConditionID
+	} else {
+		return issueList, nil
+	}
+
+	issues, err := Issues(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	issueList = append(issueList, issues...)
 
 	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
@@ -83,10 +87,10 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, org *organization.Organization) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i])
+		il, err := LoadIssuesFromBoard(ctx, bs[i], doer, org)
 		if err != nil {
 			return nil, err
 		}
