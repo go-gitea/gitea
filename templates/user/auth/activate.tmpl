@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user activate">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/activate" method="post">
+			<form class="ui form ignore-dirty tw-max-w-2xl tw-m-auto" action="{{AppSubUrl}}/user/activate" method="post">
 				{{.CsrfTokenHtml}}
 				<h2 class="ui top attached header">
 					{{ctx.Locale.Tr "auth.active_your_account"}}
@@ -10,12 +10,11 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .NeedVerifyLocalPassword}}
-						<div class="required inline field">
+						<div class="required field">
 							<label for="verify-password">{{ctx.Locale.Tr "password"}}</label>
 							<input id="verify-password" name="password" type="password" autocomplete="off" required>
 						</div>
 						<div class="inline field">
-							<label></label>
 							<button class="ui primary button">{{ctx.Locale.Tr "install.confirm_password"}}</button>
 						</div>
 						<input name="code" type="hidden" value="{{.ActivationCode}}">
@@ -29,7 +28,7 @@
 							</div>
 						</details>
 						<div class="divider"></div>
-						<div class="text right">
+						<div class="text">
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.resend_mail"}}</button>
 						</div>
 					{{end}}
