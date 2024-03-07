@@ -202,7 +202,7 @@ func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session 
 		if opts.RepoCond == nil {
 			opts.RepoCond = builder.NewCond()
 		}
-		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"is_private": false})))
+		opts.RepoCond = opts.RepoCond.Or(repo_model.PublicRepoCond("issue.repo_id"))
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
@@ -340,6 +340,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	} else {
 		cond = cond.And(
 			builder.Or(
+				repo_model.PublicRepoCond(repoIDstr),                          // all public repos
 				repo_model.UserOwnedRepoCond(userID),                          // owned repos
 				repo_model.UserAccessRepoCond(repoIDstr, userID),              // user can access repo in a unit independent way
 				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
