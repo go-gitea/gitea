@@ -136,6 +136,7 @@ type Repository struct {
 	OriginalServiceType api.GitServiceType `xorm:"index"`
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
+	DefaultWikiBranch   string
 
 	NumWatches          int
 	NumStars            int
@@ -285,6 +286,9 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
+	if repo.DefaultWikiBranch == "" {
+		repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+	}
 }
 
 // LoadAttributes loads attributes of the repository.
