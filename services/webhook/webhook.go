@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -190,7 +191,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	if source.Repository != nil {
 		repoHooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
 			RepoID:   source.Repository.ID,
-			IsActive: util.OptionalBoolTrue,
+			IsActive: optional.Some(true),
 		})
 		if err != nil {
 			return fmt.Errorf("ListWebhooksByOpts: %w", err)
@@ -204,7 +205,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	if owner != nil {
 		ownerHooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
 			OwnerID:  owner.ID,
-			IsActive: util.OptionalBoolTrue,
+			IsActive: optional.Some(true),
 		})
 		if err != nil {
 			return fmt.Errorf("ListWebhooksByOpts: %w", err)
@@ -213,7 +214,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, util.OptionalBoolTrue)
+	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, optional.Some(true))
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %w", err)
 	}

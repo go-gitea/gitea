@@ -15,7 +15,6 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 	type Attachment struct {
 		ID         int64  `xorm:"pk autoincr"`
 		UUID       string `xorm:"uuid UNIQUE"`
-		RepoID     int64  `xorm:"INDEX"` // this should not be zero
 		IssueID    int64  `xorm:"INDEX"` // maybe zero when creating
 		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
 		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
@@ -44,12 +43,21 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 		return
 	}
 
-	var issueAttachments []*Attachment
-	err := x.Where("issue_id > 0").Find(&issueAttachments)
+	type NewAttachment struct {
+		ID         int64  `xorm:"pk autoincr"`
+		UUID       string `xorm:"uuid UNIQUE"`
+		RepoID     int64  `xorm:"INDEX"` // this should not be zero
+		IssueID    int64  `xorm:"INDEX"` // maybe zero when creating
+		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
+		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
+	}
+
+	var issueAttachments []*NewAttachment
+	err := x.Table("attachment").Where("issue_id > 0").Find(&issueAttachments)
 	assert.NoError(t, err)
 	for _, attach := range issueAttachments {
-		assert.Greater(t, attach.RepoID, 0)
-		assert.Greater(t, attach.IssueID, 0)
+		assert.Greater(t, attach.RepoID, int64(0))
+		assert.Greater(t, attach.IssueID, int64(0))
 		var issue Issue
 		has, err := x.ID(attach.IssueID).Get(&issue)
 		assert.NoError(t, err)
@@ -57,12 +65,12 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 		assert.EqualValues(t, attach.RepoID, issue.RepoID)
 	}
 
-	var releaseAttachments []*Attachment
-	err = x.Where("release_id > 0").Find(&releaseAttachments)
+	var releaseAttachments []*NewAttachment
+	err = x.Table("attachment").Where("release_id > 0").Find(&releaseAttachments)
 	assert.NoError(t, err)
 	for _, attach := range releaseAttachments {
-		assert.Greater(t, attach.RepoID, 0)
-		assert.Greater(t, attach.IssueID, 0)
+		assert.Greater(t, attach.RepoID, int64(0))
+		assert.Greater(t, attach.ReleaseID, int64(0))
 		var release Release
 		has, err := x.ID(attach.ReleaseID).Get(&release)
 		assert.NoError(t, err)

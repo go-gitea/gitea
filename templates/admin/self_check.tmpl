@@ -20,7 +20,7 @@
 			{{if .DatabaseCheckInconsistentCollationColumns}}
 				<div class="ui red message">
 					{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}
-					<ul class="gt-w-full">
+					<ul class="tw-w-full">
 					{{range .DatabaseCheckInconsistentCollationColumns}}
 						<li>{{.}}</li>
 					{{end}}
