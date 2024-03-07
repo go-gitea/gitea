@@ -8,7 +8,7 @@
 			{{.CsrfTokenHtml}}
 			<div class="ui inline field required">
 				<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}} :</label>
-				<div class="ui floating dropdown icon button">
+				<div class="ui floating dropdown icon button mini">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
 					<i>{{svg "octicon-git-branch"}}</i>
 					<span class="text">{{index .Branches 0}}</span>
@@ -23,7 +23,7 @@
 								Branches
 							</div>
 							{{range $key, $item := .Branches}}
-								<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
+							<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
 							{{end}}
 							<div class="divider"></div>
 							<div class="header">
