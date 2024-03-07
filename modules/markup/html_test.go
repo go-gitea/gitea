@@ -5,6 +5,7 @@ package markup_test
 
 import (
 	"context"
+	"html/template"
 	"io"
 	"os"
 	"strings"
@@ -13,10 +14,12 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -687,4 +690,58 @@ func TestIsFullURL(t *testing.T) {
 	assert.True(t, markup.IsFullURLString("https://example.com"))
 	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
 	assert.False(t, markup.IsFullURLString("/foo:bar"))
+}
+
+func TestRender_FilePreview(t *testing.T) {
+	setting.AppURL = markup.TestAppURL
+	markup.Init(&markup.ProcessorHelper{
+		GetRepoFileContent: func(ctx context.Context, ownerName string, repoName string, commitSha string, filePath string) ([]template.HTML, error) {
+			buf := []byte( "A\nB\nC\nD\n" )
+			return highlight.PlainText(buf), nil
+		},
+		GetLocale: func(ctx context.Context) (translation.Locale, error) {
+			return translation.NewLocale("en-US"), nil
+		},
+	})
+
+	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	commitFilePreview := util.URLJoin(markup.TestRepoURL, "src", "commit", sha, "path", "to", "file.go") + "#L1-L2"
+
+	test := func(input, expected string) {
+		buffer, err := markup.RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			RelativePath: ".md",
+			Metas: localMetas,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	test(
+		commitFilePreview,
+		`<p></p>` +
+		`<div class="file-preview-box">` +
+			`<div class="header">` +
+				`<a href="http://localhost:3000/gogits/gogs/src/commit/b6dd6210eaebc915fd5be5579c58cce4da2e2579/path/to/file.go#L1-L2" class="muted" rel="nofollow">path/to/file.go</a>` +
+				`<span class="text small grey">` +
+					`Lines 1 to 2 in <a href="http://localhost:3000/gogits/gogs/src/commit/b6dd6210eaebc915fd5be5579c58cce4da2e2579" class="text black" rel="nofollow">b6dd621</a>` +
+				`</span>` +
+			`</div>` +
+			`<div class="ui table">` +
+				`<table class="file-preview">` +
+					`<tbody>` +
+						`<tr>` +
+							`<td id="user-content-L1" class="lines-num"><span id="user-content-L1" data-line-number="1"></span></td>` +
+							`<td rel="L1" class="lines-code chroma"><code class="code-inner">A` + "\n" + `</code></td>` +
+						`</tr>` +
+						`<tr>` +
+							`<td id="user-content-L2" class="lines-num"><span id="user-content-L2" data-line-number="2"></span></td>` +
+							`<td rel="L2" class="lines-code chroma"><code class="code-inner">B` + "\n" + `</code></td>` +
+						`</tr>` +
+					`</tbody>` +
+				`</table>` +
+			`</div>` +
+		`</div>` +
+		`<p></p>`,
+	)
 }
