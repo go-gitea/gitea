@@ -359,7 +359,7 @@ func ViewProject(ctx *context.Context) {
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, ctx.Org.Organization)
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfBoards", err)
+		ctx.ServerError("LoadIssuesFromBoardList", err)
 		return
 	}
 
