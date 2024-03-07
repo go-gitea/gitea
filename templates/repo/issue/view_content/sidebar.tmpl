@@ -451,7 +451,7 @@
 					{{range .BlockedByDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 							<div class="item-left gt-df gt-jc gt-fc gt-f1 gt-ellipsis">
-								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+								<a class="title muted added-dependency" data-added-dependency-id="{{.Issue.Index}}" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 								</a>
 								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">

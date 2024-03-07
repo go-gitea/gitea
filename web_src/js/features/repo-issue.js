@@ -104,10 +104,21 @@ export function initRepoIssueSidebarList() {
         onResponse(response) {
           const filteredResponse = {success: true, results: []};
           const currIssueId = $('#new-dependency-drop-list').data('issue-id');
+          const addedDependenies = [];
+          $('.added-dependency').each(function() {
+            const elementID = $(this).data('added-dependency-id');
+            addedDependenies.push(elementID);
+          });
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
             // Don't list current issue in the dependency list.
             if (issue.id === currIssueId) {
+              return;
+            }
+            // Don't list already added items in the dependency list.
+            if (!addedDependenies.every((id) => {
+              return id !== issue.id;
+            })) {
               return;
             }
             filteredResponse.results.push({
