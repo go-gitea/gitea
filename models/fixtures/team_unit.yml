@@ -322,3 +322,21 @@
   team_id: 22
   type: 3
   access_mode: 1
+
+-
+  id: 55
+  team_id: 16
+  type: 2 # issue
+  access_mode: 4
+
+-
+  id: 56
+  team_id: 17
+  type: 2 # issue
+  access_mode: 2
+
+-
+  id: 57
+  team_id: 23
+  type: 2 # issue
+  access_mode: 0

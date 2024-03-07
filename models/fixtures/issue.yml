@@ -372,3 +372,71 @@
   created_unix: 1707270422
   updated_unix: 1707270422
   is_locked: false
+
+-
+  id: 23
+  repo_id: 1
+  index: 6
+  poster_id: 2
+  original_author_id: 0
+  name: repo1 issue6
+  content: content for repo1 issue6
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false
+
+-
+  id: 24
+  repo_id: 23
+  index: 2
+  poster_id: 2
+  original_author_id: 0
+  name: repo1 issue6
+  content: content for repo1 issue6
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false
+
+-
+  id: 25
+  repo_id: 41
+  index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: repo41 issue1
+  content: content for repo41 issue1
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false
+
+-
+  id: 26
+  repo_id: 41
+  index: 2
+  poster_id: 2
+  original_author_id: 0
+  name: repo41 issue2
+  content: content for repo41 issue2
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 1707270422
+  updated_unix: 1707270422
+  is_locked: false

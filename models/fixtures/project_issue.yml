@@ -21,3 +21,33 @@
   issue_id: 5
   project_id: 1
   project_board_id: 3
+
+-
+  id: 5
+  issue_id: 23
+  project_id: 4
+  project_board_id: 4
+
+-
+  id: 6
+  issue_id: 20
+  project_id: 5
+  project_board_id: 5
+
+-
+  id: 7
+  issue_id: 24
+  project_id: 6
+  project_board_id: 6
+
+-
+  id: 8
+  issue_id: 25
+  project_id: 7
+  project_board_id: 7
+
+-
+  id: 9
+  issue_id: 26
+  project_id: 8
+  project_board_id: 8
