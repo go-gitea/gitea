@@ -24,8 +24,8 @@ func Test_LoadIssuesFromBoard(t *testing.T) {
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 
-	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	org17 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 17})
+	org23 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 23})
 
 	projectBoard1 := unittest.AssertExistsAndLoadBean(t, &project.Board{ID: 1})
 	projectBoard4 := unittest.AssertExistsAndLoadBean(t, &project.Board{ID: 4})
@@ -87,28 +87,28 @@ func Test_LoadIssuesFromBoard(t *testing.T) {
 			name:   "organization public repo, repo project, org admin",
 			board:  projectBoard5,
 			user:   user15,
-			org:    nil,
+			org:    org17,
 			expect: 1,
 		},
 		{
 			name:   "organization public repo, repo project, member",
 			board:  projectBoard5,
 			user:   user2,
-			org:    nil,
+			org:    org17,
 			expect: 1,
 		},
 		{
 			name:   "organization public repo, repo project, login user",
 			board:  projectBoard5,
 			user:   user3,
-			org:    nil,
+			org:    org17,
 			expect: 1,
 		},
 		{
 			name:   "organization public repo, repo project, non-login",
 			board:  projectBoard5,
 			user:   nil,
-			org:    nil,
+			org:    org17,
 			expect: 1,
 		},
 		{
@@ -143,70 +143,70 @@ func Test_LoadIssuesFromBoard(t *testing.T) {
 			name:   "organization private repo, repo project, org admin",
 			board:  projectBoard7,
 			user:   user2,
-			org:    nil,
+			org:    org23,
 			expect: 1,
 		},
 		{
 			name:   "organization private repo, repo project, member with issue access",
 			board:  projectBoard7,
 			user:   user5,
-			org:    nil,
+			org:    org23,
 			expect: 1,
 		},
 		{
 			name:   "organization private repo, repo project, member without issue access",
 			board:  projectBoard7,
 			user:   user4,
-			org:    nil,
+			org:    org23,
 			expect: 0,
 		},
 		{
 			name:   "organization private repo, repo project, login user",
 			board:  projectBoard7,
 			user:   user3,
-			org:    nil,
+			org:    org23,
 			expect: 0,
 		},
 		{
 			name:   "organization private repo, repo project, non-login",
 			board:  projectBoard7,
 			user:   nil,
-			org:    nil,
+			org:    org23,
 			expect: 0,
 		},
 		{
 			name:   "organization private repo, org project, org admin",
 			board:  projectBoard8,
 			user:   user2,
-			org:    org3,
+			org:    org23,
 			expect: 1,
 		},
 		{
 			name:   "organization private repo, org project, member with issue access",
 			board:  projectBoard8,
 			user:   user5,
-			org:    org3,
+			org:    org23,
 			expect: 1,
 		},
 		{
 			name:   "organization private repo, org project, member without issue access",
 			board:  projectBoard8,
 			user:   user4,
-			org:    org3,
+			org:    org23,
 			expect: 0,
 		},
 		{
 			name:   "organization private repo, org project, login user",
 			board:  projectBoard8,
 			user:   user3,
-			org:    org3,
+			org:    org23,
 			expect: 0,
 		},
 		{
 			name:   "organization private repo, org project, non-login",
 			board:  projectBoard8,
 			user:   nil,
-			org:    org3,
+			org:    org23,
 			expect: 0,
 		},
 	}

@@ -328,7 +328,12 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	}
 	if org != nil {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(
+				builder.Or(
+					repo_model.PublicRepoCond(repoIDstr),                            // all public repos
+					teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType), // special team member repos
+				),
+			)
 		} else {
 			cond = cond.And(
 				builder.Or(

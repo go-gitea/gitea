@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -319,7 +320,11 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, nil)
+	var org *organization.Organization
+	if ctx.ContextUser.IsOrganization() {
+		org = (*organization.Organization)(ctx.ContextUser)
+	}
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, org)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
