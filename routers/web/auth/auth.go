@@ -181,7 +181,7 @@ func SignIn(ctx *context.Context) {
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
+	samlProviders, err := saml.GetSAMLProviders(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -212,7 +212,7 @@ func SignInPost(ctx *context.Context) {
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
+	samlProviders, err := saml.GetSAMLProviders(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
