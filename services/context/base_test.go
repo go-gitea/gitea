@@ -8,8 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-
+	
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,7 @@ func TestRedirect(t *testing.T) {
 	}
 	for _, c := range cases {
 		resp := httptest.NewRecorder()
-		b, cleanup := NewBaseContext(resp, req)
+		b, cleanup := context.NewBaseContext(resp, req)
 		resp.Header().Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "dummy"}).String())
 		b.Redirect(c.url)
 		cleanup()
@@ -39,7 +40,7 @@ func TestRedirect(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/", nil)
 	resp := httptest.NewRecorder()
 	req.Header.Add("HX-Request", "true")
-	b, cleanup := NewBaseContext(resp, req)
+	b, cleanup := context.NewBaseContext(resp, req)
 	b.Redirect("/other")
 	cleanup()
 	assert.Equal(t, "/other", resp.Header().Get("HX-Redirect"))
