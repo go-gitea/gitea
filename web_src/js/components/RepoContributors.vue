@@ -312,7 +312,6 @@ export default {
           month="short"
           day="numeric"
           weekday=""
-          lang="unknown"
           :datetime="new Date(xAxisMin)"
         >
           {{ new Date(xAxisMin) }}
@@ -325,7 +324,6 @@ export default {
           month="short"
           day="numeric"
           weekday=""
-          lang="unknown"
           :datetime="new Date(xAxisMax)"
         >
           {{ new Date(xAxisMax) }}
