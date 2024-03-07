@@ -21,7 +21,7 @@ document.body.addEventListener('htmx:responseError', (e) => {
   showErrorToast(`Error ${e.detail.xhr.status} when calling ${e.detail.requestConfig.path}`);
 });
 
-// TODO: move websocket creation to shared webworker by overriding htmx.createWebSocket
+// TODO: move websocket creation to SharedWorker by overriding htmx.createWebSocket
 
 document.body.addEventListener('htmx:wsOpen', (e) => {
   const socket = e.detail.socketWrapper;
