@@ -1,9 +1,8 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
 	<div class="inline field">
-		<label>{{/* This is CAPTCHA field */}}</label>
 		{{.Captcha.CreateHTML}}
 	</div>
-	<div class="required inline field {{if .Err_Captcha}}error{{end}}">
+	<div class="required field {{if .Err_Captcha}}error{{end}}">
 		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
 		<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 	</div>
