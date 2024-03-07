@@ -229,6 +229,10 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
+func PublicRepoCond(id string) builder.Cond {
+	return builder.In(id, builder.Select("id").From("repository").Where(builder.Eq{"is_private": false}))
+}
+
 // UserOwnedRepoCond returns user ownered repositories
 func UserOwnedRepoCond(userID int64) builder.Cond {
 	return builder.Eq{
