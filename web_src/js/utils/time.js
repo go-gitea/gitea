@@ -46,18 +46,21 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
   return Object.values(result);
 }
 
-// TODO: replace with Intl.Locale.prototype.getHourCycles once there is broad browser support
-const use24h = Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format()));
+let dateFormat;
 
 // format a Date object to document's locale, but with 24h format from user's current locale
 export function formatDatetime(date) {
-  return new Intl.DateTimeFormat(getCurrentLocale(), {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    hour12: !use24h,
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(date);
+  if (!dateFormat) {
+    // TODO: replace `hour12` with `Intl.Locale.prototype.getHourCycles`` once there is broad browser support
+    dateFormat = new Intl.DateTimeFormat(getCurrentLocale(), {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      hour12: !Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format())),
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+  }
+  return dateFormat.format(date);
 }
