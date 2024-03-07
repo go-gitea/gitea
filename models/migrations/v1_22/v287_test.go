@@ -26,14 +26,14 @@ func Test_UpdateBadgeColName(t *testing.T) {
 		return
 	}
 
-	oldBadges := []Badge{
+	oldBadges := []*Badge{
 		{Description: "Test Badge 1", ImageURL: "https://example.com/badge1.png"},
 		{Description: "Test Badge 2", ImageURL: "https://example.com/badge2.png"},
 		{Description: "Test Badge 3", ImageURL: "https://example.com/badge3.png"},
 	}
 
 	for _, badge := range oldBadges {
-		_, err := x.Insert(&badge)
+		_, err := x.Insert(badge)
 		assert.NoError(t, err)
 	}
 
