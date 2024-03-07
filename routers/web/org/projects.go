@@ -128,12 +128,12 @@ func Projects(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["SortType"] = sortType
 
-	numOpenIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, optional.Some(false))
+	numOpenIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, ctx.Org.Organization, optional.Some(false))
 	if err != nil {
 		ctx.ServerError("NumIssuesInProjects", err)
 		return
 	}
-	numClosedIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, optional.Some(true))
+	numClosedIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, ctx.Org.Organization, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("NumIssuesInProjects", err)
 		return
@@ -370,7 +370,7 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, optional.None[bool]())
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, ctx.Org.Organization, optional.None[bool]())
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return

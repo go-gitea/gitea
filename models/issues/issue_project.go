@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -50,7 +51,7 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed optional.Option[bool]) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, org *organization.Organization, isClosed optional.Option[bool]) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)
 
 	opts := &IssuesOptions{
@@ -61,6 +62,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 
 	if doer != nil {
 		opts.User = doer
+		opts.Org = org
 	} else {
 		// non-login user can only access public repos
 		opts.AllPublic = true
@@ -68,21 +70,17 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 
 	if b.ID > 0 {
 		opts.ProjectBoardID = b.ID
-		issues, err := Issues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
+	} else if b.Default {
+		opts.ProjectBoardID = db.NoConditionID
+	} else {
+		return issueList, nil
 	}
 
-	if b.Default {
-		opts.ProjectBoardID = db.NoConditionID
-		issues, err := Issues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
+	issues, err := Issues(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
+	issueList = append(issueList, issues...)
 
 	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
@@ -92,13 +90,13 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, isClosed optional.Option[bool]) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, org *organization.Organization, isClosed optional.Option[bool]) (map[int64]IssueList, error) {
 	if unit.TypeIssues.UnitGlobalDisabled() {
 		return nil, nil
 	}
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for _, b := range bs {
-		il, err := LoadIssuesFromBoard(ctx, b, doer, isClosed)
+		il, err := LoadIssuesFromBoard(ctx, b, doer, org, isClosed)
 		if err != nil {
 			return nil, err
 		}
@@ -108,10 +106,10 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, do
 }
 
 // NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
-func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer *user_model.User, isClosed optional.Option[bool]) (map[int64]int, error) {
+func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer *user_model.User, org *organization.Organization, isClosed optional.Option[bool]) (map[int64]int, error) {
 	numMap := make(map[int64]int, len(pl))
 	for _, p := range pl {
-		num, err := NumIssuesInProject(ctx, p, doer, isClosed)
+		num, err := NumIssuesInProject(ctx, p, doer, org, isClosed)
 		if err != nil {
 			return nil, err
 		}
@@ -122,13 +120,13 @@ func NumIssuesInProjects(ctx context.Context, pl project_model.ProjectList, doer
 }
 
 // NumIssuesInProject returns counter of all issues assigned to a project which doer can access
-func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, isClosed optional.Option[bool]) (int, error) {
+func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, org *organization.Organization, isClosed optional.Option[bool]) (int, error) {
 	numIssuesInProject := int(0)
 	bs, err := p.GetBoards(ctx)
 	if err != nil {
 		return 0, err
 	}
-	im, err := LoadIssuesFromBoardList(ctx, bs, doer, isClosed)
+	im, err := LoadIssuesFromBoardList(ctx, bs, doer, org, isClosed)
 	if err != nil {
 		return 0, err
 	}
