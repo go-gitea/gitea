@@ -26,9 +26,10 @@ type (
 
 	// TelegramMeta contains the telegram metadata
 	TelegramMeta struct {
-		BotToken string `json:"bot_token"`
-		ChatID   string `json:"chat_id"`
-		ThreadID string `json:"thread_id"`
+		BotToken     string `json:"bot_token"`
+		ChatID       string `json:"chat_id"`
+		CustomDomain string `json:"custom_domain"`
+		ThreadID     string `json:"thread_id"`
 	}
 )
 
