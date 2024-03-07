@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -487,6 +488,13 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
+		if form.DefaultWikiBranch != "" {
+			if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
+				log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
+				ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
+			}
+		}
+
 		if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
@@ -782,6 +790,8 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+			} else if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}

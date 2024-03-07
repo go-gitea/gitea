@@ -1,6 +1,8 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
 	<div class="user-setting-content">
-		{{template "user/settings/keys_ssh" .}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_ssh_keys")}}
+			{{template "user/settings/keys_ssh" .}}
+		{{end}}
 		{{template "user/settings/keys_principal" .}}
 		{{if not ($.UserDisabledFeatures.Contains "manage_gpg_keys")}}
 		{{template "user/settings/keys_gpg" .}}

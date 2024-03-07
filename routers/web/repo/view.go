@@ -919,7 +919,7 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-open-with-%s", schema), 16, "gt-mr-3")
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "gt-mr-3")
 		} else {
 			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
 		}
@@ -998,6 +998,8 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
+	checkOutdatedBranch(ctx)
+
 	checkCitationFile(ctx, entry)
 	if ctx.Written() {
 		return
@@ -1062,6 +1064,31 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+func checkOutdatedBranch(ctx *context.Context) {
+	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+		return
+	}
+
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranch: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if dbBranch.CommitID != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
+	}
 }
 
 // RenderUserCards render a page show users according the input template
