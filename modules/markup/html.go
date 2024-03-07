@@ -1160,6 +1160,7 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		locale, err := DefaultProcessorHelper.GetLocale(ctx.Ctx)
 		if err != nil {
+			log.Error("Unable to get locale. Error: %v", err)
 			return
 		}
 
