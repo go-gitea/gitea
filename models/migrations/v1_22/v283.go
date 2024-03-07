@@ -28,7 +28,11 @@ func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
 				return err
 			}
 		} else {
-			if _, err := x.Exec("delete from issue_user where id in (SELECT id FROM issue_user WHERE issue_id = ? and uid = ? limit ?)", issueUser.IssueID, issueUser.UID, issueUser.Cnt-1); err != nil {
+			var ids []int64
+			if err := x.SQL("SELECT id FROM issue_user WHERE issue_id = ? and uid = ? limit ?", issueUser.IssueID, issueUser.UID, issueUser.Cnt-1).Find(&ids); err != nil {
+				return err
+			}
+			if _, err := x.Table("issue_user").In("id", ids).Delete(); err != nil {
 				return err
 			}
 		}
