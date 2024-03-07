@@ -133,7 +133,7 @@ function handleClipboardText(textarea, text, e) {
   }
 }
 
-export function initEasyMDEImagePaste(easyMDE, dropzone) {
+export function initEasyMDEPaste(easyMDE, dropzone) {
   easyMDE.codemirror.on('paste', (_, e) => {
     const {images} = getPastedContent(e);
     if (images.length) {
@@ -142,7 +142,7 @@ export function initEasyMDEImagePaste(easyMDE, dropzone) {
   });
 }
 
-export function initTextareaImagePaste(textarea, dropzone) {
+export function initTextareaPaste(textarea, dropzone) {
   textarea.addEventListener('paste', (e) => {
     const {images, text} = getPastedContent(e);
     if (images.length) {

@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEImagePaste, initTextareaImagePaste} from './Paste.js';
+import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
@@ -119,7 +119,7 @@ class ComboMarkdownEditor {
     });
 
     if (this.dropzone) {
-      initTextareaImagePaste(this.textarea, this.dropzone);
+      initTextareaPaste(this.textarea, this.dropzone);
     }
   }
 
@@ -252,7 +252,7 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEImagePaste(this.easyMDE, this.dropzone);
+    initEasyMDEPaste(this.easyMDE, this.dropzone);
     hideElem(this.textareaMarkdownToolbar);
   }
 
