@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import {getCurrentLocale} from '../utils.js';
 
 // Returns an array of millisecond-timestamps of start-of-week days (Sundays)
 export function startDaysBetween(startDate, endDate) {
@@ -48,9 +49,9 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
 // TODO: replace with Intl.Locale.prototype.getHourCycles once there is broad browser support
 const use24h = Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format()));
 
-// format a Date object to document's lang, but with 24h format from user's current locale
+// format a Date object to document's locale, but with 24h format from user's current locale
 export function formatDateTime(date) {
-  return new Intl.DateTimeFormat(document.documentElement.lang, {
+  return new Intl.DateTimeFormat(getCurrentLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
