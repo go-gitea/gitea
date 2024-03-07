@@ -51,8 +51,7 @@ func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 
 	attrs := make([]string, 0, 10+len(extraAttrs))
 	attrs = append(attrs, extraAttrs...)
-	// lang=unknown is used to let <relative-time> format according to user's current locale
-	attrs = append(attrs, `data-tooltip-content`, `data-tooltip-interactive="true"`, `lang="unknown"`)
+	attrs = append(attrs, `data-tooltip-content`, `data-tooltip-interactive="true"`)
 	attrs = append(attrs, `format="datetime"`, `weekday=""`, `year="numeric"`)
 
 	switch format {
