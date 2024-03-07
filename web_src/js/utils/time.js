@@ -48,7 +48,8 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
 
 let dateFormat;
 
-// format a Date object to document's locale, but with 24h format from user's current locale
+// format a Date object to document's locale, but with 24h format from user's current locale because this
+// option is a personal preference of the user, not something that the document's locale should dictate.
 export function formatDatetime(date) {
   if (!dateFormat) {
     // TODO: replace `hour12` with `Intl.Locale.prototype.getHourCycles` once there is broad browser support
