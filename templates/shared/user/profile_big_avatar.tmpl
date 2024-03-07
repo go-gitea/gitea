@@ -27,6 +27,12 @@
 	</div>
 	<div class="extra content gt-word-break">
 		<ul>
+			{{if .UserBlocking}}
+				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
+				{{if .UserBlocking.Note}}
+					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
+				{{end}}
+			{{end}}
 			{{if .ContextUser.Location}}
 				<li>
 					{{svg "octicon-location"}}
@@ -109,18 +115,29 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-			<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card" >
-				{{if $.IsFollowing}}
-					<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
-					</button>
-				{{else}}
-					<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
-					</button>
+				{{if not .UserBlocking}}
+				<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card">
+					{{if $.IsFollowing}}
+						<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
+						</button>
+					{{else}}
+						<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
+						</button>
+					{{end}}
+				</li>
 				{{end}}
-			</li>
+				<li>
+					{{if not .UserBlocking}}
+						<a class="muted show-modal" href="#" data-modal="#block-user-modal" data-modal-modal-blockee="{{.ContextUser.Name}}" data-modal-modal-blockee-name="{{.ContextUser.GetDisplayName}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</a>
+					{{else}}
+						<a class="muted" href="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.unblock"}}</a>
+					{{end}}
+				</li>
 			{{end}}
 		</ul>
 	</div>
 </div>
+
+{{template "shared/user/block_user_dialog" .}}

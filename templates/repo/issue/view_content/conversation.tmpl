@@ -95,7 +95,7 @@
 							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 							<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
-								{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
