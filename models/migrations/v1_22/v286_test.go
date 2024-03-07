@@ -24,12 +24,16 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 
 	type RepoArchiver struct {
 		ID       int64
+		RepoID   int64
+		Type     int
 		CommitID string
 	}
 
 	type ReviewState struct {
 		ID        int64
 		CommitSHA string
+		UserID    int64
+		PullID    int64
 	}
 
 	type Comment struct {
