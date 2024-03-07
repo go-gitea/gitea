@@ -173,6 +173,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	}
 
 	repo.DefaultBranch = setting.Repository.DefaultBranch
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
@@ -240,6 +241,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
+		DefaultWikiBranch:               setting.Repository.DefaultBranch,
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 

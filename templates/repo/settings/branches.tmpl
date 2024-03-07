@@ -16,7 +16,7 @@
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
 					{{if not .Repository.IsEmpty}}
-						<div class="ui dropdown selection gt-f1 gt-mr-3 gt-max-width-24rem">
+						<div class="ui dropdown selection gt-f1 gt-mr-3 tw-max-w-96">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 							<div class="default text">{{.Repository.DefaultBranch}}</div>

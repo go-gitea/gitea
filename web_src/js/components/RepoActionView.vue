@@ -622,6 +622,8 @@ export function initRepositoryActionView() {
   width: 70%;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--color-console-border);
+  border-radius: var(--border-radius);
 }
 
 /* begin fomantic button overrides */
@@ -681,7 +683,6 @@ export function initRepositoryActionView() {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
@@ -705,6 +706,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  border-top: 1px solid var(--color-console-border);
   z-index: 0;
 }
 
@@ -790,7 +792,7 @@ export function initRepositoryActionView() {
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
 .job-log-line .line-num, .log-time-seconds {
   width: 48px;
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   text-align: right;
   user-select: none;
 }
@@ -806,7 +808,7 @@ export function initRepositoryActionView() {
 
 .job-log-line .log-time,
 .log-time-stamp {
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   margin-left: 10px;
   white-space: nowrap;
 }

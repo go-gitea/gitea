@@ -69,9 +69,9 @@ function initRepoDiffConversationForm() {
 
       $form.closest('.conversation-holder').replaceWith($newConversationHolder);
       if ($form.closest('tr').data('line-type') === 'same') {
-        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('gt-invisible');
+        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('tw-invisible');
       } else {
-        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('gt-invisible');
+        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('tw-invisible');
       }
       $newConversationHolder.find('.dropdown').dropdown();
       initCompReactionSelector($newConversationHolder);

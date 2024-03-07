@@ -36,9 +36,8 @@
 			</div>
 			<div class="divider"></div>
 			<div class="text right">
-				<button class="ui primary button">
-					{{ctx.Locale.Tr "repo.wiki.save_page"}}
-				</button>
+				<a class="ui basic cancel button" href="{{.Link}}">{{ctx.Locale.Tr "cancel"}}</a>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.wiki.save_page"}}</button>
 			</div>
 		</form>
 	</div>

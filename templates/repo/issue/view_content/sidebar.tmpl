@@ -20,7 +20,7 @@
 					{{range .Reviewers}}
 						{{if .User}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
+								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
 									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
@@ -35,7 +35,7 @@
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check" 16}}</span>
 								<span class="text">
 									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 								</span>
@@ -231,7 +231,7 @@
 							{{$checked = true}}
 						{{end}}
 					{{end}}
-					<span class="octicon-check {{if not $checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
+					<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 					<span class="text">
 						{{ctx.AvatarUtils.Avatar . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
 					</span>

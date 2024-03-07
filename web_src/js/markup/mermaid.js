@@ -45,7 +45,7 @@ export async function renderMermaid() {
       const {svg} = await mermaid.render('mermaid', source);
 
       const iframe = document.createElement('iframe');
-      iframe.classList.add('markup-render', 'gt-invisible');
+      iframe.classList.add('markup-render', 'tw-invisible');
       iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
 
       const mermaidBlock = document.createElement('div');
@@ -62,7 +62,7 @@ export async function renderMermaid() {
         iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
         setTimeout(() => { // avoid flash of iframe background
           mermaidBlock.classList.remove('is-loading');
-          iframe.classList.remove('gt-invisible');
+          iframe.classList.remove('tw-invisible');
         }, 0);
       });
 

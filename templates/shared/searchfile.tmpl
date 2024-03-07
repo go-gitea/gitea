@@ -1,0 +1,14 @@
+<div class="file-body file-code code-view">
+	<table>
+		<tbody>
+			{{range .SearchResult.Lines}}
+				<tr>
+					<td class="lines-num">
+						<a href="{{$.RepoLink}}/src/commit/{{PathEscape $.SearchResult.CommitID}}/{{PathEscapeSegments $.SearchResult.Filename}}#L{{.Num}}"><span>{{.Num}}</span></a>
+					</td>
+					<td class="lines-code chroma"><code class="code-inner">{{.FormattedContent}}</code></td>
+				</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>

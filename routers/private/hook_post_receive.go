@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"strconv"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -27,6 +29,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	// We don't rely on RepoAssignment here because:
 	// a) we don't need the git repo in this function
+	//    OUT OF DATE: we do need the git repo to sync the branch to the db now.
 	// b) our update function will likely change the repository in the db so we will need to refresh it
 	// c) we don't always need the repo
 
@@ -34,7 +37,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repoName := ctx.Params(":repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
-	var repo *repo_model.Repository
+	var (
+		repo    *repo_model.Repository
+		gitRepo *git.Repository
+	)
+	defer gitRepo.Close() // it's safe to call Close on a nil pointer
 
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
@@ -86,6 +93,63 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
+		}
+
+		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
+		for _, update := range updates {
+			if !update.RefFullName.IsBranch() {
+				continue
+			}
+			if repo == nil {
+				repo = loadRepository(ctx, ownerName, repoName)
+				if ctx.Written() {
+					return
+				}
+				wasEmpty = repo.IsEmpty
+			}
+
+			if update.IsDelRef() {
+				if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
+					log.Error("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
+				}
+			} else {
+				branchesToSync = append(branchesToSync, update)
+			}
+		}
+		if len(branchesToSync) > 0 {
+			if gitRepo == nil {
+				var err error
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+				if err != nil {
+					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
+				}
+			}
+
+			var (
+				branchNames = make([]string, 0, len(branchesToSync))
+				commitIDs   = make([]string, 0, len(branchesToSync))
+			)
+			for _, update := range branchesToSync {
+				branchNames = append(branchNames, update.RefFullName.BranchName())
+				commitIDs = append(commitIDs, update.NewCommitID)
+			}
+
+			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, func(commitID string) (*git.Commit, error) {
+				return gitRepo.GetCommit(commitID)
+			}); err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
 		}
 	}
 

@@ -520,7 +520,6 @@
   id: 75
   repo_id: 1
   type: 8
-  config: "{\"ProjectsMode\":\"all\"}"
   created_unix: 946684810
 
 -

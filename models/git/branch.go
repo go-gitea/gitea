@@ -158,6 +158,11 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+func GetBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Branch, error) {
+	branches := make([]*Branch, 0, len(branchNames))
+	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames).Find(&branches)
+}
+
 func AddBranches(ctx context.Context, branches []*Branch) error {
 	for _, branch := range branches {
 		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {

@@ -25,6 +25,54 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
+	wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
+	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
+	if wikiRemotePath == "" {
+		return "", nil
+	}
+
+	if err := util.RemoveAll(wikiPath); err != nil {
+		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", wikiPath, err)
+	}
+
+	cleanIncompleteWikiPath := func() {
+		if err := util.RemoveAll(wikiPath); err != nil {
+			log.Error("Failed to remove incomplete wiki dir %q, err: %v", wikiPath, err)
+		}
+	}
+	if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+	}); err != nil {
+		log.Error("Clone wiki failed, err: %v", err)
+		cleanIncompleteWikiPath()
+		return "", err
+	}
+
+	if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+		cleanIncompleteWikiPath()
+		return "", err
+	}
+
+	wikiRepo, err := git.OpenRepository(ctx, wikiPath)
+	if err != nil {
+		cleanIncompleteWikiPath()
+		return "", fmt.Errorf("failed to open wiki repo %q, err: %w", wikiPath, err)
+	}
+	defer wikiRepo.Close()
+
+	defaultBranch, err := wikiRepo.GetDefaultBranch()
+	if err != nil {
+		cleanIncompleteWikiPath()
+		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", wikiPath, err)
+	}
+
+	return defaultBranch, nil
+}
+
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
 func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
@@ -44,21 +92,20 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	var err error
-	if err = util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
+	if err := util.RemoveAll(repoPath); err != nil {
+		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repoPath, err)
 	}
 
-	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)
 		}
-		return repo, fmt.Errorf("Clone: %w", err)
+		return repo, fmt.Errorf("clone error: %w", err)
 	}
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
@@ -66,37 +113,18 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if opts.Wiki {
-		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
-		if len(wikiRemotePath) > 0 {
-			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
-			}
-
-			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:        true,
-				Quiet:         true,
-				Timeout:       migrateTimeout,
-				Branch:        "master",
-				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
-				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
-				}
-			} else {
-				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
-					return repo, err
-				}
-			}
+		defaultWikiBranch, err := cloneWiki(ctx, u, opts, migrateTimeout)
+		if err != nil {
+			return repo, fmt.Errorf("clone wiki error: %w", err)
 		}
+		repo.DefaultWikiBranch = defaultWikiBranch
 	}
 
 	if repo.OwnerID == u.ID {
 		repo.Owner = u
 	}
 
-	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 

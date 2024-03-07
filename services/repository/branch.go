@@ -221,44 +221,91 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 	return err
 }
 
-// syncBranchToDB sync the branch information in the database. It will try to update the branch first,
-// if updated success with affect records > 0, then all are done. Because that means the branch has been in the database.
-// If no record is affected, that means the branch does not exist in database. So there are two possibilities.
-// One is this is a new branch, then we just need to insert the record. Another is the branches haven't been synced,
-// then we need to sync all the branches into database.
-func syncBranchToDB(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
-	cnt, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit)
-	if err != nil {
-		return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
-	}
-	if cnt > 0 { // This means branch does exist, so it's a normal update. It also means the branch has been synced.
-		return nil
+// SyncBranchesToDB sync the branch information in the database.
+// It will check whether the branches of the repository have never been synced before.
+// If so, it will sync all branches of the repository.
+// Otherwise, it will sync the branches that need to be updated.
+func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, commitIDs []string, getCommit func(commitID string) (*git.Commit, error)) error {
+	// Some designs that make the code look strange but are made for performance optimization purposes:
+	// 1. Sync branches in a batch to reduce the number of DB queries.
+	// 2. Lazy load commit information since it may be not necessary.
+	// 3. Exit early if synced all branches of git repo when there's no branch in DB.
+	// 4. Check the branches in DB if they are already synced.
+	//
+	// If the user pushes many branches at once, the Git hook will call the internal API in batches, rather than all at once.
+	// See https://github.com/go-gitea/gitea/blob/cb52b17f92e2d2293f7c003649743464492bca48/cmd/hook.go#L27
+	// For the first batch, it will hit optimization 3.
+	// For other batches, it will hit optimization 4.
+
+	if len(branchNames) != len(commitIDs) {
+		return fmt.Errorf("branchNames and commitIDs length not match")
 	}
 
-	// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
-	// we cannot simply insert the branch but need to check we have branches or not
-	hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
-		RepoID:          repoID,
-		IsDeletedBranch: optional.Some(false),
-	}.ToConds())
-	if err != nil {
-		return err
-	}
-	if !hasBranch {
-		if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
-			return fmt.Errorf("repo_module.SyncRepoBranches %d:%s failed: %v", repoID, branchName, err)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		branches, err := git_model.GetBranches(ctx, repoID, branchNames)
+		if err != nil {
+			return fmt.Errorf("git_model.GetBranches: %v", err)
+		}
+
+		if len(branches) == 0 {
+			// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
+			// we cannot simply insert the branch but need to check we have branches or not
+			hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
+				RepoID:          repoID,
+				IsDeletedBranch: optional.Some(false),
+			}.ToConds())
+			if err != nil {
+				return err
+			}
+			if !hasBranch {
+				if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
+					return fmt.Errorf("repo_module.SyncRepoBranches %d failed: %v", repoID, err)
+				}
+				return nil
+			}
+		}
+
+		branchMap := make(map[string]*git_model.Branch, len(branches))
+		for _, branch := range branches {
+			branchMap[branch.Name] = branch
+		}
+
+		newBranches := make([]*git_model.Branch, 0, len(branchNames))
+
+		for i, branchName := range branchNames {
+			commitID := commitIDs[i]
+			branch, exist := branchMap[branchName]
+			if exist && branch.CommitID == commitID {
+				continue
+			}
+
+			commit, err := getCommit(branchName)
+			if err != nil {
+				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
+			}
+
+			if exist {
+				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
+				}
+				return nil
+			}
+
+			// if database have branches but not this branch, it means this is a new branch
+			newBranches = append(newBranches, &git_model.Branch{
+				RepoID:        repoID,
+				Name:          branchName,
+				CommitID:      commit.ID.String(),
+				CommitMessage: commit.Summary(),
+				PusherID:      pusherID,
+				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
+			})
+		}
+
+		if len(newBranches) > 0 {
+			return db.Insert(ctx, newBranches)
 		}
 		return nil
-	}
-
-	// if database have branches but not this branch, it means this is a new branch
-	return db.Insert(ctx, &git_model.Branch{
-		RepoID:        repoID,
-		Name:          branchName,
-		CommitID:      commit.ID.String(),
-		CommitMessage: commit.Summary(),
-		PusherID:      pusherID,
-		CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 	})
 }
 

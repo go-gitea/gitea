@@ -4,7 +4,9 @@
 package webhook
 
 import (
-	"errors"
+	"context"
+	"fmt"
+	"net/http"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
@@ -38,84 +40,85 @@ func GetPackagistHook(w *webhook_model.Webhook) *PackagistMeta {
 	return s
 }
 
-// JSONPayload Marshals the PackagistPayload to json
-func (f *PackagistPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(f, "", "  ")
-	if err != nil {
-		return []byte{}, err
-	}
-	return data, nil
-}
-
-var _ PayloadConvertor = &PackagistPayload{}
-
 // Create implements PayloadConvertor Create method
-func (f *PackagistPayload) Create(_ *api.CreatePayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Create(_ *api.CreatePayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Delete implements PayloadConvertor Delete method
-func (f *PackagistPayload) Delete(_ *api.DeletePayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Delete(_ *api.DeletePayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Fork implements PayloadConvertor Fork method
-func (f *PackagistPayload) Fork(_ *api.ForkPayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Fork(_ *api.ForkPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Push implements PayloadConvertor Push method
-func (f *PackagistPayload) Push(_ *api.PushPayload) (api.Payloader, error) {
-	return f, nil
+// https://packagist.org/about
+func (pc packagistConvertor) Push(_ *api.PushPayload) (PackagistPayload, error) {
+	return PackagistPayload{
+		PackagistRepository: struct {
+			URL string `json:"url"`
+		}{
+			URL: pc.PackageURL,
+		},
+	}, nil
 }
 
 // Issue implements PayloadConvertor Issue method
-func (f *PackagistPayload) Issue(_ *api.IssuePayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Issue(_ *api.IssuePayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
-func (f *PackagistPayload) IssueComment(_ *api.IssueCommentPayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) IssueComment(_ *api.IssueCommentPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
-func (f *PackagistPayload) PullRequest(_ *api.PullRequestPayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) PullRequest(_ *api.PullRequestPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Review implements PayloadConvertor Review method
-func (f *PackagistPayload) Review(_ *api.PullRequestPayload, _ webhook_module.HookEventType) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Review(_ *api.PullRequestPayload, _ webhook_module.HookEventType) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Repository implements PayloadConvertor Repository method
-func (f *PackagistPayload) Repository(_ *api.RepositoryPayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Repository(_ *api.RepositoryPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Wiki implements PayloadConvertor Wiki method
-func (f *PackagistPayload) Wiki(_ *api.WikiPayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Wiki(_ *api.WikiPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
 // Release implements PayloadConvertor Release method
-func (f *PackagistPayload) Release(_ *api.ReleasePayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Release(_ *api.ReleasePayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
-func (f *PackagistPayload) Package(_ *api.PackagePayload) (api.Payloader, error) {
-	return nil, nil
+func (pc packagistConvertor) Package(_ *api.PackagePayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
 }
 
-// GetPackagistPayload converts a packagist webhook into a PackagistPayload
-func GetPackagistPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
-	s := new(PackagistPayload)
+type packagistConvertor struct {
+	PackageURL string
+}
 
-	packagist := &PackagistMeta{}
-	if err := json.Unmarshal([]byte(meta), &packagist); err != nil {
-		return s, errors.New("GetPackagistPayload meta json:" + err.Error())
+var _ payloadConvertor[PackagistPayload] = packagistConvertor{}
+
+func newPackagistRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	meta := &PackagistMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
+		return nil, nil, fmt.Errorf("newpackagistRequest meta json: %w", err)
 	}
-	s.PackagistRepository.URL = packagist.PackageURL
-	return convertPayloader(s, p, event)
+	pc := packagistConvertor{
+		PackageURL: meta.PackageURL,
+	}
+	return newJSONRequest(pc, w, t, true)
 }

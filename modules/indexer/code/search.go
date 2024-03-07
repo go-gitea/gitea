@@ -16,14 +16,18 @@ import (
 
 // Result a search result to display
 type Result struct {
-	RepoID         int64
-	Filename       string
-	CommitID       string
-	UpdatedUnix    timeutil.TimeStamp
-	Language       string
-	Color          string
-	LineNumbers    []int
-	FormattedLines template.HTML
+	RepoID      int64
+	Filename    string
+	CommitID    string
+	UpdatedUnix timeutil.TimeStamp
+	Language    string
+	Color       string
+	Lines       []ResultLine
+}
+
+type ResultLine struct {
+	Num              int
+	FormattedContent template.HTML
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -70,7 +74,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 	var formattedLinesBuffer bytes.Buffer
 
 	contentLines := strings.SplitAfter(result.Content[startIndex:endIndex], "\n")
-	lineNumbers := make([]int, len(contentLines))
+	lines := make([]ResultLine, 0, len(contentLines))
 	index := startIndex
 	for i, line := range contentLines {
 		var err error
@@ -93,21 +97,29 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 			return nil, err
 		}
 
-		lineNumbers[i] = startLineNum + i
+		lines = append(lines, ResultLine{Num: startLineNum + i})
 		index += len(line)
 	}
 
-	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
+	hl, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+	highlightedLines := strings.Split(string(hl), "\n")
+
+	// The lines outputted by highlight.Code might not match the original lines, because "highlight" removes the last `\n`
+	lines = lines[:min(len(highlightedLines), len(lines))]
+	highlightedLines = highlightedLines[:len(lines)]
+	for i := 0; i < len(lines); i++ {
+		lines[i].FormattedContent = template.HTML(highlightedLines[i])
+	}
 
 	return &Result{
-		RepoID:         result.RepoID,
-		Filename:       result.Filename,
-		CommitID:       result.CommitID,
-		UpdatedUnix:    result.UpdatedUnix,
-		Language:       result.Language,
-		Color:          result.Color,
-		LineNumbers:    lineNumbers,
-		FormattedLines: highlighted,
+		RepoID:      result.RepoID,
+		Filename:    result.Filename,
+		CommitID:    result.CommitID,
+		UpdatedUnix: result.UpdatedUnix,
+		Language:    result.Language,
+		Color:       result.Color,
+		Lines:       lines,
 	}, nil
 }
 
