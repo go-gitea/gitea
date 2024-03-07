@@ -48,6 +48,7 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
 // TODO: replace with Intl.Locale.prototype.getHourCycles once there is broad browser support
 const use24h = Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format()));
 
+// format a date to current local, but with 24h time format as per the user's current locale
 export function formatDateTime(date) {
   return new Intl.DateTimeFormat(document.documentElement.lang, {
     day: 'numeric',
