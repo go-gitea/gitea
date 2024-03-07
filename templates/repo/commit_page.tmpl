@@ -17,7 +17,7 @@
 				{{$class = (print $class " isWarning")}}
 			{{end}}
 		{{end}}
-		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
+		<div class="ui top attached header clearing segment tw-relative commit-header {{$class}}">
 			<div class="gt-df gt-mb-4 gt-fw">
 				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}

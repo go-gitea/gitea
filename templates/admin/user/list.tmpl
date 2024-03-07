@@ -96,7 +96,7 @@
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
 							</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
