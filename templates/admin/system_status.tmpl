@@ -1,6 +1,6 @@
 <dl class="admin-dl-horizontal">
 	<dt>{{ctx.Locale.Tr "admin.dashboard.server_uptime"}}</dt>
-	<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
+	<dd><relative-time format="duration" lang="unknown" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
 	<dt>{{ctx.Locale.Tr "admin.dashboard.current_goroutine"}}</dt>
 	<dd>{{.SysStatus.NumGoroutine}}</dd>
 	<div class="divider"></div>
@@ -52,7 +52,7 @@
 	<dt>{{ctx.Locale.Tr "admin.dashboard.next_gc_recycle"}}</dt>
 	<dd>{{.SysStatus.NextGC}}</dd>
 	<dt>{{ctx.Locale.Tr "admin.dashboard.last_gc_time"}}</dt>
-	<dd><relative-time format="duration" datetime="{{.SysStatus.LastGCTime}}">{{.SysStatus.LastGCTime}}</relative-time></dd>
+	<dd><relative-time format="duration" lang="unknown" datetime="{{.SysStatus.LastGCTime}}">{{.SysStatus.LastGCTime}}</relative-time></dd>
 	<dt>{{ctx.Locale.Tr "admin.dashboard.total_gc_pause"}}</dt>
 	<dd>{{.SysStatus.PauseTotalNs}}</dd>
 	<dt>{{ctx.Locale.Tr "admin.dashboard.last_gc_pause"}}</dt>

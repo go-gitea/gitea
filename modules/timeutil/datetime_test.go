@@ -27,17 +27,17 @@ func TestDateTime(t *testing.T) {
 	assert.EqualValues(t, "-", DateTime("short", TimeStamp(0)))
 
 	actual := DateTime("short", "invalid")
-	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="invalid">invalid</relative-time>`, actual)
+	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" lang="unknown"format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="invalid">invalid</relative-time>`, actual)
 
 	actual = DateTime("short", refTimeStr)
-	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2018-01-01T00:00:00Z">2018-01-01T00:00:00Z</relative-time>`, actual)
+	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" lang="unknown"format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2018-01-01T00:00:00Z">2018-01-01T00:00:00Z</relative-time>`, actual)
 
 	actual = DateTime("short", refTime)
-	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2018-01-01T00:00:00Z">2018-01-01</relative-time>`, actual)
+	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" lang="unknown"format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2018-01-01T00:00:00Z">2018-01-01</relative-time>`, actual)
 
 	actual = DateTime("short", refTimeStamp)
-	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2017-12-31T19:00:00-05:00">2017-12-31</relative-time>`, actual)
+	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" lang="unknown"format="datetime" weekday="" year="numeric" month="short" day="numeric" datetime="2017-12-31T19:00:00-05:00">2017-12-31</relative-time>`, actual)
 
 	actual = DateTime("full", refTimeStamp)
-	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="2017-12-31T19:00:00-05:00">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
+	assert.EqualValues(t, `<relative-time data-tooltip-content data-tooltip-interactive="true" lang="unknown"format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="2017-12-31T19:00:00-05:00">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
 }
