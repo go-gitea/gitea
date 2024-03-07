@@ -526,3 +526,33 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		}
 	}
 }
+
+func TestDisabledUserFeatures(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	oldSetting := setting.Admin.ExternalUserDisableAllFeatures
+	defer func() {
+		setting.Admin.ExternalUserDisableAllFeatures = oldSetting
+	}()
+	setting.Admin.ExternalUserDisableAllFeatures = true
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Len(t, setting.Admin.UserDisabledFeatures.Values(), 0)
+
+	// no features should be disabled with a plain login type
+	assert.LessOrEqual(t, user.LoginType, auth.Plain)
+	assert.Len(t, user_model.DisabledFeaturesWithLoginType(user).Values(), 0)
+	for _, f := range setting.DefaultUserFeatureSet.Values() {
+		assert.False(t, user_model.FeatureDisabledWithLoginType(user, f))
+	}
+
+	// check disabled features with external login type
+	user.LoginType = auth.OAuth2
+
+	// all features should be disabled
+	assert.NotEmpty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
+	for _, f := range setting.DefaultUserFeatureSet.Values() {
+		assert.True(t, user_model.FeatureDisabledWithLoginType(user, f))
+	}
+}

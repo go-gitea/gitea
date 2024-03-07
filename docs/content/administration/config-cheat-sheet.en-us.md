@@ -1,3 +1,4 @@
+
 ---
 date: "2016-12-26T16:00:00+02:00"
 title: "Config Cheat Sheet"
@@ -522,6 +523,7 @@ And the following unique queues:
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
+- `EXTERNAL_USER_DISABLE_ALL_FEATURES`: **false**: Disable all the default `USER_DISABLED_FEATURES` settings for users with external login sources (this will include future features as well). Note: does not use the value of `USER_DISABLED_FEATURES`.
 
 ## Security (`security`)
 
