@@ -464,7 +464,7 @@ We assume in good faith that the information you provide is legally binding.
 We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. \
 The overall goal is to make a major release every three or four months, which breaks down into two or three months of general development followed by one month of testing and polishing known as the release freeze. \
 All the feature pull requests should be
-merged before feature freeze. And, during the frozen period, a corresponding
+merged before feature freeze. All feature pull requests haven't been merged before this feature freeze will be moved to next milestone, please notice our feature freeze announcement on discord. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
 obtain a final version that is maintained in this branch.
