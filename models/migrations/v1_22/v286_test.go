@@ -94,11 +94,11 @@ func Test_RepositoryFormat(t *testing.T) {
 	count, err := x.Count(new(Repository))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
-	id := repo.ID
 
 	repo.ObjectFormatName = "sha256"
 	_, err = x.Insert(repo)
 	assert.NoError(t, err)
+	id := repo.ID
 
 	count, err = x.Count(new(Repository))
 	assert.NoError(t, err)
