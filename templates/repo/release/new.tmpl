@@ -64,7 +64,7 @@
 						<div class="flex-text-inline gt-f1">
 							<input name="attachment-edit-{{.UUID}}"  class="attachment_edit" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
-							<span class="ui text grey gt-whitespace-nowrap">{{.Size | FileSize}}</span>
+							<span class="ui text grey tw-whitespace-nowrap">{{.Size | FileSize}}</span>
 							<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 								{{svg "octicon-info"}}
 							</span>

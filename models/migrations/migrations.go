@@ -559,6 +559,12 @@ var migrations = []Migration{
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 	// v287 -> v288
+	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
 }
 

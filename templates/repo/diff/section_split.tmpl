@@ -47,7 +47,7 @@
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 					<td class="lines-code lines-code-old del-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
-							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} gt-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
+							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</button>{{/*
 						*/}}{{end}}{{/*
@@ -62,7 +62,7 @@
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="gt-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new add-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
-							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} gt-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{/*
+							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</button>{{/*
 						*/}}{{end}}{{/*
@@ -79,7 +79,7 @@
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-old">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}{{/*
-							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} gt-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
+							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</button>{{/*
 						*/}}{{end}}{{/*
@@ -94,7 +94,7 @@
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}{{/*
-							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} gt-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{/*
+							*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{/*
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</button>{{/*
 						*/}}{{end}}{{/*

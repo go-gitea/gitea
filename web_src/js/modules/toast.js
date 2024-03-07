@@ -21,13 +21,12 @@ const levels = {
 };
 
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message, level, {gravity, position, duration, ...other} = {}) {
+function showToast(message, level, {gravity, position, duration, useHtmlBody, ...other} = {}) {
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
-
   const toast = Toastify({
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'>${htmlEscape(message)}</div>
+      <div class='toast-body'>${useHtmlBody ? message : htmlEscape(message)}</div>
       <button class='toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,

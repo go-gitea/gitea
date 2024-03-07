@@ -150,7 +150,15 @@ func (g *Manager) awaitServer(limit time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
 		defer close(c)
-		g.createServerWaitGroup.Wait()
+		func() {
+			// FIXME: there is a fundamental design problem of the "manager" and the "wait group".
+			// If nothing has started, the "Wait" just panics: sync: WaitGroup is reused before previous Wait has returned
+			// There is no clear solution besides a complete rewriting of the "manager"
+			defer func() {
+				_ = recover()
+			}()
+			g.createServerWaitGroup.Wait()
+		}()
 	}()
 	if limit > 0 {
 		select {
