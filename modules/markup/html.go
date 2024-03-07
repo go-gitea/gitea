@@ -1312,12 +1312,10 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 			Data: "</p>",
 		}, nextSibling)
 		node.Parent.InsertBefore(preview, nextSibling)
-		if after != "" {
-			node.Parent.InsertBefore(&html.Node{
-				Type: html.RawNode,
-				Data: "<p>" + after,
-			}, nextSibling)
-		}
+		node.Parent.InsertBefore(&html.Node{
+			Type: html.RawNode,
+			Data: "<p>" + after,
+		}, nextSibling)
 
 		node = node.NextSibling
 	}
