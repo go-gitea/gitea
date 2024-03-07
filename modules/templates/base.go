@@ -4,11 +4,11 @@
 package templates
 
 import (
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func AssetFS() *assetfs.LayeredFS {
@@ -24,7 +24,7 @@ func ListWebTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return util.SliceRemoveAllFunc(files, func(file string) bool {
+	return slices.DeleteFunc(files, func(file string) bool {
 		return strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 	}), nil
 }
@@ -34,7 +34,7 @@ func ListMailTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return util.SliceRemoveAllFunc(files, func(file string) bool {
+	return slices.DeleteFunc(files, func(file string) bool {
 		return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 	}), nil
 }

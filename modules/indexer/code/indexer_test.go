@@ -6,7 +6,6 @@ package code
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -16,14 +15,14 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
@@ -97,11 +96,10 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	idx := bleve.NewIndexer(dir)
 	_, err := idx.Init(context.Background())
 	if err != nil {
-		assert.Fail(t, "Unable to create bleve indexer Error: %v", err)
 		if idx != nil {
 			idx.Close()
 		}
-		return
+		assert.FailNow(t, "Unable to create bleve indexer Error: %v", err)
 	}
 	defer idx.Close()
 
@@ -119,11 +117,10 @@ func TestESIndexAndSearch(t *testing.T) {
 
 	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
 	if _, err := indexer.Init(context.Background()); err != nil {
-		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
 		if indexer != nil {
 			indexer.Close()
 		}
-		return
+		assert.FailNow(t, "Unable to init ES indexer Error: %v", err)
 	}
 
 	defer indexer.Close()

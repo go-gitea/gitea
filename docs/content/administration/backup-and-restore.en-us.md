@@ -43,10 +43,10 @@ directory. There should be some output similar to the following:
 Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
 - `app.ini` - Optional copy of configuration file if originally stored outside the default `custom/` directory
-- `custom` - All config or customization files in `custom/`.
-- `data` - Data directory (APP_DATA_PATH), except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, SQLite file if you are using SQLite.
+- `custom/` - All config or customization files in `custom/`.
+- `data/` - Data directory (APP_DATA_PATH), except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, SQLite file if you are using SQLite.
+- `repos/` - Complete copy of the repository directory.
 - `gitea-db.sql` - SQL dump of database
-- `gitea-repo.zip` - Complete copy of the repository directory.
 - `log/` - Various logs. They are not needed for a recovery or migration.
 
 Intermediate backup files are created in a temporary directory specified either with the
@@ -89,10 +89,10 @@ Example:
 ```sh
 unzip gitea-dump-1610949662.zip
 cd gitea-dump-1610949662
-mv data/conf/app.ini /etc/gitea/conf/app.ini
+mv app.ini /etc/gitea/conf/app.ini
 mv data/* /var/lib/gitea/data/
 mv log/* /var/lib/gitea/log/
-mv repos/* /var/lib/gitea/repositories/
+mv repos/* /var/lib/gitea/data/gitea-repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea
 
 # mysql
@@ -111,6 +111,8 @@ With Gitea running, and from the directory Gitea's binary is located, execute: `
 
 This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
 
+If you still have issues, consider running `./gitea doctor check` to inspect possible errors (or run with `--fix`).
+
 ### Using Docker (`restore`)
 
 There is also no support for a recovery command in a Docker-based gitea instance. The restore process contains the same steps as described in the previous section but with different paths.
@@ -126,7 +128,7 @@ cd gitea-dump-1610949662
 # restore the gitea data
 mv data/* /data/gitea
 # restore the repositories itself
-mv repos/* /data/git/repositories/
+mv repos/* /data/git/gitea-repositories/
 # adjust file permissions
 chown -R git:git /data
 # Regenerate Git Hooks
@@ -150,7 +152,7 @@ mv data/conf/app.ini /etc/gitea/app.ini
 # restore the gitea data
 mv data/* /var/lib/gitea
 # restore the repositories itself
-mv repos/* /var/lib/gitea/git/repositories
+mv repos/* /var/lib/gitea/git/gitea-repositories
 # adjust file permissions
 chown -R git:git /etc/gitea/app.ini /var/lib/gitea
 # Regenerate Git Hooks

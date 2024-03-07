@@ -11,7 +11,7 @@ const baseOptions = {
   guides: {bracketPairs: false, indentation: false},
   links: false,
   minimap: {enabled: false},
-  occurrencesHighlight: false,
+  occurrencesHighlight: 'off',
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
@@ -114,7 +114,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const model = editor.getModel();
   model.onDidChangeContent(() => {
-    textarea.value = editor.getValue();
+    textarea.value = editor.getValue({preserveBOM: true});
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 

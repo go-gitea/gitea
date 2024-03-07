@@ -37,7 +37,7 @@
 
    <h3>With your Consent</h3>
 
-   <p>We share your User Personal Information, if you consent, after letting you know what information will be shared, with whom, and why. For example, if you allow third party applications to access your Account using <a href="https://docs.gitea.io/en-us/oauth2-provider/">OAuth2 providers</a>, we share all information associated with your Account, including private repos and organizations. You may also direct us through your action on Your Gitea Instance to share your User Personal Information, such as when joining an Organization.</p>
+   <p>We share your User Personal Information, if you consent, after letting you know what information will be shared, with whom, and why. For example, if you allow third party applications to access your Account using <a href="https://docs.gitea.com/development/oauth2-provider">OAuth2 providers</a>, we share all information associated with your Account, including private repos and organizations. You may also direct us through your action on Your Gitea Instance to share your User Personal Information, such as when joining an Organization.</p>
 
    <h3>With Service Providers</h3>
 
@@ -144,7 +144,7 @@
 
    <h3>Data Portability</h3>
 
-   <p>As a Your Gitea Instance User, you can always take your data with you. You can clone your repositories to your computer, or you can <a href="https://docs.gitea.io/en-us/migrations-interfaces/">perform migrations using the provided interfaces</a>, for example.</p>
+   <p>As a Your Gitea Instance User, you can always take your data with you. You can clone your repositories to your computer, or you can <a href="https://docs.gitea.com/development/migrations-interfaces">perform migrations using the provided interfaces</a>, for example.</p>
 
    <h3>Data Retention and Deletion of Data</h3>
 
@@ -183,7 +183,7 @@
 
   <h2>Changes to this Privacy Policy</h2>
 
-  <p>Although most changes are likely to be minor, Your Gitea Instance may change our Privacy Statement from time to time. We will provide notification to Users of material changes to this Privacy Statement through our Website at least 30 days prior to the change taking effect by posting a notice on our home page or sending email to the primary email address specified in your account.</p> 
+  <p>Although most changes are likely to be minor, Your Gitea Instance may change our Privacy Statement from time to time. We will provide notification to Users of material changes to this Privacy Statement through our Website at least 30 days prior to the change taking effect by posting a notice on our home page or sending email to the primary email address specified in your account.</p>
 
   <h2>Contact</h2>
 

@@ -253,7 +253,13 @@ func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.URL, color), nil
+	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.HTMLURL, color), nil
+}
+
+func (d *DiscordPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload

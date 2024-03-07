@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/label"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -113,10 +114,11 @@ func (l *Label) CalOpenIssues() {
 
 // SetArchived set the label as archived
 func (l *Label) SetArchived(isArchived bool) {
-	if isArchived && l.ArchivedUnix.IsZero() {
-		l.ArchivedUnix = timeutil.TimeStampNow()
-	} else {
+	if !isArchived {
 		l.ArchivedUnix = timeutil.TimeStamp(0)
+	} else if isArchived && l.ArchivedUnix.IsZero() {
+		// Only change the date when it is newly archived.
+		l.ArchivedUnix = timeutil.TimeStampNow()
 	}
 }
 
@@ -125,7 +127,7 @@ func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
 		RepoIDs:  []int64{repoID},
 		LabelIDs: []int64{labelID},
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 
 	for _, count := range counts {
@@ -198,8 +200,8 @@ func NewLabel(ctx context.Context, l *Label) error {
 }
 
 // NewLabels creates new labels
-func NewLabels(labels ...*Label) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewLabels(ctx context.Context, labels ...*Label) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -220,19 +222,19 @@ func NewLabels(labels ...*Label) error {
 }
 
 // UpdateLabel updates label information.
-func UpdateLabel(l *Label) error {
+func UpdateLabel(ctx context.Context, l *Label) error {
 	color, err := label.NormalizeColor(l.Color)
 	if err != nil {
 		return err
 	}
 	l.Color = color
 
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive", "archived_unix")
+	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "archived_unix")
 }
 
 // DeleteLabel delete a label
-func DeleteLabel(id, labelID int64) error {
-	l, err := GetLabelByID(db.DefaultContext, labelID)
+func DeleteLabel(ctx context.Context, id, labelID int64) error {
+	l, err := GetLabelByID(ctx, labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
 			return nil
@@ -240,7 +242,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -255,7 +257,7 @@ func DeleteLabel(id, labelID int64) error {
 		return nil
 	}
 
-	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
+	if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
 		return err
 	} else if _, err = sess.
 		Where("label_id = ?", labelID).
@@ -288,9 +290,9 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
-func GetLabelsByIDs(labelIDs []int64, cols ...string) ([]*Label, error) {
+func GetLabelsByIDs(ctx context.Context, labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, db.GetEngine(db.DefaultContext).Table("label").
+	return labels, db.GetEngine(ctx).Table("label").
 		In("id", labelIDs).
 		Asc("name").
 		Cols(cols...).
@@ -303,15 +305,11 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 
-	l := &Label{
-		Name:   labelName,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "repo_id": repoID})
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrRepoLabelNotExist{0, l.RepoID}
+	} else if !exist {
+		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 	return l, nil
 }
@@ -322,15 +320,11 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 
-	l := &Label{
-		ID:     labelID,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "repo_id": repoID})
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
+	} else if !exist {
+		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 	return l, nil
 }
@@ -338,9 +332,9 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 // GetLabelIDsInRepoByNames returns a list of labelIDs by names in a given
 // repository.
 // it silently ignores label names that do not belong to the repository.
-func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
+func GetLabelIDsInRepoByNames(ctx context.Context, repoID int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
+	return labelIDs, db.GetEngine(ctx).Table("label").
 		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
@@ -397,8 +391,8 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 }
 
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.
-func CountLabelsByRepoID(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Count(&Label{})
+func CountLabelsByRepoID(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_id = ?", repoID).Count(&Label{})
 }
 
 // GetLabelInOrgByName returns a label by name in given organization.
@@ -407,15 +401,11 @@ func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*L
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 
-	l := &Label{
-		Name:  labelName,
-		OrgID: orgID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "org_id": orgID})
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrOrgLabelNotExist{0, l.OrgID}
+	} else if !exist {
+		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 	return l, nil
 }
@@ -426,33 +416,13 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 
-	l := &Label{
-		ID:    labelID,
-		OrgID: orgID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "org_id": orgID})
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
+	} else if !exist {
+		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 	return l, nil
-}
-
-// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
-// organization.
-func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) {
-	if orgID <= 0 {
-		return nil, ErrOrgLabelNotExist{0, orgID}
-	}
-	labelIDs := make([]int64, 0, len(labelNames))
-
-	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
-		Where("org_id = ?", orgID).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
 }
 
 // GetLabelsInOrgByIDs returns a list of labels by IDs in given organization,
@@ -505,8 +475,8 @@ func GetLabelIDsByNames(ctx context.Context, labelNames []string) ([]int64, erro
 }
 
 // CountLabelsByOrgID count all labels that belong to given organization by ID.
-func CountLabelsByOrgID(orgID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("org_id = ?", orgID).Count(&Label{})
+func CountLabelsByOrgID(ctx context.Context, orgID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("org_id = ?", orgID).Count(&Label{})
 }
 
 func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {

@@ -4,21 +4,33 @@
 package issue
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"context"
+
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // ChangeContent changes issue content, as the given user.
-func ChangeContent(issue *issues_model.Issue, doer *user_model.User, content string) (err error) {
-	oldContent := issue.Content
-
-	if err := issues_model.ChangeIssueContent(issue, doer, content); err != nil {
+func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string) error {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeContent(db.DefaultContext, doer, issue, oldContent)
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
+		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, issue.Repo, doer); !isAdmin {
+			return user_model.ErrBlockedUser
+		}
+	}
+
+	oldContent := issue.Content
+
+	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content); err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeContent(ctx, doer, issue, oldContent)
 
 	return nil
 }

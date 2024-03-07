@@ -8,9 +8,9 @@ contact_links:
     about: Please ask questions and discuss configuration or deployment problems here.
   - name: Discourse Forum
     url: https://discourse.gitea.io
-    about: Questions and configuration or deployment problems can also be discussed on our forum.    
+    about: Questions and configuration or deployment problems can also be discussed on our forum.
   - name: Frequently Asked Questions
-    url: https://docs.gitea.io/en-us/faq
+    url: https://docs.gitea.com/help/faq
     about: Please check if your question isn't mentioned here.
   - name: Crowdin Translations
     url: https://crowdin.com/project/gitea

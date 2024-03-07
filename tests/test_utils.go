@@ -179,6 +179,20 @@ func InitTest(requireGitea bool) {
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
 }
 
+func PrepareAttachmentsStorage(t testing.TB) {
+	// prepare attachments directory and files
+	assert.NoError(t, storage.Clean(storage.Attachments))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.Attachments, p, s, p)
+		return err
+	}))
+}
+
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 1

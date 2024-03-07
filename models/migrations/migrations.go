@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
+	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -526,6 +527,43 @@ var migrations = []Migration{
 	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
 	// v272 -> v273
 	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
+	// v273 -> v274
+	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
+	// v274 -> v275
+	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
+	// v275 -> v276
+	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
+	// v276 -> v277
+	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
+	// v277 -> v278
+	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
+	// v278 -> v279
+	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+	// v279 -> v280
+	NewMigration("Add Index to action.user_id", v1_21.AddIndexToActionUserID),
+
+	// Gitea 1.21.0 ends at 280
+
+	// v280 -> v281
+	NewMigration("Rename user themes", v1_22.RenameUserThemes),
+	// v281 -> v282
+	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
+	// v282 -> v283
+	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
+	// v283 -> v284
+	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+	// v285 -> v286
+	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
+	// v286 -> v287
+	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
+	// v287 -> v288
+	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
 }
 
 // GetCurrentDBVersion returns the current db version

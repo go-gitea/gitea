@@ -5,18 +5,21 @@ package org
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -42,19 +45,6 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
-	if len(org.Description) != 0 {
-		desc, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
-		}, org.Description)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-		ctx.Data["RenderedDescription"] = desc
-	}
 
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -95,6 +85,21 @@ func Home(ctx *context.Context) {
 		page = 1
 	}
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	var (
 		repos []*repo_model.Repository
 		count int64
@@ -112,6 +117,11 @@ func Home(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -123,15 +133,10 @@ func Home(ctx *context.Context) {
 		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
-	members, _, err := organization.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
-	}
-
-	var isFollowing bool
-	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	ctx.Data["Repos"] = repos
@@ -140,7 +145,6 @@ func Home(ctx *context.Context) {
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
-	ctx.Data["IsFollowing"] = isFollowing
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -152,9 +156,38 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
+	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileDbRepo, profileReadmeBlob)
+
 	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+	if profileGitRepo == nil || profileReadme == nil {
+		return
+	}
+
+	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		log.Error("failed to GetBlobContent: %v", err)
+	} else {
+		if profileContent, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Links: markup.Links{
+				// Pass repo link to markdown render for the full link of media elements.
+				// The profile of default branch would be shown.
+				Base:       profileDbRepo.Link(),
+				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+			},
+			Metas: map[string]string{"mode": "document"},
+		}, bytes); err != nil {
+			log.Error("failed to RenderString: %v", err)
+		} else {
+			ctx.Data["ProfileReadme"] = profileContent
+		}
+	}
 }

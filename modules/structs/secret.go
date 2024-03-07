@@ -14,14 +14,11 @@ type Secret struct {
 	Created time.Time `json:"created_at"`
 }
 
-// CreateSecretOption options when creating secret
+// CreateOrUpdateSecretOption options when creating or updating secret
 // swagger:model
-type CreateSecretOption struct {
-	// Name of the secret to create
+type CreateOrUpdateSecretOption struct {
+	// Data of the secret to update
 	//
 	// required: true
-	// unique: true
-	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	// Data of the secret to create
 	Data string `json:"data" binding:"Required"`
 }

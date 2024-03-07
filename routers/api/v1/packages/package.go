@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -48,6 +48,8 @@ func ListPackages(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PackageList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -58,7 +60,7 @@ func ListPackages(ctx *context.APIContext) {
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages.Type(packageType),
 		Name:       packages.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  &listOptions,
 	})
 	if err != nil {
@@ -162,7 +164,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
 		return

@@ -2,23 +2,14 @@ import {encode, decode} from 'uint8-to-base64';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
-  return path ? path.replace(/^.*\//, '') : '';
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
 // transform /path/to/file.ext to .ext
 export function extname(path = '') {
-  const [_, ext] = /.+(\.[^.]+)$/.exec(path) || [];
-  return ext || '';
-}
-
-// join a list of path segments with slashes, ensuring no double slashes
-export function joinPaths(...parts) {
-  let str = '';
-  for (const part of parts) {
-    if (!part) continue;
-    str = !str ? part : `${str.replace(/\/$/, '')}/${part.replace(/^\//, '')}`;
-  }
-  return str;
+  const lastPointIndex = path.lastIndexOf('.');
+  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
 // test whether a variable is an object
@@ -138,3 +129,16 @@ export function decodeURLEncodedBase64(base64url) {
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
 }
+
+const domParser = new DOMParser();
+const xmlSerializer = new XMLSerializer();
+
+export function parseDom(text, contentType) {
+  return domParser.parseFromString(text, contentType);
+}
+
+export function serializeXml(node) {
+  return xmlSerializer.serializeToString(node);
+}
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

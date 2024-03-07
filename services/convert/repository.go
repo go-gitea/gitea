@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -92,6 +93,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
+	allowFastForwardOnly := false
 	allowRebaseUpdate := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
@@ -104,14 +106,18 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		allowFastForwardOnly = config.AllowFastForwardOnly
 		allowRebaseUpdate = config.AllowRebaseUpdate
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
+	projectsMode := repo_model.ProjectsModeAll
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
 		hasProjects = true
+		config := unit.ProjectsConfig()
+		projectsMode = config.ProjectsMode
 	}
 
 	hasReleases := false
@@ -133,7 +139,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		return nil
 	}
 
-	numReleases, _ := repo_model.GetReleaseCountByRepoID(ctx, repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
+	numReleases, _ := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeDrafts: false,
+		IncludeTags:   false,
+		RepoID:        repo.ID,
+	})
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
@@ -181,6 +191,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
 		HTMLURL:                       repo.HTMLURL(),
+		URL:                           repoAPIURL,
 		SSHURL:                        cloneLink.SSH,
 		CloneURL:                      cloneLink.HTTPS,
 		OriginalURL:                   repo.SanitizedOriginalURL(),
@@ -203,6 +214,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		ProjectsMode:                  string(projectsMode),
 		HasReleases:                   hasReleases,
 		HasPackages:                   hasPackages,
 		HasActions:                    hasActions,
@@ -213,6 +225,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowRebase:                   allowRebase,
 		AllowRebaseMerge:              allowRebaseMerge,
 		AllowSquash:                   allowSquash,
+		AllowFastForwardOnly:          allowFastForwardOnly,
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),

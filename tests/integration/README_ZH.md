@@ -79,7 +79,7 @@ sqlite 数据库:
 make test-sqlite#GPG
 ```
 
-其它数据库(把 MSSQL 替换为 MYSQL, MYSQL8, PGSQL):
+其它数据库(把 MSSQL 替换为 MYSQL, PGSQL):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG

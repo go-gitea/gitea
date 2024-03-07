@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -24,8 +23,11 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // RenameUser renames a user
@@ -39,10 +41,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	if newUserName == u.Name {
-		return user_model.ErrUsernameNotChanged{
-			UID:  u.ID,
-			Name: u.Name,
-		}
+		return nil
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
@@ -58,7 +57,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 			u.Name = oldUserName
 			return err
 		}
-		return repo_model.UpdateRepositoryOwnerNames(u.ID, newUserName)
+		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -127,6 +126,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
 
+	if user_model.IsLastAdminUser(ctx, u) {
+		return models.ErrDeleteLastAdminUser{UID: u.ID}
+	}
+
 	if purge {
 		// Disable the user first
 		// NOTE: This is deliberately not within a transaction as it must disable the user immediately to prevent any further action by the user to be purged.
@@ -157,27 +160,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		//
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
-		for {
-			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
-				Private: true,
-				OwnerID: u.ID,
-				Actor:   u,
-			})
-			if err != nil {
-				return fmt.Errorf("GetUserRepositories: %w", err)
-			}
-			if len(repos) == 0 {
-				break
-			}
-			for _, repo := range repos {
-				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
-				}
-			}
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, u)
+		if err != nil {
+			return err
 		}
 
 		// Remove from Organizations and delete last owner organizations
@@ -188,7 +173,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a function which would delete all organizations but it seems
 		// but such a function would likely get out of date
 		for {
-			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+			orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -203,9 +188,12 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org, u); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = organization.DeleteOrganization(ctx, org)
+						err = org_service.DeleteOrganization(ctx, org, true)
+						if err != nil {
+							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
+						}
 					}
 					if err != nil {
 						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)
@@ -222,7 +210,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -264,10 +252,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	committer.Close()
 
-	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
+	if err = asymkey_service.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 
@@ -308,7 +296,8 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		}
 		if err := DeleteUser(ctx, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) ||
+				models.IsErrUserOwnPackages(err) || models.IsErrDeleteLastAdminUser(err) {
 				continue
 			}
 			return err

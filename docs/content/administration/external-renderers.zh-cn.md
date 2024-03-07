@@ -194,7 +194,7 @@ ALLOW_DATA_URI_IMAGES = true
 }
 ```
 
-将您的样式表添加到自定义目录中，例如 `custom/public/css/my-style-XXXXX.css`，并使用自定义的头文件 `custom/templates/custom/header.tmpl` 进行导入：
+将您的样式表添加到自定义目录中，例如 `custom/public/assets/css/my-style-XXXXX.css`，并使用自定义的头文件 `custom/templates/custom/header.tmpl` 进行导入：
 
 ```html
 <link rel="stylesheet" href="{{AppSubUrl}}/assets/css/my-style-XXXXX.css" />

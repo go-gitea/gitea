@@ -1,13 +1,13 @@
 import {diffTreeStore} from '../modules/stores.js';
 import {setFileFolding} from './file-fold.js';
+import {POST} from '../modules/fetch.js';
 
-const {csrfToken, pageData} = window.config;
+const {pageData} = window.config;
 const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
 const expandFilesBtnSelector = '#expand-files-btn';
 const collapseFilesBtnSelector = '#collapse-files-btn';
-
 
 // Refreshes the summary of viewed files if present
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
@@ -43,9 +43,11 @@ export function initViewedCheckboxListenerFor() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
+        checkbox.setAttribute('checked', '');
         prReview.numberOfViewedFiles++;
       } else {
         form.classList.remove(viewedStyleClass);
+        checkbox.removeAttribute('checked');
         prReview.numberOfViewedFiles--;
       }
 
@@ -68,11 +70,7 @@ export function initViewedCheckboxListenerFor() {
       const data = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
       if (headCommitSHA) data.headCommitSHA = headCommitSHA;
-      fetch(form.getAttribute('data-link'), {
-        method: 'POST',
-        headers: {'X-Csrf-Token': csrfToken},
-        body: JSON.stringify(data),
-      });
+      POST(form.getAttribute('data-link'), {data});
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');
@@ -96,5 +94,3 @@ export function initExpandAndCollapseFilesButton() {
     }
   });
 }
-
-

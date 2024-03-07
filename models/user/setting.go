@@ -59,9 +59,9 @@ func genSettingCacheKey(userID int64, key string) string {
 }
 
 // GetSetting returns the setting value via the key
-func GetSetting(uid int64, key string) (string, error) {
+func GetSetting(ctx context.Context, uid int64, key string) (string, error) {
 	return cache.GetString(genSettingCacheKey(uid, key), func() (string, error) {
-		res, err := GetSettingNoCache(uid, key)
+		res, err := GetSettingNoCache(ctx, uid, key)
 		if err != nil {
 			return "", err
 		}
@@ -70,8 +70,8 @@ func GetSetting(uid int64, key string) (string, error) {
 }
 
 // GetSettingNoCache returns specific setting without using the cache
-func GetSettingNoCache(uid int64, key string) (*Setting, error) {
-	v, err := GetSettings(uid, []string{key})
+func GetSettingNoCache(ctx context.Context, uid int64, key string) (*Setting, error) {
+	v, err := GetSettings(ctx, uid, []string{key})
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +82,9 @@ func GetSettingNoCache(uid int64, key string) (*Setting, error) {
 }
 
 // GetSettings returns specific settings from user
-func GetSettings(uid int64, keys []string) (map[string]*Setting, error) {
+func GetSettings(ctx context.Context, uid int64, keys []string) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, len(keys))
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("user_id=?", uid).
 		And(builder.In("setting_key", keys)).
 		Find(&settings); err != nil {
@@ -98,9 +98,9 @@ func GetSettings(uid int64, keys []string) (map[string]*Setting, error) {
 }
 
 // GetUserAllSettings returns all settings from user
-func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
+func GetUserAllSettings(ctx context.Context, uid int64) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("user_id=?", uid).
 		Find(&settings); err != nil {
 		return nil, err
@@ -123,13 +123,13 @@ func validateUserSettingKey(key string) error {
 }
 
 // GetUserSetting gets a specific setting for a user
-func GetUserSetting(userID int64, key string, def ...string) (string, error) {
+func GetUserSetting(ctx context.Context, userID int64, key string, def ...string) (string, error) {
 	if err := validateUserSettingKey(key); err != nil {
 		return "", err
 	}
 
 	setting := &Setting{UserID: userID, SettingKey: key}
-	has, err := db.GetEngine(db.DefaultContext).Get(setting)
+	has, err := db.GetEngine(ctx).Get(setting)
 	if err != nil {
 		return "", err
 	}
@@ -143,24 +143,24 @@ func GetUserSetting(userID int64, key string, def ...string) (string, error) {
 }
 
 // DeleteUserSetting deletes a specific setting for a user
-func DeleteUserSetting(userID int64, key string) error {
+func DeleteUserSetting(ctx context.Context, userID int64, key string) error {
 	if err := validateUserSettingKey(key); err != nil {
 		return err
 	}
 
 	cache.Remove(genSettingCacheKey(userID, key))
-	_, err := db.GetEngine(db.DefaultContext).Delete(&Setting{UserID: userID, SettingKey: key})
+	_, err := db.GetEngine(ctx).Delete(&Setting{UserID: userID, SettingKey: key})
 
 	return err
 }
 
 // SetUserSetting updates a users' setting for a specific key
-func SetUserSetting(userID int64, key, value string) error {
+func SetUserSetting(ctx context.Context, userID int64, key, value string) error {
 	if err := validateUserSettingKey(key); err != nil {
 		return err
 	}
 
-	if err := upsertUserSettingValue(userID, key, value); err != nil {
+	if err := upsertUserSettingValue(ctx, userID, key, value); err != nil {
 		return err
 	}
 
@@ -172,8 +172,8 @@ func SetUserSetting(userID int64, key, value string) error {
 	return nil
 }
 
-func upsertUserSettingValue(userID int64, key, value string) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+func upsertUserSettingValue(ctx context.Context, userID int64, key, value string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)

@@ -23,6 +23,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	alpine_model "code.gitea.io/gitea/models/packages/alpine"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -30,22 +31,25 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-const IndexFilename = "APKINDEX.tar.gz"
+const (
+	IndexFilename        = "APKINDEX"
+	IndexArchiveFilename = IndexFilename + ".tar.gz"
+)
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Alpine registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
-func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, alpine_module.SettingKeyPrivate)
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, alpine_module.SettingKeyPublic)
+	pub, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -56,11 +60,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, alpine_module.SettingKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, alpine_module.SettingKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}
@@ -70,7 +74,7 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -82,10 +86,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}
@@ -118,12 +119,27 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 
 // BuildSpecificRepositoryFiles builds index files for the repository
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
 
-	return buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture)
+	architectures := container.SetOf(architecture)
+	if architecture == alpine_module.NoArch {
+		// Update all other architectures too when updating the noarch index
+		additionalArchitectures, err := alpine_model.GetArchitectures(ctx, ownerID, repository)
+		if err != nil {
+			return err
+		}
+		architectures.AddMultiple(additionalArchitectures...)
+	}
+
+	for architecture := range architectures {
+		if err := buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type packageData struct {
@@ -136,8 +152,7 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-// https://wiki.alpinelinux.org/wiki/Apk_spec#APKINDEX_Format
-func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
+func searchPackageFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) ([]*packages_model.PackageFile, error) {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ownerID,
 		PackageType: packages_model.TypeAlpine,
@@ -149,20 +164,36 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		},
 	})
 	if err != nil {
+		return nil, err
+	}
+	return pfs, nil
+}
+
+// https://wiki.alpinelinux.org/wiki/Apk_spec#APKINDEX_Format
+func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
+	pfs, err := searchPackageFiles(ctx, ownerID, branch, repository, architecture)
+	if err != nil {
 		return err
+	}
+	if architecture != alpine_module.NoArch {
+		// Add all noarch packages too
+		noarchFiles, err := searchPackageFiles(ctx, ownerID, branch, repository, alpine_module.NoArch)
+		if err != nil {
+			return err
+		}
+		pfs = append(pfs, noarchFiles...)
 	}
 
 	// Delete the package indices if there are no packages
 	if len(pfs) == 0 {
-		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
+		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexArchiveFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
+		} else if pf == nil {
+			return nil
 		}
 
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		return packages_model.DeleteFileByID(ctx, pf.ID)
+		return packages_service.DeletePackageFile(ctx, pf)
 	}
 
 	// Cache data needed for all repository files
@@ -210,7 +241,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		fmt.Fprintf(&buf, "C:%s\n", pd.FileMetadata.Checksum)
 		fmt.Fprintf(&buf, "P:%s\n", pd.Package.Name)
 		fmt.Fprintf(&buf, "V:%s\n", pd.Version.Version)
-		fmt.Fprintf(&buf, "A:%s\n", pd.FileMetadata.Architecture)
+		fmt.Fprintf(&buf, "A:%s\n", architecture)
 		if pd.VersionMetadata.Description != "" {
 			fmt.Fprintf(&buf, "T:%s\n", pd.VersionMetadata.Description)
 		}
@@ -234,17 +265,25 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		if len(pd.FileMetadata.Provides) > 0 {
 			fmt.Fprintf(&buf, "p:%s\n", strings.Join(pd.FileMetadata.Provides, " "))
 		}
+		if pd.FileMetadata.InstallIf != "" {
+			fmt.Fprintf(&buf, "i:%s\n", pd.FileMetadata.InstallIf)
+		}
+		if pd.FileMetadata.ProviderPriority > 0 {
+			fmt.Fprintf(&buf, "k:%d\n", pd.FileMetadata.ProviderPriority)
+		}
 		fmt.Fprint(&buf, "\n")
 	}
 
 	unsignedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer unsignedIndexContent.Close()
+
 	h := sha1.New()
 
-	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), "APKINDEX", buf.Bytes(), true); err != nil {
+	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), IndexFilename, buf.Bytes(), true); err != nil {
 		return err
 	}
 
-	priv, _, err := GetOrCreateKeyPair(ownerID)
+	priv, _, err := GetOrCreateKeyPair(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -275,6 +314,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	signedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer signedIndexContent.Close()
 
 	if err := writeGzipStream(
 		signedIndexContent,
@@ -290,16 +330,22 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	_, err = packages_service.AddFileToPackageVersionInternal(
+		ctx,
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     IndexFilename,
+				Filename:     IndexArchiveFilename,
 				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              signedIndexContent,
 			IsLead:            false,
 			OverwriteExisting: true,
+			Properties: map[string]string{
+				alpine_module.PropertyBranch:       branch,
+				alpine_module.PropertyRepository:   repository,
+				alpine_module.PropertyArchitecture: architecture,
+			},
 		},
 	)
 	return err

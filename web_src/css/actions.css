@@ -18,12 +18,6 @@
   margin-right: 1em;
 }
 
-.runner-container .runner-status-online {
-  padding: 0.3em 0.5em;
-  background-color: var(--color-green);
-  color: var(--color-white);
-}
-
 .runner-container .runner-new-text {
   color: var(--color-white);
 }

@@ -10,13 +10,14 @@ package tests
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -165,7 +166,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			IsPull: util.OptionalBoolFalse,
+			IsPull: optional.Some(false),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -181,7 +182,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			IsPull: util.OptionalBoolTrue,
+			IsPull: optional.Some(true),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -197,7 +198,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			IsClosed: util.OptionalBoolFalse,
+			IsClosed: optional.Some(false),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -213,7 +214,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			IsClosed: util.OptionalBoolTrue,
+			IsClosed: optional.Some(true),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -457,7 +458,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].MentionIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.MentionIDs, 1)
+				return slices.Contains(v.MentionIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -478,7 +479,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ReviewedIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.ReviewedIDs, 1)
+				return slices.Contains(v.ReviewedIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -499,7 +500,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ReviewRequestedIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.ReviewRequestedIDs, 1)
+				return slices.Contains(v.ReviewRequestedIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -520,7 +521,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].SubscriberIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.SubscriberIDs, 1)
+				return slices.Contains(v.SubscriberIDs, 1)
 			}), result.Total)
 		},
 	},

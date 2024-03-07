@@ -11,6 +11,7 @@ import (
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
@@ -38,7 +39,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "leastupdate"
 	case internal.SortByCommentsAsc:
 		sortType = "leastcomment"
-	case internal.SortByDeadlineAsc:
+	case internal.SortByDeadlineDesc:
 		sortType = "farduedate"
 	case internal.SortByCreatedDesc:
 		sortType = "newest"
@@ -46,7 +47,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "recentupdate"
 	case internal.SortByCommentsDesc:
 		sortType = "mostcomment"
-	case internal.SortByDeadlineDesc:
+	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
 		sortType = "newest"
@@ -55,6 +56,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
+		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
 		AssigneeID:         convertID(options.AssigneeID),
 		PosterID:           convertID(options.PosterID),
@@ -74,7 +76,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
 		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
 		PriorityRepoID:     0,
-		IsArchived:         0,
+		IsArchived:         optional.None[bool](),
 		Org:                nil,
 		Team:               nil,
 		User:               nil,
@@ -96,8 +98,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		}
 
 		if len(options.IncludedLabelIDs) == 0 && len(options.IncludedAnyLabelIDs) > 0 {
-			_ = ctx // issue_model.GetLabelsByIDs should be called with ctx, this line can be removed when it's done.
-			labels, err := issue_model.GetLabelsByIDs(options.IncludedAnyLabelIDs, "name")
+			labels, err := issue_model.GetLabelsByIDs(ctx, options.IncludedAnyLabelIDs, "name")
 			if err != nil {
 				return nil, fmt.Errorf("GetLabelsByIDs: %v", err)
 			}

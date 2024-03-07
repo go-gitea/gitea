@@ -210,9 +210,8 @@ func (p *templateErrorPrettier) handleTemplateRenderingError(err error) string {
 	} else if execErr, ok := err.(texttemplate.ExecError); ok {
 		layerName := p.assets.GetFileLayerName(execErr.Name + ".tmpl")
 		return fmt.Sprintf("asset from: %s, %s", layerName, err.Error())
-	} else {
-		return err.Error()
 	}
+	return err.Error()
 }
 
 func HandleTemplateRenderingError(err error) string {

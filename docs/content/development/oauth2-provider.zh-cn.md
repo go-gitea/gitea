@@ -134,4 +134,4 @@ Gitea 支持私密和公共客户端类型，[参见 RFC 6749](https://datatrack
 
    `access_token` 请求中的 `REDIRECT_URI` 必须与 `authorize` 请求中的 `REDIRECT_URI` 相符。
 
-3. 使用 `access_token` 来构造 [API 请求](https://docs.gitea.io/en-us/api-usage#oauth2) 以读写用户的资源。
+3. 使用 `access_token` 来构造 [API 请求](development/api-usage.md#oauth2-provider) 以读写用户的资源。
