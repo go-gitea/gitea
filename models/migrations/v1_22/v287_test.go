@@ -27,9 +27,9 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	}
 
 	oldBadges := []Badge{
-		{ID: 2, Description: "Test Badge 1", ImageURL: "https://example.com/badge1.png"},
-		{ID: 3, Description: "Test Badge 2", ImageURL: "https://example.com/badge2.png"},
-		{ID: 4, Description: "Test Badge 3", ImageURL: "https://example.com/badge3.png"},
+		{Description: "Test Badge 1", ImageURL: "https://example.com/badge1.png"},
+		{Description: "Test Badge 2", ImageURL: "https://example.com/badge2.png"},
+		{Description: "Test Badge 3", ImageURL: "https://example.com/badge3.png"},
 	}
 
 	for _, badge := range oldBadges {
