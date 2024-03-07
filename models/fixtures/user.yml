@@ -844,7 +844,7 @@
   num_following: 0
   num_stars: 0
   num_repos: 2
-  num_teams: 2
+  num_teams: 3
   num_members: 1
   visibility: 2
   repo_admin_change_team_access: false
