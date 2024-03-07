@@ -1,6 +1,6 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
-import {formatDateTime} from '../utils/time.js';
+import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
 
@@ -99,7 +99,7 @@ function switchTitleToTooltip(target) {
     if (target.tagName.toLowerCase() === 'relative-time') {
       const datetime = target.getAttribute('datetime');
       if (datetime) {
-        title = formatDateTime(new Date(datetime));
+        title = formatDatetime(new Date(datetime));
       }
     }
     target.setAttribute('data-tooltip-content', title);

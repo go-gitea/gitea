@@ -50,7 +50,7 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
 const use24h = Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format()));
 
 // format a Date object to document's locale, but with 24h format from user's current locale
-export function formatDateTime(date) {
+export function formatDatetime(date) {
   return new Intl.DateTimeFormat(getCurrentLocale(), {
     day: 'numeric',
     month: 'short',
