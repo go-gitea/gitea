@@ -126,7 +126,7 @@ func timeSinceUnix(then, now time.Time, _ translation.Locale) template.HTML {
 	}
 
 	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
-	// lang=unknown is used to let <relative-time> format according to user's preferences
+	// lang=unknown is used to let <relative-time> format according to user's current local
 	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true" lang="unknown">%s</relative-time>`,
 		attrs, then.Format(time.RFC3339), friendlyText)
 	return template.HTML(htm)
