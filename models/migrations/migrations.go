@@ -562,6 +562,8 @@ var migrations = []Migration{
 	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
 	// v288 -> v289
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
 }
 
 // GetCurrentDBVersion returns the current db version
