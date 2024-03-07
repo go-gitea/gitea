@@ -169,7 +169,7 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 0
+  num_repos: 1
   num_members: 1
   includes_all_repositories: false
   can_create_org_repo: true

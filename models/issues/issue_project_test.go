@@ -217,6 +217,5 @@ func Test_LoadIssuesFromBoard(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expect, len(results))
 		})
-
 	}
 }
