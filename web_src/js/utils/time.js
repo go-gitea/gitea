@@ -44,3 +44,18 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
 
   return Object.values(result);
 }
+
+// TODO: replace with Intl.Locale.prototype.getHourCycles once there is broad browser support
+const use24h = Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format()));
+
+export function formatDateTime(date) {
+  return new Intl.DateTimeFormat(document.documentElement.lang, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    hour12: !use24h,
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(date);
+}
