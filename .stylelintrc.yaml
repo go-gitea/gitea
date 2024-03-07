@@ -64,6 +64,7 @@ rules:
   "@stylistic/media-query-list-comma-newline-before": null
   "@stylistic/media-query-list-comma-space-after": null
   "@stylistic/media-query-list-comma-space-before": null
+  "@stylistic/named-grid-areas-alignment": null
   "@stylistic/no-empty-first-line": null
   "@stylistic/no-eol-whitespace": true
   "@stylistic/no-extra-semicolons": true

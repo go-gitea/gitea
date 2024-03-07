@@ -29,19 +29,21 @@
 		</a>
 	{{end}}
 
-	<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
-		{{svg "octicon-rss"}} {{ctx.Locale.Tr "user.activity"}}
-	</a>
-	{{if not .DisableStars}}
-		<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
-			{{svg "octicon-star"}} {{ctx.Locale.Tr "user.starred"}}
-			{{if .ContextUser.NumStars}}
-				<div class="ui small label">{{.ContextUser.NumStars}}</div>
-			{{end}}
+	{{if .ContextUser.IsIndividual}}
+		<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
+			{{svg "octicon-rss"}} {{ctx.Locale.Tr "user.activity"}}
 		</a>
-	{{else}}
-		<a class="{{if eq .TabName "watching"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=watching">
-			{{svg "octicon-eye"}} {{ctx.Locale.Tr "user.watched"}}
-		</a>
+		{{if not .DisableStars}}
+			<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
+				{{svg "octicon-star"}} {{ctx.Locale.Tr "user.starred"}}
+				{{if .ContextUser.NumStars}}
+					<div class="ui small label">{{.ContextUser.NumStars}}</div>
+				{{end}}
+			</a>
+		{{else}}
+			<a class="{{if eq .TabName "watching"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=watching">
+				{{svg "octicon-eye"}} {{ctx.Locale.Tr "user.watched"}}
+			</a>
+		{{end}}
 	{{end}}
 </div>

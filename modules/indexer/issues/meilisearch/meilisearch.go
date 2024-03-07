@@ -131,11 +131,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(q)
 	}
 
-	if !options.IsPull.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.IsTrue()))
+	if options.IsPull.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.Value()))
 	}
-	if !options.IsClosed.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.IsTrue()))
+	if options.IsClosed.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
 	}
 
 	if options.NoLabelOnly {

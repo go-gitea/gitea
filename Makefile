@@ -147,6 +147,7 @@ GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github
+EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
@@ -426,7 +427,7 @@ lint-go-vet:
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
+	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
 lint-actions:
@@ -908,6 +909,7 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
+	$(SED_INPLACE) -e 's/  overrideBrowserslist\r/  overrideBrowserslist: ["defaults"]\r/g' $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/tasks/config/tasks.js
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	# fomantic uses "touchstart" as click event for some browsers, it's not ideal, so we force fomantic to always use "click" as click event
 	$(SED_INPLACE) -e 's/clickEvent[ \t]*=/clickEvent = "click", unstableClickEvent =/g' $(FOMANTIC_WORK_DIR)/build/semantic.js
