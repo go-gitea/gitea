@@ -20,20 +20,20 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(BadgeUnique), new(Badge))
+	x, deferable := base.PrepareTestEnv(t, 0, new(Badge))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	oldBadges := []Badge{
-		{ID: 1, Description: "Test Badge 1", ImageURL: "https://example.com/badge1.png"},
-		{ID: 2, Description: "Test Badge 2", ImageURL: "https://example.com/badge2.png"},
-		{ID: 3, Description: "Test Badge 3", ImageURL: "https://example.com/badge3.png"},
+	oldBadges := []*Badge{
+		{Description: "Test Badge 1", ImageURL: "https://example.com/badge1.png"},
+		{Description: "Test Badge 2", ImageURL: "https://example.com/badge2.png"},
+		{Description: "Test Badge 3", ImageURL: "https://example.com/badge3.png"},
 	}
 
 	for _, badge := range oldBadges {
-		_, err := x.Insert(&badge)
+		_, err := x.Insert(badge)
 		assert.NoError(t, err)
 	}
 
@@ -48,7 +48,7 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	}
 
 	for i, e := range oldBadges {
-		got := got[i]
+		got := got[i+1] // 1 is in the badge.yml
 		assert.Equal(t, e.ID, got.ID)
 		assert.Equal(t, fmt.Sprintf("%d", e.ID), got.Slug)
 	}
