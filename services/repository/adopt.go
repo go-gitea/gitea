@@ -127,24 +127,17 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 	repo.IsEmpty = false
 
-	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("openRepository: %w", err)
-	}
-	defer gitRepo.Close()
-
 	if len(defaultBranch) > 0 {
 		repo.DefaultBranch = defaultBranch
 
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
-		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
+		repo.DefaultBranch, err = gitrepo.GetDefaultBranch(ctx, repo)
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
@@ -188,7 +181,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		}
 
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
@@ -196,6 +189,13 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	if err = repo_module.UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
 	}
+
+	// Don't bother looking this repo in the context it won't be there
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return fmt.Errorf("openRepository: %w", err)
+	}
+	defer gitRepo.Close()
 
 	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
