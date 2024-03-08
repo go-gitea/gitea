@@ -31,10 +31,23 @@ func TestRender_StandardLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
+	testWiki := func(input, expected string) {
+		buffer, err := RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       "/relative-path",
+				BranchPath: "branch/main",
+			},
+			IsWiki: true,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
 	test("[[https://google.com/]]",
 		`<p><a href="https://google.com/">https://google.com/</a></p>`)
-	test("[[WikiPage][The WikiPage Desc]]",
-		`<p><a href="/relative-path/WikiPage">The WikiPage Desc</a></p>`)
+	testWiki("[[WikiPage][The WikiPage Desc]]",
+		`<p><a href="/relative-path/wiki/WikiPage">The WikiPage Desc</a></p>`)
 	test("[[ImageLink.svg][The Image Desc]]",
 		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
 }
