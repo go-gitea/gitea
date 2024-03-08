@@ -249,7 +249,7 @@ func DeleteAccount(ctx *context.Context) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
-		case err == smtp.ErrUnsupportedLoginType:
+		case errors.Is(err, smtp.ErrUnsupportedLoginType):
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
