@@ -125,12 +125,13 @@ func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject
 		Behind: -1,
 	}
 	s, ok := data.([]byte)
-	if !ok {
+	if !ok || len(s) == 0 {
 		return &res, false
 	}
 
 	if err := json.Unmarshal(s, &res); err != nil {
 		log.Error("json.UnMarshal failed: %v", err)
+		return &res, false
 	}
 	return &res, true
 }
