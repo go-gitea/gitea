@@ -229,12 +229,23 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		if !options.IsFuzzyKeyword {
 			// as meilisearch does not have a non-fuzzy search and you can only change "typo tolerance" per index we have to post-filter the results
 			// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
+			// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
+			keyword := strings.ToLower(options.Keyword)
 			title, _ := hit.(map[string]any)["title"].(string)
-			if !strings.Contains(title, options.Keyword) {
+			if !strings.Contains(strings.ToLower(title), keyword) {
 				content, _ := hit.(map[string]any)["content"].(string)
-				if !strings.Contains(content, options.Keyword) {
-					comments, _ := hit.(map[string]any)["comments"].(string)
-					if !strings.Contains(comments, options.Keyword) {
+				if !strings.Contains(strings.ToLower(content), keyword) {
+					comments, _ := hit.(map[string]any)["comments"].([]any)
+					found := false
+					for i := range comments {
+						comment, _ := comments[i].(string)
+						if strings.Contains(strings.ToLower(comment), keyword) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						// we could not find it move on ...
 						continue
 					}
 				}
