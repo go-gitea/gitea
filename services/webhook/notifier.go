@@ -887,7 +887,7 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		t := status.UpdatedUnix.AsTime().UTC()
 		payload.UpdatedAt = &t
 	}
-	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &payload); err != nil {
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventStatus, &payload); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }
