@@ -38,6 +38,6 @@ func (d *dummyIndexer) Delete(ctx context.Context, repoID int64) error {
 	return fmt.Errorf("indexer is not ready")
 }
 
-func (d *dummyIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, ifFuzzy bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (d *dummyIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	return 0, nil, nil, fmt.Errorf("indexer is not ready")
 }
