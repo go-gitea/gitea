@@ -227,7 +227,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
 		if !options.IsFuzzyKeyword {
-			// as meilisearch does not have a non-fuzzy search and you can only change "typo tolerance" per index we have to post-filter the results
+			// as meilisearch does not have an exact search and you can only change "typo tolerance" per index we have to post-filter the results
 			// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
 			// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
 			keyword := strings.ToLower(options.Keyword)
