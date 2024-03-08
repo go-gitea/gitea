@@ -248,7 +248,7 @@ func parseSortBy(sortBy internal.SortBy) string {
 }
 
 // nonFuzzyWorkaround is needed as meilisearch does not have an exact search
-// and you can only change "typo tolerance" per index we have to post-filter the results
+// and you can only change "typo tolerance" per index. So we have to post-filter the results
 // https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
 // TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
 func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, isFuzzy bool) ([]internal.Match, error) {
