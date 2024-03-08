@@ -29,6 +29,7 @@ var (
 			subcmdRegenerate,
 			subcmdAuth,
 			subcmdSendMail,
+			subcmdTeam,
 		},
 	}
 
