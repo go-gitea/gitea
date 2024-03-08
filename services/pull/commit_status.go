@@ -53,7 +53,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 				break
 			}
 
-			if targetStatus != "" && targetStatus.NoBetterThan(returnedStatus) {
+			if targetStatus.NoBetterThan(returnedStatus) {
 				returnedStatus = targetStatus
 			}
 		}
