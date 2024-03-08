@@ -232,7 +232,7 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("Sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 

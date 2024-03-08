@@ -22,7 +22,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -31,14 +31,23 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		return user_model.ErrBlockedUser
 	}
 
-	if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
-		return err
-	}
-
-	for _, assigneeID := range assigneeIDs {
-		if _, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, true); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 			return err
 		}
+		for _, assigneeID := range assigneeIDs {
+			if _, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, true); err != nil {
+				return err
+			}
+		}
+		if projectID > 0 {
+			if err := issues_model.ChangeProjectAssign(ctx, issue, issue.Poster, projectID); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
