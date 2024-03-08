@@ -39,6 +39,31 @@ func TestRender_StandardLinks(t *testing.T) {
 		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
 }
 
+func TestRender_InternalLinks(t *testing.T) {
+	setting.AppURL = AppURL
+
+	test := func(input, expected string) {
+		buffer, err := RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       "/relative-path",
+				BranchPath: "branch/main",
+			},
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	test("[[file:test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[./test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[path/to/test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/path/to/test.org">Test</a></p>`)
+}
+
 func TestRender_Media(t *testing.T) {
 	setting.AppURL = AppURL
 
