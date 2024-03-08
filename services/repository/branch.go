@@ -117,7 +117,8 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 	return fmt.Sprintf("%d-%s", repoID, branchName)
 }
 
-func getDivergenceFromCache(repoID int64, branchName string) *git.DivergeObject {
+// getDivergenceFromCache gets the divergence from cache
+func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
 	data := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
 	res := git.DivergeObject{
 		Ahead:  -1,
@@ -125,13 +126,13 @@ func getDivergenceFromCache(repoID int64, branchName string) *git.DivergeObject 
 	}
 	s, ok := data.([]byte)
 	if !ok {
-		return &res
+		return &res, false
 	}
 
 	if err := json.Unmarshal(s, &res); err != nil {
 		log.Error("json.UnMarshal failed: %v", err)
 	}
-	return &res
+	return &res, true
 }
 
 func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) error {
@@ -163,8 +164,9 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
-		divergence = getDivergenceFromCache(repo.ID, dbBranch.Name)
-		if divergence.Ahead == -1 && divergence.Behind == -1 {
+		var cached bool
+		divergence, cached = getDivergenceFromCache(repo.ID, dbBranch.Name)
+		if !cached {
 			var err error
 			divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
 			if err != nil {
