@@ -7,7 +7,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form" action="{{.SignUpLink}}" method="post">
+		<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
 			{{template "base/alert" .}}
@@ -15,21 +15,21 @@
 			{{if .DisableRegistration}}
 				<p>{{ctx.Locale.Tr "auth.disable_register_prompt"}}</p>
 			{{else}}
-				<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+				<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
-				<div class="required inline field {{if .Err_Email}}error{{end}}">
+				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
 
 				{{if not .DisablePassword}}
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 						<label for="password">{{ctx.Locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 					</div>
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 						<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
 						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
 					</div>
@@ -38,7 +38,6 @@
 				{{template "user/auth/captcha" .}}
 
 				<div class="inline field">
-					<label></label>
 					<button class="ui primary button">
 						{{if .LinkAccountMode}}
 							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
@@ -50,7 +49,6 @@
 
 				{{if not .LinkAccountMode}}
 				<div class="inline field">
-					<label></label>
 					<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.register_helper_msg"}}</a>
 				</div>
 				{{end}}
@@ -64,7 +62,7 @@
 				<div class="gt-df gt-fc gt-jc">
 					<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 						{{range $provider := .OAuth2Providers}}
-							<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
+							<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 tw-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
 								{{$provider.IconHTML 28}}
 								{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 							</a>

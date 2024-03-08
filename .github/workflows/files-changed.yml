@@ -48,6 +48,7 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
+              - "options/locale/locale_en-US.ini"
 
             frontend:
               - "**/*.js"
