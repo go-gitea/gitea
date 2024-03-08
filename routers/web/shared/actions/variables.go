@@ -55,7 +55,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 func DeleteVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.ParamsInt64(":variable_id")
 
-	if _, err := actions_service.DeleteVariable(ctx, id); err != nil {
+	if err := actions_service.DeleteVariableByID(ctx, id); err != nil {
 		log.Error("Delete variable [%d] failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
 		return

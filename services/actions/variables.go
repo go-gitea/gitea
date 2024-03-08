@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	secret_service "code.gitea.io/gitea/services/secrets"
@@ -48,8 +47,40 @@ func UpdateVariable(ctx context.Context, variableID int64, name, data string) (b
 	})
 }
 
-func DeleteVariable(ctx context.Context, variableID int64) (int64, error) {
-	return db.DeleteByBean(ctx, &actions_model.ActionVariable{ID: variableID})
+func DeleteVariableByID(ctx context.Context, variableID int64) error {
+	return actions_model.DeleteVariable(ctx, variableID)
+}
+
+func DeleteVariableByName(ctx context.Context, ownerID, repoID int64, name string) error {
+	if err := secret_service.ValidateName(name); err != nil {
+		return err
+	}
+
+	if err := envNameCIRegexMatch(name); err != nil {
+		return err
+	}
+
+	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
+		OwnerID: ownerID,
+		RepoID:  repoID,
+		Name:    name,
+	})
+	if err != nil {
+		return err
+	}
+
+	return actions_model.DeleteVariable(ctx, v.ID)
+}
+
+func GetVariable(ctx context.Context, opts actions_model.FindVariablesOpts) (*actions_model.ActionVariable, error) {
+	vars, err := actions_model.FindVariables(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	if len(vars) != 1 {
+		return nil, util.NewNotExistErrorf("variable not found")
+	}
+	return vars[0], nil
 }
 
 // some regular expression of `variables` and `secrets`

@@ -6,12 +6,10 @@ package actions
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -71,15 +69,8 @@ func (opts FindVariablesOpts) ToConds() builder.Cond {
 	return cond
 }
 
-func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, error) {
-	var variable ActionVariable
-	has, err := db.GetEngine(ctx).Where("id=?", variableID).Get(&variable)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, fmt.Errorf("variable with id %d: %w", variableID, util.ErrNotExist)
-	}
-	return &variable, nil
+func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {
+	return db.Find[ActionVariable](ctx, opts)
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
@@ -89,4 +80,11 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 			Data: variable.Data,
 		})
 	return count != 0, err
+}
+
+func DeleteVariable(ctx context.Context, id int64) error {
+	if _, err := db.DeleteByID[ActionVariable](ctx, id); err != nil {
+		return err
+	}
+	return nil
 }
