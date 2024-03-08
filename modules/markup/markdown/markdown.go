@@ -104,7 +104,7 @@ func SpecializedMarkdown() goldmark.Markdown {
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + ` display">`)
 							if err != nil {
 								return
 							}
