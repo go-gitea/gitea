@@ -3,12 +3,15 @@
 
 package v1_22 //nolint
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func AddCommentIDIndexofAttachment(x *xorm.Engine) error {
-	type Attachment struct {
-		CommentID int64 `xorm:"INDEX"`
-	}
+type HookTask struct {
+	PayloadVersion int `xorm:"DEFAULT 1"`
+}
 
-	return x.Sync(&Attachment{})
+func AddPayloadVersionToHookTaskTable(x *xorm.Engine) error {
+	// create missing column
+	return x.Sync(new(HookTask))
 }
