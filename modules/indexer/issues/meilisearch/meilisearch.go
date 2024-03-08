@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,10 @@ const (
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
+)
+
+var (
+	ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -224,36 +229,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, len(searchRes.Hits))
-	for _, hit := range searchRes.Hits {
-		if !options.IsFuzzyKeyword {
-			// as meilisearch does not have an exact search and you can only change "typo tolerance" per index we have to post-filter the results
-			// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
-			// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
-			keyword := strings.ToLower(options.Keyword)
-			title, _ := hit.(map[string]any)["title"].(string)
-			if !strings.Contains(strings.ToLower(title), keyword) {
-				content, _ := hit.(map[string]any)["content"].(string)
-				if !strings.Contains(strings.ToLower(content), keyword) {
-					comments, _ := hit.(map[string]any)["comments"].([]any)
-					found := false
-					for i := range comments {
-						comment, _ := comments[i].(string)
-						if strings.Contains(strings.ToLower(comment), keyword) {
-							found = true
-							break
-						}
-					}
-					if !found {
-						// we could not have a direct match, so ignore that hit and move on ...
-						continue
-					}
-				}
-			}
-		}
-		hits = append(hits, internal.Match{
-			ID: int64(hit.(map[string]any)["id"].(float64)),
-		})
+	hits, err := nonFuzzyWorkaround(searchRes, options.Keyword, options.IsFuzzyKeyword)
+	if err != nil {
+		return nil, err
 	}
 
 	return &internal.SearchResult{
@@ -268,4 +246,61 @@ func parseSortBy(sortBy internal.SortBy) string {
 		return field + ":desc"
 	}
 	return field + ":asc"
+}
+
+// nonFuzzyWorkaround is needed as meilisearch does not have an exact search
+// and you can only change "typo tolerance" per index we have to post-filter the results
+// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
+// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
+func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, isFuzzy bool) ([]internal.Match, error) {
+	hits := make([]internal.Match, 0, len(searchRes.Hits))
+	for _, hit := range searchRes.Hits {
+		hit, ok := hit.(map[string]any)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+
+		if !isFuzzy {
+			keyword = strings.ToLower(keyword)
+			title, ok := hit["title"].(string)
+			if !ok {
+				return nil, ErrMalformedResponse
+			}
+			if !strings.Contains(strings.ToLower(title), keyword) {
+				content, ok := hit["content"].(string)
+				if !ok {
+					return nil, ErrMalformedResponse
+				}
+				if !strings.Contains(strings.ToLower(content), keyword) {
+					comments, ok := hit["comments"].([]any)
+					if !ok {
+						return nil, ErrMalformedResponse
+					}
+					found := false
+					for i := range comments {
+						comment, ok := comments[i].(string)
+						if !ok {
+							return nil, ErrMalformedResponse
+						}
+						if strings.Contains(strings.ToLower(comment), keyword) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						// we could not have a direct match, so ignore that hit and move on ...
+						continue
+					}
+				}
+			}
+		}
+		issueID, ok := hit["id"].(float64)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+		hits = append(hits, internal.Match{
+			ID: int64(issueID),
+		})
+	}
+	return hits, nil
 }
