@@ -175,11 +175,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(repoQueries...))
 	}
 
-	if !options.IsPull.IsNone() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.IsTrue(), "is_pull"))
+	if options.IsPull.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.Value(), "is_pull"))
 	}
-	if !options.IsClosed.IsNone() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.IsTrue(), "is_closed"))
+	if options.IsClosed.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
 	}
 
 	if options.NoLabelOnly {

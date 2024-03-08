@@ -226,8 +226,8 @@ func (a *Action) ShortActUserName(ctx context.Context) string {
 	return base.EllipsisString(a.GetActUserName(ctx), 20)
 }
 
-// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
-func (a *Action) GetDisplayName(ctx context.Context) string {
+// GetActDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
+func (a *Action) GetActDisplayName(ctx context.Context) string {
 	if setting.UI.DefaultShowFullName {
 		trimmedFullName := strings.TrimSpace(a.GetActFullName(ctx))
 		if len(trimmedFullName) > 0 {
@@ -237,8 +237,8 @@ func (a *Action) GetDisplayName(ctx context.Context) string {
 	return a.ShortActUserName(ctx)
 }
 
-// GetDisplayNameTitle gets the action's display name used for the title (tooltip) based on DEFAULT_SHOW_FULL_NAME
-func (a *Action) GetDisplayNameTitle(ctx context.Context) string {
+// GetActDisplayNameTitle gets the action's display name used for the title (tooltip) based on DEFAULT_SHOW_FULL_NAME
+func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 	if setting.UI.DefaultShowFullName {
 		return a.ShortActUserName(ctx)
 	}
@@ -368,10 +368,14 @@ func (a *Action) IsIssueEvent() bool {
 	return a.OpType.InActions("comment_issue", "approve_pull_request", "reject_pull_request", "comment_pull", "merge_pull_request")
 }
 
-// GetIssueInfos returns a list of issues associated with
-// the action.
+// GetIssueInfos returns a list of associated information with the action.
 func (a *Action) GetIssueInfos() []string {
-	return strings.SplitN(a.Content, "|", 3)
+	// make sure it always returns 3 elements, because there are some access to the a[1] and a[2] without checking the length
+	ret := strings.SplitN(a.Content, "|", 3)
+	for len(ret) < 3 {
+		ret = append(ret, "")
+	}
+	return ret
 }
 
 func (a *Action) getIssueIndex() int64 {

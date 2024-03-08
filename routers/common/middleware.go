@@ -38,6 +38,7 @@ func ProtocolMiddlewares() (handlers []any) {
 		})
 	})
 
+	// wrap the request and response, use the process context and add it to the process manager
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
