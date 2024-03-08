@@ -370,6 +370,14 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
+		oldDefBranch, err := gitrepo.GetWikiDefaultBranch(ctx, repo)
+		if err != nil {
+			return fmt.Errorf("unable to get default branch: %w", err)
+		}
+		if oldDefBranch == newBranch {
+			return nil
+		}
+
 		gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
 		if errors.Is(err, util.ErrNotExist) {
 			return nil // no git repo on storage, no need to do anything else
@@ -377,14 +385,6 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to open repository: %w", err)
 		}
 		defer gitRepo.Close()
-
-		oldDefBranch, err := gitRepo.GetDefaultBranch()
-		if err != nil {
-			return fmt.Errorf("unable to get default branch: %w", err)
-		}
-		if oldDefBranch == newBranch {
-			return nil
-		}
 
 		err = gitRepo.RenameBranch(oldDefBranch, newBranch)
 		if err != nil {
