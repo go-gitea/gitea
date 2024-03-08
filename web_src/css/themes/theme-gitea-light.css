@@ -61,14 +61,14 @@
   --color-secondary-hover: var(--color-secondary-dark-5);
   --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
-  --color-console-fg: #eeeff2;
-  --color-console-fg-subtle: #959cab;
-  --color-console-bg: #262936;
-  --color-console-border: #383c47;
+  --color-console-fg: #f8f8f9;
+  --color-console-fg-subtle: #bec4c8;
+  --color-console-bg: #181b1d;
+  --color-console-border: #313538;
   --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #454a57;
-  --color-console-menu-bg: #383c47;
-  --color-console-menu-border: #5c6374;
+  --color-console-active-bg: #313538;
+  --color-console-menu-bg: #272b2e;
+  --color-console-menu-border: #464a4d;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -122,21 +122,21 @@
   --color-brown-dark-2: #845232;
   --color-black-dark-2: #161617;
   /* ansi colors used for actions console and console files */
-  --color-ansi-black: var(--color-black);
-  --color-ansi-red: var(--color-red);
-  --color-ansi-green: var(--color-green);
-  --color-ansi-yellow: var(--color-yellow);
-  --color-ansi-blue: var(--color-blue);
-  --color-ansi-magenta: var(--color-pink);
-  --color-ansi-cyan: var(--color-teal);
+  --color-ansi-black: #1f2326;
+  --color-ansi-red: #cc4848;
+  --color-ansi-green: #87ab63;
+  --color-ansi-yellow: #cc9903;
+  --color-ansi-blue: #3a8ac6;
+  --color-ansi-magenta: #d22e8b;
+  --color-ansi-cyan: #00918a;
   --color-ansi-white: var(--color-console-fg-subtle);
-  --color-ansi-bright-black: var(--color-black-light);
-  --color-ansi-bright-red: var(--color-red-light);
-  --color-ansi-bright-green: var(--color-green-light);
-  --color-ansi-bright-yellow: var(--color-yellow-light);
-  --color-ansi-bright-blue: var(--color-blue-light);
-  --color-ansi-bright-magenta: var(--color-pink-light);
-  --color-ansi-bright-cyan: var(--color-teal-light);
+  --color-ansi-bright-black: #46494d;
+  --color-ansi-bright-red: #d15a5a;
+  --color-ansi-bright-green: #93b373;
+  --color-ansi-bright-yellow: #eaaf03;
+  --color-ansi-bright-blue: #4e96cc;
+  --color-ansi-bright-magenta: #d74397;
+  --color-ansi-bright-cyan: #00b6ad;
   --color-ansi-bright-white: var(--color-console-fg);
   /* other colors */
   --color-grey: #707070;

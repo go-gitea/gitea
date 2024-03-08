@@ -236,7 +236,7 @@ func (cfg *ProjectsConfig) GetProjectsMode() ProjectsMode {
 		return cfg.ProjectsMode
 	}
 
-	return ProjectsModeNone
+	return ProjectsModeAll
 }
 
 func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
