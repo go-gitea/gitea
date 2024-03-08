@@ -25,9 +25,9 @@ func MatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQue
 	return q
 }
 
-// PrefixQuery generates a match prefix query for the given phrase and field
-func PrefixQuery(matchPhrase, field string) *query.PrefixQuery {
-	q := bleve.NewPrefixQuery(matchPhrase)
+// PrefixQuery generates a match prefix query for the given prefix and field
+func PrefixQuery(matchPrefix, field string) *query.PrefixQuery {
+	q := bleve.NewPrefixQuery(matchPrefix)
 	q.FieldVal = field
 	return q
 }
