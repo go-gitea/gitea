@@ -182,7 +182,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
-							if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 								if !git.IsErrUnsupportedVersion(err) {
 									return err
 								}
