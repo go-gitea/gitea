@@ -3,7 +3,7 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
-import {getCurrentLocale} from '../utils.js';
+import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
 import {POST, DELETE} from '../modules/fetch.js';
 
@@ -167,7 +167,7 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      const timeStamp = formatDatetime(date);
       logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
       // for "Show seconds"
