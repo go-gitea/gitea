@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
+import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
@@ -84,6 +84,17 @@ class ComboMarkdownEditor {
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
+    this.textarea.addEventListener('keydown', (e) => {
+      if (e.shiftKey) {
+        e.target._shiftDown = true;
+      }
+    });
+    this.textarea.addEventListener('keyup', (e) => {
+      if (!e.shiftKey) {
+        e.target._shiftDown = false;
+      }
+    });
+
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
     const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
@@ -108,7 +119,7 @@ class ComboMarkdownEditor {
     });
 
     if (this.dropzone) {
-      initTextareaImagePaste(this.textarea, this.dropzone);
+      initTextareaPaste(this.textarea, this.dropzone);
     }
   }
 
@@ -241,7 +252,7 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEImagePaste(this.easyMDE, this.dropzone);
+    initEasyMDEPaste(this.easyMDE, this.dropzone);
     hideElem(this.textareaMarkdownToolbar);
   }
 
