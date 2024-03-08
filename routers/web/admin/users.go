@@ -204,7 +204,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	if !user_model.IsEmailDomainAllowed(u.Email) {
-		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed"))
+		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
 	}
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
@@ -431,7 +431,7 @@ func EditUserPost(ctx *context.Context) {
 			return
 		}
 		if !user_model.IsEmailDomainAllowed(form.Email) {
-			ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed"))
+			ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", form.Email))
 		}
 	}
 
