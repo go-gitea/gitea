@@ -133,6 +133,7 @@ type RepoSettingForm struct {
 	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
+	DefaultWikiBranch                     string
 	ExternalWikiURL                       string
 	EnableIssues                          bool
 	EnableExternalTracker                 bool
@@ -142,6 +143,7 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	ProjectsMode                          string
 	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
