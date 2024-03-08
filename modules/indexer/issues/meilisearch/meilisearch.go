@@ -245,7 +245,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 						}
 					}
 					if !found {
-						// we could not find it move on ...
+						// we could not have a direct match, so ignore that hit and move on ...
 						continue
 					}
 				}
