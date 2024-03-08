@@ -239,11 +239,8 @@ textarea:focus,
   }
 }
 
-.user.activate form,
 .user.forgot.password form,
 .user.reset.password form,
-.user.link-account form,
-.user.signin form,
 .user.signup form {
   margin: auto;
   width: 700px !important;
@@ -275,12 +272,7 @@ textarea:focus,
   .user.signup form .header {
     padding-left: 280px !important;
   }
-  .user.activate form .inline.field > label,
-  .user.forgot.password form .inline.field > label,
-  .user.reset.password form .inline.field > label,
-  .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label {
+  .user.activate form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
