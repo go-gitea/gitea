@@ -20,8 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
-	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
@@ -119,7 +119,7 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 }
 
 // RenderLabel renders a label
-func RenderLabel(ctx *gitea_context.Base, label *issues_model.Label) template.HTML {
+func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
 	var (
 		description string
 		archivedCSS string
@@ -135,7 +135,7 @@ func RenderLabel(ctx *gitea_context.Base, label *issues_model.Label) template.HT
 	}
 
 	if isArchived {
-		description = ctx.Locale.TrString("archived")
+		description = locale.TrString("archived")
 		archivedCSS = fmt.Sprintf("border-width: 1px !important; border-color: %s !important;", textColor)
 	} else {
 		description = emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
@@ -149,8 +149,8 @@ func RenderLabel(ctx *gitea_context.Base, label *issues_model.Label) template.HT
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(ctx.Req.Context(), labelScope)
-	itemText := RenderEmoji(ctx.Req.Context(), label.Name[len(labelScope)+1:])
+	scopeText := RenderEmoji(ctx, labelScope)
+	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
@@ -222,7 +222,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return output
 }
 
-func RenderLabels(ctx *gitea_context.Base, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string) template.HTML {
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -230,7 +230,7 @@ func RenderLabels(ctx *gitea_context.Base, labels []*issues_model.Label, repoLin
 			continue
 		}
 		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-			repoLink, label.ID, RenderLabel(ctx, label))
+			repoLink, label.ID, RenderLabel(ctx, locale, label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
