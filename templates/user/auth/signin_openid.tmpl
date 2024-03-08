@@ -8,12 +8,12 @@
 			OpenID
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form tw-m-auto" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="inline field">
 				{{ctx.Locale.Tr "auth.openid_signin_desc"}}
 			</div>
-			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
+			<div class="required field {{if .Err_OpenID}}error{{end}}">
 				<label for="openid">
 				{{svg "fontawesome-openid"}}
 				OpenID URI
@@ -21,14 +21,12 @@
 				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
 			</div>
 			<div class="inline field">
-				<label></label>
 				<div class="ui checkbox">
 					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 					<input name="remember" type="checkbox">
 				</div>
 			</div>
 			<div class="inline field">
-				<label></label>
 				<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
 			</div>
 			</form>
