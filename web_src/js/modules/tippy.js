@@ -1,5 +1,6 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
+import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
 
@@ -93,8 +94,15 @@ function attachTooltip(target, content = null) {
 }
 
 function switchTitleToTooltip(target) {
-  const title = target.getAttribute('title');
+  let title = target.getAttribute('title');
   if (title) {
+    // apply custom formatting to relative-time's tooltips
+    if (target.tagName.toLowerCase() === 'relative-time') {
+      const datetime = target.getAttribute('datetime');
+      if (datetime) {
+        title = formatDatetime(new Date(datetime));
+      }
+    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
     // keep the attribute, in case there are some other "[title]" selectors
