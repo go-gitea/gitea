@@ -21,33 +21,42 @@ import (
 func TestTeam_AddMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	test := func(teamID, userID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, AddTeamMember(db.DefaultContext, team, userID))
-		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &user_model.User{ID: team.OrgID})
+	test := func(team *organization.Team, user *user_model.User) {
+		assert.NoError(t, AddTeamMember(db.DefaultContext, team, user))
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
+		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
 	}
-	test(1, 2)
-	test(1, 4)
-	test(3, 2)
+
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	test(team1, user2)
+	test(team1, user4)
+	test(team3, user2)
 }
 
 func TestTeam_RemoveMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(teamID, userID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, userID))
-		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID})
+	testSuccess := func(team *organization.Team, user *user_model.User) {
+		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, user))
+		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
+		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 	}
-	testSuccess(1, 4)
-	testSuccess(2, 2)
-	testSuccess(3, 2)
-	testSuccess(3, unittest.NonexistentID)
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	err := RemoveTeamMember(db.DefaultContext, team, 2)
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team2 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	testSuccess(team1, user4)
+	testSuccess(team2, user2)
+	testSuccess(team3, user2)
+
+	err := RemoveTeamMember(db.DefaultContext, team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 }
 
@@ -120,33 +129,42 @@ func TestDeleteTeam(t *testing.T) {
 func TestAddTeamMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	test := func(teamID, userID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, AddTeamMember(db.DefaultContext, team, userID))
-		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &user_model.User{ID: team.OrgID})
+	test := func(team *organization.Team, user *user_model.User) {
+		assert.NoError(t, AddTeamMember(db.DefaultContext, team, user))
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
+		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
 	}
-	test(1, 2)
-	test(1, 4)
-	test(3, 2)
+
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	test(team1, user2)
+	test(team1, user4)
+	test(team3, user2)
 }
 
 func TestRemoveTeamMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(teamID, userID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, userID))
-		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID})
+	testSuccess := func(team *organization.Team, user *user_model.User) {
+		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, user))
+		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
+		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 	}
-	testSuccess(1, 4)
-	testSuccess(2, 2)
-	testSuccess(3, 2)
-	testSuccess(3, unittest.NonexistentID)
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	err := RemoveTeamMember(db.DefaultContext, team, 2)
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team2 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	testSuccess(team1, user4)
+	testSuccess(team2, user2)
+	testSuccess(team3, user2)
+
+	err := RemoveTeamMember(db.DefaultContext, team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 }
 
@@ -155,15 +173,15 @@ func TestRepository_RecalculateAccesses3(t *testing.T) {
 	team5 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
 	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 
-	has, err := db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: 29, RepoID: 23})
+	has, err := db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: user29.ID, RepoID: 23})
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	// adding user29 to team5 should add an explicit access row for repo 23
 	// even though repo 23 is public
-	assert.NoError(t, AddTeamMember(db.DefaultContext, team5, user29.ID))
+	assert.NoError(t, AddTeamMember(db.DefaultContext, team5, user29))
 
-	has, err = db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: 29, RepoID: 23})
+	has, err = db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: user29.ID, RepoID: 23})
 	assert.NoError(t, err)
 	assert.True(t, has)
 }
