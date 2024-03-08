@@ -5,8 +5,6 @@ package gitrepo
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 )
@@ -43,13 +41,9 @@ func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
 
 // GetDefaultBranch gets default branch of repository.
 func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
-	stdout, _, err := git.NewCommand(ctx, "symbolic-ref", "HEAD").RunStdString(&git.RunOpts{Dir: repoPath(repo)})
-	if err != nil {
-		return "", err
-	}
-	stdout = strings.TrimSpace(stdout)
-	if !strings.HasPrefix(stdout, git.BranchPrefix) {
-		return "", errors.New("the HEAD is not a branch: " + stdout)
-	}
-	return strings.TrimPrefix(stdout, git.BranchPrefix), nil
+	return git.GetDefaultBranch(ctx, repoPath(repo))
+}
+
+func GetWikiDefaultBranch(ctx context.Context, repo Repository) (string, error) {
+	return git.GetDefaultBranch(ctx, wikiPath(repo))
 }

@@ -6,6 +6,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -52,6 +53,18 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 		Path:    stdout,
 		gitRepo: repo,
 	}, nil
+}
+
+func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
+	stdout, _, err := NewCommand(ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repoPath})
+	if err != nil {
+		return "", err
+	}
+	stdout = strings.TrimSpace(stdout)
+	if !strings.HasPrefix(stdout, BranchPrefix) {
+		return "", errors.New("the HEAD is not a branch: " + stdout)
+	}
+	return strings.TrimPrefix(stdout, BranchPrefix), nil
 }
 
 // GetBranch returns a branch by it's name
