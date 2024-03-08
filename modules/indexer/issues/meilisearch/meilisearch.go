@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 3
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -47,6 +47,9 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 		},
 		DisplayedAttributes: []string{
 			"id",
+			"title",
+			"content",
+			"comments",
 		},
 		FilterableAttributes: []string{
 			"repo_id",
@@ -223,6 +226,20 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
+		if !options.IsFuzzyKeyword {
+			// as meilisearch does not have a non-fuzzy search and you can only change "typo tolerance" per index we have to post-filter the results
+			// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
+			title, _ := hit.(map[string]any)["title"].(string)
+			if !strings.Contains(title, options.Keyword) {
+				content, _ := hit.(map[string]any)["content"].(string)
+				if !strings.Contains(content, options.Keyword) {
+					comments, _ := hit.(map[string]any)["comments"].(string)
+					if !strings.Contains(comments, options.Keyword) {
+						continue
+					}
+				}
+			}
+		}
 		hits = append(hits, internal.Match{
 			ID: int64(hit.(map[string]any)["id"].(float64)),
 		})

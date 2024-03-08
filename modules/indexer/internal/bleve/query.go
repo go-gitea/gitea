@@ -25,6 +25,13 @@ func MatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQue
 	return q
 }
 
+// PrefixQuery generates a match prefix query for the given phrase and field
+func PrefixQuery(matchPhrase, field string) *query.PrefixQuery {
+	q := bleve.NewPrefixQuery(matchPhrase)
+	q.FieldVal = field
+	return q
+}
+
 // BoolFieldQuery generates a bool field query for the given value and field
 func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	q := bleve.NewBoolFieldQuery(value)

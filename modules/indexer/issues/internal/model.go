@@ -74,7 +74,7 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	IsFuzzy bool // if true set the Damerau-Levenshtein distance from 0 to 2
+	IsFuzzyKeyword bool // if false the levenshtein distance is 0
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories

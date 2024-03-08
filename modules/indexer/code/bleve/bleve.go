@@ -239,15 +239,15 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		keywordQuery query.Query
 	)
 
-	if !isFuzzy {
-		prefixQuery := bleve.NewPrefixQuery(keyword)
-		prefixQuery.FieldVal = "Content"
-		keywordQuery = prefixQuery
-	} else {
+	if isFuzzy {
 		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 		phraseQuery.FieldVal = "Content"
 		phraseQuery.Analyzer = repoIndexerAnalyzer
 		keywordQuery = phraseQuery
+	} else {
+		prefixQuery := bleve.NewPrefixQuery(keyword)
+		prefixQuery.FieldVal = "Content"
+		keywordQuery = prefixQuery
 	}
 
 	if len(repoIDs) > 0 {
