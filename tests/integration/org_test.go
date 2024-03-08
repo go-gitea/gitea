@@ -90,7 +90,7 @@ func TestPrivateOrg(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
-	session := loginUser(t, "user2")
+	session := loginUser(t, "user8")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
