@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
+	"mime/quotedprintable"
 	"regexp"
 	"strings"
 	"testing"
@@ -105,11 +107,19 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.Equal(t, "<mailto:"+replyTo+">", gomailMsg.GetHeader("List-Post")[0])
 	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 2) // url + mailto
 
-	var buf strings.Builder
+	var buf bytes.Buffer
 	gomailMsg.WriteTo(&buf)
-	mailMsg := strings.ReplaceAll(strings.ReplaceAll(buf.String(), "=", ""), "\r\n", "") // naïve quoted printable decoding, to allow string searching
-	assert.Contains(t, mailMsg, fmt.Sprintf(`"%s"`, doer.HTMLURL()))
-	assert.Contains(t, mailMsg, fmt.Sprintf(`"%s"`, issue.HTMLURL()))
+
+	b, err := io.ReadAll(quotedprintable.NewReader(&buf))
+	assert.NoError(t, err)
+
+	// text/plain
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL()))
+
+	// text/html
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
 }
 
 func TestComposeIssueMessage(t *testing.T) {
