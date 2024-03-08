@@ -267,7 +267,7 @@ func TestAPIViewRepo(t *testing.T) {
 	assert.EqualValues(t, 1, repo.ID)
 	assert.EqualValues(t, "repo1", repo.Name)
 	assert.EqualValues(t, 2, repo.Releases)
-	assert.EqualValues(t, 1, repo.OpenIssues)
+	assert.EqualValues(t, 2, repo.OpenIssues)
 	assert.EqualValues(t, 3, repo.OpenPulls)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
