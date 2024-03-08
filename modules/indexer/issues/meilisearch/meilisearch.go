@@ -23,10 +23,8 @@ const (
 	maxTotalHits = 10000
 )
 
-var (
-	// ErrMalformedResponse is never expected as we initialize the indexer ourself and so define the types.
-	ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
-)
+// ErrMalformedResponse is never expected as we initialize the indexer ourself and so define the types.
+var ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
 
 var _ internal.Indexer = &Indexer{}
 
