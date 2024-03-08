@@ -108,8 +108,8 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	var buf strings.Builder
 	gomailMsg.WriteTo(&buf)
 	mailMsg := strings.ReplaceAll(strings.ReplaceAll(buf.String(), "=", ""), "\r\n", "") // naïve quoted printable decoding, to allow string searching
-	assert.Contains(t, mailMsg, fmt.Sprintf("&#34;%s&#34;", doer.HTMLURL()))
-	assert.Contains(t, mailMsg, fmt.Sprintf("&#34;%s&#34;", issue.HTMLURL()))
+	assert.Contains(t, mailMsg, fmt.Sprintf(`"%s"`, doer.HTMLURL()))
+	assert.Contains(t, mailMsg, fmt.Sprintf(`"%s"`, issue.HTMLURL()))
 }
 
 func TestComposeIssueMessage(t *testing.T) {
