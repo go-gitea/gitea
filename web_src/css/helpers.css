@@ -52,34 +52,14 @@ Gitea's private styles use `g-` prefix.
 /* below class names match Tailwind CSS */
 .gt-break-all { word-break: break-all !important; }
 .gt-content-center { align-content: center !important; }
-.gt-cursor-default { cursor: default !important; }
-.gt-cursor-pointer { cursor: pointer !important; }
-.gt-cursor-grab { cursor: grab !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
-.gt-whitespace-nowrap { white-space: nowrap !important; }
-.gt-whitespace-pre { white-space: pre !important; }
-.gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
 .gt-object-contain { object-fit: contain !important; }
-.gt-self-center { align-self: center !important; }
-.gt-self-start { align-self: flex-start !important; }
-.gt-self-end { align-self: flex-end !important; }
 .gt-no-underline { text-decoration-line: none !important; }
 .gt-normal-case { text-transform: none !important; }
 .gt-italic { font-style: italic !important; }
-.gt-overflow-x-auto { overflow-x: auto !important; }
-.gt-overflow-x-scroll { overflow-x: scroll !important; }
-.gt-overflow-y-hidden { overflow-y: hidden !important; }
-
-.gt-float-left { float: left !important; }
-.gt-float-right { float: right !important; }
-.gt-clear-both { clear: both !important; }
-
-.gt-text-center { text-align: center !important; }
-.gt-text-left { text-align: left !important; }
-.gt-text-right { text-align: right !important; }
 
 .gt-font-light { font-weight: var(--font-weight-light) !important; }
 .gt-font-normal { font-weight: var(--font-weight-normal) !important; }

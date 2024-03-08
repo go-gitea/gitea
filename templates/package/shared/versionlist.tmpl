@@ -23,7 +23,7 @@
 	<div class="flex-list">
 		<div class="flex-item">
 			<div class="flex-item-main">
-				<a class="flex-item-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
+				<a class="flex-item-title" href="{{.VersionWebLink}}">{{.Version.LowerVersion}}</a>
 				<div class="flex-item-body">
 					{{ctx.Locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix ctx.Locale) .Creator.HomeLink .Creator.GetDisplayName}}
 				</div>

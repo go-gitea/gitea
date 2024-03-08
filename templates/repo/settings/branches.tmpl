@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message gt-text-center">
+			<div class="ui warning message tw-text-center">
 				{{ctx.Locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
 			</div>
 		{{else}}
