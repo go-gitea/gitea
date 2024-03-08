@@ -57,14 +57,7 @@ func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOp
 		return "", err
 	}
 
-	wikiRepo, err := git.OpenRepository(ctx, wikiPath)
-	if err != nil {
-		cleanIncompleteWikiPath()
-		return "", fmt.Errorf("failed to open wiki repo %q, err: %w", wikiPath, err)
-	}
-	defer wikiRepo.Close()
-
-	defaultBranch, err := wikiRepo.GetDefaultBranch()
+	defaultBranch, err := git.GetDefaultBranch(ctx, wikiPath)
 	if err != nil {
 		cleanIncompleteWikiPath()
 		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", wikiPath, err)
