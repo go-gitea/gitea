@@ -24,6 +24,7 @@ const (
 )
 
 var (
+	// ErrMalformedResponse is never expected as we initialize the indexer ourself and so define the types.
 	ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
 )
 
