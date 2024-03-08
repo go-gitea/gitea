@@ -564,6 +564,8 @@ var migrations = []Migration{
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
 	// v289 -> v290
 	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
+	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -19,6 +19,8 @@
 						<div class="flex-text-inline">
 							{{if .IsSucceed}}
 								<span class="text green">{{svg "octicon-check"}}</span>
+							{{else if not .IsDelivered}}
+								<span class="text orange">{{svg "octicon-stopwatch"}}</span>
 							{{else}}
 								<span class="text red">{{svg "octicon-alert"}}</span>
 							{{end}}
@@ -62,7 +64,7 @@
 {{range $key, $val := .RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.payload"}}</h5>
-								<pre class="webhook-info"><code class="json">{{.PayloadContent}}</code></pre>
+								<pre class="webhook-info"><code class="json">{{or .RequestInfo.Body .PayloadContent}}</code></pre>
 							{{else}}
 								-
 							{{end}}
