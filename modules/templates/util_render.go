@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
@@ -118,28 +119,38 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 }
 
 // RenderLabel renders a label
-func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
-	labelScope := label.ExclusiveScope()
+func RenderLabel(ctx *gitea_context.Base, label *issues_model.Label) template.HTML {
+	var (
+		description string
+		archivedCSS string
+		textColor   = "#111"
+		isArchived  = !label.ArchivedUnix.IsZero()
+		labelScope  = label.ExclusiveScope()
+	)
 
-	textColor := "#111"
 	r, g, b := util.HexToRBGColor(label.Color)
 	// Determine if label text should be light or dark to be readable on background color
 	if util.UseLightTextOnBackground(r, g, b) {
 		textColor = "#eee"
 	}
 
-	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+	if isArchived {
+		description = ctx.Locale.TrString("archived")
+		archivedCSS = fmt.Sprintf("border-width: 1px !important; border-color: %s !important;", textColor)
+	} else {
+		description = emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+	}
 
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' data-tooltip-content title='%s'>%s</div>",
-			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
+		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important; %s' data-tooltip-content title='%s'>%s</div>",
+			textColor, label.Color, archivedCSS, description, RenderEmoji(ctx, label.Name))
 		return template.HTML(s)
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(ctx, labelScope)
-	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
+	scopeText := RenderEmoji(ctx.Req.Context(), labelScope)
+	itemText := RenderEmoji(ctx.Req.Context(), label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
@@ -166,11 +177,11 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label scope-parent' data-tooltip-content title='%s'>"+
+	s := fmt.Sprintf("<span class='ui label scope-parent' data-tooltip-content title='%s' style='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
-		description,
+		description, archivedCSS,
 		textColor, scopeColor, scopeText,
 		textColor, itemColor, itemText)
 	return template.HTML(s)
@@ -211,7 +222,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return output
 }
 
-func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx *gitea_context.Base, labels []*issues_model.Label, repoLink string) template.HTML {
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
