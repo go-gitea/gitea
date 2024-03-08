@@ -57,8 +57,8 @@ func TestAPIListIssues(t *testing.T) {
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 2) {
-		assert.EqualValues(t, 23, apiIssues[1].ID)
-		assert.EqualValues(t, 5, apiIssues[0].ID)
+		assert.EqualValues(t, 23, apiIssues[0].ID)
+		assert.EqualValues(t, 5, apiIssues[1].ID)
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "assigned_by": {"user1"}}.Encode()
