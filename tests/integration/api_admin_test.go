@@ -203,6 +203,8 @@ func TestAPIEditUser(t *testing.T) {
 		"full_name": "Full Name User 2",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	assert.Equal(t, "Full Name User 2", user2.FullName)
 
 	empty := ""
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
@@ -216,7 +218,7 @@ func TestAPIEditUser(t *testing.T) {
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "e-mail invalid [email: ]", errMap["message"].(string))
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{

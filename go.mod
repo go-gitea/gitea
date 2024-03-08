@@ -7,7 +7,7 @@ require (
 	code.gitea.io/gitea-vet v0.2.3
 	code.gitea.io/sdk/gitea v0.17.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669
+	gitea.com/go-chi/binding v0.0.0-20240308081413-1d3a5e518f67
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20230415143339-2c0754df4384
 	gitea.com/go-chi/session v0.0.0-20230613035928-39541325faa3
