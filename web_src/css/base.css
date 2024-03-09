@@ -872,10 +872,18 @@ img.ui.avatar,
   border-color: var(--color-error-border) !important;
 }
 
-/* A fix for text visibility issue in Chrome autofill in dark mode. */
-/* It's a problem from Formatic UI, and this rule overrides it. */
-.ui.form .field.field input:-webkit-autofill {
-  -webkit-text-fill-color: var(--color-black) !important;
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+.ui.form .field.field input:-webkit-autofill,
+.ui.form .field.field input:-webkit-autofill:focus,
+.ui.form .field.field input:-webkit-autofill:hover,
+.ui.form .field.field input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
+  border-color: var(--color-primary-light-4) !important;
 }
 
 .ui.form .field.muted {

@@ -13,7 +13,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
+						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
@@ -36,7 +36,7 @@
 						{{if .Assignees}}
 						<div class="text grey">
 							{{range .Assignees}}
-								<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+								<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
 									{{ctx.AvatarUtils.Avatar . 20}}
 								</a>
 							{{end}}
@@ -44,7 +44,7 @@
 						{{end}}
 						{{if .NumComments}}
 						<div class="text grey">
-							<a class="gt-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+							<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 								{{svg "octicon-comment" 16}}{{.NumComments}}
 							</a>
 						</div>

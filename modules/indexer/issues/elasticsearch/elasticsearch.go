@@ -19,6 +19,10 @@ import (
 
 const (
 	issueIndexerLatestVersion = 1
+	// multi-match-types, currently only 2 types are used
+	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
+	esMultiMatchTypeBestFields   = "best_fields"
+	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -141,7 +145,13 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments"))
+
+		searchType := esMultiMatchTypePhrasePrefix
+		if options.IsFuzzyKeyword {
+			searchType = esMultiMatchTypeBestFields
+		}
+
+		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(searchType))
 	}
 
 	if len(options.RepoIDs) > 0 {
