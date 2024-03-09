@@ -288,6 +288,7 @@ func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, i
 				} else if len(comments) == 0 {
 					return false, nil
 				}
+
 				// now we iterate over all and report as soon as we detect one match
 				for i := range comments {
 					comment, ok := comments[i].(string)
