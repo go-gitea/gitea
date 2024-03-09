@@ -11,7 +11,7 @@
 				<div class="ui floating dropdown icon button mini">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
 					<i>{{svg "octicon-git-branch"}}</i>
-					<span class="text" style="font-size: medium">{{index .Branches 0}}</span>
+					<span class="text" style="font-size: small">{{index .Branches 0}}</span>
 					<div class="menu">
 						<div class="ui icon search input">
 							<i class="search icon">{{svg "octicon-search" 16 "search icon"}}</i>
@@ -42,7 +42,7 @@
 			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
 				{{if eq .Type "choice"}}
-					<label>{{$key}} :</label>
+					<label>{{$key}}:</label>
 					<select class="ui fluid dropdown" name="{{$key}}">
 						{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
@@ -56,11 +56,11 @@
 						<span class="help">{{.Description}}</span>
 					</div>
 				{{else if eq .Type "number"}}
-					<label>{{$key}} :</label>
+					<label>{{$key}}:</label>
 					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 					<span class="help">{{.Description}}</span>
 				{{else}}
-					<label>{{$key}} :</label>
+					<label>{{$key}}:</label>
 					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 					<span class="help">{{.Description}}</span>
 				{{end}}
