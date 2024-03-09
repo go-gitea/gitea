@@ -68,7 +68,7 @@
 					{{range .Runners}}
 					<tr>
 						<td>
-							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
+							<span class="ui {{if .IsOnline}}green{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>

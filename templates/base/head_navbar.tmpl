@@ -14,7 +14,7 @@
 		<div class="ui secondary menu item navbar-mobile-right">
 			{{if .IsSigned}}
 			<a id="mobile-notifications-icon" class="item tw-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="gt-relative">
+				<div class="tw-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
 				</div>
@@ -76,7 +76,7 @@
 		{{else if .IsSigned}}
 			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}">
-				<div class="gt-relative">
+				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
 				</div>
@@ -112,7 +112,7 @@
 			{{end}}
 
 			<a class="item not-mobile gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="gt-relative">
+				<div class="tw-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
 				</div>
