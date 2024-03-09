@@ -425,7 +425,7 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
-// GetCompleteName returns the the full name and username in the form of
+// GetCompleteName returns the full name and username in the form of
 // "Full Name (username)" if full name is not empty, otherwise it returns
 // "username".
 func (u *User) GetCompleteName() string {

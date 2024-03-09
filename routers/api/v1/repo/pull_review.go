@@ -545,7 +545,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 		return nil, nil, true
 	}
 
-	// validate the the review is for the given PR
+	// validate the review is for the given PR
 	if review.IssueID != pr.IssueID {
 		ctx.NotFound("ReviewNotInPR")
 		return nil, nil, true
