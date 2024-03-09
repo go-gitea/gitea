@@ -261,36 +261,52 @@ func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, i
 
 		if !isFuzzy {
 			keyword = strings.ToLower(keyword)
-			title, ok := hit["title"].(string)
-			if !ok {
-				return nil, ErrMalformedResponse
-			}
-			if !strings.Contains(strings.ToLower(title), keyword) {
+
+			// declare a anon func to check if the title, content or at least one comment contains the keyword
+			found, err := func() (bool, error) {
+				// check if title match first
+				title, ok := hit["title"].(string)
+				if !ok {
+					return false, ErrMalformedResponse
+				} else if strings.Contains(strings.ToLower(title), keyword) {
+					return true, nil
+				}
+
+				// check if content has a match
 				content, ok := hit["content"].(string)
 				if !ok {
-					return nil, ErrMalformedResponse
+					return false, ErrMalformedResponse
+				} else if strings.Contains(strings.ToLower(content), keyword) {
+					return true, nil
 				}
-				if !strings.Contains(strings.ToLower(content), keyword) {
-					comments, ok := hit["comments"].([]any)
+
+				// now check for each comment if one has a match
+				// so we first try to cast and skip if there are no comments
+				comments, ok := hit["comments"].([]any)
+				if !ok {
+					return false, ErrMalformedResponse
+				} else if len(comments) == 0 {
+					return false, nil
+				}
+				// now we iterate over all and report as soon as we detect one match
+				for i := range comments {
+					comment, ok := comments[i].(string)
 					if !ok {
-						return nil, ErrMalformedResponse
+						return false, ErrMalformedResponse
 					}
-					found := false
-					for i := range comments {
-						comment, ok := comments[i].(string)
-						if !ok {
-							return nil, ErrMalformedResponse
-						}
-						if strings.Contains(strings.ToLower(comment), keyword) {
-							found = true
-							break
-						}
-					}
-					if !found {
-						// we could not have a direct match, so ignore that hit and move on ...
-						continue
+					if strings.Contains(strings.ToLower(comment), keyword) {
+						return true, nil
 					}
 				}
+
+				// we got no match
+				return false, nil
+			}()
+
+			if err != nil {
+				return nil, err
+			} else if !found {
+				continue
 			}
 		}
 		issueID, ok := hit["id"].(float64)
