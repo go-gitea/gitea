@@ -31,7 +31,7 @@ export default {
     isProduction && '!./web_src/js/standalone/devtest.js',
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
-    '!./modules/{public,options/templates}/bindata.go',
+    '!./modules/{public,options,templates}/bindata.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{js,vue}',
