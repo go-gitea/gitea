@@ -20,7 +20,7 @@
 						<div class="scrolling menu">
 							<div class="header">
 								{{svg "octicon-git-branch"}}
-								Branches
+								{{ctx.Locale.Tr "repo.branches"}}
 							</div>
 							{{range $key, $item := .Branches}}
 							<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
@@ -28,7 +28,7 @@
 							<div class="divider"></div>
 							<div class="header">
 								{{svg "octicon-tag"}}
-								Tags
+								{{ctx.Locale.Tr "repo.tags"}}
 							</div>
 							{{range $key, $item := .Tags}}
 							<div class="item" data-value="refs/tags/{{.}}">{{.}}</div>
