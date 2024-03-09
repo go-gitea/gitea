@@ -551,6 +551,7 @@ func wechatworkHookParams(ctx *context.Context) webhookParams {
 		Type:        webhook_module.WECHATWORK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
+		HTTPMethod:  http.MethodPost,
 		WebhookForm: form.WebhookForm,
 	}
 }
