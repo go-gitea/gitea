@@ -85,12 +85,14 @@ import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
+import {initMidnightRelativeTime} from './features/midnight.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
 initDirAuto();
 
 onDomReady(() => {
+  initMidnightRelativeTime();
   initGlobalCommon();
 
   initGlobalTooltips();
