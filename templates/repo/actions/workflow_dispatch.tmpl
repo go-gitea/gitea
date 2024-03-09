@@ -10,7 +10,7 @@
 				<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}} :</label>
 				<div class="ui floating dropdown icon button mini">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
-					<i>{{svg "octicon-git-branch"}}</i>
+					{{svg "octicon-git-branch"}}
 					<span class="text" style="font-size: small">{{index .Branches 0}}</span>
 					<div class="menu">
 						<div class="ui icon search input">
