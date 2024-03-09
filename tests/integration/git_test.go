@@ -461,6 +461,19 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		// Ensure the PR page works
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 
+		t.Run("EnsureCanEditPullFile", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			editButtonCount := doc.doc.Find("div.diff-file-header-actions a[href*='/_edit/']").Length()
+			assert.Greater(t, editButtonCount, 0, "Expected to find a button to edit a file in the PR diff view but there were none")
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+
 		// Then get the diff string
 		var diffHash string
 		var diffLength int
