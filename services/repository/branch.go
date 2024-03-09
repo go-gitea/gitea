@@ -16,9 +16,11 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/queue"
@@ -99,7 +101,6 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 		}
-
 		branches = append(branches, branch)
 	}
 
@@ -109,8 +110,42 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 	}
-
 	return defaultBranch, branches, totalNumOfBranches, nil
+}
+
+func getDivergenceCacheKey(repoID int64, branchName string) string {
+	return fmt.Sprintf("%d-%s", repoID, branchName)
+}
+
+// getDivergenceFromCache gets the divergence from cache
+func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
+	data := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
+	res := git.DivergeObject{
+		Ahead:  -1,
+		Behind: -1,
+	}
+	s, ok := data.([]byte)
+	if !ok || len(s) == 0 {
+		return &res, false
+	}
+
+	if err := json.Unmarshal(s, &res); err != nil {
+		log.Error("json.UnMarshal failed: %v", err)
+		return &res, false
+	}
+	return &res, true
+}
+
+func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) error {
+	bs, err := json.Marshal(divergence)
+	if err != nil {
+		return err
+	}
+	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), bs, 30*24*60*60)
+}
+
+func DelDivergenceFromCache(repoID int64, branchName string) error {
+	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
 }
 
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
@@ -130,10 +165,18 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
-		var err error
-		divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
-		if err != nil {
-			log.Error("CountDivergingCommits: %v", err)
+		var cached bool
+		divergence, cached = getDivergenceFromCache(repo.ID, dbBranch.Name)
+		if !cached {
+			var err error
+			divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
+			if err != nil {
+				log.Error("CountDivergingCommits: %v", err)
+			} else {
+				if err = putDivergenceFromCache(repo.ID, dbBranch.Name, divergence); err != nil {
+					log.Error("putDivergenceFromCache: %v", err)
+				}
+			}
 		}
 	}
 
@@ -375,7 +418,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				log.Error("CancelRunningJobs: %v", err)
 			}
 
-			err2 = gitRepo.SetDefaultBranch(to)
+			err2 = gitrepo.SetDefaultBranch(ctx, repo, to)
 			if err2 != nil {
 				return err2
 			}
@@ -540,7 +583,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("CancelRunningJobs: %v", err)
 		}
 
-		if err := gitRepo.SetDefaultBranch(newBranchName); err != nil {
+		if err := gitrepo.SetDefaultBranch(ctx, repo, newBranchName); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
 				return err
 			}

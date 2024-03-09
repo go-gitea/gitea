@@ -46,12 +46,6 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
-/* below class names match Tailwind CSS */
-.gt-object-contain { object-fit: contain !important; }
-.gt-no-underline { text-decoration-line: none !important; }
-.gt-normal-case { text-transform: none !important; }
-.gt-italic { font-style: italic !important; }
-
 .gt-font-light { font-weight: var(--font-weight-light) !important; }
 .gt-font-normal { font-weight: var(--font-weight-normal) !important; }
 .gt-font-medium { font-weight: var(--font-weight-medium) !important; }
@@ -69,23 +63,6 @@ Gitea's private styles use `g-` prefix.
 .gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
-.gt-bg-red { background: var(--color-red) !important; }
-.gt-bg-orange { background: var(--color-orange) !important; }
-.gt-bg-yellow { background: var(--color-yellow) !important; }
-.gt-bg-olive { background: var(--color-olive) !important; }
-.gt-bg-green { background: var(--color-green) !important; }
-.gt-bg-teal { background: var(--color-teal) !important; }
-.gt-bg-blue { background: var(--color-blue) !important; }
-.gt-bg-violet { background: var(--color-violet) !important; }
-.gt-bg-purple { background: var(--color-purple) !important; }
-.gt-bg-pink { background: var(--color-pink) !important; }
-.gt-bg-brown { background: var(--color-brown) !important; }
-.gt-bg-grey { background: var(--color-grey) !important; }
-.gt-bg-gold { background: var(--color-gold) !important; }
-.gt-bg-transparent { background: transparent !important; }
-
-.gt-text-white { color: var(--color-white) !important; }
 
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
