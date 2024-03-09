@@ -10,7 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+
+	"github.com/meilisearch/meilisearch-go"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMeilisearchIndexer(t *testing.T) {
@@ -47,4 +51,45 @@ func TestMeilisearchIndexer(t *testing.T) {
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)
+}
+
+func TestNonFuzzyWorkaround(t *testing.T) {
+	// get unexpected return
+	_, err := nonFuzzyWorkaround(&meilisearch.SearchResponse{
+		Hits: []any{"aa", "bb", "cc", "dd"},
+	}, "bowling", false)
+	assert.ErrorIs(t, err, ErrMalformedResponse)
+
+	validResponse := &meilisearch.SearchResponse{
+		Hits: []any{
+			map[string]any{
+				"id":       float64(11),
+				"title":    "a title",
+				"content":  "issue body with no match",
+				"comments": []any{"hey whats up?", "I'm currently bowling", "nice"},
+			},
+			map[string]any{
+				"id":       float64(22),
+				"title":    "Bowling as title",
+				"content":  "",
+				"comments": []any{},
+			},
+			map[string]any{
+				"id":       float64(33),
+				"title":    "Bowl-ing as fuzzy match",
+				"content":  "",
+				"comments": []any{},
+			},
+		},
+	}
+
+	// nonFuzzy
+	hits, err := nonFuzzyWorkaround(validResponse, "bowling", false)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}}, hits)
+
+	// fuzzy
+	hits, err = nonFuzzyWorkaround(validResponse, "bowling", true)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}, {ID: 33}}, hits)
 }

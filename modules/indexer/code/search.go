@@ -124,12 +124,13 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*internal.SearchResultLanguages, error) {
+// if isFuzzy is true set the Damerau-Levenshtein distance from 0 to 2
+func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int, []*Result, []*internal.SearchResultLanguages, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
+	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isFuzzy)
 	if err != nil {
 		return 0, nil, nil, err
 	}
