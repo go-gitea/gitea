@@ -16,6 +16,7 @@ func Init(r *web.Route) {
 		err := m.HandleRequest(ctx.Resp, ctx.Req)
 		if err != nil {
 			ctx.ServerError("HandleRequest", err)
+			return
 		}
 	})
 }
