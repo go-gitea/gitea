@@ -20,9 +20,7 @@
 								{{if .CodeIndexerUnavailable}}
 									<i class="icon">{{svg "octicon-alert"}}</i>
 								{{end}}
-								<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
-									{{svg "octicon-search"}}
-								</button>
+								{{template "shared/search/button"}}
 							</div>
 						</div>
 					</form>
