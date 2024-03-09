@@ -170,7 +170,7 @@ func List(ctx *context.Context) {
 				}
 				branches, err := git_model.FindBranchNames(ctx, branchOpts)
 				if err != nil {
-					ctx.JSON(http.StatusInternalServerError, err)
+					ctx.ServerError("FindBranchNames", err)
 					return
 				}
 				// always put default branch on the top if it exists
@@ -181,9 +181,11 @@ func List(ctx *context.Context) {
 				ctx.Data["Branches"] = branches
 
 				tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-				if err == nil {
-					ctx.Data["Tags"] = tags
+				if err != nil {
+					ctx.ServerError("GetTagNamesByRepoID", err)
+					return
 				}
+				ctx.Data["Tags"] = tags
 			}
 		}
 	}
