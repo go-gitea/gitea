@@ -52,8 +52,8 @@
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="text"></div>
 								<div class="menu">
-									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</div>
+									<div data-value="all" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.all"}}</div>
+									<div data-value="notyourtriggers" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.notyourtriggers"}}</div>
 									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.onmention"}}</div>
 									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
 								</div>
