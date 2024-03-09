@@ -23,10 +23,8 @@
 	<form class="list-header-search ui form ignore-dirty">
 		<div class="ui small search fluid action input">
 			<input type="hidden" name="state" value="{{$.State}}">
-			{{template "shared/searchinput" dict "Value" .Keyword}}
-			<button class="ui small icon button" type="submit" aria-label="{{ctx.Locale.Tr "search.search"}}">
-				{{svg "octicon-search"}}
-			</button>
+			{{template "shared/search/input" dict "Value" .Keyword}}
+			{{template "shared/search/button"}}
 		</div>
 	</form>
 	<!-- Sort -->

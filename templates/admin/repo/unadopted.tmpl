@@ -11,7 +11,7 @@
 				<div class="ui fluid action input">
 				<input name="search" value="true" type="hidden">
 				<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "repo.adopt_search"}}" autofocus>
-				<button class="ui primary button">{{ctx.Locale.Tr "search.search"}}</button>
+				{{template "shared/search/button"}}
 				</div>
 			</form>
 		</div>

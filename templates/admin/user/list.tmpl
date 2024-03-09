@@ -54,8 +54,8 @@
 
 				<!-- Search Text -->
 				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "Value" .Keyword}}
-					<button class="ui primary button">{{ctx.Locale.Tr "search.search"}}</button>
+					{{template "shared/search/input" dict "Value" .Keyword}}
+					{{template "shared/search/button"}}
 				</div>
 			</form>
 		</div>

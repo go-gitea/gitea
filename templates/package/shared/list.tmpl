@@ -2,7 +2,7 @@
 {{if .HasPackages}}
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "Value" .Query}}
+		{{template "shared/search/input" dict "Value" .Query}}
 		<select class="ui dropdown" name="type">
 			<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
 			<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
@@ -10,7 +10,7 @@
 			<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
 			{{end}}
 		</select>
-		<button class="ui primary button">{{ctx.Locale.Tr "search.search"}}</button>
+		{{template "shared/search/button"}}
 	</div>
 </form>
 {{end}}

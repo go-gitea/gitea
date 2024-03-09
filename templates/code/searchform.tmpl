@@ -1,7 +1,7 @@
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "Value" .Keyword "Disabled" .CodeIndexerUnavailable}}
-		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
+		{{template "shared/search/input" dict "Value" .Keyword "Disabled" .CodeIndexerUnavailable}}
+		<div class="ui small dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
 			<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="text">{{ctx.Locale.Tr (printf "search.%s" (or .queryType "fuzzy"))}}</div>
 			<div class="menu">
@@ -9,6 +9,6 @@
 				<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "search.match_tooltip"}}">{{ctx.Locale.Tr "search.match"}}</div>
 			</div>
 		</div>
-		<button class="ui primary button"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{ctx.Locale.Tr "search.search"}}</button>
+		{{template "shared/search/button"}}
 	</div>
 </form>
