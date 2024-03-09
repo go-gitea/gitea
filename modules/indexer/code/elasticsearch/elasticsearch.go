@@ -281,10 +281,10 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchType := esMultiMatchTypeBestFields
-	if isMatch {
-		searchType = esMultiMatchTypePhrasePrefix
+func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+	searchType := esMultiMatchTypePhrasePrefix
+	if isFuzzy {
+		searchType = esMultiMatchTypeBestFields
 	}
 
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
