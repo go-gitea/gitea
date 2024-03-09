@@ -335,6 +335,10 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
+					<div class="inline field gt-pl-4">
+						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
+						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>

@@ -93,8 +93,10 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		if _, err := tmpBlock.WriteString(html.EscapeString(string(rawBytes))); err != nil {
 			return err
 		}
-		_, err = tmpBlock.WriteString("</pre>")
-		return err
+		if _, err := tmpBlock.WriteString("</pre>"); err != nil {
+			return err
+		}
+		return tmpBlock.Flush()
 	}
 
 	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
