@@ -74,6 +74,8 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
+	IsFuzzyKeyword bool // if false the levenshtein distance is 0
+
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
 
