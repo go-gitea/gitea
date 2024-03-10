@@ -53,5 +53,5 @@ func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
 	// do not add any more uncommon params here!
-	p.AddParam(ctx, "t", "queryType")
+	p.AddParam(ctx, "fuzzy", "IsFuzzy")
 }

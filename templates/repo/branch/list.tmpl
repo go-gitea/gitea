@@ -75,10 +75,7 @@
 
 		<div class="ui attached segment">
 			<form class="ignore-dirty" method="get">
-				<div class="ui fluid action input">
-					{{template "shared/search/input" dict "Value" .Keyword}}
-					{{template "shared/search/button"}}
-				</div>
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.branch_kind")}}
 			</form>
 		</div>
 

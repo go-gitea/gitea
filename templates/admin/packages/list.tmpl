@@ -15,7 +15,7 @@
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
 					{{template "shared/search/input" dict "Value" .Query}}
-					<select class="ui dropdown" name="type">
+					<select class="ui small dropdown" name="type">
 						<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
 						<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
 						{{range $type := .AvailableTypes}}

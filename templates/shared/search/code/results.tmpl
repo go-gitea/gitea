@@ -1,0 +1,41 @@
+<div class="flex-text-block gt-fw">
+	{{$pageURL := print $.SourcePath "/search"}}
+	{{if and $.PageIsExploreCode $.ContextUser}}
+		{{$pageURL = print AppSubUrl "/" $.ContextUser.Name "/-/code"}}
+	{{else if $.PageIsExploreCode}}
+		{{$pageURL = print AppSubUrl "/explore/code"}}
+	{{end}}
+	{{range $term := .SearchResultLanguages}}
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0"
+		href="{{$pageURL}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
+		<i class="color-icon gt-mr-3" style="background-color: {{$term.Color}}"></i>
+		{{$term.Language}}
+		<div class="detail">{{$term.Count}}</div>
+	</a>
+	{{end}}
+</div>
+<div class="repository search">
+	{{range $result := .SearchResults}}
+		{{$repoLink := $.SourcePath}}
+		{{if $.PageIsExploreCode}}{{$repoLink = (index $.RepoMaps .RepoID).Link}}{{end}}
+		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
+			<h4 class="ui top attached normal header gt-df gt-fw">
+				<span class="file gt-f1">
+					{{if $.PageIsExploreCode}}
+					{{$repo := (index $.RepoMaps .RepoID)}}
+					<a rel="nofollow" href="{{$repoLink}}">{{$repo.FullName}}</a>
+						{{if $repo.IsArchived}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						{{end}}
+					-{{end}} {{.Filename}}
+				</span>
+				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repoLink}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+			</h4>
+			<div class="ui attached table segment">
+				{{template "shared/searchfile" dict "RepoLink" $repoLink "SearchResult" .}}
+			</div>
+			{{template "shared/searchbottom" dict "root" $ "result" .}}
+		</div>
+	{{end}}
+</div>
+{{template "base/paginate" .}}

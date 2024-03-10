@@ -52,11 +52,7 @@
 					</div>
 				</div>
 
-				<!-- Search Text -->
-				<div class="ui fluid action input">
-					{{template "shared/search/input" dict "Value" .Keyword}}
-					{{template "shared/search/button"}}
-				</div>
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 			</form>
 		</div>
 		<div class="ui attached table segment">

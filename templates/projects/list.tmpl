@@ -21,11 +21,8 @@
 <div class="list-header">
 	<!-- Search -->
 	<form class="list-header-search ui form ignore-dirty">
-		<div class="ui small search fluid action input">
-			<input type="hidden" name="state" value="{{$.State}}">
-			{{template "shared/search/input" dict "Value" .Keyword}}
-			{{template "shared/search/button"}}
-		</div>
+		<input type="hidden" name="state" value="{{$.State}}">
+		{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.project_kind")}}
 	</form>
 	<!-- Sort -->
 	<div class="list-header-sort ui small dropdown type jump item">

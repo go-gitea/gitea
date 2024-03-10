@@ -46,14 +46,11 @@
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">
-						<div class="ui small search fluid action input">
-							<input type="hidden" name="type" value="{{$.ViewType}}">
+						<input type="hidden" name="type" value="{{$.ViewType}}">
 							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							{{template "shared/search/input" dict "Value" $.Keyword}}
-							{{template "shared/search/button"}}
-						</div>
+						{{template "shared/search/combo" dict "Value" $.Keyword}}
 					</form>
 					<!-- Sort -->
 					<div class="list-header-sort ui dropdown type jump item">

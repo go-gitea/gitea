@@ -21,16 +21,12 @@
 	<div class="ui attached segment">
 		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 			<div class="ui fluid action input">
-				{{template "shared/search/input" dict "Value" .Keyword}}
-				<div class="ui small dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
-					<input name="all" type="hidden" value="{{.All}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<div class="text">{{if .All}}{{ctx.Locale.Tr "repo.commits.search_all"}}{{else}}{{ctx.Locale.Tr "repo.commits.search_branch"}}{{end}}</div>
-					<div class="menu">
-						<div class="item" data-value="">{{ctx.Locale.Tr "repo.commits.search_branch"}}</div>
-						<div class="item" data-value="true">{{ctx.Locale.Tr "repo.commits.search_all"}}</div>
-					</div>
-				</div>
-				{{template "shared/search/button" (ctx.Locale.Tr "repo.commits.search.tooltip")}}
+				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.commit_kind")}}
+				<select class="ui small dropdown" name="all">
+					<option value="false">{{ctx.Locale.Tr "repo.commits.search_branch"}}</option>
+					<option {{if .All}} selected="selected"{{end}} value="true">{{ctx.Locale.Tr "repo.commits.search_all"}}</option>
+				</select>
+				{{template "shared/search/button" dict "Tooltip" (ctx.Locale.Tr "repo.commits.search.tooltip")}}
 			</div>
 		</form>
 	</div>

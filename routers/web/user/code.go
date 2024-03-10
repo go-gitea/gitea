@@ -35,16 +35,16 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
+	ctx.Data["PageIsExploreCode"] = true
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
-	queryType := ctx.FormTrim("t")
-	isFuzzy := queryType != "match"
+	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["IsCodePage"] = true
 
 	if keyword == "" {

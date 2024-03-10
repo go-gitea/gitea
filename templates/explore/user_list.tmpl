@@ -26,6 +26,12 @@
 			</div>
 		</div>
 	{{else}}
-		<div class="flex-item">{{ctx.Locale.Tr "search.no_results" (ctx.Locale.Tr "explore.users")}}</div>
+		<div class="flex-item">
+		{{if .PageIsExploreUsers}}
+			{{ctx.Locale.Tr "search.user_no_results"}}
+		{{else}}
+			{{ctx.Locale.Tr "search.org_no_results"}}
+		{{end}}
+		</div>
 	{{end}}
 </div>

@@ -1,1 +1,1 @@
-<button class="ui small primary icon button" aria-label="{{ctx.Locale.Tr "search.search"}}" {{with .}}data-tooltip-content="{{.}}"{{end}}>{{svg "octicon-search"}}</button>
+<button class="ui small primary icon button" aria-label="{{ctx.Locale.Tr "search.search"}}" {{with .Tooltip}}data-tooltip-content="{{.}}"{{end}}{{if .Disabled}} disabled{{end}}>{{svg "octicon-search"}}</button>

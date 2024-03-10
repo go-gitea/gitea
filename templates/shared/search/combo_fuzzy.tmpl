@@ -1,0 +1,5 @@
+<div class="ui fluid action input">
+	{{template "shared/search/input" dict "Value" .Value "Disabled" .Disabled "Placeholder" .Placeholder}}
+	{{template "shared/search/fuzzy" dict "Disabled" .Disabled "IsFuzzy" .IsFuzzy}}
+	{{template "shared/search/button" dict "Disabled" .Disabled "Tooltip" .Tooltip}}
+</div>

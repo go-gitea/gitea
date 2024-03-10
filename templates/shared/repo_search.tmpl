@@ -2,7 +2,7 @@
 	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-flex-row tw-gap-x-2">
 		{{if .Language}}<input hidden name="language" value="{{.Language}}">{{end}}
 		<div class="ui fluid action input tw-flex-1">
-			{{template "shared/search/input" dict "Value" .Keyword}}
+			{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.repo_kind")}}
 			{{if .PageIsExploreRepositories}}
 				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
 			{{else if .TabName}}
@@ -65,3 +65,4 @@
 		<span data-tooltip-content="{{ctx.Locale.Tr "explore.relevant_repositories_tooltip"}}">{{ctx.Locale.Tr "explore.relevant_repositories" (printf "?only_show_relevant=0&sort=%s&q=%s&language=%s" $.SortType (QueryEscape $.Keyword) (QueryEscape $.Language))}}</span>
 	</div>
 {{end}}
+<div class="divider"></div>
