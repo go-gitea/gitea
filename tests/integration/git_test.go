@@ -463,7 +463,6 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 
 		t.Run("EnsureCanEditPullFile", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
 			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
 			editButtonCount := doc.doc.Find("div.diff-file-header-actions a[href*='/_edit/']").Length()

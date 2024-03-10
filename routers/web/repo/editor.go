@@ -80,6 +80,18 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		}
 	}
 
+	prIndex := ctx.FormInt64("back_to_pr")
+	if prIndex > 0 {
+		// Redirect to the PR's files tab
+		link := ctx.Repo.RepoLink + fmt.Sprintf("/pulls/%d/files", prIndex)
+		diffHash := ctx.FormString("back_to_diff_hash")
+		if len(diffHash) > 0 {
+			link += "#diff-" + diffHash
+			ctx.Redirect(link)
+			return
+		}
+	}
+
 	// Redirect to viewing file or folder
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(newBranchName) + "/" + util.PathEscapeSegments(treePath))
 }
@@ -189,6 +201,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
+
+	ctx.Data["CanCreateNewBranch"] = !ctx.FormBool("hide_create_new_branch")
+	ctx.Data["CanCreatePullRequest"] = !ctx.FormBool("hide_create_pr")
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
