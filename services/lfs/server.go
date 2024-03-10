@@ -238,25 +238,33 @@ func MultipartBatchHandler(ctx *context.Context, br *lfs_module.BatchRequest) {
 					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
 				}
 			}
-
+			// TODO negotiate solution to private files management
 			if exists && meta == nil {
-				accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
+				_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 				if err != nil {
-					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+					log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 					writeStatus(ctx, http.StatusInternalServerError)
 					return
 				}
-				if accessible {
-					_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
-					if err != nil {
-						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
-						writeStatus(ctx, http.StatusInternalServerError)
-						return
-					}
-				} else {
-					exists = false
-				}
 			}
+			//if exists && meta == nil {
+			//	accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
+			//	if err != nil {
+			//		log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+			//		writeStatus(ctx, http.StatusInternalServerError)
+			//		return
+			//	}
+			//	if accessible {
+			//		_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+			//		if err != nil {
+			//			log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			//			writeStatus(ctx, http.StatusInternalServerError)
+			//			return
+			//		}
+			//	} else {
+			//		exists = false
+			//	}
+			//}
 			//get multipart information
 			part, _, verify, errorMessage := contentStore.GenerateMultipartParts(p)
 			if errorMessage != nil {
@@ -264,8 +272,7 @@ func MultipartBatchHandler(ctx *context.Context, br *lfs_module.BatchRequest) {
 				writeStatus(ctx, http.StatusInternalServerError)
 				return
 			}
-
-			responseObject = buildMultiPartObjectResponse(rc, p, false, !exists, err, part, verify)
+			responseObject = buildMultiPartObjectResponse(rc, p, false, true, err, part, verify)
 		} else {
 			var err *lfs_module.ObjectError
 			if !exists || meta == nil {
@@ -535,23 +542,23 @@ func MultiPartVerifyHandler(ctx *context.Context) {
 
 	contentStore := lfs_module.NewContentStore()
 	//check whether object exists
-	exists, err := contentStore.Exists(p)
+	//exists, err := contentStore.Exists(p)
 	if err != nil {
 		log.Error("lfs[multipart] unable to check if LFS OID[%s] exist. Error: %v", p.Oid, err)
 		writeStatus(ctx, http.StatusInternalServerError)
 		return
 	}
-	if exists {
-		accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
-		if err != nil || !accessible {
-			log.Error("lfs[multipart] unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
-			writeStatus(ctx, http.StatusInternalServerError)
-			return
-		}
-		log.Error("lfs[multipart] LFS Object already exists", p.Oid)
-		writeStatus(ctx, http.StatusOK)
-		return
-	}
+	//if exists {
+	//	accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
+	//	if err != nil || !accessible {
+	//		log.Error("lfs[multipart] unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+	//		writeStatus(ctx, http.StatusInternalServerError)
+	//		return
+	//	}
+	//	log.Error("lfs[multipart] LFS Object already exists", p.Oid)
+	//	writeStatus(ctx, http.StatusOK)
+	//	return
+	//}
 	ok, err := contentStore.CommitAndVerify(p, string(parameter))
 	if err != nil {
 		log.Error("lfs[multipart] failed to commit and verify LFS object %v", err)
