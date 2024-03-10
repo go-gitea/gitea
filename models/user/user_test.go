@@ -136,14 +136,14 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		expected string
 		userID   int64
 	}{
-		{user_model.EmailNotificationsEnabled, 1},
-		{user_model.EmailNotificationsEnabled, 2},
+		{user_model.EmailNotificationsAllExceptTriggeredByMe, 1},
+		{user_model.EmailNotificationsAllExceptTriggeredByMe, 2},
 		{user_model.EmailNotificationsOnMention, 3},
 		{user_model.EmailNotificationsOnMention, 4},
-		{user_model.EmailNotificationsEnabled, 5},
-		{user_model.EmailNotificationsEnabled, 6},
+		{user_model.EmailNotificationsAllExceptTriggeredByMe, 5},
+		{user_model.EmailNotificationsAllExceptTriggeredByMe, 6},
 		{user_model.EmailNotificationsDisabled, 7},
-		{user_model.EmailNotificationsEnabled, 8},
+		{user_model.EmailNotificationsAllExceptTriggeredByMe, 8},
 		{user_model.EmailNotificationsOnMention, 9},
 	} {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID})
