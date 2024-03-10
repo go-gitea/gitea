@@ -1022,7 +1022,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 	}
 
-	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if err := pull.LoadHeadRepo(ctx); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
+		return
+	}
+
+	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, pull.HeadRepo.OwnerName, pull.HeadRepo.Name)
 
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {

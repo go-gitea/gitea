@@ -47,7 +47,7 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+func setCompareContext(ctx *context.Context, before, head *git.Commit, beforeOwner, beforeName, headOwner, headName string) {
 	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
@@ -78,7 +78,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 		return st
 	}
 
-	setPathsCompareContext(ctx, before, head, headOwner, headName)
+	setPathsCompareContext(ctx, before, head, beforeOwner, beforeName, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
@@ -94,12 +94,12 @@ func RawCommitURL(owner, name string, commit *git.Commit) string {
 }
 
 // setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
+func setPathsCompareContext(ctx *context.Context, before, head *git.Commit, beforeOwner, beforeName, headOwner, headName string) {
 	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
 	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
-	if base != nil {
-		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, base)
-		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, base)
+	if before != nil {
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(beforeOwner, beforeName, before)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(beforeOwner, beforeName, before)
 	}
 }
 
@@ -684,7 +684,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
+	setCompareContext(ctx, beforeCommit, headCommit, repo.OwnerName, repo.Name, ci.HeadUser.Name, ci.HeadRepo.Name)
 
 	return false
 }

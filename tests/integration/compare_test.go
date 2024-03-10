@@ -117,4 +117,10 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+	req = NewRequest(t, "GET", "/user2/repo1/compare/master...org41/repo62:master")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	h, _ := htmlDoc.doc.Html()
+	fmt.Println(h)
 }
