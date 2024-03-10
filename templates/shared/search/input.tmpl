@@ -1,1 +1,4 @@
-<input type="search" spellcheck="false" name="q" maxlength="255" placeholder="{{if .Placeholder}}{{.Placeholder}}{{else}}{{ctx.Locale.Tr "search.search"}}…{{end}}"{{if .Value}} value="{{.Value}}"{{end}}{{if .Disabled}} disabled{{end}} {{if .Autofocus}}autofocus{{end}}>
+<!-- Value - value of the search field (for search results page) -->
+<!-- Disabled (optional) - if search field has to be disabled -->
+<!-- Placeholder (optional) - placeholder text to be used -->
+<input type="search" spellcheck="false" name="q" maxlength="255" placeholder="{{if .Placeholder}}{{.Placeholder}}{{else}}{{ctx.Locale.Tr "search.search"}}…{{end}}"{{if .Value}} value="{{.Value}}"{{end}}{{if .Disabled}} disabled{{end}} autofocus>
