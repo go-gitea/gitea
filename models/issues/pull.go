@@ -901,12 +901,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 	}
 	defer repo.Close()
 
-	branch, err := repo.GetDefaultBranch()
-	if err != nil {
-		return err
-	}
-
-	commit, err := repo.GetBranchCommit(branch)
+	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 	if err != nil {
 		return err
 	}
