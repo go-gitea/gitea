@@ -7,7 +7,7 @@
   full_name: User One
   email: user1@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -44,7 +44,7 @@
   full_name: '   < U<se>r Tw<o > ><  '
   email: user2@example.com
   keep_email_private: true
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -155,7 +155,7 @@
   full_name: User Five
   email: user5@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -192,7 +192,7 @@
   full_name: Org Six
   email: org6@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -266,7 +266,7 @@
   full_name: User Eight
   email: user8@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -340,7 +340,7 @@
   full_name: User Ten
   email: user10@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -377,7 +377,7 @@
   full_name: User Eleven
   email: user11@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -414,7 +414,7 @@
   full_name: User 12
   email: user12@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -451,7 +451,7 @@
   full_name: User 13
   email: user13@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -488,7 +488,7 @@
   full_name: User 14
   email: user14@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -525,7 +525,7 @@
   full_name: User 15
   email: user15@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -562,7 +562,7 @@
   full_name: User 16
   email: user16@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -599,7 +599,7 @@
   full_name: org 17
   email: org17@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -636,7 +636,7 @@
   full_name: User 18
   email: user18@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -673,7 +673,7 @@
   full_name: Org 19
   email: org19@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -710,7 +710,7 @@
   full_name: User 20
   email: user20@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -747,7 +747,7 @@
   full_name: User 21
   email: user21@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -784,7 +784,7 @@
   full_name: Limited Org
   email: limited_org@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -821,7 +821,7 @@
   full_name: Privated Org
   email: privated_org@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -858,7 +858,7 @@
   full_name: user24
   email: user24@example.com
   keep_email_private: true
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -895,7 +895,7 @@
   full_name: org25
   email: org25@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -969,7 +969,7 @@
   full_name: User Twenty-Seven
   email: user27@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1006,7 +1006,7 @@
   full_name: user27
   email: user28@example.com
   keep_email_private: true
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1043,7 +1043,7 @@
   full_name: User 29
   email: user29@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1080,7 +1080,7 @@
   full_name: User Thirty
   email: user30@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1117,7 +1117,7 @@
   full_name: user31
   email: user31@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1154,7 +1154,7 @@
   full_name: User 32 (U2F test)
   email: user32@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:notpassword
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1191,7 +1191,7 @@
   full_name: User 33 (Limited Visibility)
   email: user33@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1229,7 +1229,7 @@
   description: 'some [commonmark](https://commonmark.org/)!'
   email: user34@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1266,7 +1266,7 @@
   full_name: Private Org 35
   email: private_org35@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1303,7 +1303,7 @@
   full_name: Limited Org 36
   email: abcde@gitea.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1340,7 +1340,7 @@
   full_name: User 37
   email: user37@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1377,7 +1377,7 @@
   full_name: User38
   email: user38@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
@@ -1414,7 +1414,7 @@
   full_name: User39
   email: user39@example.com
   keep_email_private: false
-  email_notifications_preference: enabled
+  email_notifications_preference: notyourtriggers
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
