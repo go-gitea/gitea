@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
@@ -83,13 +85,16 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 	prIndex := ctx.FormInt64("back_to_pr")
 	if prIndex > 0 {
 		// Redirect to the PR's files tab
-		link := ctx.Repo.RepoLink + fmt.Sprintf("/pulls/%d/files", prIndex)
+		link := ctx.Repo.RepoLink + fmt.Sprintf("/pulls/%d/files?refresh=%d", prIndex, time.Now().Unix())
 		diffHash := ctx.FormString("back_to_diff_hash")
-		if len(diffHash) > 0 {
+		r := regexp.MustCompile(`^[0-9a-f]{40}$`)
+		if len(diffHash) == 40 && r.MatchString(diffHash) {
 			link += "#diff-" + diffHash
-			ctx.Redirect(link)
-			return
 		}
+		// FIXME: Because PushToBaseRepo is async, we need to wait a bit before redirecting
+		time.Sleep(2 * time.Second)
+		ctx.Redirect(link, 302)
+		return
 	}
 
 	// Redirect to viewing file or folder
