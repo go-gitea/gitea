@@ -1,0 +1,8 @@
+<div class="ui dropdown selection {{if .Disabled}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr (printf "%s.search.type.tooltip" .Topic)}}">
+	<input name="t" type="hidden"{{if .Disabled}} disabled{{end}} value="{{.QueryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="text">{{ctx.Locale.Tr (printf "%s.search.%s" .Topic (or .QueryType "fuzzy"))}}</div>
+	<div class="menu">
+		<div class="item" data-value="fuzzy" data-tooltip-content="{{ctx.Locale.Tr (printf "%s.search.fuzzy.tooltip" .Topic)}}">{{ctx.Locale.Tr (printf "%s.search.fuzzy" .Topic)}}</div>
+		<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr (printf "%s.search.match.tooltip" .Topic)}}">{{ctx.Locale.Tr (printf "%s.search.match" .Topic)}}</div>
+	</div>
+</div>
