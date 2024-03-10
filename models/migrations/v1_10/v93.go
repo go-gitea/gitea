@@ -8,7 +8,7 @@ import "xorm.io/xorm"
 func AddEmailNotificationEnabledToUser(x *xorm.Engine) error {
 	// User see models/user.go
 	type User struct {
-		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'notyourtriggers'"`
 	}
 
 	return x.Sync(new(User))
