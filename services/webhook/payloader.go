@@ -94,7 +94,12 @@ func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *
 		return nil, nil, err
 	}
 
-	req, err := http.NewRequest(w.HTTPMethod, w.URL, bytes.NewReader(body))
+	method := w.HTTPMethod
+	if method == "" {
+		method = http.MethodPost
+	}
+
+	req, err := http.NewRequest(method, w.URL, bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, err
 	}
