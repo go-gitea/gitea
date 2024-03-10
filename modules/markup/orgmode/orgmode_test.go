@@ -19,6 +19,30 @@ const AppURL = "http://localhost:3000/"
 func TestRender_StandardLinks(t *testing.T) {
 	setting.AppURL = AppURL
 
+	test := func(input, expected string, isWiki bool) {
+		buffer, err := RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       "/relative-path",
+				BranchPath: "branch/main",
+			},
+			IsWiki: isWiki,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	test("[[https://google.com/]]",
+		`<p><a href="https://google.com/">https://google.com/</a></p>`, false)
+	test("[[WikiPage][The WikiPage Desc]]",
+		`<p><a href="/relative-path/wiki/WikiPage">The WikiPage Desc</a></p>`, true)
+	test("[[ImageLink.svg][The Image Desc]]",
+		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`, false)
+}
+
+func TestRender_InternalLinks(t *testing.T) {
+	setting.AppURL = AppURL
+
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
@@ -31,12 +55,14 @@ func TestRender_StandardLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	test("[[https://google.com/]]",
-		`<p><a href="https://google.com/">https://google.com/</a></p>`)
-	test("[[WikiPage][The WikiPage Desc]]",
-		`<p><a href="/relative-path/WikiPage">The WikiPage Desc</a></p>`)
-	test("[[ImageLink.svg][The Image Desc]]",
-		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
+	test("[[file:test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[./test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+	test("[[path/to/test.org][Test]]",
+		`<p><a href="/relative-path/src/branch/main/path/to/test.org">Test</a></p>`)
 }
 
 func TestRender_Media(t *testing.T) {
