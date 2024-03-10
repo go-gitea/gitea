@@ -62,14 +62,14 @@ const (
 )
 
 const (
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
-	EmailNotificationsEnabled = "enabled"
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except those you have triggered
+	EmailNotificationsEnabled = "notyourtriggers"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
-	// EmailNotificationsAndYourOwn indicates that the user would like to receive all email notifications and your own
-	EmailNotificationsAndYourOwn = "andyourown"
+	// EmailNotificationsAndYourOwn indicates that the user would like to receive all email notifications
+	EmailNotificationsAndYourOwn = "all"
 )
 
 // User represents the object of individual and member of organization.
