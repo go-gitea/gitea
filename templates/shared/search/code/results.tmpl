@@ -20,15 +20,18 @@
 		{{if $.PageIsExploreCode}}{{$repoLink = (index $.RepoMaps .RepoID).Link}}{{end}}
 		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
 			<h4 class="ui top attached normal header gt-df gt-fw">
-				<span class="file gt-f1">
-					{{if $.PageIsExploreCode}}
-					{{$repo := (index $.RepoMaps .RepoID)}}
-					<a rel="nofollow" href="{{$repoLink}}">{{$repo.FullName}}</a>
+				{{if $.PageIsExploreCode}}
+					<span class="file gt-f1">
+						{{$repo := (index $.RepoMaps .RepoID)}}
+						<a rel="nofollow" href="{{$repoLink}}">{{$repo.FullName}}</a>
 						{{if $repo.IsArchived}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
-					-{{end}} {{.Filename}}
-				</span>
+						- {{.Filename}}
+					</span>
+				{{else}}
+					<span class="file gt-f1">{{.Filename}}</span>
+				{{end}}
 				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repoLink}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
 			<div class="ui attached table segment">
