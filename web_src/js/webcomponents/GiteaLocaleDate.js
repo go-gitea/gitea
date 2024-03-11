@@ -16,7 +16,8 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
     // Ref: https://stackoverflow.com/a/14569783/808699
     const correctedDate = new Date(date.getTime() - date.getTimezoneOffset() * -60000);
 
-    this.textContent = correctedDate.toLocaleString(lang ?? [], {
+    if (!this.shadowRoot) this.attachShadow({mode: 'open'});
+    this.shadowRoot.textContent = correctedDate.toLocaleString(lang ?? [], {
       ...(year && {year}),
       ...(month && {month}),
       ...(weekday && {weekday}),
