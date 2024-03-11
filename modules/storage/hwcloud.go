@@ -212,6 +212,13 @@ func (hwc *HWCloudStorage) CommitUpload(path, additionalParameter string) error 
 	log.Trace("lfs[multipart] Start to merge multipart task %s and %s", hwc.bucket, hwc.buildMinioPath(path))
 	_, err = hwc.hwclient.CompleteMultipartUpload(complete)
 	if err != nil {
+		// handle the case if task with identical object has been committed before, return nil and let obs storage check the existence of object.
+		// 如果请求的多段上传任务不存在，OBS返回404 Not Found，包含错误信息NoSuchUpload
+		if obsError, ok := err.(obs.ObsError); ok && obsError.StatusCode == 404 && obsError.Code == "NoSuchUpload" {
+			log.Trace("lfs[multipart] unable to complete multipart task %s and %s, unable to find upload task, maybe "+
+				"it completed just now.", hwc.bucket, hwc.buildMinioPath(path))
+			return nil
+		}
 		return err
 	}
 	//TODO notify CDN to fetch new object
