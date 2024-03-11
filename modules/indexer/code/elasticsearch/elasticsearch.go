@@ -20,7 +20,6 @@ import (
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -319,8 +318,6 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
-
-	opts.IsWiki = optional.Some(false) // TODO
 
 	if opts.IsWiki.Has() {
 		query = query.Must(elastic.NewTermQuery("is_wiki", opts.IsWiki.Value()))
