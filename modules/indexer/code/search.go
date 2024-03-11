@@ -127,7 +127,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 }
 
 // PerformSearch perform a search on a repository
-// if isFuzzy is true set the Damerau-Levenshtein distance from 0 to 2
+// if isFuzzy is false the Damerau-Levenshtein distance is 0
 func PerformSearch(ctx context.Context, opts *internal.SearchOptions) (int, []*Result, []*internal.SearchResultLanguages, error) {
 	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
