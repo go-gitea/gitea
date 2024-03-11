@@ -121,7 +121,6 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 // RenderLabel renders a label
 func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
 	var (
-		description      string
 		archivedCSSClass string
 		textColor        = "#111"
 		isArchived       = !label.ArchivedUnix.IsZero()
@@ -134,11 +133,11 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 		textColor = "#eee"
 	}
 
+	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+
 	if isArchived {
-		description = locale.TrString("archived")
 		archivedCSSClass = "archived"
-	} else {
-		description = emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+		description = fmt.Sprintf("%s: %s", locale.TrString("archived"), description)
 	}
 
 	if labelScope == "" {
