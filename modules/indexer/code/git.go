@@ -17,11 +17,13 @@ import (
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository, isWiki bool) (string, error) {
 	repoPath := repo.RepoPath()
+	defaultBranch := repo.DefaultBranch
 	if isWiki {
 		repoPath = repo.WikiPath()
+		defaultBranch = repo.DefaultWikiBranch
 	}
 
-	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s").AddDynamicArguments(git.BranchPrefix + repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repoPath})
+	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s").AddDynamicArguments(git.BranchPrefix + defaultBranch).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil {
 		return "", err
 	}
