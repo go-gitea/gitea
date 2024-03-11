@@ -12,7 +12,7 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
     const date = new Date(this.getAttribute('date'));
 
     // apply negative timezone offset because `new Date()` above assumes that `yyyy-mm-dd` is
-    // a UTC date, so the local date will have a offset towards the user's timezone.
+    // a UTC date, so the local date will have a offset towards UTC which we reverse here.
     // Ref: https://stackoverflow.com/a/14569783/808699
     const correctedDate = new Date(date.getTime() - date.getTimezoneOffset() * -60000);
 
