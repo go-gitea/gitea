@@ -16,7 +16,7 @@ import (
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
 	internal.Indexer
-	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error
+	Index(ctx context.Context, repo *repo_model.Repository, isWiki bool, sha string, changes *RepoChanges) error
 	Delete(ctx context.Context, repoID int64) error
 	Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error)
 }
@@ -44,7 +44,7 @@ type dummyIndexer struct {
 	internal.Indexer
 }
 
-func (d *dummyIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error {
+func (d *dummyIndexer) Index(ctx context.Context, repo *repo_model.Repository, isWiki bool, sha string, changes *RepoChanges) error {
 	return fmt.Errorf("indexer is not ready")
 }
 

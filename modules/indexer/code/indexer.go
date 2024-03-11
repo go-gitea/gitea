@@ -38,7 +38,7 @@ func init() {
 	globalIndexer.Store(dummyIndexer)
 }
 
-func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
+func index(ctx context.Context, indexer internal.Indexer, repoID int64, isWiki bool) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(ctx, repoID)
@@ -53,42 +53,64 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 		repoTypes = []string{"sources"}
 	}
 
-	// skip forks from being indexed if unit is not present
-	if !slices.Contains(repoTypes, "forks") && repo.IsFork {
-		return nil
+	if isWiki {
+		// ignore empty wikis
+		if !repo.HasWiki() {
+			return nil
+		}
+
+		// skip wikis from being indexed if unit is not present
+		if !slices.Contains(repoTypes, "wikis") {
+			return nil
+		}
+	} else {
+		// ignore empty repos
+		if repo.IsEmpty {
+			return nil
+		}
+
+		// skip forks from being indexed if unit is not present
+		if !slices.Contains(repoTypes, "forks") && repo.IsFork {
+			return nil
+		}
+
+		// skip mirrors from being indexed if unit is not present
+		if !slices.Contains(repoTypes, "mirrors") && repo.IsMirror {
+			return nil
+		}
+
+		// skip templates from being indexed if unit is not present
+		if !slices.Contains(repoTypes, "templates") && repo.IsTemplate {
+			return nil
+		}
+
+		// skip regular repos from being indexed if unit is not present
+		if !slices.Contains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+			return nil
+		}
 	}
 
-	// skip mirrors from being indexed if unit is not present
-	if !slices.Contains(repoTypes, "mirrors") && repo.IsMirror {
-		return nil
-	}
-
-	// skip templates from being indexed if unit is not present
-	if !slices.Contains(repoTypes, "templates") && repo.IsTemplate {
-		return nil
-	}
-
-	// skip regular repos from being indexed if unit is not present
-	if !slices.Contains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
-		return nil
-	}
-
-	sha, err := getDefaultBranchSha(ctx, repo)
+	sha, err := getDefaultBranchSha(ctx, repo, isWiki)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(ctx, repo, sha)
+	changes, err := getRepoChanges(ctx, repo, isWiki, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
 		return nil
 	}
 
-	if err := indexer.Index(ctx, repo, sha, changes); err != nil {
+	if err := indexer.Index(ctx, repo, isWiki, sha, changes); err != nil {
 		return err
 	}
 
-	return repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, sha)
+	indexerType := repo_model.RepoIndexerTypeCode
+	if isWiki {
+		indexerType = repo_model.RepoIndexerTypeWiki
+	}
+
+	return repo_model.UpdateIndexerStatus(ctx, repo, indexerType, sha)
 }
 
 // Init initialize the repo indexer
@@ -121,11 +143,11 @@ func Init() {
 		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
 			indexer := *globalIndexer.Load()
 			for _, indexerData := range items {
-				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
-				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
+				log.Trace("IndexerData Process Repo: %d (IsWiki=%v)", indexerData.RepoID, indexerData.IsWiki)
+				if err := index(ctx, indexer, indexerData.RepoID, indexerData.IsWiki); err != nil {
 					unhandled = append(unhandled, indexerData)
 					if !setting.IsInTesting {
-						log.Error("Codes indexer handler: index error for repo %v: %v", indexerData.RepoID, err)
+						log.Error("Codes indexer handler: index error for repo %d (wiki=%v):  %v", indexerData.RepoID, indexerData.IsWiki, err)
 					}
 				}
 			}
@@ -273,40 +295,47 @@ func populateRepoIndexer(ctx context.Context) {
 		log.Fatal("System error: %v", err)
 	}
 
-	var maxRepoID int64
-	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
-		log.Fatal("System error: %v", err)
-	}
+	for _, isWiki := range []bool{false, true} {
+		indexerType := repo_model.RepoIndexerTypeCode
+		if isWiki {
+			indexerType = repo_model.RepoIndexerTypeWiki
+		}
 
-	// start with the maximum existing repo ID and work backwards, so that we
-	// don't include repos that are created after gitea starts; such repos will
-	// already be added to the indexer, and we don't need to add them again.
-	for maxRepoID > 0 {
-		select {
-		case <-ctx.Done():
-			log.Info("Repository Indexer population shutdown before completion")
-			return
-		default:
+		var maxRepoID int64
+		if maxRepoID, err = db.GetMaxID("repository"); err != nil {
+			log.Fatal("System error: %v", err)
 		}
-		ids, err := repo_model.GetUnindexedRepos(ctx, repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
-		if err != nil {
-			log.Error("populateRepoIndexer: %v", err)
-			return
-		} else if len(ids) == 0 {
-			break
-		}
-		for _, id := range ids {
+
+		// start with the maximum existing repo ID and work backwards, so that we
+		// don't include repos that are created after gitea starts; such repos will
+		// already be added to the indexer, and we don't need to add them again.
+		for maxRepoID > 0 {
 			select {
 			case <-ctx.Done():
 				log.Info("Repository Indexer population shutdown before completion")
 				return
 			default:
 			}
-			if err := indexerQueue.Push(&internal.IndexerData{RepoID: id}); err != nil {
-				log.Error("indexerQueue.Push: %v", err)
+			ids, err := repo_model.GetUnindexedRepos(ctx, indexerType, maxRepoID, 0, 50)
+			if err != nil {
+				log.Error("populateRepoIndexer: %v", err)
 				return
+			} else if len(ids) == 0 {
+				break
 			}
-			maxRepoID = id - 1
+			for _, id := range ids {
+				select {
+				case <-ctx.Done():
+					log.Info("Repository Indexer population shutdown before completion")
+					return
+				default:
+				}
+				if err := indexerQueue.Push(&internal.IndexerData{RepoID: id, IsWiki: isWiki}); err != nil {
+					log.Error("indexerQueue.Push: %v", err)
+					return
+				}
+				maxRepoID = id - 1
+			}
 		}
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")

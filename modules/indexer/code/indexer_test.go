@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		var repoID int64 = 1
-		err := index(git.DefaultContext, indexer, repoID)
+		err := index(git.DefaultContext, indexer, repoID, false)
 		assert.NoError(t, err)
 		keywords := []struct {
 			RepoIDs []int64
