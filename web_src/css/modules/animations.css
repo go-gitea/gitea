@@ -19,7 +19,7 @@
   display: block;
   left: 50%;
   top: 50%;
-  height: min(4em, 66.6%);
+  width: min(4em, 66.6%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;
