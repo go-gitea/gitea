@@ -442,11 +442,17 @@ async function onEditContent(event) {
     comboMarkdownEditor = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
 
     const $dropzone = $editContentZone.find('.dropzone');
+
+    // is setupDropzone doing anything? We already have have initGlobalDropzone to control all dropzones
     const dz = await setupDropzone($dropzone);
+
+    // there is no such button, why is this code here?
     $editContentZone.find('.cancel.button').on('click', (e) => {
       e.preventDefault();
       cancelAndReset(dz);
     });
+
+    // there is no such button, why is this code here?
     $editContentZone.find('.save.button').on('click', (e) => {
       e.preventDefault();
       saveAndRefresh(dz);
