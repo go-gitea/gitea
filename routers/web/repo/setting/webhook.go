@@ -588,6 +588,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	var w *webhook.Webhook
 	if orCtx.RepoID > 0 {
