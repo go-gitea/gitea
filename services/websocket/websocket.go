@@ -7,6 +7,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/pubsub"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/olahol/melody"
@@ -28,7 +29,9 @@ func Init() *melody.Melody {
 	m.HandleConnect(handleConnect)
 	m.HandleMessage(handleMessage)
 	m.HandleDisconnect(handleDisconnect)
-	notify_service.RegisterNotifier(newNotifier(m))
+
+	broker := pubsub.NewMemory() // TODO: allow for other pubsub implementations
+	notify_service.RegisterNotifier(newNotifier(m, broker))
 	return m
 }
 

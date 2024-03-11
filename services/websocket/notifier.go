@@ -7,6 +7,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/pubsub"
 	"github.com/olahol/melody"
 )
 
@@ -17,7 +18,7 @@ type websocketNotifier struct {
 }
 
 // NewNotifier create a new webhooksNotifier notifier
-func newNotifier(m *melody.Melody) notify_service.Notifier {
+func newNotifier(m *melody.Melody, pubsub pubsub.Broker) notify_service.Notifier {
 	return &websocketNotifier{
 		m:   m,
 		rnd: templates.HTMLRenderer(),
