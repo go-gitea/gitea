@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu gt-bg-transparent">
+				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
@@ -57,7 +57,7 @@
 					</form>
 					<!-- Sort -->
 					<div class="list-header-sort ui small dropdown type jump item">
-						<span class="text gt-whitespace-nowrap">
+						<span class="text tw-whitespace-nowrap">
 							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>

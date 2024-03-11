@@ -21,11 +21,20 @@
   --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
 }
 
 :root * {
   --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
 }
 
 textarea {
@@ -492,6 +501,11 @@ ol.ui.list li,
   background: var(--color-active) !important;
 }
 
+.ui.form textarea:not([rows]) {
+  height: var(--min-height-textarea); /* override fomantic default 12em */
+  min-height: var(--min-height-textarea); /* override fomantic default 8em */
+}
+
 /* styles from removed fomantic transition module */
 .hidden.transition {
   visibility: hidden;
@@ -858,10 +872,18 @@ img.ui.avatar,
   border-color: var(--color-error-border) !important;
 }
 
-/* A fix for text visibility issue in Chrome autofill in dark mode. */
-/* It's a problem from Formatic UI, and this rule overrides it. */
-.ui.form .field.field input:-webkit-autofill {
-  -webkit-text-fill-color: var(--color-black) !important;
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+.ui.form .field.field input:-webkit-autofill,
+.ui.form .field.field input:-webkit-autofill:focus,
+.ui.form .field.field input:-webkit-autofill:hover,
+.ui.form .field.field input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
+  border-color: var(--color-primary-light-4) !important;
 }
 
 .ui.form .field.muted {
@@ -1434,7 +1456,9 @@ strong.attention-caution, span.attention-caution {
 }
 
 .ui.label,
-.ui.menu .item > .label {
+.ui.menu .item > .label,
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
 }
@@ -1562,7 +1586,7 @@ a.ui.active.label:hover {
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-grey);
+  color: var(--color-text-light-2);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -1603,6 +1627,10 @@ a.ui.active.label:hover {
 
 .top-line-blame {
   border-top: 1px solid var(--color-secondary);
+}
+
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
 }
 
 .lines-code .bottom-line,

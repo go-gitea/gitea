@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,47 +16,82 @@ import (
 	"xorm.io/builder"
 )
 
+type StarredReposOptions struct {
+	db.ListOptions
+	StarrerID      int64
+	RepoOwnerID    int64
+	IncludePrivate bool
+}
+
+func (opts *StarredReposOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"star.uid": opts.StarrerID,
+	}
+	if opts.RepoOwnerID != 0 {
+		cond = cond.And(builder.Eq{
+			"repository.owner_id": opts.RepoOwnerID,
+		})
+	}
+	if !opts.IncludePrivate {
+		cond = cond.And(builder.Eq{
+			"repository.is_private": false,
+		})
+	}
+	return cond
+}
+
+func (opts *StarredReposOptions) ToJoins() []db.JoinFunc {
+	return []db.JoinFunc{
+		func(e db.Engine) error {
+			e.Join("INNER", "star", "`repository`.id=`star`.repo_id")
+			return nil
+		},
+	}
+}
+
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
-	sess := db.GetEngine(ctx).
-		Where("star.uid=?", userID).
-		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
-	if !private {
-		sess = sess.And("is_private=?", false)
+func GetStarredRepos(ctx context.Context, opts *StarredReposOptions) ([]*Repository, error) {
+	return db.Find[Repository](ctx, opts)
+}
+
+type WatchedReposOptions struct {
+	db.ListOptions
+	WatcherID      int64
+	RepoOwnerID    int64
+	IncludePrivate bool
+}
+
+func (opts *WatchedReposOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"watch.user_id": opts.WatcherID,
 	}
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		repos := make([]*Repository, 0, listOptions.PageSize)
-		return repos, sess.Find(&repos)
+	if opts.RepoOwnerID != 0 {
+		cond = cond.And(builder.Eq{
+			"repository.owner_id": opts.RepoOwnerID,
+		})
 	}
+	if !opts.IncludePrivate {
+		cond = cond.And(builder.Eq{
+			"repository.is_private": false,
+		})
+	}
+	return cond.And(builder.Neq{
+		"watch.mode": WatchModeDont,
+	})
+}
 
-	repos := make([]*Repository, 0, 10)
-	return repos, sess.Find(&repos)
+func (opts *WatchedReposOptions) ToJoins() []db.JoinFunc {
+	return []db.JoinFunc{
+		func(e db.Engine) error {
+			e.Join("INNER", "watch", "`repository`.id=`watch`.repo_id")
+			return nil
+		},
+	}
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
-	sess := db.GetEngine(ctx).
-		Where("watch.user_id=?", userID).
-		And("`watch`.mode<>?", WatchModeDont).
-		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
-	if !private {
-		sess = sess.And("is_private=?", false)
-	}
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		repos := make([]*Repository, 0, listOptions.PageSize)
-		total, err := sess.FindAndCount(&repos)
-		return repos, total, err
-	}
-
-	repos := make([]*Repository, 0, 10)
-	total, err := sess.FindAndCount(&repos)
-	return repos, total, err
+func GetWatchedRepos(ctx context.Context, opts *WatchedReposOptions) ([]*Repository, int64, error) {
+	return db.FindAndCount[Repository](ctx, opts)
 }
 
 // GetRepoAssignees returns all users that have write access and can be assigned to issues
@@ -78,7 +114,8 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	if err = e.Table("team_user").
 		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-		Where("`team_repo`.repo_id = ? AND `team_unit`.access_mode >= ?", repo.ID, perm.AccessModeWrite).
+		Where("`team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
+			repo.ID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
 		Distinct("`team_user`.uid").
 		Select("`team_user`.uid").
 		Find(&additionalUserIDs); err != nil {

@@ -32,7 +32,7 @@
 							{{else}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
 							{{end}}
-							<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper"}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
 				{{end}}
@@ -80,7 +80,7 @@
 			</h4>
 			<div class="ui attached segment">
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message gt-text-center">
+					<div class="ui warning message tw-text-center">
 						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
 					</div>
 				{{else}}
@@ -191,7 +191,7 @@
 										<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
 											<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
 											<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
-											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery"}}</p>
 										</div>
 										{{end}}
 										<div class="field">
@@ -335,6 +335,10 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
+					<div class="inline field gt-pl-4">
+						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
+						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
@@ -409,7 +413,7 @@
 						<div class="field">
 							<label for="tracker_url_format">{{ctx.Locale.Tr "repo.settings.tracker_url_format"}}</label>
 							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
-							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc"}}</p>
 						</div>
 						<div class="inline fields">
 							<label for="issue_style">{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
@@ -437,7 +441,7 @@
 						<div class="field {{if ne $externalTrackerStyle "regexp"}}disabled{{end}}" id="tracker-issue-style-regex-box">
 							<label for="external_tracker_regexp_pattern">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern"}}</label>
 							<input id="external_tracker_regexp_pattern" name="external_tracker_regexp_pattern" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerRegexpPattern}}">
-							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc" | Str2html}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc"}}</p>
 						</div>
 					</div>
 				</div>
@@ -446,13 +450,45 @@
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
+				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} gt-pl-4" id="projects_box">
+					<p>
+						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
+					</p>
+					<div class="ui dropdown selection">
+						<select name="projects_mode">
+							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+						</select>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="default text">
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
+							{{end}}
+						</div>
+						<div class="menu">
+							<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
+							<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
+							<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
 				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}
@@ -933,8 +969,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
 				{{if .Repository.NumForks}}<br>
 				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
@@ -968,8 +1004,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}

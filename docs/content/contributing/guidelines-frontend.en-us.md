@@ -34,7 +34,7 @@ The source files can be found in the following directories:
 
 We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) and [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 
-### Gitea specific guidelines:
+### Gitea specific guidelines
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case, it's preferred to contain 2-3 feature related keywords.
@@ -47,7 +47,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
 10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
 11. Custom event names are recommended to use `ce-` prefix.
-12. Gitea's tailwind-style CSS classes use `gt-` prefix (`gt-relative`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
+12. Prefer using Tailwind CSS which is available via `tw-` prefix, e.g. `tw-relative`. Gitea's helper CSS classes use `gt-` prefix (`gt-df`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
 13. Avoid inline scripts & styles as much as possible, it's recommended to put JS code into JS files and use CSS classes. If inline scripts & styles are unavoidable, explain the reason why it can't be avoided.
 
 ### Accessibility / ARIA

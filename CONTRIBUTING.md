@@ -8,6 +8,7 @@
     - [How to report issues](#how-to-report-issues)
     - [Types of issues](#types-of-issues)
     - [Discuss your design before the implementation](#discuss-your-design-before-the-implementation)
+    - [Issue locking](#issue-locking)
   - [Building Gitea](#building-gitea)
   - [Dependencies](#dependencies)
     - [Backend](#backend)
@@ -102,6 +103,13 @@ Furthermore, this process gives everyone a chance to validate the design, helps 
 the goals for the project and tools.
 
 Pull requests should not be the place for architecture discussions.
+
+### Issue locking
+
+Commenting on closed or merged issues/PRs is strongly discouraged.
+Such comments will likely be overlooked as some maintainers may not view notifications on closed issues, thinking that the item is resolved.
+As such, commenting on closed/merged issues/PRs may be disabled prior to the scheduled auto-locking if a discussion starts or if unrelated comments are posted.
+If further discussion is needed, we encourage you to open a new issue instead and we recommend linking to the issue/PR in question for context.
 
 ## Building Gitea
 
@@ -456,7 +464,7 @@ We assume in good faith that the information you provide is legally binding.
 We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. \
 The overall goal is to make a major release every three or four months, which breaks down into two or three months of general development followed by one month of testing and polishing known as the release freeze. \
 All the feature pull requests should be
-merged before feature freeze. And, during the frozen period, a corresponding
+merged before feature freeze. All feature pull requests haven't been merged before this feature freeze will be moved to next milestone, please notice our feature freeze announcement on discord. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
 obtain a final version that is maintained in this branch.

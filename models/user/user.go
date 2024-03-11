@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -573,18 +574,28 @@ func IsUsableUsername(name string) error {
 
 // CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
 type CreateUserOverwriteOptions struct {
-	KeepEmailPrivate             util.OptionalBool
+	KeepEmailPrivate             optional.Option[bool]
 	Visibility                   *structs.VisibleType
-	AllowCreateOrganization      util.OptionalBool
+	AllowCreateOrganization      optional.Option[bool]
 	EmailNotificationsPreference *string
 	MaxRepoCreation              *int
 	Theme                        *string
-	IsRestricted                 util.OptionalBool
-	IsActive                     util.OptionalBool
+	IsRestricted                 optional.Option[bool]
+	IsActive                     optional.Option[bool]
 }
 
 // CreateUser creates record of a new user.
 func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, false, overwriteDefault...)
+}
+
+// AdminCreateUser is used by admins to manually create users
+func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, true, overwriteDefault...)
+}
+
+// createUser creates record of a new user.
+func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -607,14 +618,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
 		overwrite := overwriteDefault[0]
-		if !overwrite.KeepEmailPrivate.IsNone() {
-			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.IsTrue()
+		if overwrite.KeepEmailPrivate.Has() {
+			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.Value()
 		}
 		if overwrite.Visibility != nil {
 			u.Visibility = *overwrite.Visibility
 		}
-		if !overwrite.AllowCreateOrganization.IsNone() {
-			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.IsTrue()
+		if overwrite.AllowCreateOrganization.Has() {
+			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.Value()
 		}
 		if overwrite.EmailNotificationsPreference != nil {
 			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
@@ -625,11 +636,11 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		if overwrite.Theme != nil {
 			u.Theme = *overwrite.Theme
 		}
-		if !overwrite.IsRestricted.IsNone() {
-			u.IsRestricted = overwrite.IsRestricted.IsTrue()
+		if overwrite.IsRestricted.Has() {
+			u.IsRestricted = overwrite.IsRestricted.Value()
 		}
-		if !overwrite.IsActive.IsNone() {
-			u.IsActive = overwrite.IsActive.IsTrue()
+		if overwrite.IsActive.Has() {
+			u.IsActive = overwrite.IsActive.Value()
 		}
 	}
 
@@ -638,8 +649,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	if err := ValidateEmail(u.Email); err != nil {
-		return err
+	if createdByAdmin {
+		if err := ValidateEmailForAdmin(u.Email); err != nil {
+			return err
+		}
+	} else {
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -714,7 +731,7 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 
 // IsLastAdminUser check whether user is the last admin
 func IsLastAdminUser(ctx context.Context, user *User) bool {
-	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: optional.Some(true)}) <= 1 {
 		return true
 	}
 	return false
@@ -723,7 +740,7 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
-	IsAdmin        util.OptionalBool
+	IsAdmin        optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -741,8 +758,8 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
 		}
 
-		if !opts.IsAdmin.IsNone() {
-			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+		if opts.IsAdmin.Has() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
 		}
 	}
 
@@ -1166,7 +1183,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		// If they follow - they see each over
+		// If they follow - they see each other
 		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true
