@@ -550,6 +550,22 @@ var migrations = []Migration{
 	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
 	// v282 -> v283
 	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
+	// v283 -> v284
+	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+	// v285 -> v286
+	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
+	// v286 -> v287
+	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
+	// v287 -> v288
+	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
+	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 }
 
 // GetCurrentDBVersion returns the current db version

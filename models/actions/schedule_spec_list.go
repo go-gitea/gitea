@@ -71,7 +71,7 @@ type FindSpecOptions struct {
 	Next   int64
 }
 
-func (opts FindSpecOptions) toConds() builder.Cond {
+func (opts FindSpecOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -84,23 +84,18 @@ func (opts FindSpecOptions) toConds() builder.Cond {
 	return cond
 }
 
+func (opts FindSpecOptions) ToOrders() string {
+	return "`id` DESC"
+}
+
 func FindSpecs(ctx context.Context, opts FindSpecOptions) (SpecList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var specs SpecList
-	total, err := e.Desc("id").FindAndCount(&specs)
+	specs, total, err := db.FindAndCount[ActionScheduleSpec](ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	if err := specs.LoadSchedules(ctx); err != nil {
+	if err := SpecList(specs).LoadSchedules(ctx); err != nil {
 		return nil, 0, err
 	}
 	return specs, total, nil
-}
-
-func CountSpecs(ctx context.Context, opts FindSpecOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionScheduleSpec))
 }

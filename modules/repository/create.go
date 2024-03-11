@@ -87,7 +87,17 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
+				Config: &repo_model.PullRequestsConfig{
+					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
+					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
+					AllowRebaseUpdate: true,
+				},
+			})
+		} else if tp == unit.TypeProjects {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.ProjectsConfig{ProjectsMode: repo_model.ProjectsModeAll},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
@@ -143,7 +153,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}
@@ -160,24 +170,25 @@ const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | o
 // getDirectorySize returns the disk consumption for a given path
 func getDirectorySize(path string) (int64, error) {
 	var size int64
-	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
-				return nil
-			}
+	err := filepath.WalkDir(path, func(_ string, entry os.DirEntry, err error) error {
+		if os.IsNotExist(err) { // ignore the error because some files (like temp/lock file) may be deleted during traversing.
+			return nil
+		} else if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if entry.IsDir() {
 			return nil
 		}
-		f, err := info.Info()
-		if err != nil {
+		info, err := entry.Info()
+		if os.IsNotExist(err) { // ignore the error as above
+			return nil
+		} else if err != nil {
 			return err
 		}
-		if (f.Mode() & notRegularFileMode) == 0 {
-			size += f.Size()
+		if (info.Mode() & notRegularFileMode) == 0 {
+			size += info.Size()
 		}
-		return err
+		return nil
 	})
 	return size, err
 }

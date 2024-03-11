@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -24,9 +25,9 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		log.Error("OpenRepository[%s]: %w", repo.RepoPath(), err)
+		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
 	}
 	defer gitRepo.Close()
@@ -49,11 +50,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	dbBranches := make(map[string]*git_model.Branch)
 	{
-		branches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions: db.ListOptions{
-				ListAll: true,
-			},
-			RepoID: repo.ID,
+		branches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
 		})
 		if err != nil {
 			return 0, err

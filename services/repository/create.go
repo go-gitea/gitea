@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -27,22 +28,23 @@ import (
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	IsTemplate     bool
-	AutoInit       bool
-	Status         repo_model.RepositoryStatus
-	TrustModel     repo_model.TrustModelType
-	MirrorInterval string
+	Name             string
+	Description      string
+	OriginalURL      string
+	GitServiceType   api.GitServiceType
+	Gitignores       string
+	IssueLabels      string
+	License          string
+	Readme           string
+	DefaultBranch    string
+	IsPrivate        bool
+	IsMirror         bool
+	IsTemplate       bool
+	AutoInit         bool
+	Status           repo_model.RepositoryStatus
+	TrustModel       repo_model.TrustModelType
+	MirrorInterval   string
+	ObjectFormatName string
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
@@ -134,7 +136,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -155,7 +157,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 
 		// Apply changes and commit.
-		if err = repo_module.InitRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
+		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
 	}
@@ -171,15 +173,11 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	}
 
 	repo.DefaultBranch = setting.Repository.DefaultBranch
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("openRepository: %w", err)
-		}
-		defer gitRepo.Close()
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 
@@ -216,6 +214,10 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 	}
 
+	if opts.ObjectFormatName == "" {
+		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
+	}
+
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -234,6 +236,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
+		DefaultWikiBranch:               setting.Repository.DefaultBranch,
+		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
 	var rollbackRepo *repo_model.Repository

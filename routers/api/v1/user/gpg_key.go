@@ -10,16 +10,25 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
-	keys, err := asymkey_model.ListGPGKeys(ctx, uid, listOptions)
+	keys, total, err := db.FindAndCount[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		ListOptions: listOptions,
+		OwnerID:     uid,
+	})
 	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
+		return
+	}
+
+	if err := asymkey_model.GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
 	}
@@ -27,12 +36,6 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions)
 	apiKeys := make([]*api.GPGKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToGPGKey(keys[i])
-	}
-
-	total, err := asymkey_model.CountUserGPGKeys(ctx, uid)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
 	}
 
 	ctx.SetTotalCountHeader(total)
@@ -112,7 +115,7 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetGPGKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -121,11 +124,20 @@ func GetGPGKey(ctx *context.APIContext) {
 		}
 		return
 	}
+	if err := key.LoadSubKeys(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadSubKeys", err)
+		return
+	}
 	ctx.JSON(http.StatusOK, convert.ToGPGKey(key))
 }
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		return
+	}
+
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -198,7 +210,10 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "VerifyUserGPGKey", err)
 	}
 
-	key, err := asymkey_model.GetGPGKeysByKeyID(ctx, form.KeyID)
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		KeyID:          form.KeyID,
+		IncludeSubKeys: true,
+	})
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -207,7 +222,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToGPGKey(key[0]))
+	ctx.JSON(http.StatusOK, convert.ToGPGKey(keys[0]))
 }
 
 // swagger:parameters userCurrentPostGPGKey
@@ -258,6 +273,11 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		return
+	}
 
 	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrGPGKeyAccessDenied(err) {

@@ -12,15 +12,17 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	countRepospts        = repo_model.CountRepositoryOptions{OwnerID: 10}
-	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolFalse}
-	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolTrue}
+	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(false)}
+	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(true)}
 )
 
 func TestGetRepositoryCount(t *testing.T) {
@@ -62,16 +64,17 @@ func TestRepoAPIURL(t *testing.T) {
 
 func TestWatchRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	const repoID = 3
-	const userID = 2
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, true))
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, false))
-	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, true))
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
+
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, false))
+	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
 
 func TestMetas(t *testing.T) {
@@ -185,4 +188,33 @@ func TestGetRepositoryByURL(t *testing.T) {
 		test(t, "try.gitea.io:user2/repo2")
 		test(t, "try.gitea.io:user2/repo2.git")
 	})
+}
+
+func TestComposeSSHCloneURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.SSH, setting.SSH)()
+	defer test.MockVariableValue(&setting.Repository, setting.Repository)()
+
+	setting.SSH.User = "git"
+
+	// test SSH_DOMAIN
+	setting.SSH.Domain = "domain"
+	setting.SSH.Port = 22
+	setting.Repository.UseCompatSSHURI = false
+	assert.Equal(t, "git@domain:user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	setting.Repository.UseCompatSSHURI = true
+	assert.Equal(t, "ssh://git@domain/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	// test SSH_DOMAIN while use non-standard SSH port
+	setting.SSH.Port = 123
+	setting.Repository.UseCompatSSHURI = false
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	setting.Repository.UseCompatSSHURI = true
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+
+	// test IPv6 SSH_DOMAIN
+	setting.Repository.UseCompatSSHURI = false
+	setting.SSH.Domain = "::1"
+	setting.SSH.Port = 22
+	assert.Equal(t, "git@[::1]:user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	setting.SSH.Port = 123
+	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
 }

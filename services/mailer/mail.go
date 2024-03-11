@@ -94,7 +94,7 @@ func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 		// No mail service configured
 		return
 	}
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
+	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
@@ -104,11 +104,11 @@ func SendResetPasswordMail(u *user_model.User) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
+	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
+func SendActivateEmailMail(u *user_model.User, email string) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -118,8 +118,8 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
-		"Code":            u.GenerateEmailActivateCode(email.Email),
-		"Email":           email.Email,
+		"Code":            u.GenerateEmailActivateCode(email),
+		"Email":           email,
 		"Language":        locale.Language(),
 	}
 
@@ -130,7 +130,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 
-	msg := NewMessage(email.Email, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email, locale.TrString("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -158,7 +158,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -173,7 +173,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
 
-	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
+	subject := locale.TrString("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
 	data := map[string]any{
 		"locale":   locale,
 		"Subject":  subject,
@@ -220,9 +220,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: ctx.Issue.Repo.HTMLURL(),
-		Metas:     ctx.Issue.Repo.ComposeMetas(ctx),
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: ctx.Issue.Repo.HTMLURL(),
+		},
+		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)
 	if err != nil {
 		return nil, err
@@ -290,8 +292,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
-	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	if ctx.Comment != nil {
+		if ctx.Comment.Type.HasMailReplySupport() {
+			replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+		}
 	} else {
 		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
 	}
@@ -306,7 +310,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom(recipient.Email, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(
+			recipient.Email,
+			ctx.Doer.GetCompleteName(),
+			setting.MailService.FromEmail,
+			subject,
+			mailBody.String(),
+		)
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		msg.SetHeader("Message-ID", msgID)
@@ -316,7 +326,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
 
 		if setting.IncomingEmail.Enabled {
-			if ctx.Comment != nil {
+			if replyPayload != nil {
 				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)
@@ -390,8 +400,8 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 
 		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
-		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
-		"X-Gitea-Recipient":         recipient.DisplayName(),
+		"X-Gitea-Sender":            ctx.Doer.Name,
+		"X-Gitea-Recipient":         recipient.Name,
 		"X-Gitea-Recipient-Address": recipient.Email,
 		"X-Gitea-Repository":        repo.Name,
 		"X-Gitea-Repository-Path":   repo.FullName(),
@@ -400,8 +410,8 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
 
 		"X-GitHub-Reason":            reason,
-		"X-GitHub-Sender":            ctx.Doer.DisplayName(),
-		"X-GitHub-Recipient":         recipient.DisplayName(),
+		"X-GitHub-Sender":            ctx.Doer.Name,
+		"X-GitHub-Recipient":         recipient.Name,
 		"X-GitHub-Recipient-Address": recipient.Email,
 
 		"X-GitLab-NotificationReason": reason,

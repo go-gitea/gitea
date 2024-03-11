@@ -1,4 +1,6 @@
 import tippy, {followCursor} from 'tippy.js';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
+import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
 
@@ -92,8 +94,15 @@ function attachTooltip(target, content = null) {
 }
 
 function switchTitleToTooltip(target) {
-  const title = target.getAttribute('title');
+  let title = target.getAttribute('title');
   if (title) {
+    // apply custom formatting to relative-time's tooltips
+    if (target.tagName.toLowerCase() === 'relative-time') {
+      const datetime = target.getAttribute('datetime');
+      if (datetime) {
+        title = formatDatetime(new Date(datetime));
+      }
+    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
     // keep the attribute, in case there are some other "[title]" selectors
@@ -106,7 +115,7 @@ function switchTitleToTooltip(target) {
 /**
  * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */
@@ -136,8 +145,6 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
-
 export function initGlobalTooltips() {
   // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer) => observer.observe(document, {
@@ -152,11 +159,10 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (elementNodeTypes.has(el.nodeType)) {
-            attachChildrenLazyTooltip(el);
-            if (el.hasAttribute('data-tooltip-content')) {
-              attachLazyTooltip(el);
-            }
+          if (!isDocumentFragmentOrElementNode(el)) continue;
+          attachChildrenLazyTooltip(el);
+          if (el.hasAttribute('data-tooltip-content')) {
+            attachLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
