@@ -311,3 +311,11 @@ func populateRepoIndexer(ctx context.Context) {
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")
 }
+
+// GetQueueItemNumber is used in integration tests
+func GetQueueItemNumber() int {
+	if indexerQueue != nil {
+		return indexerQueue.GetQueueItemNumber()
+	}
+	return -1
+}

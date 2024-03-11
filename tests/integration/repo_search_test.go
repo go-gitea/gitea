@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -32,7 +33,7 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
 	assert.NoError(t, err)
 
-	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
+	executeIndexer(t, repo)
 
 	testSearch(t, "/user2/repo1/search?q=Description&page=1", []string{"README.md"})
 
@@ -42,12 +43,14 @@ func TestSearchRepo(t *testing.T) {
 	repo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "glob")
 	assert.NoError(t, err)
 
-	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
+	executeIndexer(t, repo)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
-	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
-	testSearch(t, "/user2/glob/search?q=file4&page=1", []string{})
-	testSearch(t, "/user2/glob/search?q=file5&page=1", []string{})
+	testSearch(t, "/user2/glob/search?q=loren&page=1&t=match", []string{"a.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt", "a.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt"})
+	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{})
+	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{})
 }
 
 func testSearch(t *testing.T, url string, expected []string) {
@@ -58,6 +61,17 @@ func testSearch(t *testing.T, url string, expected []string) {
 	assert.EqualValues(t, expected, filenames)
 }
 
-func executeIndexer(t *testing.T, repo *repo_model.Repository, op func(*repo_model.Repository)) {
-	op(repo)
+func executeIndexer(t *testing.T, repo *repo_model.Repository) {
+	code_indexer.UpdateRepoIndexer(repo)
+
+	for {
+		number := code_indexer.GetQueueItemNumber()
+		if number == 0 {
+			return
+		}
+		if number == -1 {
+			t.Fatal("Indexing failed")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
