@@ -108,7 +108,7 @@
 {{end}}
 
 {{if gt .Activity.PublishedReleaseCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="published-releases">
+	<h4 class="divider divider-text tw-normal-case" id="published-releases">
 		{{svg "octicon-tag" 16 "gt-mr-3"}}
 		{{ctx.Locale.Tr "repo.activity.title.releases_published_by"
 			(ctx.Locale.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
@@ -130,7 +130,7 @@
 {{end}}
 
 {{if gt .Activity.MergedPRCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="merged-pull-requests">
+	<h4 class="divider divider-text tw-normal-case" id="merged-pull-requests">
 		{{svg "octicon-git-pull-request" 16 "gt-mr-3"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_merged_by"
 			(ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
@@ -149,7 +149,7 @@
 {{end}}
 
 {{if gt .Activity.OpenedPRCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="proposed-pull-requests">
+	<h4 class="divider divider-text tw-normal-case" id="proposed-pull-requests">
 		{{svg "octicon-git-branch" 16 "gt-mr-3"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_opened_by"
 			(ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
@@ -168,7 +168,7 @@
 {{end}}
 
 {{if gt .Activity.ClosedIssueCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="closed-issues">
+	<h4 class="divider divider-text tw-normal-case" id="closed-issues">
 		{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_closed_from"
 			(ctx.Locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
@@ -187,7 +187,7 @@
 {{end}}
 
 {{if gt .Activity.OpenedIssueCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="new-issues">
+	<h4 class="divider divider-text tw-normal-case" id="new-issues">
 		{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_created_by"
 			(ctx.Locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
@@ -206,7 +206,7 @@
 {{end}}
 
 {{if gt .Activity.UnresolvedIssueCount 0}}
-	<h4 class="divider divider-text gt-normal-case" id="unresolved-conversations" data-tooltip-content="{{ctx.Locale.Tr "repo.activity.unresolved_conv_desc"}}">
+	<h4 class="divider divider-text tw-normal-case" id="unresolved-conversations" data-tooltip-content="{{ctx.Locale.Tr "repo.activity.unresolved_conv_desc"}}">
 		{{svg "octicon-comment-discussion" 16 "gt-mr-3"}}
 		{{ctx.Locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 	</h4>

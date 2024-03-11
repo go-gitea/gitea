@@ -25,7 +25,7 @@ func Search(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 
 	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
+	isFuzzy := queryType != "match"
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
@@ -43,7 +43,7 @@ func Search(ctx *context.Context) {
 	}
 
 	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
-		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		language, keyword, page, setting.UI.RepoSearchPagingNum, isFuzzy)
 	if err != nil {
 		if code_indexer.IsAvailable(ctx) {
 			ctx.ServerError("SearchResults", err)

@@ -82,19 +82,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if repo != nil && len(updates) > 0 {
-		if err := repo_service.PushUpdates(updates); err != nil {
-			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
-			for i, update := range updates {
-				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
-			}
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-			})
-			return
-		}
-
 		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
 		for _, update := range updates {
 			if !update.RefFullName.IsBranch() {
@@ -150,6 +137,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
+		}
+
+		if err := repo_service.PushUpdates(updates); err != nil {
+			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
+			for i, update := range updates {
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
+			}
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
 		}
 	}
 
