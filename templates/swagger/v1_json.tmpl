@@ -15047,6 +15047,163 @@
         }
       }
     },
+    "/user/actions/variables/{variablename}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user-level variable which is created by current doer",
+        "operationId": "getUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
+          },
+          "201": {
+            "description": "response when deleting a variable"
+          },
+          "204": {
+            "description": "response when deleting a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update a user-level variable which is created by current doer",
+        "operationId": "updateUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when updating a variable"
+          },
+          "204": {
+            "description": "response when updating a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create a user-level variable",
+        "operationId": "createUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating a variable"
+          },
+          "204": {
+            "description": "response when creating a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete a user-level variable which is created by current doer",
+        "operationId": "deleteUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when deleting a variable"
+          },
+          "204": {
+            "description": "response when deleting a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/user/applications/oauth2": {
       "get": {
         "produces": [
@@ -19087,6 +19244,21 @@
         "visibility": {
           "type": "string",
           "x-go-name": "Visibility"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateVariableOption": {
+      "description": "CreateVariableOption the option when creating variable",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "description": "Value of the variable to create",
+          "type": "string",
+          "x-go-name": "Value"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23383,6 +23555,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpdateVariableOption": {
+      "description": "UpdateVariableOption the option when updating variable",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "description": "New name for the variable. If the field is empty, the variable name won't be updated.",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "value": {
+          "description": "Value of the variable to update",
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "User": {
       "description": "User represents a user",
       "type": "object",
@@ -24722,7 +24914,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/BadgeList"
+        "$ref": "#/definitions/UpdateVariableOption"
       }
     },
     "redirect": {
