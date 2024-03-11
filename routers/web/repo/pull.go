@@ -1072,13 +1072,14 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 	if !willShowSpecifiedCommit && !willShowSpecifiedCommitRange {
+		if err := pull.LoadHeadRepo(ctx); err != nil {
+			ctx.ServerError("LoadHeadRepo", err)
+			return
+		}
+
 		ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/branch/" + url.PathEscape(pull.HeadBranch)
 
 		if !pull.HasMerged && ctx.Doer != nil {
-			if err := pull.LoadHeadRepo(ctx); err != nil {
-				ctx.ServerError("LoadHeadRepo", err)
-				return
-			}
 			perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
