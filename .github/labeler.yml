@@ -1,87 +1,86 @@
 modifies/docs:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*.md"
-      - "docs/**"
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
 
 modifies/frontend:
   - changed-files:
-    - any-glob-to-any-file:
-      - "web_src/**"
-      - "tailwind.config.js"
-      - "webpack.config.js"
+      - any-glob-to-any-file:
+          - "web_src/**"
+          - "tailwind.config.js"
+          - "webpack.config.js"
 
 modifies/templates:
   - changed-files:
-    - all-globs-to-any-file:
-      - "templates/**"
-      - "!templates/swagger/v1_json.tmpl"
+      - all-globs-to-any-file:
+          - "templates/**"
+          - "!templates/swagger/v1_json.tmpl"
 
 modifies/api:
   - changed-files:
-    - any-glob-to-any-file:
-      - "routers/api/**"
-      - "templates/swagger/v1_json.tmpl"
+      - any-glob-to-any-file:
+          - "routers/api/**"
+          - "templates/swagger/v1_json.tmpl"
 
 modifies/cli:
   - changed-files:
-    - any-glob-to-any-file: ["cmd/**"]
+      - any-glob-to-any-file: ["cmd/**"]
 
 modifies/translation:
   - changed-files:
-    - any-glob-to-any-file: ["options/locale/*.ini"]
+      - any-glob-to-any-file: ["options/locale/*.ini"]
 
 modifies/migrations:
   - changed-files:
-    - any-glob-to-any-file: ["models/migrations/**"]
+      - any-glob-to-any-file: ["models/migrations/**"]
 
 modifies/internal:
   - changed-files:
-    - any-glob-to-any-file:
-      - ".air.toml"
-      - "Makefile"
-      - "Dockerfile"
-      - "Dockerfile.rootless"
-      - ".dockerignore"
-      - "docker/**"
-      - ".editorconfig"
-      - ".eslintrc.yaml"
-      - ".golangci.yml"
-      - ".gitpod.yml"
-      - ".markdownlint.yaml"
-      - ".spectral.yaml"
-      - ".stylelintrc.yaml"
-      - ".yamllint.yaml"
-      - ".github/**"
-      - ".gitea/"
-      - ".devcontainer/**"
-      - "build.go"
-      - "build/**"
-      - "contrib/**"
+      - any-glob-to-any-file:
+          - ".air.toml"
+          - "Makefile"
+          - "Dockerfile"
+          - "Dockerfile.rootless"
+          - ".dockerignore"
+          - "docker/**"
+          - ".editorconfig"
+          - ".eslintrc.yaml"
+          - ".golangci.yml"
+          - ".gitpod.yml"
+          - ".markdownlint.yaml"
+          - ".spectral.yaml"
+          - ".stylelintrc.yaml"
+          - ".yamllint.yaml"
+          - ".github/**"
+          - ".gitea/"
+          - ".devcontainer/**"
+          - "build.go"
+          - "build/**"
+          - "contrib/**"
 
 modifies/dependencies:
   - changed-files:
-    - any-glob-to-any-file:
-      - "package.json"
-      - "package-lock.json"
-      - "poetry.toml"
-      - "poetry.lock"
-      - "go.mod"
-      - "go.sum"
-      - "pyproject.toml"
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "poetry.toml"
+          - "poetry.lock"
+          - "go.mod"
+          - "go.sum"
+          - "pyproject.toml"
 
 go:
   - changed-files:
-    - any-glob-to-any-file: ["**/*.go"]
+      - any-glob-to-any-file: ["**/*.go"]
 
 javascript:
   - changed-files:
-    - any-glob-to-any-file: ["**/*.js"]
+      - any-glob-to-any-file: ["**/*.js"]
 
 changelog:
   - changed-files:
-    - any-glob-to-any-file:
-      - "custom/app.example.ini"
-      - "docs/content/administration/config-cheat-sheet.en-us.md"
-      - "docs/content/administration/config-cheat-sheet.zh-cn.md"
-
+      - any-glob-to-any-file:
+          - "custom/app.example.ini"
+          - "docs/content/administration/config-cheat-sheet.en-us.md"
+          - "docs/content/administration/config-cheat-sheet.zh-cn.md"
