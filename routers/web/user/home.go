@@ -551,9 +551,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues issues_model.IssueList
 	{
-		issueSearchOptions := issue_indexer.ToSearchOptions(keyword, opts)
-		issueSearchOptions.IsFuzzyKeyword = isFuzzy
-		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issueSearchOptions)
+		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+			func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+		))
 		if err != nil {
 			ctx.ServerError("issueIDsFromSearch", err)
 			return
@@ -574,9 +574,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueSearchOptions := issue_indexer.ToSearchOptions(keyword, opts)
-	issueSearchOptions.IsFuzzyKeyword = isFuzzy
-	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issueSearchOptions)
+	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+		func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+	))
 	if err != nil {
 		ctx.ServerError("getUserIssueStats", err)
 		return
