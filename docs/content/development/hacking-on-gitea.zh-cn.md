@@ -308,7 +308,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 
 ```bash
 # 来自 Gitea 中的 docs 目录
-make trans-copy clean build
+make docs clean build
 ```
 
 运行此任务依赖于 [Hugo](https://gohugo.io/)。请注意：这可能会生成一些未跟踪的 Git 对象，

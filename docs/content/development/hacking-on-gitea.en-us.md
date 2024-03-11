@@ -334,7 +334,7 @@ can test your changes to ensure that they pass continuous integration using:
 
 ```bash
 # from the docs directory within Gitea
-make trans-copy clean build
+make docs clean build
 ```
 
 You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
