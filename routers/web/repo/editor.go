@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
-	"regexp"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
@@ -82,21 +81,15 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		}
 	}
 
-	prIndex := ctx.FormInt64("back_to_pr")
-	if prIndex > 0 {
-		// Redirect to the PR's files tab
-		link := ctx.Repo.RepoLink + fmt.Sprintf("/pulls/%d/files?refresh=%d", prIndex, time.Now().Unix())
-		diffHash := ctx.FormString("back_to_diff_hash")
-		r := regexp.MustCompile(`^[0-9a-f]{40}$`)
-		if len(diffHash) == 40 && r.MatchString(diffHash) {
-			link += "#diff-" + diffHash
-		}
-		ctx.Redirect(link)
-		return
+	redirectTo := ctx.FormString("redirect_to")
+	if redirectTo != "" {
+		redirectTo, _ = url.PathUnescape(redirectTo)
 	}
 
-	// Redirect to viewing file or folder
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(newBranchName) + "/" + util.PathEscapeSegments(treePath))
+	ctx.RedirectToFirst(
+		redirectTo,
+		ctx.Repo.RepoLink+"/src/branch/"+util.PathEscapeSegments(newBranchName)+"/"+util.PathEscapeSegments(treePath),
+	)
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths

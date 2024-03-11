@@ -1088,6 +1088,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 			ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
 			ctx.Data["HeadBranchName"] = pull.HeadBranch
+			ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
 		}
 	}
 
