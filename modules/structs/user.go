@@ -20,6 +20,8 @@ type User struct {
 	// the user's authentication sign-in name.
 	// default: empty
 	LoginName string `json:"login_name"`
+	// The ID of the user's Authentication Source
+	SourceID int64 `json:"source_id"`
 	// the user's full name
 	FullName string `json:"full_name"`
 	// swagger:strfmt email
