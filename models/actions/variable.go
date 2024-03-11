@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -87,4 +88,36 @@ func DeleteVariable(ctx context.Context, id int64) error {
 		return err
 	}
 	return nil
+}
+
+func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
+	variables := map[string]string{}
+
+	// Global
+	globalVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{})
+	if err != nil {
+		log.Error("find global variables: %v", err)
+		return nil, err
+	}
+
+	// Org / User level
+	ownerVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{OwnerID: run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find variables of org: %d, error: %v", run.Repo.OwnerID, err)
+		return nil, err
+	}
+
+	// Repo level
+	repoVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{RepoID: run.RepoID})
+	if err != nil {
+		log.Error("find variables of repo: %d, error: %v", run.RepoID, err)
+		return nil, err
+	}
+
+	// Level precedence: Repo > Org / User > Global
+	for _, v := range append(globalVariables, append(ownerVariables, repoVariables...)...) {
+		variables[v.Name] = v.Data
+	}
+
+	return variables, nil
 }

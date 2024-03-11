@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu gt-bg-transparent">
+				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<div class="item">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{.Total}}</strong>
@@ -141,7 +141,7 @@
 							</div>
 							{{if .Content}}
 								<div class="markup content">
-									{{.RenderedContent|Str2html}}
+									{{.RenderedContent}}
 								</div>
 							{{end}}
 						</li>

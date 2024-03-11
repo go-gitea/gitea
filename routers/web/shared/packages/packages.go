@@ -13,7 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -157,7 +157,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 	for _, p := range packages {
 		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			PackageID:  p.ID,
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 			Sort:       packages_model.SortCreatedDesc,
 			Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
 		})
