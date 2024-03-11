@@ -2,10 +2,10 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
 
   update = () => {
-    const year = this.getAttribute('year') ?? 'numeric';
-    const month = this.getAttribute('month') ?? 'short';
+    const year = this.getAttribute('year') ?? '';
+    const month = this.getAttribute('month') ?? '';
     const weekday = this.getAttribute('weekday') ?? '';
-    const day = this.getAttribute('day') ?? 'numeric';
+    const day = this.getAttribute('day') ?? '';
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
       this.ownerDocument.documentElement.getAttribute('lang') ||
       '';
