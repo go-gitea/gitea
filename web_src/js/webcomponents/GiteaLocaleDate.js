@@ -28,7 +28,7 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
   };
 
   attributeChangedCallback(_name, oldValue, newValue) {
-    if (oldValue === newValue || !this.initialized) return;
+    if (!this.initialized || oldValue === newValue) return;
     this.update();
   }
 
