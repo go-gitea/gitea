@@ -91,11 +91,9 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		return nil, runErr
 	}
 
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	var err error
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
 	changes.Updates, err = parseGitLsTreeOutput(objectFormat, stdout)
 	return &changes, err
 }
@@ -174,10 +172,8 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		return nil, err
 	}
 
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	changes.Updates, err = parseGitLsTreeOutput(objectFormat, lsTreeStdout)
 	return &changes, err
 }
