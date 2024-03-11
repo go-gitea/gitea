@@ -5,6 +5,7 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -221,11 +222,17 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
+	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "FollowUser", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "FollowUser", err)
+		}
 		return
 	}
 	ctx.Status(http.StatusNoContent)

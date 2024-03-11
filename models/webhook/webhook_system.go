@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 // GetDefaultWebhooks returns all admin-default webhooks.
@@ -34,15 +34,15 @@ func GetSystemOrDefaultWebhook(ctx context.Context, id int64) (*Webhook, error) 
 }
 
 // GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
+func GetSystemWebhooks(ctx context.Context, isActive optional.Option[bool]) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
-	if isActive.IsNone() {
+	if !isActive.Has() {
 		return webhooks, db.GetEngine(ctx).
 			Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, true).
 			Find(&webhooks)
 	}
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.Value()).
 		Find(&webhooks)
 }
 

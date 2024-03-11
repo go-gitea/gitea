@@ -1,8 +1,27 @@
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
-import {parse} from 'css-variables-parser';
+import {parse} from 'postcss';
 
 const isProduction = env.NODE_ENV !== 'development';
+
+function extractRootVars(css) {
+  const root = parse(css);
+  const vars = new Set();
+  root.walkRules((rule) => {
+    if (rule.selector !== ':root') return;
+    rule.each((decl) => {
+      if (decl.value && decl.prop.startsWith('--')) {
+        vars.add(decl.prop.substring(2));
+      }
+    });
+  });
+  return Array.from(vars);
+}
+
+const vars = extractRootVars([
+  readFileSync(new URL('web_src/css/themes/theme-gitea-light.css', import.meta.url), 'utf8'),
+  readFileSync(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url), 'utf8'),
+].join('\n'));
 
 export default {
   prefix: 'tw-',
@@ -10,8 +29,13 @@ export default {
   content: [
     isProduction && '!./templates/devtest/**/*',
     isProduction && '!./web_src/js/standalone/devtest.js',
+    '!./templates/swagger/v1_json.tmpl',
+    '!./templates/user/auth/oidc_wellknown.tmpl',
+    '!**/*_test.go',
+    '!./modules/{public,options,templates}/bindata.go',
+    './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
-    './web_src/**/*.{js,vue}',
+    './web_src/js/**/*.{js,vue}',
   ].filter(Boolean),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
@@ -23,15 +47,10 @@ export default {
   theme: {
     colors: {
       // make `tw-bg-red` etc work with our CSS variables
-      ...Object.fromEntries(
-        Object.keys(parse([
-          readFileSync(new URL('web_src/css/themes/theme-gitea-light.css', import.meta.url), 'utf8'),
-          readFileSync(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url), 'utf8'),
-        ].join('\n'), {})).filter((prop) => prop.startsWith('color-')).map((prop) => {
-          const color = prop.substring(6);
-          return [color, `var(--color-${color})`];
-        })
-      ),
+      ...Object.fromEntries(vars.filter((prop) => prop.startsWith('color-')).map((prop) => {
+        const color = prop.substring(6);
+        return [color, `var(--color-${color})`];
+      })),
       inherit: 'inherit',
       current: 'currentcolor',
       transparent: 'transparent',

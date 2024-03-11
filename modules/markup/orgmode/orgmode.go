@@ -142,10 +142,18 @@ func (r *Writer) resolveLink(kind, link string) string {
 			// so we need to try to guess the link kind again here
 			kind = org.RegularLink{URL: link}.Kind()
 		}
+
 		base := r.Ctx.Links.Base
+		if r.Ctx.IsWiki {
+			base = r.Ctx.Links.WikiLink()
+		} else if r.Ctx.Links.HasBranchInfo() {
+			base = r.Ctx.Links.SrcLink()
+		}
+
 		if kind == "image" || kind == "video" {
 			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsWiki)
 		}
+
 		link = util.URLJoin(base, link)
 	}
 	return link

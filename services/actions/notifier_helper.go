@@ -296,7 +296,18 @@ func handleWorkflows(
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content)
+		if err := run.LoadAttributes(ctx); err != nil {
+			log.Error("LoadAttributes: %v", err)
+			continue
+		}
+
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
@@ -486,6 +497,10 @@ func handleSchedules(
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
 func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	if repo.IsEmpty {
+		return nil
+	}
+
 	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)

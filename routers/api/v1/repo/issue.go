@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -123,14 +123,14 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	var (
@@ -205,14 +205,14 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 
-	var isPull util.OptionalBool
+	var isPull optional.Option[bool]
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
+		isPull = optional.Some(false)
 	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.None[bool]()
 	}
 
 	var includedAnyLabels []int64
@@ -368,7 +368,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: Only show items which were created by the the given user
+	//   description: Only show items which were created by the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
@@ -397,14 +397,14 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed util.OptionalBool
+	var isClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isClosed = util.OptionalBoolTrue
+		isClosed = optional.Some(true)
 	case "all":
-		isClosed = util.OptionalBoolNone
+		isClosed = optional.None[bool]()
 	default:
-		isClosed = util.OptionalBoolFalse
+		isClosed = optional.Some(false)
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -453,31 +453,29 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	var isPull util.OptionalBool
+	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	case "issues":
-		isPull = util.OptionalBoolFalse
-	default:
-		isPull = util.OptionalBoolNone
+		isPull = optional.Some(false)
 	}
 
-	if isPull != util.OptionalBoolNone && !ctx.Repo.CanReadIssuesOrPulls(isPull.IsTrue()) {
+	if isPull.Has() && !ctx.Repo.CanReadIssuesOrPulls(isPull.Value()) {
 		ctx.NotFound()
 		return
 	}
 
-	if isPull == util.OptionalBoolNone {
+	if !isPull.Has() {
 		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
 		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
 		if !canReadIssues && !canReadPulls {
 			ctx.NotFound()
 			return
 		} else if !canReadIssues {
-			isPull = util.OptionalBoolTrue
+			isPull = optional.Some(true)
 		} else if !canReadPulls {
-			isPull = util.OptionalBoolFalse
+			isPull = optional.Some(false)
 		}
 	}
 
@@ -656,6 +654,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
@@ -710,12 +709,14 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
-			return
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "NewIssue", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "NewIssue", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "NewIssue", err)
 		return
 	}
 
@@ -851,7 +852,11 @@ func EditIssue(ctx *context.APIContext) {
 
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.Error(http.StatusForbidden, "UpdateAssignees", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+			}
 			return
 		}
 	}
