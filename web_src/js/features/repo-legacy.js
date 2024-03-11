@@ -24,6 +24,7 @@ import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
+import {POST} from '../modules/fetch.js';
 
 const {csrfToken} = window.config;
 
@@ -65,7 +66,7 @@ export function initRepoCommentForm() {
     const $selectBranch = $('.ui.select-branch');
     const $branchMenu = $selectBranch.find('.reference-list-menu');
     const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', function () {
+    $branchMenu.find('.item:not(.no-select)').on('click', async function () {
       const selectedValue = $(this).data('id');
       const editMode = $('#editing_mode').val();
       $($(this).data('id-selector')).val(selectedValue);
@@ -76,7 +77,14 @@ export function initRepoCommentForm() {
 
       if (editMode === 'true') {
         const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrfToken, ref: selectedValue}, () => window.location.reload());
+        const params = new URLSearchParams();
+        params.append('ref', selectedValue);
+        try {
+          await POST(form.attr('action'), {data: params});
+          window.location.reload();
+        } catch (error) {
+          console.error('Error:', error);
+        }
       } else if (editMode === '') {
         $selectBranch.find('.ui .branch-name').text(selectedValue);
       }
