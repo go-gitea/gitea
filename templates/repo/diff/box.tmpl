@@ -165,10 +165,10 @@
 									{{if $file.IsDeleted}}
 										<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 									{{else}}
-										{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile)}}
+										<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+										{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
 											<a class="ui basic tiny button" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?hide_create_pr=true&hide_create_new_branch=true&back_to_pr={{$.Issue.Index}}&back_to_diff_hash={{$file.NameHash}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
 										{{end}}
-										<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 									{{end}}
 								{{end}}
 								{{if $isReviewFile}}

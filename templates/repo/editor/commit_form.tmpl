@@ -40,7 +40,7 @@
 				</div>
 			</div>
 			{{if not .Repository.IsEmpty}}
-			{{if .CanCreatePullRequest}}
+			{{if not .HideCreatePullRequest}}
 			<div class="field">
 				<div class="ui radio checkbox">
 					{{if .CanCreatePullRequest}}
@@ -59,7 +59,7 @@
 				</div>
 			</div>
 			{{end}}
-			{{if .CanCreateNewBranch}}
+			{{if not .HideCreateNewBranch}}
 			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}gt-hidden{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
 					{{svg "octicon-git-branch"}}

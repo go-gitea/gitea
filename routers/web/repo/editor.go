@@ -91,9 +91,7 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		if len(diffHash) == 40 && r.MatchString(diffHash) {
 			link += "#diff-" + diffHash
 		}
-		// FIXME: Because PushToBaseRepo is async, we need to wait a bit before redirecting
-		time.Sleep(2 * time.Second)
-		ctx.Redirect(link, 302)
+		ctx.Redirect(link)
 		return
 	}
 
@@ -207,8 +205,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
-	ctx.Data["CanCreateNewBranch"] = !ctx.FormBool("hide_create_new_branch")
-	ctx.Data["CanCreatePullRequest"] = !ctx.FormBool("hide_create_pr")
+	ctx.Data["HideCreateNewBranch"] = ctx.FormBool("hide_create_new_branch")
+	ctx.Data["HideCreatePullRequest"] = ctx.FormBool("hide_create_pr")
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
