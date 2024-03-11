@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -132,8 +131,6 @@ func PerformSearch(ctx context.Context, opts *internal.SearchOptions) (int, []*R
 	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
 	}
-
-	opts.IsWiki = optional.Some(false) // TODO: for testing
 
 	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, opts)
 	if err != nil {

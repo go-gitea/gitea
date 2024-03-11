@@ -27,11 +27,13 @@ func Search(ctx *context.Context) {
 
 	queryType := ctx.FormTrim("t")
 	isFuzzy := queryType != "match"
+	wikis := ctx.FormOptionalBool("wikis")
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
 	ctx.Data["queryType"] = queryType
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["Wikis"] = wikis
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, tplSearch)
@@ -47,6 +49,7 @@ func Search(ctx *context.Context) {
 		RepoIDs:        []int64{ctx.Repo.Repository.ID},
 		Keyword:        keyword,
 		IsKeywordFuzzy: isFuzzy,
+		IsWiki:         wikis,
 		Language:       language,
 		Paginator: &db.ListOptions{
 			Page:     page,
@@ -70,6 +73,7 @@ func Search(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "l", "Language")
+	pager.AddParam(ctx, "wikis", "Wikis")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)
