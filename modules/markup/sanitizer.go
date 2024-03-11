@@ -18,9 +18,10 @@ import (
 // Sanitizer is a protection wrapper of *bluemonday.Policy which does not allow
 // any modification to the underlying policies once it's been created.
 type Sanitizer struct {
-	defaultPolicy    *bluemonday.Policy
-	rendererPolicies map[string]*bluemonday.Policy
-	init             sync.Once
+	defaultPolicy     *bluemonday.Policy
+	descriptionPolicy *bluemonday.Policy
+	rendererPolicies  map[string]*bluemonday.Policy
+	init              sync.Once
 }
 
 var (
@@ -41,6 +42,7 @@ func NewSanitizer() {
 func InitializeSanitizer() {
 	sanitizer.rendererPolicies = map[string]*bluemonday.Policy{}
 	sanitizer.defaultPolicy = createDefaultPolicy()
+	sanitizer.descriptionPolicy = createRepoDescriptionPolicy()
 
 	for name, renderer := range renderers {
 		sanitizerRules := renderer.SanitizerRules()
@@ -62,9 +64,10 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")
 
 	// For attention
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^gt-py-3 attention attention-\w+$`)).OnElements("blockquote")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-\w+$`)).OnElements("strong")
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-icon attention-\w+$`)).OnElements("span", "strong")
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^svg octicon-\w+$`)).OnElements("svg")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^gt-mr-2 gt-vm attention-\w+$`)).OnElements("span", "strong")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^svg octicon-(\w|-)+$`)).OnElements("svg")
 	policy.AllowAttrs("viewBox", "width", "height", "aria-hidden").OnElements("svg")
 	policy.AllowAttrs("fill-rule", "d").OnElements("path")
 
@@ -161,6 +164,27 @@ func createDefaultPolicy() *bluemonday.Policy {
 	return policy
 }
 
+// createRepoDescriptionPolicy returns a minimal more strict policy that is used for
+// repository descriptions.
+func createRepoDescriptionPolicy() *bluemonday.Policy {
+	policy := bluemonday.NewPolicy()
+
+	// Allow italics and bold.
+	policy.AllowElements("i", "b", "em", "strong")
+
+	// Allow code.
+	policy.AllowElements("code")
+
+	// Allow links
+	policy.AllowAttrs("href", "target", "rel").OnElements("a")
+
+	// Allow classes for emojis
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^emoji$`)).OnElements("img", "span")
+	policy.AllowAttrs("aria-label").OnElements("span")
+
+	return policy
+}
+
 func addSanitizerRules(policy *bluemonday.Policy, rules []setting.MarkupSanitizerRule) {
 	for _, rule := range rules {
 		if rule.AllowDataURIImages {
@@ -174,6 +198,12 @@ func addSanitizerRules(policy *bluemonday.Policy, rules []setting.MarkupSanitize
 			}
 		}
 	}
+}
+
+// SanitizeDescription sanitizes the HTML generated for a repository description.
+func SanitizeDescription(s string) string {
+	NewSanitizer()
+	return sanitizer.descriptionPolicy.Sanitize(s)
 }
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.

@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"strings"
 	"time"
 )
 
 // DateTime renders an absolute time HTML element by datetime.
-func DateTime(format string, datetime any) template.HTML {
+func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 	if p, ok := datetime.(*time.Time); ok {
 		datetime = *p
 	}
@@ -48,13 +49,20 @@ func DateTime(format string, datetime any) template.HTML {
 		panic(fmt.Sprintf("Unsupported time type %T", datetime))
 	}
 
+	attrs := make([]string, 0, 10+len(extraAttrs))
+	attrs = append(attrs, extraAttrs...)
+	attrs = append(attrs, `data-tooltip-content`, `data-tooltip-interactive="true"`)
+	attrs = append(attrs, `format="datetime"`, `weekday=""`, `year="numeric"`)
+
 	switch format {
 	case "short":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		attrs = append(attrs, `month="short"`, `day="numeric"`)
 	case "long":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" year="numeric" month="long" day="numeric" weekday="" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		attrs = append(attrs, `month="long"`, `day="numeric"`)
 	case "full":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		attrs = append(attrs, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`)
+	default:
+		panic(fmt.Sprintf("Unsupported format %s", format))
 	}
-	panic(fmt.Sprintf("Unsupported format %s", format))
+	return template.HTML(fmt.Sprintf(`<relative-time %s datetime="%s">%s</relative-time>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
 }

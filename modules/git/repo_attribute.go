@@ -291,10 +291,17 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	checker := &CheckAttributeReader{
-		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-		Repo:       repo,
-		IndexFile:  indexFilename,
-		WorkTree:   worktree,
+		Attributes: []string{
+			AttributeLinguistVendored,
+			AttributeLinguistGenerated,
+			AttributeLinguistDocumentation,
+			AttributeLinguistDetectable,
+			AttributeLinguistLanguage,
+			AttributeGitlabLanguage,
+		},
+		Repo:      repo,
+		IndexFile: indexFilename,
+		WorkTree:  worktree,
 	}
 	ctx, cancel := context.WithCancel(repo.Ctx)
 	if err := checker.Init(ctx); err != nil {

@@ -17,8 +17,10 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -134,6 +136,7 @@ type Repository struct {
 	OriginalServiceType api.GitServiceType `xorm:"index"`
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
+	DefaultWikiBranch   string
 
 	NumWatches          int
 	NumStars            int
@@ -179,6 +182,7 @@ type Repository struct {
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
+	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 
 	TrustModel TrustModelType
 
@@ -192,6 +196,14 @@ type Repository struct {
 
 func init() {
 	db.RegisterModel(new(Repository))
+}
+
+func (repo *Repository) GetName() string {
+	return repo.Name
+}
+
+func (repo *Repository) GetOwnerName() string {
+	return repo.OwnerName
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -274,6 +286,9 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
+	if repo.DefaultWikiBranch == "" {
+		repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+	}
 }
 
 // LoadAttributes loads attributes of the repository.
@@ -313,7 +328,7 @@ func (repo *Repository) HTMLURL() string {
 // CommitLink make link to by commit full ID
 // note: won't check whether it's an right id
 func (repo *Repository) CommitLink(commitID string) (result string) {
-	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+	if git.IsEmptyCommitID(commitID) {
 		result = ""
 	} else {
 		result = repo.Link() + "/commit/" + url.PathEscape(commitID)
@@ -399,6 +414,13 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ActionsConfig),
+		}
+	} else if tp == unit.TypeProjects {
+		cfg := new(ProjectsConfig)
+		cfg.ProjectsMode = ProjectsModeNone
+		return &RepoUnit{
+			Type:   tp,
+			Config: cfg,
 		}
 	}
 
@@ -578,15 +600,14 @@ func (repo *Repository) CanEnableEditor() bool {
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: repo.HTMLURL(),
+		Ctx: ctx,
 		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
-		return template.HTML(markup.Sanitize(repo.Description))
+		return template.HTML(markup.SanitizeDescription(repo.Description))
 	}
-	return template.HTML(markup.Sanitize(desc))
+	return template.HTML(markup.SanitizeDescription(desc))
 }
 
 // CloneLink represents different types of clone URLs of repository.
@@ -602,25 +623,23 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 
 func ComposeSSHCloneURL(ownerName, repoName string) string {
 	sshUser := setting.SSH.User
-
-	// if we have a ipv6 literal we need to put brackets around it
-	// for the git cloning to work.
 	sshDomain := setting.SSH.Domain
-	ip := net.ParseIP(setting.SSH.Domain)
-	if ip != nil && ip.To4() == nil {
-		sshDomain = "[" + setting.SSH.Domain + "]"
+
+	// non-standard port, it must use full URI
+	if setting.SSH.Port != 22 {
+		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 
-	if setting.SSH.Port != 22 {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser,
-			net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)),
-			url.PathEscape(ownerName),
-			url.PathEscape(repoName))
+	// for standard port, it can use a shorter URI (without the port)
+	sshHost := sshDomain
+	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
+		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
-	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
@@ -833,7 +852,7 @@ func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
 
 type CountRepositoryOptions struct {
 	OwnerID int64
-	Private util.OptionalBool
+	Private optional.Option[bool]
 }
 
 // CountRepositories returns number of repositories.
@@ -845,8 +864,8 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 	if opts.OwnerID > 0 {
 		sess.And("owner_id = ?", opts.OwnerID)
 	}
-	if !opts.Private.IsNone() {
-		sess.And("is_private=?", opts.Private.IsTrue())
+	if opts.Private.Has() {
+		sess.And("is_private=?", opts.Private.Value())
 	}
 
 	count, err := sess.Count(new(Repository))

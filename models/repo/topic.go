@@ -366,7 +366,7 @@ func syncTopicsInRepository(sess db.Engine, repoID int64) error {
 	topicNames := make([]string, 0, 25)
 	if err := sess.Table("topic").Cols("name").
 		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		Where("repo_topic.repo_id = ?", repoID).Asc("topic.name").Find(&topicNames); err != nil {
 		return err
 	}
 
@@ -376,4 +376,14 @@ func syncTopicsInRepository(sess db.Engine, repoID int64) error {
 		return err
 	}
 	return nil
+}
+
+// CountOrphanedAttachments returns the number of topics that don't belong to any repository.
+func CountOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Count(new(Topic))
+}
+
+// DeleteOrphanedAttachments delete all topics that don't belong to any repository.
+func DeleteOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Delete(new(Topic))
 }

@@ -5,17 +5,18 @@ package webhook
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
+	"xorm.io/builder"
 )
 
 //   ___ ___                __   ___________              __
@@ -30,6 +31,7 @@ type HookRequest struct {
 	URL        string            `json:"url"`
 	HTTPMethod string            `json:"http_method"`
 	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
 }
 
 // HookResponse represents hook task response information.
@@ -44,11 +46,15 @@ type HookTask struct {
 	ID             int64  `xorm:"pk autoincr"`
 	HookID         int64  `xorm:"index"`
 	UUID           string `xorm:"unique"`
-	api.Payloader  `xorm:"-"`
 	PayloadContent string `xorm:"LONGTEXT"`
-	EventType      webhook_module.HookEventType
-	IsDelivered    bool
-	Delivered      timeutil.TimeStampNano
+	// PayloadVersion number to allow for smooth version upgrades:
+	//  - PayloadVersion 1: PayloadContent contains the JSON as sent to the URL
+	//  - PayloadVersion 2: PayloadContent contains the original event
+	PayloadVersion int `xorm:"DEFAULT 1"`
+
+	EventType   webhook_module.HookEventType
+	IsDelivered bool
+	Delivered   timeutil.TimeStampNano
 
 	// History info.
 	IsSucceed       bool
@@ -114,15 +120,11 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 	t.UUID = gouuid.New().String()
-	if t.Payloader != nil {
-		data, err := t.Payloader.JSONPayload()
-		if err != nil {
-			return nil, err
-		}
-		t.PayloadContent = string(data)
-	}
 	if t.Delivered == 0 {
 		t.Delivered = timeutil.TimeStampNanoNow()
+	}
+	if t.PayloadVersion == 0 {
+		return nil, errors.New("missing HookTask.PayloadVersion")
 	}
 	return t, db.Insert(ctx, t)
 }
@@ -150,14 +152,10 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task := &HookTask{
-		HookID: hookID,
-		UUID:   uuid,
-	}
-	has, err := db.GetByBean(ctx, task)
+	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrHookTaskNotExist{
 			HookID: hookID,
 			UUID:   uuid,
@@ -168,6 +166,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
+		PayloadVersion: task.PayloadVersion,
 	})
 }
 

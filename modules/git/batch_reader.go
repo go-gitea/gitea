@@ -148,7 +148,7 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 // ReadBatchLine reads the header line from cat-file --batch
 // We expect:
 // <sha> SP <type> SP <size> LF
-// sha is a 40byte not 20byte here
+// sha is a hex encoded here
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
@@ -203,16 +203,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the tag
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
@@ -238,33 +229,23 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // git tree files are a list:
-// <mode-in-ascii> SP <fname> NUL <20-byte SHA>
+// <mode-in-ascii> SP <fname> NUL <binary Hash>
 //
 // Unfortunately this 20-byte notation is somewhat in conflict to all other git tools
-// Therefore we need some method to convert these 20-byte SHAs to a 40-byte SHA
+// Therefore we need some method to convert these binary hashes to hex hashes
 
-// constant hextable to help quickly convert between 20byte and 40byte hashes
+// constant hextable to help quickly convert between binary and hex representation
 const hextable = "0123456789abcdef"
 
-// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
-// same 40 byte slice to support in place conversion without allocations.
+// BinToHexHeash converts a binary Hash into a hex encoded one. Input and output can be the
+// same byte slice to support in place conversion without allocations.
 // This is at least 100x quicker that hex.EncodeToString
-// NB This requires that out is a 40-byte slice
-func To40ByteSHA(sha, out []byte) []byte {
-	for i := 19; i >= 0; i-- {
+func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
+	for i := objectFormat.FullLength()/2 - 1; i >= 0; i-- {
 		v := sha[i]
 		vhi, vlo := v>>4, v&0x0f
 		shi, slo := hextable[vhi], hextable[vlo]
@@ -278,10 +259,10 @@ func To40ByteSHA(sha, out []byte) []byte {
 // It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
 //
 // Each line is composed of:
-// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <20-byte SHA>
+// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
-// We don't attempt to convert the 20-byte SHA to 40-byte SHA to save a lot of time
-func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+// We don't attempt to convert the raw HASH to save a lot of time
+func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -324,11 +305,12 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	fnameBuf = fnameBuf[:len(fnameBuf)-1]
 	fname = fnameBuf
 
-	// Deal with the 20-byte SHA
+	// Deal with the binary hash
 	idx = 0
-	for idx < 20 {
+	len := objectFormat.FullLength() / 2
+	for idx < len {
 		var read int
-		read, err = rd.Read(shaBuf[idx:20])
+		read, err = rd.Read(shaBuf[idx:len])
 		n += read
 		if err != nil {
 			return mode, fname, sha, n, err
@@ -344,4 +326,22 @@ var callerPrefix string
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
 	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
+}
+
+func DiscardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

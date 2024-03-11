@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, title string) *httptest.ResponseRecorder {
+func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -25,8 +25,21 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
-	if branch != "master" {
-		link = strings.Replace(link, ":master", ":"+branch, 1)
+
+	targetUser := strings.Split(link, "/")[1]
+	if toSelf && targetUser != user {
+		link = strings.Replace(link, targetUser, user, 1)
+	}
+
+	if targetBranch != "master" {
+		link = strings.Replace(link, "master...", targetBranch+"...", 1)
+	}
+	if sourceBranch != "master" {
+		if targetUser == user {
+			link = strings.Replace(link, "...master", "..."+sourceBranch, 1)
+		} else {
+			link = strings.Replace(link, ":master", ":"+sourceBranch, 1)
+		}
 	}
 
 	req = NewRequest(t, "GET", link)
@@ -49,7 +62,7 @@ func TestPullCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -77,7 +90,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -142,7 +155,7 @@ func TestPullBranchDelete(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)

@@ -21,7 +21,8 @@ func TestAPIListEmails(t *testing.T) {
 	session := loginUser(t, normalUsername)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
-	req := NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/user/emails").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var emails []*api.Email
@@ -52,18 +53,30 @@ func TestAPIAddEmail(t *testing.T) {
 		Emails: []string{"user101@example.com"},
 	}
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/emails", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	opts = api.CreateEmailOption{
 		Emails: []string{"user2-3@example.com"},
 	}
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails", &opts).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
 	assert.EqualValues(t, []*api.Email{
+		{
+			Email:    "user2@example.com",
+			Verified: true,
+			Primary:  true,
+		},
+		{
+			Email:    "user2-2@example.com",
+			Verified: false,
+			Primary:  false,
+		},
 		{
 			Email:    "user2-3@example.com",
 			Verified: true,
@@ -74,7 +87,8 @@ func TestAPIAddEmail(t *testing.T) {
 	opts = api.CreateEmailOption{
 		Emails: []string{"notAEmail"},
 	}
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
@@ -88,16 +102,19 @@ func TestAPIDeleteEmail(t *testing.T) {
 	opts := api.DeleteEmailOption{
 		Emails: []string{"user2-3@example.com"},
 	}
-	req := NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
+	req := NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	opts = api.DeleteEmailOption{
 		Emails: []string{"user2-2@example.com"},
 	}
-	req = NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
+	req = NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	req = NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
+	req = NewRequest(t, "GET", "/api/v1/user/emails").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var emails []*api.Email

@@ -20,6 +20,10 @@ type ActionTaskOutput struct {
 	OutputValue string `xorm:"MEDIUMTEXT"`
 }
 
+func init() {
+	db.RegisterModel(new(ActionTaskOutput))
+}
+
 // FindTaskOutputByTaskID returns the outputs of the task.
 func FindTaskOutputByTaskID(ctx context.Context, taskID int64) ([]*ActionTaskOutput, error) {
 	var outputs []*ActionTaskOutput

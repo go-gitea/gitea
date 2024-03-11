@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+
+	"xorm.io/builder"
 )
 
 // Access represents the highest access level of a user to the repository. The only access type
@@ -51,9 +53,11 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		return perm.AccessModeOwner, nil
 	}
 
-	a := &Access{UserID: userID, RepoID: repo.ID}
-	if has, err := db.GetByBean(ctx, a); !has || err != nil {
+	a, exist, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
+	if err != nil {
 		return mode, err
+	} else if !exist {
+		return mode, nil
 	}
 	return a.Mode, nil
 }
@@ -124,9 +128,9 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo_model.GetCollaborators(ctx, repoID, db.ListOptions{})
+	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repoID})
 	if err != nil {
-		return fmt.Errorf("getCollaborations: %w", err)
+		return fmt.Errorf("GetCollaborators: %w", err)
 	}
 	for _, c := range collaborators {
 		if c.User.IsGhost() {

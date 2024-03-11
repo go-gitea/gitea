@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -447,4 +448,13 @@ func TestGeneratedSourceLink(t *testing.T) {
 		assert.True(t, exists)
 		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
+}
+
+func TestViewCommit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo1/commit/0123456789012345678901234567890123456789")
+	req.Header.Add("Accept", "text/html")
+	resp := MakeRequest(t, req, http.StatusNotFound)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "non-existing commit should render 404 page")
 }

@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"regexp"
 	"slices"
 
@@ -105,7 +106,7 @@ type Issue struct {
 	OriginalAuthorID int64                  `xorm:"index"`
 	Title            string                 `xorm:"name"`
 	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
+	RenderedContent  template.HTML          `xorm:"-"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`
@@ -532,15 +533,6 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 		return nil, ErrIssueNotExist{id, 0, 0}
 	}
 	return issue, nil
-}
-
-// GetIssueWithAttrsByID returns an issue with attributes by given ID.
-func GetIssueWithAttrsByID(ctx context.Context, id int64) (*Issue, error) {
-	issue, err := GetIssueByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return issue, issue.LoadAttributes(ctx)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
