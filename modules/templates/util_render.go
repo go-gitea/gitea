@@ -121,11 +121,11 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 // RenderLabel renders a label
 func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
 	var (
-		description string
-		archivedCSS string
-		textColor   = "#111"
-		isArchived  = !label.ArchivedUnix.IsZero()
-		labelScope  = label.ExclusiveScope()
+		description      string
+		archivedCSSClass string
+		textColor        = "#111"
+		isArchived       = !label.ArchivedUnix.IsZero()
+		labelScope       = label.ExclusiveScope()
 	)
 
 	r, g, b := util.HexToRBGColor(label.Color)
@@ -136,15 +136,15 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	if isArchived {
 		description = locale.TrString("archived")
-		archivedCSS = fmt.Sprintf("opacity: 0.5;", textColor)
+		archivedCSSClass = "archived"
 	} else {
 		description = emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 	}
 
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important; %s' data-tooltip-content title='%s'>%s</div>",
-			textColor, label.Color, archivedCSS, description, RenderEmoji(ctx, label.Name))
+		s := fmt.Sprintf("<div class='ui label %s' style='color: %s !important; background-color: %s !important;' data-tooltip-content title='%s'>%s</div>",
+			archivedCSSClass, textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 		return template.HTML(s)
 	}
 
@@ -177,11 +177,11 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label scope-parent' data-tooltip-content title='%s' style='%s'>"+
+	s := fmt.Sprintf("<span class='ui label %s scope-parent' data-tooltip-content title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
-		description, archivedCSS,
+		archivedCSSClass, description,
 		textColor, scopeColor, scopeText,
 		textColor, itemColor, itemText)
 	return template.HTML(s)
