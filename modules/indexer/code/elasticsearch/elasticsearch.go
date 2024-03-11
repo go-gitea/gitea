@@ -20,6 +20,7 @@ import (
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -29,7 +30,7 @@ import (
 )
 
 const (
-	esRepoIndexerLatestVersion = 1
+	esRepoIndexerLatestVersion = 2
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -62,6 +63,10 @@ const (
 					"type": "long",
 					"index": true
 				},
+				"is_wiki": {
+					"type": "boolean"
+					"index": true
+				}
 				"content": {
 					"type": "text",
 					"term_vector": "with_positions_offsets",
@@ -84,7 +89,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository, isWiki bool) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -104,7 +109,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	}
 
 	if size > setting.Indexer.MaxIndexerFileSize {
-		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
+		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo, isWiki)}, nil
 	}
 
 	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
@@ -127,7 +132,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
-	id := internal.FilenameIndexerID(repo.ID, update.Filename)
+	id := internal.FilenameIndexerID(repo.ID, isWiki, update.Filename)
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
@@ -135,6 +140,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
+				"is_wiki":    isWiki,
 				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
@@ -143,8 +149,8 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	}, nil
 }
 
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
-	id := internal.FilenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, isWiki bool) elastic.BulkableRequest {
+	id := internal.FilenameIndexerID(repo.ID, isWiki, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.inner.VersionedIndexName()).
 		Id(id)
@@ -152,6 +158,8 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 
 // Index will save the index data
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+	isWiki := false // TODO
+
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -164,7 +172,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo, isWiki)
 			if err != nil {
 				return err
 			}
@@ -176,7 +184,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	}
 
 	for _, filename := range changes.RemovedFilenames {
-		reqs = append(reqs, b.addDelete(filename, repo))
+		reqs = append(reqs, b.addDelete(filename, repo, isWiki))
 	}
 
 	if len(reqs) > 0 {
@@ -239,7 +247,11 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		repoID, fileName := internal.ParseIndexerID(hit.Id)
+		repoID, isWiki, fileName, err := internal.ParseIndexerID(hit.Id)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+
 		res := make(map[string]any)
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
@@ -249,6 +261,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		hits = append(hits, &internal.SearchResult{
 			RepoID:      repoID,
+			IsWiki:      isWiki,
 			Filename:    fileName,
 			CommitID:    res["commit_id"].(string),
 			Content:     res["content"].(string),
@@ -297,6 +310,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
+	}
+
+	opts.IsWiki = optional.Some(false) // TODO
+
+	if opts.IsWiki.Has() {
+		query = query.Must(elastic.NewTermQuery("is_wiki", opts.IsWiki.Value()))
 	}
 
 	var (

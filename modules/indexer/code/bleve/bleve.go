@@ -51,6 +51,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 // RepoIndexerData data stored in the repo indexer
 type RepoIndexerData struct {
 	RepoID    int64
+	IsWiki    bool
 	CommitID  string
 	Content   string
 	Language  string
@@ -65,7 +66,7 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 6
+	repoIndexerLatestVersion = 7
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -74,6 +75,10 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.IncludeInAll = false
+	docMapping.AddFieldMappingsAt("IsWiki", boolFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.IncludeInAll = false
@@ -125,7 +130,7 @@ func NewIndexer(indexDir string) *Indexer {
 }
 
 func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
+	update internal.FileUpdate, repo *repo_model.Repository, isWiki bool, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
@@ -147,7 +152,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	}
 
 	if size > setting.Indexer.MaxIndexerFileSize {
-		return b.addDelete(update.Filename, repo, batch)
+		return b.addDelete(update.Filename, repo, isWiki, batch)
 	}
 
 	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
@@ -170,9 +175,10 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	if _, err = batchReader.Discard(1); err != nil {
 		return err
 	}
-	id := internal.FilenameIndexerID(repo.ID, update.Filename)
+	id := internal.FilenameIndexerID(repo.ID, isWiki, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
+		IsWiki:    isWiki,
 		CommitID:  commitSha,
 		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
@@ -180,13 +186,15 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	})
 }
 
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch) error {
-	id := internal.FilenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, isWiki bool, batch *inner_bleve.FlushingBatch) error {
+	id := internal.FilenameIndexerID(repo.ID, isWiki, filename)
 	return batch.Delete(id)
 }
 
 // Index indexes the data
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+	isWiki := false // TODO
+
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
@@ -200,14 +208,14 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			if err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo, batch); err != nil {
+			if err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo, isWiki, batch); err != nil {
 				return err
 			}
 		}
 		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
-		if err := b.addDelete(filename, repo, batch); err != nil {
+		if err := b.addDelete(filename, repo, isWiki, batch); err != nil {
 			return err
 		}
 	}

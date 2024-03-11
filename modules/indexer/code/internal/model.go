@@ -21,11 +21,13 @@ type RepoChanges struct {
 // IndexerData represents data stored in the code indexer
 type IndexerData struct {
 	RepoID int64
+	IsWiki bool
 }
 
 // SearchResult result of performing a search in a repo
 type SearchResult struct {
 	RepoID      int64
+	IsWiki      bool
 	StartIndex  int
 	EndIndex    int
 	Filename    string
