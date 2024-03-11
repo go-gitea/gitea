@@ -6,9 +6,17 @@
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
+const filteredErrors = new Set([
+  'getModifierState is not a function', // https://github.com/microsoft/monaco-editor/issues/4325
+]);
+
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
   if (!pageContent) return;
+
+  for (const filteredError of filteredErrors) {
+    if (msg.includes(filteredError)) return;
+  }
 
   // compact the message to a data attribute to avoid too many duplicated messages
   const msgCompact = msg.replace(/\W/g, '').trim();
