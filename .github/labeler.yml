@@ -25,15 +25,18 @@ modifies/api:
 
 modifies/cli:
   - changed-files:
-      - any-glob-to-any-file: ["cmd/**"]
+      - any-glob-to-any-file:
+          - "cmd/**"
 
 modifies/translation:
   - changed-files:
-      - any-glob-to-any-file: ["options/locale/*.ini"]
+      - any-glob-to-any-file:
+          - "options/locale/*.ini"
 
 modifies/migrations:
   - changed-files:
-      - any-glob-to-any-file: ["models/migrations/**"]
+      - any-glob-to-any-file:
+          - "models/migrations/**"
 
 modifies/internal:
   - changed-files:
@@ -72,11 +75,13 @@ modifies/dependencies:
 
 go:
   - changed-files:
-      - any-glob-to-any-file: ["**/*.go"]
+      - any-glob-to-any-file:
+          - "**/*.go"
 
 javascript:
   - changed-files:
-      - any-glob-to-any-file: ["**/*.js"]
+      - any-glob-to-any-file:
+          - "**/*.js"
 
 changelog:
   - changed-files:
