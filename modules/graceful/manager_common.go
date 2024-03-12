@@ -44,6 +44,7 @@ type Manager struct {
 	runningServerWaitGroup sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
 	createServerCond       sync.Cond
+	createdServer          int
 	shutdownRequested      chan struct{}
 
 	toRunAtShutdown  []func()

@@ -63,21 +63,20 @@ func (g *Manager) start() {
 			_ = CloseProvidedListeners()
 		}()
 		// Wait till we're done getting all the listeners and then close the unused ones
-		ready := 0
+		g.createServerCond.L.Lock()
 		for {
-			g.createServerCond.L.Lock()
-			g.createServerCond.Wait()
-			g.createServerCond.L.Unlock()
-			select {
-			case <-g.IsShutdown():
-				return
-			default:
-			}
-			ready++
-			if ready >= numberOfServersToCreate {
+			if g.createdServer >= numberOfServersToCreate {
+				g.createServerCond.L.Unlock()
 				g.notify(readyMsg)
 				return
 			}
+			select {
+			case <-g.IsShutdown():
+				g.createServerCond.L.Unlock()
+				return
+			default:
+			}
+			g.createServerCond.Wait()
 		}
 	}()
 	if setting.StartupTimeout > 0 {

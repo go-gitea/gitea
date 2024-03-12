@@ -149,21 +149,20 @@ hammerLoop:
 func (g *Manager) awaitServer(limit time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
-		ready := 0
+		g.createServerCond.L.Lock()
 		for {
-			g.createServerCond.L.Lock()
-			g.createServerCond.Wait()
-			g.createServerCond.L.Unlock()
-			select {
-			case <-g.IsShutdown():
-				return
-			default:
-			}
-			ready++
-			if ready >= numberOfServersToCreate {
+			if g.createdServer >= numberOfServersToCreate {
+				g.createServerCond.L.Unlock()
 				close(c)
 				return
 			}
+			select {
+			case <-g.IsShutdown():
+				g.createServerCond.L.Unlock()
+				return
+			default:
+			}
+			g.createServerCond.Wait()
 		}
 	}()
 

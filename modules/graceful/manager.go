@@ -233,6 +233,9 @@ func (g *Manager) setStateTransition(old, new state) bool {
 // At the moment the total number of servers (numberOfServersToCreate) are pre-defined as a const before global init,
 // so this function MUST be called if a server is not used.
 func (g *Manager) InformCleanup() {
+	g.createServerCond.L.Lock()
+	defer g.createServerCond.L.Unlock()
+	g.createdServer++
 	g.createServerCond.Signal()
 }
 
