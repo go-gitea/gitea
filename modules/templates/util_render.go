@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -118,10 +119,15 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 }
 
 // RenderLabel renders a label
-func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
-	labelScope := label.ExclusiveScope()
+// locale is needed due to an import cycle with our context providing the `Tr` function
+func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
+	var (
+		archivedCSSClass string
+		textColor        = "#111"
+		isArchived       = !label.ArchivedUnix.IsZero()
+		labelScope       = label.ExclusiveScope()
+	)
 
-	textColor := "#111"
 	r, g, b := util.HexToRBGColor(label.Color)
 	// Determine if label text should be light or dark to be readable on background color
 	if util.UseLightTextOnBackground(r, g, b) {
@@ -130,10 +136,15 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 
+	if isArchived {
+		archivedCSSClass = "archived-label"
+		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
+	}
+
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' data-tooltip-content title='%s'>%s</div>",
-			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
+		s := fmt.Sprintf("<div class='ui label %s' style='color: %s !important; background-color: %s !important;' data-tooltip-content title='%s'>%s</div>",
+			archivedCSSClass, textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 		return template.HTML(s)
 	}
 
@@ -166,11 +177,11 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label scope-parent' data-tooltip-content title='%s'>"+
+	s := fmt.Sprintf("<span class='ui label %s scope-parent' data-tooltip-content title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
-		description,
+		archivedCSSClass, description,
 		textColor, scopeColor, scopeText,
 		textColor, itemColor, itemText)
 	return template.HTML(s)
@@ -211,7 +222,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return output
 }
 
-func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string) template.HTML {
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -219,7 +230,7 @@ func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink st
 			continue
 		}
 		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-			repoLink, label.ID, RenderLabel(ctx, label))
+			repoLink, label.ID, RenderLabel(ctx, locale, label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
