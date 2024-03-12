@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -30,16 +31,23 @@ func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository, isWik
 	return strings.TrimSpace(stdout), nil
 }
 
-// getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(ctx context.Context, repo *repo_model.Repository, isWiki bool, revision string) (*internal.RepoChanges, error) {
-	repoPath := repo.RepoPath()
+func getRepoStatus(ctx context.Context, repo *repo_model.Repository, isWiki bool) (*repo_model.RepoIndexerStatus, error) {
 	indexerType := repo_model.RepoIndexerTypeCode
 	if isWiki {
-		repoPath = repo.WikiPath()
 		indexerType = repo_model.RepoIndexerTypeWiki
 	}
 
-	status, err := repo_model.GetIndexerStatus(ctx, repo, indexerType)
+	return repo_model.GetIndexerStatus(ctx, repo, indexerType)
+}
+
+// getRepoChanges returns changes to repo since last indexer update
+func getRepoChanges(ctx context.Context, repo *repo_model.Repository, isWiki bool, revision string) (*internal.RepoChanges, error) {
+	repoPath := repo.RepoPath()
+	if isWiki {
+		repoPath = repo.WikiPath()
+	}
+
+	status, err := getRepoStatus(ctx, repo, isWiki)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +142,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, isWiki 
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
 		log.Warn("git diff: %v", runErr)
-		if err := (*globalIndexer.Load()).Delete(ctx, repo.ID); err != nil {
+		if err := (*globalIndexer.Load()).Delete(ctx, repo.ID, optional.Some(isWiki)); err != nil {
 			return nil, err
 		}
 		return genesisChanges(ctx, repo, isWiki, revision)

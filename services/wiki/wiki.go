@@ -18,8 +18,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -45,6 +47,11 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD").AddDynamicArguments(git.BranchPrefix + repo.DefaultWikiBranch).RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
+
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo, true)
+	}
+
 	return nil
 }
 
@@ -229,6 +236,10 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Push: %w", err)
 	}
 
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo, true)
+	}
+
 	return nil
 }
 
@@ -347,6 +358,10 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Push: %w", err)
 	}
 
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo, true)
+	}
+
 	return nil
 }
 
@@ -357,6 +372,11 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo, true)
+	}
+
 	return nil
 }
 
@@ -364,7 +384,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 	if !git.IsValidRefPattern(newBranch) {
 		return fmt.Errorf("invalid branch name: %s", newBranch)
 	}
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repo.DefaultWikiBranch = newBranch
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
 			return fmt.Errorf("unable to update database: %w", err)
@@ -391,5 +411,12 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to rename default branch: %w", err)
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo, true)
+	}
+	return nil
 }

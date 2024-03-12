@@ -676,7 +676,13 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Error(http.StatusForbidden)
 				return
 			}
-			code.UpdateRepoIndexer(ctx.Repo.Repository)
+			code.UpdateRepoIndexer(ctx.Repo.Repository, false)
+		case "wiki":
+			if !setting.Indexer.RepoIndexerEnabled {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+			code.UpdateRepoIndexer(ctx.Repo.Repository, true)
 		default:
 			ctx.NotFound("", nil)
 			return

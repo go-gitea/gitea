@@ -58,6 +58,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	assert.EqualValues(t, expected, filenames)
 }
 
-func executeIndexer(t *testing.T, repo *repo_model.Repository, op func(*repo_model.Repository)) {
-	op(repo)
+func executeIndexer(t *testing.T, repo *repo_model.Repository, op func(*repo_model.Repository, bool)) {
+	op(repo, false)
 }

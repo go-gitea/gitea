@@ -17,7 +17,7 @@ import (
 type Indexer interface {
 	internal.Indexer
 	Index(ctx context.Context, repo *repo_model.Repository, isWiki bool, sha string, changes *RepoChanges) error
-	Delete(ctx context.Context, repoID int64) error
+	Delete(ctx context.Context, repoID int64, isWiki optional.Option[bool]) error
 	Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error)
 }
 
@@ -48,7 +48,7 @@ func (d *dummyIndexer) Index(ctx context.Context, repo *repo_model.Repository, i
 	return fmt.Errorf("indexer is not ready")
 }
 
-func (d *dummyIndexer) Delete(ctx context.Context, repoID int64) error {
+func (d *dummyIndexer) Delete(ctx context.Context, repoID int64, isWiki optional.Option[bool]) error {
 	return fmt.Errorf("indexer is not ready")
 }
 

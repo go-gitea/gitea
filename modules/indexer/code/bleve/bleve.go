@@ -20,6 +20,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -231,8 +232,14 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, isWiki
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(_ context.Context, repoID int64) error {
-	query := inner_bleve.NumericEqualityQuery(repoID, "RepoID")
+func (b *Indexer) Delete(_ context.Context, repoID int64, isWiki optional.Option[bool]) error {
+	var query query.Query
+	query = inner_bleve.NumericEqualityQuery(repoID, "RepoID")
+	if isWiki.Has() {
+		wikiQuery := bleve.NewBoolFieldQuery(isWiki.Value())
+		wikiQuery.FieldVal = "IsWiki"
+		query = bleve.NewConjunctionQuery(query, wikiQuery)
+	}
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
 	result, err := b.inner.Indexer.Search(searchRequest)
 	if err != nil {

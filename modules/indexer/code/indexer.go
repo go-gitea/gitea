@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,7 +42,7 @@ func init() {
 func index(ctx context.Context, indexer internal.Indexer, repoID int64, isWiki bool) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
-		return indexer.Delete(ctx, repoID)
+		return indexer.Delete(ctx, repoID, optional.None[bool]())
 	}
 	if err != nil {
 		return err
@@ -54,8 +55,16 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64, isWiki b
 	}
 
 	if isWiki {
-		// ignore empty wikis
 		if !repo.HasWiki() {
+			// wiki go deleted, so we delete index too
+			status, err := getRepoStatus(ctx, repo, isWiki)
+			if err != nil {
+				return err
+			}
+			if status.CommitSha != "" {
+				indexer.Delete(ctx, repoID, optional.Some(isWiki))
+			}
+			// ignore empty wikis
 			return nil
 		}
 
@@ -264,8 +273,8 @@ func Init() {
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *repo_model.Repository) {
-	indexData := &internal.IndexerData{RepoID: repo.ID}
+func UpdateRepoIndexer(repo *repo_model.Repository, isWiki bool) {
+	indexData := &internal.IndexerData{RepoID: repo.ID, IsWiki: isWiki}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
 	}

@@ -20,6 +20,7 @@ import (
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -211,9 +212,14 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, isWiki
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+func (b *Indexer) Delete(ctx context.Context, repoID int64, isWiki optional.Option[bool]) error {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewTermsQuery("repo_id", repoID))
+	if isWiki.Has() {
+		query = query.Must(elastic.NewTermQuery("is_wiki", isWiki.Value()))
+	}
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
-		Query(elastic.NewTermsQuery("repo_id", repoID)).
+		Query(query).
 		Do(ctx)
 	return err
 }
