@@ -51,15 +51,14 @@ func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 
 	attrs := make([]string, 0, 10+len(extraAttrs))
 	attrs = append(attrs, extraAttrs...)
-	attrs = append(attrs, `data-tooltip-content`, `data-tooltip-interactive="true"`)
 	attrs = append(attrs, `weekday=""`, `year="numeric"`)
 
 	switch format {
-	case "short", "long": // date only, render using <gitea-absolute-date>
+	case "short", "long": // date only
 		attrs = append(attrs, `month="`+format+`"`, `day="numeric"`)
 		return template.HTML(fmt.Sprintf(`<gitea-absolute-date %s date="%s">%s</gitea-absolute-date>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
 	case "full": // full date including time
-		attrs = append(attrs, `format="datetime"`, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`)
+		attrs = append(attrs, `format="datetime"`, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`, `data-tooltip-content`, `data-tooltip-interactive="true"`)
 		return template.HTML(fmt.Sprintf(`<relative-time %s datetime="%s">%s</relative-time>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
 	default:
 		panic(fmt.Sprintf("Unsupported format %s", format))
