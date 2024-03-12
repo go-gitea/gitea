@@ -539,17 +539,17 @@ func validateEmailBasic(email string) error {
 
 // validateEmailDomain checks whether the email domain is allowed or blocked
 func validateEmailDomain(email string) error {
-	// if there is no allow list, then check email against block list
-	if len(setting.Service.EmailDomainAllowList) == 0 &&
-		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is an allow list, then check email against allow list
-	if len(setting.Service.EmailDomainAllowList) > 0 &&
-		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+	if !IsEmailDomainAllowed(email) {
 		return ErrEmailInvalid{email}
 	}
 
 	return nil
+}
+
+func IsEmailDomainAllowed(email string) bool {
+	if len(setting.Service.EmailDomainAllowList) == 0 {
+		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email)
+	}
+
+	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
 }
