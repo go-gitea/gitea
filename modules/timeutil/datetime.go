@@ -55,9 +55,9 @@ func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 	attrs = append(attrs, `weekday=""`, `year="numeric"`)
 
 	switch format {
-	case "short", "long": // date only, render using <gitea-locale-date>
+	case "short", "long": // date only, render using <gitea-absolute-date>
 		attrs = append(attrs, `month="`+format+`"`, `day="numeric"`)
-		return template.HTML(fmt.Sprintf(`<gitea-locale-date %s date="%s">%s</gitea-locale-date>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
+		return template.HTML(fmt.Sprintf(`<gitea-absolute-date %s date="%s">%s</gitea-absolute-date>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
 	case "full": // full date including time
 		attrs = append(attrs, `format="datetime"`, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`)
 		return template.HTML(fmt.Sprintf(`<relative-time %s datetime="%s">%s</relative-time>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
