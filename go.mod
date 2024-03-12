@@ -17,7 +17,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.1
-	github.com/alecthomas/chroma/v2 v2.10.0
+	github.com/alecthomas/chroma/v2 v2.13.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.3.10
 	github.com/bufbuild/connect-go v1.10.0
@@ -173,10 +173,10 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dlclark/regexp2 v1.10.0 // indirect
-	github.com/emersion/go-sasl v0.0.0-20220912192320-0145f2c60ead // indirect
-	github.com/fatih/color v1.15.0 // indirect
-	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/dlclark/regexp2 v1.11.0 // indirect
+	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
+	github.com/fatih/color v1.16.0 // indirect
+	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
 	github.com/go-ap/errors v0.0.0-20231003111023-183eef4b31b7 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
