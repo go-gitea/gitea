@@ -582,6 +582,7 @@ func SettingsPost(ctx *context.Context) {
 				Type:   unit_model.TypePullRequests,
 				Config: &repo_model.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
+					ShowDependencies:              form.PullsShowDependencies,
 					AllowMerge:                    form.PullsAllowMerge,
 					AllowRebase:                   form.PullsAllowRebase,
 					AllowRebaseMerge:              form.PullsAllowRebaseMerge,

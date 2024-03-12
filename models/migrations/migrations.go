@@ -566,6 +566,8 @@ var migrations = []Migration{
 	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
 	// v290 -> v291
 	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
+	// v291 -> v292
+	NewMigration("Add indecies to IssueDependency", v1_22.AddIndeciesToIssueDepencencies),
 }
 
 // GetCurrentDBVersion returns the current db version
