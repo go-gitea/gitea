@@ -277,6 +277,8 @@ func UpdateRepoIndexer(repo *repo_model.Repository, isWiki bool) {
 	indexData := &internal.IndexerData{RepoID: repo.ID, IsWiki: isWiki}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
+	} else {
+		log.Trace("Push repo indexer task repo: %d (isWiki=%v)", repo.ID, isWiki)
 	}
 }
 
