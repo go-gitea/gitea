@@ -280,6 +280,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		indexerQuery = keywordQuery
 	}
 
+	if opts.IsWiki.Has() {
+		wikiQuery := bleve.NewBoolFieldQuery(opts.IsWiki.Value())
+		wikiQuery.FieldVal = "IsWiki"
+		indexerQuery = bleve.NewConjunctionQuery(indexerQuery, wikiQuery)
+	}
+
 	// Save for reuse without language filter
 	facetQuery := indexerQuery
 	if len(opts.Language) > 0 {
@@ -295,7 +301,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	from, pageSize := opts.GetSkipTake()
 	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
+	searchRequest.Fields = []string{"Content", "RepoID", "IsWiki", "Language", "CommitID", "UpdatedAt"}
 	searchRequest.IncludeLocations = true
 
 	if len(opts.Language) == 0 {
