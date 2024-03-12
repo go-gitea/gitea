@@ -1606,7 +1606,7 @@ func ViewIssue(ctx *context.Context) {
 	participants[0] = issue.Poster
 
 	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerError("LoadAttachmentsByIssue", err)
 		return
 	}
 	if err := issue.Comments.LoadPosters(ctx); err != nil {
