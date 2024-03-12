@@ -4,6 +4,7 @@
 package bleve
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
 )
@@ -39,18 +40,18 @@ func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	return q
 }
 
-func NumericRangeInclusiveQuery(min, max *int64, field string) *query.NumericRangeQuery {
+func NumericRangeInclusiveQuery(min, max int64, field string) *query.NumericRangeQuery {
 	var minF, maxF *float64
 	var minI, maxI *bool
-	if min != nil {
+	if min == db.NoConditionID {
 		minF = new(float64)
-		*minF = float64(*min)
+		*minF = float64(min)
 		minI = new(bool)
 		*minI = true
 	}
-	if max != nil {
+	if max == db.NoConditionID {
 		maxF = new(float64)
-		*maxF = float64(*max)
+		*maxF = float64(max)
 		maxI = new(bool)
 		*maxI = true
 	}

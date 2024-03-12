@@ -15,22 +15,6 @@ import (
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
-	// See the comment of issues_model.SearchOptions for the reason why we need to convert
-	convertID := func(id *int64) int64 {
-		if id == nil {
-			return 0
-		}
-		if *id == 0 {
-			return db.NoConditionID
-		}
-		return *id
-	}
-	convertInt64 := func(i *int64) int64 {
-		if i == nil {
-			return 0
-		}
-		return *i
-	}
 	var sortType string
 	switch options.SortBy {
 	case internal.SortByCreatedAsc:
@@ -58,14 +42,14 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         convertID(options.AssigneeID),
-		PosterID:           convertID(options.PosterID),
-		MentionedID:        convertID(options.MentionID),
-		ReviewRequestedID:  convertID(options.ReviewRequestedID),
-		ReviewedID:         convertID(options.ReviewedID),
-		SubscriberID:       convertID(options.SubscriberID),
-		ProjectID:          convertID(options.ProjectID),
-		ProjectBoardID:     convertID(options.ProjectBoardID),
+		AssigneeID:         options.AssigneeID.ValueOrDefault(db.NoConditionID),
+		PosterID:           options.PosterID.ValueOrDefault(db.NoConditionID),
+		MentionedID:        options.MentionID.ValueOrDefault(db.NoConditionID),
+		ReviewRequestedID:  options.ReviewRequestedID.ValueOrDefault(db.NoConditionID),
+		ReviewedID:         options.ReviewedID.ValueOrDefault(db.NoConditionID),
+		SubscriberID:       options.SubscriberID.ValueOrDefault(db.NoConditionID),
+		ProjectID:          options.ProjectID.ValueOrDefault(db.NoConditionID),
+		ProjectBoardID:     options.ProjectBoardID.ValueOrDefault(db.NoConditionID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
 		IncludedLabelNames: nil,
@@ -73,8 +57,8 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		IncludeMilestones:  nil,
 		SortType:           sortType,
 		IssueIDs:           nil,
-		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
-		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
+		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
+		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
 		IsArchived:         optional.None[bool](),
 		Org:                nil,
