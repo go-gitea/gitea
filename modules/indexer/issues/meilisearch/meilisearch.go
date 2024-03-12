@@ -6,6 +6,7 @@ package meilisearch
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -217,7 +218,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
+	keyword := options.Keyword
+	if !options.IsFuzzyKeyword {
+		keyword = doubleQuoteKeyword(keyword)
+	}
+
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter:           query.Statement(),
 		Limit:            int64(limit),
 		Offset:           int64(skip),
@@ -245,6 +251,18 @@ func parseSortBy(sortBy internal.SortBy) string {
 		return field + ":desc"
 	}
 	return field + ":asc"
+}
+
+func doubleQuoteKeyword(k string) string {
+	kp := strings.Split(k, " ")
+	parts := 0
+	for i := range kp {
+		if kp[i] != "" {
+			kp[parts] = fmt.Sprintf(`"%s"`, kp[i])
+			parts++
+		}
+	}
+	return strings.Join(kp[:parts], " ")
 }
 
 // nonFuzzyWorkaround is needed as meilisearch does not have an exact search

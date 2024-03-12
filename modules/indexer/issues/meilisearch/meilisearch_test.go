@@ -93,3 +93,9 @@ func TestNonFuzzyWorkaround(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}, {ID: 33}}, hits)
 }
+
+func TestDoubleQuoteKeyword(t *testing.T) {
+	assert.EqualValues(t, "", doubleQuoteKeyword(""))
+	assert.EqualValues(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+}
