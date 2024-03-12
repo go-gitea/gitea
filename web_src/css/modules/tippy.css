@@ -55,7 +55,7 @@
 }
 
 .tippy-box[data-theme="menu"] .tippy-content {
-  padding: 0;
+  padding: 4px 0;
 }
 
 .tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
