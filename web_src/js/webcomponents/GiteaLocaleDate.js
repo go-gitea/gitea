@@ -11,13 +11,11 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
       '';
 
     // only extract the `yyyy-mm-dd` part. When converting to Date, it will become midnight UTC and when rendered
-    // as locale date, will have a offset towards UTC added. We should eventually use `Temporal.PlainDate` here
-    // to avoid needing to remove this offset: https://tc39.es/proposal-temporal/docs/plaindate.html
+    // as localized date, will have a offset towards UTC, which we remove to shift the timestamp to midnight in the
+    // localized date. We should eventually use `Temporal.PlainDate` which will make the correction unnecessary.
+    // - https://stackoverflow.com/a/14569783/808699
+    // - https://tc39.es/proposal-temporal/docs/plaindate.html
     const date = new Date(this.getAttribute('date').substring(0, 10));
-
-    // apply negative timezone offset because `new Date()` above assumes that `yyyy-mm-dd` is
-    // a UTC date, so the local date will have a offset towards UTC which we reverse here.
-    // Ref: https://stackoverflow.com/a/14569783/808699
     const correctedDate = new Date(date.getTime() - date.getTimezoneOffset() * -60000);
 
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
