@@ -13,6 +13,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/meilisearch/meilisearch-go"
 )
@@ -319,6 +320,8 @@ func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, i
 				}
 
 				// we got no match
+				issueID, _ := hit["id"].(float64)
+				log.Debug("filtered out hit with id %d by nonFuzzyWorkaround", issueID)
 				return false, nil
 			}()
 
