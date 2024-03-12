@@ -46,7 +46,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix wrong test usage of `AppSubURL` (#29459) (#29488)
   * Fix missed return (#29450) (#29453)
   * Fixing the issue when status check per rule matches multiple actions (#29631) (#29655)
-  * Improve contrast on blame timestamp, fix double border (#29482) (#29485
+  * Improve contrast on blame timestamp, fix double border (#29482) (#29485)
+  * Use Get but not Post to get actions artifacts (#29734) #29737
 * DOCS
   * Update FAQ about git hook problems (#29495) (#29496)
   * Update docs about `DEFAULT_ACTIONS_URL` (#29442) (#29445)
