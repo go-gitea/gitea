@@ -136,7 +136,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 
 	if isArchived {
-		archivedCSSClass = "archived"
+		archivedCSSClass = "archived-label"
 		description = fmt.Sprintf("%s: %s", locale.TrString("archived"), description)
 	}
 
