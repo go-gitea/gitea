@@ -6,58 +6,24 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/optional"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-// OptionalBool a boolean that can be "null"
-type OptionalBool byte
-
-const (
-	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone OptionalBool = iota
-	// OptionalBoolTrue a "true" boolean value
-	OptionalBoolTrue
-	// OptionalBoolFalse a "false" boolean value
-	OptionalBoolFalse
-)
-
-// IsTrue return true if equal to OptionalBoolTrue
-func (o OptionalBool) IsTrue() bool {
-	return o == OptionalBoolTrue
-}
-
-// IsFalse return true if equal to OptionalBoolFalse
-func (o OptionalBool) IsFalse() bool {
-	return o == OptionalBoolFalse
-}
-
-// IsNone return true if equal to OptionalBoolNone
-func (o OptionalBool) IsNone() bool {
-	return o == OptionalBoolNone
-}
-
-// OptionalBoolOf get the corresponding OptionalBool of a bool
-func OptionalBoolOf(b bool) OptionalBool {
-	if b {
-		return OptionalBoolTrue
-	}
-	return OptionalBoolFalse
-}
-
-// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
-func OptionalBoolParse(s string) OptionalBool {
-	b, e := strconv.ParseBool(s)
+// OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
+func OptionalBoolParse(s string) optional.Option[bool] {
+	v, e := strconv.ParseBool(s)
 	if e != nil {
-		return OptionalBoolNone
+		return optional.None[bool]()
 	}
-	return OptionalBoolOf(b)
+	return optional.Some(v)
 }
 
 // IsEmptyString checks if the provided string is empty
@@ -245,14 +211,4 @@ func ToFloat64(number any) (float64, error) {
 // ToPointer returns the pointer of a copy of any given value
 func ToPointer[T any](val T) *T {
 	return &val
-}
-
-func Base64FixedDecode(encoding *base64.Encoding, src []byte, length int) ([]byte, error) {
-	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
-	if n, err := encoding.Decode(decoded, src); err != nil {
-		return nil, err
-	} else if n != length {
-		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, length)
-	}
-	return decoded[:length], nil
 }

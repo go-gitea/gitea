@@ -46,10 +46,13 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated"`
+	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	// PreviousDuration is used for recording previous duration
+	PreviousDuration time.Duration
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -118,7 +121,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -334,6 +337,23 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	}
 
 	return run, nil
+}
+
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
+	var run ActionRun
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("ref = ?", branch).
+		And("workflow_id = ?", workflowFile)
+	if event != "" {
+		q.And("event = ?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+	}
+	return &run, nil
 }
 
 // UpdateRun updates a run.

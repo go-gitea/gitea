@@ -28,54 +28,54 @@ func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
 	switch {
 	case diff <= 0:
 		diff = 0
-		diffStr = lang.Tr("tool.now")
+		diffStr = lang.TrString("tool.now")
 	case diff < 2:
 		diff = 0
-		diffStr = lang.Tr("tool.1s")
+		diffStr = lang.TrString("tool.1s")
 	case diff < 1*Minute:
-		diffStr = lang.Tr("tool.seconds", diff)
+		diffStr = lang.TrString("tool.seconds", diff)
 		diff = 0
 
 	case diff < 2*Minute:
 		diff -= 1 * Minute
-		diffStr = lang.Tr("tool.1m")
+		diffStr = lang.TrString("tool.1m")
 	case diff < 1*Hour:
-		diffStr = lang.Tr("tool.minutes", diff/Minute)
+		diffStr = lang.TrString("tool.minutes", diff/Minute)
 		diff -= diff / Minute * Minute
 
 	case diff < 2*Hour:
 		diff -= 1 * Hour
-		diffStr = lang.Tr("tool.1h")
+		diffStr = lang.TrString("tool.1h")
 	case diff < 1*Day:
-		diffStr = lang.Tr("tool.hours", diff/Hour)
+		diffStr = lang.TrString("tool.hours", diff/Hour)
 		diff -= diff / Hour * Hour
 
 	case diff < 2*Day:
 		diff -= 1 * Day
-		diffStr = lang.Tr("tool.1d")
+		diffStr = lang.TrString("tool.1d")
 	case diff < 1*Week:
-		diffStr = lang.Tr("tool.days", diff/Day)
+		diffStr = lang.TrString("tool.days", diff/Day)
 		diff -= diff / Day * Day
 
 	case diff < 2*Week:
 		diff -= 1 * Week
-		diffStr = lang.Tr("tool.1w")
+		diffStr = lang.TrString("tool.1w")
 	case diff < 1*Month:
-		diffStr = lang.Tr("tool.weeks", diff/Week)
+		diffStr = lang.TrString("tool.weeks", diff/Week)
 		diff -= diff / Week * Week
 
 	case diff < 2*Month:
 		diff -= 1 * Month
-		diffStr = lang.Tr("tool.1mon")
+		diffStr = lang.TrString("tool.1mon")
 	case diff < 1*Year:
-		diffStr = lang.Tr("tool.months", diff/Month)
+		diffStr = lang.TrString("tool.months", diff/Month)
 		diff -= diff / Month * Month
 
 	case diff < 2*Year:
 		diff -= 1 * Year
-		diffStr = lang.Tr("tool.1y")
+		diffStr = lang.TrString("tool.1y")
 	default:
-		diffStr = lang.Tr("tool.years", diff/Year)
+		diffStr = lang.TrString("tool.years", diff/Year)
 		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
@@ -97,10 +97,10 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 	diff := now.Unix() - then.Unix()
 
 	if then.After(now) {
-		return lang.Tr("tool.future")
+		return lang.TrString("tool.future")
 	}
 	if diff == 0 {
-		return lang.Tr("tool.now")
+		return lang.TrString("tool.now")
 	}
 
 	var timeStr, diffStr string
@@ -115,7 +115,7 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
-func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
+func timeSinceUnix(then, now time.Time, _ translation.Locale) template.HTML {
 	friendlyText := then.Format("2006-01-02 15:04:05 -07:00")
 
 	// document: https://github.com/github/relative-time-element

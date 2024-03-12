@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -68,7 +68,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.RuleName
+	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
 
 	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
 	if err != nil {

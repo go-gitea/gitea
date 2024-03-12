@@ -935,18 +935,11 @@
 
 .repository.view.issue .comment-list .comment .merge-section .item-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 0;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
-}
-
-@media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .comment .merge-section .item-section {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  gap: 0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
@@ -1427,6 +1420,7 @@
 
 .repository .data-table tr {
   border-top: 0;
+  background: none !important;
 }
 
 .repository .data-table td,
@@ -1437,6 +1431,21 @@
   text-align: left;
   white-space: nowrap;
   border: 1px solid var(--color-secondary);
+}
+
+/* the border css competes with .markup where all tables have outer border which would add a double
+   border here, remove only the outer borders from this table */
+.repository .data-table tr:first-child :is(td,th) {
+  border-top: none !important;
+}
+.repository .data-table tr:last-child :is(td,th) {
+  border-bottom: none !important;
+}
+.repository .data-table tr :is(td,th):first-child {
+  border-left: none !important;
+}
+.repository .data-table tr :is(td,th):last-child {
+  border-right: none !important;
 }
 
 .repository .data-table td {
@@ -1476,7 +1485,7 @@
   min-width: 50px;
   font-family: monospace;
   line-height: 20px;
-  color: var(--color-secondary-dark-2);
+  color: var(--color-text-light-1);
   white-space: nowrap;
   vertical-align: top;
   cursor: pointer;
@@ -1496,12 +1505,6 @@
   margin: 0 -5px; /* negative margin so it covers active file shadow */
   height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
-}
-
-@media (max-width: 991.98px) {
-  .repository .diff-detail-box {
-    flex-direction: row;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1528,7 +1531,7 @@
   color: var(--color-red);
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 800px) {
   .repository .diff-detail-box .diff-detail-stats {
     display: none !important;
   }
@@ -1538,7 +1541,6 @@
   display: flex;
   align-items: center;
   gap: 0.25em;
-  flex-wrap: wrap;
   justify-content: end;
 }
 
@@ -1546,15 +1548,6 @@
 .diff-detail-actions .button {
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-@media (max-width: 480px) {
-  .repository .diff-detail-box .diff-detail-actions {
-    padding-top: 0.25rem;
-  }
-  .repository .diff-detail-box .diff-detail-actions .ui.button:not(.btn-submit) {
-    padding: 0 0.5rem;
-  }
 }
 
 .repository .diff-detail-box span.status {
@@ -2128,14 +2121,16 @@
 }
 
 #search-user-box .results .result .image {
-  float: left;
-  margin-right: 8px;
+  order: 0;
+  margin-right: 12px;
   width: 2em;
   height: 2em;
+  min-width: 2em;
+  min-height: 2em;
 }
 
 #search-user-box .results .result .content {
-  margin: 6px 0; /* this trick is used to align with the sibling avatar image */
+  margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
 }
 
 .ui.menu .item > img:not(.ui) {
@@ -2285,10 +2280,6 @@
   max-width: 100% !important;
   margin: 0 !important;
   padding: 1em;
-}
-
-.comment-body .markup {
-  border-radius: 0 0 var(--border-radius) var(--border-radius); /* don't render outside box */
 }
 
 .edit-label.modal .form .column,

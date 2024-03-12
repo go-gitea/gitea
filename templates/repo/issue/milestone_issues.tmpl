@@ -22,7 +22,7 @@
 		</div>
 		{{if .Milestone.RenderedContent}}
 		<div class="markup content gt-mb-4">
-				{{.Milestone.RenderedContent|Str2html}}
+				{{.Milestone.RenderedContent}}
 		</div>
 		{{end}}
 		<div class="gt-df gt-fc gt-gap-3">
@@ -31,7 +31,7 @@
 				<div classs="gt-df gt-ac">
 					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix ctx.Locale}}
 					{{if .IsClosed}}
-						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 					{{else}}
 
 						{{if .Milestone.DeadlineString}}
@@ -45,7 +45,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="gt-mr-3">{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
+				<div class="gt-mr-3">{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</div>
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}

@@ -11,11 +11,11 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -56,12 +56,12 @@ func GetContentHistoryList(ctx *context.Context) {
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.TrString("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
 		}
 
 		username := item.UserName
@@ -94,7 +94,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 	// CanWrite means the doer can manage the issue/PR list
 	if ctx.Repo.IsOwner() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		canSoftDelete = true
-	} else {
+	} else if ctx.Doer != nil {
 		// for read-only users, they could still post issues or comments,
 		// they should be able to delete the history related to their own issue/comment, a case is:
 		// 1. the user posts some sensitive data
@@ -184,6 +184,10 @@ func GetContentHistoryDetail(ctx *context.Context) {
 func SoftDeleteContentHistory(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
+		return
+	}
+	if ctx.Doer == nil {
+		ctx.NotFound("Require SignIn", nil)
 		return
 	}
 

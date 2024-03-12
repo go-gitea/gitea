@@ -6,6 +6,7 @@ package feed
 import (
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,12 +14,12 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -49,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderMarkdown creates a minimal markdown render context from an action.
 // If rendering fails, the original markdown text is returned
-func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) string {
+func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
 	markdownCtx := &markup.RenderContext{
 		Ctx: ctx,
 		Links: markup.Links{
@@ -63,7 +64,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 	}
 	markdown, err := markdown.RenderString(markdownCtx, content)
 	if err != nil {
-		return content
+		return templates.SanitizeHTML(content) // old code did so: use SanitizeHTML to render in tmpl
 	}
 	return markdown
 }
@@ -73,125 +74,130 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
-		var content, desc, title string
+		// TODO: the code seems quite strange (maybe not right)
+		// sometimes it uses text content but sometimes it uses HTML content
+		// it should clearly defines which kind of content it should use for the feed items: plan text or rich HTML
+		var title, desc string
+		var content template.HTML
 
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
 		// title
 		title = act.ActUser.DisplayName() + " "
+		var titleExtra template.HTML
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
-			title += ctx.TrHTMLEscapeArgs("action.create_repo", act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.create_repo", act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
 			link.Href = act.GetRepoAbsoluteLink(ctx)
 		case activities_model.ActionRenameRepo:
-			title += ctx.TrHTMLEscapeArgs("action.rename_repo", act.GetContent(), act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.rename_repo", act.GetContent(), act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
 			link.Href = act.GetRepoAbsoluteLink(ctx)
 		case activities_model.ActionCommitRepo:
 			link.Href = toBranchLink(ctx, act)
 			if len(act.Content) != 0 {
-				title += ctx.TrHTMLEscapeArgs("action.commit_repo", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetBranch(), act.ShortRepoPath(ctx))
+				titleExtra = ctx.Locale.Tr("action.commit_repo", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetBranch(), act.ShortRepoPath(ctx))
 			} else {
-				title += ctx.TrHTMLEscapeArgs("action.create_branch", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetBranch(), act.ShortRepoPath(ctx))
+				titleExtra = ctx.Locale.Tr("action.create_branch", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetBranch(), act.ShortRepoPath(ctx))
 			}
 		case activities_model.ActionCreateIssue:
 			link.Href = toIssueLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.create_issue", link.Href, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.create_issue", link.Href, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionCreatePullRequest:
 			link.Href = toPullLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.create_pull_request", link.Href, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.create_pull_request", link.Href, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionTransferRepo:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.transfer_repo", act.GetContent(), act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.transfer_repo", act.GetContent(), act.GetRepoAbsoluteLink(ctx), act.ShortRepoPath(ctx))
 		case activities_model.ActionPushTag:
 			link.Href = toTagLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.push_tag", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetTag(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.push_tag", act.GetRepoAbsoluteLink(ctx), link.Href, act.GetTag(), act.ShortRepoPath(ctx))
 		case activities_model.ActionCommentIssue:
 			issueLink := toIssueLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = issueLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.comment_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.comment_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionMergePullRequest:
 			pullLink := toPullLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = pullLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionAutoMergePullRequest:
 			pullLink := toPullLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = pullLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.auto_merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.auto_merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionCloseIssue:
 			issueLink := toIssueLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = issueLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.close_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.close_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionReopenIssue:
 			issueLink := toIssueLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = issueLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.reopen_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.reopen_issue", issueLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionClosePullRequest:
 			pullLink := toPullLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = pullLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.close_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.close_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionReopenPullRequest:
 			pullLink := toPullLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = pullLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.reopen_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.reopen_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionDeleteTag:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.delete_tag", act.GetRepoAbsoluteLink(ctx), act.GetTag(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.delete_tag", act.GetRepoAbsoluteLink(ctx), act.GetTag(), act.ShortRepoPath(ctx))
 		case activities_model.ActionDeleteBranch:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.delete_branch", act.GetRepoAbsoluteLink(ctx), html.EscapeString(act.GetBranch()), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.delete_branch", act.GetRepoAbsoluteLink(ctx), html.EscapeString(act.GetBranch()), act.ShortRepoPath(ctx))
 		case activities_model.ActionMirrorSyncPush:
 			srcLink := toSrcLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_push", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_push", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
 		case activities_model.ActionMirrorSyncCreate:
 			srcLink := toSrcLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_create", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_create", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
 		case activities_model.ActionMirrorSyncDelete:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_delete", act.GetRepoAbsoluteLink(ctx), act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_delete", act.GetRepoAbsoluteLink(ctx), act.GetBranch(), act.ShortRepoPath(ctx))
 		case activities_model.ActionApprovePullRequest:
 			pullLink := toPullLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.approve_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.approve_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionRejectPullRequest:
 			pullLink := toPullLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.reject_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.reject_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionCommentPull:
 			pullLink := toPullLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.comment_pull", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.comment_pull", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
 		case activities_model.ActionPublishRelease:
 			releaseLink := toReleaseLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = releaseLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.publish_release", act.GetRepoAbsoluteLink(ctx), releaseLink, act.ShortRepoPath(ctx), act.Content)
+			titleExtra = ctx.Locale.Tr("action.publish_release", act.GetRepoAbsoluteLink(ctx), releaseLink, act.ShortRepoPath(ctx), act.Content)
 		case activities_model.ActionPullReviewDismissed:
 			pullLink := toPullLink(ctx, act)
-			title += ctx.TrHTMLEscapeArgs("action.review_dismissed", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx), act.GetIssueInfos()[1])
+			titleExtra = ctx.Locale.Tr("action.review_dismissed", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx), act.GetIssueInfos()[1])
 		case activities_model.ActionStarRepo:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.starred_repo", act.GetRepoAbsoluteLink(ctx), act.GetRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.starred_repo", act.GetRepoAbsoluteLink(ctx), act.GetRepoPath(ctx))
 		case activities_model.ActionWatchRepo:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			title += ctx.TrHTMLEscapeArgs("action.watched_repo", act.GetRepoAbsoluteLink(ctx), act.GetRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.watched_repo", act.GetRepoAbsoluteLink(ctx), act.GetRepoPath(ctx))
 		default:
 			return nil, fmt.Errorf("unknown action type: %v", act.OpType)
 		}
@@ -226,31 +232,32 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + renderMarkdown(ctx, act, comment)
+					desc += "\n\n" + string(renderMarkdown(ctx, act, comment))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle(ctx)
 			case activities_model.ActionPullReviewDismissed:
-				desc = ctx.Tr("action.review_dismissed_reason") + "\n\n" + act.GetIssueInfos()[2]
+				desc = ctx.Locale.TrString("action.review_dismissed_reason") + "\n\n" + act.GetIssueInfos()[2]
 			}
 		}
 		if len(content) == 0 {
-			content = desc
+			content = templates.SanitizeHTML(desc)
 		}
 
 		items = append(items, &feeds.Item{
-			Title:       title,
+			Title:       template.HTMLEscapeString(title) + string(titleExtra),
 			Link:        link,
 			Description: desc,
+			IsPermaLink: "false",
 			Author: &feeds.Author{
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
 			Created: act.CreatedUnix.AsTime(),
-			Content: content,
+			Content: string(content),
 		})
 	}
 	return items, err
@@ -279,7 +286,8 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			return nil, err
 		}
 
-		var title, content string
+		var title string
+		var content template.HTML
 
 		if rel.IsTag {
 			title = rel.TagName
@@ -295,7 +303,6 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			},
 			Metas: rel.Repo.ComposeMetas(ctx),
 		}, rel.Note)
-
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +316,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),
-			Content: content,
+			Content: string(content),
 		})
 	}
 

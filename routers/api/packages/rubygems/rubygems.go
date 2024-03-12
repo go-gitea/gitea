@@ -13,11 +13,12 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -43,7 +44,7 @@ func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeRubyGems,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -304,7 +305,7 @@ func getVersionsByFilename(ctx *context.Context, filename string) ([]*packages_m
 		OwnerID:         ctx.Package.Owner.ID,
 		Type:            packages_model.TypeRubyGems,
 		HasFileWithName: filename,
-		IsInternal:      util.OptionalBoolFalse,
+		IsInternal:      optional.Some(false),
 	})
 	return pvs, err
 }

@@ -7,7 +7,6 @@ package git
 
 import (
 	"io"
-	"math"
 	"strings"
 )
 
@@ -63,19 +62,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		// Not a tree just use ls-tree instead
-		for sz > math.MaxInt32 {
-			discarded, err := rd.Discard(math.MaxInt32)
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
-		}
-		for sz > 0 {
-			discarded, err := rd.Discard(int(sz))
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
+		if err := DiscardFull(rd, sz+1); err != nil {
+			return nil, err
 		}
 	}
 

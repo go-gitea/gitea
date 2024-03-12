@@ -13,13 +13,14 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 type blameRow struct {
@@ -131,11 +132,8 @@ type blameResult struct {
 }
 
 func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
-	objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
-	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
-		return nil, err
-	}
+	objectFormat := ctx.Repo.GetObjectFormat()
+
 	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
@@ -247,31 +245,11 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	language := ""
-
-	indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
-	if err == nil {
-		defer deleteTemporaryFile()
-
-		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
-			CachedOnly: true,
-			Attributes: []string{"linguist-language", "gitlab-language"},
-			Filenames:  []string{ctx.Repo.TreePath},
-			IndexFile:  indexFilename,
-			WorkTree:   worktree,
-		})
-		if err != nil {
-			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-		}
-
-		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
-		if language == "" || language == "unspecified" {
-			language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
-		}
-		if language == "unspecified" {
-			language = ""
-		}
+	language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+	if err != nil {
+		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 	}
+
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
 	escapeStatus := &charset.EscapeStatus{}

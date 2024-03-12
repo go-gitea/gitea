@@ -2,7 +2,7 @@
 	{{template "repo/issue/branch_selector_field" .}}
 	{{if .Issue.IsPull}}
 		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+		<div class="ui {{if or (and (not .Reviewers) (not .TeamReviewers)) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong>
 				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
@@ -20,7 +20,7 @@
 					{{range .Reviewers}}
 						{{if .User}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
+								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
 									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
@@ -29,11 +29,13 @@
 					{{end}}
 				{{end}}
 				{{if .TeamReviewers}}
-					<div class="divider"></div>
+					{{if .Reviewers}}
+						<div class="divider"></div>
+					{{end}}
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check" 16}}</span>
 								<span class="text">
 									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 								</span>
@@ -99,7 +101,7 @@
 				{{range .OriginalReviews}}
 					<div class="item gt-df gt-ac gt-py-3">
 						<div class="gt-df gt-ac gt-f1">
-							<a class="muted" href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
+							<a class="muted" href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname}}">
 								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname) 20 "gt-mr-3"}}
 								{{.OriginalAuthor}}
 							</a>
@@ -112,9 +114,9 @@
 			</div>
 		</div>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .HasMerged) (not .Issue.IsClosed) (not .IsPullWorkInProgress)}}
-			<div class="toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(index .PullRequestWorkInProgressPrefixes 0| Escape)}}" data-update-url="{{.Issue.Link}}/title">
+			<div class="toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{index .PullRequestWorkInProgressPrefixes 0}}" data-update-url="{{.Issue.Link}}/title">
 				<a class="muted">
-					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}
+					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0)}}
 				</a>
 			</div>
 		{{end}}
@@ -229,7 +231,7 @@
 							{{$checked = true}}
 						{{end}}
 					{{end}}
-					<span class="octicon-check {{if not $checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
+					<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 					<span class="text">
 						{{ctx.AvatarUtils.Avatar . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
 					</span>
@@ -270,19 +272,7 @@
 		<div class="ui watching">
 			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
-				<form method="post" action="{{.Issue.Link}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							{{svg "octicon-mute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							{{svg "octicon-unmute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
+				{{template "repo/issue/view_content/watching" .}}
 			</div>
 		</div>
 	{{end}}
@@ -310,7 +300,7 @@
 					{{else}}
 						{{if .HasUserStopwatch}}
 							<div class="ui warning message">
-								{{ctx.Locale.Tr "repo.issues.tracking_already_started" (.OtherStopwatchURL|Escape) | Safe}}
+								{{ctx.Locale.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL}}
 							</div>
 						{{end}}
 						<button class="ui fluid button issue-start-time" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.start_tracking"}}'>
@@ -342,7 +332,7 @@
 		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">
