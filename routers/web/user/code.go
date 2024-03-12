@@ -4,6 +4,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -127,7 +128,9 @@ func CodeSearch(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "l", "Language")
-	pager.AddParam(ctx, "wikis", "Wikis")
+	if wikis.Has() {
+		pager.AddParamString("wikis", fmt.Sprintf("%v", wikis.Value()))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplUserCode)
