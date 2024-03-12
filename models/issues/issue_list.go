@@ -476,6 +476,16 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 	}
 	trackedTimes := make(map[int64]int64, len(issues))
 
+	reposMap := make(map[int64]*repo_model.Repository, len(issues))
+	for _, issue := range issues {
+		reposMap[issue.RepoID] = issue.Repo
+	}
+	repos := repo_model.RepositoryListOfMap(reposMap)
+
+	if err := repos.LoadUnits(ctx); err != nil {
+		return err
+	}
+
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
 		if issue.Repo.IsTimetrackerEnabled(ctx) {
