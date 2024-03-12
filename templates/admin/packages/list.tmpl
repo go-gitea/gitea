@@ -62,8 +62,8 @@
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Package.Name}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem"><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Package.Name}}</td>
+							<td class="gt-ellipsis tw-max-w-48"><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
 							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 							<td>
 							{{if .Repository}}
@@ -88,7 +88,7 @@
 		{{ctx.Locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
-		{{ctx.Locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
+		{{ctx.Locale.Tr "packages.settings.delete.notice" (`<span class="name"></span>`|SafeHTML) (`<span class="dataVersion"></span>`|SafeHTML)}}
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

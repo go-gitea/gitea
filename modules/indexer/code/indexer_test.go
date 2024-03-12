@@ -70,7 +70,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
-				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, false)
+				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, true)
 				assert.NoError(t, err)
 				assert.Len(t, kw.IDs, int(total))
 				assert.Len(t, langs, kw.Langs)

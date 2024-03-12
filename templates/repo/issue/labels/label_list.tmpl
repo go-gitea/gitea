@@ -61,7 +61,7 @@
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
-						{{ctx.Locale.Tr "repo.org_labels_desc" | Str2html}}
+						{{ctx.Locale.Tr "repo.org_labels_desc"}}
 						{{if .IsOrganizationOwner}}
 							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}

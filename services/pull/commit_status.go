@@ -11,6 +11,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -34,9 +35,9 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 
-		for _, commitStatus := range commitStatuses {
+		for _, gp := range requiredContextsGlob {
 			var targetStatus structs.CommitStatusState
-			for _, gp := range requiredContextsGlob {
+			for _, commitStatus := range commitStatuses {
 				if gp.Match(commitStatus.Context) {
 					targetStatus = commitStatus.State
 					matchedCount++
@@ -44,13 +45,21 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 				}
 			}
 
-			if targetStatus != "" && targetStatus.NoBetterThan(returnedStatus) {
+			// If required rule not match any action, then it is pending
+			if targetStatus == "" {
+				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
+					returnedStatus = structs.CommitStatusPending
+				}
+				break
+			}
+
+			if targetStatus.NoBetterThan(returnedStatus) {
 				returnedStatus = targetStatus
 			}
 		}
 	}
 
-	if matchedCount == 0 {
+	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
@@ -116,7 +125,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 
 	// check if all required status checks are successful
-	headGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		return "", errors.Wrap(err, "OpenRepository")
 	}

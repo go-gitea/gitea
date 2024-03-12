@@ -16,11 +16,12 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -232,26 +233,25 @@ func NotificationSubscriptions(ctx *context.Context) {
 	if !util.SliceContainsString([]string{"all", "open", "closed"}, state, true) {
 		state = "all"
 	}
+
 	ctx.Data["State"] = state
-	var showClosed util.OptionalBool
+	// default state filter is "all"
+	showClosed := optional.None[bool]()
 	switch state {
-	case "all":
-		showClosed = util.OptionalBoolNone
 	case "closed":
-		showClosed = util.OptionalBoolTrue
+		showClosed = optional.Some(true)
 	case "open":
-		showClosed = util.OptionalBoolFalse
+		showClosed = optional.Some(false)
 	}
 
-	var issueTypeBool util.OptionalBool
 	issueType := ctx.FormString("issueType")
+	// default issue type is no filter
+	issueTypeBool := optional.None[bool]()
 	switch issueType {
 	case "issues":
-		issueTypeBool = util.OptionalBoolFalse
+		issueTypeBool = optional.Some(false)
 	case "pulls":
-		issueTypeBool = util.OptionalBoolTrue
-	default:
-		issueTypeBool = util.OptionalBoolNone
+		issueTypeBool = optional.Some(true)
 	}
 	ctx.Data["IssueType"] = issueType
 
@@ -389,6 +389,21 @@ func NotificationWatching(ctx *context.Context) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
@@ -399,9 +414,14 @@ func NotificationWatching(ctx *context.Context) {
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		WatchedByID:        ctx.Doer.ID,
-		Collaborate:        util.OptionalBoolFalse,
+		Collaborate:        optional.Some(false),
 		TopicOnly:          ctx.FormBool("topic"),
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

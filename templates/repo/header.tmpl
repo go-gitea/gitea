@@ -5,9 +5,9 @@
 			<div class="flex-item gt-ac">
 				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
 				<div class="flex-item-main">
-					<div class="flex-item-title">
-						<a class="text light thin" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
-						<a class="text primary" href="{{$.RepoLink}}">{{.Name}}</a></div>
+					<div class="flex-item-title gt-font-18">
+						<a class="muted gt-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a></div>
 				</div>
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}
@@ -26,6 +26,9 @@
 					{{if .IsTemplate}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
+					{{end}}
+					{{if eq .ObjectFormatName "sha256"}}
+						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.sha256"}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -55,37 +58,9 @@
 						{{svg "octicon-rss" 16}}
 					</a>
 					{{end}}
-					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
-						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
-							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsWatchingRepo}}
-									{{svg "octicon-eye-closed" 16}}<span class="text">{{ctx.Locale.Tr "repo.unwatch"}}</span>
-								{{else}}
-									{{svg "octicon-eye"}}<span class="text">{{ctx.Locale.Tr "repo.watch"}}</span>
-								{{end}}
-							</button>
-							<a class="ui basic label" href="{{.Link}}/watchers">
-								{{CountFmt .NumWatches}}
-							</a>
-						</div>
-					</form>
+					{{template "repo/watch_unwatch" $}}
 					{{if not $.DisableStars}}
-						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-							{{$.CsrfTokenHtml}}
-							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
-								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-									{{if $.IsStaringRepo}}
-										{{svg "octicon-star-fill"}}<span class="text">{{ctx.Locale.Tr "repo.unstar"}}</span>
-									{{else}}
-										{{svg "octicon-star"}}<span class="text">{{ctx.Locale.Tr "repo.star"}}</span>
-									{{end}}
-								</button>
-								<a class="ui basic label" href="{{.Link}}/stars">
-									{{CountFmt .NumStars}}
-								</a>
-							</div>
-						</form>
+					{{template "repo/star_unstar" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
@@ -107,7 +82,7 @@
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
 								{{else if not $.UserAndOrgForks}}
-									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
+									href="{{$.RepoLink}}/fork"
 								{{else}}
 									data-modal="#fork-repo-modal"
 								{{end}}
@@ -118,7 +93,7 @@
 								<div class="header">
 									{{ctx.Locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content gt-text-left">
+								<div class="content tw-text-left">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
 											<div class="ui item gt-py-3">
@@ -128,7 +103,7 @@
 									</div>
 									{{if $.CanSignedUserFork}}
 									<div class="divider"></div>
-									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
+									<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
 									{{end}}
 								</div>
 							</div>
@@ -199,7 +174,8 @@
 					</a>
 				{{end}}
 
-				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
+				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
