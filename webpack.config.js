@@ -152,7 +152,10 @@ export default {
             options: {
               postcssOptions: {
                 map: false, // https://github.com/postcss/postcss/issues/1914
-                plugins: [tailwindcss(tailwindConfig)],
+                plugins: [
+                  'tailwindcss/nesting',
+                  tailwindcss(tailwindConfig)
+                ],
               },
             },
           }
