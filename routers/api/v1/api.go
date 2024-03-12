@@ -1081,6 +1081,14 @@ func Routes() *web.Route {
 							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
 					})
 
+					m.Group("/variables", func() {
+						m.Combo("/{variablename}").
+							Get(reqToken(), reqOwner(), repo.GetVariable).
+							Delete(reqToken(), reqOwner(), repo.DeleteVariable).
+							Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateVariable).
+							Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateVariable)
+					})
+
 					m.Group("/runners", func() {
 						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
 					})

@@ -211,6 +211,7 @@ func UpdateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: ctx.Org.Organization.ID,
 		Name:    ctx.Params("variablename"),

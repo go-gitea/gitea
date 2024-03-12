@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -298,7 +297,7 @@ func GetVariable(ctx *context.APIContext) {
 		return
 	}
 
-	variable := &structs.ActionVariable{
+	variable := &api.ActionVariable{
 		OwnerID: v.OwnerID,
 		RepoID:  v.RepoID,
 		Name:    v.Name,
