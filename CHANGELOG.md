@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * ENHANCEMENTS
   * Fix wrong line number in code search result (#29260) (#29623)
 * BUGFIXES
+  * Use Get but not Post to get actions artifacts (#29734) (#29737)
   * Fix inconsistent rendering of block mathematical expressions (#29677) (#29711)
   * Fix rendering internal file links in org (#29669) (#29705)
   * Don't show AbortErrors on logout (#29639) (#29667)
@@ -47,7 +48,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix missed return (#29450) (#29453)
   * Fixing the issue when status checks per rule matches multiple actions (#29631) (#29655)
   * Improve contrast on blame timestamp, fix double border (#29482) (#29485)
-  * Use Get but not Post to get actions artifacts (#29734) (#29737)
 
 ## [1.21.7](https://github.com/go-gitea/gitea/releases/tag/1.21.7) - 2024-02-26
 
