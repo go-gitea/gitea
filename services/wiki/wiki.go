@@ -48,10 +48,6 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
-		code_indexer.UpdateRepoIndexer(repo, true)
-	}
-
 	return nil
 }
 
@@ -92,6 +88,12 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if setting.Indexer.RepoIndexerEnabled {
+			code_indexer.UpdateRepoIndexer(repo, true)
+		}
+	}()
 
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
@@ -236,10 +238,6 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Push: %w", err)
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
-		code_indexer.UpdateRepoIndexer(repo, true)
-	}
-
 	return nil
 }
 
@@ -260,6 +258,12 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if setting.Indexer.RepoIndexerEnabled {
+			code_indexer.UpdateRepoIndexer(repo, true)
+		}
+	}()
 
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
@@ -358,10 +362,6 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Push: %w", err)
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
-		code_indexer.UpdateRepoIndexer(repo, true)
-	}
-
 	return nil
 }
 
@@ -373,7 +373,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 
-	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+	if setting.Indexer.RepoIndexerEnabled {
 		code_indexer.UpdateRepoIndexer(repo, true)
 	}
 
@@ -415,7 +415,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 		return err
 	}
 
-	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+	if setting.Indexer.RepoIndexerEnabled {
 		code_indexer.UpdateRepoIndexer(repo, true)
 	}
 	return nil
