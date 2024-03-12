@@ -119,6 +119,7 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 }
 
 // RenderLabel renders a label
+// locale is needed due to an import cycle with our context providing the `Tr` function
 func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
 	var (
 		archivedCSSClass string
