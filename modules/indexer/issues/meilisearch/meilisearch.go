@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -16,11 +17,14 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 3
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
 )
+
+// ErrMalformedResponse is never expected as we initialize the indexer ourself and so define the types.
+var ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
 
 var _ internal.Indexer = &Indexer{}
 
@@ -47,6 +51,9 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 		},
 		DisplayedAttributes: []string{
 			"id",
+			"title",
+			"content",
+			"comments",
 		},
 		FilterableAttributes: []string{
 			"repo_id",
@@ -221,11 +228,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, len(searchRes.Hits))
-	for _, hit := range searchRes.Hits {
-		hits = append(hits, internal.Match{
-			ID: int64(hit.(map[string]any)["id"].(float64)),
-		})
+	hits, err := nonFuzzyWorkaround(searchRes, options.Keyword, options.IsFuzzyKeyword)
+	if err != nil {
+		return nil, err
 	}
 
 	return &internal.SearchResult{
@@ -240,4 +245,78 @@ func parseSortBy(sortBy internal.SortBy) string {
 		return field + ":desc"
 	}
 	return field + ":asc"
+}
+
+// nonFuzzyWorkaround is needed as meilisearch does not have an exact search
+// and you can only change "typo tolerance" per index. So we have to post-filter the results
+// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
+// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
+func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, isFuzzy bool) ([]internal.Match, error) {
+	hits := make([]internal.Match, 0, len(searchRes.Hits))
+	for _, hit := range searchRes.Hits {
+		hit, ok := hit.(map[string]any)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+
+		if !isFuzzy {
+			keyword = strings.ToLower(keyword)
+
+			// declare a anon func to check if the title, content or at least one comment contains the keyword
+			found, err := func() (bool, error) {
+				// check if title match first
+				title, ok := hit["title"].(string)
+				if !ok {
+					return false, ErrMalformedResponse
+				} else if strings.Contains(strings.ToLower(title), keyword) {
+					return true, nil
+				}
+
+				// check if content has a match
+				content, ok := hit["content"].(string)
+				if !ok {
+					return false, ErrMalformedResponse
+				} else if strings.Contains(strings.ToLower(content), keyword) {
+					return true, nil
+				}
+
+				// now check for each comment if one has a match
+				// so we first try to cast and skip if there are no comments
+				comments, ok := hit["comments"].([]any)
+				if !ok {
+					return false, ErrMalformedResponse
+				} else if len(comments) == 0 {
+					return false, nil
+				}
+
+				// now we iterate over all and report as soon as we detect one match
+				for i := range comments {
+					comment, ok := comments[i].(string)
+					if !ok {
+						return false, ErrMalformedResponse
+					}
+					if strings.Contains(strings.ToLower(comment), keyword) {
+						return true, nil
+					}
+				}
+
+				// we got no match
+				return false, nil
+			}()
+
+			if err != nil {
+				return nil, err
+			} else if !found {
+				continue
+			}
+		}
+		issueID, ok := hit["id"].(float64)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+		hits = append(hits, internal.Match{
+			ID: int64(issueID),
+		})
+	}
+	return hits, nil
 }

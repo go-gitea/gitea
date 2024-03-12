@@ -39,7 +39,7 @@ export function initMarkupAnchors() {
     if (!href.startsWith('#user-content-')) continue;
     const originalId = href.replace(/^#user-content-/, '');
     a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
-    if (document.getElementsByName(originalId).length !== 1) {
+    if (a.closest('.markup').querySelectorAll(`a[name="${originalId}"]`).length !== 1) {
       a.addEventListener('click', (e) => {
         scrollToAnchor(e.currentTarget.getAttribute('href'), false);
       });
