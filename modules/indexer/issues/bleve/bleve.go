@@ -6,7 +6,6 @@ package bleve
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -257,8 +256,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
 		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(
-			options.UpdatedAfterUnix.ValueOrDefault(db.NoConditionID),
-			options.UpdatedBeforeUnix.ValueOrDefault(db.NoConditionID),
+			options.UpdatedAfterUnix,
+			options.UpdatedBeforeUnix,
 			"updated_unix"))
 	}
 

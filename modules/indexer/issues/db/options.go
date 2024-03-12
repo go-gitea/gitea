@@ -37,19 +37,31 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "newest"
 	}
 
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
+	convertID := func(id optional.Option[int64]) int64 {
+		if !id.Has() {
+			return 0
+		}
+		value := id.Value()
+		if value == 0 {
+			return db.NoConditionID
+		}
+		return value
+	}
+
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         options.AssigneeID.ValueOrDefault(db.NoConditionID),
-		PosterID:           options.PosterID.ValueOrDefault(db.NoConditionID),
-		MentionedID:        options.MentionID.ValueOrDefault(db.NoConditionID),
-		ReviewRequestedID:  options.ReviewRequestedID.ValueOrDefault(db.NoConditionID),
-		ReviewedID:         options.ReviewedID.ValueOrDefault(db.NoConditionID),
-		SubscriberID:       options.SubscriberID.ValueOrDefault(db.NoConditionID),
-		ProjectID:          options.ProjectID.ValueOrDefault(db.NoConditionID),
-		ProjectBoardID:     options.ProjectBoardID.ValueOrDefault(db.NoConditionID),
+		AssigneeID:         convertID(options.AssigneeID),
+		PosterID:           convertID(options.PosterID),
+		MentionedID:        convertID(options.MentionID),
+		ReviewRequestedID:  convertID(options.ReviewRequestedID),
+		ReviewedID:         convertID(options.ReviewedID),
+		SubscriberID:       convertID(options.SubscriberID),
+		ProjectID:          convertID(options.ProjectID),
+		ProjectBoardID:     convertID(options.ProjectBoardID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
 		IncludedLabelNames: nil,
