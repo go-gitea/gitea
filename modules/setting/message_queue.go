@@ -5,7 +5,7 @@ import "fmt"
 const mqSectionName = "message"
 
 // MQ represents the configuration of the message queue
-var MQ MQConfig
+var MQ *MQConfig
 
 // MQConfig represents the configuration for a message queue
 type MQConfig struct {
@@ -24,10 +24,11 @@ type MQConfig struct {
 func loadMQFrom(rootCfg ConfigProvider) error {
 	sec, err := rootCfg.GetSection(mqSectionName)
 	if err != nil {
-		return fmt.Errorf("failed to get '%s' section: %v", mqSectionName, err)
+		fmt.Printf("Section: %v, message publish functionability will be disabled\n", err)
+		return nil
 	}
 
-	if err := sec.MapTo(&MQ); err != nil {
+	if err := sec.MapTo(MQ); err != nil {
 		return fmt.Errorf("failed to map message queue settings: %v", err)
 	}
 

@@ -78,6 +78,10 @@ func prepareMessage(ctx *context.Context, messageType string, description string
 
 // GitCloneMessageMiddleware middleware for send statistics message about git clone
 func GitCloneMessageMiddleware(ctx *context.Context) {
+	if setting.MQ == nil {
+		log.Info("message component uninitialized, will skip publishing git clone message")
+		return
+	}
 	msg := prepareMessage(
 		ctx, gitClone,
 		"this message means someone cloned the repository",
@@ -90,6 +94,9 @@ func GitCloneMessageMiddleware(ctx *context.Context) {
 
 // WebDownloadMiddleware middleware for send statistics message about git clone
 func WebDownloadMiddleware(ctx *context.Context) {
+	if setting.MQ == nil {
+		log.Info("message component uninitialized, will skip publishing web download message")
+	}
 	msg := prepareMessage(
 		ctx, webDownload,
 		"this message means someone downloaded a file from the website",
