@@ -13,7 +13,6 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/log"
 
 	"github.com/meilisearch/meilisearch-go"
 )
@@ -235,7 +234,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		return nil, err
 	}
 
-	hits, err := nonFuzzyWorkaround(searchRes, options.Keyword, options.IsFuzzyKeyword)
+	hits, err := convertHits(searchRes)
 	if err != nil {
 		return nil, err
 	}
@@ -266,11 +265,7 @@ func doubleQuoteKeyword(k string) string {
 	return strings.Join(kp[:parts], " ")
 }
 
-// nonFuzzyWorkaround is needed as meilisearch does not have an exact search
-// and you can only change "typo tolerance" per index. So we have to post-filter the results
-// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
-// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
-func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, isFuzzy bool) ([]internal.Match, error) {
+func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
 		hit, ok := hit.(map[string]any)
@@ -278,63 +273,11 @@ func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, i
 			return nil, ErrMalformedResponse
 		}
 
-		if !isFuzzy {
-			keyword = strings.ToLower(keyword)
-
-			// declare a anon func to check if the title, content or at least one comment contains the keyword
-			found, err := func() (bool, error) {
-				// check if title match first
-				title, ok := hit["title"].(string)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if strings.Contains(strings.ToLower(title), keyword) {
-					return true, nil
-				}
-
-				// check if content has a match
-				content, ok := hit["content"].(string)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if strings.Contains(strings.ToLower(content), keyword) {
-					return true, nil
-				}
-
-				// now check for each comment if one has a match
-				// so we first try to cast and skip if there are no comments
-				comments, ok := hit["comments"].([]any)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if len(comments) == 0 {
-					return false, nil
-				}
-
-				// now we iterate over all and report as soon as we detect one match
-				for i := range comments {
-					comment, ok := comments[i].(string)
-					if !ok {
-						return false, ErrMalformedResponse
-					}
-					if strings.Contains(strings.ToLower(comment), keyword) {
-						return true, nil
-					}
-				}
-
-				// we got no match
-				issueID, _ := hit["id"].(float64)
-				log.Debug("filtered out hit with id %d by nonFuzzyWorkaround", issueID)
-				return false, nil
-			}()
-
-			if err != nil {
-				return nil, err
-			} else if !found {
-				continue
-			}
-		}
 		issueID, ok := hit["id"].(float64)
 		if !ok {
 			return nil, ErrMalformedResponse
 		}
+
 		hits = append(hits, internal.Match{
 			ID: int64(issueID),
 		})
