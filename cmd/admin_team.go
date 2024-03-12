@@ -8,16 +8,9 @@ import (
 )
 
 var subcmdTeam = &cli.Command{
-	Name:        "team",
-	Usage:       "Modify teams",
+	Name:  "team",
+	Usage: "Modify teams",
 	Subcommands: []*cli.Command{
-		/*
-			microcmdUserCreate,
-			microcmdUserList,
-			microcmdUserChangePassword,
-			microcmdUserDelete,
-			microcmdUserGenerateAccessToken,
-			microcmdUserMustChangePassword,
-		*/
+		microcmdTeamList,
 	},
 }
