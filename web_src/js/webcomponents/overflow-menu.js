@@ -91,6 +91,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   }
 
   connectedCallback() {
+    this.setAttribute('role', 'navigation');
+
     // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
     // template rendering, wait for its addition.
