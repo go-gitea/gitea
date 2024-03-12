@@ -40,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -2530,10 +2531,46 @@ func SearchIssues(ctx *context.Context) {
 		isClosed = optional.Some(false)
 	}
 
+	keyword := ctx.FormTrim("q")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+
 	var (
-		repoIDs   []int64
-		allPublic bool
+		repoIDs      []int64
+		allPublic    bool
+		matchedIssue *issues_model.Issue
 	)
+
+	priorityRepoID := ctx.FormInt64("priority_repo_id")
+
+	matched, ref := references.FindRenderizableReferenceNumeric(keyword, false, false)
+	if matched {
+		idx, err := strconv.ParseInt(ref.Issue, 10, 64)
+		if err != nil {
+			log.Error("Failed to parse issue number from reference: %v", err)
+		} else {
+			var repoID int64
+			if ref.Name != "" && ref.Owner != "" {
+				repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Name)
+				if err != nil {
+					log.Error("Failed to get repository by name: %v", err)
+				} else {
+					repoID = repo.ID
+				}
+			} else {
+				repoID = priorityRepoID
+			}
+
+			if repoID > 0 {
+				matchedIssue, err = issues_model.GetIssueByIndex(ctx, repoID, idx)
+				if err != nil {
+					log.Error("Failed to get issue by index: %v", err)
+				}
+			}
+		}
+	}
+
 	{
 		// find repos user can access (for issue search)
 		opts := &repo_model.SearchRepoOptions{
@@ -2597,11 +2634,6 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
 	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
@@ -2612,7 +2644,6 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
@@ -2697,8 +2728,6 @@ func SearchIssues(ctx *context.Context) {
 
 	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
 	//        it's indeed an regression, but I think it is worth to support filtering by indexer first.
-	_ = ctx.FormInt64("priority_repo_id")
-
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchIssues", err.Error())
@@ -2709,8 +2738,11 @@ func SearchIssues(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
 	}
+	if matchedIssue != nil {
+		issues = append([]*issues_model.Issue{matchedIssue}, issues...)
+	}
 
-	ctx.SetTotalCountHeader(total)
+	ctx.SetTotalCountHeader(total + 1)
 	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
 }
 
