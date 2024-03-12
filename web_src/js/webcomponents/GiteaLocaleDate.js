@@ -10,7 +10,7 @@ window.customElements.define('gitea-locale-date', class extends HTMLElement {
       this.ownerDocument.documentElement.getAttribute('lang') ||
       '';
 
-    // only extract the `yyyy-mm-dd` part. When converting to Date, the date will be in UTC and when rendered
+    // only extract the `yyyy-mm-dd` part. When converting to Date, it will become midnight UTC and when rendered
     // as locale date, will have a offset towards UTC added. We should eventually use `Temporal.PlainDate` here
     // to avoid needing to remove this offset: https://tc39.es/proposal-temporal/docs/plaindate.html
     const date = new Date(this.getAttribute('date').substring(0, 10));
