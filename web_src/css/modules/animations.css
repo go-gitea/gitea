@@ -1,11 +1,13 @@
 @keyframes isloadingspin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform:  rotate(360deg); }
 }
 
 .is-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   pointer-events: none !important;
-  position: relative !important;
   overflow: hidden !important;
 }
 
@@ -15,13 +17,8 @@
 
 .is-loading::after {
   content: "";
-  position: absolute;
-  display: block;
-  left: 50%;
-  top: 50%;
   width: min(4em, 66.6%);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;
   border-width: 4px;
   border-style: solid;
@@ -45,7 +42,7 @@ form.single-button-form.is-loading .button {
 .markup pre.is-loading,
 .editor-loading.is-loading,
 .pdf-content.is-loading {
-  height: var(--height-loading);
+  width: var(--width-loading);
 }
 
 .markup .is-loading > * {
@@ -62,7 +59,6 @@ code.language-math.is-loading::after {
   padding: 0;
   border-width: 2px;
   width: 1.25rem;
-  height: 1.25rem;
 }
 
 @keyframes fadein {
