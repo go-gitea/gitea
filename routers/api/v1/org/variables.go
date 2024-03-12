@@ -35,11 +35,7 @@ func GetVariable(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//			"$ref": ”#/responses/ActionVariable“
-	//   "201":
-	//     description: response when getting a variable
-	//   "204":
-	//     description: response when getting a variable
+	//		 "$ref": "#/responses/ActionVariable"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -88,7 +84,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//			"$ref": ”#/responses/ActionVariable“
+	//			"$ref": "#/responses/ActionVariable"
 	//   "201":
 	//     description: response when deleting a variable
 	//   "204":

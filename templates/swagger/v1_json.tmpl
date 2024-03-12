@@ -1872,13 +1872,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
-          },
-          "201": {
-            "description": "response when getting a variable"
-          },
-          "204": {
-            "description": "response when getting a variable"
+            "$ref": "#/responses/ActionVariable"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2015,7 +2009,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
+            "$ref": "#/responses/ActionVariable"
           },
           "201": {
             "description": "response when deleting a variable"
@@ -3946,13 +3940,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
-          },
-          "201": {
-            "description": "response when getting a variable"
-          },
-          "204": {
-            "description": "response when getting a variable"
+            "$ref": "#/responses/ActionVariable"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4104,7 +4092,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
+            "$ref": "#/responses/ActionVariable"
           },
           "201": {
             "description": "response when deleting a variable"
@@ -15466,13 +15454,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "%E2%80%9D#/responses/ActionVariable%E2%80%9C"
-          },
-          "201": {
-            "description": "response when deleting a variable"
-          },
-          "204": {
-            "description": "response when deleting a variable"
+            "$ref": "#/responses/ActionVariable"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17741,6 +17723,31 @@
         "token_last_eight": {
           "type": "string",
           "x-go-name": "TokenLastEight"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionVariable": {
+      "description": "ActionVariable return value of the query API",
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "x-go-name": "Data"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "owner_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OwnerID"
+        },
+        "repo_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24352,6 +24359,12 @@
         "items": {
           "$ref": "#/definitions/AccessToken"
         }
+      }
+    },
+    "ActionVariable": {
+      "description": "ActionVariable",
+      "schema": {
+        "$ref": "#/definitions/ActionVariable"
       }
     },
     "ActivityFeedsList": {
