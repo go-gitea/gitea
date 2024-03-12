@@ -136,7 +136,23 @@ func CreateVariable(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
-	if _, err := actions_service.CreateVariable(ctx, ctx.Doer.ID, 0, ctx.Params("variablename"), opt.Value); err != nil {
+	ownerID := ctx.Doer.ID
+	variableName := ctx.Params("variablename")
+
+	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
+		OwnerID: ownerID,
+		Name:    variableName,
+	})
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+		return
+	}
+	if v != nil && v.ID > 0 {
+		ctx.Error(http.StatusConflict, "VariableNameAlreadyExists", util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
+		return
+	}
+
+	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateVariable", err)
 		} else {
@@ -230,8 +246,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.Params("variablename"))
-	if err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.Params("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
