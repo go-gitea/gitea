@@ -7,7 +7,7 @@ const visibleInstances = new Set();
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, trigger, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, ...other} = opts;
 
   const instance = tippy(target, {
     appendTo: document.body,
@@ -36,14 +36,13 @@ export function createTippy(target, opts = {}) {
       return onShow?.(instance);
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: other.role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
+    role: role || 'menu', // HTML role attribute
+    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
     plugins: [followCursor],
-    trigger,
     ...other,
   });
 
-  if (trigger === 'click') {
+  if (role === 'menu') {
     target.setAttribute('aria-haspopup', 'menu');
   }
 
