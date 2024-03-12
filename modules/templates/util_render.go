@@ -138,7 +138,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	if isArchived {
 		archivedCSSClass = "archived-label"
-		description = fmt.Sprintf("%s: %s", locale.TrString("archived"), description)
+		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
 	}
 
 	if labelScope == "" {
