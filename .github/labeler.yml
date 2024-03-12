@@ -73,19 +73,12 @@ modifies/dependencies:
           - "go.sum"
           - "pyproject.toml"
 
-go:
+modifies/go:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.go"
 
-javascript:
+modifies/js:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
-
-changelog:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "custom/app.example.ini"
-          - "docs/content/administration/config-cheat-sheet.en-us.md"
-          - "docs/content/administration/config-cheat-sheet.zh-cn.md"
