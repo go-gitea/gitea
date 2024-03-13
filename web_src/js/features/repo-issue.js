@@ -6,6 +6,7 @@ import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
+import {POST} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -40,7 +41,7 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-function updateDeadline(deadlineString) {
+async function updateDeadline(deadlineString) {
   hideElem($('#deadline-err-invalid-date'));
   $('#deadline-loader').addClass('loading');
 
@@ -56,23 +57,21 @@ function updateDeadline(deadlineString) {
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
-    data: JSON.stringify({
-      due_date: realDeadline,
-    }),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    type: 'POST',
-    success() {
+  try {
+    const response = await POST($('#update-issue-deadline-form').attr('action'), {
+      data: {due_date: realDeadline}
+    });
+
+    if (response.ok) {
       window.location.reload();
-    },
-    error() {
-      $('#deadline-loader').removeClass('loading');
-      showElem($('#deadline-err-invalid-date'));
-    },
-  });
+    } else {
+      throw new Error('Invalid response');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    $('#deadline-loader').removeClass('loading');
+    showElem($('#deadline-err-invalid-date'));
+  }
 }
 
 export function initRepoIssueDue() {
@@ -156,12 +155,12 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  $(document).on('click', '.delete-comment', function () {
+  $(document).on('click', '.delete-comment', async function () {
     const $this = $(this);
     if (window.confirm($this.data('locale'))) {
-      $.post($this.data('url'), {
-        _csrf: csrfToken,
-      }).done(() => {
+      try {
+        const response = await POST($this.data('url'));
+        if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
 
         // Check if this was a pending comment.
@@ -186,7 +185,9 @@ export function initRepoIssueCommentDelete() {
           }
           $conversationHolder.remove();
         }
-      });
+      } catch (error) {
+        console.error('Error:', error);
+      }
     }
     return false;
   });
