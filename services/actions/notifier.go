@@ -547,9 +547,9 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
+		WithRef(refFullName.String()).
 		WithPayload(&api.CreatePayload{
-			Ref:     refFullName.ShortName(),
+			Ref:     refFullName.String(),
 			Sha:     refID,
 			RefType: refFullName.RefType(),
 			Repo:    apiRepo,
@@ -566,7 +566,7 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
 		WithPayload(&api.DeletePayload{
-			Ref:        refFullName.ShortName(),
+			Ref:        refFullName.String(),
 			RefType:    refFullName.RefType(),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
