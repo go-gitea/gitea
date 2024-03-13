@@ -995,7 +995,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.FormInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := milestone_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := milestone_model.GetMilestoneByID(ctx, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -1164,12 +1164,12 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		milestone, err := milestone_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := milestone_model.GetMilestoneByID(ctx, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
 		}
-		if milestone.RepoID != repo.ID {
+		if milestone.Type != milestone_model.MilestoneTypeOrganization && milestone.RepoID != repo.ID {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
 		}

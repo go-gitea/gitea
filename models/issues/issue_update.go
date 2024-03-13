@@ -287,7 +287,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
-		milestone, err := milestone_model.GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
+		milestone, err := milestone_model.GetMilestoneByID(ctx, opts.Issue.MilestoneID)
 		if err != nil && !milestone_model.IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByID: %w", err)
 		}
