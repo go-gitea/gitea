@@ -2053,7 +2053,6 @@ table th[data-sortt-desc] .svg {
 .ui.ui.button,
 .ui.ui.dropdown,
 .ui.ui.label,
-.flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -2089,4 +2088,10 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: .25rem;
+}
+
+.ui.dropdown .menu.flex-items-block > .item {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
 }
