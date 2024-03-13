@@ -111,6 +111,16 @@
 	</div>
 
 	<div>
+		<h1>GiteaAbsoluteDate</h1>
+		<div><gitea-absolute-date date="2024-03-11" year="numeric" day="numeric" month="short"></gitea-absolute-date></div>
+		<div><gitea-absolute-date date="2024-03-11" year="numeric" day="numeric" month="long"></gitea-absolute-date></div>
+		<div><gitea-absolute-date date="2024-03-11" year="" day="numeric" month="numeric"></gitea-absolute-date></div>
+		<div><gitea-absolute-date date="2024-03-11" year="" day="numeric" month="numeric" weekday="long"></gitea-absolute-date></div>
+		<div><gitea-absolute-date date="2024-03-11T19:00:00-05:00" year="" day="numeric" month="numeric" weekday="long"></gitea-absolute-date></div>
+		<div class="tw-text-text-light-2">relative-time: <relative-time format="datetime" datetime="2024-03-11" year="" day="numeric" month="numeric"></relative-time></div>
+	</div>
+
+	<div>
 		<h1>LocaleNumber</h1>
 		<div>{{ctx.Locale.PrettyNumber 1}}</div>
 		<div>{{ctx.Locale.PrettyNumber 12}}</div>
