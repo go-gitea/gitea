@@ -92,39 +92,58 @@ func PrepareAppDataPath() error {
 
 // blanking some keys
 func BlankCfg() {
-	if !rmCfgBuiltin {
+	if !RmCfg {
 		return
 	}
 	rootCfg := CfgProvider
-	if rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").String() != "" {
-		saveCfg, _ := rootCfg.PrepareSaving()
-		rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
-		saveCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
-		if err := saveCfg.Save(); err != nil {
-			log.Error("Unable to blanking MINIO_SECRET_ACCESS_KEY to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
-		} else {
-			log.Info("successfully blanking MINIO_SECRET_ACCESS_KEY to config")
-		}
+	saveCfg, _ := rootCfg.PrepareSaving()
+
+	rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
+	saveCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking storage.minio.MINIO_SECRET_ACCESS_KEY to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking storage.minio.MINIO_SECRET_ACCESS_KEY to config")
 	}
-	if rootCfg.Section("database").Key("PASSWD").String() != "" {
-		saveCfg, _ := rootCfg.PrepareSaving()
-		rootCfg.Section("database").Key("PASSWD").SetValue("")
-		saveCfg.Section("database").Key("PASSWD").SetValue("")
-		if err := saveCfg.Save(); err != nil {
-			log.Error("Unable to blanking PASSWD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
-		} else {
-			log.Info("successfully blanking PASSWD to config")
-		}
+
+	rootCfg.Section("database").Key("PASSWD").SetValue("")
+	saveCfg.Section("database").Key("PASSWD").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking database.PASSWD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking database.PASSWD to config")
 	}
-	if rootCfg.Section("message").Key("PASSWORD").String() != "" {
-		saveCfg, _ := rootCfg.PrepareSaving()
-		rootCfg.Section("message").Key("PASSWORD").SetValue("")
-		saveCfg.Section("message").Key("PASSWORD").SetValue("")
-		if err := saveCfg.Save(); err != nil {
-			log.Error("Unable to blanking PASSWORD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
-		} else {
-			log.Info("successfully blanking PASSWORD to config")
-		}
+
+	rootCfg.Section("database").Key("HOST").SetValue("")
+	saveCfg.Section("database").Key("HOST").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking database.HOST to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking database.HOST to config")
+	}
+
+	rootCfg.Section("database").Key("NAME").SetValue("")
+	saveCfg.Section("database").Key("NAME").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking database.NAME to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking database.NAME to config")
+	}
+
+	rootCfg.Section("database").Key("USER").SetValue("")
+	saveCfg.Section("database").Key("USER").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking database.USER to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking database.USER to config")
+	}
+
+	rootCfg.Section("message").Key("PASSWORD").SetValue("")
+	saveCfg.Section("message").Key("PASSWORD").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking message.PASSWORD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking message.PASSWORD to config")
 	}
 }
 

@@ -175,7 +175,7 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 				}
 			}
 		}
-		if args.RmCfg != false {
+		if args.RmCfg {
 			tmpRmCfg.Set(args.RmCfg)
 		}
 	}

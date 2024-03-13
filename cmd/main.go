@@ -114,7 +114,7 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 			if curCtx.IsSet("config") && args.CustomConf == "" {
 				args.CustomConf = curCtx.String("config")
 			}
-			if curCtx.IsSet("rm-cfg") && args.RmCfg == false {
+			if curCtx.IsSet("rm-cfg") {
 				args.RmCfg = curCtx.Bool("rm-cfg")
 			}
 		}
