@@ -170,41 +170,41 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if options.ProjectID != nil {
-		query.And(inner_meilisearch.NewFilterEq("project_id", *options.ProjectID))
+	if options.ProjectID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID != nil {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", *options.ProjectBoardID))
-	}
-
-	if options.PosterID != nil {
-		query.And(inner_meilisearch.NewFilterEq("poster_id", *options.PosterID))
+	if options.ProjectBoardID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectBoardID.Value()))
 	}
 
-	if options.AssigneeID != nil {
-		query.And(inner_meilisearch.NewFilterEq("assignee_id", *options.AssigneeID))
+	if options.PosterID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("poster_id", options.PosterID.Value()))
 	}
 
-	if options.MentionID != nil {
-		query.And(inner_meilisearch.NewFilterEq("mention_ids", *options.MentionID))
+	if options.AssigneeID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("assignee_id", options.AssigneeID.Value()))
 	}
 
-	if options.ReviewedID != nil {
-		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", *options.ReviewedID))
-	}
-	if options.ReviewRequestedID != nil {
-		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", *options.ReviewRequestedID))
+	if options.MentionID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("mention_ids", options.MentionID.Value()))
 	}
 
-	if options.SubscriberID != nil {
-		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", *options.SubscriberID))
+	if options.ReviewedID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", options.ReviewedID.Value()))
+	}
+	if options.ReviewRequestedID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", options.ReviewRequestedID.Value()))
 	}
 
-	if options.UpdatedAfterUnix != nil {
-		query.And(inner_meilisearch.NewFilterGte("updated_unix", *options.UpdatedAfterUnix))
+	if options.SubscriberID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", options.SubscriberID.Value()))
 	}
-	if options.UpdatedBeforeUnix != nil {
-		query.And(inner_meilisearch.NewFilterLte("updated_unix", *options.UpdatedBeforeUnix))
+
+	if options.UpdatedAfterUnix.Has() {
+		query.And(inner_meilisearch.NewFilterGte("updated_unix", options.UpdatedAfterUnix.Value()))
+	}
+	if options.UpdatedBeforeUnix.Has() {
+		query.And(inner_meilisearch.NewFilterLte("updated_unix", options.UpdatedBeforeUnix.Value()))
 	}
 
 	if options.SortBy == "" {
