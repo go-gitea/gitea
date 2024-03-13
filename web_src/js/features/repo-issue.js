@@ -186,7 +186,7 @@ export function initRepoIssueCommentDelete() {
           $conversationHolder.remove();
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
       }
     }
     return false;
@@ -236,7 +236,7 @@ export function initRepoPullRequestUpdate() {
     try {
       response = await POST($this.data('do'));
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
     } finally {
       $this.removeClass('loading');
     }
@@ -244,7 +244,7 @@ export function initRepoPullRequestUpdate() {
     try {
       data = await response?.json(); // the response is probably not a JSON
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
     }
     if (data?.redirect) {
       window.location.href = data.redirect;
@@ -291,7 +291,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
           throw new Error('Failed to update maintainer edit permission');
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
         showTemporaryTooltip($checkbox[0], promptError);
       } finally {
         $checkbox.checkbox('set enabled');
@@ -355,7 +355,7 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
       throw new Error('Failed to update issues meta');
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error(error);
   }
 }
 
@@ -540,7 +540,7 @@ export function initRepoPullRequestReview() {
         const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
         editor.focus();
       } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
       }
     }
   });
@@ -580,7 +580,7 @@ export function initRepoIssueWipToggle() {
       }
       window.location.reload();
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
     }
   });
 }
@@ -619,7 +619,7 @@ export function initRepoIssueTitleEdit() {
         params.append('target_branch', targetBranch);
         await POST(update_url, {data: params});
       } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
       } finally {
         window.location.reload();
       }
@@ -643,7 +643,7 @@ export function initRepoIssueTitleEdit() {
           window.location.reload();
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
       }
     }
     return false;
