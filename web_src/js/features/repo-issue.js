@@ -611,9 +611,7 @@ export function initRepoIssueTitleEdit() {
         return false;
       }
       try {
-        const params = new URLSearchParams();
-        params.append('target_branch', targetBranch);
-        await POST(update_url, {data: params});
+        await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
       } catch (error) {
         console.error(error);
       } finally {
