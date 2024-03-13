@@ -3,7 +3,7 @@
 This document is used as aria/accessibility(a11y) reference for future developers.
 
 There are a lot of a11y problems in the Fomantic UI library. Some code in Gitea's own
-"js/modules/fomaintic/*.js" files is used as a workaround to make the UI more accessible.
+"js/modules/fomantic/*.js" files is used as a workaround to make the UI more accessible.
 
 The aria-related code is designed to avoid touching the official Fomantic UI library,
 and to be as independent as possible, so it can be easily modified/removed in the future.
