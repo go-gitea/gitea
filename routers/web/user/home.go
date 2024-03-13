@@ -714,12 +714,16 @@ func UsernameSubRoute(ctx *context.Context) {
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
 		context.UserAssignmentWeb()(ctx)
+		if ctx.Written() {
+			return false
+		}
+
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 			return false
 		}
-		return !ctx.Written()
+		return true
 	}
 	switch {
 	case strings.HasSuffix(username, ".png"):
@@ -740,7 +744,6 @@ func UsernameSubRoute(ctx *context.Context) {
 			return
 		}
 		if reloadParam(".rss") {
-			context.UserAssignmentWeb()(ctx)
 			feed.ShowUserFeedRSS(ctx)
 		}
 	case strings.HasSuffix(username, ".atom"):
