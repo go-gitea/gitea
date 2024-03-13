@@ -36,16 +36,16 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       return;
     }
 
-    // remove aria-role from items that moved from tippy to menu
+    // remove aria role from items that moved from tippy to menu
     for (const item of menuItems) {
       if (!this.tippyItems.includes(item)) {
-        item.removeAttribute('aria-role');
+        item.removeAttribute('role');
       }
     }
 
     // move all items that overflow into tippy
     for (const item of this.tippyItems) {
-      item.setAttribute('aria-role', 'menuitem');
+      item.setAttribute('role', 'menuitem');
       this.tippyContent.append(item);
     }
 
