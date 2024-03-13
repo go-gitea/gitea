@@ -354,7 +354,8 @@ func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
 		"password":             "allowedUser1_pass",
 		"must_change_password": "true",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	assert.Equal(t, "the domain of user email allowedUser1@example1.org conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", resp.Header().Get("X-Gitea-Warning"))
 
 	req = NewRequest(t, "DELETE", "/api/v1/admin/users/allowedUser1").AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
@@ -378,7 +379,8 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 		SourceID:  0,
 		Email:     &newEmail,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "the domain of user email user2@example1.com conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", resp.Header().Get("X-Gitea-Warning"))
 
 	originalEmail := "user2@example.com"
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{

@@ -30,7 +30,7 @@
 					{{end}}
 					{{$previousExclusiveScope = $exclusiveScope}}
 					<div class="item issue-action gt-df gt-sb" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
 						{{template "repo/issue/labels/label_archived" .}}
 					</div>
 				{{end}}
