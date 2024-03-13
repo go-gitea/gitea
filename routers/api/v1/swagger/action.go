@@ -25,3 +25,10 @@ type swaggerResponseActionVariable struct {
 	// in:body
 	Body api.ActionVariable `json:"body"`
 }
+
+// VariableList
+// swagger:response VariableList
+type swaggerResponseVariableList struct {
+	// in:body
+	Body []api.ActionVariable `json:"body"`
+}

@@ -8,9 +8,11 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	secret_service "code.gitea.io/gitea/services/secrets"
@@ -301,4 +303,51 @@ func GetVariable(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, variable)
+}
+
+// ListVariables list user-level variables
+func ListVariables(ctx *context.APIContext) {
+	// swagger:operation GET /user/actions/variables user getUserVariablesList
+	// ---
+	// summary: Get the user-level list of variables which is created by current doer
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//			"$ref": "#/responses/VariableList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
+		OwnerID:     ctx.Doer.ID,
+		ListOptions: utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FindVariables", err)
+		return
+	}
+
+	variables := make([]*api.ActionVariable, len(vars))
+	for i, v := range vars {
+		variables[i] = &api.ActionVariable{
+			OwnerID: v.OwnerID,
+			RepoID:  v.RepoID,
+			Name:    v.Name,
+			Data:    v.Data,
+		}
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, variables)
 }

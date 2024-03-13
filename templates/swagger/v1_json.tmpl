@@ -1844,6 +1844,50 @@
         }
       }
     },
+    "/orgs/{org}/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get an org-level variables list",
+        "operationId": "getOrgVariablesList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/orgs/{org}/actions/variables/{variablename}": {
       "get": {
         "produces": [
@@ -3895,6 +3939,57 @@
         "responses": {
           "204": {
             "description": "delete one secret of the organization"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get repo-level variables list",
+        "operationId": "getRepoVariablesList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -15433,6 +15528,43 @@
         }
       }
     },
+    "/user/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the user-level list of variables which is created by current doer",
+        "operationId": "getUserVariablesList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/user/actions/variables/{variablename}": {
       "get": {
         "produces": [
@@ -25247,6 +25379,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/UserSettings"
+        }
+      }
+    },
+    "VariableList": {
+      "description": "VariableList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ActionVariable"
         }
       }
     },

@@ -956,6 +956,7 @@ func Routes() *web.Route {
 				})
 
 				m.Group("/variables", func() {
+					m.Get("", user.ListVariables)
 					m.Combo("/{variablename}").
 						Get(user.GetVariable).
 						Delete(user.DeleteVariable).
@@ -1082,6 +1083,7 @@ func Routes() *web.Route {
 					})
 
 					m.Group("/variables", func() {
+						m.Get("", reqToken(), reqOwner(), repo.ListVariables)
 						m.Combo("/{variablename}").
 							Get(reqToken(), reqOwner(), repo.GetVariable).
 							Delete(reqToken(), reqOwner(), repo.DeleteVariable).
@@ -1469,6 +1471,7 @@ func Routes() *web.Route {
 				})
 
 				m.Group("/variables", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListVariables)
 					m.Combo("/{variablename}").
 						Get(reqToken(), reqOrgOwnership(), org.GetVariable).
 						Delete(reqToken(), reqOrgOwnership(), org.DeleteVariable).
