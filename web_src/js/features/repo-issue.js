@@ -8,7 +8,7 @@ import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
 import {POST, GET} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
