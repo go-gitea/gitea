@@ -278,20 +278,24 @@ export function initRepoPullRequestAllowMaintainerEdit() {
 
   const promptError = $checkbox.attr('data-prompt-error');
   $checkbox.checkbox({
-    'onChange': () => {
+    'onChange': async () => {
       const checked = $checkbox.checkbox('is checked');
       let url = $checkbox.attr('data-url');
       url += '/set_allow_maintainer_edit';
       $checkbox.checkbox('set disabled');
-      $.ajax({url, type: 'POST',
-        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
-        error: () => {
-          showTemporaryTooltip($checkbox[0], promptError);
-        },
-        complete: () => {
-          $checkbox.checkbox('set enabled');
-        },
-      });
+      try {
+        const response = await POST(url, {
+          data: {allow_maintainer_edit: checked},
+        });
+        if (!response.ok) {
+          throw new Error('Failed to update maintainer edit permission');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showTemporaryTooltip($checkbox[0], promptError);
+      } finally {
+        $checkbox.checkbox('set enabled');
+      }
     },
   });
 }
