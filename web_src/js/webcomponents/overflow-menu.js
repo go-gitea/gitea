@@ -38,7 +38,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           e.preventDefault();
           e.stopPropagation();
           if (document.activeElement?.matches('.tippy-target')) {
-            document.activeElement.querySelector('[role="menuitem"]').focus();
+            document.activeElement.querySelector('[role="menuitem"]:first-of-type').focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             document.activeElement.nextElementSibling?.focus();
           }

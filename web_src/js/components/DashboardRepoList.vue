@@ -386,23 +386,23 @@ export default sfc; // activate the IDE's Vue plugin
         </div>
         <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
           <div class="overflow-menu-items tw-justify-center">
-            <a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
               <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
               {{ textSources }}
               <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
               {{ textForks }}
               <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
               {{ textMirrors }}
               <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
               {{ textCollaborative }}
               <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
