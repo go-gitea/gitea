@@ -124,7 +124,6 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	var (
 		archivedCSSClass string
 		textColor        = "#111"
-		isArchived       = !label.ArchivedUnix.IsZero()
 		labelScope       = label.ExclusiveScope()
 	)
 
@@ -136,7 +135,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 
-	if isArchived {
+	if label.IsArchived() {
 		archivedCSSClass = "archived-label"
 		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
 	}
