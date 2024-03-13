@@ -22,6 +22,7 @@ import {chartJsColors} from '../utils/color.js';
 import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
+import dayjs from 'dayjs';
 
 const {pageData} = window.config;
 
@@ -210,6 +211,10 @@ export default {
       };
     },
 
+    formatDate(date) {
+      return dayjs(date).format('YYYY-MM-DD');
+    },
+
     updateOtherCharts(event, reset) {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
@@ -305,29 +310,27 @@ export default {
   <div>
     <div class="ui header gt-df gt-ac gt-sb">
       <div>
-        <relative-time
+        <gitea-absolute-date
           v-if="xAxisMin > 0"
-          format="datetime"
           year="numeric"
-          month="short"
+          month="long"
           day="numeric"
           weekday=""
-          :datetime="new Date(xAxisMin)"
+          :date="formatDate(xAxisMin)"
         >
-          {{ new Date(xAxisMin) }}
-        </relative-time>
+          {{ formatDate(xAxisMin) }}
+        </gitea-absolute-date>
         {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
-        <relative-time
+        <gitea-absolute-date
           v-if="xAxisMax > 0"
-          format="datetime"
           year="numeric"
-          month="short"
+          month="long"
           day="numeric"
           weekday=""
-          :datetime="new Date(xAxisMax)"
+          :date="formatDate(xAxisMax)"
         >
-          {{ new Date(xAxisMax) }}
-        </relative-time>
+          {{ formatDate(xAxisMin) }}
+        </gitea-absolute-date>
       </div>
       <div>
         <!-- Contribution type -->
