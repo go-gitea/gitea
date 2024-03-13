@@ -124,7 +124,7 @@ func (l *Label) SetArchived(isArchived bool) {
 
 // IsArchived returns true if label is an archived
 func (l *Label) IsArchived() bool {
-	return l.ArchivedUnix > 0
+	return !l.ArchivedUnix.IsZero()
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
