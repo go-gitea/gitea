@@ -14,10 +14,10 @@
 .is-loading > * {
   opacity: 0.3;
 }
-
+/* Using `height` and `aspect-ratio` together in Safari can cause issues. The same problem can be seen in the WebKit bug:https://bugs.webkit.org/show_bug.cgi?id=267625, but it can be avoided by not using absolute positioning on `::after`. */
 .is-loading::after {
   content: "";
-  width: min(4em, 66.6%);
+  height: min(4em, 66.6%);
   aspect-ratio: 1;
   animation: isloadingspin 1000ms infinite linear;
   border-width: 4px;
@@ -42,7 +42,7 @@ form.single-button-form.is-loading .button {
 .markup pre.is-loading,
 .editor-loading.is-loading,
 .pdf-content.is-loading {
-  width: var(--width-loading);
+  height: var(--height-loading);
 }
 
 .markup .is-loading > * {
@@ -58,7 +58,7 @@ form.single-button-form.is-loading .button {
 code.language-math.is-loading::after {
   padding: 0;
   border-width: 2px;
-  width: 1.25rem;
+  height: 1.25rem;
 }
 
 @keyframes fadein {
