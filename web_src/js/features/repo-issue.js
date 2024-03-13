@@ -68,7 +68,7 @@ async function updateDeadline(deadlineString) {
       throw new Error('Invalid response');
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error(error);
     $('#deadline-loader').removeClass('loading');
     showElem($('#deadline-err-invalid-date'));
   }
