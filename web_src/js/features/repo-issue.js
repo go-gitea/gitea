@@ -344,13 +344,9 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export async function updateIssuesMeta(url, action, issueIds, elementId) {
+export async function updateIssuesMeta(url, action, issue_ids, id) {
   try {
-    const params = new URLSearchParams();
-    params.append('action', action);
-    params.append('issue_ids', issueIds);
-    params.append('id', elementId);
-    const response = await POST(url, {data: params});
+    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
     if (!response.ok) {
       throw new Error('Failed to update issues meta');
     }
