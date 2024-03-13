@@ -117,7 +117,7 @@ func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
 		case `"`:
 			_, err = tmpBlock.WriteString("&#34;") // "&#34;" is shorter than "&quot;".
 		default:
-			_, err = tmpBlock.WriteString(scan.Text())
+			_, err = tmpBlock.Write(scan.Bytes())
 		}
 		if err != nil {
 			return err
