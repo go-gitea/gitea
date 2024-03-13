@@ -1,4 +1,4 @@
-window.customElements.define('gitea-absolute-date', class extends HTMLElement {
+window.customElements.define('absolute-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
 
   update = () => {
