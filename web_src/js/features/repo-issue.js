@@ -564,11 +564,19 @@ export function initRepoIssueWipToggle() {
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
-    await $.post(updateUrl, {
-      _csrf: csrfToken,
-      title: title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
-    });
-    window.location.reload();
+
+    try {
+      const params = new URLSearchParams();
+      params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+
+      const response = await POST(updateUrl, {data: params});
+      if (!response.ok) {
+        throw new Error('Failed to toggle WIP status');
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+    }
   });
 }
 
