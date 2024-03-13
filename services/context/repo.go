@@ -533,7 +533,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-  numReleases, err := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+	numReleases, err := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
 		RepoID:        ctx.Repo.Repository.ID,
