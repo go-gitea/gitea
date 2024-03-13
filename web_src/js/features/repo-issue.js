@@ -345,16 +345,18 @@ export function initRepoIssueWipTitle() {
 }
 
 export async function updateIssuesMeta(url, action, issueIds, elementId) {
-  return $.ajax({
-    type: 'POST',
-    url,
-    data: {
-      _csrf: csrfToken,
-      action,
-      issue_ids: issueIds,
-      id: elementId,
-    },
-  });
+  try {
+    const params = new URLSearchParams();
+    params.append('action', action);
+    params.append('issue_ids', issueIds);
+    params.append('id', elementId);
+    const response = await POST(url, {data: params});
+    if (!response.ok) {
+      throw new Error('Failed to update issues meta');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }
 
 export function initRepoIssueComments() {
