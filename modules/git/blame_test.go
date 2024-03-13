@@ -118,11 +118,13 @@ func TestReadingBlameOutput(t *testing.T) {
 			},
 		}
 
+		objectFormat, err := repo.GetObjectFormat()
+		assert.NoError(t, err)
 		for _, c := range cases {
 			commit, err := repo.GetCommit(c.CommitID)
 			assert.NoError(t, err)
 
-			blameReader, err := CreateBlameReader(ctx, repo.objectFormat, "./tests/repos/repo6_blame", commit, "blame.txt", c.Bypass)
+			blameReader, err := CreateBlameReader(ctx, objectFormat, "./tests/repos/repo6_blame", commit, "blame.txt", c.Bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()

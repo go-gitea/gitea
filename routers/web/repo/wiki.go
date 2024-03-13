@@ -102,7 +102,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if git.IsErrNotExist(errCommit) {
 		// if the default branch recorded in database is out of sync, then re-sync it
-		gitRepoDefaultBranch, errBranch := wikiGitRepo.GetDefaultBranch()
+		gitRepoDefaultBranch, errBranch := gitrepo.GetWikiDefaultBranch(ctx, ctx.Repo.Repository)
 		if errBranch != nil {
 			return wikiGitRepo, nil, errBranch
 		}
