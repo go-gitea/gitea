@@ -5,7 +5,7 @@
 	{{$.CsrfTokenHtml}}
 </form>
 
-<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
+<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{ctx.Locale.Tr "repo.issues.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
@@ -39,7 +39,7 @@
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{else}}
-				<div class="item">{{ctx.Locale.Tr "repo.pulls.no_results"}}</div>
+				<div class="item">{{ctx.Locale.Tr "repo.issues.no_results"}}</div>
 			{{end}}
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} gt-hidden">
@@ -49,7 +49,7 @@
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{else}}
-				<div class="item">{{ctx.Locale.Tr "repo.pulls.no_results"}}</div>
+				<div class="item">{{ctx.Locale.Tr "repo.issues.no_results"}}</div>
 			{{end}}
 		</div>
 	</div>
