@@ -150,8 +150,10 @@ func init() {
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &webhook_module.HookEvent{}
-	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
-		log.Error("Unmarshal[%d]: %v", w.ID, err)
+	if w.Events != "" {
+		if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
+			log.Error("Unmarshal[%d]: %v", w.ID, err)
+		}
 	}
 }
 
