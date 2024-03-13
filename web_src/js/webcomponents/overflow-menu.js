@@ -17,7 +17,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
               items[items.length - 1].focus();
             }
           } else {
-            if (document.activeElement === items[items.length-1]) {
+            if (document.activeElement === items[items.length - 1]) {
               e.preventDefault();
               items[0].focus();
             }
