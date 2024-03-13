@@ -227,22 +227,32 @@ export function initRepoIssueCodeCommentCancel() {
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
-  $pullUpdateButton.on('click', function (e) {
+  $pullUpdateButton.on('click', async function (e) {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
     $this.addClass('loading');
-    $.post($this.data('do'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    });
+    let response;
+    try {
+      response = await POST($this.data('do'));
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      $this.removeClass('loading');
+    }
+    let data;
+    try {
+      data = await response?.json(); // the response is probably not a JSON
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    if (data?.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
   });
 
   $('.update-button > .dropdown').dropdown({
