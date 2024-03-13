@@ -4,6 +4,51 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.8](https://github.com/go-gitea/gitea/releases/tag/1.21.8) - 2024-03-12
+
+* SECURITY
+  * Only use supported sort orders for "/explore/users" page (#29430) (#29443)
+* ENHANCEMENTS
+  * Fix wrong line number in code search result (#29260) (#29623)
+* BUGFIXES
+  * Use Get but not Post to get actions artifacts (#29734) (#29737)
+  * Fix inconsistent rendering of block mathematical expressions (#29677) (#29711)
+  * Fix rendering internal file links in org (#29669) (#29705)
+  * Don't show AbortErrors on logout (#29639) (#29667)
+  * Fix user-defined markup links targets (#29305) (#29666)
+  * Fix incorrect rendering csv file when file size is larger than UI.CSV.MaxFileSize (#29653) (#29663)
+  * Fix hidden test's failure (#29254) (#29662)
+  * Add empty repo check-in DetectAndHandleSchedules (#29606) (#29659)
+  * Fix 500 when deleting an account with an incorrect password or unsupported login type (#29579) (#29656)
+  * Use strict protocol check when redirect (#29642) (#29644)
+  * Avoid issue info panic (#29625) (#29632)
+  * Avoid unexpected panic in graceful manager (#29629) (#29630)
+  * Make "/user/login" page redirect if the current user has signed in (#29583) (#29599)
+  * Fix workflow trigger event IssueChangeXXX bug (#29559) (#29565)
+  * Fix incorrect cookie path for AppSubURL (#29534) (#29552)
+  * Fix queue worker incorrectly stopped when there are still more items in the queue (#29532) (#29546)
+  * Fix incorrect redirection when creating a PR fails (#29537) (#29543)
+  * Fix incorrect subpath in links (#29535) (#29541)
+  * Fix issue link does not support quotes (#29484) (#29487) (#29536)
+  * Fix issue & comment history bugs (#29525) (#29527)
+  * Set pre-step status to `skipped` if the job is skipped (#29489) (#29523)
+  * Fix/Improve `processWindowErrorEvent` (#29407) (#29480)
+  * Fix counter display number incorrectly displayed on the page (#29448) (#29478)
+  * Fix workflow trigger event bugs (#29467) (#29475)
+  * Fix URL calculation in the clone input box (#29470) (#29473)
+  * The job should always run when `if` is `always()` (#29464) (#29469)
+  * Fix template bug (#27581) (#29446)
+  * Not trigger all jobs anymore when re-running the first job (#29439) (#29441)
+  * Ignore empty repo for CreateRepository in action notifier (#29416) (#29424)
+  * Fix incorrect tree path value for patch editor (#29377) (#29421)
+  * Add missing database transaction for new issues (#29490) (#29607)
+  * Fix 500 when pushing release to an empty repo (#29554) (#29564)
+  * Fix incorrect relative/absolute URL usages (#29531) (#29547)
+  * Fix wrong test usage of `AppSubURL` (#29459) (#29488)
+  * Fix missed return (#29450) (#29453)
+  * Fixing the issue when status checks per rule matches multiple actions (#29631) (#29655)
+  * Improve contrast on blame timestamp, fix double border (#29482) (#29485)
+
 ## [1.21.7](https://github.com/go-gitea/gitea/releases/tag/1.21.7) - 2024-02-26
 
 * ENHANCEMENTS
