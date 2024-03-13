@@ -333,7 +333,7 @@
 				{{if .DependentIssue}}
 					<div class="detail">
 						{{svg "octicon-plus"}}
-						<span class="text grey muted-links gt-df">
+						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
 									#{{.DependentIssue.Index}} {{.DependentIssue.Title}}
@@ -355,7 +355,7 @@
 				</span>
 				{{if .DependentIssue}}
 					<div class="detail">
-						<span class="text grey muted-links gt-df">{{svg "octicon-trash"}}</span>
+						{{svg "octicon-trash"}}
 						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
