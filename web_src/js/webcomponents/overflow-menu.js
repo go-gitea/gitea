@@ -8,7 +8,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
-      div.tabIndex = '-1';
+      div.tabIndex = '-1'; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll('[role="menuitem"]');
