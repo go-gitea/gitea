@@ -6,7 +6,7 @@ import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
-import {POST} from '../modules/fetch.js';
+import {POST, GET} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -528,15 +528,20 @@ export function initRepoPullRequestReview() {
     const td = ntr.find(`.add-comment-${side}`);
     const commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
-      const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
-      td.html(html);
-      td.find("input[name='line']").val(idx);
-      td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-      td.find("input[name='path']").val(path);
+      try {
+        const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
+        const html = await response.text();
+        td.html(html);
+        td.find("input[name='line']").val(idx);
+        td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
+        td.find("input[name='path']").val(path);
 
-      initDropzone(td.find('.dropzone')[0]);
-      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
-      editor.focus();
+        initDropzone(td.find('.dropzone')[0]);
+        const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+        editor.focus();
+      } catch (error) {
+        console.error('Error:', error);
+      }
     }
   });
 }
