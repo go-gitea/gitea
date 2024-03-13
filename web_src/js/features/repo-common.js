@@ -87,3 +87,72 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     message: {noResults: $dropdown.attr('data-no-results')},
   });
 }
+
+const {appSubUrl} = window.config;
+
+export function initRepoCommonForksRepoSearchDropdown(selector) {
+  const $dropdown = $(selector);
+  $dropdown.find('input').on('input', function() {
+    const $root = $(this).closest(selector).find('.reference-list-menu');
+    const $query = $(this).val().trim();
+    if ($query.length === 0) {
+      return;
+    }
+
+    $.get(`${appSubUrl}/repo/search?q=${$query}`).done((data) => {
+      if (data.ok !== true) {
+        return;
+      }
+
+      const $linkTmpl = $root.data('url-tmpl');
+
+      for (let i = 0; i < data.data.length; i++) {
+        const {id, full_name, link} = data.data[i].repository;
+
+        const found = $root.find('.item').filter(function() {
+          return $(this).data('id') === id;
+        });
+
+        if (found.length !== 0) {
+          continue;
+        }
+
+        const compareLink = $linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
+        $root.append($(`<div class="item" data-id="${id}" data-url="${compareLink}">${full_name}</div>`));
+      }
+    }).always(() => {
+      $root.find('.item').each((_, e) => {
+        if (!$(e).html().includes($query)) {
+          $(e).addClass('filtered');
+        }
+      });
+    });
+
+    return false;
+  });
+
+  $dropdown.dropdown({
+    fullTextSearch: 'exact',
+    selectOnKeydown: false,
+    onChange(_text, _value, $choice) {
+      if ($choice.attr('data-url')) {
+        window.location.href = $choice.attr('data-url');
+      }
+    },
+    message: {noResults: $dropdown.attr('data-no-results')},
+  });
+
+  const $acrossServiceCompareBtn = $('.choose.branch .compare-across-server-btn');
+  const $acrossServiceCompareInput = $('.choose.branch .compare-across-server-input');
+
+  if ($acrossServiceCompareBtn.length === 0 || $acrossServiceCompareInput.length === 0) {
+    return;
+  }
+
+  $acrossServiceCompareBtn.on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    window.location.href = $(this).data('compare-url') + encodeURIComponent($acrossServiceCompareInput.val());
+  });
+}

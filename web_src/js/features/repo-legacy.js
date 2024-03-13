@@ -11,6 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
+  initRepoCommonForksRepoSearchDropdown,
 } from './repo-common.js';
 import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
@@ -532,8 +533,9 @@ export function initRepository() {
   // Compare or pull request
   const $repoDiff = $('.repository.diff');
   if ($repoDiff.length) {
-    initRepoCommonBranchOrTagDropdown('.choose.branch .dropdown');
-    initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
+    initRepoCommonBranchOrTagDropdown('.choose.branch .branch-search-box');
+    initRepoCommonFilterSearchDropdown('.choose.branch .branch-search-box');
+    initRepoCommonForksRepoSearchDropdown('.choose.branch .repo-search-box');
   }
 
   initRepoCloneLink();
