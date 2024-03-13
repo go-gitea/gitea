@@ -8,8 +8,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
+      div.tabIndex = '-1';
       div.addEventListener('keydown', (e) => {
-        if (e.code === 'Tab') {
+        if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll('[role="menuitem"]');
           if (e.shiftKey) {
             if (document.activeElement === items[0]) {
@@ -22,18 +23,34 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
               items[0].focus();
             }
           }
-        } else if (e.code === 'Escape') {
+        } else if (e.key === 'Escape') {
           e.preventDefault();
+          e.stopPropagation();
           this.button._tippy.hide();
           this.button.focus();
-        } else if (e.code === 'Space') {
-          // eslint-disable-next-line unicorn/no-lonely-if
-          if (document.activeElement.matches('[role="menuitem"]')) {
-            e.preventDefault();
+        } else if (e.key === ' ' || e.code === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (document.activeElement?.matches('[role="menuitem"]')) {
             document.activeElement.click();
           }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (document.activeElement?.matches('.tippy-target')) {
+            document.activeElement.querySelector('[role="menuitem"]').focus();
+          } else if (document.activeElement?.matches('[role="menuitem"]')) {
+            document.activeElement.nextElementSibling?.focus();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (document.activeElement?.matches('.tippy-target')) {
+            document.activeElement.querySelector('[role="menuitem"]:last-of-type').focus();
+          } else if (document.activeElement?.matches('[role="menuitem"]')) {
+            document.activeElement.previousElementSibling?.focus();
+          }
         }
-        // TODO: handle arrow keys (at the moment, tab&shift-tab also work)
       });
       this.append(div);
       this.tippyContent = div;
@@ -98,7 +115,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       role: 'menu',
       content: this.tippyContent,
       onShow: () => { // FIXME: onShown doesn't work (never be called)
-        setTimeout(() => this.tippyContent.querySelector('[role="menuitem"]').focus());
+        setTimeout(() => {
+          this.tippyContent.focus();
+        }, 0);
       },
     });
   });
