@@ -8,6 +8,33 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
+      div.addEventListener('keydown', (e) => {
+        if (e.code === 'Tab') {
+          const items = this.tippyContent.querySelectorAll('[role="menuitem"]');
+          if (e.shiftKey) {
+            if (document.activeElement === items[0]) {
+              e.preventDefault();
+              items[items.length - 1].focus();
+            }
+          } else {
+            if (document.activeElement === items[items.length-1]) {
+              e.preventDefault();
+              items[0].focus();
+            }
+          }
+        } else if (e.code === 'Escape') {
+          e.preventDefault();
+          this.button._tippy.hide();
+          this.button.focus();
+        } else if (e.code === 'Space') {
+          // eslint-disable-next-line unicorn/no-lonely-if
+          if (document.activeElement.matches('[role="menuitem"]')) {
+            e.preventDefault();
+            document.activeElement.click();
+          }
+        }
+        // TODO: handle arrow keys (at the moment, tab&shift-tab also work)
+      });
       this.append(div);
       this.tippyContent = div;
     }
@@ -70,6 +97,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       placement: 'bottom-end',
       role: 'menu',
       content: this.tippyContent,
+      onShow: () => { // FIXME: onShown doesn't work (never be called)
+        setTimeout(() => this.tippyContent.querySelector('[role="menuitem"]').focus());
+      },
     });
   });
 

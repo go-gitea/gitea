@@ -43,7 +43,7 @@ export function createTippy(target, opts = {}) {
   });
 
   if (role === 'menu') {
-    target.setAttribute('aria-haspopup', 'menu');
+    target.setAttribute('aria-haspopup', 'true');
   }
 
   return instance;
