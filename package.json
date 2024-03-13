@@ -86,6 +86,7 @@
     "jsdom": "24.0.0",
     "markdownlint-cli": "0.39.0",
     "postcss-html": "1.6.0",
+    "postcss-nesting": "12.1.0",
     "stylelint": "16.2.1",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
     "stylelint-declaration-strict-value": "1.10.4",
