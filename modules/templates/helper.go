@@ -38,7 +38,7 @@ func NewFuncMap() template.FuncMap {
 		"SafeHTML":     SafeHTML,
 		"HTMLFormat":   HTMLFormat,
 		"HTMLEscape":   HTMLEscape,
-		"QueryEscape":  url.QueryEscape,
+		"QueryEscape":  QueryEscape,
 		"JSEscape":     JSEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -224,6 +224,10 @@ func HTMLEscape(s any) template.HTML {
 
 func JSEscapeSafe(s string) template.HTML {
 	return template.HTML(template.JSEscapeString(s))
+}
+
+func QueryEscape(s string) template.URL {
+	return template.URL(url.QueryEscape(s))
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
