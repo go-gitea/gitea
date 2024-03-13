@@ -20,6 +20,7 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -199,6 +200,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 
 func TestSkipCI(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// create the repo
@@ -209,7 +211,7 @@ func TestSkipCI(t *testing.T) {
 			Gitignores:    "Go",
 			License:       "MIT",
 			Readme:        "Default",
-			DefaultBranch: "main",
+			DefaultBranch: "master",
 			IsPrivate:     false,
 		})
 		assert.NoError(t, err)
@@ -228,12 +230,12 @@ func TestSkipCI(t *testing.T) {
 				{
 					Operation:     "create",
 					TreePath:      ".gitea/workflows/pr.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  push:\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					ContentReader: strings.NewReader("name: test\non:\n  push:\n    branches: [master]\n  pull_request:\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
 				},
 			},
 			Message:   "add workflow",
-			OldBranch: "main",
-			NewBranch: "main",
+			OldBranch: "master",
+			NewBranch: "master",
 			Author: &files_service.IdentityOptions{
 				Name:  user2.Name,
 				Email: user2.Email,
@@ -263,8 +265,8 @@ func TestSkipCI(t *testing.T) {
 				},
 			},
 			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipWorkflowStrings[0]),
-			OldBranch: "main",
-			NewBranch: "main",
+			OldBranch: "master",
+			NewBranch: "master",
 			Author: &files_service.IdentityOptions{
 				Name:  user2.Name,
 				Email: user2.Email,
@@ -282,6 +284,43 @@ func TestSkipCI(t *testing.T) {
 		assert.NotEmpty(t, addFileResp)
 
 		// the commit message contains a configured skip-ci string, so there is still only 1 record
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+
+		// add file to new branch
+		addFileToBranchResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "test-skip-ci",
+					ContentReader: strings.NewReader("test-skip-ci"),
+				},
+			},
+			Message:   "add test file",
+			OldBranch: "master",
+			NewBranch: "test-skip-ci",
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileToBranchResp)
+
+		resp := testPullCreate(t, session, "user2", "skip-ci", true, "master", "test-skip-ci", "[skip ci] test-skip-ci")
+
+		// check the redirected URL
+		url := test.RedirectURL(resp)
+		assert.Regexp(t, "^/user2/skip-ci/pulls/[0-9]*$", url)
+
+		// the pr title contains a configured skip-ci string, so there is still only 1 record
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 	})
 }
