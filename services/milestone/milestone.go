@@ -15,28 +15,34 @@ import (
 )
 
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) error {
-	// Only check if milestone exists if we don't remove it.
+	var milestone *milestone_model.Milestone
+	var err error
 
-	milestone, err := milestone_model.GetMilestoneByID(ctx, issue.MilestoneID)
-	if err != nil {
-		return fmt.Errorf("GetMilestoneByID: %w", err)
-	}
-	if issue.MilestoneID > 0 && milestone.OrgID < 0 {
-		has, err := milestone_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+	if issue.MilestoneID > 0 {
+		milestone, err = milestone_model.GetMilestoneByID(ctx, issue.MilestoneID)
 		if err != nil {
-			return fmt.Errorf("HasMilestoneByRepoID: %w", err)
-		}
-		if !has {
-			return fmt.Errorf("HasMilestoneByRepoID: issue doesn't exist")
+			return fmt.Errorf("GetMilestoneByID: %w", err)
 		}
 	}
-	if issue.MilestoneID > 0 && milestone.OrgID > 0 {
-		has, err := milestone_model.HasMilestoneByOrgID(ctx, issue.Repo.OwnerID, issue.MilestoneID)
-		if err != nil {
-			return fmt.Errorf("HasMilestoneByOrgID: %w", err)
+
+	if milestone != nil {
+		if issue.MilestoneID > 0 && milestone.RepoID > 0 {
+			has, err := milestone_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+			if err != nil {
+				return fmt.Errorf("HasMilestoneByRepoID: %w", err)
+			}
+			if !has {
+				return fmt.Errorf("HasMilestoneByRepoID: issue doesn't exist")
+			}
 		}
-		if !has {
-			return fmt.Errorf("HasMilestoneByOrgID: issue doesn't exist")
+		if issue.MilestoneID > 0 && milestone.OrgID > 0 {
+			has, err := milestone_model.HasMilestoneByOrgID(ctx, issue.Repo.OwnerID, issue.MilestoneID)
+			if err != nil {
+				return fmt.Errorf("HasMilestoneByOrgID: %w", err)
+			}
+			if !has {
+				return fmt.Errorf("HasMilestoneByOrgID: issue doesn't exist")
+			}
 		}
 	}
 
