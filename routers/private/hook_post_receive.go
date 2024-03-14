@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -75,6 +76,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if repo != nil && len(updates) > 0 {
+		for _, update := range updates {
+			if !update.RefFullName.IsBranch() {
+				continue
+			}
+			// update pull requests head refs immediately
+			pull_service.UpdatePullsRefs(ctx, repo, update)
+		}
+
 		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
