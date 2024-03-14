@@ -3041,7 +3041,7 @@ tbody.commit-list {
   border-bottom: none;
 
 }
-.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black  {
+.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
