@@ -111,6 +111,10 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
+	forcePushWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.ForcePushWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (ForcePushWhitelistUserIDs): %v", err)
+	}
 	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.MergeWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
@@ -122,6 +126,10 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api
 	pushWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
+	}
+	forcePushWhitelistTeams, err := user_model.GetUserNamesByIDs(ctx, bp.ForcePushWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (ForcePushWhitelistTeamIDs): %v", err)
 	}
 	mergeWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.MergeWhitelistTeamIDs)
 	if err != nil {
@@ -145,6 +153,11 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
 		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableForcePush:               bp.CanForcePush,
+		EnableForcePushWhitelist:      bp.EnableForcePushWhitelist,
+		ForcePushWhitelistUsernames:   forcePushWhitelistUsernames,
+		ForcePushWhitelistTeams:       forcePushWhitelistTeams,
+		ForcePushWhitelistDeployKeys:  bp.ForcePushWhitelistDeployKeys,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,

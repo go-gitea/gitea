@@ -30,6 +30,11 @@ type BranchProtection struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               bool     `json:"enable_force_push"`
+	EnableForcePushWhitelist      bool     `json:"enable_force_push_whitelist"`
+	ForcePushWhitelistUsernames   []string `json:"force_push_whitelist_usernames"`
+	ForcePushWhitelistTeams       []string `json:"force_push_whitelist_teams"`
+	ForcePushWhitelistDeployKeys  bool     `json:"force_push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -63,6 +68,11 @@ type CreateBranchProtectionOption struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               bool     `json:"enable_force_push"`
+	EnableForcePushWhitelist      bool     `json:"enable_force_push_whitelist"`
+	ForcePushWhitelistUsernames   []string `json:"force_push_whitelist_usernames"`
+	ForcePushWhitelistTeams       []string `json:"force_push_whitelist_teams"`
+	ForcePushWhitelistDeployKeys  bool     `json:"force_push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -89,6 +99,11 @@ type EditBranchProtectionOption struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       *bool    `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               *bool    `json:"enable_force_push"`
+	EnableForcePushWhitelist      *bool    `json:"enable_force_push_whitelist"`
+	ForcePushWhitelistUsernames   []string `json:"force_push_whitelist_usernames"`
+	ForcePushWhitelistTeams       []string `json:"force_push_whitelist_teams"`
+	ForcePushWhitelistDeployKeys  *bool    `json:"force_push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
