@@ -336,10 +336,6 @@ can test your changes to ensure that they pass continuous integration using:
 make lint-md
 ```
 
-You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
-note: this may generate a number of untracked Git objects, which will need to
-be cleaned up.
-
 ## Visual Studio Code
 
 A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
