@@ -5,7 +5,6 @@ package repo
 
 import (
 	"bufio"
-	gocontext "context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -728,30 +727,6 @@ func PrepareCompareDiff(
 	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
-}
-
-func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer gitRepo.Close()
-
-	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: repo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: optional.Some(false),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	tags, err = gitRepo.GetTags(0, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	return branches, tags, nil
 }
 
 func prepareHeadBranchAndTags(ctx *context.Context, headRepoID int64) {

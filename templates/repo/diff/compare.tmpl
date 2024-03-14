@@ -72,10 +72,7 @@
 			</div>
 		</div>
 
-		<div class="ui floating compare-switch-btn">
-			{{svg "octicon-arrow-left"}}
-			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{.CompareSeparator}}</a>
-		</div>
+		<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{.CompareSeparator}}</div></a>
 
 		<div class="ui floating filter dropdown repo-search-box">
 			<div class="ui basic small button">
