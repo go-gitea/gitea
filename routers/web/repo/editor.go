@@ -80,10 +80,10 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		}
 	}
 
-	redirectTo := ctx.FormString("redirect_to")
+	returnURI := ctx.FormString("return_uri")
 
 	ctx.RedirectToFirst(
-		redirectTo,
+		returnURI,
 		ctx.Repo.RepoLink+"/src/branch/"+util.PathEscapeSegments(newBranchName)+"/"+util.PathEscapeSegments(treePath),
 	)
 }
@@ -194,6 +194,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
+	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["HideCreateNewBranch"] = ctx.FormBool("hide_create_new_branch")
 	ctx.Data["HideCreatePullRequest"] = ctx.FormBool("hide_create_pr")
 
