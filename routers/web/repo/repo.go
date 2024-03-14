@@ -547,9 +547,13 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
-			Page:     ctx.FormInt("page"),
+			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		Actor:              ctx.Doer,
