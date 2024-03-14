@@ -333,8 +333,7 @@ Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
 
 ```bash
-# from the docs directory within Gitea
-make docs clean build
+make lint-md
 ```
 
 You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
