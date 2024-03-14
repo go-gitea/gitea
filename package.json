@@ -42,6 +42,7 @@
     "pdfobject": "2.3.0",
     "postcss": "8.4.35",
     "postcss-loader": "8.1.1",
+    "postcss-nesting": "12.1.0",
     "pretty-ms": "9.0.0",
     "sortablejs": "1.15.2",
     "swagger-ui-dist": "5.11.8",
