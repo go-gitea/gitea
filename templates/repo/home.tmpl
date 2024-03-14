@@ -20,7 +20,7 @@
 								{{if .CodeIndexerUnavailable}}
 									<i class="icon">{{svg "octicon-alert"}}</i>
 								{{end}}
-								{{template "shared/search/button"}}
+								{{template "shared/search/button" dict "Disabled" .CodeIndexerUnavailable}}
 							</div>
 						</div>
 					</form>
