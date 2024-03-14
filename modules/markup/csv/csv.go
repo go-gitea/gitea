@@ -77,29 +77,62 @@ func writeField(w io.Writer, element, class, field string) error {
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	tmpBlock := bufio.NewWriter(output)
+	maxSize := setting.UI.CSV.MaxFileSize
 
-	// FIXME: don't read all to memory
-	rawBytes, err := io.ReadAll(input)
+	if maxSize == 0 {
+		return r.tableRender(ctx, input, tmpBlock)
+	}
+
+	rawBytes, err := io.ReadAll(io.LimitReader(input, maxSize+1))
 	if err != nil {
 		return err
 	}
 
-	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
-		if _, err := tmpBlock.WriteString("<pre>"); err != nil {
-			return err
-		}
-		if _, err := tmpBlock.WriteString(html.EscapeString(string(rawBytes))); err != nil {
-			return err
-		}
-		if _, err := tmpBlock.WriteString("</pre>"); err != nil {
-			return err
-		}
-		return tmpBlock.Flush()
+	if int64(len(rawBytes)) <= maxSize {
+		return r.tableRender(ctx, bytes.NewReader(rawBytes), tmpBlock)
+	}
+	return r.fallbackRender(io.MultiReader(bytes.NewReader(rawBytes), input), tmpBlock)
+}
+
+func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
+	_, err := tmpBlock.WriteString("<pre>")
+	if err != nil {
+		return err
 	}
 
-	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
+	scan := bufio.NewScanner(input)
+	scan.Split(bufio.ScanRunes)
+	for scan.Scan() {
+		switch scan.Text() {
+		case `&`:
+			_, err = tmpBlock.WriteString("&amp;")
+		case `'`:
+			_, err = tmpBlock.WriteString("&#39;") // "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
+		case `<`:
+			_, err = tmpBlock.WriteString("&lt;")
+		case `>`:
+			_, err = tmpBlock.WriteString("&gt;")
+		case `"`:
+			_, err = tmpBlock.WriteString("&#34;") // "&#34;" is shorter than "&quot;".
+		default:
+			_, err = tmpBlock.Write(scan.Bytes())
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = tmpBlock.WriteString("</pre>")
+	if err != nil {
+		return err
+	}
+	return tmpBlock.Flush()
+}
+
+func (Renderer) tableRender(ctx *markup.RenderContext, input io.Reader, tmpBlock *bufio.Writer) error {
+	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, input)
 	if err != nil {
 		return err
 	}
