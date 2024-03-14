@@ -6,7 +6,6 @@ package issue
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -18,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func getMergeBase(repo *git.Repository, baseBranch, headBranch string) (string, error) {
+func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
 	// Add a temporary remote
-	tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
+	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
 	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
 		return "", fmt.Errorf("AddRemote: %w", err)
 	}
@@ -69,7 +68,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
 
 	// get the mergebase
-	mergeBase, err := getMergeBase(repo, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 	if err != nil {
 		return err
 	}
