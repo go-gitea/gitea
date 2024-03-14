@@ -3046,7 +3046,7 @@ tbody.commit-list {
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
-.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu{
+.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
   border-top: none;
 }
 .repository .issue-content .issue-content-right .branch-tag-divider {
