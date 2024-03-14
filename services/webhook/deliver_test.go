@@ -18,6 +18,7 @@ import (
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -226,49 +227,29 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	type hookCase struct {
-		gotBody chan []byte
+		gotBody    chan []byte
+		httpMethod string // default to POST
 	}
 
-	cases := map[string]hookCase{
-		webhook_module.SLACK: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.DISCORD: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.DINGTALK: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.TELEGRAM: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.MSTEAMS: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.FEISHU: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.MATRIX: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.WECHATWORK: {
-			gotBody: make(chan []byte, 1),
-		},
-		webhook_module.PACKAGIST: {
-			gotBody: make(chan []byte, 1),
-		},
+	cases := map[string]*hookCase{
+		webhook_module.SLACK:      {},
+		webhook_module.DISCORD:    {},
+		webhook_module.DINGTALK:   {},
+		webhook_module.TELEGRAM:   {},
+		webhook_module.MSTEAMS:    {},
+		webhook_module.FEISHU:     {},
+		webhook_module.MATRIX:     {httpMethod: "PUT"},
+		webhook_module.WECHATWORK: {},
+		webhook_module.PACKAGIST:  {},
 	}
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		typ := strings.Split(r.URL.Path, "/")[1] // URL: "/{webhook_type}/other-path"
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"), r.URL.Path)
-
-		typ := strings.Split(r.URL.Path, "/")[1] // take first segment (after skipping leading slash)
-		hc := cases[typ]
-		require.NotNil(t, hc.gotBody, r.URL.Path)
-		body, err := io.ReadAll(r.Body)
-		assert.NoError(t, err)
-		w.WriteHeader(200)
-		hc.gotBody <- body
+		assert.Equal(t, util.IfZero(cases[typ].httpMethod, "POST"), r.Method, "webhook test request %q", r.URL.Path)
+		body, _ := io.ReadAll(r.Body) // read request and send it back to the test by testcase's chan
+		cases[typ].gotBody <- body
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(s.Close)
 
@@ -276,19 +257,17 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 	data, err := p.JSONPayload()
 	assert.NoError(t, err)
 
-	for typ, hc := range cases {
-		typ := typ
-		hc := hc
+	for typ := range cases {
+		cases[typ].gotBody = make(chan []byte, 1)
+		typ := typ // TODO: remove this workaround when Go >= 1.22
 		t.Run(typ, func(t *testing.T) {
 			t.Parallel()
 			hook := &webhook_model.Webhook{
-				RepoID:      3,
-				IsActive:    true,
-				Type:        typ,
-				URL:         s.URL + "/" + typ,
-				HTTPMethod:  "POST",
-				ContentType: 0, // set to 0 so that falling back to default request fails with "invalid content type"
-				Meta:        "{}",
+				RepoID:   3,
+				IsActive: true,
+				Type:     typ,
+				URL:      s.URL + "/" + typ,
+				Meta:     "{}",
 			}
 			assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
 
@@ -304,10 +283,11 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 			assert.NotNil(t, hookTask)
 
 			assert.NoError(t, Deliver(context.Background(), hookTask))
+
 			select {
-			case gotBody := <-hc.gotBody:
+			case gotBody := <-cases[typ].gotBody:
 				assert.NotEqual(t, string(data), string(gotBody), "request body must be different from the event payload")
-				assert.Equal(t, hookTask.RequestInfo.Body, string(gotBody), "request body was not saved")
+				assert.Equal(t, hookTask.RequestInfo.Body, string(gotBody), "delivered webhook payload doesn't match saved request")
 			case <-time.After(5 * time.Second):
 				t.Fatal("waited to long for request to happen")
 			}
