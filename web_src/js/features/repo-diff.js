@@ -195,7 +195,6 @@ function initRepoDiffShowMore() {
       const resp = await response.text();
 
       if (!resp) {
-        $target.removeClass('disabled');
         return;
       }
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
