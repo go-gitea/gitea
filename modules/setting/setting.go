@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -162,9 +163,10 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
-	if !unsafeAllowRunAsRoot && os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT") == "true" {
-		unsafeAllowRunAsRoot = true
-	}
+	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || func() bool {
+		v, _ := strconv.ParseBool(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT"))
+		return v
+	}()
 
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
