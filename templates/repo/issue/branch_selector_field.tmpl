@@ -4,7 +4,7 @@
 <form method="post" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
 	{{$.CsrfTokenHtml}}
 </form>
-
+{{/* TODO: share this branch selector dropdown with the same in repo page */}}
 <div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{ctx.Locale.Tr "repo.issues.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
