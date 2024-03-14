@@ -195,8 +195,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
-	ctx.Data["HideCreateNewBranch"] = ctx.FormBool("hide_create_new_branch")
-	ctx.Data["HideCreatePullRequest"] = ctx.FormBool("hide_create_pr")
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
