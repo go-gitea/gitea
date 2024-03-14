@@ -297,7 +297,9 @@ ol.ui.list li,
   border-right: none;
 }
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {
