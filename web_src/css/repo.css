@@ -3024,7 +3024,7 @@ tbody.commit-list {
   max-height: 200px;
 }
 
-/* Branch tag selector */
+/* Branch tag selector - TODO: Merge this into the same selector on repo page */
 .repository .issue-content .issue-content-right  .ui.grid .column.row {
   padding: 10px;
   padding-bottom: 0;
