@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/tests"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
