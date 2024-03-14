@@ -28,6 +28,10 @@ func loadMQFrom(rootCfg ConfigProvider) error {
 		return nil
 	}
 
+	if MQ == nil {
+		MQ = new(MQConfig)
+	}
+
 	if err := sec.MapTo(MQ); err != nil {
 		return fmt.Errorf("failed to map message queue settings: %v", err)
 	}
