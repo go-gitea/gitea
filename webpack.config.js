@@ -147,6 +147,7 @@ export default {
               sourceMap: sourceMaps === 'true',
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
+              importLoaders: 1,
             },
           },
           {
@@ -156,7 +157,7 @@ export default {
                 map: false, // https://github.com/postcss/postcss/issues/1914
                 plugins: [
                   tailwindcssNesting(postcssNesting({edition: '2024-02'})),
-                  tailwindcss(tailwindConfig)
+                  tailwindcss(tailwindConfig),
                 ],
               },
             },
