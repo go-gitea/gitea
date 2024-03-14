@@ -282,16 +282,26 @@ ol.ui.list li,
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
 }
-
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus,:hover) {
-  border-right-color: transparent;
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
+  border-color: var(--color-input-border);
+}
+.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
 .ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: 1px solid transparent;
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover {
+  border-left-color: var(--color-primary);
+}
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
@@ -608,10 +618,6 @@ ol.ui.list li,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
   border-color: var(--color-primary);
-}
-
-.ui.selection.dropdown .menu {
-  margin: 0 -1.25px;
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
