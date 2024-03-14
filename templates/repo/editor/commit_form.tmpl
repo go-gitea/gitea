@@ -39,8 +39,7 @@
 					</label>
 				</div>
 			</div>
-			{{if not .Repository.IsEmpty}}
-				{{if not .IsEditingFileOnly}}
+			{{if and (not .Repository.IsEmpty) (not .IsEditingFileOnly)}}
 				<div class="field">
 					<div class="ui radio checkbox">
 						{{if .CanCreatePullRequest}}
@@ -65,12 +64,11 @@
 						<span class="text-muted js-quick-pull-normalization-info"></span>
 					</div>
 				</div>
-				{{end}}
 			{{end}}
 		</div>
 	</div>
 	<button id="commit-button" type="submit" class="ui primary button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
-	<a class="ui button red" href="{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
+	<a class="ui button red" href="{{if .IsEditingFileOnly}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
 </div>
