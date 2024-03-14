@@ -132,10 +132,3 @@ type UserBadgeOption struct {
 	// example: ["badge1","badge2"]
 	BadgeSlugs []string `json:"badge_slugs" binding:"Required"`
 }
-
-// BadgeList
-// swagger:response BadgeList
-type BadgeList struct {
-	// in:body
-	Body []Badge `json:"body"`
-}
