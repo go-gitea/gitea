@@ -22,10 +22,7 @@
 		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 			<div class="ui small fluid action input">
 				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.commit_kind")}}
-				<select class="ui small dropdown" name="all">
-					<option value="false">{{ctx.Locale.Tr "repo.commits.search_branch"}}</option>
-					<option {{if .All}} selected="selected"{{end}} value="true">{{ctx.Locale.Tr "repo.commits.search_all"}}</option>
-				</select>
+				{{template "repo/commits_search_dropdown" .}}
 				{{template "shared/search/button" dict "Tooltip" (ctx.Locale.Tr "repo.commits.search.tooltip")}}
 			</div>
 		</form>
