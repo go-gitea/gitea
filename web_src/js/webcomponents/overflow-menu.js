@@ -29,25 +29,29 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           this.button._tippy.hide();
           this.button.focus();
         } else if (e.key === ' ' || e.code === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
           if (document.activeElement?.matches('[role="menuitem"]')) {
+            e.preventDefault();
+            e.stopPropagation();
             document.activeElement.click();
           }
         } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          e.stopPropagation();
           if (document.activeElement?.matches('.tippy-target')) {
+            e.preventDefault();
+            e.stopPropagation();
             document.activeElement.querySelector('[role="menuitem"]:first-of-type').focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
+            e.preventDefault();
+            e.stopPropagation();
             document.activeElement.nextElementSibling?.focus();
           }
         } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          e.stopPropagation();
           if (document.activeElement?.matches('.tippy-target')) {
+            e.preventDefault();
+            e.stopPropagation();
             document.activeElement.querySelector('[role="menuitem"]:last-of-type').focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
+            e.preventDefault();
+            e.stopPropagation();
             document.activeElement.previousElementSibling?.focus();
           }
         }
