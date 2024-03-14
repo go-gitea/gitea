@@ -310,9 +310,6 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 make lint-md
 ```
 
-运行此任务依赖于 [Hugo](https://gohugo.io/)。请注意：这可能会生成一些未跟踪的 Git 对象，
-需要被清理干净。
-
 ## Visual Studio Code
 
 `contrib/ide/vscode` 中为 Visual Studio Code 提供了 `launch.json` 和 `tasks.json`。查看
