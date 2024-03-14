@@ -1065,11 +1065,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
@@ -2415,6 +2411,10 @@
   background: none !important;
   padding: 0 !important;
   gap: 0 !important;
+}
+
+.archived-label {
+  filter: grayscale(0.8);
 }
 
 .ui.label.scope-left {
