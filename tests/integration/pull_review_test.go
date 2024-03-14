@@ -15,7 +15,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/services/repository/files"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
@@ -48,7 +47,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		assert.NoError(t, err)
 
 		// add CODEOWNERS to default branch
-		_, err = files.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -61,7 +60,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("First Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err = files.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -82,7 +81,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
-		_, err = files.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "update",
@@ -95,7 +94,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("Second Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err = files.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch2",
 				Files: []*files_service.ChangeRepoFile{
 					{
