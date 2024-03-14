@@ -3,3 +3,4 @@ import './polyfill.js';
 
 import '@github/relative-time-element';
 import './GiteaOriginUrl.js';
+import './GiteaAbsoluteDate.js';
