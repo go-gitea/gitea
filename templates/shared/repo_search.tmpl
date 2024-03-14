@@ -1,7 +1,7 @@
-<div class="ui secondary filter menu">
-	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-flex-row tw-gap-x-2">
+<div class="ui small secondary filter menu">
+	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-flex-row tw-gap-x-2 gt-ac">
 		{{if .Language}}<input hidden name="language" value="{{.Language}}">{{end}}
-		<div class="ui fluid action input tw-flex-1">
+		<div class="ui small fluid action input tw-flex-1">
 			{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.repo_kind")}}
 			{{if .PageIsExploreRepositories}}
 				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
@@ -11,7 +11,7 @@
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
-		<div class="ui dropdown type jump item tw-mr-0">
+		<div class="ui small dropdown type jump item tw-mr-0">
 			<span class="text">
 				{{ctx.Locale.Tr "filter"}}
 			</span>
@@ -36,7 +36,7 @@
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="ui dropdown type jump item gt-mr-0">
+		<div class="ui small dropdown type jump item gt-mr-0">
 			<span class="text">
 				{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 			</span>

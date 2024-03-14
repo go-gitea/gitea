@@ -10,6 +10,6 @@
 	{{else if .SearchResults}}
 		{{template "shared/search/code/results" .}}
 	{{else if .Keyword}}
-		<div>{{ctx.Locale.Tr "search.code_no_results"}}</div>
+		<div>{{ctx.Locale.Tr "search.no_results"}}</div>
 	{{end}}
 </div>
