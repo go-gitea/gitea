@@ -5,7 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST, DELETE} from '../modules/fetch.js';
+import {GET, POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -196,7 +196,7 @@ const sfc = {
     },
 
     async fetchArtifacts() {
-      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
       return await resp.json();
     },
 
@@ -524,7 +524,7 @@ export function initRepositoryActionView() {
   width: 30%;
   max-width: 400px;
   position: sticky;
-  top: 0;
+  top: 12px;
   max-height: 100vh;
   overflow-y: auto;
 }
