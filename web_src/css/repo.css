@@ -2417,6 +2417,10 @@
   gap: 0 !important;
 }
 
+.archived-label {
+  filter: grayscale(0.8);
+}
+
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
