@@ -3039,7 +3039,6 @@ tbody.commit-list {
   text-align: center;
   border: 1px solid transparent;
   border-bottom: none;
-
 }
 .repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
   border-color: var(--color-secondary);
