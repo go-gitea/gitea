@@ -203,7 +203,7 @@ func SearchCommits(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = query
 	if all {
-		ctx.Data["All"] = "checked"
+		ctx.Data["All"] = true
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
