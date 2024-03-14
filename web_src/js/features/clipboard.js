@@ -16,7 +16,7 @@ export function initGlobalCopyToClipboardListener() {
     e.preventDefault();
 
     let text;
-    if (target.hasAttribute('data-clipboard-text')) {
+    if (target.getAttribute('data-clipboard-text')) {
       text = target.getAttribute('data-clipboard-text');
     } else {
       text = document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
