@@ -396,7 +396,7 @@ func ListVariables(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//			"$ref": "#/responses/VariableList"
+	//		 "$ref": "#/responses/VariableList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
