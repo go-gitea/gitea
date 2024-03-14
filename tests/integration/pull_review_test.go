@@ -48,6 +48,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		// add CODEOWNERS to default branch
 		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			OldBranch: repo.DefaultBranch,
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -100,7 +101,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 					{
 						Operation:     "update",
 						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# This is a new project\n"),
+						ContentReader: strings.NewReader("# This is a new project2\n"),
 					},
 				},
 			})

@@ -26,7 +26,7 @@ func getMergeBase(repo *git.Repository, baseBranch, headBranch string) (string, 
 	}
 	defer func() {
 		if err := repo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("GetPullRequestInfo: RemoveRemote: %v", err)
+			log.Error("getMergeBase: RemoveRemote: %v", err)
 		}
 	}()
 
