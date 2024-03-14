@@ -3,6 +3,8 @@
 
 package optional
 
+import "reflect"
+
 type Option[T any] []T
 
 func None[T any]() Option[T] {
@@ -42,4 +44,30 @@ func (o Option[T]) ValueOrDefault(v T) T {
 		return o[0]
 	}
 	return v
+}
+
+// ExcractValue return value or nil and bool if object was an Optional
+// it should only be used if you already have to deal with interface{} values
+// and expect an Option type within it.
+func ExcractValue(obj any) (any, bool) {
+	rt := reflect.TypeOf(obj)
+	if rt.Kind() != reflect.Slice {
+		return nil, false
+	}
+
+	type hasHasFunc interface {
+		Has() bool
+	}
+	if hasObj, ok := obj.(hasHasFunc); !ok {
+		return nil, false
+	} else if !hasObj.Has() {
+		return nil, true
+	}
+
+	rv := reflect.ValueOf(obj)
+	if rv.Len() != 1 {
+		// it's still false as optional.Option[T] types would have reported with hasObj.Has() that it is empty
+		return nil, false
+	}
+	return rv.Index(0).Interface(), true
 }

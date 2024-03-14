@@ -57,3 +57,46 @@ func TestOption(t *testing.T) {
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
 }
+
+func TestExcractValue(t *testing.T) {
+	val, ok := optional.ExcractValue("aaaa")
+	assert.False(t, ok)
+	assert.Nil(t, val)
+
+	val, ok = optional.ExcractValue(optional.Some("aaaa"))
+	assert.True(t, ok)
+	if assert.NotNil(t, val) {
+		val, ok := val.(string)
+		assert.True(t, ok)
+		assert.EqualValues(t, "aaaa", val)
+	}
+
+	val, ok = optional.ExcractValue(optional.None[float64]())
+	assert.True(t, ok)
+	assert.Nil(t, val)
+
+	val, ok = optional.ExcractValue(&fakeHas{})
+	assert.False(t, ok)
+	assert.Nil(t, val)
+
+	wrongType := make(fakeHas2, 0, 1)
+	val, ok = optional.ExcractValue(wrongType)
+	assert.False(t, ok)
+	assert.Nil(t, val)
+}
+
+func toPtr[T any](val T) *T {
+	return &val
+}
+
+type fakeHas struct{}
+
+func (fakeHas) Has() bool {
+	return true
+}
+
+type fakeHas2 []string
+
+func (fakeHas2) Has() bool {
+	return true
+}
