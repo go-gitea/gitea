@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -865,7 +864,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 
 		if pull.HeadRepo != nil {
-			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/branch/" + url.PathEscape(pull.HeadBranch)
+			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pull.HeadBranch)
 		}
 
 		if !pull.HasMerged && ctx.Doer != nil {
