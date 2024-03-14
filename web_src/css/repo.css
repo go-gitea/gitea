@@ -1065,11 +1065,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
