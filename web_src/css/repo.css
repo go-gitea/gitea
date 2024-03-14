@@ -3025,7 +3025,7 @@ tbody.commit-list {
 }
 
 /* branch-tag-selecter */
-.repository .issue-content .issue-content-right  .ui.grid .column.row{
+.repository .issue-content .issue-content-right  .ui.grid .column.row {
   padding: 10px;
   padding-bottom: 0;
 }
