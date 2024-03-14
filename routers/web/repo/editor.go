@@ -82,9 +82,6 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 	}
 
 	redirectTo := ctx.FormString("redirect_to")
-	if redirectTo != "" {
-		redirectTo, _ = url.PathUnescape(redirectTo)
-	}
 
 	ctx.RedirectToFirst(
 		redirectTo,
