@@ -360,9 +360,7 @@ async function onEditContent(event) {
           $(`#${file.uuid}`).remove();
           if ($dropzone.attr('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
             try {
-              const params = new URLSearchParams();
-              params.append('file', file.uuid);
-              await POST($dropzone.attr('data-remove-url'), {data: params});
+              await POST($dropzone.attr('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
             } catch (error) {
               console.error(error);
             }
