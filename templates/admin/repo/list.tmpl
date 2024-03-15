@@ -58,7 +58,7 @@
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
 								{{if .IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "private"}}</span>
 								{{else}}
 									{{if .Owner.Visibility.IsPrivate}}
 										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>

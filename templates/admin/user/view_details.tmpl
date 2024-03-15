@@ -36,9 +36,9 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
-				{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+				{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "public"}}{{end}}
 				{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
-				{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
+				{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "private"}}{{end}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>

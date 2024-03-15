@@ -27,8 +27,8 @@
 				<label class="item"><input type="radio" name="template" {{if .IsTemplate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "template"}}</label>
 				<label class="item"><input type="radio" name="template" {{if (not (.IsTemplate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_template"}}</label>
 				<div class="divider"></div>
-				<label class="item"><input type="radio" name="private" {{if .IsPrivate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.private"}}</label>
-				<label class="item"><input type="radio" name="private" {{if (not (.IsPrivate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.public"}}</label>
+				<label class="item"><input type="radio" name="private" {{if .IsPrivate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "private"}}</label>
+				<label class="item"><input type="radio" name="private" {{if (not (.IsPrivate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "public"}}</label>
 			</div>
 		</div>
 		<!-- Sort -->
