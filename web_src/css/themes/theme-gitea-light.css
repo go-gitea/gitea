@@ -225,7 +225,7 @@
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
   --color-nav-bg: #ffffff;
-  --color-nav-hover-bg: #ebebeb;
+  --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
   --color-label-text: var(--color-text);
   --color-label-bg: #9d9d9d4b;
