@@ -24,9 +24,9 @@
 							{{svg "octicon-rss" 48}}
 							<h2>{{ctx.Locale.Tr "action.empty"}}</h2>
 						</div>
-				 	{{else}}
-					 {{template "user/dashboard/feeds" .}}
-				 	{{end}}
+					{{else}}
+						{{template "user/dashboard/feeds" .}}
+					{{end}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "shared/repo_search" .}}
