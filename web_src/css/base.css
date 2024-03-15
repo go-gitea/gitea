@@ -248,7 +248,7 @@ a.label,
 }
 
 .page-content .header-wrapper,
-.page-content .new-menu {
+.page-content overflow-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
 }
@@ -1353,73 +1353,19 @@ strong.attention-caution, span.attention-caution {
   }
 }
 
-.ui.menu.new-menu {
-  margin-bottom: 15px;
-  background: var(--color-header-wrapper);
+overflow-menu {
+  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
-  overflow: auto;
-}
-
-.ui.menu.new-menu .new-menu-inner {
   display: flex;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-x: auto;
-  width: 100%;
-  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
-.ui.menu.new-menu .item {
+overflow-menu .overflow-menu-items {
+  display: flex;
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
-}
-
-@media (max-width: 767.98px) {
-  .ui.menu.new-menu .item {
-    width: auto !important;
-  }
-}
-
-.ui.menu.new-menu .item:first-child {
-  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
-}
-
-.ui.menu.new-menu .item:last-child {
-  padding-right: 30px !important;
-  margin-right: auto;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar {
-  height: 6px;
-  display: none;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-track {
-  background: none !important;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-thumb {
-  box-shadow: none !important;
-}
-
-.ui.menu.new-menu:hover::-webkit-scrollbar {
-  display: block;
-}
-
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
-  justify-content: space-evenly;
-}
-
-.ui.secondary.pointing.menu.repos-filter .item {
-  padding-left: 4.5px;
-  padding-right: 4.5px;
 }
 
 .activity-bar-graph {
@@ -1927,7 +1873,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-body);
   border-color: var(--color-secondary);
   color: var(--color-text);
-  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
 .ui.segment .ui.tabular.menu .active.item,

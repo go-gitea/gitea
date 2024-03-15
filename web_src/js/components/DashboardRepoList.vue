@@ -384,28 +384,30 @@ export default sfc; // activate the IDE's Vue plugin
             </div>
           </div>
         </div>
-        <div class="ui secondary tiny pointing borderless menu center grid repos-filter">
-          <a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
-            {{ textAll }}
-            <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
-            {{ textSources }}
-            <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
-            {{ textForks }}
-            <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
-            {{ textMirrors }}
-            <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
-            {{ textCollaborative }}
-            <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-        </div>
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
+          <div class="overflow-menu-items tw-justify-center">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
+              {{ textAll }}
+              <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
+              {{ textSources }}
+              <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
+              {{ textForks }}
+              <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
+              {{ textMirrors }}
+              <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
+              {{ textCollaborative }}
+              <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+          </div>
+        </overflow-menu>
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
@@ -499,6 +501,22 @@ ul li {
 
 ul li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.repos-search {
+  padding-bottom: 0 !important;
+}
+
+.repos-filter {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
+}
+
+.repos-filter .item {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
 }
 
 .repo-list-link {
