@@ -19,7 +19,7 @@ func TestExploreRepos(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	respStr := resp.Body.String()
 
-	assert.Contains(t, respStr, `<input hidden name="topic" value="true">`)
-	assert.Contains(t, respStr, `<input hidden name="language" value="TheLang">`)
+	assert.Contains(t, respStr, `<input type="hidden" name="topic" value="true">`)
+	assert.Contains(t, respStr, `<input type="hidden" name="language" value="TheLang">`)
 	assert.Contains(t, respStr, `<input type="search" name="q" value="TheKeyword"`)
 }
