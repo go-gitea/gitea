@@ -259,8 +259,9 @@ func doubleQuoteKeyword(k string) string {
 	kp := strings.Split(k, " ")
 	parts := 0
 	for i := range kp {
-		if kp[i] != "" {
-			kp[parts] = fmt.Sprintf(`"%s"`, kp[i])
+		part := strings.Trim(kp[i], "\"")
+		if part != "" {
+			kp[parts] = fmt.Sprintf(`"%s"`, part)
 			parts++
 		}
 	}
