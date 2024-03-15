@@ -137,7 +137,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
+						{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "issues"}}
 						{{if .Repository.NumOpenIssues}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
@@ -146,7 +146,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
+						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "issues"}}
 					</a>
 				{{end}}
 

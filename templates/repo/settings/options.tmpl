@@ -359,7 +359,7 @@
 				{{$isExternalTrackerGlobalDisabled := .UnitTypeExternalTracker.UnitGlobalDisabled}}
 				{{$isIssuesAndExternalGlobalDisabled := and $isIssuesGlobalDisabled $isExternalTrackerGlobalDisabled}}
 				<div class="inline field">
-					<label>{{ctx.Locale.Tr "repo.issues"}}</label>
+					<label>{{ctx.Locale.Tr "issues"}}</label>
 					<div class="ui checkbox{{if $isIssuesAndExternalGlobalDisabled}} disabled{{end}}"{{if $isIssuesAndExternalGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.issues_desc"}}</label>
