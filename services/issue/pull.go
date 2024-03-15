@@ -40,6 +40,14 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 		return nil
 	}
 
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return err
+	}
+
+	if pr.HeadRepo.IsFork {
+		return nil
+	}
+
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
