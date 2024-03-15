@@ -453,6 +453,9 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </div>
       </div>
+      <div v-if="!repos.length && !isLoading" class="empty-placeholder">
+        {{ noRepos }}
+      </div>
     </div>
     <div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
       <h4 class="ui top attached header gt-df gt-ac">
@@ -482,6 +485,9 @@ export default sfc; // activate the IDE's Vue plugin
             </div>
           </li>
         </ul>
+      </div>
+      <div v-if="!organizations.length" class="empty-placeholder">
+        {{ noOrgs }}
       </div>
     </div>
   </div>
@@ -528,5 +534,20 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+.empty-placeholder {
+  width: calc(100% + 2px);
+  margin-left: -1px;
+  border-width: 1px;
+  border-color: var(--color-secondary);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  padding: 80px 0;
+  background: var(--color-box-body);
+}
+@media (max-width: 767.98px) {
+  .empty-placeholder {
+    padding: 20px 0;
+  }
 }
 </style>
