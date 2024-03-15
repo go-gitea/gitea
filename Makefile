@@ -949,6 +949,10 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
+.PHONY: dump-translations
+dump-translations: node_modules
+	node build/translations.js dump
+
 .PHONY: generate-license
 generate-license:
 	$(GO) run build/generate-licenses.go
