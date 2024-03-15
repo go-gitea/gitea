@@ -50,7 +50,7 @@
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
-							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
+							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "edit"}}</a>
 							<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 							<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 						</div>
@@ -79,7 +79,7 @@
 			{{if .sidebarPresent}}
 			<div class="markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.sidebarContent | SafeHTML}}
@@ -91,7 +91,7 @@
 			{{if .footerPresent}}
 			<div class="markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.footerContent | SafeHTML}}

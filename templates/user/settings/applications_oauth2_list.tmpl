@@ -22,7 +22,7 @@
 					{{else}}
 						<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
 							{{svg "octicon-pencil" 16 "gt-mr-2"}}
-							{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
+							{{ctx.Locale.Tr "edit"}}
 						</a>
 						<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
 								data-url="{{$.Link}}/oauth2/{{.ID}}/delete">

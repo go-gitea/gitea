@@ -14,7 +14,7 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
+				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{ctx.Locale.Tr "edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
 				<a role="button" class="ui small primary button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
