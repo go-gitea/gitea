@@ -1,8 +1,7 @@
 import {Temporal} from 'temporal-polyfill';
 
 export function toAbsoluteLocaleDate(dateStr, lang, opts) {
-  const plainDate = Temporal.PlainDate.from(dateStr);
-  return plainDate.toLocaleString(lang ?? [], opts);
+  return Temporal.PlainDate.from(dateStr).toLocaleString(lang ?? [], opts);
 }
 
 window.customElements.define('absolute-date', class extends HTMLElement {
