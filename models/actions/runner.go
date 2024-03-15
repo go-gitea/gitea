@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -51,6 +52,11 @@ type ActionRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
+const (
+	RunnerOfflineTime = time.Minute
+	RunnerIdleTime    = 10 * time.Second
+)
+
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
 	if r.RepoID != 0 {
@@ -76,11 +82,12 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 	return types.OwnerTypeSystemGlobal
 }
 
+// if the logic here changed, you should also modify FindRunnerOptions.ToCond
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
-	if time.Since(r.LastOnline.AsTime()) > time.Minute {
+	if time.Since(r.LastOnline.AsTime()) > RunnerOfflineTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
-	if time.Since(r.LastActive.AsTime()) > 10*time.Second {
+	if time.Since(r.LastActive.AsTime()) > RunnerIdleTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_IDLE
 	}
 	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
@@ -91,7 +98,7 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
-	return lang.Tr("actions.runners.status." + r.StatusName())
+	return lang.TrString("actions.runners.status." + r.StatusName())
 }
 
 func (r *ActionRunner) IsOnline() bool {
@@ -153,10 +160,11 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
+	IsOnline      optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
-func (opts FindRunnerOptions) toCond() builder.Cond {
+func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.RepoID > 0 {
@@ -178,10 +186,18 @@ func (opts FindRunnerOptions) toCond() builder.Cond {
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
+
+	if opts.IsOnline.Has() {
+		if opts.IsOnline.Value() {
+			cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		} else {
+			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		}
+	}
 	return cond
 }
 
-func (opts FindRunnerOptions) toOrder() string {
+func (opts FindRunnerOptions) ToOrders() string {
 	switch opts.Sort {
 	case "online":
 		return "last_online DESC"
@@ -197,22 +213,6 @@ func (opts FindRunnerOptions) toOrder() string {
 		return "id ASC"
 	}
 	return "last_online DESC"
-}
-
-func CountRunners(ctx context.Context, opts FindRunnerOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toCond()).
-		Count(ActionRunner{})
-}
-
-func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerList, err error) {
-	sess := db.GetEngine(ctx).
-		Where(opts.toCond()).
-		OrderBy(opts.toOrder())
-	if opts.Page > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	return runners, sess.Find(&runners)
 }
 
 // GetRunnerByUUID returns a runner via uuid
@@ -257,14 +257,13 @@ func DeleteRunner(ctx context.Context, id int64) error {
 		return err
 	}
 
-	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
+	_, err := db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
-	_, err := db.GetEngine(ctx).Insert(t)
-	return err
+	return db.Insert(ctx, t)
 }
 
 func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {

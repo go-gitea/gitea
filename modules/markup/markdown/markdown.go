@@ -6,6 +6,7 @@ package markdown
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
 	"sync"
@@ -34,9 +35,6 @@ var (
 )
 
 var (
-	urlPrefixKey     = parser.NewContextKey()
-	isWikiKey        = parser.NewContextKey()
-	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
 	renderConfigKey  = parser.NewContextKey()
 )
@@ -66,9 +64,6 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
-	pc.Set(urlPrefixKey, ctx.URLPrefix)
-	pc.Set(isWikiKey, ctx.IsWiki)
-	pc.Set(renderMetasKey, ctx.Metas)
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
@@ -109,7 +104,8 @@ func SpecializedMarkdown() goldmark.Markdown {
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							// the "display" class is used by "js/markup/math.js" to render the code element as a block
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + ` display">`)
 							if err != nil {
 								return
 							}
@@ -268,12 +264,12 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 }
 
 // RenderString renders Markdown string to HTML with all specific handling stuff and return string
-func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String()), nil
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.

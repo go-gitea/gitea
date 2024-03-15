@@ -32,7 +32,7 @@
 		{{range .Labels}}
 		<li class="item">
 			<div class="label-title">
-				{{RenderLabel $.Context .}}
+				{{RenderLabel $.Context ctx.Locale .}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 			</div>
 			<div class="label-issues">
@@ -61,7 +61,7 @@
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
-						{{ctx.Locale.Tr "repo.org_labels_desc" | Str2html}}
+						{{ctx.Locale.Tr "repo.org_labels_desc"}}
 						{{if .IsOrganizationOwner}}
 							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}
@@ -72,7 +72,7 @@
 			{{range .OrgLabels}}
 			<li class="item org-label">
 				<div class="label-title">
-					{{RenderLabel $.Context .}}
+					{{RenderLabel $.Context ctx.Locale .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">

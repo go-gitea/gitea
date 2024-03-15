@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"xorm.io/builder"
 )
@@ -54,13 +55,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
-	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
 	}
 
 	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
-	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
@@ -75,7 +76,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %w", err)
 	}
@@ -277,7 +278,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}
@@ -365,24 +366,26 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 		}
 	}
 
-	teamUsers, err := organization.GetTeamUsersByTeamID(ctx, t.ID)
+	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+		TeamID: t.ID,
+	})
 	if err != nil {
-		return fmt.Errorf("getTeamUsersByTeamID: %w", err)
+		return fmt.Errorf("GetTeamMembers: %w", err)
 	}
-	for _, teamUser := range teamUsers {
-		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
+	for _, member := range teamMembers {
+		has, err := access_model.HasAccess(ctx, member.ID, repo)
 		if err != nil {
 			return err
 		} else if has {
 			continue
 		}
 
-		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, member.ID, repo.ID); err != nil {
 			return err
 		}
 	}

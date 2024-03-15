@@ -131,9 +131,7 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 	for i := 0; i < len(uploads); i++ {
 		ids[i] = uploads[i].ID
 	}
-	if _, err = db.GetEngine(ctx).
-		In("id", ids).
-		Delete(new(Upload)); err != nil {
+	if err = db.DeleteByIDs[Upload](ctx, ids...); err != nil {
 		return fmt.Errorf("delete uploads: %w", err)
 	}
 

@@ -20,25 +20,18 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	return RenderCommitMessageLink(ctx, msg, urlPrefix, "", metas)
-}
-
-// RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
-// default url, handling for special links.
-func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessage(ctx context.Context, msg string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:         ctx,
-		URLPrefix:   urlPrefix,
-		DefaultLink: urlDefault,
-		Metas:       metas,
+		Ctx:   ctx,
+		Metas: metas,
 	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
@@ -51,9 +44,9 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 	return template.HTML(msgLines[0])
 }
 
-// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
+// RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -68,7 +61,6 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefa
 	// shouldn't be any special HTML.
 	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
 		Ctx:         ctx,
-		URLPrefix:   urlPrefix,
 		DefaultLink: urlDefault,
 		Metas:       metas,
 	}, template.HTMLEscapeString(msgLine))
@@ -80,7 +72,7 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefa
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderCommitBody(ctx context.Context, msg string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimSpace(msg)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -94,9 +86,8 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 	}
 
 	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
+		Ctx:   ctx,
+		Metas: metas,
 	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
@@ -115,11 +106,10 @@ func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
+func RenderIssueTitle(ctx context.Context, text string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
+		Ctx:   ctx,
+		Metas: metas,
 	}, template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderIssueTitle: %v", err)
@@ -129,10 +119,14 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 }
 
 // RenderLabel renders a label
-func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
-	labelScope := label.ExclusiveScope()
+// locale is needed due to an import cycle with our context providing the `Tr` function
+func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
+	var (
+		archivedCSSClass string
+		textColor        = "#111"
+		labelScope       = label.ExclusiveScope()
+	)
 
-	textColor := "#111"
 	r, g, b := util.HexToRBGColor(label.Color)
 	// Determine if label text should be light or dark to be readable on background color
 	if util.UseLightTextOnBackground(r, g, b) {
@@ -141,10 +135,15 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 
+	if label.IsArchived() {
+		archivedCSSClass = "archived-label"
+		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
+	}
+
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
-			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
+		s := fmt.Sprintf("<div class='ui label %s' style='color: %s !important; background-color: %s !important;' data-tooltip-content title='%s'>%s</div>",
+			archivedCSSClass, textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 		return template.HTML(s)
 	}
 
@@ -177,11 +176,11 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
+	s := fmt.Sprintf("<span class='ui label %s scope-parent' data-tooltip-content title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
-		description,
+		archivedCSSClass, description,
 		textColor, scopeColor, scopeText,
 		textColor, itemColor, itemText)
 	return template.HTML(s)
@@ -211,33 +210,18 @@ func ReactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-// RenderNote renders the contents of a git-notes file as a commit message.
-func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	}, cleanMsg)
-	if err != nil {
-		log.Error("RenderNote: %v", err)
-		return ""
-	}
-	return template.HTML(fullMessage)
-}
-
 func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //nolint:revive
 	output, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: setting.AppSubURL,
+		Ctx:   ctx,
+		Metas: map[string]string{"mode": "document"},
 	}, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
-	return template.HTML(output)
+	return output
 }
 
-func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string) template.HTML {
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -245,7 +229,7 @@ func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink st
 			continue
 		}
 		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-			repoLink, label.ID, RenderLabel(ctx, label))
+			repoLink, label.ID, RenderLabel(ctx, locale, label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)

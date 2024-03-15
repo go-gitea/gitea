@@ -174,7 +174,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
-		Content:   string(charset.ToUTF8DropErrors(fileContents)),
+		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
 	})
@@ -233,21 +233,21 @@ func (b *Indexer) Delete(_ context.Context, repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
 	)
 
-	if isMatch {
-		prefixQuery := bleve.NewPrefixQuery(keyword)
-		prefixQuery.FieldVal = "Content"
-		keywordQuery = prefixQuery
-	} else {
+	if isFuzzy {
 		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 		phraseQuery.FieldVal = "Content"
 		phraseQuery.Analyzer = repoIndexerAnalyzer
 		keywordQuery = phraseQuery
+	} else {
+		prefixQuery := bleve.NewPrefixQuery(keyword)
+		prefixQuery.FieldVal = "Content"
+		keywordQuery = prefixQuery
 	}
 
 	if len(repoIDs) > 0 {

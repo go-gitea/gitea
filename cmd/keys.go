@@ -16,10 +16,11 @@ import (
 
 // CmdKeys represents the available keys sub-command
 var CmdKeys = &cli.Command{
-	Name:   "keys",
-	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
-	Before: PrepareConsoleLoggerLevel(log.FATAL),
-	Action: runKeys,
+	Name:        "keys",
+	Usage:       "(internal) Should only be called by SSH server",
+	Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
+	Action:      runKeys,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "expected",
@@ -70,13 +71,13 @@ func runKeys(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup(ctx, false)
+	setup(ctx, c.Bool("debug"))
 
 	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
 	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
 	if extra.Error != nil {
 		return extra.Error
 	}
-	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString))
+	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }

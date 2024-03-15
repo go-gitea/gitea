@@ -24,6 +24,7 @@ import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
+import {POST} from '../modules/fetch.js';
 
 const {csrfToken} = window.config;
 
@@ -65,7 +66,7 @@ export function initRepoCommentForm() {
     const $selectBranch = $('.ui.select-branch');
     const $branchMenu = $selectBranch.find('.reference-list-menu');
     const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', function () {
+    $branchMenu.find('.item:not(.no-select)').on('click', async function () {
       const selectedValue = $(this).data('id');
       const editMode = $('#editing_mode').val();
       $($(this).data('id-selector')).val(selectedValue);
@@ -76,7 +77,14 @@ export function initRepoCommentForm() {
 
       if (editMode === 'true') {
         const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrfToken, ref: selectedValue}, () => window.location.reload());
+        const params = new URLSearchParams();
+        params.append('ref', selectedValue);
+        try {
+          await POST(form.attr('action'), {data: params});
+          window.location.reload();
+        } catch (error) {
+          console.error('Error:', error);
+        }
       } else if (editMode === '') {
         $selectBranch.find('.ui .branch-name').text(selectedValue);
       }
@@ -150,7 +158,7 @@ export function initRepoCommentForm() {
 
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('gt-invisible');
+          $(this).find('.octicon-check').addClass('tw-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -164,7 +172,7 @@ export function initRepoCommentForm() {
           }
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('gt-invisible');
+          $(this).find('.octicon-check').removeClass('tw-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -205,17 +213,20 @@ export function initRepoCommentForm() {
     $listMenu.find('.no-select.item').on('click', function (e) {
       e.preventDefault();
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          'clear',
-          $listMenu.data('issue-id'),
-          '',
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $listMenu.data('update-url'),
+            'clear',
+            $listMenu.data('issue-id'),
+            '',
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('gt-invisible');
+        $(this).find('.octicon-check').addClass('tw-invisible');
       });
 
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
@@ -248,12 +259,15 @@ export function initRepoCommentForm() {
 
       $(this).addClass('selected active');
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       let icon = '';
@@ -281,12 +295,15 @@ export function initRepoCommentForm() {
       });
 
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $menu.data('update-url'),
-          '',
-          $menu.data('issue-id'),
-          $(this).data('id'),
-        ).then(reloadConfirmDraftComment);
+        (async () => {
+          await updateIssuesMeta(
+            $menu.data('update-url'),
+            '',
+            $menu.data('issue-id'),
+            $(this).data('id'),
+          );
+          reloadConfirmDraftComment();
+        })();
       }
 
       $list.find('.selected').html('');
@@ -389,17 +406,14 @@ async function onEditContent(event) {
     }
   };
 
-  const saveAndRefresh = (dz, $dropzone) => {
+  const saveAndRefresh = (dz) => {
     showElem($renderContent);
     hideElem($editContentZone);
-    const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
-      return $(this).val();
-    }).get();
     $.post($editContentZone.attr('data-update-url'), {
       _csrf: csrfToken,
       content: comboMarkdownEditor.value(),
       context: $editContentZone.attr('data-context'),
-      files: $attachments,
+      files: dz.files.map((file) => file.uuid),
     }, (data) => {
       if (!data.content) {
         $renderContent.html($('#no-content').html());
@@ -443,7 +457,7 @@ async function onEditContent(event) {
     });
     $editContentZone.find('.save.button').on('click', (e) => {
       e.preventDefault();
-      saveAndRefresh(dz, $dropzone);
+      saveAndRefresh(dz);
     });
   } else {
     comboMarkdownEditor = getComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));

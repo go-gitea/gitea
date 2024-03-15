@@ -4,10 +4,11 @@
 package util
 
 import (
-	"encoding/base64"
 	"regexp"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -174,17 +175,17 @@ func Test_RandomBytes(t *testing.T) {
 	assert.NotEqual(t, bytes3, bytes4)
 }
 
-func Test_OptionalBool(t *testing.T) {
-	assert.Equal(t, OptionalBoolNone, OptionalBoolParse(""))
-	assert.Equal(t, OptionalBoolNone, OptionalBoolParse("x"))
+func TestOptionalBoolParse(t *testing.T) {
+	assert.Equal(t, optional.None[bool](), OptionalBoolParse(""))
+	assert.Equal(t, optional.None[bool](), OptionalBoolParse("x"))
 
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("0"))
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("f"))
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("False"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("0"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("f"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("False"))
 
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("1"))
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("t"))
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("True"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("1"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("t"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("True"))
 }
 
 // Test case for any function which accepts and returns a single string.
@@ -233,17 +234,4 @@ func TestToPointer(t *testing.T) {
 	assert.False(t, &abc == ToPointer(abc))
 	val123 := 123
 	assert.False(t, &val123 == ToPointer(val123))
-}
-
-func TestBase64FixedDecode(t *testing.T) {
-	_, err := Base64FixedDecode(base64.RawURLEncoding, []byte("abcd"), 32)
-	assert.ErrorContains(t, err, "invalid base64 decoded length")
-	_, err = Base64FixedDecode(base64.RawURLEncoding, []byte(strings.Repeat("a", 64)), 32)
-	assert.ErrorContains(t, err, "invalid base64 decoded length")
-
-	str32 := strings.Repeat("x", 32)
-	encoded32 := base64.RawURLEncoding.EncodeToString([]byte(str32))
-	decoded32, err := Base64FixedDecode(base64.RawURLEncoding, []byte(encoded32), 32)
-	assert.NoError(t, err)
-	assert.Equal(t, str32, string(decoded32))
 }

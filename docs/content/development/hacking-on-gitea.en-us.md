@@ -25,7 +25,7 @@ To get a quick working development environment you could use Gitpod.
 
 ## Installing go
 
-You should [install go](https://golang.org/doc/install) and set up your go
+You should [install go](https://go.dev/doc/install) and set up your go
 environment correctly.
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
@@ -243,10 +243,10 @@ documentation using:
 make generate-swagger
 ```
 
-You should validate your generated Swagger file and spell-check it with:
+You should validate your generated Swagger file:
 
 ```bash
-make swagger-validate misspell-check
+make swagger-validate
 ```
 
 You should commit the changed swagger JSON file. The continuous integration
@@ -333,13 +333,8 @@ Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
 
 ```bash
-# from the docs directory within Gitea
-make trans-copy clean build
+make lint-md
 ```
-
-You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
-note: this may generate a number of untracked Git objects, which will need to
-be cleaned up.
 
 ## Visual Studio Code
 

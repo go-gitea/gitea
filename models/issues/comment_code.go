@@ -109,9 +109,11 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: issue.Repo.Link(),
-			Metas:     issue.Repo.ComposeMetas(ctx),
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: issue.Repo.Link(),
+			},
+			Metas: issue.Repo.ComposeMetas(ctx),
 		}, comment.Content); err != nil {
 			return nil, err
 		}
@@ -120,7 +122,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64, showOutdatedComments bool) ([]*Comment, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64, showOutdatedComments bool) (CommentList, error) {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,

@@ -12,8 +12,8 @@ var Attachment = struct {
 	Enabled      bool
 }{
 	Storage:      &Storage{},
-	AllowedTypes: ".csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip",
-	MaxSize:      4,
+	AllowedTypes: ".cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip",
+	MaxSize:      2048,
 	MaxFiles:     5,
 	Enabled:      true,
 }
@@ -25,8 +25,8 @@ func loadAttachmentFrom(rootCfg ConfigProvider) (err error) {
 		return err
 	}
 
-	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip")
-	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
+	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip")
+	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(2048)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(true)
 
