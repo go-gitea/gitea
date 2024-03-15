@@ -4,7 +4,6 @@ import {parse} from 'ini';
 import {argv} from 'node:process';
 import {basename} from 'node:path';
 
-
 const [cmd] = argv.slice(2);
 const cmds = ['dump'];
 
