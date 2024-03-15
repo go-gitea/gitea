@@ -54,7 +54,7 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.config.ssh_enabled"}}</dt>
+				<dt>{{ctx.Locale.Tr "enabled"}}</dt>
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
 					<dt>{{ctx.Locale.Tr "admin.config.ssh_start_builtin_server"}}</dt>
@@ -89,7 +89,7 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.config.lfs_enabled"}}</dt>
+				<dt>{{ctx.Locale.Tr "enabled"}}</dt>
 				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
 					<dt>{{ctx.Locale.Tr "admin.config.lfs_content_path"}}</dt>
@@ -199,7 +199,7 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.config.mailer_enabled"}}</dt>
+				<dt>{{ctx.Locale.Tr "enabled"}}</dt>
 				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
 					<dt>{{ctx.Locale.Tr "admin.config.mailer_name"}}</dt>
@@ -334,7 +334,7 @@
 					{{if $loggerDetail.IsEnabled}}
 						<dd><pre class="gt-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
 					{{else}}
-						<dd>{{ctx.Locale.Tr "admin.config.disabled_logger"}}</dd>
+						<dd>{{ctx.Locale.Tr "disabled"}}</dd>
 					{{end}}
 				{{end}}
 			</dl>
