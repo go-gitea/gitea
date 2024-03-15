@@ -25,7 +25,7 @@ const (
 
 // Labels render issue's labels page
 func Labels(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["Title"] = ctx.Tr("labels")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
@@ -101,7 +101,7 @@ func RetrieveLabels(ctx *context.Context) {
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["Title"] = ctx.Tr("labels")
 	ctx.Data["PageIsLabels"] = true
 
 	if ctx.HasError() {

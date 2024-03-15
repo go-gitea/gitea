@@ -33,7 +33,7 @@ func RetrieveLabels(ctx *context.Context) {
 // NewLabel create new label for organization
 func NewLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["Title"] = ctx.Tr("labels")
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["PageIsOrgSettings"] = true
 

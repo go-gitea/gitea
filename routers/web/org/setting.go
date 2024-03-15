@@ -241,7 +241,7 @@ func DeleteWebhook(ctx *context.Context) {
 
 // Labels render organization labels page
 func Labels(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["Title"] = ctx.Tr("labels")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles

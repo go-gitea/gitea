@@ -1,13 +1,13 @@
 <!-- Label -->
 <div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_label"}}
+		{{ctx.Locale.Tr "label"}}
 	</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
+			<input type="text" placeholder="{{ctx.Locale.Tr "label"}}">
 		</div>
 		<div class="ui checkbox compact archived-label-filter">
 			<input name="archived" type="checkbox"
