@@ -12,7 +12,7 @@
 		<div class="item ui small dropdown jump">
 			<span class="text">{{ctx.Locale.Tr "filter"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu flex-items-block">
+			<div class="menu flex-items-menu">
 				<label class="item"><input type="radio" name="clear-filter"> {{ctx.Locale.Tr "filter.clear"}}</label>
 				<div class="divider"></div>
 				<label class="item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
