@@ -12,16 +12,12 @@ function updateIssueCount(cards) {
 
 async function createNewColumn(url, columnTitle, projectColorInput) {
   try {
-    const response = await POST(url, {
+    await POST(url, {
       data: {
         title: columnTitle.val(),
         color: projectColorInput.val(),
       },
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to create new column');
-    }
   } catch (error) {
     console.error(error);
   } finally {
@@ -43,13 +39,9 @@ async function moveIssue({item, from, to, oldIndex}) {
   };
 
   try {
-    const response = await POST(`${to.getAttribute('data-url')}/move`, {
+    await POST(`${to.getAttribute('data-url')}/move`, {
       data: columnSorting,
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to move issue');
-    }
   } catch (error) {
     console.error(error);
     from.insertBefore(item, from.children[oldIndex]);
@@ -77,15 +69,12 @@ async function initRepoProjectSortable() {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
           try {
-            const response = await PUT($(column).data('url'), {
+            await PUT($(column).data('url'), {
               data: {
                 sorting: i,
                 color: rgbToHex($(column).css('backgroundColor')),
               },
             });
-            if (!response.ok) {
-              throw new Error('Failed to update column sorting');
-            }
           } catch (error) {
             console.error(error);
           }
@@ -130,16 +119,12 @@ export function initRepoProject() {
       e.preventDefault();
 
       try {
-        const response = await PUT($(this).data('url'), {
+        await PUT($(this).data('url'), {
           data: {
             title: projectTitleInput.val(),
             color: projectColorInput.val(),
           },
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to update project column');
-        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -163,10 +148,7 @@ export function initRepoProject() {
       e.preventDefault();
 
       try {
-        const response = await POST($(showButton).data('url'));
-        if (!response.ok) {
-          throw new Error('Failed to set default project column');
-        }
+        await POST($(showButton).data('url'));
       } catch (error) {
         console.error(error);
       } finally {
@@ -184,10 +166,7 @@ export function initRepoProject() {
       e.preventDefault();
 
       try {
-        const response = await DELETE(deleteUrl);
-        if (!response.ok) {
-          throw new Error('Failed to delete project column');
-        }
+        await DELETE(deleteUrl);
       } catch (error) {
         console.error(error);
       } finally {
