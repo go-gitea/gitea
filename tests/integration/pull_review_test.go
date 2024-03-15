@@ -39,7 +39,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		// Create the repo.
 		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
 			Name:             "test_codeowner",
-			Readme:           "DEFAULT",
+			Readme:           "Default",
 			AutoInit:         true,
 			ObjectFormatName: git.Sha1ObjectFormat.Name(),
 			DefaultBranch:    "master",
