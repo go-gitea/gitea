@@ -409,7 +409,7 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -466,7 +466,7 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
