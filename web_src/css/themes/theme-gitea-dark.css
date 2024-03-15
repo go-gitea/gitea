@@ -180,7 +180,7 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #1c2022;
+  --color-body: #1e2224;
   --color-box-header: #1a1d1f;
   --color-box-body: #14171a;
   --color-box-body-highlight: #121517;
@@ -197,7 +197,7 @@
   --color-input-toggle-background: #2e353b;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-header-wrapper: #161a1d;
+  --color-header-wrapper: #181c20;
   --color-light: #00001728;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8e8ff28;
