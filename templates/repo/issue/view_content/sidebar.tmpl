@@ -130,7 +130,7 @@
 
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 		<a class="text muted flex-text-block">
-			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
+			<strong>{{ctx.Locale.Tr "milestone"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				{{svg "octicon-gear" 16 "gt-ml-2"}}
 			{{end}}

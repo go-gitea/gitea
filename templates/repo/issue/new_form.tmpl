@@ -58,7 +58,7 @@
 		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text flex-text-block">
-				<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
+				<strong>{{ctx.Locale.Tr "milestone"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
 					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}

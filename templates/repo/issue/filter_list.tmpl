@@ -53,13 +53,13 @@
 <!-- Milestone -->
 <div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_milestone"}}
+		{{ctx.Locale.Tr "milestone"}}
 	</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestone"}}">
+			<input type="text" placeholder="{{ctx.Locale.Tr "milestone"}}">
 		</div>
 		<div class="divider"></div>
 		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>

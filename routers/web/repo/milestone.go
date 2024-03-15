@@ -33,7 +33,7 @@ const (
 
 // Milestones render milestones page
 func Milestones(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.milestones")
+	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
 
