@@ -13,6 +13,8 @@ import (
 
 // DateTime renders an absolute time HTML element by datetime.
 func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
+	// TODO: remove the extraAttrs argument, it's not used in any call to DateTime
+
 	if p, ok := datetime.(*time.Time); ok {
 		datetime = *p
 	}
