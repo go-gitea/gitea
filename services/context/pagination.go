@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/paginator"
 )
 
@@ -28,11 +29,20 @@ func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 
 // AddParam adds a value from context identified by ctxKey as link param under a given paramKey
 func (p *Pagination) AddParam(ctx *Context, paramKey, ctxKey string) {
-	_, exists := ctx.Data[ctxKey]
+	obj, exists := ctx.Data[ctxKey]
 	if !exists {
 		return
 	}
-	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey]) // cast any to string
+	// we check if the value in the context is an optional.Option type and either skip if it contains None
+	// or unwrap it if it is Some
+	if optVal, is := optional.ExtractValue(obj); is {
+		if optVal == nil {
+			// optional value is currently None
+			return
+		}
+		obj = optVal
+	}
+	paramData := fmt.Sprintf("%v", obj) // cast any to string
 	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(paramKey), url.QueryEscape(paramData))
 	p.urlParams = append(p.urlParams, urlParam)
 }
