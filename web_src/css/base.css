@@ -1980,7 +1980,6 @@ table th[data-sortt-desc] .svg {
 .ui.ui.button,
 .ui.ui.dropdown,
 .ui.ui.label,
-.flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -2016,4 +2015,11 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: .25rem;
+}
+
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
+.ui.dropdown .menu.flex-items-menu > .item {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
 }

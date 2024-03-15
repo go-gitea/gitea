@@ -57,20 +57,27 @@ func (g *Manager) start() {
 	// Handle clean up of unused provided listeners	and delayed start-up
 	startupDone := make(chan struct{})
 	go func() {
-		defer close(startupDone)
-		// Wait till we're done getting all the listeners and then close the unused ones
-		func() {
-			// FIXME: there is a fundamental design problem of the "manager" and the "wait group".
-			// If nothing has started, the "Wait" just panics: sync: WaitGroup is reused before previous Wait has returned
-			// There is no clear solution besides a complete rewriting of the "manager"
-			defer func() {
-				_ = recover()
-			}()
-			g.createServerWaitGroup.Wait()
+		defer func() {
+			close(startupDone)
+			// Close the unused listeners and ignore the error here there's not much we can do with it, they're logged in the CloseProvidedListeners function
+			_ = CloseProvidedListeners()
 		}()
-		// Ignore the error here there's not much we can do with it, they're logged in the CloseProvidedListeners function
-		_ = CloseProvidedListeners()
-		g.notify(readyMsg)
+		// Wait for all servers to be created
+		g.createServerCond.L.Lock()
+		for {
+			if g.createdServer >= numberOfServersToCreate {
+				g.createServerCond.L.Unlock()
+				g.notify(readyMsg)
+				return
+			}
+			select {
+			case <-g.IsShutdown():
+				g.createServerCond.L.Unlock()
+				return
+			default:
+			}
+			g.createServerCond.Wait()
+		}
 	}()
 	if setting.StartupTimeout > 0 {
 		go func() {
@@ -78,16 +85,7 @@ func (g *Manager) start() {
 			case <-startupDone:
 				return
 			case <-g.IsShutdown():
-				func() {
-					// When WaitGroup counter goes negative it will panic - we don't care about this so we can just ignore it.
-					defer func() {
-						_ = recover()
-					}()
-					// Ensure that the createServerWaitGroup stops waiting
-					for {
-						g.createServerWaitGroup.Done()
-					}
-				}()
+				g.createServerCond.Signal()
 				return
 			case <-time.After(setting.StartupTimeout):
 				log.Error("Startup took too long! Shutting down")
