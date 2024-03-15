@@ -17,8 +17,8 @@
 			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 		</div>
 		<div class="field">
-			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			<label>{{ctx.Locale.Tr "description"}}</label>
+			<textarea name="content" placeholder="{{ctx.Locale.Tr "description"}}">{{.content}}</textarea>
 		</div>
 
 		{{if not .PageIsEditProjects}}

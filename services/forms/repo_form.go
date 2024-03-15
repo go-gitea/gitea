@@ -569,7 +569,7 @@ type CreateLabelForm struct {
 	Title       string `binding:"Required;MaxSize(50)" locale:"name"`
 	Exclusive   bool   `form:"exclusive"`
 	IsArchived  bool   `form:"is_archived"`
-	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
+	Description string `binding:"MaxSize(200)" locale:"description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
 
