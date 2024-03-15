@@ -6,6 +6,13 @@
 			</div>
 			<div class="flex-item-main">
 				<div class="flex-item-title">
+					{{if .IsOrganization}}
+						<span data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_organization" .DisplayName}}">{{svg "octicon-organization"}}</span>
+					{{else if .IsBot}}
+						<span data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_bot" .DisplayName}}">{{svg "octicon-dependabot"}}</span>
+					{{else}}
+						<span data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_individual" .DisplayName}}">{{svg "octicon-person"}}</span>
+					{{end}}
 					{{template "shared/user/name" .}}
 					{{if .Visibility.IsPrivate}}
 						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
