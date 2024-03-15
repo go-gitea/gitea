@@ -22,7 +22,7 @@ type SearchUserOptions struct {
 	db.ListOptions
 
 	Keyword       string
-	Type          UserType
+	Type          optional.Option[UserType]
 	UID           int64
 	LoginName     string // this option should be used only for admin user
 	SourceID      int64  // this option should be used only for admin user
@@ -44,17 +44,20 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
-	var cond builder.Cond
-	cond = builder.Eq{"type": opts.Type}
-	if opts.IncludeReserved {
-		if opts.Type == UserTypeIndividual {
-			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
-				builder.Eq{"type": UserTypeBot},
-			).Or(
-				builder.Eq{"type": UserTypeRemoteUser},
-			)
-		} else if opts.Type == UserTypeOrganization {
-			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
+	cond := builder.NewCond()
+
+	if opts.Type.Has() {
+		cond = builder.Eq{"type": opts.Type}
+		if opts.IncludeReserved {
+			if opts.Type.Value() == UserTypeIndividual {
+				cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
+					builder.Eq{"type": UserTypeBot},
+				).Or(
+					builder.Eq{"type": UserTypeRemoteUser},
+				)
+			} else if opts.Type.Value() == UserTypeOrganization {
+				cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
+			}
 		}
 	}
 

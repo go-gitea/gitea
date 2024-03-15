@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -23,7 +24,7 @@ func Search(ctx *context.Context) {
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
-		Type:        user_model.UserTypeIndividual,
+		Type:        optional.Some(user_model.UserTypeIndividual),
 		IsActive:    ctx.FormOptionalBool("active"),
 		ListOptions: listOptions,
 	})

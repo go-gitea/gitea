@@ -9,6 +9,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -71,7 +72,7 @@ func Search(ctx *context.APIContext) {
 			Actor:       ctx.Doer,
 			Keyword:     ctx.FormTrim("q"),
 			UID:         uid,
-			Type:        user_model.UserTypeIndividual,
+			Type:        optional.Some(user_model.UserTypeIndividual),
 			ListOptions: listOptions,
 		})
 		if err != nil {

@@ -151,12 +151,17 @@ func Users(ctx *context.Context) {
 		ctx.SetFormString("sort", sortOrder)
 	}
 
+	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
+	if ctx.Doer != nil {
+		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
+	}
+
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Type:        optional.None[user_model.UserType](),
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    optional.Some(true),
-		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		Visible:     visibleTypes,
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

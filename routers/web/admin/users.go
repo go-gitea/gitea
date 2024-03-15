@@ -71,7 +71,7 @@ func Users(ctx *context.Context) {
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.Doer,
-		Type:  user_model.UserTypeIndividual,
+		Type:  optional.Some(user_model.UserTypeIndividual),
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},

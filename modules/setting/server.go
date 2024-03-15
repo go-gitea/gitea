@@ -36,7 +36,7 @@ type LandingPage string
 const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
-	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageOrganizations LandingPage = "/explore/user" // TODO: Support `user` directly without the confusing `organization` key
 	LandingPageLogin         LandingPage = "/user/login"
 )
 
