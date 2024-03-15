@@ -171,7 +171,7 @@ func Config(ctx *context.Context) {
 }
 
 func ConfigSettings(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
+	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
