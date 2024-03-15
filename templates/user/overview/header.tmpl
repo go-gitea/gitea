@@ -1,49 +1,50 @@
-<div class="ui secondary stackable pointing menu">
-	{{if and .HasProfileReadme .ContextUser.IsIndividual}}
-	<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
-		{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
-	</a>
-	{{end}}
-	<a class="{{if eq .TabName "repositories"}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
-		{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
-		{{if .RepoCount}}
-			<div class="ui small label">{{.RepoCount}}</div>
+<overflow-menu class="ui secondary pointing tabular borderless menu">
+	<div class="overflow-menu-items">
+		{{if and .HasProfileReadme .ContextUser.IsIndividual}}
+		<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
+			{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
+		</a>
 		{{end}}
-	</a>
-	{{if or .ContextUser.IsIndividual .CanReadProjects}}
-	<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
-		{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
-		{{if .ProjectCount}}
-			<div class="ui small label">{{.ProjectCount}}</div>
+		<a class="{{if eq .TabName "repositories"}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
+			{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+			{{if .RepoCount}}
+				<div class="ui small label">{{.RepoCount}}</div>
+			{{end}}
+		</a>
+		{{if or .ContextUser.IsIndividual .CanReadProjects}}
+		<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
+			{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+			{{if .ProjectCount}}
+				<div class="ui small label">{{.ProjectCount}}</div>
+			{{end}}
+		</a>
 		{{end}}
-	</a>
-	{{end}}
-	{{if and .IsPackageEnabled (or .ContextUser.IsIndividual .CanReadPackages)}}
-		<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
-			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
-		</a>
-	{{end}}
-	{{if and .IsRepoIndexerEnabled (or .ContextUser.IsIndividual .CanReadCode)}}
-		<a href="{{.ContextUser.HomeLink}}/-/code" class="{{if .IsCodePage}}active {{end}}item">
-			{{svg "octicon-code"}} {{ctx.Locale.Tr "user.code"}}
-		</a>
-	{{end}}
-
-	{{if .ContextUser.IsIndividual}}
-		<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
-			{{svg "octicon-rss"}} {{ctx.Locale.Tr "user.activity"}}
-		</a>
-		{{if not .DisableStars}}
+		{{if and .IsPackageEnabled (or .ContextUser.IsIndividual .CanReadPackages)}}
+			<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
+				{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
+			</a>
+		{{end}}
+		{{if and .IsRepoIndexerEnabled (or .ContextUser.IsIndividual .CanReadCode)}}
+			<a href="{{.ContextUser.HomeLink}}/-/code" class="{{if .IsCodePage}}active {{end}}item">
+				{{svg "octicon-code"}} {{ctx.Locale.Tr "user.code"}}
+			</a>
+		{{end}}
+		{{if .ContextUser.IsIndividual}}
+			<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
+				{{svg "octicon-rss"}} {{ctx.Locale.Tr "user.activity"}}
+			</a>
+			{{if not .DisableStars}}
 			<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
 				{{svg "octicon-star"}} {{ctx.Locale.Tr "user.starred"}}
 				{{if .ContextUser.NumStars}}
 					<div class="ui small label">{{.ContextUser.NumStars}}</div>
 				{{end}}
 			</a>
-		{{else}}
+			{{else}}
 			<a class="{{if eq .TabName "watching"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=watching">
 				{{svg "octicon-eye"}} {{ctx.Locale.Tr "user.watched"}}
 			</a>
+			{{end}}
 		{{end}}
-	{{end}}
-</div>
+	</div>
+</overflow-menu>

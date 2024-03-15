@@ -43,6 +43,18 @@ if ('ENABLE_SOURCEMAP' in env) {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
 
+// define which web components we use for Vue to not interpret them as Vue components
+const webComponents = new Set([
+  // our own, in web_src/js/webcomponents
+  'overflow-menu',
+  'origin-url',
+  'absolute-date',
+  // from dependencies
+  'markdown-toolbar',
+  'relative-time',
+  'text-expander',
+]);
+
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
@@ -72,7 +84,7 @@ export default {
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/webcomponents.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/index.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
@@ -121,6 +133,11 @@ export default {
         test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
+        options: {
+          compilerOptions: {
+            isCustomElement: (tag) => webComponents.has(tag),
+          },
+        },
       },
       {
         test: /\.js$/i,
