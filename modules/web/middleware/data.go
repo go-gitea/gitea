@@ -47,7 +47,7 @@ func GetContextData(c context.Context) ContextData {
 
 func CommonTemplateContextData() ContextData {
 	return ContextData{
-		"IsLandingPageUsers": setting.LandingPageURL == setting.LandingPageOrganizations,
+		"IsLandingPageExploreUsers": setting.LandingPageURL == setting.LandingPageOrganizations,
 
 		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,
 		"ShowMilestonesDashboardPage":   setting.Service.ShowMilestonesDashboardPage,
