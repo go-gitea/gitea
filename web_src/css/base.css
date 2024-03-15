@@ -105,31 +105,7 @@ progress::-moz-progress-bar {
 }
 
 * {
-  scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-  border: 2px solid transparent;
-  border-radius: var(--border-radius);
-}
-
-::-webkit-scrollbar-thumb:window-inactive {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  box-shadow: inset 0 0 0 6px var(--color-primary-dark-2);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 ::file-selector-button {
@@ -248,7 +224,7 @@ a.label,
 }
 
 .page-content .header-wrapper,
-.page-content .new-menu {
+.page-content overflow-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
 }
@@ -282,16 +258,26 @@ ol.ui.list li,
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
 }
-
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus,:hover) {
-  border-right-color: transparent;
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
+  border-color: var(--color-input-border);
+}
+.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
 .ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: 1px solid transparent;
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover {
+  border-left-color: var(--color-primary);
+}
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
@@ -608,10 +594,6 @@ ol.ui.list li,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
   border-color: var(--color-primary);
-}
-
-.ui.selection.dropdown .menu {
-  margin: 0 -1.25px;
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
@@ -1347,73 +1329,19 @@ strong.attention-caution, span.attention-caution {
   }
 }
 
-.ui.menu.new-menu {
-  margin-bottom: 15px;
-  background: var(--color-header-wrapper);
+overflow-menu {
+  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
-  overflow: auto;
-}
-
-.ui.menu.new-menu .new-menu-inner {
   display: flex;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-x: auto;
-  width: 100%;
-  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
-.ui.menu.new-menu .item {
+overflow-menu .overflow-menu-items {
+  display: flex;
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
-}
-
-@media (max-width: 767.98px) {
-  .ui.menu.new-menu .item {
-    width: auto !important;
-  }
-}
-
-.ui.menu.new-menu .item:first-child {
-  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
-}
-
-.ui.menu.new-menu .item:last-child {
-  padding-right: 30px !important;
-  margin-right: auto;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar {
-  height: 6px;
-  display: none;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-track {
-  background: none !important;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-thumb {
-  box-shadow: none !important;
-}
-
-.ui.menu.new-menu:hover::-webkit-scrollbar {
-  display: block;
-}
-
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
-  justify-content: space-evenly;
-}
-
-.ui.secondary.pointing.menu.repos-filter .item {
-  padding-left: 4.5px;
-  padding-right: 4.5px;
 }
 
 .activity-bar-graph {
@@ -1921,7 +1849,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-body);
   border-color: var(--color-secondary);
   color: var(--color-text);
-  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
 .ui.segment .ui.tabular.menu .active.item,
