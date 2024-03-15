@@ -129,7 +129,7 @@ func prepareDeprecatedWarningsAlert(ctx *context.Context) {
 
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
+	ctx.Data["Title"] = ctx.Tr("dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
@@ -149,7 +149,7 @@ func SystemStatus(ctx *context.Context) {
 // DashboardPost run an admin operation
 func DashboardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
-	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
+	ctx.Data["Title"] = ctx.Tr("dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus

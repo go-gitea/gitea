@@ -416,7 +416,7 @@ func SignOut(ctx *context.Context) {
 
 // SignUp render the register page
 func SignUp(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_up")
+	ctx.Data["Title"] = ctx.Tr("register")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
@@ -445,7 +445,7 @@ func SignUp(ctx *context.Context) {
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RegisterForm)
-	ctx.Data["Title"] = ctx.Tr("sign_up")
+	ctx.Data["Title"] = ctx.Tr("register")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 

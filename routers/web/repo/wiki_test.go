@@ -107,7 +107,7 @@ func TestNewWiki(t *testing.T) {
 	contexttest.LoadRepo(t, ctx, 1)
 	NewWiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	assert.EqualValues(t, ctx.Tr("repo.wiki.new_page"), ctx.Data["Title"])
+	assert.EqualValues(t, ctx.Tr("page"), ctx.Data["Title"])
 }
 
 func TestNewWikiPost(t *testing.T) {

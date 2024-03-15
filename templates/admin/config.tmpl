@@ -112,7 +112,7 @@
 					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.db_name"}}</dt>
 					<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.db_user"}}</dt>
+					<dt>{{ctx.Locale.Tr "username"}}</dt>
 					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "postgres"}}

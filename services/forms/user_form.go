@@ -66,9 +66,9 @@ type InstallForm struct {
 	PasswordAlgorithm string
 
 	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
-	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
+	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"password"`
 	AdminConfirmPasswd string
-	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
+	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"email"`
 
 	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
 	ReinstallConfirmFirst  bool

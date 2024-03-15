@@ -28,7 +28,7 @@ type GitPushOptions map[string]string
 // GitPushOptions keys
 const (
 	GitPushOptionRepoPrivate  = "repo.private"
-	GitPushOptionRepoTemplate = "repo.template"
+	GitPushOptionRepoTemplate = "template"
 )
 
 // Bool checks for a key in the map and parses as a boolean

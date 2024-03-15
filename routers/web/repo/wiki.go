@@ -694,7 +694,7 @@ func WikiRaw(ctx *context.Context) {
 
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
+	ctx.Data["Title"] = ctx.Tr("page")
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
@@ -709,7 +709,7 @@ func NewWiki(ctx *context.Context) {
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
+	ctx.Data["Title"] = ctx.Tr("page")
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -765,7 +765,7 @@ func EditWiki(ctx *context.Context) {
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
+	ctx.Data["Title"] = ctx.Tr("page")
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)

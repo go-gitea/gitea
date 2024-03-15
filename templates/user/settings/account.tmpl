@@ -1,7 +1,7 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings account")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "settings.password"}}
+			{{ctx.Locale.Tr "password"}}
 		</h4>
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
