@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -38,11 +37,10 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		// Create the repo.
 		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
-			Name:             "test_codeowner",
-			Readme:           "Default",
-			AutoInit:         true,
-			ObjectFormatName: git.Sha1ObjectFormat.Name(),
-			DefaultBranch:    "master",
+			Name:          "test_codeowner",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "master",
 		})
 		assert.NoError(t, err)
 
@@ -75,7 +73,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			// Create a pull request.
 			session := loginUser(t, "user2")
-			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-basebranch", "Test Pull Request")
+			testPullCreate(t, session, "user2", "test_codeowner", "codeowner-basebranch", "Test Pull Request")
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
@@ -109,7 +107,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			// Create a pull request.
 			session := loginUser(t, "user2")
-			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-basebranch2", "Test Pull Request2")
+			testPullCreate(t, session, "user2", "test_codeowner", "codeowner-basebranch2", "Test Pull Request2")
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch2"})
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
@@ -137,7 +135,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user5")
-			testPullCreate(t, session, "user5", "test_codeowner_fork", false, forkedRepo.DefaultBranch, "codeowner-basebranch-forked", "Test Pull Request2")
+			testPullCreate(t, session, "user5", "test_codeowner_fork", "codeowner-basebranch-forked", "Test Pull Request2")
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch-forked"})
 			unittest.AssertExistsIf(t, false, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})

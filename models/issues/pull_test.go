@@ -260,13 +260,13 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(db.DefaultContext)
 
-	assert.False(t, pr.IsWorkInProgress())
+	assert.False(t, pr.IsWorkInProgress(db.DefaultContext))
 
 	pr.Issue.Title = "WIP: " + pr.Issue.Title
-	assert.True(t, pr.IsWorkInProgress())
+	assert.True(t, pr.IsWorkInProgress(db.DefaultContext))
 
 	pr.Issue.Title = "[wip]: " + pr.Issue.Title
-	assert.True(t, pr.IsWorkInProgress())
+	assert.True(t, pr.IsWorkInProgress(db.DefaultContext))
 }
 
 func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
