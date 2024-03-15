@@ -20,7 +20,7 @@ function dumpObj(obj, path = '') {
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
       console.info(`${path}.${key}`);
-    } else if (typeof value === 'object' && value !== 0) {
+    } else if (typeof value === 'object' && value !== null) {
       dumpObj(value, key);
     }
   }
