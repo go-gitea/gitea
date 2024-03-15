@@ -839,10 +839,6 @@ release-sources: | $(DIST_DIRS)
 release-docs: | $(DIST_DIRS) docs
 	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
 
-.PHONY: docs
-docs:
-	cd docs; bash scripts/trans-copy.sh;
-
 .PHONY: deps
 deps: deps-frontend deps-backend deps-tools deps-py
 
