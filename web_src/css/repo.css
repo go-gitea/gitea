@@ -2410,7 +2410,8 @@
 }
 
 .archived-label {
-  filter: grayscale(0.8);
+  filter: grayscale(0.5);
+  opacity: 0.5;
 }
 
 .ui.label.scope-left {
