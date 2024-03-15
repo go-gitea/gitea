@@ -53,7 +53,7 @@ HTML 页面由[Go HTML Template](https://pkg.go.dev/html/template)渲染。
 ### 可访问性 / ARIA
 
 在历史上，Gitea大量使用了可访问性不友好的框架 Fomantic UI。
-Gitea使用一些补丁使Fomantic UI更具可访问性（参见`aria.js`和`aria.md`），
+Gitea 使用一些补丁使 Fomantic UI 更具可访问性（参见 `aria.md`），
 但仍然存在许多问题需要大量的工作和时间来修复。
 
 ### 框架使用
