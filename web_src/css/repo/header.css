@@ -74,17 +74,6 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .new-menu {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.repository .header-wrapper .new-menu .item {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
 @media (max-width: 767.98px) {
   .repo-header .flex-item {
     flex-grow: 1;
