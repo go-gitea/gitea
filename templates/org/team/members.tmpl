@@ -39,7 +39,7 @@
 											<button class="ui red button delete-button" data-modal-id="remove-team-member"
 												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
 												data-name="{{.DisplayName}}"
-												data-data-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
+												data-data-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "remove"}}</button>
 										</form>
 									{{end}}
 								</div>
@@ -64,7 +64,7 @@
 									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="iid" value="{{.ID}}">
-										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
+										<button class="ui red button">{{ctx.Locale.Tr "remove"}}</button>
 									</form>
 								</div>
 							</div>
@@ -78,7 +78,7 @@
 </div>
 <div class="ui g-modal-confirm delete modal" id="remove-team-member">
 	<div class="header">
-		{{ctx.Locale.Tr "org.members.remove"}}
+		{{ctx.Locale.Tr "remove"}}
 	</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "org.members.remove.detail" (`<span class="name"></span>`|SafeHTML) (`<span class="dataTeamName"></span>`|SafeHTML)}}</p>

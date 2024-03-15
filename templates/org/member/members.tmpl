@@ -57,7 +57,7 @@
 								<button class="ui red tiny button delete-button" data-modal-id="remove-organization-member"
 									data-url="{{$.OrgLink}}/members/action/remove" data-datauid="{{.ID}}"
 									data-name="{{.DisplayName}}"
-									data-data-organization-name="{{$.Org.DisplayName}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
+									data-data-organization-name="{{$.Org.DisplayName}}">{{ctx.Locale.Tr "remove"}}</button>
 							</form>
 						{{end}}
 					</div>
@@ -79,7 +79,7 @@
 </div>
 <div class="ui g-modal-confirm delete modal" id="remove-organization-member">
 	<div class="header">
-		{{ctx.Locale.Tr "org.members.remove"}}
+		{{ctx.Locale.Tr "remove"}}
 	</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "org.members.remove.detail" (`<span class="name"></span>`|SafeHTML) (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
