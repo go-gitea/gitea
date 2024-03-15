@@ -79,7 +79,7 @@
 												<input id="message" name="message">
 											</div>
 											<div class="text right actions">
-												<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+												<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 												<button class="ui red button" type="submit">{{ctx.Locale.Tr "ok"}}</button>
 											</div>
 										</form>
@@ -318,7 +318,7 @@
 							</div>
 							<div class="actions">
 								<button class="ui primary approve button">{{ctx.Locale.Tr "repo.issues.add_time_short"}}</button>
-								<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.add_time_cancel"}}</button>
+								<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 							</div>
 						</div>
 						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.add_time"}}'>
@@ -633,7 +633,7 @@
 					{{end}}
 
 					<div class="text right actions">
-						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+						<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 						<button class="ui red button">
 							{{if .Issue.IsLocked}}
 								{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}

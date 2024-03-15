@@ -17,7 +17,7 @@ The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal 
 		{{$textNegitive := ctx.Locale.Tr "modal.no"}}
 		{{$textPositive := ctx.Locale.Tr "modal.yes"}}
 		{{if eq .ModalButtonTypes "confirm"}}
-			{{$textNegitive = ctx.Locale.Tr "modal.cancel"}}
+			{{$textNegitive = ctx.Locale.Tr "cancel"}}
 			{{$textPositive = ctx.Locale.Tr "modal.confirm"}}
 		{{end}}
 		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
