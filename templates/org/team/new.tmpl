@@ -79,9 +79,9 @@
 											<th>{{ctx.Locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{ctx.Locale.Tr "org.teams.none_access"}}
 											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
-											<th class="center aligned">{{ctx.Locale.Tr "org.teams.read_access"}}
+											<th class="center aligned">{{ctx.Locale.Tr "read"}}
 											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
-											<th class="center aligned">{{ctx.Locale.Tr "org.teams.write_access"}}
+											<th class="center aligned">{{ctx.Locale.Tr "write"}}
 											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 										</tr>
 									</thead>
@@ -104,12 +104,12 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "read"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "write"}}">
 														</div>
 													</td>
 												</tr>

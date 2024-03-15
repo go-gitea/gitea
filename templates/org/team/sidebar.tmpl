@@ -64,9 +64,9 @@
 										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
 										{{ctx.Locale.Tr "org.teams.none_access"}}
 										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
-										{{ctx.Locale.Tr "org.teams.read_access"}}
+										{{ctx.Locale.Tr "read"}}
 										{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
-										{{ctx.Locale.Tr "org.teams.write_access"}}
+										{{ctx.Locale.Tr "write"}}
 										{{- end}}</td>
 									</tr>
 								{{end}}

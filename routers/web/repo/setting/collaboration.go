@@ -24,7 +24,7 @@ import (
 
 // Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
+	ctx.Data["Title"] = ctx.Tr("collaborators")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
 	users, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: ctx.Repo.Repository.ID})

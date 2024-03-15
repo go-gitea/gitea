@@ -21,7 +21,7 @@
 						{{if not $.PublicOnly}}
 							<div class="flex-item-body">
 								{{ctx.Locale.Tr "org.members.member_role"}}
-								<strong class="flex-text-inline">{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{ctx.Locale.Tr "org.members.owner"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}</strong>
+								<strong class="flex-text-inline">{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{ctx.Locale.Tr "owner"}}{{else}}{{ctx.Locale.Tr "member"}}{{end}}</strong>
 							</div>
 							{{if $.IsOrganizationOwner}}
 							<div class="flex-item-body">

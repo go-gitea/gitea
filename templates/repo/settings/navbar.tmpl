@@ -5,7 +5,7 @@
 			{{ctx.Locale.Tr "repository"}}
 		</a>
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
-			{{ctx.Locale.Tr "repo.settings.collaboration"}}
+			{{ctx.Locale.Tr "collaborators"}}
 		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks">

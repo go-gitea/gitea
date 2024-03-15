@@ -18,7 +18,7 @@
 						<div class="menu">
 							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_active"}}</label>
@@ -83,7 +83,7 @@
 							<td>
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .IsAdmin}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+									<span class="ui mini label">{{ctx.Locale.Tr "admin"}}</span>
 								{{else if eq 2 .Type}}{{/* Reserved user */}}
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
 								{{else if eq 4 .Type}}{{/* Bot "user" */}}
