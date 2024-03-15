@@ -9,10 +9,10 @@
 			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 			<input type="hidden" name="poster" value="{{$.PosterID}}">
 		{{end}}
-		{{template "shared/searchinput" dict "Value" .Keyword}}
+		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}
 			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
 		{{end}}
-		<button class="ui small icon button" aria-label="{{ctx.Locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+		{{template "shared/search/button"}}
 	</div>
 </form>

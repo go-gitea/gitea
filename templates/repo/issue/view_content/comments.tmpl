@@ -148,7 +148,7 @@
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
-				<div class="detail">
+				<div class="detail flex-text-block">
 					<span class="text grey muted-links"><a href="{{.RefIssueLink ctx}}"><b>{{.RefIssueTitle ctx}}</b> {{.RefIssueIdent ctx}}</a></span>
 				</div>
 			</div>
@@ -160,7 +160,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr}}
 				</span>
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-git-commit"}}
 					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
@@ -252,7 +252,7 @@
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
@@ -271,7 +271,7 @@
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
@@ -331,7 +331,7 @@
 					{{ctx.Locale.Tr "repo.issues.dependency.added_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
-					<div class="detail">
+					<div class="detail flex-text-block">
 						{{svg "octicon-plus"}}
 						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
@@ -354,8 +354,8 @@
 					{{ctx.Locale.Tr "repo.issues.dependency.removed_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
-					<div class="detail">
-						<span class="text grey muted-links">{{svg "octicon-trash"}}</span>
+					<div class="detail flex-text-block">
+						{{svg "octicon-trash"}}
 						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -506,7 +506,7 @@
 
 					{{ctx.Locale.Tr "repo.issues.del_time_history" $createdStr}}
 				</span>
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
