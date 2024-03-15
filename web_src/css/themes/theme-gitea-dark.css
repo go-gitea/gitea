@@ -181,9 +181,9 @@
   --color-git: #f05133;
   /* target-based colors */
   --color-body: #1c2022;
-  --color-box-header: #202427;
-  --color-box-body: #191d20;
-  --color-box-body-highlight: #1d2124;
+  --color-box-header: #1a1d1f;
+  --color-box-body: #14171a;
+  --color-box-body-highlight: #121517;
   --color-text-dark: #f8f8f9;
   --color-text: #ced2d5;
   --color-text-light: #bec4c8;
@@ -224,7 +224,7 @@
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #fafafb;
   --color-tooltip-bg: #000017f0;
-  --color-nav-bg: #1b1f22;
+  --color-nav-bg: #16191c;
   --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
   --color-label-text: var(--color-text);
