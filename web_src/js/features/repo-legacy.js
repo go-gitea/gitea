@@ -418,7 +418,7 @@ async function onEditContent(event) {
     try {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
-        context: $editContentZone.attr('data-context')
+        context: $editContentZone.attr('data-context'),
       });
       for (const file of dz.files) params.append('files[]', file.uuid);
 
