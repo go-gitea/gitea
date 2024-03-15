@@ -23,7 +23,7 @@
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
 				<button id="cancel-edit-title" class="ui small basic button in-edit gt-hidden">{{ctx.Locale.Tr "cancel"}}</button>
-				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{ctx.Locale.Tr "repo.issues.save"}}</button>
+				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{ctx.Locale.Tr "save"}}</button>
 			</div>
 		{{end}}
 	</div>
