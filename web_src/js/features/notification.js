@@ -146,11 +146,10 @@ async function updateNotificationTable() {
   const notificationDiv = $('#notification_div');
   if (notificationDiv.length > 0) {
     try {
-      const params = new URLSearchParams({
-        'div-only': true,
-        'sequence-number': ++notificationSequenceNumber,
-      });
-      const url = `${appSubUrl}/notifications${window.location.search}${window.location.search ? '&' : '?'}${params.toString()}`;
+      const params = new URLSearchParams(window.location.search);
+      params.set('div-only', true);
+      params.set('sequence-number', ++notificationSequenceNumber);
+      const url = `${appSubUrl}/notifications?${params.toString()}`;
       const response = await GET(url);
 
       if (!response.ok) {
