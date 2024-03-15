@@ -51,7 +51,7 @@
 												</div>
 											{{end}}
 											{{if $.allowDelete}}
-												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{ctx.Locale.Tr "repo.delete_preexisting_label"}}</span></button>
+												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{ctx.Locale.Tr "delete"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{ctx.Locale.Tr "repo.delete_preexisting"}}</span>
