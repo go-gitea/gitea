@@ -735,6 +735,14 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+.size-for-bold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  font-weight: 500; /* match .ui.secondary.pointing.menu .active.item and .ui.tabular.menu .active.item */
+  height: 0;
+}
+
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;

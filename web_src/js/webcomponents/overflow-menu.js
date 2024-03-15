@@ -127,6 +127,26 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   });
 
   init() {
+    // for horizontal menus where fomantic boldens active items, prevent this bold text from
+    // enlarging the menu's active item replacing the text node with a div that renders a
+    // invisible pseudo-element that enlarges the box.
+    if (this.matches('.ui.secondary.pointing.menu') || this.matches('.ui.tabular.menu')) {
+      for (const item of this.querySelectorAll('.item')) {
+        for (const child of item.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const text = child.textContent.trim();
+            if (text) {
+              const div = document.createElement('div');
+              div.classList.add('size-for-bold');
+              div.setAttribute('data-text', text);
+              div.textContent = text;
+              child.replaceWith(div);
+            }
+          }
+        }
+      }
+    }
+
     // ResizeObserver triggers on initial render, so we don't manually call `updateItems` here which
     // also avoids a full-page FOUC in Firefox that happens when `updateItems` is called too soon.
     this.resizeObserver = new ResizeObserver((entries) => {
