@@ -114,7 +114,7 @@ func (ns *notificationService) IssueChangeTitle(ctx context.Context, doer *user_
 		log.Error("issue.LoadPullRequest: %v", err)
 		return
 	}
-	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress(ctx) {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,

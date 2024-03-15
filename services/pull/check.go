@@ -91,7 +91,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return nil
 		}
 
-		if pr.IsWorkInProgress() {
+		if pr.IsWorkInProgress(ctx) {
 			return ErrIsWorkInProgress
 		}
 
