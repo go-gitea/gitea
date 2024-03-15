@@ -14,7 +14,7 @@
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div id="search-user-box" class="ui search gt-mr-3"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
 								<div class="ui input">
-									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
+									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
 							<button class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>

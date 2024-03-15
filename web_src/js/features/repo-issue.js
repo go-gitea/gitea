@@ -6,8 +6,9 @@ import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
+import {POST, GET} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
@@ -40,7 +41,7 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-function updateDeadline(deadlineString) {
+async function updateDeadline(deadlineString) {
   hideElem($('#deadline-err-invalid-date'));
   $('#deadline-loader').addClass('loading');
 
@@ -56,23 +57,21 @@ function updateDeadline(deadlineString) {
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
-    data: JSON.stringify({
-      due_date: realDeadline,
-    }),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    type: 'POST',
-    success() {
+  try {
+    const response = await POST($('#update-issue-deadline-form').attr('action'), {
+      data: {due_date: realDeadline}
+    });
+
+    if (response.ok) {
       window.location.reload();
-    },
-    error() {
-      $('#deadline-loader').removeClass('loading');
-      showElem($('#deadline-err-invalid-date'));
-    },
-  });
+    } else {
+      throw new Error('Invalid response');
+    }
+  } catch (error) {
+    console.error(error);
+    $('#deadline-loader').removeClass('loading');
+    showElem($('#deadline-err-invalid-date'));
+  }
 }
 
 export function initRepoIssueDue() {
@@ -156,12 +155,12 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  $(document).on('click', '.delete-comment', function () {
+  $(document).on('click', '.delete-comment', async function () {
     const $this = $(this);
     if (window.confirm($this.data('locale'))) {
-      $.post($this.data('url'), {
-        _csrf: csrfToken,
-      }).done(() => {
+      try {
+        const response = await POST($this.data('url'));
+        if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
 
         // Check if this was a pending comment.
@@ -186,7 +185,9 @@ export function initRepoIssueCommentDelete() {
           }
           $conversationHolder.remove();
         }
-      });
+      } catch (error) {
+        console.error(error);
+      }
     }
     return false;
   });
@@ -226,22 +227,32 @@ export function initRepoIssueCodeCommentCancel() {
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
-  $pullUpdateButton.on('click', function (e) {
+  $pullUpdateButton.on('click', async function (e) {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
     $this.addClass('loading');
-    $.post($this.data('do'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    });
+    let response;
+    try {
+      response = await POST($this.data('do'));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      $this.removeClass('loading');
+    }
+    let data;
+    try {
+      data = await response?.json(); // the response is probably not a JSON
+    } catch (error) {
+      console.error(error);
+    }
+    if (data?.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
   });
 
   $('.update-button > .dropdown').dropdown({
@@ -267,20 +278,24 @@ export function initRepoPullRequestAllowMaintainerEdit() {
 
   const promptError = $checkbox.attr('data-prompt-error');
   $checkbox.checkbox({
-    'onChange': () => {
+    'onChange': async () => {
       const checked = $checkbox.checkbox('is checked');
       let url = $checkbox.attr('data-url');
       url += '/set_allow_maintainer_edit';
       $checkbox.checkbox('set disabled');
-      $.ajax({url, type: 'POST',
-        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
-        error: () => {
-          showTemporaryTooltip($checkbox[0], promptError);
-        },
-        complete: () => {
-          $checkbox.checkbox('set enabled');
-        },
-      });
+      try {
+        const response = await POST(url, {
+          data: {allow_maintainer_edit: checked},
+        });
+        if (!response.ok) {
+          throw new Error('Failed to update maintainer edit permission');
+        }
+      } catch (error) {
+        console.error(error);
+        showTemporaryTooltip($checkbox[0], promptError);
+      } finally {
+        $checkbox.checkbox('set enabled');
+      }
     },
   });
 }
@@ -329,17 +344,15 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export async function updateIssuesMeta(url, action, issueIds, elementId) {
-  return $.ajax({
-    type: 'POST',
-    url,
-    data: {
-      _csrf: csrfToken,
-      action,
-      issue_ids: issueIds,
-      id: elementId,
-    },
-  });
+export async function updateIssuesMeta(url, action, issue_ids, id) {
+  try {
+    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+    if (!response.ok) {
+      throw new Error('Failed to update issues meta');
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export function initRepoIssueComments() {
@@ -511,15 +524,20 @@ export function initRepoPullRequestReview() {
     const td = ntr.find(`.add-comment-${side}`);
     const commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
-      const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
-      td.html(html);
-      td.find("input[name='line']").val(idx);
-      td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-      td.find("input[name='path']").val(path);
+      try {
+        const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
+        const html = await response.text();
+        td.html(html);
+        td.find("input[name='line']").val(idx);
+        td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
+        td.find("input[name='path']").val(path);
 
-      initDropzone(td.find('.dropzone')[0]);
-      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
-      editor.focus();
+        initDropzone(td.find('.dropzone')[0]);
+        const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+        editor.focus();
+      } catch (error) {
+        console.error(error);
+      }
     }
   });
 }
@@ -547,11 +565,19 @@ export function initRepoIssueWipToggle() {
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
-    await $.post(updateUrl, {
-      _csrf: csrfToken,
-      title: title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
-    });
-    window.location.reload();
+
+    try {
+      const params = new URLSearchParams();
+      params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+
+      const response = await POST(updateUrl, {data: params});
+      if (!response.ok) {
+        throw new Error('Failed to toggle WIP status');
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+    }
   });
 }
 
@@ -576,39 +602,43 @@ export function initRepoIssueTitleEdit() {
 
   $('#edit-title').on('click', editTitleToggle);
   $('#cancel-edit-title').on('click', editTitleToggle);
-  $('#save-edit-title').on('click', editTitleToggle).on('click', function () {
-    const pullrequest_targetbranch_change = function (update_url) {
+  $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
+    const pullrequest_targetbranch_change = async function (update_url) {
       const targetBranch = $('#pull-target-branch').data('branch');
       const $branchTarget = $('#branch_target');
       if (targetBranch === $branchTarget.text()) {
         window.location.reload();
         return false;
       }
-      $.post(update_url, {
-        _csrf: csrfToken,
-        target_branch: targetBranch
-      }).always(() => {
+      try {
+        await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
+      } catch (error) {
+        console.error(error);
+      } finally {
         window.location.reload();
-      });
+      }
     };
 
     const pullrequest_target_update_url = $(this).attr('data-target-update-url');
     if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
-      pullrequest_targetbranch_change(pullrequest_target_update_url);
+      await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
-      $.post($(this).attr('data-update-url'), {
-        _csrf: csrfToken,
-        title: $editInput.val()
-      }, (data) => {
+      try {
+        const params = new URLSearchParams();
+        params.append('title', $editInput.val());
+        const response = await POST($(this).attr('data-update-url'), {data: params});
+        const data = await response.json();
         $editInput.val(data.title);
         $issueTitle.text(data.title);
         if (pullrequest_target_update_url) {
-          pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
+          await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
         } else {
           window.location.reload();
         }
-      });
+      } catch (error) {
+        console.error(error);
+      }
     }
     return false;
   });
