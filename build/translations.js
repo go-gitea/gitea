@@ -19,7 +19,7 @@ if (!cmds.includes(cmd)) {
 function dumpObj(obj, path = '') {
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'object' && value !== null) {
-      dumpObj(value, key);
+      dumpObj(value, path ? `${path}.${key}` : key);
     } else {
       console.info(`${path}.${key}`);
     }
