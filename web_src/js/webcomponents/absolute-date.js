@@ -1,5 +1,10 @@
 import {Temporal} from 'temporal-polyfill';
 
+export function toAbsoluteLocaleDate(str, lang, opts) {
+  const plainDate = Temporal.PlainDate.from(str);
+  return plainDate.toLocaleString(lang ?? [], opts);
+}
+
 window.customElements.define('absolute-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
 
@@ -13,9 +18,8 @@ window.customElements.define('absolute-date', class extends HTMLElement {
       '';
 
     // only use the first 10 characters, e.g. the `yyyy-mm-dd` part
-    const plainDate = Temporal.PlainDate.from(this.getAttribute('date').substring(0, 10));
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
-    this.shadowRoot.textContent = plainDate.toLocaleString(lang ?? [], {
+    this.shadowRoot.textContent = toAbsoluteLocaleDate(this.getAttribute('date').substring(0, 10), lang, {
       ...(year && {year}),
       ...(month && {month}),
       ...(weekday && {weekday}),
