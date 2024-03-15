@@ -12,9 +12,8 @@ window.customElements.define('absolute-date', class extends HTMLElement {
       this.ownerDocument.documentElement.getAttribute('lang') ||
       '';
 
-    // only extract the first 10 characters, e.g. the `yyyy-mm-dd` part
-    const [isoYear, isoMonth, isoDate] = this.getAttribute('date').substring(0, 10).split('-');
-    const plainDate = new Temporal.PlainDate(isoYear, isoMonth, isoDate);
+    // only use the first 10 characters, e.g. the `yyyy-mm-dd` part
+    const plainDate = Temporal.PlainDate.from(this.getAttribute('date').substring(0, 10));
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
     this.shadowRoot.textContent = plainDate.toLocaleString(lang ?? [], {
       ...(year && {year}),
