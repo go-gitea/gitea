@@ -2,8 +2,7 @@ import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
-
-const {csrfToken} = window.config;
+import {POST, DELETE, PUT} from '../modules/fetch.js';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
@@ -11,22 +10,27 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
 }
 
-function createNewColumn(url, columnTitle, projectColorInput) {
-  $.ajax({
-    url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    method: 'POST',
-  }).done(() => {
+async function createNewColumn(url, columnTitle, projectColorInput) {
+  try {
+    const response = await POST(url, {
+      data: {
+        title: columnTitle.val(),
+        color: projectColorInput.val(),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create new column');
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
     columnTitle.closest('form').removeClass('dirty');
     window.location.reload();
-  });
+  }
 }
 
-function moveIssue({item, from, to, oldIndex}) {
+async function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
@@ -38,18 +42,18 @@ function moveIssue({item, from, to, oldIndex}) {
     })),
   };
 
-  $.ajax({
-    url: `${to.getAttribute('data-url')}/move`,
-    data: JSON.stringify(columnSorting),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    type: 'POST',
-    error: () => {
-      from.insertBefore(item, from.children[oldIndex]);
-    },
-  });
+  try {
+    const response = await POST(`${to.getAttribute('data-url')}/move`, {
+      data: columnSorting,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to move issue');
+    }
+  } catch (error) {
+    console.error(error);
+    from.insertBefore(item, from.children[oldIndex]);
+  }
 }
 
 async function initRepoProjectSortable() {
@@ -67,20 +71,24 @@ async function initRepoProjectSortable() {
     ghostClass: 'card-ghost',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: () => {
+    onSort: async () => {
       boardColumns = mainBoard.getElementsByClassName('project-column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
-          $.ajax({
-            url: $(column).data('url'),
-            data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
-            headers: {
-              'X-Csrf-Token': csrfToken,
-            },
-            contentType: 'application/json',
-            method: 'PUT',
-          });
+          try {
+            const response = await PUT($(column).data('url'), {
+              data: {
+                sorting: i,
+                color: rgbToHex($(column).css('backgroundColor')),
+              },
+            });
+            if (!response.ok) {
+              throw new Error('Failed to update column sorting');
+            }
+          } catch (error) {
+            console.error(error);
+          }
         }
       }
     },
@@ -118,18 +126,23 @@ export function initRepoProject() {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this).find('.edit-project-column-button').on('click', function (e) {
+    $(this).find('.edit-project-column-button').on('click', async function (e) {
       e.preventDefault();
 
-      $.ajax({
-        url: $(this).data('url'),
-        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'PUT',
-      }).done(() => {
+      try {
+        const response = await PUT($(this).data('url'), {
+          data: {
+            title: projectTitleInput.val(),
+            color: projectColorInput.val(),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update project column');
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
         projectTitleLabel.text(projectTitleInput.val());
         projectTitleInput.closest('form').removeClass('dirty');
         if (projectColorInput.val()) {
@@ -137,7 +150,7 @@ export function initRepoProject() {
         }
         boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
         $('.ui.modal').modal('hide');
-      });
+      }
     });
   });
 
@@ -146,19 +159,19 @@ export function initRepoProject() {
     const showButton = $(boardColumn).find('.default-project-column-show');
     const commitButton = $(this).find('.actions > .ok.button');
 
-    $(commitButton).on('click', (e) => {
+    $(commitButton).on('click', async (e) => {
       e.preventDefault();
 
-      $.ajax({
-        method: 'POST',
-        url: $(showButton).data('url'),
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-      }).done(() => {
+      try {
+        const response = await POST($(showButton).data('url'));
+        if (!response.ok) {
+          throw new Error('Failed to set default project column');
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
         window.location.reload();
-      });
+      }
     });
   });
 
@@ -167,19 +180,19 @@ export function initRepoProject() {
     const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
     const deleteUrl = $(this).attr('data-url');
 
-    deleteColumnButton.on('click', (e) => {
+    deleteColumnButton.on('click', async (e) => {
       e.preventDefault();
 
-      $.ajax({
-        url: deleteUrl,
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'DELETE',
-      }).done(() => {
+      try {
+        const response = await DELETE(deleteUrl);
+        if (!response.ok) {
+          throw new Error('Failed to delete project column');
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
         window.location.reload();
-      });
+      }
     });
   });
 
@@ -190,7 +203,7 @@ export function initRepoProject() {
     if (!columnTitle.val()) {
       return;
     }
-    const url = $(this).data('url');
+    const url = e.target.getAttribute('data-url');
     createNewColumn(url, columnTitle, projectColorInput);
   });
 }
