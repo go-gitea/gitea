@@ -16,7 +16,7 @@
 				<div class="ui small fluid action input">
 					{{template "shared/search/input" dict "Value" .Query}}
 					<select class="ui small dropdown" name="type">
-						<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
+						<option value="">{{ctx.Locale.Tr "type"}}</option>
 						<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
 						{{range $type := .AvailableTypes}}
 						<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
@@ -32,7 +32,7 @@
 					<tr>
 						<th>ID</th>
 						<th>{{ctx.Locale.Tr "owner"}}</th>
-						<th>{{ctx.Locale.Tr "admin.packages.type"}}</th>
+						<th>{{ctx.Locale.Tr "type"}}</th>
 						<th data-sortt-asc="name_asc" data-sortt-desc="name_desc">
 							{{ctx.Locale.Tr "name"}}
 							{{SortArrow "name_asc" "name_desc" .SortType false}}

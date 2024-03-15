@@ -105,7 +105,7 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.config.db_type"}}</dt>
+				<dt>{{ctx.Locale.Tr "type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
 				{{if not (eq .DbCfg.Type "sqlite3")}}
 					<dt>{{ctx.Locale.Tr "admin.config.db_host"}}</dt>

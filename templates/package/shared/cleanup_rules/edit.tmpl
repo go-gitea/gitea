@@ -10,7 +10,7 @@
 			</div>
 		</div>
 		<div class="{{if .IsEditRule}}disabled {{end}}field {{if .Err_Type}}error{{end}}">
-			<label>{{ctx.Locale.Tr "packages.filter.type"}}</label>
+			<label>{{ctx.Locale.Tr "type"}}</label>
 			<select class="ui selection dropdown" name="type">
 				{{range $type := .AvailableTypes}}
 				<option{{if eq $.CleanupRule.Type $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
