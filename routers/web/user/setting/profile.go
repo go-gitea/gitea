@@ -179,7 +179,7 @@ func DeleteAvatar(ctx *context.Context) {
 
 // Organization render all the organization of the user
 func Organization(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.organization")
+	ctx.Data["Title"] = ctx.Tr("organizations")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{

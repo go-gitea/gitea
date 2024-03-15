@@ -9,7 +9,7 @@
 			</a>
 		{{end}}
 		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
-			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
+			{{svg "octicon-organization"}} {{ctx.Locale.Tr "organizations"}}
 		</a>
 		{{if and (not $.UnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
 		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">

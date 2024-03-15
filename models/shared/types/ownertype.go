@@ -23,7 +23,7 @@ func (o OwnerType) LocaleString(locale translation.Locale) string {
 	case OwnerTypeRepository:
 		return locale.TrString("concept_code_repository")
 	case OwnerTypeOrganization:
-		return locale.TrString("concept_user_organization")
+		return locale.TrString("organization")
 	}
 	return locale.TrString("unknown")
 }

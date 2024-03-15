@@ -20,7 +20,7 @@ const (
 
 // Organizations show all the organizations
 func Organizations(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.organizations")
+	ctx.Data["Title"] = ctx.Tr("organizations")
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	if ctx.FormString("sort") == "" {
