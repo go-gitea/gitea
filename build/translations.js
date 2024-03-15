@@ -12,7 +12,7 @@ if (!cmds.includes(cmd)) {
     Usage: ${basename(argv[1])} command
 
     Commands:
-      dump: Dump all current translation keys to stdout
+      dump        Dump all current translation keys to stdout
   `);
 }
 
