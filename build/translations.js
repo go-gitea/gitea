@@ -9,7 +9,7 @@ const cmds = ['dump'];
 
 if (!cmds.includes(cmd)) {
   console.info(`
-    Usage: ${basename(argv[1])} dump
+    Usage: ${basename(argv[1])} command
 
     Commands:
       dump: Dump all current translation keys to stdout
