@@ -50,7 +50,7 @@ const (
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
+	ctx.Data["Title"] = ctx.Tr("repository")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled

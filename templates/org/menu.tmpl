@@ -2,7 +2,7 @@
 	<overflow-menu class="ui secondary pointing tabular borderless menu">
 		<div class="overflow-menu-items">
 			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
-				{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+				{{svg "octicon-repo"}} {{ctx.Locale.Tr "repositories"}}
 				{{if .RepoCount}}
 					<div class="ui small label">{{.RepoCount}}</div>
 				{{end}}

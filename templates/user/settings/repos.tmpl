@@ -1,7 +1,7 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings repos")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "settings.repos"}}
+			{{ctx.Locale.Tr "repositories"}}
 		</h4>
 		<div class="ui attached segment">
 			{{if or .allowAdopt .allowDelete}}
