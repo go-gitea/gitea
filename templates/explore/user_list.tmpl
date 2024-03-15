@@ -7,11 +7,11 @@
 			<div class="flex-item-main">
 				<div class="flex-item-title">
 					{{if .IsOrganization}}
-						<span class="tw-flex tw-justify-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_organization" .DisplayName}}">{{svg "octicon-organization"}}</span>
+						<span class="tw-flex tw-justify-center tw-content-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_organization" .DisplayName}}">{{svg "octicon-organization"}}</span>
 					{{else if .IsBot}}
-						<span class="tw-flex tw-justify-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_bot" .DisplayName}}">{{svg "octicon-dependabot"}}</span>
+						<span class="tw-flex tw-justify-center tw-content-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_bot" .DisplayName}}">{{svg "octicon-dependabot"}}</span>
 					{{else}}
-						<span class="tw-flex tw-justify-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_individual" .DisplayName}}">{{svg "octicon-person"}}</span>
+						<span class="tw-flex tw-justify-center tw-content-center tw-flex-wrap" data-tooltip-content title="{{ctx.Locale.Tr "explore.user_is_individual" .DisplayName}}">{{svg "octicon-person"}}</span>
 					{{end}}
 					{{template "shared/user/name" .}}
 					{{if .Visibility.IsPrivate}}
