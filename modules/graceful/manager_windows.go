@@ -149,33 +149,35 @@ hammerLoop:
 func (g *Manager) awaitServer(limit time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
-		defer close(c)
-		func() {
-			// FIXME: there is a fundamental design problem of the "manager" and the "wait group".
-			// If nothing has started, the "Wait" just panics: sync: WaitGroup is reused before previous Wait has returned
-			// There is no clear solution besides a complete rewriting of the "manager"
-			defer func() {
-				_ = recover()
-			}()
-			g.createServerWaitGroup.Wait()
-		}()
+		g.createServerCond.L.Lock()
+		for {
+			if g.createdServer >= numberOfServersToCreate {
+				g.createServerCond.L.Unlock()
+				close(c)
+				return
+			}
+			select {
+			case <-g.IsShutdown():
+				g.createServerCond.L.Unlock()
+				return
+			default:
+			}
+			g.createServerCond.Wait()
+		}
 	}()
+
+	var tc <-chan time.Time
 	if limit > 0 {
-		select {
-		case <-c:
-			return true // completed normally
-		case <-time.After(limit):
-			return false // timed out
-		case <-g.IsShutdown():
-			return false
-		}
-	} else {
-		select {
-		case <-c:
-			return true // completed normally
-		case <-g.IsShutdown():
-			return false
-		}
+		tc = time.After(limit)
+	}
+	select {
+	case <-c:
+		return true // completed normally
+	case <-tc:
+		return false // timed out
+	case <-g.IsShutdown():
+		g.createServerCond.Signal()
+		return false
 	}
 }
 
