@@ -2787,16 +2787,6 @@ tbody.commit-list {
   border-left: 1px solid var(--color-secondary);
 }
 
-.repository .ui.menu.new-menu {
-  background: none !important;
-}
-
-@media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
-    background: none !important;
-  }
-}
-
 .migrate-entries {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr);
