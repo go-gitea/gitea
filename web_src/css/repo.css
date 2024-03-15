@@ -1065,11 +1065,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
@@ -2039,13 +2035,8 @@
 }
 
 #cite-repo-modal #citation-panel {
-  width: 500px;
-}
-
-@media (max-width: 767.98px) {
-  #cite-repo-modal #citation-panel {
-    width: 100%;
-  }
+  display: flex;
+  width: 100%;
 }
 
 #cite-repo-modal #citation-panel input {
@@ -2065,6 +2056,7 @@
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1;
 }
 
 #cite-repo-modal #citation-panel #citation-copy-apa,
@@ -2415,6 +2407,10 @@
   background: none !important;
   padding: 0 !important;
   gap: 0 !important;
+}
+
+.archived-label {
+  filter: grayscale(0.8);
 }
 
 .ui.label.scope-left {
@@ -2785,16 +2781,6 @@ tbody.commit-list {
 .code-diff-split tbody tr td:nth-child(5),
 .code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
-}
-
-.repository .ui.menu.new-menu {
-  background: none !important;
-}
-
-@media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
-    background: none !important;
-  }
 }
 
 .migrate-entries {

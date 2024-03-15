@@ -61,7 +61,7 @@
 	{{if or .Labels .Assignees}}
 	<div class="extra content labels-list gt-p-0 gt-pt-2">
 		{{range .Labels}}
-			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
+			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
 		{{end}}
 		<div class="right floated">
 			{{range .Assignees}}
