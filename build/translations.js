@@ -16,12 +16,13 @@ if (!cmds.includes(cmd)) {
   `);
 }
 
-function dumpObj(obj, path = '') {
+function dumpObj(obj, currentPath = '') {
   for (const [key, value] of Object.entries(obj)) {
+    const path = currentPath ? `${currentPath}.${key}` : key;
     if (typeof value === 'object' && value !== null) {
-      dumpObj(value, path ? `${path}.${key}` : key);
+      dumpObj(value, path);
     } else {
-      console.info(`${path}.${key}`);
+      console.info(path);
     }
   }
 }
