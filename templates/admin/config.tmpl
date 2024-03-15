@@ -110,7 +110,7 @@
 				{{if not (eq .DbCfg.Type "sqlite3")}}
 					<dt>{{ctx.Locale.Tr "admin.config.db_host"}}</dt>
 					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.db_name"}}</dt>
+					<dt>{{ctx.Locale.Tr "name"}}</dt>
 					<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
 					<dt>{{ctx.Locale.Tr "username"}}</dt>
 					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
@@ -202,7 +202,7 @@
 				<dt>{{ctx.Locale.Tr "enabled"}}</dt>
 				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
-					<dt>{{ctx.Locale.Tr "admin.config.mailer_name"}}</dt>
+					<dt>{{ctx.Locale.Tr "name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
 					{{if eq .Mailer.Protocol "sendmail"}}
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_use_sendmail"}}</dt>

@@ -566,7 +566,7 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 // CreateLabelForm form for creating label
 type CreateLabelForm struct {
 	ID          int64
-	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Title       string `binding:"Required;MaxSize(50)" locale:"name"`
 	Exclusive   bool   `form:"exclusive"`
 	IsArchived  bool   `form:"is_archived"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`

@@ -6,7 +6,7 @@
 		<form class="ui new-label form ignore-dirty" action="{{$.Link}}/new" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required field">
-				<label for="name">{{ctx.Locale.Tr "repo.issues.label_title"}}</label>
+				<label for="name">{{ctx.Locale.Tr "name"}}</label>
 				<div class="ui small input">
 					<input class="label-name-input" name="title" placeholder="{{ctx.Locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 				</div>
