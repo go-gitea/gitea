@@ -1,36 +1,84 @@
 modifies/docs:
-  - "**/*.md"
-  - "docs/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
 
 modifies/frontend:
-  - "web_src/**/*"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "web_src/**"
+          - "tailwind.config.js"
+          - "webpack.config.js"
 
 modifies/templates:
-  - all: ["templates/**", "!templates/swagger/v1_json.tmpl"]
+  - changed-files:
+      - all-globs-to-any-file:
+          - "templates/**"
+          - "!templates/swagger/v1_json.tmpl"
 
 modifies/api:
-  - "routers/api/**"
-  - "templates/swagger/v1_json.tmpl"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "routers/api/**"
+          - "templates/swagger/v1_json.tmpl"
 
 modifies/cli:
-  - "cmd/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cmd/**"
 
 modifies/translation:
-  - "options/locale/*.ini"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "options/locale/*.ini"
 
 modifies/migrations:
-  - "models/migrations/**/*"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "models/migrations/**"
 
 modifies/internal:
-  - "Makefile"
-  - "Dockerfile"
-  - "Dockerfile.rootless"
-  - "docker/**"
-  - "webpack.config.js"
-  - ".eslintrc.yaml"
-  - ".golangci.yml"
-  - ".markdownlint.yaml"
-  - ".spectral.yaml"
-  - ".stylelintrc.yaml"
-  - ".yamllint.yaml"
-  - ".github/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".air.toml"
+          - "Makefile"
+          - "Dockerfile"
+          - "Dockerfile.rootless"
+          - ".dockerignore"
+          - "docker/**"
+          - ".editorconfig"
+          - ".eslintrc.yaml"
+          - ".golangci.yml"
+          - ".gitpod.yml"
+          - ".markdownlint.yaml"
+          - ".spectral.yaml"
+          - ".stylelintrc.yaml"
+          - ".yamllint.yaml"
+          - ".github/**"
+          - ".gitea/"
+          - ".devcontainer/**"
+          - "build.go"
+          - "build/**"
+          - "contrib/**"
+
+modifies/dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "poetry.toml"
+          - "poetry.lock"
+          - "go.mod"
+          - "go.sum"
+          - "pyproject.toml"
+
+modifies/go:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.go"
+
+modifies/js:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.js"

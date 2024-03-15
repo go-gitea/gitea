@@ -7,15 +7,15 @@
 			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
 			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
 		>
-			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
-				<div class="new-menu-inner">
+			<overflow-menu class="ui secondary pointing tabular top attached borderless menu">
+				<div class="overflow-menu-items tw-justify-center">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}
 					<a class="item" data-tab="diff-swipe-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.swipe"}}</a>
 					<a class="item" data-tab="diff-overlay-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
 				</div>
-			</div>
+			</overflow-menu>
 			<div class="image-diff-tabs is-loading">
 				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.Index}}">
 					<div class="diff-side-by-side">

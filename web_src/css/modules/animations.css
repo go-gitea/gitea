@@ -20,6 +20,7 @@
   left: 50%;
   top: 50%;
   height: min(4em, 66.6%);
+  width: fit-content; /* compat: safari - https://bugs.webkit.org/show_bug.cgi?id=267625 */
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;

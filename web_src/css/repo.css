@@ -1065,11 +1065,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
@@ -2039,13 +2035,8 @@
 }
 
 #cite-repo-modal #citation-panel {
-  width: 500px;
-}
-
-@media (max-width: 767.98px) {
-  #cite-repo-modal #citation-panel {
-    width: 100%;
-  }
+  display: flex;
+  width: 100%;
 }
 
 #cite-repo-modal #citation-panel input {
@@ -2065,6 +2056,7 @@
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1;
 }
 
 #cite-repo-modal #citation-panel #citation-copy-apa,
@@ -2415,6 +2407,10 @@
   background: none !important;
   padding: 0 !important;
   gap: 0 !important;
+}
+
+.archived-label {
+  filter: grayscale(0.8);
 }
 
 .ui.label.scope-left {
@@ -2787,16 +2783,6 @@ tbody.commit-list {
   border-left: 1px solid var(--color-secondary);
 }
 
-.repository .ui.menu.new-menu {
-  background: none !important;
-}
-
-@media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
-    background: none !important;
-  }
-}
-
 .migrate-entries {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr);
@@ -3022,4 +3008,34 @@ tbody.commit-list {
 
 #cherry-pick-modal .scrolling.menu {
   max-height: 200px;
+}
+
+/* Branch tag selector - TODO: Merge this into the same selector on repo page */
+.repository .issue-content .issue-content-right  .ui.grid .column.row {
+  padding: 10px;
+  padding-bottom: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted {
+  padding: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted .text {
+  display: inline-block;
+  padding: 10px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
+  border-color: var(--color-secondary);
+  background: var(--color-menu);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
+  border-top: none;
+}
+.repository .issue-content .issue-content-right .branch-tag-divider {
+  margin-top: -1px;
+  border-top: 1px solid var(--color-secondary);
 }
