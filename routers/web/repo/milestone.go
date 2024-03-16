@@ -106,8 +106,8 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamIfExist("state", ctx.Data["State"])
-	pager.AddParamIfExist("q", ctx.Data["Keyword"])
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("q", keyword)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestone)

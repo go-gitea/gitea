@@ -125,8 +125,8 @@ func ListPackages(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamIfExist("q", ctx.Data["Query"])
-	pager.AddParamIfExist("type", ctx.Data["PackageType"])
+	pager.AddParamString("q", query)
+	pager.AddParamString("type", packageType)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

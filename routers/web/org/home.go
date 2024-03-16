@@ -154,7 +154,7 @@ func Home(ctx *context.Context) {
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParamIfExist("language", ctx.Data["Language"])
+	pager.AddParamString("language", language)
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0

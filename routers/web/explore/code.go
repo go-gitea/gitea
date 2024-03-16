@@ -137,7 +137,7 @@ func Code(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParamIfExist("l", ctx.Data["Language"])
+	pager.AddParamString("l", language)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)
