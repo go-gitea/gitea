@@ -38,6 +38,7 @@
     "pretty-ms": "8.0.0",
     "sortablejs": "1.15.0",
     "swagger-ui-dist": "5.9.0",
+    "temporal-polyfill": "0.2.3",
     "throttle-debounce": "5.0.0",
     "tinycolor2": "1.6.0",
     "tippy.js": "6.3.7",
