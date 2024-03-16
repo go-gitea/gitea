@@ -45,9 +45,9 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const notificationCount = $('.notification_count');
+  const $notificationCount = $('.notification_count');
 
-  if (!notificationCount.length) {
+  if (!$notificationCount.length) {
     return;
   }
 
@@ -55,7 +55,7 @@ export function initNotificationCount() {
   const startPeriodicPoller = (timeout, lastCount) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    lastCount = lastCount ?? notificationCount.text();
+    lastCount = lastCount ?? $notificationCount.text();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
@@ -143,8 +143,8 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 }
 
 async function updateNotificationTable() {
-  const notificationDiv = $('#notification_div');
-  if (notificationDiv.length > 0) {
+  const $notificationDiv = $('#notification_div');
+  if ($notificationDiv.length > 0) {
     try {
       const params = new URLSearchParams(window.location.search);
       params.set('div-only', true);
@@ -158,7 +158,7 @@ async function updateNotificationTable() {
 
       const data = await response.text();
       if ($(data).data('sequence-number') === notificationSequenceNumber) {
-        notificationDiv.replaceWith(data);
+        $notificationDiv.replaceWith(data);
         initNotificationsTable();
       }
     } catch (error) {
@@ -177,14 +177,14 @@ async function updateNotificationCount() {
 
     const data = await response.json();
 
-    const notificationCount = $('.notification_count');
+    const $notificationCount = $('.notification_count');
     if (data.new === 0) {
-      notificationCount.addClass('gt-hidden');
+      $notificationCount.addClass('gt-hidden');
     } else {
-      notificationCount.removeClass('gt-hidden');
+      $notificationCount.removeClass('gt-hidden');
     }
 
-    notificationCount.text(`${data.new}`);
+    $notificationCount.text(`${data.new}`);
 
     return `${data.new}`;
   } catch (error) {

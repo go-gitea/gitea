@@ -231,8 +231,8 @@ export function initDropzone(el) {
     init() {
       this.on('success', (file, data) => {
         file.uuid = data.uuid;
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $dropzone.find('.files').append(input);
+        const $input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $dropzone.find('.files').append($input);
         // Create a "Copy Link" element, to conveniently copy the image
         // or file link as Markdown to the clipboard
         const copyLinkElement = document.createElement('div');
@@ -305,15 +305,15 @@ export function initGlobalLinkActions() {
       filter += `#${$this.attr('data-modal-id')}`;
     }
 
-    const dialog = $(`.delete.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
+    const $dialog = $(`.delete.modal${filter}`);
+    $dialog.find('.name').text($this.data('name'));
     for (const [key, value] of Object.entries(dataArray)) {
       if (key && key.startsWith('data')) {
-        dialog.find(`.${key}`).text(value);
+        $dialog.find(`.${key}`).text(value);
       }
     }
 
-    dialog.modal({
+    $dialog.modal({
       closable: false,
       onApprove: async () => {
         if ($this.data('type') === 'form') {
@@ -380,8 +380,8 @@ function initGlobalShowModal() {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const colorPickers = $modal.find('.color-picker');
-    if (colorPickers.length > 0) {
+    const $colorPickers = $modal.find('.color-picker');
+    if ($colorPickers.length > 0) {
       initCompColorPicker(); // FIXME: this might cause duplicate init
     }
     $modal.modal('setting', {
