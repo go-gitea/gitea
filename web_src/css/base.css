@@ -735,11 +735,17 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+/* these selectors must stay together */
+.ui.secondary.pointing.menu .active.item,
+.ui.tabular.menu .active.item,
+.size-for-bold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
 .size-for-bold::before {
   content: attr(data-text);
   visibility: hidden;
   display: block;
-  font-weight: 500; /* match .ui.secondary.pointing.menu .active.item and .ui.tabular.menu .active.item */
   height: 0;
 }
 
