@@ -76,11 +76,11 @@ export function initRepoCommentForm() {
       }
 
       if (editMode === 'true') {
-        const form = $('#update_issueref_form');
+        const $form = $('#update_issueref_form');
         const params = new URLSearchParams();
         params.append('ref', selectedValue);
         try {
-          await POST(form.attr('action'), {data: params});
+          await POST($form.attr('action'), {data: params});
           window.location.reload();
         } catch (error) {
           console.error(error);
@@ -139,7 +139,7 @@ export function initRepoCommentForm() {
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
 
-      const clickedItem = $(this);
+      const $clickedItem = $(this);
       const scope = $(this).attr('data-scope');
 
       $(this).parent().find('.item').each(function () {
@@ -148,10 +148,10 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
+          if (!$(this).is($clickedItem) && !$(this).hasClass('checked')) {
             return true;
           }
-        } else if (!$(this).is(clickedItem)) {
+        } else if (!$(this).is($clickedItem)) {
           // Toggle for other labels
           return true;
         }
@@ -352,8 +352,8 @@ async function onEditContent(event) {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
           fileUuidDict[file.uuid] = {submitted: false};
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $dropzone.find('.files').append(input);
+          const $input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          $dropzone.find('.files').append($input);
         });
         this.on('removedfile', async (file) => {
           if (disableRemovedfileEvent) return;
@@ -390,8 +390,8 @@ async function onEditContent(event) {
               dz.files.push(attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
               $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
-              const input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
-              $dropzone.find('.files').append(input);
+              const $input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
+              $dropzone.find('.files').append($input);
             }
           } catch (error) {
             console.error(error);
@@ -430,8 +430,8 @@ async function onEditContent(event) {
       } else {
         $renderContent.html(data.content);
         $rawContent.text(comboMarkdownEditor.value());
-        const refIssues = $renderContent.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
+        const $refIssues = $renderContent.find('p .ref-issue');
+        attachRefIssueContextPopup($refIssues);
       }
       const $content = $segment;
       if (!$content.find('.dropzone-attachments').length) {
