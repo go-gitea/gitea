@@ -1285,8 +1285,7 @@ input:-webkit-autofill:active,
 }
 
 .attention-icon {
-  vertical-align: middle;
-  margin-right: 0.25em;
+  margin: 2px 6px 0 0;
 }
 
 blockquote.attention-note {
