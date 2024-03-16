@@ -65,7 +65,7 @@ export default {
       '2xl': '16px',
       '3xl': '24px',
       'circle': 'var(--border-radius-circle)', // 50%
-      'full': '9999px',
+      'full': '9999px', // original tailwind value
     },
   },
 };
