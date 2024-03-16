@@ -37,7 +37,7 @@ function initRepoIssueListCheckboxes() {
     el.addEventListener('change', syncIssueSelectionState);
   }
 
-  issueSelectAll?.addEventListener('change', () => {
+  issueSelectAll.addEventListener('change', () => {
     for (const el of issueCheckboxes) {
       el.checked = issueSelectAll.checked;
     }
