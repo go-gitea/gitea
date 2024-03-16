@@ -457,7 +457,7 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps" v-if="Boolean(currentJob.steps.length)">
+        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
