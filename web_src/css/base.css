@@ -1849,15 +1849,6 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
-.ui.tabular.menu .item {
-  padding: 11px 12px;
-  color: var(--color-text-light-2);
-}
-
-.ui.tabular.menu .item:hover {
-  color: var(--color-text);
-}
-
 .ui.tabular.menu .active.item,
 .ui.tabular.menu .active.item:hover {
   background: var(--color-body);
@@ -1874,16 +1865,20 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
+.ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
+  padding: 11px 12px !important;
   color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
+.ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
 }
 
