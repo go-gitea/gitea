@@ -52,12 +52,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
 .gt-font-bold { font-weight: var(--font-weight-bold) !important; }
 
-.gt-border-secondary { border: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-top { border-top: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
 .interact-fg:active { color: var(--color-primary-active) !important; }

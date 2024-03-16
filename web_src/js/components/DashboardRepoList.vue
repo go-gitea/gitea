@@ -425,7 +425,7 @@ export default sfc; // activate the IDE's Vue plugin
             </a>
           </li>
         </ul>
-        <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
+        <div v-if="showMoreReposLink" class="center gt-py-3 tw-border-t tw-border-t-secondary">
           <div class="ui borderless pagination menu narrow">
             <a
               class="item navigation gt-py-2" :class="{'disabled': page === 1}"

@@ -215,7 +215,7 @@ export default {
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
         v-if="lastReviewCommitSha != null" role="menuitem"
-        class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
+        class="vertical item gt-df gt-fc gt-gap-2 tw-border-t tw-border-t-secondary"
         :class="{disabled: commitsSinceLastReview === 0}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
@@ -227,10 +227,10 @@ export default {
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <span v-if="!isLoading" class="info tw-border-t tw-border-t-secondary text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="commit in commits" :key="commit.id">
         <div
-          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem"
+          class="vertical item gt-df gt-gap-2 tw-border-t tw-border-t-secondary" role="menuitem"
           :class="{selection: commit.selected, hovered: commit.hovered}"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
