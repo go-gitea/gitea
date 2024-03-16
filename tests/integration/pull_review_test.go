@@ -139,7 +139,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			session := loginUser(t, "user5")
 			testPullCreate(t, session, "user5", "test_codeowner_fork", false, forkedRepo.DefaultBranch, "codeowner-basebranch-forked", "Test Pull Request2")
 
-			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch-forked"})
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: forkedRepo.ID, HeadBranch: "codeowner-basebranch-forked"})
 			unittest.AssertExistsIf(t, false, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
 		})
 	})
