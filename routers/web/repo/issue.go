@@ -472,16 +472,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
 
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "project", "ProjectID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
-	pager.AddParam(ctx, "poster", "PosterID")
-	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	pager.AddParamIfExist("q", ctx.Data["Keyword"])
+	pager.AddParamIfExist("type", ctx.Data["ViewType"])
+	pager.AddParamIfExist("sort", ctx.Data["SortType"])
+	pager.AddParamIfExist("state", ctx.Data["State"])
+	pager.AddParamIfExist("labels", ctx.Data["SelectLabels"])
+	pager.AddParamIfExist("milestone", ctx.Data["MilestoneID"])
+	pager.AddParamIfExist("project", ctx.Data["ProjectID"])
+	pager.AddParamIfExist("assignee", ctx.Data["AssigneeID"])
+	pager.AddParamIfExist("poster", ctx.Data["PosterID"])
+	pager.AddParamIfExist("archived", ctx.Data["ShowArchivedLabels"])
 
 	ctx.Data["Page"] = pager
 }
