@@ -211,12 +211,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	keyword := options.Keyword
-	if !options.IsFuzzyKeyword {
-		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
-		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
-		keyword = doubleQuoteKeyword(keyword)
-	}
+	// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
+	// https://www.meilisearch.com/docs/reference/api/search#phrase-search
+	keyword := doubleQuoteKeyword(options.Keyword)
 
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter:           query.Statement(),
