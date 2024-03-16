@@ -84,9 +84,17 @@ type RenderContext struct {
 }
 
 type Links struct {
-	Base       string
-	BranchPath string
-	TreePath   string
+	AbsolutePrefix bool
+	Base           string
+	BranchPath     string
+	TreePath       string
+}
+
+func (l *Links) Prefix() string {
+	if l.AbsolutePrefix {
+		return setting.AppURL
+	}
+	return setting.AppSubURL
 }
 
 func (l *Links) HasBranchInfo() bool {

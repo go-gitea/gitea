@@ -4,51 +4,38 @@ import {createCodeEditor} from './codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
-
-const {csrfToken} = window.config;
+import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
   const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
   if ($previewTab.length) {
-    $previewTab.on('click', function () {
+    $previewTab.on('click', async function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
       const mode = $this.data('markup-mode') || 'comment';
-      const treePathEl = $form.find('input#tree_path');
-      if (treePathEl.length > 0) {
-        context += treePathEl.val();
+      const $treePathEl = $form.find('input#tree_path');
+      if ($treePathEl.length > 0) {
+        context += $treePathEl.val();
       }
       context = context.substring(0, context.lastIndexOf('/'));
-      $.post($this.data('url'), {
-        _csrf: csrfToken,
-        mode,
-        context,
-        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
-        file_path: treePathEl.val(),
-      }, (data) => {
+
+      const formData = new FormData();
+      formData.append('mode', mode);
+      formData.append('context', context);
+      formData.append('text', $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val());
+      formData.append('file_path', $treePathEl.val());
+      try {
+        const response = await POST($this.data('url'), {data: formData});
+        const data = await response.text();
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         renderPreviewPanelContent($previewPanel, data);
-      });
+      } catch (error) {
+        console.error('Error:', error);
+      }
     });
   }
-}
-
-function initEditDiffTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
-  $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
-    const $this = $(this);
-    $.post($this.data('url'), {
-      _csrf: csrfToken,
-      context: $this.data('context'),
-      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
-    }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
-      $diffPreviewPanel.html(data);
-    });
-  });
 }
 
 function initEditorForm() {
@@ -57,7 +44,6 @@ function initEditorForm() {
   }
 
   initEditPreviewTab($('.repository .edit.form'));
-  initEditDiffTab($('.repository .edit.form'));
 }
 
 function getCursorPosition($e) {
@@ -92,11 +78,11 @@ export function initRepoEditor() {
   const joinTreePath = ($fileNameEl) => {
     const parts = [];
     $('.breadcrumb span.section').each(function () {
-      const element = $(this);
-      if (element.find('a').length) {
-        parts.push(element.find('a').text());
+      const $element = $(this);
+      if ($element.find('a').length) {
+        parts.push($element.find('a').text());
       } else {
-        parts.push(element.text());
+        parts.push($element.text());
       }
     });
     if ($fileNameEl.val()) parts.push($fileNameEl.val());
@@ -195,6 +181,6 @@ export function renderPreviewPanelContent($panelPreviewer, data) {
   $panelPreviewer.html(data);
   initMarkupContent();
 
-  const refIssues = $panelPreviewer.find('p .ref-issue');
-  attachRefIssueContextPopup(refIssues);
+  const $refIssues = $panelPreviewer.find('p .ref-issue');
+  attachRefIssueContextPopup($refIssues);
 }

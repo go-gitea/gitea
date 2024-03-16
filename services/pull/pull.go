@@ -40,6 +40,14 @@ var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+	if err := issue.LoadPoster(ctx); err != nil {
+		return err
+	}
+
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return user_model.ErrBlockedUser
+	}
+
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -128,7 +136,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
+			if err := issue_service.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
 			}
 		}
@@ -329,7 +337,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
-					objectFormat, _ := git.GetObjectFormatOfRepo(ctx, pr.BaseRepo.RepoPath())
+					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if newCommitID != "" && newCommitID != objectFormat.EmptyObjectID().String() {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {

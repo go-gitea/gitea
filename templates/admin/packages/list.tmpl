@@ -13,16 +13,16 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
-				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "Value" .Query}}
-					<select class="ui dropdown" name="type">
+				<div class="ui small fluid action input">
+					{{template "shared/search/input" dict "Value" .Query}}
+					<select class="ui small dropdown" name="type">
 						<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
 						<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
 						{{range $type := .AvailableTypes}}
 						<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
 						{{end}}
 					</select>
-					<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
+					{{template "shared/search/button"}}
 				</div>
 			</form>
 		</div>
@@ -62,8 +62,8 @@
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Package.Name}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem"><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Package.Name}}</td>
+							<td class="gt-ellipsis tw-max-w-48"><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
 							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 							<td>
 							{{if .Repository}}

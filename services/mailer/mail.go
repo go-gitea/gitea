@@ -223,7 +223,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		Ctx:  ctx,
 		Repo: ctx.Issue.Repo,
 		Links: markup.Links{
-			Base: ctx.Issue.Repo.HTMLURL(),
+			AbsolutePrefix: true,
+			Base:           ctx.Issue.Repo.HTMLURL(),
 		},
 		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)

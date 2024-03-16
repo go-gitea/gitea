@@ -6,10 +6,7 @@
 		<div class="ui attached segment">
 			<div class="ui secondary filter menu gt-ac gt-mx-0">
 				<form class="ui form ignore-dirty gt-f1">
-					<div class="ui fluid action input">
-						{{template "shared/searchinput" dict "Value" .Keyword}}
-						<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
-					</div>
+					{{template "shared/search/combo" dict "Value" .Keyword}}
 				</form>
 				<!-- Sort -->
 				<div class="ui dropdown type jump item gt-mr-0">
@@ -47,8 +44,8 @@
 					{{range .Emails}}
 						<tr>
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.FullName}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.FullName}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>
 								{{if .CanChange}}

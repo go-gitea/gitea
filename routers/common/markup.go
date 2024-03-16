@@ -35,7 +35,8 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		if err := markdown.RenderRaw(&markup.RenderContext{
 			Ctx: ctx,
 			Links: markup.Links{
-				Base: urlPrefix,
+				AbsolutePrefix: true,
+				Base:           urlPrefix,
 			},
 		}, strings.NewReader(text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
@@ -83,7 +84,8 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		Ctx:  ctx,
 		Repo: repoCtx,
 		Links: markup.Links{
-			Base: urlPrefix,
+			AbsolutePrefix: true,
+			Base:           urlPrefix,
 		},
 		Metas:        meta,
 		IsWiki:       wiki,

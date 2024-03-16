@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.npm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>{{if .PackageDescriptor.Metadata.Scope}}{{.PackageDescriptor.Metadata.Scope}}:{{end}}registry=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/npm/"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>{{if .PackageDescriptor.Metadata.Scope}}{{.PackageDescriptor.Metadata.Scope}}:{{end}}registry=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/npm/"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.npm.install"}}</label>

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/label"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -115,10 +116,15 @@ func (l *Label) CalOpenIssues() {
 func (l *Label) SetArchived(isArchived bool) {
 	if !isArchived {
 		l.ArchivedUnix = timeutil.TimeStamp(0)
-	} else if isArchived && l.ArchivedUnix.IsZero() {
+	} else if isArchived && !l.IsArchived() {
 		// Only change the date when it is newly archived.
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	}
+}
+
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return !l.ArchivedUnix.IsZero()
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
@@ -126,7 +132,7 @@ func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
 		RepoIDs:  []int64{repoID},
 		LabelIDs: []int64{labelID},
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 
 	for _, count := range counts {
@@ -163,11 +169,6 @@ func (l *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, curr
 // BelongsToOrg returns true if label is an organization label
 func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
-}
-
-// IsArchived returns true if label is an archived
-func (l *Label) IsArchived() bool {
-	return l.ArchivedUnix > 0
 }
 
 // BelongsToRepo returns true if label is a repository label

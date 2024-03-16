@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -672,7 +673,8 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 	return err
 }
 
-func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
+// LoadReactions loads comment reactions
+func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -688,11 +690,6 @@ func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository
 		return err
 	}
 	return nil
-}
-
-// LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) error {
-	return c.loadReactions(ctx, repo)
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
@@ -1036,8 +1033,8 @@ type FindCommentsOptions struct {
 	TreePath    string
 	Type        CommentType
 	IssueIDs    []int64
-	Invalidated util.OptionalBool
-	IsPull      util.OptionalBool
+	Invalidated optional.Option[bool]
+	IsPull      optional.Option[bool]
 }
 
 // ToConds implements FindOptions interface
@@ -1069,11 +1066,11 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
 	}
-	if !opts.Invalidated.IsNone() {
-		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
+	if opts.Invalidated.Has() {
+		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.Value()})
 	}
-	if opts.IsPull != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+	if opts.IsPull.Has() {
+		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.Value()})
 	}
 	return cond
 }
@@ -1082,7 +1079,7 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 || opts.IsPull != util.OptionalBoolNone {
+	if opts.RepoID > 0 || opts.IsPull.Has() {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 

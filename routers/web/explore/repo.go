@@ -109,6 +109,21 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -125,6 +140,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 		OnlyShowRelevant:   opts.OnlyShowRelevant,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -149,8 +169,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "topic", "TopicOnly")
-	pager.AddParam(ctx, "language", "Language")
+	pager.AddParamString("topic", fmt.Sprint(topicOnly))
+	pager.AddParamString("language", language)
 	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
 	ctx.Data["Page"] = pager
 

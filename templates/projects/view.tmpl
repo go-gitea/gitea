@@ -41,7 +41,7 @@
 						</div>
 
 						<div class="field color-field">
-							<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
+							<label for="new_project_column_color_picker">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 							<div class="color picker column">
 								<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
 								{{template "repo/issue/label_precolors"}}
@@ -165,9 +165,9 @@
 
 				<div class="divider"></div>
 
-				<div class="ui cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}tw-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
-						<div class="issue-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-issue="{{.ID}}">
+						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 						</div>
 					{{end}}
