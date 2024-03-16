@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMeilisearchIndexer(t *testing.T) {
@@ -47,4 +48,12 @@ func TestMeilisearchIndexer(t *testing.T) {
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)
+}
+
+func TestDoubleQuoteKeyword(t *testing.T) {
+	assert.EqualValues(t, "", doubleQuoteKeyword(""))
+	assert.EqualValues(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
 }

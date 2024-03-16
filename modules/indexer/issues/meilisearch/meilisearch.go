@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -210,7 +211,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
+	keyword := options.Keyword
+	if !options.IsFuzzyKeyword {
+		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
+		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
+		keyword = doubleQuoteKeyword(keyword)
+	}
+
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter:           query.Statement(),
 		Limit:            int64(limit),
 		Offset:           int64(skip),
@@ -240,4 +248,17 @@ func parseSortBy(sortBy internal.SortBy) string {
 		return field + ":desc"
 	}
 	return field + ":asc"
+}
+
+func doubleQuoteKeyword(k string) string {
+	kp := strings.Split(k, " ")
+	parts := 0
+	for i := range kp {
+		part := strings.Trim(kp[i], "\"")
+		if part != "" {
+			kp[parts] = fmt.Sprintf(`"%s"`, part)
+			parts++
+		}
+	}
+	return strings.Join(kp[:parts], " ")
 }
