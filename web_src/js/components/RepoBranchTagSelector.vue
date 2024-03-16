@@ -123,6 +123,7 @@ const sfc = {
       return -1;
     },
     scrollToActive() {
+      // eslint-disable-next-line no-jquery/variable-pattern
       let el = this.$refs[`listItem${this.active}`];
       if (!el || !el.length) return;
       if (Array.isArray(el)) {

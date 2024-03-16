@@ -487,7 +487,7 @@ rules:
   no-jquery/no-visibility: [2]
   no-jquery/no-when: [2]
   no-jquery/no-wrap: [2]
-  no-jquery/variable-pattern: [0]
+  no-jquery/variable-pattern: [2]
   no-label-var: [2]
   no-labels: [0] # handled by no-restricted-syntax
   no-lone-blocks: [2]
