@@ -137,7 +137,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
             const text = child.textContent.trim();
             if (text) {
               const div = document.createElement('div');
-              div.classList.add('size-for-bold');
+              div.classList.add('size-for-semibold');
               div.setAttribute('data-text', text);
               div.textContent = text;
               child.replaceWith(div);
