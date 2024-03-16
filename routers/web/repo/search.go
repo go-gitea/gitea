@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,8 +42,16 @@ func Search(ctx *context.Context) {
 		page = 1
 	}
 
-	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
-		language, keyword, page, setting.UI.RepoSearchPagingNum, isFuzzy)
+	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
+		RepoIDs:        []int64{ctx.Repo.Repository.ID},
+		Keyword:        keyword,
+		IsKeywordFuzzy: isFuzzy,
+		Language:       language,
+		Paginator: &db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.RepoSearchPagingNum,
+		},
+	})
 	if err != nil {
 		if code_indexer.IsAvailable(ctx) {
 			ctx.ServerError("SearchResults", err)
