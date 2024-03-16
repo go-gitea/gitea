@@ -105,18 +105,45 @@
 	</div>
 
 	<div>
-		<h1>GiteaOriginUrl</h1>
-		<div><gitea-origin-url data-url="test/url"></gitea-origin-url></div>
-		<div><gitea-origin-url data-url="/test/url"></gitea-origin-url></div>
+		<h1>&lt;origin-url&gt;</h1>
+		<div><origin-url data-url="test/url"></origin-url></div>
+		<div><origin-url data-url="/test/url"></origin-url></div>
+	</div>
+
+	<div>
+		<h1>&lt;overflow-menu&gt;</h1>
+		<overflow-menu class="ui secondary pointing tabular borderless menu">
+			<div class="overflow-menu-items">
+				<a class="active item">item</a>
+				<a class="item">item 1</a>
+				<a class="item">item 2</a>
+				<a class="item">item 3</a>
+				<a class="item">item 4</a>
+				<a class="item">item 5</a>
+				<a class="item">item 6</a>
+				<a class="item">item 7</a>
+				<a class="item">item 8</a>
+				<a class="item">item 9</a>
+				<a class="item">item 10</a>
+				<a class="item">item 11</a>
+				<a class="item">item 12</a>
+				<a class="item">item 13</a>
+				<a class="item">item 14</a>
+				<a class="item">item 15</a>
+				<a class="item">item 16</a>
+				<a class="item">item 17</a>
+				<a class="item">item 18</a>
+			</div>
+		</overflow-menu>
 	</div>
 
 	<div>
 		<h1>GiteaAbsoluteDate</h1>
-		<div><gitea-absolute-date date="2024-03-11" year="numeric" day="numeric" month="short"></gitea-absolute-date></div>
-		<div><gitea-absolute-date date="2024-03-11" year="numeric" day="numeric" month="long"></gitea-absolute-date></div>
-		<div><gitea-absolute-date date="2024-03-11" year="" day="numeric" month="numeric"></gitea-absolute-date></div>
-		<div><gitea-absolute-date date="2024-03-11" year="" day="numeric" month="numeric" weekday="long"></gitea-absolute-date></div>
-		<div><gitea-absolute-date date="2024-03-11T19:00:00-05:00" year="" day="numeric" month="numeric" weekday="long"></gitea-absolute-date></div>
+		<div><absolute-date date="2024-03-11" year="numeric" day="numeric" month="short"></absolute-date></div>
+		<div><absolute-date date="2024-03-11" year="numeric" day="numeric" month="long"></absolute-date></div>
+		<div><absolute-date date="2024-03-11" year="" day="numeric" month="numeric"></absolute-date></div>
+		<div><absolute-date date="2024-03-11" year="" day="numeric" month="numeric" weekday="long"></absolute-date></div>
+		<div><absolute-date date="2024-03-11T19:00:00-05:00" year="" day="numeric" month="numeric" weekday="long"></absolute-date></div>
 		<div class="tw-text-text-light-2">relative-time: <relative-time format="datetime" datetime="2024-03-11" year="" day="numeric" month="numeric"></relative-time></div>
 	</div>
 
@@ -177,12 +204,13 @@
 
 		<h2>Dropdown with SVG</h2>
 		<div>
-			<div class="ui dropdown" style="border: 1px red dashed" data-tooltip-content="border for demo purpose only">
-				<span class="text">simple</span>
+			<div class="ui dropdown tw-border tw-border-red tw-border-dashed" data-tooltip-content="border for demo purpose only">
+				<span class="text">search-input &amp; flex-item in menu</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
+				<div class="menu flex-items-menu">
 					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
-					<div class="item">item</div>
+					<div class="item"><input type="radio">item</div>
+					<div class="item"><input type="radio">item</div>
 				</div>
 			</div>
 			<div class="ui search selection dropdown">

@@ -26,13 +26,12 @@ func Search(ctx *context.Context) {
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
-	queryType := ctx.FormTrim("t")
-	isFuzzy := queryType != "match"
+	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 	wikis := ctx.FormOptionalBool("wikis")
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["Wikis"] = wikis
 
@@ -67,13 +66,13 @@ func Search(ctx *context.Context) {
 		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 	}
 
-	ctx.Data["SourcePath"] = ctx.Repo.Repository.Link()
+	ctx.Data["Repo"] = ctx.Repo.Repository
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
+	pager.AddParamString("l", language)
 	if wikis.Has() {
 		pager.AddParamString("wikis", fmt.Sprintf("%v", wikis.Value()))
 	}

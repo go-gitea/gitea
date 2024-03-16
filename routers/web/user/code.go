@@ -41,13 +41,12 @@ func CodeSearch(ctx *context.Context) {
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
-	queryType := ctx.FormTrim("t")
-	isFuzzy := queryType != "match"
+	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 	wikis := ctx.FormOptionalBool("wikis")
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["IsCodePage"] = true
 	ctx.Data["Wikis"] = wikis
 
@@ -127,7 +126,7 @@ func CodeSearch(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
+	pager.AddParamString("l", language)
 	if wikis.Has() {
 		pager.AddParamString("wikis", fmt.Sprintf("%v", wikis.Value()))
 	}

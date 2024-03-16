@@ -15,7 +15,7 @@
 					<div class="ui dropdown type jump item">
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
+						<div class="menu flex-items-menu">
 							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
@@ -52,11 +52,7 @@
 					</div>
 				</div>
 
-				<!-- Search Text -->
-				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "Value" .Keyword}}
-					<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
-				</div>
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 			</form>
 		</div>
 		<div class="ui attached table segment">

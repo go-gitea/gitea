@@ -72,7 +72,9 @@ function delegateOne($dropdown) {
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
     const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
-    const $wrapper = $('<div>').append(menuItems);
+    const div = document.createElement('div');
+    div.innerHTML = menuItems;
+    const $wrapper = $(div);
     const $items = $wrapper.find('> .item');
     $items.each((_, item) => updateMenuItem($dropdown[0], item));
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
