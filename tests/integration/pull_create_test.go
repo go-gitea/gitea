@@ -4,11 +4,11 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
@@ -23,12 +23,10 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 
 	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
+	_, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
-	if branch != "master" {
-		link = strings.Replace(link, ":master", ":"+branch, 1)
-	}
 
+	link := fmt.Sprintf("/%s/%s/compare/master...%s", user, repo, branch)
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
