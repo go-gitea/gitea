@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
@@ -17,16 +18,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createPullRequest(t *testing.T, session *TestSession, user, repo, baseBranch, headBranch, title string) *httptest.ResponseRecorder {
+	link := fmt.Sprintf("/%s/%s/compare/%s...%s", user, repo, baseBranch, headBranch)
+	req := NewRequest(t, "GET", link)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Submit the form for creating the pull
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": title,
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	return resp
+}
+
 func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, title string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	_, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
+	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
+	if branch != "master" {
+		link = strings.Replace(link, ":master", ":"+branch, 1)
+	}
 
-	link := fmt.Sprintf("/%s/%s/compare/master...%s", user, repo, branch)
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
