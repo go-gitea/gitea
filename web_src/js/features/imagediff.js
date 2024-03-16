@@ -133,24 +133,17 @@ export function initImageDiff() {
         $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
-      });
-      sizes.image1.parent().css({
-        margin: `10px auto`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
-      });
-      sizes.image2.parent().css({
-        margin: `10px auto`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
-      });
+      sizes.image1[0].style.width = `${sizes.size1.width * factor}px`;
+      sizes.image1[0].style.height = `${sizes.size1.height * factor}px`;
+      sizes.image1.parent()[0].style.margin = '10px auto';
+      sizes.image1.parent()[0].style.width = `${sizes.size1.width * factor + 2}px`;
+      sizes.image1.parent()[0].style.height = `${sizes.size1.height * factor + 2}px`;
+
+      sizes.image2[0].style.width = `${sizes.size2.width * factor}px`;
+      sizes.image2[0].style.height = `${sizes.size2.height * factor}px`;
+      sizes.image2.parent()[0].style.margin = '10px auto';
+      sizes.image2.parent()[0].style.width = `${sizes.size2.width * factor + 2}px`;
+      sizes.image2.parent()[0].style.height = `${sizes.size2.height * factor + 2}px`;
     }
 
     function initSwipe(sizes) {
@@ -159,36 +152,29 @@ export function initImageDiff() {
         factor = (diffContainerWidth - 12) / sizes.max.width;
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
-      });
-      sizes.image1.parent().css({
-        margin: `0px ${sizes.ratio[0] * factor}px`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
-      });
-      sizes.image1.parent().parent().css({
-        padding: `${sizes.ratio[1] * factor}px 0 0 0`,
-        width: sizes.max.width * factor + 2
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
-      });
-      sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
-      });
-      sizes.image2.parent().parent().css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2
-      });
-      $container.find('.diff-swipe').css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 30 /* extra height for inner "position: absolute" elements */,
-      });
+      sizes.image1[0].style.width = `${sizes.size1.width * factor}px`;
+      sizes.image1[0].style.height = `${sizes.size1.height * factor}px`;
+      sizes.image1.parent()[0].style.margin = `0px ${sizes.ratio[0] * factor}px`;
+      sizes.image1.parent()[0].style.width = `${sizes.size1.width * factor + 2}px`;
+      sizes.image1.parent()[0].style.height = `${sizes.size1.height * factor + 2}px`;
+      sizes.image1.parent().parent()[0].style.padding = `${sizes.ratio[1] * factor}px 0 0 0`;
+      sizes.image1.parent().parent()[0].style.width = `${sizes.max.width * factor + 2}px`;
+
+      sizes.image2[0].style.width = `${sizes.size2.width * factor}px`;
+      sizes.image2[0].style.height = `${sizes.size2.height * factor}px`;
+      sizes.image2.parent()[0].style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
+      sizes.image2.parent()[0].style.width = `${sizes.size2.width * factor + 2}px`;
+      sizes.image2.parent()[0].style.height = `${sizes.size2.height * factor + 2}px`;
+      sizes.image2.parent().parent()[0].style.width = `${sizes.max.width * factor + 2}px`;
+      sizes.image2.parent().parent()[0].style.height = `${sizes.max.height * factor + 2}px`;
+
+      $container.find('.diff-swipe')[0].style.width = `${sizes.max.width * factor + 2}px`;
+      $container.find('.diff-swipe')[0].style.height = `${sizes.max.height * factor + 30}px`;
+
+      // extra height for inner "position: absolute" elements
+      $container.find('.diff-swipe')[0].style.width = `${sizes.max.width * factor + 2}px`;
+      $container.find('.diff-swipe')[0].style.height = `${sizes.max.height * factor + 30}px`;
+
       $container.find('.swipe-bar').on('mousedown', function(e) {
         e.preventDefault();
 
@@ -200,13 +186,9 @@ export function initImageDiff() {
           e2.preventDefault();
 
           const value = Math.max(0, Math.min(e2.clientX - $swipeFrame.offset().left, width));
+          $swipeBar[0].style.left = `${value}px`;
+          $container.find('.swipe-container')[0].style.width = `${$swipeFrame.width() - value}px`;
 
-          $swipeBar.css({
-            left: value
-          });
-          $container.find('.swipe-container').css({
-            width: $swipeFrame.width() - value
-          });
           $(document).on('mouseup.diff-swipe', () => {
             $(document).off('.diff-swipe');
           });
