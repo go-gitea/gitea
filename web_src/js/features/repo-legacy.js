@@ -533,7 +533,7 @@ export function initRepository() {
       const gitignores = $('input[name="gitignores"]').val();
       const license = $('input[name="license"]').val();
       if (gitignores || license) {
-        $('input[name="auto_init"]').prop('checked', true);
+        document.querySelector('input[name="auto_init"]').checked = true;
       }
     });
   }
