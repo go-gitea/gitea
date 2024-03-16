@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
-import {toggleElem, hideElem} from '../utils/dom.js';
+import {toggleElem, hideElem, isElemHidden} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
@@ -30,7 +30,10 @@ function initRepoIssueListCheckboxes() {
     toggleElem($('#issue-filters'), !anyChecked);
     toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    $('#issue-filters, #issue-actions').filter(':visible').find('.issue-list-toolbar-left').prepend(issueSelectAll);
+    const panels = document.querySelectorAll('#issue-filters, #issue-actions');
+    const visiblePanel = Array.from(panels).find((el) => !isElemHidden(el));
+    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left');
+    toolbarLeft.prepend(issueSelectAll);
   };
 
   for (const el of issueCheckboxes) {
