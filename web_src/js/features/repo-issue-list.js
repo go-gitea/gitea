@@ -8,32 +8,40 @@ import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
-  const $issueSelectAll = $('.issue-checkbox-all');
-  const $issueCheckboxes = $('.issue-checkbox');
+  const issueSelectAll = document.querySelector('.issue-checkbox-all');
+  const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
 
   const syncIssueSelectionState = () => {
-    const $checked = $issueCheckboxes.filter(':checked');
-    const anyChecked = $checked.length !== 0;
-    const allChecked = anyChecked && $checked.length === $issueCheckboxes.length;
+    const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
+    const anyChecked = Boolean(checkedCheckboxes.length);
+    const allChecked = anyChecked && checkedCheckboxes.length === issueCheckboxes.length;
 
     if (allChecked) {
-      $issueSelectAll.prop({'checked': true, 'indeterminate': false});
+      issueSelectAll.checked = true;
+      issueSelectAll.indeterminate = false;
     } else if (anyChecked) {
-      $issueSelectAll.prop({'checked': false, 'indeterminate': true});
+      issueSelectAll.checked = false;
+      issueSelectAll.indeterminate = true;
     } else {
-      $issueSelectAll.prop({'checked': false, 'indeterminate': false});
+      issueSelectAll.checked = false;
+      issueSelectAll.indeterminate = false;
     }
     // if any issue is selected, show the action panel, otherwise show the filter panel
     toggleElem($('#issue-filters'), !anyChecked);
     toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    $('#issue-filters, #issue-actions').filter(':visible').find('.issue-list-toolbar-left').prepend($issueSelectAll);
+    $('#issue-filters, #issue-actions').filter(':visible').find('.issue-list-toolbar-left').prepend(issueSelectAll);
   };
 
-  $issueCheckboxes.on('change', syncIssueSelectionState);
+  for (const el of issueCheckboxes) {
+    el.addEventListener('change', syncIssueSelectionState);
+  }
 
-  $issueSelectAll.on('change', () => {
-    $issueCheckboxes.prop('checked', $issueSelectAll.is(':checked'));
+  issueSelectAll?.addEventListener('change', () => {
+    for (const el of issueCheckboxes) {
+      el.checked = issueSelectAll.checked;
+      el.addEventListener('change', syncIssueSelectionState);
+    }
     syncIssueSelectionState();
   });
 
