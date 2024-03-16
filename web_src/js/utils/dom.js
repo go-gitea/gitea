@@ -243,3 +243,39 @@ export function isElemVisible(element) {
 
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
+
+// extract text and images from "paste" event
+export function getPastedContent(e) {
+  const images = [];
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.type?.startsWith('image/')) {
+      images.push(item.getAsFile());
+    }
+  }
+  const text = e.clipboardData?.getData?.('text') ?? '';
+  return {text, images};
+}
+
+// replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
+export function replaceTextareaSelection(textarea, text) {
+  const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
+  const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
+  let success = true;
+
+  textarea.contentEditable = 'true';
+  try {
+    success = document.execCommand('insertText', false, text);
+  } catch {
+    success = false;
+  }
+  textarea.contentEditable = 'false';
+
+  if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
+    success = false;
+  }
+
+  if (!success) {
+    textarea.value = `${before}${text}${after}`;
+    textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
+  }
+}

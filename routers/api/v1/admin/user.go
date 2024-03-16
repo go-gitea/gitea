@@ -133,7 +133,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
-	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.AdminCreateUser(ctx, u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
@@ -147,6 +147,11 @@ func CreateUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	if !user_model.IsEmailDomainAllowed(u.Email) {
+		ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", u.Email))
+	}
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -209,7 +214,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if form.Email != nil {
-		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
+		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Error(http.StatusBadRequest, "EmailInvalid", err)
@@ -219,6 +224,10 @@ func EditUser(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "AddOrSetPrimaryEmailAddress", err)
 			}
 			return
+		}
+
+		if !user_model.IsEmailDomainAllowed(*form.Email) {
+			ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email))
 		}
 	}
 

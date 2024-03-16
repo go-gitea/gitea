@@ -58,7 +58,7 @@
 				{{.locale.Tr "mail.issue.action.new" .Doer.Name .Issue.Index}}
 			{{end}}
 		{{else}}
-			{{.Body | SanitizeHTML}}
+			{{.Body}}
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>

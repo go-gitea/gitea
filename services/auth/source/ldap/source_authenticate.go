@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/optional"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -68,7 +69,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
@@ -94,7 +95,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}

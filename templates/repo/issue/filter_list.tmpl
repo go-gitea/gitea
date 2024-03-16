@@ -42,7 +42,7 @@
 						{{svg "octicon-check"}}
 					{{end}}
 				{{end}}
-				{{RenderLabel $.Context .}}
+				{{RenderLabel $.Context ctx.Locale .}}
 				<p class="gt-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 			</a>
 		{{end}}

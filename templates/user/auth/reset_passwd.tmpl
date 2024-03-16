@@ -17,13 +17,12 @@
 						</div>
 					{{end}}
 					{{if .IsResetForm}}
-						<div class="required inline field {{if .Err_Password}}error{{end}}">
+						<div class="required field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{ctx.Locale.Tr "settings.new_password"}}</label>
 							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
 						<div class="inline field">
-							<label></label>
 							<div class="ui checkbox">
 								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 								<input name="remember" type="checkbox">
@@ -42,7 +41,7 @@
 						</div>
 						<input type="hidden" name="scratch_code" value="true">
 						{{else}}
-						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
+						<div class="required field {{if .Err_Passcode}}error{{end}}">
 							<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
 							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
 						</div>
@@ -50,7 +49,6 @@
 						{{end}}
 						<div class="divider"></div>
 						<div class="inline field">
-							<label></label>
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
 								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code"}}</a>

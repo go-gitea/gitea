@@ -42,8 +42,9 @@ type Manager struct {
 	terminateCtxCancel     context.CancelFunc
 	managerCtxCancel       context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
-	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
+	createServerCond       sync.Cond
+	createdServer          int
 	shutdownRequested      chan struct{}
 
 	toRunAtShutdown  []func()
@@ -52,7 +53,7 @@ type Manager struct {
 
 func newGracefulManager(ctx context.Context) *Manager {
 	manager := &Manager{ctx: ctx, shutdownRequested: make(chan struct{})}
-	manager.createServerWaitGroup.Add(numberOfServersToCreate)
+	manager.createServerCond.L = &sync.Mutex{}
 	manager.prepare(ctx)
 	manager.start()
 	return manager

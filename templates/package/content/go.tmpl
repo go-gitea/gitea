@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.go.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>GOPROXY=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/go"></gitea-origin-url> go install {{$.PackageDescriptor.Package.Name}}@{{$.PackageDescriptor.Version.Version}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>GOPROXY=<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/go"></origin-url> go install {{$.PackageDescriptor.Package.Name}}@{{$.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Go" "https://docs.gitea.com/usage/packages/go"}}</label>

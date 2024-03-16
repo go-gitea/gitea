@@ -393,7 +393,7 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 
 func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
 	// Query for pull requests where you are a reviewer or commenter, excluding
-	// any pull requests already returned by the the review requested filter.
+	// any pull requests already returned by the review requested filter.
 	notPoster := builder.Neq{"issue.poster_id": reviewedID}
 	reviewed := builder.In("issue.id", builder.
 		Select("issue_id").

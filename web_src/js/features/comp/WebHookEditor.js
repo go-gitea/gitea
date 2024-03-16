@@ -22,13 +22,16 @@ export function initCompWebHookEditor() {
     });
   }
 
-  const updateContentType = function () {
-    const visible = document.getElementById('http_method').value === 'POST';
-    toggleElem(document.getElementById('content_type').parentNode.parentNode, visible);
-  };
-  updateContentType();
-
-  document.getElementById('http_method').addEventListener('change', updateContentType);
+  // some webhooks (like Gitea) allow to set the request method (GET/POST), and it would toggle the "Content Type" field
+  const httpMethodInput = document.getElementById('http_method');
+  if (httpMethodInput) {
+    const updateContentType = function () {
+      const visible = httpMethodInput.value === 'POST';
+      toggleElem(document.getElementById('content_type').closest('.field'), visible);
+    };
+    updateContentType();
+    httpMethodInput.addEventListener('change', updateContentType);
+  }
 
   // Test delivery
   document.getElementById('test-delivery')?.addEventListener('click', async function () {

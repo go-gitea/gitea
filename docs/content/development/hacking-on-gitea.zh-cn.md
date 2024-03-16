@@ -307,12 +307,8 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 该网站的文档位于 `docs/` 中。如果你改变了文档内容，你可以使用以下测试方法进行持续集成：
 
 ```bash
-# 来自 Gitea 中的 docs 目录
-make trans-copy clean build
+make lint-md
 ```
-
-运行此任务依赖于 [Hugo](https://gohugo.io/)。请注意：这可能会生成一些未跟踪的 Git 对象，
-需要被清理干净。
 
 ## Visual Studio Code
 

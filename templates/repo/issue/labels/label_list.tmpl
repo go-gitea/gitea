@@ -32,7 +32,7 @@
 		{{range .Labels}}
 		<li class="item">
 			<div class="label-title">
-				{{RenderLabel $.Context .}}
+				{{RenderLabel $.Context ctx.Locale .}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 			</div>
 			<div class="label-issues">
@@ -72,7 +72,7 @@
 			{{range .OrgLabels}}
 			<li class="item org-label">
 				<div class="label-title">
-					{{RenderLabel $.Context .}}
+					{{RenderLabel $.Context ctx.Locale .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">

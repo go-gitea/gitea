@@ -123,7 +123,7 @@ const sfc = {
       return -1;
     },
     scrollToActive() {
-      let el = this.$refs[`listItem${this.active}`];
+      let el = this.$refs[`listItem${this.active}`]; // eslint-disable-line no-jquery/variable-pattern
       if (!el || !el.length) return;
       if (Array.isArray(el)) {
         el = el[0];

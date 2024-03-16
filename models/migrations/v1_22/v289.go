@@ -1,22 +1,18 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
+
 package v1_22 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-// CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
-type CommentMetaData struct {
-	ProjectColumnID   int64  `json:"project_column_id"`
-	ProjectColumnName string `json:"project_column_name"`
-	ProjectName       string `json:"project_name"`
-}
-
-func AddCommentMetaDataColumn(x *xorm.Engine) error {
-	type Comment struct {
-		CommentMetaData CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+func AddDefaultWikiBranch(x *xorm.Engine) error {
+	type Repository struct {
+		ID                int64
+		DefaultWikiBranch string
 	}
-
-	return x.Sync(new(Comment))
+	if err := x.Sync(&Repository{}); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE `repository` SET default_wiki_branch = 'master' WHERE (default_wiki_branch IS NULL) OR (default_wiki_branch = '')")
+	return err
 }

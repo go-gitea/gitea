@@ -1,4 +1,4 @@
-import {toOriginUrl} from './GiteaOriginUrl.js';
+import {toOriginUrl} from './origin-url.js';
 
 test('toOriginUrl', () => {
   const oldLocation = window.location;

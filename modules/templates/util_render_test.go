@@ -117,21 +117,21 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a582
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 <a href="mailto:mail@domain.com" class="mailto">mail@domain.com</a>
-<a href="http://localhost:3000/mention-user" class="mention">@mention-user</a> test
-<a href="http://localhost:3000/user13/repo11/issues/123" class="ref-issue">#123</a>
+<a href="/mention-user" class="mention">@mention-user</a> test
+<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
 
 	assert.EqualValues(t, expected, RenderCommitBody(context.Background(), testInput, testMetas))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
-	expected := `space <a href="http://localhost:3000/mention-user" class="mention">@mention-user</a>  `
+	expected := `space <a href="/mention-user" class="mention">@mention-user</a>  `
 
 	assert.EqualValues(t, expected, RenderCommitMessage(context.Background(), testInput, testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="http://localhost:3000/mention-user" class="mention">@mention-user</a>`
+	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" class="mention">@mention-user</a>`
 
 	assert.EqualValues(t, expected, RenderCommitMessageLinkSubject(context.Background(), testInput, "https://example.com/link", testMetas))
 }
@@ -155,14 +155,14 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 mail@domain.com
 @mention-user test
-<a href="http://localhost:3000/user13/repo11/issues/123" class="ref-issue">#123</a>
+<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space  
 `
 	assert.EqualValues(t, expected, RenderIssueTitle(context.Background(), testInput, testMetas))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
-	expected := `<p>space <a href="http://localhost:3000/mention-user" rel="nofollow">@mention-user</a><br/>
+	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
@@ -179,7 +179,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a582
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
-<a href="http://localhost:3000/mention-user" rel="nofollow">@mention-user</a> test
+<a href="/mention-user" rel="nofollow">@mention-user</a> test
 #123
 space</p>
 `

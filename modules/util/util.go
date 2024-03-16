@@ -212,3 +212,12 @@ func ToFloat64(number any) (float64, error) {
 func ToPointer[T any](val T) *T {
 	return &val
 }
+
+// IfZero returns "def" if "v" is a zero value, otherwise "v"
+func IfZero[T comparable](v, def T) T {
+	var zero T
+	if v == zero {
+		return def
+	}
+	return v
+}

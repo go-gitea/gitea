@@ -1,6 +1,6 @@
 {{if or .EnableOpenIDSignIn .EnableSSPI}}
-<div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
-	<div class="new-menu-inner">
+<overflow-menu class="ui secondary pointing tabular top attached borderless menu navbar tw-bg-header-wrapper">
+	<div class="overflow-menu-items tw-justify-center">
 		<a class="{{if .PageIsLogin}}active {{end}}item" rel="nofollow" href="{{AppSubUrl}}/user/login">
 			{{ctx.Locale.Tr "auth.login_userpass"}}
 		</a>
@@ -20,5 +20,5 @@
 		</a>
 		{{end}}
 	</div>
-</div>
+</overflow-menu>
 {{end}}

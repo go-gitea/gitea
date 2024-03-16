@@ -36,9 +36,9 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 		if setting.Database.Type.IsMSSQL() {
 			// drop indexes that need to be re-created afterwards
 			droppedIndexes := []string{
-				"DROP INDEX commit_status.IDX_commit_status_context_hash",
-				"DROP INDEX review_state.UQE_review_state_pull_commit_user",
-				"DROP INDEX repo_archiver.UQE_repo_archiver_s",
+				"DROP INDEX IF EXISTS [IDX_commit_status_context_hash] ON [commit_status]",
+				"DROP INDEX IF EXISTS [UQE_review_state_pull_commit_user] ON [review_state]",
+				"DROP INDEX IF EXISTS [UQE_repo_archiver_s] ON [repo_archiver]",
 			}
 			for _, s := range droppedIndexes {
 				_, err := db.Exec(s)
@@ -53,7 +53,7 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 			if setting.Database.Type.IsMySQL() {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
 			} else if setting.Database.Type.IsMSSQL() {
-				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] VARCHAR(64)", alts[0], alts[1]))
 			} else {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
 			}

@@ -15,14 +15,12 @@
 				<div class="ui repo-search">
 					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="field">
-							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
-								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
+							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "search.code_search_unavailable"}}"{{end}}>
+								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 								{{if .CodeIndexerUnavailable}}
 									<i class="icon">{{svg "octicon-alert"}}</i>
 								{{end}}
-								<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
-									{{svg "octicon-search"}}
-								</button>
+								{{template "shared/search/button" dict "Disabled" .CodeIndexerUnavailable}}
 							</div>
 						</div>
 					</form>

@@ -207,7 +207,7 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://go.dev/pkg/text/
         {{if not (eq .Body "")}}
             <h3>消息内容：</h3>
             <hr>
-            {{.Body | SanitizeHTML}}
+            {{.Body}}
         {{end}}
     </p>
     <hr>

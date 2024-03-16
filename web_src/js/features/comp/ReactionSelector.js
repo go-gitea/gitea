@@ -17,21 +17,21 @@ export function initCompReactionSelector($parent) {
 
     const data = await res.json();
     if (data && (data.html || data.empty)) {
-      const content = $(this).closest('.content');
-      let react = content.find('.segment.reactions');
-      if ((!data.empty || data.html === '') && react.length > 0) {
-        react.remove();
+      const $content = $(this).closest('.content');
+      let $react = $content.find('.segment.reactions');
+      if ((!data.empty || data.html === '') && $react.length > 0) {
+        $react.remove();
       }
       if (!data.empty) {
-        const attachments = content.find('.segment.bottom:first');
-        react = $(data.html);
-        if (attachments.length > 0) {
-          react.insertBefore(attachments);
+        const $attachments = $content.find('.segment.bottom:first');
+        $react = $(data.html);
+        if ($attachments.length > 0) {
+          $react.insertBefore($attachments);
         } else {
-          react.appendTo(content);
+          $react.appendTo($content);
         }
-        react.find('.dropdown').dropdown();
-        initCompReactionSelector(react);
+        $react.find('.dropdown').dropdown();
+        initCompReactionSelector($react);
       }
     }
   });

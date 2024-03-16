@@ -6,55 +6,55 @@ import {POST} from '../modules/fetch.js';
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const mgrBtn = $('#manage_topic');
-  if (!mgrBtn.length) return;
-  const editDiv = $('#topic_edit');
-  const viewDiv = $('#repo-topics');
-  const saveBtn = $('#save_topic');
-  const topicDropdown = $('#topic_edit .dropdown');
-  const topicForm = editDiv; // the old logic, editDiv is topicForm
-  const topicDropdownSearch = topicDropdown.find('input.search');
+  const $mgrBtn = $('#manage_topic');
+  if (!$mgrBtn.length) return;
+  const $editDiv = $('#topic_edit');
+  const $viewDiv = $('#repo-topics');
+  const $saveBtn = $('#save_topic');
+  const $topicDropdown = $('#topic_edit .dropdown');
+  const $topicForm = $editDiv; // the old logic, $editDiv is topicForm
+  const $topicDropdownSearch = $topicDropdown.find('input.search');
   const topicPrompts = {
-    countPrompt: topicDropdown.attr('data-text-count-prompt'),
-    formatPrompt: topicDropdown.attr('data-text-format-prompt'),
+    countPrompt: $topicDropdown.attr('data-text-count-prompt'),
+    formatPrompt: $topicDropdown.attr('data-text-format-prompt'),
   };
 
-  mgrBtn.on('click', () => {
-    hideElem(viewDiv);
-    showElem(editDiv);
-    topicDropdownSearch.focus();
+  $mgrBtn.on('click', () => {
+    hideElem($viewDiv);
+    showElem($editDiv);
+    $topicDropdownSearch.trigger('focus');
   });
 
   $('#cancel_topic_edit').on('click', () => {
-    hideElem(editDiv);
-    showElem(viewDiv);
-    mgrBtn.focus();
+    hideElem($editDiv);
+    showElem($viewDiv);
+    $mgrBtn.trigger('focus');
   });
 
-  saveBtn.on('click', async () => {
+  $saveBtn.on('click', async () => {
     const topics = $('input[name=topics]').val();
 
     const data = new FormData();
     data.append('topics', topics);
 
-    const response = await POST(saveBtn.attr('data-link'), {data});
+    const response = await POST($saveBtn.attr('data-link'), {data});
 
     if (response.ok) {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
-        viewDiv.children('.topic').remove();
+        $viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
-            const link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
-            link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
-            link.text(topic);
-            link.insertBefore(mgrBtn); // insert all new topics before manage button
+            const $link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
+            $link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
+            $link.text(topic);
+            $link.insertBefore($mgrBtn); // insert all new topics before manage button
           }
         }
-        hideElem(editDiv);
-        showElem(viewDiv);
+        hideElem($editDiv);
+        showElem($viewDiv);
       }
     } else if (response.status === 422) {
       const responseData = await response.json();
@@ -62,10 +62,10 @@ export function initRepoTopicBar() {
         topicPrompts.formatPrompt = responseData.message;
 
         const {invalidTopics} = responseData;
-        const topicLabels = topicDropdown.children('a.ui.label');
+        const $topicLabels = $topicDropdown.children('a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
-            topicLabels.eq(index).removeClass('green').addClass('red');
+            $topicLabels.eq(index).removeClass('green').addClass('red');
           }
         }
       } else {
@@ -74,10 +74,10 @@ export function initRepoTopicBar() {
     }
 
     // Always validate the form
-    topicForm.form('validate form');
+    $topicForm.form('validate form');
   });
 
-  topicDropdown.dropdown({
+  $topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
     fullTextSearch: 'exact',
@@ -100,7 +100,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('a.label.visible').each((_, el) => {
+        $topicDropdown.find('a.label.visible').each((_, el) => {
           current_topics.push(el.getAttribute('data-value'));
         });
 
@@ -150,15 +150,15 @@ export function initRepoTopicBar() {
   });
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
-    const topics = topicDropdown.children('a.ui.label');
-    const status = topics.length === 0 || topics.last().attr('data-value').match(regExp);
+    const $topics = $topicDropdown.children('a.ui.label');
+    const status = $topics.length === 0 || $topics.last().attr('data-value').match(regExp);
     if (!status) {
-      topics.last().removeClass('green').addClass('red');
+      $topics.last().removeClass('green').addClass('red');
     }
-    return status && topicDropdown.children('a.ui.label.red').length === 0;
+    return status && $topicDropdown.children('a.ui.label.red').length === 0;
   };
 
-  topicForm.form({
+  $topicForm.form({
     on: 'change',
     inline: true,
     fields: {

@@ -52,7 +52,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
@@ -67,7 +67,7 @@
 								<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 										{{range .Teams}}
 											<div class="item" data-value="{{.ID}}">
@@ -113,7 +113,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
@@ -128,7 +128,7 @@
 								<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 									{{range .Teams}}
 										<div class="item" data-value="{{.ID}}">
@@ -210,7 +210,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
@@ -225,7 +225,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 								<div class="menu">
 								{{range .Teams}}
 									<div class="item" data-value="{{.ID}}">

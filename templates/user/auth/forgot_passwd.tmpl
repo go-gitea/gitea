@@ -12,13 +12,12 @@
 					{{if .IsResetSent}}
 						<p>{{ctx.Locale.Tr "auth.reset_password_mail_sent_prompt" .Email .ResetPwdCodeLives}}</p>
 					{{else if .IsResetRequest}}
-						<div class="required inline field {{if .Err_Email}}error{{end}}">
+						<div class="required field {{if .Err_Email}}error{{end}}">
 							<label for="email">{{ctx.Locale.Tr "email"}}</label>
 							<input id="email" name="email" type="email"  value="{{.Email}}" autofocus required>
 						</div>
 						<div class="divider"></div>
 						<div class="inline field">
-							<label></label>
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.send_reset_mail"}}</button>
 						</div>
 					{{else if .IsResetDisable}}

@@ -2,11 +2,6 @@
   color: var(--color-text-dark) !important;
 }
 
-.code-line-menu {
-  width: auto !important;
-  border: none !important; /* the border is provided by tippy, not using the `.ui.menu` border */
-}
-
 .code-line-button {
   background-color: var(--color-menu);
   color: var(--color-text-light);

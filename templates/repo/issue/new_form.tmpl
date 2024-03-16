@@ -156,7 +156,7 @@
 					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
+							<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
 								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 							</span>

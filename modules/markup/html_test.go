@@ -43,7 +43,8 @@ func TestRender_Commits(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
 			Links: markup.Links{
-				Base: markup.TestRepoURL,
+				AbsolutePrefix: true,
+				Base:           markup.TestRepoURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -96,7 +97,8 @@ func TestRender_CrossReferences(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			Links: markup.Links{
-				Base: setting.AppSubURL,
+				AbsolutePrefix: true,
+				Base:           setting.AppSubURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -588,7 +590,8 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		err := markup.PostProcess(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
-				Base: "https://example.com",
+				AbsolutePrefix: true,
+				Base:           "https://example.com",
 			},
 			Metas: localMetas,
 		}, strings.NewReader(input), &res)

@@ -15,7 +15,7 @@ export function toOriginUrl(urlStr) {
   return urlStr;
 }
 
-window.customElements.define('gitea-origin-url', class extends HTMLElement {
+window.customElements.define('origin-url', class extends HTMLElement {
   connectedCallback() {
     this.textContent = toOriginUrl(this.getAttribute('data-url'));
   }

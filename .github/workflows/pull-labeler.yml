@@ -9,12 +9,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  label:
+  labeler:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/labeler@v4
+      - uses: actions/labeler@v5
         with:
-          dot: true
+          sync-labels: true

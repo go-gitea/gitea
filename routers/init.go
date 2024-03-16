@@ -9,7 +9,6 @@ import (
 	"runtime"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -94,7 +94,7 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_service.RewriteAllPublicKeys)
 
 		return system.AppState.Set(ctx, runtimeState)
 	}

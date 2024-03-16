@@ -8,7 +8,7 @@
 	{{end}}
 	<div class="ui secondary segment">
 		{{if eq .PullRequest.Flow 0}}
-		<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<gitea-origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></gitea-origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
+		<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
 		<div>git checkout {{$localBranch}}</div>
 		{{else}}
 		<div>git fetch -u origin {{.GetGitRefName}}:{{$localBranch}}</div>

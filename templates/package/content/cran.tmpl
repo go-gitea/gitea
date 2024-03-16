@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cran.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>options("repos" = c(getOption("repos"), c(gitea="<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cran"></gitea-origin-url>")))</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>options("repos" = c(getOption("repos"), c(gitea="<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cran"></origin-url>")))</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.cran.install"}}</label>

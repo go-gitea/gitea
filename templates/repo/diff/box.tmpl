@@ -112,7 +112,7 @@
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb gt-fw">
 							<div class="diff-file-name gt-df gt-ac gt-gap-2 gt-fw">
-								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} gt-invisible{{end}}">
+								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
 										{{svg "octicon-chevron-right" 18}}
 									{{else}}

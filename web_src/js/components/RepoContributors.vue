@@ -303,7 +303,7 @@ export default {
 </script>
 <template>
   <div>
-    <h2 class="ui header gt-df gt-ac gt-sb">
+    <div class="ui header gt-df gt-ac gt-sb">
       <div>
         <relative-time
           v-if="xAxisMin > 0"
@@ -334,7 +334,7 @@ export default {
         <div class="ui dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="text">
-              {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
+              <span class="not-mobile">{{ locale.filterLabel }}&nbsp;</span><strong>{{ locale.contributionType[type] }}</strong>
               <svg-icon name="octicon-triangle-down" :size="14"/>
             </span>
           </div>
@@ -351,7 +351,7 @@ export default {
           </div>
         </div>
       </div>
-    </h2>
+    </div>
     <div class="gt-df ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
         <div v-if="isLoading">
@@ -370,7 +370,8 @@ export default {
     </div>
     <div class="contributor-grid">
       <div
-        v-for="(contributor, index) in sortedContributors" :key="index" class="stats-table"
+        v-for="(contributor, index) in sortedContributors"
+        :key="index"
         v-memo="[sortedContributors, type]"
       >
         <div class="ui top attached header gt-df gt-f1">
@@ -406,11 +407,23 @@ export default {
 <style scoped>
 .main-graph {
   height: 260px;
+  padding-top: 2px;
 }
+
 .contributor-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+.contributor-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .contributor-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .contributor-name {

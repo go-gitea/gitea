@@ -59,7 +59,7 @@ func (p *AuthSourceProvider) DisplayName() string {
 
 func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="gt-object-contain gt-mr-3" width="%d" height="%d" src="%s" alt="%s">`,
+		img := fmt.Sprintf(`<img class="tw-object-contain gt-mr-3" width="%d" height="%d" src="%s" alt="%s">`,
 			size,
 			size,
 			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),

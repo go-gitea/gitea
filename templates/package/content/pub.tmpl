@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.pub.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>dart pub add {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}} --hosted-url=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pub/"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dart pub add {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}} --hosted-url=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pub/"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Pub" "https://docs.gitea.com/usage/packages/pub/"}}</label>

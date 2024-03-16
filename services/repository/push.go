@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -183,7 +182,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
-							if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 								if !git.IsErrUnsupportedVersion(err) {
 									return err
 								}
@@ -219,6 +218,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						// TODO: increment update the commit count cache but not remove
 						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
 					}
+				}
+
+				// delete cache for divergence
+				if err := DelDivergenceFromCache(repo.ID, branch); err != nil {
+					log.Error("DelDivergenceFromCache: %v", err)
 				}
 
 				commits := repo_module.GitToPushCommits(l)
@@ -259,10 +263,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				if err = syncBranchToDB(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
-					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
-				}
-
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
@@ -274,10 +274,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
-				}
-
-				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
-					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 

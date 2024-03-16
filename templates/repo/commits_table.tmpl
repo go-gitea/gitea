@@ -8,26 +8,26 @@
 			{{ctx.Locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}}
 		{{end}}
 	</div>
-	<div class="commits-table-right tw-whitespace-nowrap">
-		{{if .PageIsCommits}}
-			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
-				<div class="ui tiny search input">
-					<input name="q" placeholder="{{ctx.Locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
-				</div>
-
-				<div class="ui tiny checkbox">
-					<input type="checkbox" name="all" value="true" {{.All}}>
-					<label>{{ctx.Locale.Tr "repo.commits.search_all"}}</label>
-				</div>
-				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
-			</form>
-		{{else if .IsDiffCompare}}
+	{{if .IsDiffCompare}}
+		<div class="commits-table-right tw-whitespace-nowrap">
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
 			...
 			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
-		{{end}}
-	</div>
+		</div>
+	{{end}}
 </h4>
+
+{{if .PageIsCommits}}
+	<div class="ui attached segment">
+		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+			<div class="ui small fluid action input">
+				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.commit_kind")}}
+				{{template "repo/commits_search_dropdown" .}}
+				{{template "shared/search/button" dict "Tooltip" (ctx.Locale.Tr "repo.commits.search.tooltip")}}
+			</div>
+		</form>
+	</div>
+{{end}}
 
 {{if and .Commits (gt .CommitCount 0)}}
 	{{template "repo/commits_list" .}}

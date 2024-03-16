@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"xorm.io/builder"
 )
@@ -277,7 +278,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}

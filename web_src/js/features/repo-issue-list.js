@@ -125,7 +125,9 @@ function initRepoIssueListAuthorDropdown() {
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
       $newMenuItems.addClass('dynamic-item');
-      $menu.append('<div class="divider dynamic-item"></div>', ...$newMenuItems);
+      const div = document.createElement('div');
+      div.classList.add('divider', 'dynamic-item');
+      $menu[0].append(div, ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function

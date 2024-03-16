@@ -233,7 +233,10 @@ func (g *Manager) setStateTransition(old, new state) bool {
 // At the moment the total number of servers (numberOfServersToCreate) are pre-defined as a const before global init,
 // so this function MUST be called if a server is not used.
 func (g *Manager) InformCleanup() {
-	g.createServerWaitGroup.Done()
+	g.createServerCond.L.Lock()
+	defer g.createServerCond.L.Unlock()
+	g.createdServer++
+	g.createServerCond.Signal()
 }
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating

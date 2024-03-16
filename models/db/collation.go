@@ -166,8 +166,7 @@ func preprocessDatabaseCollation(x *xorm.Engine) {
 
 	// try to alter database collation to expected if the database is empty, it might fail in some cases (and it isn't necessary to succeed)
 	// at the moment, there is no "altering" solution for MSSQL, site admin should manually change the database collation
-	// and there is a bug https://github.com/go-testfixtures/testfixtures/pull/182 mssql: Invalid object name 'information_schema.tables'.
-	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 && x.Dialect().URI().DBType == schemas.MYSQL {
+	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 {
 		if err = alterDatabaseCollation(x, r.ExpectedCollation); err != nil {
 			log.Error("Failed to change database collation to %q: %v", r.ExpectedCollation, err)
 		} else {

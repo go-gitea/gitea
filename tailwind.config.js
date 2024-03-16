@@ -29,8 +29,13 @@ export default {
   content: [
     isProduction && '!./templates/devtest/**/*',
     isProduction && '!./web_src/js/standalone/devtest.js',
+    '!./templates/swagger/v1_json.tmpl',
+    '!./templates/user/auth/oidc_wellknown.tmpl',
+    '!**/*_test.go',
+    '!./modules/{public,options,templates}/bindata.go',
+    './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
-    './web_src/**/*.{js,vue}',
+    './web_src/js/**/*.{js,vue}',
   ].filter(Boolean),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use

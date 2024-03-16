@@ -64,10 +64,9 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")
 
 	// For attention
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^gt-py-3 attention attention-\w+$`)).OnElements("blockquote")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-header attention-\w+$`)).OnElements("blockquote")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-\w+$`)).OnElements("strong")
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^gt-mr-2 gt-vm attention-\w+$`)).OnElements("span", "strong")
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^svg octicon-(\w|-)+$`)).OnElements("svg")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-icon attention-\w+ svg octicon-[\w-]+$`)).OnElements("svg")
 	policy.AllowAttrs("viewBox", "width", "height", "aria-hidden").OnElements("svg")
 	policy.AllowAttrs("fill-rule", "d").OnElements("path")
 
@@ -105,17 +104,11 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow icons
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
 
-	// Allow unlabelled labels
-	policy.AllowNoAttrs().OnElements("label")
-
 	// Allow classes for emojis
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
 
 	// Allow icons, emojis, chroma syntax and keyword markup on span
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji)|(language-math display)|(language-math inline))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
-
-	// Allow 'style' attribute on text elements.
-	policy.AllowAttrs("style").OnElements("span", "p")
 
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
 	policy.AllowStyles("color", "background-color").OnElements("span", "p")
@@ -144,7 +137,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 
 	generalSafeElements := []string{
 		"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "br", "b", "i", "strong", "em", "a", "pre", "code", "img", "tt",
-		"div", "ins", "del", "sup", "sub", "p", "ol", "ul", "table", "thead", "tbody", "tfoot", "blockquote",
+		"div", "ins", "del", "sup", "sub", "p", "ol", "ul", "table", "thead", "tbody", "tfoot", "blockquote", "label",
 		"dl", "dt", "dd", "kbd", "q", "samp", "var", "hr", "ruby", "rt", "rp", "li", "tr", "td", "th", "s", "strike", "summary",
 		"details", "caption", "figure", "figcaption",
 		"abbr", "bdo", "cite", "dfn", "mark", "small", "span", "time", "video", "wbr",

@@ -52,7 +52,7 @@
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
 					*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
-						*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} gt-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+						*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
 							*/}}{{svg "octicon-plus"}}{{/*
 						*/}}</button>{{/*
 					*/}}{{end}}{{/*

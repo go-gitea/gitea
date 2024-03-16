@@ -1,6 +1,7 @@
 import $ from 'jquery';
+import {GET} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window.config;
+const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
@@ -27,25 +28,6 @@ export function initNotificationsTable() {
       e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
     });
   }
-
-  $('#notification_table .button').on('click', function () {
-    (async () => {
-      const data = await updateNotification(
-        $(this).data('url'),
-        $(this).data('status'),
-        $(this).data('page'),
-        $(this).data('q'),
-        $(this).data('notification-id'),
-      );
-
-      if ($(data).data('sequence-number') === notificationSequenceNumber) {
-        $('#notification_div').replaceWith(data);
-        initNotificationsTable();
-      }
-      await updateNotificationCount();
-    })();
-    return false;
-  });
 }
 
 async function receiveUpdateCount(event) {
@@ -63,9 +45,9 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const notificationCount = $('.notification_count');
+  const $notificationCount = $('.notification_count');
 
-  if (!notificationCount.length) {
+  if (!$notificationCount.length) {
     return;
   }
 
@@ -73,7 +55,7 @@ export function initNotificationCount() {
   const startPeriodicPoller = (timeout, lastCount) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    lastCount = lastCount ?? notificationCount.text();
+    lastCount = lastCount ?? $notificationCount.text();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
@@ -161,60 +143,52 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 }
 
 async function updateNotificationTable() {
-  const notificationDiv = $('#notification_div');
-  if (notificationDiv.length > 0) {
-    const data = await $.ajax({
-      type: 'GET',
-      url: `${appSubUrl}/notifications${window.location.search}`,
-      data: {
-        'div-only': true,
-        'sequence-number': ++notificationSequenceNumber,
+  const notificationDiv = document.getElementById('notification_div');
+  if (notificationDiv) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set('div-only', true);
+      params.set('sequence-number', ++notificationSequenceNumber);
+      const url = `${appSubUrl}/notifications?${params.toString()}`;
+      const response = await GET(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch notification table');
       }
-    });
-    if ($(data).data('sequence-number') === notificationSequenceNumber) {
-      notificationDiv.replaceWith(data);
-      initNotificationsTable();
+
+      const data = await response.text();
+      if ($(data).data('sequence-number') === notificationSequenceNumber) {
+        notificationDiv.outerHTML = data;
+        initNotificationsTable();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 }
 
 async function updateNotificationCount() {
-  const data = await $.ajax({
-    type: 'GET',
-    url: `${appSubUrl}/notifications/new`,
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-  });
+  try {
+    const response = await GET(`${appSubUrl}/notifications/new`);
 
-  const notificationCount = $('.notification_count');
-  if (data.new === 0) {
-    notificationCount.addClass('gt-hidden');
-  } else {
-    notificationCount.removeClass('gt-hidden');
+    if (!response.ok) {
+      throw new Error('Failed to fetch notification count');
+    }
+
+    const data = await response.json();
+
+    const $notificationCount = $('.notification_count');
+    if (data.new === 0) {
+      $notificationCount.addClass('gt-hidden');
+    } else {
+      $notificationCount.removeClass('gt-hidden');
+    }
+
+    $notificationCount.text(`${data.new}`);
+
+    return `${data.new}`;
+  } catch (error) {
+    console.error(error);
+    return '0';
   }
-
-  notificationCount.text(`${data.new}`);
-
-  return `${data.new}`;
-}
-
-async function updateNotification(url, status, page, q, notificationID) {
-  if (status !== 'pinned') {
-    $(`#notification_${notificationID}`).remove();
-  }
-
-  return $.ajax({
-    type: 'POST',
-    url,
-    data: {
-      _csrf: csrfToken,
-      notification_id: notificationID,
-      status,
-      page,
-      q,
-      noredirect: true,
-      'sequence-number': ++notificationSequenceNumber,
-    },
-  });
 }

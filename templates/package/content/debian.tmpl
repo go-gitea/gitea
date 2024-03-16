@@ -4,8 +4,8 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>sudo curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key"></gitea-origin-url> -o /etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
-echo "deb [signed-by=/etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc] <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></gitea-origin-url> $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+				<div class="markup"><pre class="code-block"><code>sudo curl <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key"></origin-url> -o /etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
+echo "deb [signed-by=/etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc] <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></origin-url> $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 sudo apt update</code></pre></div>
 				<p>{{ctx.Locale.Tr "packages.debian.registry.info"}}</p>
 			</div>
