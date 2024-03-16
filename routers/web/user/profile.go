@@ -324,12 +324,14 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParamIfExist("tab", ctx.Data["TabName"])
+	pager.AddParamString("tab", tab)
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParamIfExist("language", ctx.Data["Language"])
+		pager.AddParamString("language", language)
 	}
 	if tab == "activity" {
-		pager.AddParamIfExist("date", ctx.Data["Date"])
+		if ctx.Data["Date"] != nil {
+			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
+		}
 	}
 	ctx.Data["Page"] = pager
 }

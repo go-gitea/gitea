@@ -120,7 +120,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParamIfExist("state", ctx.Data["State"])
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
