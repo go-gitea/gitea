@@ -344,8 +344,8 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
 	}
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamIfExist("sort", ctx.Data["SortType"])
+	pager.AddParamIfExist("state", ctx.Data["State"])
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplNotificationSubscriptions)
