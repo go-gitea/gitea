@@ -400,7 +400,7 @@ rules:
   no-jquery/no-and-self: [2]
   no-jquery/no-animate-toggle: [2]
   no-jquery/no-animate: [2]
-  no-jquery/no-append-html: [0]
+  no-jquery/no-append-html: [2]
   no-jquery/no-attr: [0]
   no-jquery/no-bind: [2]
   no-jquery/no-box-model: [2]
