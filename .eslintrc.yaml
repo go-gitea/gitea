@@ -42,10 +42,6 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
-  - files: ["build/generate-images.js"]
-    rules:
-      i/no-unresolved: [0]
-      i/no-extraneous-dependencies: [0]
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
