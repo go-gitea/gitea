@@ -62,7 +62,9 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64, isWiki b
 				return err
 			}
 			if status.CommitSha != "" {
-				indexer.Delete(ctx, repoID, optional.Some(isWiki))
+				if err := indexer.Delete(ctx, repoID, optional.Some(isWiki)); err != nil {
+					return err
+				}
 			}
 			// ignore empty wikis
 			return nil
