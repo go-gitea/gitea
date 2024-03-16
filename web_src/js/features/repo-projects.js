@@ -105,14 +105,14 @@ export function initRepoProject() {
   const _promise = initRepoProjectSortable();
 
   $('.edit-project-column-modal').each(function () {
-    const projectHeader = $(this).closest('.project-column-header');
-    const projectTitleLabel = projectHeader.find('.project-column-title');
-    const projectTitleInput = $(this).find('.project-column-title-input');
-    const projectColorInput = $(this).find('#new_project_column_color');
-    const boardColumn = $(this).closest('.project-column');
+    const $projectHeader = $(this).closest('.project-column-header');
+    const $projectTitleLabel = $projectHeader.find('.project-column-title');
+    const $projectTitleInput = $(this).find('.project-column-title-input');
+    const $projectColorInput = $(this).find('#new_project_column_color');
+    const $boardColumn = $(this).closest('.project-column');
 
-    if (boardColumn.css('backgroundColor')) {
-      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
+    if ($boardColumn.css('backgroundColor')) {
+      setLabelColor($projectHeader, rgbToHex($boardColumn.css('backgroundColor')));
     }
 
     $(this).find('.edit-project-column-button').on('click', async function (e) {
@@ -121,34 +121,34 @@ export function initRepoProject() {
       try {
         await PUT($(this).data('url'), {
           data: {
-            title: projectTitleInput.val(),
-            color: projectColorInput.val(),
+            title: $projectTitleInput.val(),
+            color: $projectColorInput.val(),
           },
         });
       } catch (error) {
         console.error(error);
       } finally {
-        projectTitleLabel.text(projectTitleInput.val());
-        projectTitleInput.closest('form').removeClass('dirty');
-        if (projectColorInput.val()) {
-          setLabelColor(projectHeader, projectColorInput.val());
+        $projectTitleLabel.text($projectTitleInput.val());
+        $projectTitleInput.closest('form').removeClass('dirty');
+        if ($projectColorInput.val()) {
+          setLabelColor($projectHeader, $projectColorInput.val());
         }
-        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        $boardColumn.attr('style', `background: ${$projectColorInput.val()}!important`);
         $('.ui.modal').modal('hide');
       }
     });
   });
 
   $('.default-project-column-modal').each(function () {
-    const boardColumn = $(this).closest('.project-column');
-    const showButton = $(boardColumn).find('.default-project-column-show');
-    const commitButton = $(this).find('.actions > .ok.button');
+    const $boardColumn = $(this).closest('.project-column');
+    const $showButton = $($boardColumn).find('.default-project-column-show');
+    const $commitButton = $(this).find('.actions > .ok.button');
 
-    $(commitButton).on('click', async (e) => {
+    $($commitButton).on('click', async (e) => {
       e.preventDefault();
 
       try {
-        await POST($(showButton).data('url'));
+        await POST($($showButton).data('url'));
       } catch (error) {
         console.error(error);
       } finally {
@@ -158,11 +158,11 @@ export function initRepoProject() {
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
+    const $deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
     const deleteUrl = $(this).attr('data-url');
 
-    deleteColumnButton.on('click', async (e) => {
+    $deleteColumnButton.on('click', async (e) => {
       e.preventDefault();
 
       try {
@@ -177,13 +177,13 @@ export function initRepoProject() {
 
   $('#new_project_column_submit').on('click', (e) => {
     e.preventDefault();
-    const columnTitle = $('#new_project_column');
-    const projectColorInput = $('#new_project_column_color_picker');
-    if (!columnTitle.val()) {
+    const $columnTitle = $('#new_project_column');
+    const $projectColorInput = $('#new_project_column_color_picker');
+    if (!$columnTitle.val()) {
       return;
     }
     const url = e.target.getAttribute('data-url');
-    createNewColumn(url, columnTitle, projectColorInput);
+    createNewColumn(url, $columnTitle, $projectColorInput);
   });
 }
 
