@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
