@@ -163,8 +163,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParam(ctx, "mode", "Mode")
-	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
+	paginator.AddParamString("mode", mode)
+	paginator.AddParamString("hide-pr-refs", fmt.Sprint(hidePRRefs))
 	for _, branch := range branches {
 		paginator.AddParamString("branch", branch)
 	}

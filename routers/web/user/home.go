@@ -133,7 +133,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"] = feeds
 
 	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
-	pager.AddParam(ctx, "date", "Date")
+	pager.AddParamString("date", date)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
@@ -329,10 +329,10 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "repos", "RepoIDs")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("repos", reposQuery)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -639,14 +639,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
-	pager.AddParam(ctx, "fuzzy", "IsFuzzy")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("type", viewType)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("labels", selectedLabels)
+	pager.AddParamString("fuzzy", fmt.Sprintf("%v", isFuzzy))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
