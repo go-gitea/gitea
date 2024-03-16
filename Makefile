@@ -951,7 +951,7 @@ update-translations:
 
 .PHONY: dump-translations
 dump-translations: node_modules
-	@node build/translations.js dump
+	@node tools/translations.js dump
 
 .PHONY: generate-license
 generate-license:
