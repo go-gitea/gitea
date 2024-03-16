@@ -14,7 +14,7 @@ function updateExclusiveLabelEdit(form) {
   if (isExclusiveScopeName($nameInput.val())) {
     $exclusiveField.removeClass('muted');
     $exclusiveField.removeAttr('aria-disabled');
-    if ($exclusiveCheckbox.prop('checked') && $exclusiveCheckbox.data('exclusive-warn')) {
+    if ($exclusiveCheckbox[0].checked && $exclusiveCheckbox.data('exclusive-warn')) {
       $exclusiveWarning.removeClass('gt-hidden');
     } else {
       $exclusiveWarning.addClass('gt-hidden');
@@ -50,10 +50,10 @@ export function initCompLabelEdit(selector) {
     $nameInput.val($(this).data('title'));
 
     const $isArchivedCheckbox = $('.edit-label .label-is-archived-input');
-    $isArchivedCheckbox.prop('checked', this.hasAttribute('data-is-archived'));
+    $isArchivedCheckbox[0].checked = this.hasAttribute('data-is-archived');
 
     const $exclusiveCheckbox = $('.edit-label .label-exclusive-input');
-    $exclusiveCheckbox.prop('checked', this.hasAttribute('data-exclusive'));
+    $exclusiveCheckbox[0].checked = this.hasAttribute('data-exclusive');
     // Warn when label was previously not exclusive and used in issues
     $exclusiveCheckbox.data('exclusive-warn',
       $(this).data('num-issues') > 0 &&

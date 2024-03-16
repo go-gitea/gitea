@@ -67,10 +67,10 @@ export function initRepoEditor() {
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       showElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', true);
+      document.querySelector('.quick-pull-branch-name input').required = true;
     } else {
       hideElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', false);
+      document.querySelector('.quick-pull-branch-name input').required = false;
     }
     $('#commit-button').text($(this).attr('button_text'));
   });
@@ -135,13 +135,13 @@ export function initRepoEditor() {
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const $commitButton = $('#commit-button');
+    const commitButton = document.getElementById('commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
     // Disabling the button at the start
     if ($('input[name="page_has_posted"]').val() !== 'true') {
-      $commitButton.prop('disabled', true);
+      commitButton.disabled = true;
     }
 
     // Registering a custom listener for the file path and the file content
@@ -151,7 +151,7 @@ export function initRepoEditor() {
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
       change() {
         const dirty = $(this).hasClass(dirtyFileClass);
-        $commitButton.prop('disabled', !dirty);
+        commitButton.disabled = !dirty;
       },
     });
 
@@ -163,7 +163,7 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
-    $commitButton.on('click', (event) => {
+    commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
       if ($editArea.val().length === 0) {
         $('#edit-empty-content-modal').modal({
@@ -171,7 +171,7 @@ export function initRepoEditor() {
             $('.edit.form').trigger('submit');
           },
         }).modal('show');
-        event.preventDefault();
+        e.preventDefault();
       }
     });
   })();

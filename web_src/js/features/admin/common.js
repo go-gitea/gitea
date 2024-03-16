@@ -49,7 +49,7 @@ export function initAdminCommon() {
   }
 
   function onUsePagedSearchChange() {
-    if ($('#use_paged_search').prop('checked')) {
+    if (document.getElementById('use_paged_search').checked) {
       showElem('.search-page-size');
       $('.search-page-size').find('input').attr('required', 'required');
     } else {
