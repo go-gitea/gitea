@@ -26,14 +26,13 @@ func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	return p
 }
 
-// AddParam adds a value from context identified by ctxKey as link param under a given paramKey
-func (p *Pagination) AddParam(ctx *Context, paramKey, ctxKey string) {
-	_, exists := ctx.Data[ctxKey]
-	if !exists {
+// AddParamIfExist adds a value to the query parameters if the value is not nil
+func (p *Pagination) AddParamIfExist(key string, val any) {
+	if val == nil {
 		return
 	}
-	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey]) // cast any to string
-	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(paramKey), url.QueryEscape(paramData))
+	paramData := fmt.Sprint(val)
+	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(paramData))
 	p.urlParams = append(p.urlParams, urlParam)
 }
 
@@ -50,8 +49,8 @@ func (p *Pagination) GetParams() template.URL {
 
 // SetDefaultParams sets common pagination params that are often used
 func (p *Pagination) SetDefaultParams(ctx *Context) {
-	p.AddParam(ctx, "sort", "SortType")
-	p.AddParam(ctx, "q", "Keyword")
+	p.AddParamIfExist("sort", ctx.Data["SortType"])
+	p.AddParamIfExist("q", ctx.Data["Keyword"])
 	// do not add any more uncommon params here!
-	p.AddParam(ctx, "fuzzy", "IsFuzzy")
+	p.AddParamIfExist("fuzzy", ctx.Data["IsFuzzy"])
 }
