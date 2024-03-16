@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
-import {toggleElem, hideElem} from '../utils/dom.js';
+import {toggleElem, hideElem, isElemHidden} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
@@ -8,32 +8,42 @@ import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
-  const $issueSelectAll = $('.issue-checkbox-all');
-  const $issueCheckboxes = $('.issue-checkbox');
+  const issueSelectAll = document.querySelector('.issue-checkbox-all');
+  const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
 
   const syncIssueSelectionState = () => {
-    const $checked = $issueCheckboxes.filter(':checked');
-    const anyChecked = $checked.length !== 0;
-    const allChecked = anyChecked && $checked.length === $issueCheckboxes.length;
+    const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
+    const anyChecked = Boolean(checkedCheckboxes.length);
+    const allChecked = anyChecked && checkedCheckboxes.length === issueCheckboxes.length;
 
     if (allChecked) {
-      $issueSelectAll.prop({'checked': true, 'indeterminate': false});
+      issueSelectAll.checked = true;
+      issueSelectAll.indeterminate = false;
     } else if (anyChecked) {
-      $issueSelectAll.prop({'checked': false, 'indeterminate': true});
+      issueSelectAll.checked = false;
+      issueSelectAll.indeterminate = true;
     } else {
-      $issueSelectAll.prop({'checked': false, 'indeterminate': false});
+      issueSelectAll.checked = false;
+      issueSelectAll.indeterminate = false;
     }
     // if any issue is selected, show the action panel, otherwise show the filter panel
     toggleElem($('#issue-filters'), !anyChecked);
     toggleElem($('#issue-actions'), anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    $('#issue-filters, #issue-actions').filter(':visible').find('.issue-list-toolbar-left').prepend($issueSelectAll);
+    const panels = document.querySelectorAll('#issue-filters, #issue-actions');
+    const visiblePanel = Array.from(panels).find((el) => !isElemHidden(el));
+    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left');
+    toolbarLeft.prepend(issueSelectAll);
   };
 
-  $issueCheckboxes.on('change', syncIssueSelectionState);
+  for (const el of issueCheckboxes) {
+    el.addEventListener('change', syncIssueSelectionState);
+  }
 
-  $issueSelectAll.on('change', () => {
-    $issueCheckboxes.prop('checked', $issueSelectAll.is(':checked'));
+  issueSelectAll.addEventListener('change', () => {
+    for (const el of issueCheckboxes) {
+      el.checked = issueSelectAll.checked;
+    }
     syncIssueSelectionState();
   });
 
@@ -125,7 +135,9 @@ function initRepoIssueListAuthorDropdown() {
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
       $newMenuItems.addClass('dynamic-item');
-      $menu.append('<div class="divider dynamic-item"></div>', ...$newMenuItems);
+      const div = document.createElement('div');
+      div.classList.add('divider', 'dynamic-item');
+      $menu[0].append(div, ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function

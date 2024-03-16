@@ -472,16 +472,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
 
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "project", "ProjectID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
-	pager.AddParam(ctx, "poster", "PosterID")
-	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("type", viewType)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("labels", fmt.Sprint(selectLabels))
+	pager.AddParamString("milestone", fmt.Sprint(milestoneID))
+	pager.AddParamString("project", fmt.Sprint(projectID))
+	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
+	pager.AddParamString("poster", fmt.Sprint(posterID))
+	pager.AddParamString("archived", fmt.Sprint(archived))
 
 	ctx.Data["Page"] = pager
 }
