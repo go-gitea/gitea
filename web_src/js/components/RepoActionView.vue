@@ -457,7 +457,7 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps">
+        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -686,9 +686,13 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-radius: var(--border-radius);
   height: 60px;
   z-index: 1;
+}
+
+.job-info-header:has(+ .job-step-container) {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .job-info-header .job-info-header-title {
