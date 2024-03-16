@@ -84,7 +84,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
 		pager.SetDefaultParams(ctx)
-		pager.AddParam(ctx, "search", "search")
+		pager.AddParamIfExist("search", ctx.Data["search"])
 		ctx.Data["Page"] = pager
 		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
@@ -98,7 +98,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "search", "search")
+	pager.AddParamIfExist("search", ctx.Data["search"])
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
