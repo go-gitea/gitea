@@ -62,7 +62,6 @@ cpu.out
 /data
 /indexers
 /log
-
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
