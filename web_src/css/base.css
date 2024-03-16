@@ -149,24 +149,32 @@ a {
   text-decoration-skip-ink: all;
 }
 
-/* muted link = only colored when hovered */
-/* silenced link = never colored */
+/* a = always colored, underlined on hover */
+/* a.muted = colored on hover, underlined on hover */
+/* a.suppressed = never colored, underlined on hover */
+/* a.silenced = never colored, never underlined */
 
 a.muted,
+a.suppressed,
 a.silenced,
 .muted-links a {
   color: inherit;
 }
 
 a:hover,
+a.suppressed:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }
 
-a.silenced:hover {
+a.silenced:hover,
+a.suppressed:hover {
   color: inherit;
+}
+
+a.silenced:hover {
   text-decoration: none;
 }
 
