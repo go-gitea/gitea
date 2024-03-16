@@ -30,7 +30,7 @@ func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
-func (repo *Repository) GetTagType(id SHA1) (string, error) {
+func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(id.String() + "\n"))
@@ -44,7 +44,7 @@ func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	return typ, nil
 }
 
-func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
+func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
@@ -103,6 +103,9 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return nil, err
 	}
 	if typ != "tag" {
+		if err := DiscardFull(rd, size+1); err != nil {
+			return nil, err
+		}
 		return nil, ErrNotExist{ID: tagID.String()}
 	}
 
@@ -117,7 +120,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := parseTagData(data)
+	tag, err := parseTagData(tagID.Type(), data)
 	if err != nil {
 		return nil, err
 	}

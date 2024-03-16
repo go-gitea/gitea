@@ -11,14 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// RemoveUsernameParameterSuffix returns the username parameter without the (fullname) suffix - leaving just the username
-func RemoveUsernameParameterSuffix(name string) string {
-	if index := strings.Index(name, " ("); index >= 0 {
-		name = name[:index]
-	}
-	return name
-}
-
 // SanitizeFlashErrorString will sanitize a flash error string
 func SanitizeFlashErrorString(x string) string {
 	return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")

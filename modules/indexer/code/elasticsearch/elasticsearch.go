@@ -135,7 +135,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
-				"content":    string(charset.ToUTF8DropErrors(fileContents)),
+				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
 				"updated_at": timeutil.TimeStampNow(),
@@ -180,11 +180,17 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	}
 
 	if len(reqs) > 0 {
-		_, err := b.inner.Client.Bulk().
-			Index(b.inner.VersionedIndexName()).
-			Add(reqs...).
-			Do(ctx)
-		return err
+		esBatchSize := 50
+
+		for i := 0; i < len(reqs); i += esBatchSize {
+			_, err := b.inner.Client.Bulk().
+				Index(b.inner.VersionedIndexName()).
+				Add(reqs[i:min(i+esBatchSize, len(reqs))]...).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -275,18 +281,18 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchType := esMultiMatchTypeBestFields
-	if isMatch {
-		searchType = esMultiMatchTypePhrasePrefix
+func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+	searchType := esMultiMatchTypePhrasePrefix
+	if opts.IsKeywordFuzzy {
+		searchType = esMultiMatchTypeBestFields
 	}
 
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
+	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(repoIDs) > 0 {
-		repoStrs := make([]any, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(opts.RepoIDs) > 0 {
+		repoStrs := make([]any, 0, len(opts.RepoIDs))
+		for _, repoID := range opts.RepoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
@@ -294,16 +300,12 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	}
 
 	var (
-		start       int
-		kw          = "<em>" + keyword + "</em>"
-		aggregation = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
+		start, pageSize = opts.GetSkipTake()
+		kw              = "<em>" + opts.Keyword + "</em>"
+		aggregation     = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
 	)
 
-	if page > 0 {
-		start = (page - 1) * pageSize
-	}
-
-	if len(language) == 0 {
+	if len(opts.Language) == 0 {
 		searchResult, err := b.inner.Client.Search().
 			Index(b.inner.VersionedIndexName()).
 			Aggregation("language", aggregation).
@@ -324,7 +326,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		return convertResult(searchResult, kw, pageSize)
 	}
 
-	langQuery := elastic.NewMatchQuery("language", language)
+	langQuery := elastic.NewMatchQuery("language", opts.Language)
 	countResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Aggregation("language", aggregation).

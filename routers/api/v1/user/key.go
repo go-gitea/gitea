@@ -5,18 +5,20 @@ package user
 
 import (
 	std_ctx "context"
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -56,25 +58,26 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
+		var userID int64 // Unrestricted
 		// Querying not just listing
 		if username != "" {
 			// Restrict to provided uid
-			keys, err = asymkey_model.SearchPublicKey(ctx, user.ID, fingerprint)
-		} else {
-			// Unrestricted
-			keys, err = asymkey_model.SearchPublicKey(ctx, 0, fingerprint)
+			userID = user.ID
 		}
+		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			OwnerID:     userID,
+			Fingerprint: fingerprint,
+		})
 		count = len(keys)
 	} else {
-		total, err2 := asymkey_model.CountPublicKeys(ctx, user.ID)
-		if err2 != nil {
-			ctx.InternalServerError(err)
-			return
-		}
-		count = int(total)
-
+		var total int64
 		// Use ListPublicKeys
-		keys, err = asymkey_model.ListPublicKeys(ctx, user.ID, utils.GetListOptions(ctx))
+		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: utils.GetListOptions(ctx),
+			OwnerID:     user.ID,
+			NotKeytype:  asymkey_model.KeyTypePrincipal,
+		})
+		count = int(total)
 	}
 
 	if err != nil {
@@ -196,6 +199,11 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
@@ -260,6 +268,11 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
 
 	id := ctx.ParamsInt64(":id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)

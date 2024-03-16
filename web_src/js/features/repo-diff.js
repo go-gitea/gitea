@@ -6,8 +6,11 @@ import {initDiffCommitSelect} from './repo-diff-commitselect.js';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
+import {showErrorToast} from '../modules/toast.js';
+import {submitEventSubmitter} from '../utils/dom.js';
+import {POST, GET} from '../modules/fetch.js';
 
-const {csrfToken, pageData} = window.config;
+const {pageData, i18n} = window.config;
 
 function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
@@ -45,31 +48,41 @@ function initRepoDiffConversationForm() {
     e.preventDefault();
 
     const $form = $(e.target);
-    const $textArea = $form.find('textarea');
-    if (!validateTextareaNonEmpty($textArea)) {
+    const textArea = e.target.querySelector('textarea');
+    if (!validateTextareaNonEmpty(textArea)) {
       return;
     }
 
-    const formData = new FormData($form[0]);
+    if ($form.hasClass('is-loading')) return;
+    try {
+      $form.addClass('is-loading');
+      const formData = new FormData($form[0]);
 
-    // if the form is submitted by a button, append the button's name and value to the form data
-    const submitter = e.originalEvent?.submitter;
-    const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
-    if (isSubmittedByButton && submitter.name) {
-      formData.append(submitter.name, submitter.value);
-    }
-    const formDataString = String(new URLSearchParams(formData));
-    const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
-    const {path, side, idx} = $newConversationHolder.data();
+      // if the form is submitted by a button, append the button's name and value to the form data
+      const submitter = submitEventSubmitter(e);
+      const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
+      if (isSubmittedByButton && submitter.name) {
+        formData.append(submitter.name, submitter.value);
+      }
 
-    $form.closest('.conversation-holder').replaceWith($newConversationHolder);
-    if ($form.closest('tr').data('line-type') === 'same') {
-      $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('gt-invisible');
-    } else {
-      $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('gt-invisible');
+      const response = await POST($form.attr('action'), {data: formData});
+      const $newConversationHolder = $(await response.text());
+      const {path, side, idx} = $newConversationHolder.data();
+
+      $form.closest('.conversation-holder').replaceWith($newConversationHolder);
+      if ($form.closest('tr').data('line-type') === 'same') {
+        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('tw-invisible');
+      } else {
+        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('tw-invisible');
+      }
+      $newConversationHolder.find('.dropdown').dropdown();
+      initCompReactionSelector($newConversationHolder);
+    } catch (error) {
+      console.error('Error:', error);
+      showErrorToast(i18n.network_error);
+    } finally {
+      $form.removeClass('is-loading');
     }
-    $newConversationHolder.find('.dropdown').dropdown();
-    initCompReactionSelector($newConversationHolder);
   });
 
   $(document).on('click', '.resolve-conversation', async function (e) {
@@ -79,15 +92,20 @@ function initRepoDiffConversationForm() {
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    const data = await $.post(url, {_csrf: csrfToken, origin, action, comment_id});
+    try {
+      const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
+      const data = await response.text();
 
-    if ($(this).closest('.conversation-holder').length) {
-      const conversation = $(data);
-      $(this).closest('.conversation-holder').replaceWith(conversation);
-      conversation.find('.dropdown').dropdown();
-      initCompReactionSelector(conversation);
-    } else {
-      window.location.reload();
+      if ($(this).closest('.conversation-holder').length) {
+        const $conversation = $(data);
+        $(this).closest('.conversation-holder').replaceWith($conversation);
+        $conversation.find('.dropdown').dropdown();
+        initCompReactionSelector($conversation);
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   });
 }
@@ -122,7 +140,7 @@ function onShowMoreFiles() {
   initImageDiff();
 }
 
-export function loadMoreFiles(url) {
+export async function loadMoreFiles(url) {
   const $target = $('a#diff-show-more-files');
   if ($target.hasClass('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
@@ -130,10 +148,10 @@ export function loadMoreFiles(url) {
 
   pageData.diffFileInfo.isLoadingNewData = true;
   $target.addClass('disabled');
-  $.ajax({
-    type: 'GET',
-    url,
-  }).done((resp) => {
+
+  try {
+    const response = await GET(url);
+    const resp = await response.text();
     const $resp = $(resp);
     // the response is a full HTML page, we need to extract the relevant contents:
     // 1. append the newly loaded file list items to the existing list
@@ -142,10 +160,13 @@ export function loadMoreFiles(url) {
     $('body').append($resp.find('script#diff-data-script'));
 
     onShowMoreFiles();
-  }).always(() => {
+  } catch (error) {
+    console.error('Error:', error);
+    showErrorToast('An error occurred while loading more files.');
+  } finally {
     $target.removeClass('disabled');
     pageData.diffFileInfo.isLoadingNewData = false;
-  });
+  }
 }
 
 function initRepoDiffShowMore() {
@@ -157,7 +178,7 @@ function initRepoDiffShowMore() {
     loadMoreFiles(linkLoadMore);
   });
 
-  $(document).on('click', 'a.diff-load-button', (e) => {
+  $(document).on('click', 'a.diff-load-button', async (e) => {
     e.preventDefault();
     const $target = $(e.target);
 
@@ -168,26 +189,28 @@ function initRepoDiffShowMore() {
     $target.addClass('disabled');
 
     const url = $target.data('href');
-    $.ajax({
-      type: 'GET',
-      url,
-    }).done((resp) => {
+
+    try {
+      const response = await GET(url);
+      const resp = await response.text();
+
       if (!resp) {
-        $target.removeClass('disabled');
         return;
       }
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
       onShowMoreFiles();
-    }).fail(() => {
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
       $target.removeClass('disabled');
-    });
+    }
   });
 }
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  const diffFileList = $('#diff-file-list');
-  if (diffFileList.length === 0) return;
+  const $diffFileList = $('#diff-file-list');
+  if ($diffFileList.length === 0) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

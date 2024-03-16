@@ -2,29 +2,30 @@ import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
-import {hideElem, showElem, autosize} from '../../utils/dom.js';
-import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
+import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
+import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
+import {POST} from '../../modules/fetch.js';
 
 let elementIdCounter = 0;
 
 /**
  * validate if the given textarea is non-empty.
- * @param {jQuery} $textarea
+ * @param {HTMLElement} textarea - The textarea element to be validated.
  * @returns {boolean} returns true if validation succeeded.
  */
-export function validateTextareaNonEmpty($textarea) {
+export function validateTextareaNonEmpty(textarea) {
   // When using EasyMDE, the original edit area HTML element is hidden, breaking HTML5 input validation.
   // The workaround (https://github.com/sparksuite/simplemde-markdown-editor/issues/324) doesn't work with contenteditable, so we just show an alert.
-  if (!$textarea.val()) {
-    if ($textarea.is(':visible')) {
-      $textarea.prop('required', true);
-      const $form = $textarea.parents('form');
-      $form[0]?.reportValidity();
+  if (!textarea.value) {
+    if (isElemVisible(textarea)) {
+      textarea.required = true;
+      const form = textarea.closest('form');
+      form?.reportValidity();
     } else {
       // The alert won't hurt users too much, because we are dropping the EasyMDE and the check only occurs in a few places.
       showErrorToast('Require non-empty content');
@@ -83,6 +84,17 @@ class ComboMarkdownEditor {
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
+    this.textarea.addEventListener('keydown', (e) => {
+      if (e.shiftKey) {
+        e.target._shiftDown = true;
+      }
+    });
+    this.textarea.addEventListener('keyup', (e) => {
+      if (!e.shiftKey) {
+        e.target._shiftDown = false;
+      }
+    });
+
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
     const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
@@ -107,7 +119,7 @@ class ComboMarkdownEditor {
     });
 
     if (this.dropzone) {
-      initTextareaImagePaste(this.textarea, this.dropzone);
+      initTextareaPaste(this.textarea, this.dropzone);
     }
   }
 
@@ -147,16 +159,15 @@ class ComboMarkdownEditor {
     this.previewContext = $tabPreviewer.attr('data-preview-context');
     this.previewMode = this.options.previewMode ?? 'comment';
     this.previewWiki = this.options.previewWiki ?? false;
-    $tabPreviewer.on('click', () => {
-      $.post(this.previewUrl, {
-        _csrf: window.config.csrfToken,
-        mode: this.previewMode,
-        context: this.previewContext,
-        text: this.value(),
-        wiki: this.previewWiki,
-      }, (data) => {
-        renderPreviewPanelContent($panelPreviewer, data);
-      });
+    $tabPreviewer.on('click', async () => {
+      const formData = new FormData();
+      formData.append('mode', this.previewMode);
+      formData.append('context', this.previewContext);
+      formData.append('text', this.value());
+      formData.append('wiki', this.previewWiki);
+      const response = await POST(this.previewUrl, {data: formData});
+      const data = await response.text();
+      renderPreviewPanelContent($panelPreviewer, data);
     });
   }
 
@@ -241,7 +252,7 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEImagePaste(this.easyMDE, this.dropzone);
+    initEasyMDEPaste(this.easyMDE, this.dropzone);
     hideElem(this.textareaMarkdownToolbar);
   }
 

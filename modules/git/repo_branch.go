@@ -55,15 +55,8 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	}, nil
 }
 
-// SetDefaultBranch sets default branch of repository.
-func (repo *Repository) SetDefaultBranch(name string) error {
-	_, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").AddDynamicArguments(BranchPrefix + name).RunStdString(&RunOpts{Dir: repo.Path})
-	return err
-}
-
-// GetDefaultBranch gets default branch of repository.
-func (repo *Repository) GetDefaultBranch() (string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repo.Path})
+func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
+	stdout, _, err := NewCommand(ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return "", err
 	}
@@ -84,29 +77,6 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 		Name:    branch,
 		gitRepo: repo,
 	}, nil
-}
-
-// GetBranchesByPath returns a branch by it's path
-// if limit = 0 it will not limit
-func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Branch, int, error) {
-	gitRepo, err := OpenRepository(ctx, path)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranches(skip, limit)
-}
-
-// GetBranchCommitID returns a branch commit ID by its name
-func GetBranchCommitID(ctx context.Context, path, branch string) (string, error) {
-	gitRepo, err := OpenRepository(ctx, path)
-	if err != nil {
-		return "", err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranchCommitID(branch)
 }
 
 // GetBranches returns a slice of *git.Branch

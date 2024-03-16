@@ -64,7 +64,7 @@ func (e *escapeStreamer) Text(data string) error {
 			until, next = nextIdxs[0]+pos, nextIdxs[1]+pos
 		}
 
-		// from pos until until we know that the runes are not \r\t\n or even ' '
+		// from pos until we know that the runes are not \r\t\n or even ' '
 		runes := make([]rune, 0, next-until)
 		positions := make([]int, 0, next-until+1)
 
@@ -173,7 +173,7 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 		Val: "ambiguous-code-point",
 	}, html.Attribute{
 		Key: "data-tooltip-content",
-		Val: e.locale.Tr("repo.ambiguous_character", r, c),
+		Val: e.locale.TrString("repo.ambiguous_character", r, c),
 	}); err != nil {
 		return err
 	}

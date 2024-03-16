@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu gt-bg-transparent">
+				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<div class="item">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{.Total}}</strong>
@@ -46,14 +46,11 @@
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">
-						<div class="ui small search fluid action input">
-							<input type="hidden" name="type" value="{{$.ViewType}}">
+						<input type="hidden" name="type" value="{{$.ViewType}}">
 							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							{{template "shared/searchinput" dict "Value" $.Keyword}}
-							<button class="ui small icon button" type="submit" aria-label="{{ctx.Locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
-						</div>
+						{{template "shared/search/combo" dict "Value" $.Keyword}}
 					</form>
 					<!-- Sort -->
 					<div class="list-header-sort ui dropdown type jump item">
@@ -62,8 +59,8 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-							<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
+							<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
 							<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
 							<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
 							<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
@@ -106,14 +103,14 @@
 									{{if .UpdatedUnix}}
 										<div class="flex-text-block">
 											{{svg "octicon-clock"}}
-											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
+											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
 										</div>
 									{{end}}
 									<div class="flex-text-block">
 										{{if .IsClosed}}
 											{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 											{{svg "octicon-clock" 14}}
-											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 										{{else}}
 											{{if .DeadlineString}}
 												<span{{if .IsOverdue}} class="text red"{{end}}>
@@ -141,7 +138,7 @@
 							</div>
 							{{if .Content}}
 								<div class="markup content">
-									{{.RenderedContent|Str2html}}
+									{{.RenderedContent}}
 								</div>
 							{{end}}
 						</li>

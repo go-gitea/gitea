@@ -1,8 +1,9 @@
 import $ from 'jquery';
 import {checkAppUrl} from '../common-global.js';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
+import {POST} from '../../modules/fetch.js';
 
-const {csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initAdminCommon() {
   if ($('.page-content.admin').length === 0) {
@@ -48,7 +49,7 @@ export function initAdminCommon() {
   }
 
   function onUsePagedSearchChange() {
-    if ($('#use_paged_search').prop('checked')) {
+    if (document.getElementById('use_paged_search').checked) {
       showElem('.search-page-size');
       $('.search-page-size').find('input').attr('required', 'required');
     } else {
@@ -172,7 +173,8 @@ export function initAdminCommon() {
 
   if ($('.admin.authentication').length > 0) {
     $('#auth_name').on('input', function () {
-      $('#oauth2-callback-url').text(`${window.location.origin}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
+      // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
+      $('#oauth2-callback-url').text(`${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
     }).trigger('input');
   }
 
@@ -203,22 +205,18 @@ export function initAdminCommon() {
           break;
       }
     });
-    $('#delete-selection').on('click', function (e) {
+    $('#delete-selection').on('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
       $this.addClass('loading disabled');
-      const ids = [];
+      const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {
-          ids.push($(this).data('id'));
+          data.append('ids[]', $(this).data('id'));
         }
       });
-      $.post($this.data('link'), {
-        _csrf: csrfToken,
-        ids
-      }).done(() => {
-        window.location.href = $this.data('redirect');
-      });
+      await POST($this.data('link'), {data});
+      window.location.href = $this.data('redirect');
     });
   }
 }

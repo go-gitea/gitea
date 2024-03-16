@@ -267,11 +267,11 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 	defer t.Close()
 
 	var lastCommitID string
-	if err := t.Clone(repo.DefaultBranch); err != nil {
+	if err := t.Clone(repo.DefaultBranch, true); err != nil {
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err := t.Init(); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return err
 		}
 	} else {
