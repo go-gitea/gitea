@@ -1,4 +1,3 @@
 import $ from 'jquery';
 
-// eslint-disable-next-line no-jquery/variable-pattern
-window.$ = window.jQuery = $;
+window.$ = window.jQuery = $; // eslint-disable-line no-jquery/variable-pattern
