@@ -168,9 +168,6 @@ export function initImageDiff() {
       sizes.image2.parent().parent()[0].style.width = `${sizes.max.width * factor + 2}px`;
       sizes.image2.parent().parent()[0].style.height = `${sizes.max.height * factor + 2}px`;
 
-      $container.find('.diff-swipe')[0].style.width = `${sizes.max.width * factor + 2}px`;
-      $container.find('.diff-swipe')[0].style.height = `${sizes.max.height * factor + 30}px`;
-
       // extra height for inner "position: absolute" elements
       $container.find('.diff-swipe')[0].style.width = `${sizes.max.width * factor + 2}px`;
       $container.find('.diff-swipe')[0].style.height = `${sizes.max.height * factor + 30}px`;

@@ -26,7 +26,7 @@ function updateExclusiveLabelEdit(form) {
   }
 }
 
-export async function initCompLabelEdit(selector) {
+export function initCompLabelEdit(selector) {
   if (!$(selector).length) return;
   initCompColorPicker();
 
