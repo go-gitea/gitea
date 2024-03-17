@@ -124,9 +124,9 @@
 			<div class="gt-df gt-ac">
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
-					<div class="ui action tiny input" id="clone-panel">
+					<div class="clone-panel ui action tiny input">
 						{{template "repo/clone_buttons" .}}
-						<button id="more-btn" class="ui basic small compact jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
+						<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if not $.DisableDownloadSourceArchives}}
