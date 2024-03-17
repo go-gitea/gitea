@@ -6,23 +6,23 @@ function isExclusiveScopeName(name) {
 }
 
 function updateExclusiveLabelEdit(form) {
-  const nameInput = $(`${form} .label-name-input`);
-  const exclusiveField = $(`${form} .label-exclusive-input-field`);
-  const exclusiveCheckbox = $(`${form} .label-exclusive-input`);
-  const exclusiveWarning = $(`${form} .label-exclusive-warning`);
+  const $nameInput = $(`${form} .label-name-input`);
+  const $exclusiveField = $(`${form} .label-exclusive-input-field`);
+  const $exclusiveCheckbox = $(`${form} .label-exclusive-input`);
+  const $exclusiveWarning = $(`${form} .label-exclusive-warning`);
 
-  if (isExclusiveScopeName(nameInput.val())) {
-    exclusiveField.removeClass('muted');
-    exclusiveField.removeAttr('aria-disabled');
-    if (exclusiveCheckbox.prop('checked') && exclusiveCheckbox.data('exclusive-warn')) {
-      exclusiveWarning.removeClass('gt-hidden');
+  if (isExclusiveScopeName($nameInput.val())) {
+    $exclusiveField.removeClass('muted');
+    $exclusiveField.removeAttr('aria-disabled');
+    if ($exclusiveCheckbox[0].checked && $exclusiveCheckbox.data('exclusive-warn')) {
+      $exclusiveWarning.removeClass('gt-hidden');
     } else {
-      exclusiveWarning.addClass('gt-hidden');
+      $exclusiveWarning.addClass('gt-hidden');
     }
   } else {
-    exclusiveField.addClass('muted');
-    exclusiveField.attr('aria-disabled', 'true');
-    exclusiveWarning.addClass('gt-hidden');
+    $exclusiveField.addClass('muted');
+    $exclusiveField.attr('aria-disabled', 'true');
+    $exclusiveWarning.addClass('gt-hidden');
   }
 }
 
@@ -46,18 +46,18 @@ export function initCompLabelEdit(selector) {
     $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
 
-    const nameInput = $('.edit-label .label-name-input');
-    nameInput.val($(this).data('title'));
+    const $nameInput = $('.edit-label .label-name-input');
+    $nameInput.val($(this).data('title'));
 
-    const isArchivedCheckbox = $('.edit-label .label-is-archived-input');
-    isArchivedCheckbox.prop('checked', this.hasAttribute('data-is-archived'));
+    const $isArchivedCheckbox = $('.edit-label .label-is-archived-input');
+    $isArchivedCheckbox[0].checked = this.hasAttribute('data-is-archived');
 
-    const exclusiveCheckbox = $('.edit-label .label-exclusive-input');
-    exclusiveCheckbox.prop('checked', this.hasAttribute('data-exclusive'));
+    const $exclusiveCheckbox = $('.edit-label .label-exclusive-input');
+    $exclusiveCheckbox[0].checked = this.hasAttribute('data-exclusive');
     // Warn when label was previously not exclusive and used in issues
-    exclusiveCheckbox.data('exclusive-warn',
+    $exclusiveCheckbox.data('exclusive-warn',
       $(this).data('num-issues') > 0 &&
-      (!this.hasAttribute('data-exclusive') || !isExclusiveScopeName(nameInput.val())));
+      (!this.hasAttribute('data-exclusive') || !isExclusiveScopeName($nameInput.val())));
     updateExclusiveLabelEdit('.edit-label');
 
     $('.edit-label .label-desc-input').val($(this).data('description'));

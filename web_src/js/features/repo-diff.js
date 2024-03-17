@@ -97,10 +97,10 @@ function initRepoDiffConversationForm() {
       const data = await response.text();
 
       if ($(this).closest('.conversation-holder').length) {
-        const conversation = $(data);
-        $(this).closest('.conversation-holder').replaceWith(conversation);
-        conversation.find('.dropdown').dropdown();
-        initCompReactionSelector(conversation);
+        const $conversation = $(data);
+        $(this).closest('.conversation-holder').replaceWith($conversation);
+        $conversation.find('.dropdown').dropdown();
+        initCompReactionSelector($conversation);
       } else {
         window.location.reload();
       }
@@ -209,8 +209,8 @@ function initRepoDiffShowMore() {
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  const diffFileList = $('#diff-file-list');
-  if (diffFileList.length === 0) return;
+  const $diffFileList = $('#diff-file-list');
+  if ($diffFileList.length === 0) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

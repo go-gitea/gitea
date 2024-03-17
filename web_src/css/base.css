@@ -149,24 +149,32 @@ a {
   text-decoration-skip-ink: all;
 }
 
-/* muted link = only colored when hovered */
-/* silenced link = never colored */
+/* a = always colored, underlined on hover */
+/* a.muted = colored on hover, underlined on hover */
+/* a.suppressed = never colored, underlined on hover */
+/* a.silenced = never colored, never underlined */
 
 a.muted,
+a.suppressed,
 a.silenced,
 .muted-links a {
   color: inherit;
 }
 
 a:hover,
+a.suppressed:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }
 
-a.silenced:hover {
+a.silenced:hover,
+a.suppressed:hover {
   color: inherit;
+}
+
+a.silenced:hover {
   text-decoration: none;
 }
 
@@ -500,73 +508,6 @@ ol.ui.list li,
 .visible.transition {
   display: block !important;
   visibility: visible !important;
-}
-
-.ui.message {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  box-shadow: none !important;
-  border: 1px solid var(--color-secondary);
-}
-
-.ui.info.message .header,
-.ui.blue.message .header {
-  color: var(--color-blue);
-}
-
-.ui.info.message,
-.ui.attached.info.message,
-.ui.blue.message,
-.ui.attached.blue.message {
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border-color: var(--color-info-border);
-}
-
-.ui.success.message .header,
-.ui.positive.message .header,
-.ui.green.message .header {
-  color: var(--color-green);
-}
-
-.ui.success.message,
-.ui.attached.success.message,
-.ui.positive.message,
-.ui.attached.positive.message {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  border-color: var(--color-success-border);
-}
-
-.ui.error.message .header,
-.ui.negative.message .header,
-.ui.red.message .header {
-  color: var(--color-red);
-}
-
-.ui.error.message,
-.ui.attached.error.message,
-.ui.red.message,
-.ui.attached.red.message,
-.ui.negative.message,
-.ui.attached.negative.message {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border-color: var(--color-error-border);
-}
-
-.ui.warning.message .header,
-.ui.yellow.message .header {
-  color: var(--color-yellow);
-}
-
-.ui.warning.message,
-.ui.attached.warning.message,
-.ui.yellow.message,
-.ui.attached.yellow.message {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  border-color: var(--color-warning-border);
 }
 
 .ui.error.header {
@@ -1279,42 +1220,47 @@ input:-webkit-autofill:active,
   border-radius: var(--border-radius);
 }
 
-.attention {
+.attention-header {
+  padding: 0.5em 0.75em !important;
   color: var(--color-text) !important;
+}
+
+.attention-icon {
+  margin: 2px 6px 0 0;
 }
 
 blockquote.attention-note {
   border-left-color: var(--color-blue-dark-1);
 }
-strong.attention-note, span.attention-note {
+strong.attention-note, svg.attention-note {
   color: var(--color-blue-dark-1);
 }
 
 blockquote.attention-tip {
   border-left-color: var(--color-success-text);
 }
-strong.attention-tip, span.attention-tip {
+strong.attention-tip, svg.attention-tip {
   color: var(--color-success-text);
 }
 
 blockquote.attention-important {
   border-left-color: var(--color-violet-dark-1);
 }
-strong.attention-important, span.attention-important {
+strong.attention-important, svg.attention-important {
   color: var(--color-violet-dark-1);
 }
 
 blockquote.attention-warning {
   border-left-color: var(--color-warning-text);
 }
-strong.attention-warning, span.attention-warning {
+strong.attention-warning, svg.attention-warning {
   color: var(--color-warning-text);
 }
 
 blockquote.attention-caution {
   border-left-color: var(--color-red-dark-1);
 }
-strong.attention-caution, span.attention-caution {
+strong.attention-caution, svg.attention-caution {
   color: var(--color-red-dark-1);
 }
 
