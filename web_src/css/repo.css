@@ -143,41 +143,31 @@
   margin-bottom: 12px;
 }
 
-.repository #clone-panel #repo-clone-url {
+.repository .clone-panel #repo-clone-url {
   width: 320px;
   border-radius: 0;
 }
 
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .repository #clone-panel #repo-clone-url {
+@media (max-width: 991.98px) {
+  .repository .clone-panel #repo-clone-url {
     width: 200px;
   }
 }
 
-@media (max-width: 767.98px) {
-  .repository #clone-panel #repo-clone-url {
-    width: 200px;
-  }
+.repository .ui.action.input.clone-panel > button + button,
+.repository .ui.action.input.clone-panel > button + input {
+  margin-left: -1px; /* make the borders overlap to avoid double borders */
 }
 
-.repository #clone-panel #repo-clone-https,
-.repository #clone-panel #repo-clone-ssh {
-  border-right: none;
-}
-
-.repository #clone-panel #more-btn {
-  border-left: none;
-}
-
-.repository #clone-panel button:first-of-type {
+.repository .clone-panel > button:first-of-type {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-.repository #clone-panel button:last-of-type {
+.repository .clone-panel > button:last-of-type {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-.repository #clone-panel .dropdown .menu {
+.repository .clone-panel .dropdown .menu {
   right: 0 !important;
   left: auto !important;
 }
@@ -1757,10 +1747,6 @@
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.repository.quickstart .guide .clone.button:first-child {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
 .repository.quickstart .guide #repo-clone-url {
