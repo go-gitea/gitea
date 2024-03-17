@@ -735,8 +735,8 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-.ui.secondary.pointing.menu .active.item,
 .ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
 .size-for-semibold::before {
   font-weight: var(--font-weight-semibold);
 }
