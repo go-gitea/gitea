@@ -181,7 +181,8 @@ func (t telegramConvertor) Package(p *api.PackagePayload) (TelegramPayload, erro
 
 func createTelegramPayload(message string) TelegramPayload {
 	return TelegramPayload{
-		Message: strings.TrimSpace(message),
+		Message:   strings.TrimSpace(message),
+		ParseMode: "HTML",
 	}
 }
 
