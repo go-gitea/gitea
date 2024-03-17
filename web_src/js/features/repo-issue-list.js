@@ -8,6 +8,7 @@ import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
+  if (!window.config.isSignedIn) return;
   const issueSelectAll = document.querySelector('.issue-checkbox-all');
   const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
 
