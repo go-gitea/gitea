@@ -1,0 +1,99 @@
+.ui.message {
+  background: var(--color-box-body);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  position: relative;
+  min-height: 1em;
+  margin: 1em 0;
+  padding: 1em 1.5em;
+  border-radius: var(--border-radius);
+}
+
+.ui.message:first-child {
+  margin-top: 0;
+}
+
+.ui.message:last-child {
+  margin-bottom: 0;
+}
+
+.ui.attached.message {
+  margin-bottom: -1px;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  margin-left: -1px;
+  margin-right: -1px;
+}
+
+.ui.attached + .ui.attached.message:not(.top):not(.bottom) {
+  margin-top: -1px;
+  border-radius: 0;
+}
+
+.ui.bottom.attached.message {
+  margin-top: -1px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.bottom.attached.message:not(:last-child) {
+  margin-bottom: 1em;
+}
+
+.ui.info.message .header,
+.ui.blue.message .header {
+  color: var(--color-blue);
+}
+
+.ui.info.message,
+.ui.attached.info.message,
+.ui.blue.message,
+.ui.attached.blue.message {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+
+.ui.success.message .header,
+.ui.positive.message .header,
+.ui.green.message .header {
+  color: var(--color-green);
+}
+
+.ui.success.message,
+.ui.attached.success.message,
+.ui.positive.message,
+.ui.attached.positive.message {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+
+.ui.error.message .header,
+.ui.negative.message .header,
+.ui.red.message .header {
+  color: var(--color-red);
+}
+
+.ui.error.message,
+.ui.attached.error.message,
+.ui.red.message,
+.ui.attached.red.message,
+.ui.negative.message,
+.ui.attached.negative.message {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border-color: var(--color-error-border);
+}
+
+.ui.warning.message .header,
+.ui.yellow.message .header {
+  color: var(--color-yellow);
+}
+
+.ui.warning.message,
+.ui.attached.warning.message,
+.ui.yellow.message,
+.ui.attached.yellow.message {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}
