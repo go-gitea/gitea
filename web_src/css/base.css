@@ -735,7 +735,6 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-/* these selectors must stay together */
 .ui.secondary.pointing.menu .active.item,
 .ui.tabular.menu .active.item,
 .size-for-semibold::before {
