@@ -521,16 +521,28 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		return nil, nil
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
-	if err != nil {
-		ctx.ServerError("GetProjectBoard", err)
-		return nil, nil
-	}
-	if board.ProjectID != ctx.ParamsInt64(":id") {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", board.ID, project.ID),
-		})
-		return nil, nil
+	var board *project_model.Board
+
+	if ctx.ParamsInt64(":boardID") == 0 {
+		board = &project_model.Board{
+			ID:        0,
+			ProjectID: project.ID,
+			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
+		}
+	} else {
+		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+		if err != nil {
+			if project_model.IsErrProjectBoardNotExist(err) {
+				ctx.NotFound("ProjectBoardNotExist", nil)
+			} else {
+				ctx.ServerError("GetProjectBoard", err)
+			}
+			return nil, nil
+		}
+		if board.ProjectID != project.ID {
+			ctx.NotFound("BoardNotInProject", nil)
+			return nil, nil
+		}
 	}
 
 	if project.RepoID != ctx.Repo.Repository.ID {
