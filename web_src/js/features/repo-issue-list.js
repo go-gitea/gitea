@@ -188,8 +188,6 @@ async function initIssuePinSort() {
 
   createSortable(pinDiv, {
     group: 'shared',
-    animation: 150,
-    ghostClass: 'card-ghost',
     onEnd: pinMoveEnd,
   });
 }
