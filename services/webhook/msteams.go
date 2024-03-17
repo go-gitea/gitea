@@ -58,8 +58,8 @@ type (
 	}
 )
 
-// Create implements PayloadConvertor Create method
-func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
+// Create implements PayloadConverter Create method
+func (m msteamsConverter) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -75,8 +75,8 @@ func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// Delete implements PayloadConvertor Delete method
-func (m msteamsConvertor) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
+// Delete implements PayloadConverter Delete method
+func (m msteamsConverter) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
 	// deleted tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -92,8 +92,8 @@ func (m msteamsConvertor) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// Fork implements PayloadConvertor Fork method
-func (m msteamsConvertor) Fork(p *api.ForkPayload) (MSTeamsPayload, error) {
+// Fork implements PayloadConverter Fork method
+func (m msteamsConverter) Fork(p *api.ForkPayload) (MSTeamsPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return createMSTeamsPayload(
@@ -107,8 +107,8 @@ func (m msteamsConvertor) Fork(p *api.ForkPayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// Push implements PayloadConvertor Push method
-func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
+// Push implements PayloadConverter Push method
+func (m msteamsConverter) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -150,8 +150,8 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// Issue implements PayloadConvertor Issue method
-func (m msteamsConvertor) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
+// Issue implements PayloadConverter Issue method
+func (m msteamsConverter) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
 	title, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -165,8 +165,8 @@ func (m msteamsConvertor) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// IssueComment implements PayloadConvertor IssueComment method
-func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPayload, error) {
+// IssueComment implements PayloadConverter IssueComment method
+func (m msteamsConverter) IssueComment(p *api.IssueCommentPayload) (MSTeamsPayload, error) {
 	title, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -180,8 +180,8 @@ func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPaylo
 	), nil
 }
 
-// PullRequest implements PayloadConvertor PullRequest method
-func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload, error) {
+// PullRequest implements PayloadConverter PullRequest method
+func (m msteamsConverter) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload, error) {
 	title, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -195,8 +195,8 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 	), nil
 }
 
-// Review implements PayloadConvertor Review method
-func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (MSTeamsPayload, error) {
+// Review implements PayloadConverter Review method
+func (m msteamsConverter) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -232,8 +232,8 @@ func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module
 	), nil
 }
 
-// Repository implements PayloadConvertor Repository method
-func (m msteamsConvertor) Repository(p *api.RepositoryPayload) (MSTeamsPayload, error) {
+// Repository implements PayloadConverter Repository method
+func (m msteamsConverter) Repository(p *api.RepositoryPayload) (MSTeamsPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -257,8 +257,8 @@ func (m msteamsConvertor) Repository(p *api.RepositoryPayload) (MSTeamsPayload, 
 	), nil
 }
 
-// Wiki implements PayloadConvertor Wiki method
-func (m msteamsConvertor) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
+// Wiki implements PayloadConverter Wiki method
+func (m msteamsConverter) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
 	title, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -272,8 +272,8 @@ func (m msteamsConvertor) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
 	), nil
 }
 
-// Release implements PayloadConvertor Release method
-func (m msteamsConvertor) Release(p *api.ReleasePayload) (MSTeamsPayload, error) {
+// Release implements PayloadConverter Release method
+func (m msteamsConverter) Release(p *api.ReleasePayload) (MSTeamsPayload, error) {
 	title, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -287,7 +287,7 @@ func (m msteamsConvertor) Release(p *api.ReleasePayload) (MSTeamsPayload, error)
 	), nil
 }
 
-func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error) {
+func (m msteamsConverter) Package(p *api.PackagePayload) (MSTeamsPayload, error) {
 	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -343,10 +343,10 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 	}
 }
 
-type msteamsConvertor struct{}
+type msteamsConverter struct{}
 
-var _ payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
+var _ payloadConverter[MSTeamsPayload] = msteamsConverter{}
 
 func newMSTeamsRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(msteamsConvertor{}, w, t, true)
+	return newJSONRequest(msteamsConverter{}, w, t, true)
 }

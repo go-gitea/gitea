@@ -17,7 +17,7 @@ import (
 )
 
 func TestFeishuPayload(t *testing.T) {
-	fc := feishuConvertor{}
+	fc := feishuConverter{}
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 

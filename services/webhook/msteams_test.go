@@ -17,7 +17,7 @@ import (
 )
 
 func TestMSTeamsPayload(t *testing.T) {
-	mc := msteamsConvertor{}
+	mc := msteamsConverter{}
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 

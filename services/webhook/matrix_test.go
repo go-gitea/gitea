@@ -17,7 +17,7 @@ import (
 )
 
 func TestMatrixPayload(t *testing.T) {
-	mc := matrixConvertor{
+	mc := matrixConverter{
 		MsgType: "m.text",
 	}
 

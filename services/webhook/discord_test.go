@@ -18,7 +18,7 @@ import (
 )
 
 func TestDiscordPayload(t *testing.T) {
-	dc := discordConvertor{}
+	dc := discordConverter{}
 
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()

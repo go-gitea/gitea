@@ -100,8 +100,8 @@ var (
 	redColor         = color("ff3232")
 )
 
-// Create implements PayloadConvertor Create method
-func (d discordConvertor) Create(p *api.CreatePayload) (DiscordPayload, error) {
+// Create implements PayloadConverter Create method
+func (d discordConverter) Create(p *api.CreatePayload) (DiscordPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -109,8 +109,8 @@ func (d discordConvertor) Create(p *api.CreatePayload) (DiscordPayload, error) {
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), greenColor), nil
 }
 
-// Delete implements PayloadConvertor Delete method
-func (d discordConvertor) Delete(p *api.DeletePayload) (DiscordPayload, error) {
+// Delete implements PayloadConverter Delete method
+func (d discordConverter) Delete(p *api.DeletePayload) (DiscordPayload, error) {
 	// deleted tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -118,15 +118,15 @@ func (d discordConvertor) Delete(p *api.DeletePayload) (DiscordPayload, error) {
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), redColor), nil
 }
 
-// Fork implements PayloadConvertor Fork method
-func (d discordConvertor) Fork(p *api.ForkPayload) (DiscordPayload, error) {
+// Fork implements PayloadConverter Fork method
+func (d discordConverter) Fork(p *api.ForkPayload) (DiscordPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL, greenColor), nil
 }
 
-// Push implements PayloadConvertor Push method
-func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
+// Push implements PayloadConverter Push method
+func (d discordConverter) Push(p *api.PushPayload) (DiscordPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -160,29 +160,29 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	return d.createPayload(p.Sender, title, text, titleLink, greenColor), nil
 }
 
-// Issue implements PayloadConvertor Issue method
-func (d discordConvertor) Issue(p *api.IssuePayload) (DiscordPayload, error) {
+// Issue implements PayloadConverter Issue method
+func (d discordConverter) Issue(p *api.IssuePayload) (DiscordPayload, error) {
 	title, _, text, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, title, text, p.Issue.HTMLURL, color), nil
 }
 
-// IssueComment implements PayloadConvertor IssueComment method
-func (d discordConvertor) IssueComment(p *api.IssueCommentPayload) (DiscordPayload, error) {
+// IssueComment implements PayloadConverter IssueComment method
+func (d discordConverter) IssueComment(p *api.IssueCommentPayload) (DiscordPayload, error) {
 	title, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, title, p.Comment.Body, p.Comment.HTMLURL, color), nil
 }
 
-// PullRequest implements PayloadConvertor PullRequest method
-func (d discordConvertor) PullRequest(p *api.PullRequestPayload) (DiscordPayload, error) {
+// PullRequest implements PayloadConverter PullRequest method
+func (d discordConverter) PullRequest(p *api.PullRequestPayload) (DiscordPayload, error) {
 	title, _, text, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
 }
 
-// Review implements PayloadConvertor Review method
-func (d discordConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (DiscordPayload, error) {
+// Review implements PayloadConverter Review method
+func (d discordConverter) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (DiscordPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -210,8 +210,8 @@ func (d discordConvertor) Review(p *api.PullRequestPayload, event webhook_module
 	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
 }
 
-// Repository implements PayloadConvertor Repository method
-func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, error) {
+// Repository implements PayloadConverter Repository method
+func (d discordConverter) Repository(p *api.RepositoryPayload) (DiscordPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -227,8 +227,8 @@ func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, 
 	return d.createPayload(p.Sender, title, "", url, color), nil
 }
 
-// Wiki implements PayloadConvertor Wiki method
-func (d discordConvertor) Wiki(p *api.WikiPayload) (DiscordPayload, error) {
+// Wiki implements PayloadConverter Wiki method
+func (d discordConverter) Wiki(p *api.WikiPayload) (DiscordPayload, error) {
 	text, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
 	htmlLink := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
 
@@ -240,32 +240,32 @@ func (d discordConvertor) Wiki(p *api.WikiPayload) (DiscordPayload, error) {
 	return d.createPayload(p.Sender, text, description, htmlLink, color), nil
 }
 
-// Release implements PayloadConvertor Release method
-func (d discordConvertor) Release(p *api.ReleasePayload) (DiscordPayload, error) {
+// Release implements PayloadConverter Release method
+func (d discordConverter) Release(p *api.ReleasePayload) (DiscordPayload, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.HTMLURL, color), nil
 }
 
-func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error) {
+func (d discordConverter) Package(p *api.PackagePayload) (DiscordPayload, error) {
 	text, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
-type discordConvertor struct {
+type discordConverter struct {
 	Username  string
 	AvatarURL string
 }
 
-var _ payloadConvertor[DiscordPayload] = discordConvertor{}
+var _ payloadConverter[DiscordPayload] = discordConverter{}
 
 func newDiscordRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newDiscordRequest meta json: %w", err)
 	}
-	sc := discordConvertor{
+	sc := discordConverter{
 		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 	}
@@ -287,7 +287,7 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 	}
 }
 
-func (d discordConvertor) createPayload(s *api.User, title, text, url string, color int) DiscordPayload {
+func (d discordConverter) createPayload(s *api.User, title, text, url string, color int) DiscordPayload {
 	return DiscordPayload{
 		Username:  d.Username,
 		AvatarURL: d.AvatarURL,

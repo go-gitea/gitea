@@ -27,7 +27,7 @@ func TestDingTalkPayload(t *testing.T) {
 		}
 		return ""
 	}
-	dc := dingtalkConvertor{}
+	dc := dingtalkConverter{}
 
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()

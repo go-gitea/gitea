@@ -17,7 +17,7 @@ import (
 )
 
 func TestSlackPayload(t *testing.T) {
-	sc := slackConvertor{}
+	sc := slackConverter{}
 
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()

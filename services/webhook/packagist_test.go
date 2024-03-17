@@ -17,7 +17,7 @@ import (
 )
 
 func TestPackagistPayload(t *testing.T) {
-	pc := packagistConvertor{
+	pc := packagistConverter{
 		PackageURL: "https://packagist.org/packages/example",
 	}
 	t.Run("Create", func(t *testing.T) {

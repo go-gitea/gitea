@@ -24,8 +24,8 @@ type (
 	DingtalkPayload dingtalk.Payload
 )
 
-// Create implements PayloadConvertor Create method
-func (dc dingtalkConvertor) Create(p *api.CreatePayload) (DingtalkPayload, error) {
+// Create implements PayloadConverter Create method
+func (dc dingtalkConverter) Create(p *api.CreatePayload) (DingtalkPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -33,8 +33,8 @@ func (dc dingtalkConvertor) Create(p *api.CreatePayload) (DingtalkPayload, error
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
-// Delete implements PayloadConvertor Delete method
-func (dc dingtalkConvertor) Delete(p *api.DeletePayload) (DingtalkPayload, error) {
+// Delete implements PayloadConverter Delete method
+func (dc dingtalkConverter) Delete(p *api.DeletePayload) (DingtalkPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -42,15 +42,15 @@ func (dc dingtalkConvertor) Delete(p *api.DeletePayload) (DingtalkPayload, error
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
-// Fork implements PayloadConvertor Fork method
-func (dc dingtalkConvertor) Fork(p *api.ForkPayload) (DingtalkPayload, error) {
+// Fork implements PayloadConverter Fork method
+func (dc dingtalkConverter) Fork(p *api.ForkPayload) (DingtalkPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return createDingtalkPayload(title, title, fmt.Sprintf("view forked repo %s", p.Repo.FullName), p.Repo.HTMLURL), nil
 }
 
-// Push implements PayloadConvertor Push method
-func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
+// Push implements PayloadConverter Push method
+func (dc dingtalkConverter) Push(p *api.PushPayload) (DingtalkPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -90,37 +90,37 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 	return createDingtalkPayload(title, text, linkText, titleLink), nil
 }
 
-// Issue implements PayloadConvertor Issue method
-func (dc dingtalkConvertor) Issue(p *api.IssuePayload) (DingtalkPayload, error) {
+// Issue implements PayloadConverter Issue method
+func (dc dingtalkConverter) Issue(p *api.IssuePayload) (DingtalkPayload, error) {
 	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view issue", p.Issue.HTMLURL), nil
 }
 
-// Wiki implements PayloadConvertor Wiki method
-func (dc dingtalkConvertor) Wiki(p *api.WikiPayload) (DingtalkPayload, error) {
+// Wiki implements PayloadConverter Wiki method
+func (dc dingtalkConverter) Wiki(p *api.WikiPayload) (DingtalkPayload, error) {
 	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
 	url := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
 
 	return createDingtalkPayload(text, text, "view wiki", url), nil
 }
 
-// IssueComment implements PayloadConvertor IssueComment method
-func (dc dingtalkConvertor) IssueComment(p *api.IssueCommentPayload) (DingtalkPayload, error) {
+// IssueComment implements PayloadConverter IssueComment method
+func (dc dingtalkConverter) IssueComment(p *api.IssueCommentPayload) (DingtalkPayload, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+p.Comment.Body, "view issue comment", p.Comment.HTMLURL), nil
 }
 
-// PullRequest implements PayloadConvertor PullRequest method
-func (dc dingtalkConvertor) PullRequest(p *api.PullRequestPayload) (DingtalkPayload, error) {
+// PullRequest implements PayloadConverter PullRequest method
+func (dc dingtalkConverter) PullRequest(p *api.PullRequestPayload) (DingtalkPayload, error) {
 	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view pull request", p.PullRequest.HTMLURL), nil
 }
 
-// Review implements PayloadConvertor Review method
-func (dc dingtalkConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (DingtalkPayload, error) {
+// Review implements PayloadConverter Review method
+func (dc dingtalkConverter) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (DingtalkPayload, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -136,8 +136,8 @@ func (dc dingtalkConvertor) Review(p *api.PullRequestPayload, event webhook_modu
 	return createDingtalkPayload(title, title+"\r\n\r\n"+text, "view pull request", p.PullRequest.HTMLURL), nil
 }
 
-// Repository implements PayloadConvertor Repository method
-func (dc dingtalkConvertor) Repository(p *api.RepositoryPayload) (DingtalkPayload, error) {
+// Repository implements PayloadConverter Repository method
+func (dc dingtalkConverter) Repository(p *api.RepositoryPayload) (DingtalkPayload, error) {
 	switch p.Action {
 	case api.HookRepoCreated:
 		title := fmt.Sprintf("[%s] Repository created", p.Repository.FullName)
@@ -157,14 +157,14 @@ func (dc dingtalkConvertor) Repository(p *api.RepositoryPayload) (DingtalkPayloa
 	return DingtalkPayload{}, nil
 }
 
-// Release implements PayloadConvertor Release method
-func (dc dingtalkConvertor) Release(p *api.ReleasePayload) (DingtalkPayload, error) {
+// Release implements PayloadConverter Release method
+func (dc dingtalkConverter) Release(p *api.ReleasePayload) (DingtalkPayload, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
 }
 
-func (dc dingtalkConvertor) Package(p *api.PackagePayload) (DingtalkPayload, error) {
+func (dc dingtalkConverter) Package(p *api.PackagePayload) (DingtalkPayload, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
@@ -186,10 +186,10 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkP
 	}
 }
 
-type dingtalkConvertor struct{}
+type dingtalkConverter struct{}
 
-var _ payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
+var _ payloadConverter[DingtalkPayload] = dingtalkConverter{}
 
 func newDingtalkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(dingtalkConvertor{}, w, t, true)
+	return newJSONRequest(dingtalkConverter{}, w, t, true)
 }

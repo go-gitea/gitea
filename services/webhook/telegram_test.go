@@ -17,7 +17,7 @@ import (
 )
 
 func TestTelegramPayload(t *testing.T) {
-	tc := telegramConvertor{}
+	tc := telegramConverter{}
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 

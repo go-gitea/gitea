@@ -42,8 +42,8 @@ func GetTelegramHook(w *webhook_model.Webhook) *TelegramMeta {
 	return s
 }
 
-// Create implements PayloadConvertor Create method
-func (t telegramConvertor) Create(p *api.CreatePayload) (TelegramPayload, error) {
+// Create implements PayloadConverter Create method
+func (t telegramConverter) Create(p *api.CreatePayload) (TelegramPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
@@ -52,8 +52,8 @@ func (t telegramConvertor) Create(p *api.CreatePayload) (TelegramPayload, error)
 	return createTelegramPayload(title), nil
 }
 
-// Delete implements PayloadConvertor Delete method
-func (t telegramConvertor) Delete(p *api.DeletePayload) (TelegramPayload, error) {
+// Delete implements PayloadConverter Delete method
+func (t telegramConverter) Delete(p *api.DeletePayload) (TelegramPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
@@ -62,15 +62,15 @@ func (t telegramConvertor) Delete(p *api.DeletePayload) (TelegramPayload, error)
 	return createTelegramPayload(title), nil
 }
 
-// Fork implements PayloadConvertor Fork method
-func (t telegramConvertor) Fork(p *api.ForkPayload) (TelegramPayload, error) {
+// Fork implements PayloadConverter Fork method
+func (t telegramConverter) Fork(p *api.ForkPayload) (TelegramPayload, error) {
 	title := fmt.Sprintf(`%s is forked to <a href="%s">%s</a>`, p.Forkee.FullName, p.Repo.HTMLURL, p.Repo.FullName)
 
 	return createTelegramPayload(title), nil
 }
 
-// Push implements PayloadConvertor Push method
-func (t telegramConvertor) Push(p *api.PushPayload) (TelegramPayload, error) {
+// Push implements PayloadConverter Push method
+func (t telegramConverter) Push(p *api.PushPayload) (TelegramPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -107,29 +107,29 @@ func (t telegramConvertor) Push(p *api.PushPayload) (TelegramPayload, error) {
 	return createTelegramPayload(title + "\n" + text), nil
 }
 
-// Issue implements PayloadConvertor Issue method
-func (t telegramConvertor) Issue(p *api.IssuePayload) (TelegramPayload, error) {
+// Issue implements PayloadConverter Issue method
+func (t telegramConverter) Issue(p *api.IssuePayload) (TelegramPayload, error) {
 	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text + "\n\n" + attachmentText), nil
 }
 
-// IssueComment implements PayloadConvertor IssueComment method
-func (t telegramConvertor) IssueComment(p *api.IssueCommentPayload) (TelegramPayload, error) {
+// IssueComment implements PayloadConverter IssueComment method
+func (t telegramConverter) IssueComment(p *api.IssueCommentPayload) (TelegramPayload, error) {
 	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text + "\n" + p.Comment.Body), nil
 }
 
-// PullRequest implements PayloadConvertor PullRequest method
-func (t telegramConvertor) PullRequest(p *api.PullRequestPayload) (TelegramPayload, error) {
+// PullRequest implements PayloadConverter PullRequest method
+func (t telegramConverter) PullRequest(p *api.PullRequestPayload) (TelegramPayload, error) {
 	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text + "\n" + attachmentText), nil
 }
 
-// Review implements PayloadConvertor Review method
-func (t telegramConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (TelegramPayload, error) {
+// Review implements PayloadConverter Review method
+func (t telegramConverter) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (TelegramPayload, error) {
 	var text, attachmentText string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -145,8 +145,8 @@ func (t telegramConvertor) Review(p *api.PullRequestPayload, event webhook_modul
 	return createTelegramPayload(text + "\n" + attachmentText), nil
 }
 
-// Repository implements PayloadConvertor Repository method
-func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload, error) {
+// Repository implements PayloadConverter Repository method
+func (t telegramConverter) Repository(p *api.RepositoryPayload) (TelegramPayload, error) {
 	var title string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -159,21 +159,21 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	return TelegramPayload{}, nil
 }
 
-// Wiki implements PayloadConvertor Wiki method
-func (t telegramConvertor) Wiki(p *api.WikiPayload) (TelegramPayload, error) {
+// Wiki implements PayloadConverter Wiki method
+func (t telegramConverter) Wiki(p *api.WikiPayload) (TelegramPayload, error) {
 	text, _, _ := getWikiPayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text), nil
 }
 
-// Release implements PayloadConvertor Release method
-func (t telegramConvertor) Release(p *api.ReleasePayload) (TelegramPayload, error) {
+// Release implements PayloadConverter Release method
+func (t telegramConverter) Release(p *api.ReleasePayload) (TelegramPayload, error) {
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text), nil
 }
 
-func (t telegramConvertor) Package(p *api.PackagePayload) (TelegramPayload, error) {
+func (t telegramConverter) Package(p *api.PackagePayload) (TelegramPayload, error) {
 	text, _ := getPackagePayloadInfo(p, htmlLinkFormatter, true)
 
 	return createTelegramPayload(text), nil
@@ -185,10 +185,10 @@ func createTelegramPayload(message string) TelegramPayload {
 	}
 }
 
-type telegramConvertor struct{}
+type telegramConverter struct{}
 
-var _ payloadConvertor[TelegramPayload] = telegramConvertor{}
+var _ payloadConverter[TelegramPayload] = telegramConverter{}
 
 func newTelegramRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(telegramConvertor{}, w, t, true)
+	return newJSONRequest(telegramConverter{}, w, t, true)
 }

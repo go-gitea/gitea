@@ -14,8 +14,8 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
-// payloadConvertor defines the interface to convert system payload to webhook payload
-type payloadConvertor[T any] interface {
+// payloadConverter defines the interface to convert system payload to webhook payload
+type payloadConverter[T any] interface {
 	Create(*api.CreatePayload) (T, error)
 	Delete(*api.DeletePayload) (T, error)
 	Fork(*api.ForkPayload) (T, error)
@@ -39,7 +39,7 @@ func convertUnmarshalledJSON[T, P any](convert func(P) (T, error), data []byte) 
 	return convert(p)
 }
 
-func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module.HookEventType) (T, error) {
+func newPayload[T any](rc payloadConverter[T], data []byte, event webhook_module.HookEventType) (T, error) {
 	switch event {
 	case webhook_module.HookEventCreate:
 		return convertUnmarshalledJSON(rc.Create, data)
@@ -83,7 +83,7 @@ func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module
 	return t, fmt.Errorf("newPayload unsupported event: %s", event)
 }
 
-func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *webhook_model.HookTask, withDefaultHeaders bool) (*http.Request, []byte, error) {
+func newJSONRequest[T any](pc payloadConverter[T], w *webhook_model.Webhook, t *webhook_model.HookTask, withDefaultHeaders bool) (*http.Request, []byte, error) {
 	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
