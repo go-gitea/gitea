@@ -98,7 +98,13 @@ func BlankCfg() {
 	rootCfg := CfgProvider
 	saveCfg, _ := rootCfg.PrepareSaving()
 
-	rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
+	saveCfg.Section("storage.minio").Key("MINIO_ACCESS_KEY_ID").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking storage.minio.MINIO_ACCESS_KEY_ID to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking storage.minio.MINIO_ACCESS_KEY_ID to config")
+	}
+
 	saveCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking storage.minio.MINIO_SECRET_ACCESS_KEY to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
@@ -106,7 +112,6 @@ func BlankCfg() {
 		log.Info("successfully blanking storage.minio.MINIO_SECRET_ACCESS_KEY to config")
 	}
 
-	rootCfg.Section("database").Key("PASSWD").SetValue("")
 	saveCfg.Section("database").Key("PASSWD").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking database.PASSWD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
@@ -114,7 +119,6 @@ func BlankCfg() {
 		log.Info("successfully blanking database.PASSWD to config")
 	}
 
-	rootCfg.Section("database").Key("HOST").SetValue("")
 	saveCfg.Section("database").Key("HOST").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking database.HOST to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
@@ -122,7 +126,6 @@ func BlankCfg() {
 		log.Info("successfully blanking database.HOST to config")
 	}
 
-	rootCfg.Section("database").Key("NAME").SetValue("")
 	saveCfg.Section("database").Key("NAME").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking database.NAME to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
@@ -130,7 +133,6 @@ func BlankCfg() {
 		log.Info("successfully blanking database.NAME to config")
 	}
 
-	rootCfg.Section("database").Key("USER").SetValue("")
 	saveCfg.Section("database").Key("USER").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking database.USER to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
@@ -138,12 +140,32 @@ func BlankCfg() {
 		log.Info("successfully blanking database.USER to config")
 	}
 
-	rootCfg.Section("message").Key("PASSWORD").SetValue("")
+	saveCfg.Section("message").Key("USERNAME").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking message.USERNAME to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking message.USERNAME to config")
+	}
+
 	saveCfg.Section("message").Key("PASSWORD").SetValue("")
 	if err := saveCfg.Save(); err != nil {
 		log.Error("Unable to blanking message.PASSWORD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
 	} else {
 		log.Info("successfully blanking message.PASSWORD to config")
+	}
+
+	saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking oauth2.JWT_SECRET to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking oauth2.JWT_SECRET to config")
+	}
+
+	saveCfg.Section("server").Key("LFS_JWT_SECRET").SetValue("")
+	if err := saveCfg.Save(); err != nil {
+		log.Error("Unable to blanking server.LFS_JWT_SECRET to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+	} else {
+		log.Info("successfully blanking server.LFS_JWT_SECRET to config")
 	}
 }
 
