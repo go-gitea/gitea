@@ -9,8 +9,8 @@ import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector('.issue-checkbox-all');
+  if (!issueSelectAll) return; // logged out state
   const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
-  if(!issueSelectAll) return;
 
   const syncIssueSelectionState = () => {
     const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
@@ -41,7 +41,7 @@ function initRepoIssueListCheckboxes() {
     el.addEventListener('change', syncIssueSelectionState);
   }
 
-  issueSelectAll?.addEventListener('change', () => {
+  issueSelectAll.addEventListener('change', () => {
     for (const el of issueCheckboxes) {
       el.checked = issueSelectAll.checked;
     }
