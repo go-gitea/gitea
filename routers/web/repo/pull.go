@@ -706,7 +706,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
-	if pull.IsWorkInProgress() {
+	if pull.IsWorkInProgress(ctx) {
 		ctx.Data["IsPullWorkInProgress"] = true
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix(ctx)
 	}
