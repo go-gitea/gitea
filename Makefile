@@ -375,11 +375,11 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build tools *.config.js tests/e2e
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e --fix
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build tools *.config.js tests/e2e --fix
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -948,6 +948,10 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
+
+.PHONY: dump-translations
+dump-translations: node_modules
+	@node tools/translations.js dump
 
 .PHONY: generate-license
 generate-license:
