@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.chef.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>knife[:supermarket_site] = '<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/chef"></gitea-origin-url>'</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>knife[:supermarket_site] = '<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/chef"></origin-url>'</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.chef.install"}}</label>
