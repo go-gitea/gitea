@@ -1,55 +1,19 @@
-<p align="center">
-  <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
-  </a>
-</p>
-<h1 align="center">Gitea - Git with a cup of tea</h1>
+# Gitea
 
-<p align="center">
-  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
-    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
-  </a>
-  <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
-    <img src="https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2">
-  </a>
-  <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
-    <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
-  </a>
-  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
-    <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
-  </a>
-  <a href="https://pkg.go.dev/code.gitea.io/gitea" title="GoDoc">
-    <img src="https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg">
-  </a>
-  <a href="https://github.com/go-gitea/gitea/releases/latest" title="GitHub release">
-    <img src="https://img.shields.io/github/release/go-gitea/gitea.svg">
-  </a>
-  <a href="https://www.codetriage.com/go-gitea/gitea" title="Help Contribute to Open Source">
-    <img src="https://www.codetriage.com/go-gitea/gitea/badges/users.svg">
-  </a>
-  <a href="https://opencollective.com/gitea" title="Become a backer/sponsor of gitea">
-    <img src="https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen">
-  </a>
-  <a href="https://opensource.org/licenses/MIT" title="License: MIT">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg">
-  </a>
-  <a href="https://gitpod.io/#https://github.com/go-gitea/gitea">
-  <img
-    src="https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod"
-    alt="Contribute with Gitpod"
-  />
-  </a>
-  <a href="https://crowdin.com/project/gitea" title="Crowdin">
-    <img src="https://badges.crowdin.net/gitea/localized.svg">
-  </a>
-  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
-    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
-  </a>
-</p>
+[![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
+[![](https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg)](https://app.codecov.io/gh/go-gitea/gitea "Codecov")
+[![](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea "Go Report Card")
+[![](https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg)](https://pkg.go.dev/code.gitea.io/gitea "GoDoc")
+[![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
+[![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
+[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
+[![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
+[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/go-gitea/gitea)
+[![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
+[![](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main "TODOs")
 
-<p align="center">
-  <a href="README_ZH.md">View this document in Chinese</a>
-</p>
+[View this document in Chinese](./README_ZH.md)
 
 ## Purpose
 
