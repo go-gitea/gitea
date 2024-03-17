@@ -143,8 +143,8 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 }
 
 async function updateNotificationTable() {
-  const $notificationDiv = $('#notification_div');
-  if ($notificationDiv.length > 0) {
+  const notificationDiv = document.getElementById('notification_div');
+  if (notificationDiv) {
     try {
       const params = new URLSearchParams(window.location.search);
       params.set('div-only', true);
@@ -158,7 +158,7 @@ async function updateNotificationTable() {
 
       const data = await response.text();
       if ($(data).data('sequence-number') === notificationSequenceNumber) {
-        $notificationDiv.replaceWith(data);
+        notificationDiv.outerHTML = data;
         initNotificationsTable();
       }
     } catch (error) {

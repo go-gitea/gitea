@@ -436,13 +436,12 @@ async function onEditContent(event) {
       const $content = $segment;
       if (!$content.find('.dropzone-attachments').length) {
         if (data.attachments !== '') {
-          $content.append(`<div class="dropzone-attachments"></div>`);
-          $content.find('.dropzone-attachments').replaceWith(data.attachments);
+          $content[0].append(data.attachments);
         }
       } else if (data.attachments === '') {
         $content.find('.dropzone-attachments').remove();
       } else {
-        $content.find('.dropzone-attachments').replaceWith(data.attachments);
+        $content.find('.dropzone-attachments')[0].outerHTML = data.attachments;
       }
       if (dz) {
         dz.emit('submit');
@@ -534,7 +533,7 @@ export function initRepository() {
       const gitignores = $('input[name="gitignores"]').val();
       const license = $('input[name="license"]').val();
       if (gitignores || license) {
-        $('input[name="auto_init"]').prop('checked', true);
+        document.querySelector('input[name="auto_init"]').checked = true;
       }
     });
   }
