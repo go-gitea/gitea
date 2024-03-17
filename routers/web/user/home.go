@@ -24,15 +24,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -85,7 +84,7 @@ func Dashboard(ctx *context.Context) {
 		page = 1
 	}
 
-	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
+	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Locale.TrString("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
@@ -134,7 +133,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"] = feeds
 
 	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
-	pager.AddParam(ctx, "date", "Date")
+	pager.AddParamString("date", date)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
@@ -162,8 +161,8 @@ func Milestones(ctx *context.Context) {
 		Private:       true,
 		AllPublic:     false, // Include also all public repositories of users and public organisations
 		AllLimited:    false, // Include also all public repositories of limited organisations
-		Archived:      util.OptionalBoolFalse,
-		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
+		Archived:      optional.Some(false),
+		HasMilestones: optional.Some(true), // Just needs display repos has milestones
 	}
 
 	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
@@ -215,7 +214,7 @@ func Milestones(ctx *context.Context) {
 	counts, err := issues_model.CountMilestonesMap(ctx, issues_model.FindMilestoneOptions{
 		RepoCond: userRepoCond,
 		Name:     keyword,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 	})
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
@@ -228,7 +227,7 @@ func Milestones(ctx *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoCond: repoCond,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 	})
@@ -296,17 +295,17 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	showRepoIds := make(container.Set[int64], len(showRepos))
+	showRepoIDs := make(container.Set[int64], len(showRepos))
 	for _, repo := range showRepos {
 		if repo.ID > 0 {
-			showRepoIds.Add(repo.ID)
+			showRepoIDs.Add(repo.ID)
 		}
 	}
 	if len(repoIDs) == 0 {
-		repoIDs = showRepoIds.Values()
+		repoIDs = showRepoIDs.Values()
 	}
 	repoIDs = slices.DeleteFunc(repoIDs, func(v int64) bool {
-		return !showRepoIds.Contains(v)
+		return !showRepoIDs.Contains(v)
 	})
 
 	var pagerCount int
@@ -330,10 +329,10 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "repos", "RepoIDs")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("repos", reposQuery)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -440,9 +439,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	isPullList := unitType == unit.TypePullRequests
 	opts := &issues_model.IssuesOptions{
-		IsPull:     util.OptionalBoolOf(isPullList),
+		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
-		IsArchived: util.OptionalBoolFalse,
+		IsArchived: optional.Some(false),
 		Org:        org,
 		Team:       team,
 		User:       ctx.Doer,
@@ -466,9 +465,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		Private:     true,
 		AllPublic:   false,
 		AllLimited:  false,
-		Collaborate: util.OptionalBoolNone,
+		Collaborate: optional.None[bool](),
 		UnitType:    unitType,
-		Archived:    util.OptionalBoolFalse,
+		Archived:    optional.Some(false),
 	}
 	if team != nil {
 		repoOpts.TeamID = team.ID
@@ -516,7 +515,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.FormString("state") == "closed"
-	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
+	opts.IsClosed = optional.Some(isShowClosed)
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := ctx.FormInt("page")
@@ -633,13 +632,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("type", viewType)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("labels", selectedLabels)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
@@ -714,13 +711,17 @@ func UsernameSubRoute(ctx *context.Context) {
 	username := ctx.Params("username")
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
-		context_service.UserAssignmentWeb()(ctx)
+		context.UserAssignmentWeb()(ctx)
+		if ctx.Written() {
+			return false
+		}
+
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 			return false
 		}
-		return !ctx.Written()
+		return true
 	}
 	switch {
 	case strings.HasSuffix(username, ".png"):
@@ -741,7 +742,6 @@ func UsernameSubRoute(ctx *context.Context) {
 			return
 		}
 		if reloadParam(".rss") {
-			context_service.UserAssignmentWeb()(ctx)
 			feed.ShowUserFeedRSS(ctx)
 		}
 	case strings.HasSuffix(username, ".atom"):
@@ -753,7 +753,7 @@ func UsernameSubRoute(ctx *context.Context) {
 			feed.ShowUserFeedAtom(ctx)
 		}
 	default:
-		context_service.UserAssignmentWeb()(ctx)
+		context.UserAssignmentWeb()(ctx)
 		if !ctx.Written() {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			OwnerProfile(ctx)
@@ -790,22 +790,22 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		case issues_model.FilterModeYourRepositories:
 			openClosedOpts.AllPublic = false
 		case issues_model.FilterModeAssign:
-			openClosedOpts.AssigneeID = &doerID
+			openClosedOpts.AssigneeID = optional.Some(doerID)
 		case issues_model.FilterModeCreate:
-			openClosedOpts.PosterID = &doerID
+			openClosedOpts.PosterID = optional.Some(doerID)
 		case issues_model.FilterModeMention:
-			openClosedOpts.MentionID = &doerID
+			openClosedOpts.MentionID = optional.Some(doerID)
 		case issues_model.FilterModeReviewRequested:
-			openClosedOpts.ReviewRequestedID = &doerID
+			openClosedOpts.ReviewRequestedID = optional.Some(doerID)
 		case issues_model.FilterModeReviewed:
-			openClosedOpts.ReviewedID = &doerID
+			openClosedOpts.ReviewedID = optional.Some(doerID)
 		}
-		openClosedOpts.IsClosed = util.OptionalBoolFalse
+		openClosedOpts.IsClosed = optional.Some(false)
 		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
 		}
-		openClosedOpts.IsClosed = util.OptionalBoolTrue
+		openClosedOpts.IsClosed = optional.Some(true)
 		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
@@ -816,23 +816,23 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	if err != nil {
 		return nil, err
 	}
-	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = &doerID }))
+	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = &doerID }))
+	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = &doerID }))
+	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = &doerID }))
+	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewedID = &doerID }))
+	ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewedID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}

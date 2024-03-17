@@ -15,7 +15,7 @@
 					{{range $i, $v := .TreeNames}}
 						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input id="file-name" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+							<input id="file-name" maxlength="500" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
 							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
@@ -30,7 +30,7 @@
 					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
@@ -38,15 +38,14 @@
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
-{{.FileContent}}</textarea>
+						data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markup" data-tab="preview">
 					{{ctx.Locale.Tr "loading"}}
 				</div>
 				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
-					{{ctx.Locale.Tr "loading"}}
+					<div class="tw-p-16"></div>
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}

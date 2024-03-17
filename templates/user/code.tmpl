@@ -1,10 +1,9 @@
 {{template "base/head" .}}
 {{if .ContextUser.IsOrganization}}
-	<div role="main" aria-label="{{.Title}}" class="page-content repository">
-		{{template "shared/user/org_profile_avatar" .}}
+	<div role="main" aria-label="{{.Title}}" class="page-content organization code">
+		{{template "org/header" .}}
 		<div class="ui container">
-			{{template "user/overview/header" .}}
-			{{template "code/searchcombo" .}}
+			{{template "shared/search/code/search" .}}
 		</div>
 	</div>
 {{else}}
@@ -16,7 +15,7 @@
 				</div>
 				<div class="ui twelve wide column">
 					{{template "user/overview/header" .}}
-					{{template "code/searchcombo" .}}
+					{{template "shared/search/code/search" .}}
 				</div>
 			</div>
 		</div>

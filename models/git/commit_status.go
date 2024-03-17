@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // CommitStatus holds a single Status of a single Commit
@@ -38,7 +37,7 @@ type CommitStatus struct {
 	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	TargetURL   string                 `xorm:"TEXT"`
 	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"char(40) index"`
+	ContextHash string                 `xorm:"VARCHAR(64) index"`
 	Context     string                 `xorm:"TEXT"`
 	Creator     *user_model.User       `xorm:"-"`
 	CreatorID   int64
@@ -195,7 +194,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.commitstatus." + status.State.String())
+	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
@@ -221,57 +220,42 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
 	db.ListOptions
+	RepoID   int64
+	SHA      string
 	State    string
 	SortType string
 }
 
-// GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize <= 0 {
-		opts.Page = setting.ItemsPerPage
+func (opts *CommitStatusOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"repo_id": opts.RepoID,
+		"sha":     opts.SHA,
 	}
 
-	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.Count(new(CommitStatus))
-	if err != nil {
-		log.Error("Count PRs: %v", err)
-		return nil, maxResults, err
-	}
-
-	statuses := make([]*CommitStatus, 0, opts.PageSize)
-	findSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	findSession = db.SetSessionPagination(findSession, opts)
-	sortCommitStatusesSession(findSession, opts.SortType)
-	return statuses, maxResults, findSession.Find(&statuses)
-}
-
-func listCommitStatusesStatement(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
-		sess.And("state = ?", opts.State)
+		cond = cond.And(builder.Eq{
+			"state": opts.State,
+		})
 	}
-	return sess
+
+	return cond
 }
 
-func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
-	switch sortType {
+func (opts *CommitStatusOptions) ToOrders() string {
+	switch opts.SortType {
 	case "oldest":
-		sess.Asc("created_unix")
+		return "created_unix ASC"
 	case "recentupdate":
-		sess.Desc("updated_unix")
+		return "updated_unix DESC"
 	case "leastupdate":
-		sess.Asc("updated_unix")
+		return "updated_unix ASC"
 	case "leastindex":
-		sess.Desc("index")
+		return "`index` DESC"
 	case "highestindex":
-		sess.Asc("index")
+		return "`index` ASC"
 	default:
-		sess.Desc("created_unix")
+		return "created_unix DESC"
 	}
 }
 

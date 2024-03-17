@@ -43,7 +43,8 @@ func TestRender_Commits(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
 			Links: markup.Links{
-				Base: markup.TestRepoURL,
+				AbsolutePrefix: true,
+				Base:           markup.TestRepoURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -96,7 +97,8 @@ func TestRender_CrossReferences(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			Links: markup.Links{
-				Base: setting.AppSubURL,
+				AbsolutePrefix: true,
+				Base:           setting.AppSubURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -204,6 +206,15 @@ func TestRender_links(t *testing.T) {
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
 		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+	test(
+		`[link](https://example.com)`,
+		`<p><a href="https://example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](mailto:test@example.com)`,
+		`<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](javascript:xss)`,
+		`<p>link</p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -388,7 +399,7 @@ func TestRender_ShortLinks(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
@@ -398,7 +409,7 @@ func TestRender_ShortLinks(t *testing.T) {
 			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
 	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
@@ -501,7 +512,7 @@ func TestRender_RelativeImages(t *testing.T) {
 			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
@@ -511,7 +522,7 @@ func TestRender_RelativeImages(t *testing.T) {
 			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
 	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
@@ -579,7 +590,8 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		err := markup.PostProcess(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
-				Base: "https://example.com",
+				AbsolutePrefix: true,
+				Base:           "https://example.com",
 			},
 			Metas: localMetas,
 		}, strings.NewReader(input), &res)
@@ -672,4 +684,10 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+}
+
+func TestIsFullURL(t *testing.T) {
+	assert.True(t, markup.IsFullURLString("https://example.com"))
+	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
+	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

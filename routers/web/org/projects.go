@@ -17,12 +17,13 @@ import (
 	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -66,7 +67,7 @@ func Projects(ctx *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
 		Title:    keyword,
@@ -78,7 +79,7 @@ func Projects(ctx *context.Context) {
 
 	opTotal, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
-		IsClosed: util.OptionalBoolOf(!isShowClosed),
+		IsClosed: optional.Some(!isShowClosed),
 		Type:     projectType,
 	})
 	if err != nil {
@@ -104,7 +105,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	for _, project := range projects {
-		project.RenderedContent = project.Description
+		project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -119,7 +120,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
@@ -353,7 +354,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
@@ -377,17 +378,17 @@ func ViewProject(ctx *context.Context) {
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
 		for _, issue := range issuesList {
-			var referencedIds []int64
+			var referencedIDs []int64
 			for _, comment := range issue.Comments {
 				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIds = append(referencedIds, comment.RefIssueID)
+					referencedIDs = append(referencedIDs, comment.RefIssueID)
 				}
 			}
 
-			if len(referencedIds) > 0 {
+			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIds,
-					IsPull:   util.OptionalBoolTrue,
+					IssueIDs: referencedIDs,
+					IsPull:   optional.Some(true),
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
 				}
@@ -395,7 +396,7 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
-	project.RenderedContent = project.Description
+	project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
@@ -679,7 +680,7 @@ func MoveIssues(ctx *context.Context) {
 		board = &project_model.Board{
 			ID:        0,
 			ProjectID: project.ID,
-			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
 		}
 	} else {
 		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
