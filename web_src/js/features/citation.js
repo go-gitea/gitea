@@ -40,9 +40,9 @@ export async function initCitationFileCopyContent() {
     $citationCopyApa.toggleClass('primary', !isBibtex);
   };
 
-  $('#cite-repo-button').on('click', async () => {
-    const moreBtn = document.getElementById('more-btn');
-    moreBtn.classList.add('is-loading');
+  $('#cite-repo-button').on('click', async (e) => {
+    const dropdownBtn = e.target.closest('.ui.dropdown.button');
+    dropdownBtn.classList.add('is-loading');
 
     try {
       try {
@@ -66,7 +66,7 @@ export async function initCitationFileCopyContent() {
         $inputContent.trigger('select');
       });
     } finally {
-      moreBtn.classList.remove('is-loading');
+      dropdownBtn.classList.remove('is-loading');
     }
 
     $('#cite-repo-modal').modal('show');
