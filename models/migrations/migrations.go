@@ -563,6 +563,12 @@ var migrations = []Migration{
 	// v288 -> v289
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
 	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
+	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
+	// v291 -> v292
+	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v282 -> v293
 	NewMigration("Add TimeEstimate to issue table", v1_22.AddTimeEstimateColumnToIssueTable),
 }
 

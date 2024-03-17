@@ -676,7 +676,8 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 	return err
 }
 
-func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
+// LoadReactions loads comment reactions
+func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -692,11 +693,6 @@ func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository
 		return err
 	}
 	return nil
-}
-
-// LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) error {
-	return c.loadReactions(ctx, repo)
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
