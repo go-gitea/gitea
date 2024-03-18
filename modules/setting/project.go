@@ -8,11 +8,9 @@ var (
 	Project = struct {
 		ProjectBoardBasicKanbanType []string
 		ProjectBoardBugTriageType   []string
-		ProjectBoardDefault         string
 	}{
 		ProjectBoardBasicKanbanType: []string{"To Do", "In Progress", "Done"},
 		ProjectBoardBugTriageType:   []string{"Needs Triage", "High Priority", "Low Priority", "Closed"},
-		ProjectBoardDefault:         "Backlog",
 	}
 )
 

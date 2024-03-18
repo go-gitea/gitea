@@ -58,7 +58,6 @@ async function initRepoProjectSortable() {
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
-    filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
     delayOnTouchOnly: true,

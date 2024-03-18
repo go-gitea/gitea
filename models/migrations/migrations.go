@@ -568,6 +568,8 @@ var migrations = []Migration{
 	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 	// v291 -> v292
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v292 -> v293
+	NewMigration("Add default column to projects without one", v1_22.AddDefaultProjectColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

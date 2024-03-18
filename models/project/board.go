@@ -121,7 +121,7 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 		board := Board{
 			CreatedUnix: timeutil.TimeStampNow(),
 			CreatorID:   project.CreatorID,
-			Title:       setting.Project.ProjectBoardDefault,
+			Title:       "Backlog",
 			ProjectID:   project.ID,
 			Default:     true,
 		}
@@ -183,6 +183,10 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return err
 	}
 
+	if board.Default {
+		return fmt.Errorf("deleteBoardByID: cannot delete default board")
+	}
+
 	if err = board.removeIssues(ctx); err != nil {
 		return err
 	}
@@ -235,7 +239,6 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 }
 
 // GetBoards fetches all boards related to a project
-// if no default board set, first board is a temporary "Uncategorized" board
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
@@ -262,16 +265,10 @@ func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 		return &board, nil
 	}
 
-	// represents a board for issues not assigned to one
-	return &Board{
-		ProjectID: p.ID,
-		Title:     "Uncategorized",
-		Default:   true,
-	}, nil
+	return nil, fmt.Errorf("getDefaultBoard: no default board found")
 }
 
 // SetDefaultBoard represents a board for issues not assigned to one
-// if boardID is 0 unset default
 func SetDefaultBoard(ctx context.Context, projectID, boardID int64) error {
 	_, err := db.GetEngine(ctx).Where(builder.Eq{
 		"project_id": projectID,
@@ -281,10 +278,8 @@ func SetDefaultBoard(ctx context.Context, projectID, boardID int64) error {
 		return err
 	}
 
-	if boardID > 0 {
-		_, err = db.GetEngine(ctx).ID(boardID).Where(builder.Eq{"project_id": projectID}).
-			Cols("`default`").Update(&Board{Default: true})
-	}
+	_, err = db.GetEngine(ctx).ID(boardID).Where(builder.Eq{"project_id": projectID}).
+		Cols("`default`").Update(&Board{Default: true})
 
 	return err
 }

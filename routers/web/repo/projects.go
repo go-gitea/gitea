@@ -583,21 +583,6 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-// UnSetDefaultProjectBoard unset default board for uncategorized issues/pulls
-func UnSetDefaultProjectBoard(ctx *context.Context) {
-	project, _ := checkProjectBoardChangePermissions(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
-		ctx.ServerError("SetDefaultBoard", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.Context) {
 	if ctx.Doer == nil {
