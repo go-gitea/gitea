@@ -129,8 +129,8 @@ func getProvidedFDs() (savedErr error) {
 	return savedErr
 }
 
-// CloseProvidedListeners closes all unused provided listeners.
-func CloseProvidedListeners() {
+// closeProvidedListeners closes all unused provided listeners.
+func closeProvidedListeners() {
 	mutex.Lock()
 	defer mutex.Unlock()
 	for _, l := range providedListeners {

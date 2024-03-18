@@ -60,7 +60,7 @@ func (g *Manager) start() {
 		defer func() {
 			close(startupDone)
 			// Close the unused listeners
-			CloseProvidedListeners()
+			closeProvidedListeners()
 		}()
 		// Wait for all servers to be created
 		g.createServerCond.L.Lock()
