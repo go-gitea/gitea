@@ -201,7 +201,7 @@ REPO_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
 
 ### 构建和添加 SVGs
 
-SVG 图标是使用 `make svg` 目标构建的，该目标将 `build/generate-svg.js` 中定义的图标源编译到输出目录 `public/img/svg` 中。可以在 `web_src/svg` 目录中添加自定义图标。
+SVG 图标是使用 `make svg` 命令构建的，该命令将图标资源编译到输出目录 `public/assets/img/svg` 中。可以在 `web_src/svg` 目录中添加自定义图标。
 
 ### 构建 Logo
 
