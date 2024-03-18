@@ -575,22 +575,26 @@ func SearchRepo(ctx *context.Context) {
 		}
 	}
 
-	var err error
+	// To improve performance when only the count is requested
+	if ctx.FormBool("count_only") {
+		if count, err := repo_model.CountRepository(ctx, opts); err != nil {
+			log.Error("CountRepository: %v", err)
+			ctx.JSON(http.StatusInternalServerError, nil) // frontend JS doesn't handle error response (same as below)
+		} else {
+			ctx.SetTotalCountHeader(count)
+			ctx.JSONOK()
+		}
+		return
+	}
+
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
+		log.Error("SearchRepository: %v", err)
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
 	ctx.SetTotalCountHeader(count)
-
-	// To improve performance when only the count is requested
-	if ctx.FormBool("count_only") {
-		return
-	}
 
 	// collect the latest commit of each repo
 	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
