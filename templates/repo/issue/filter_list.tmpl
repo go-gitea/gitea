@@ -43,7 +43,7 @@
 					{{end}}
 				{{end}}
 				{{RenderLabel $.Context ctx.Locale .}}
-				<p class="gt-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 			</a>
 		{{end}}
 	</div>
@@ -108,7 +108,7 @@
 			</div>
 			{{range .OpenProjects}}
 				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
-					{{svg .IconName 18 "gt-mr-3 gt-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
+					{{svg .IconName 18 "gt-mr-3 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}

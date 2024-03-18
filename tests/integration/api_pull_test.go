@@ -126,6 +126,23 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
+func TestAPICreatePullSameRepoSuccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner.Name, repo.Name), &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:pr-to-update", owner.Name),
+		Base:  "master",
+		Title: "successfully create a PR between branches of the same repository",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
+}
+
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	// repo10 have code, pulls units.

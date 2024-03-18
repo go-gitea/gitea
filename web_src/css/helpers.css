@@ -52,18 +52,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
 .gt-font-bold { font-weight: var(--font-weight-bold) !important; }
 
-.gt-rounded { border-radius: var(--border-radius) !important; }
-.gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
-.gt-rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
-.gt-rounded-left { border-radius: var(--border-radius) 0 0 var(--border-radius) !important; }
-.gt-rounded-right { border-radius: 0 var(--border-radius) var(--border-radius) 0 !important; }
-
-.gt-border-secondary { border: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-top { border-top: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
 .interact-fg:active { color: var(--color-primary-active) !important; }
@@ -120,14 +108,6 @@ Gitea's private styles use `g-` prefix.
 .gt-my-3 { margin-top: .5rem !important; margin-bottom: .5rem !important; }
 .gt-my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
 .gt-my-5 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
-
-.gt-m-auto  { margin: auto !important; }
-.gt-mx-auto { margin-left: auto !important; margin-right: auto !important; }
-.gt-my-auto { margin-top: auto !important; margin-bottom: auto !important; }
-.gt-mt-auto { margin-top: auto !important; }
-.gt-mr-auto { margin-right: auto !important; }
-.gt-mb-auto { margin-bottom: auto !important; }
-.gt-ml-auto { margin-left: auto !important; }
 
 .gt-p-0 { padding: 0 !important; }
 .gt-p-1 { padding: .125rem !important; }
@@ -198,8 +178,6 @@ Gitea's private styles use `g-` prefix.
 .gt-gap-y-3 { row-gap: .5rem !important; }
 .gt-gap-y-4 { row-gap: 1rem !important; }
 .gt-gap-y-5 { row-gap: 2rem !important; }
-
-.gt-shrink-0 { flex-shrink: 0 !important; }
 
 .gt-font-12 { font-size: 12px !important }
 .gt-font-13 { font-size: 13px !important }
