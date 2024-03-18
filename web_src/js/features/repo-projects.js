@@ -66,7 +66,7 @@ async function initRepoProjectSortable() {
     onMove: (e) => {
       // prevent dropping onto column 0 because it currently can not be moved and doing
       // so would raise a 500 "project board does not exist" error on backend.
-      if (e.related.getAttribute('data-id') === '0') return false;
+      if (e.related?.getAttribute('data-id') === '0') return false;
     },
     onSort: async () => {
       boardColumns = mainBoard.getElementsByClassName('project-column');
