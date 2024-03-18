@@ -7,7 +7,7 @@
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 			</span>
-			<span class="gt-df gt-ac gt-gap-2 gt-ml-auto gt-font-16 tw-whitespace-nowrap">
+			<span class="gt-df gt-ac gt-gap-2 tw-ml-auto gt-font-16 tw-whitespace-nowrap">
 				{{if .EnableFeed}}
 					<a class="ui basic label button gt-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 24}}
