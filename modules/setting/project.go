@@ -12,7 +12,7 @@ var (
 	}{
 		ProjectBoardBasicKanbanType: []string{"To Do", "In Progress", "Done"},
 		ProjectBoardBugTriageType:   []string{"Needs Triage", "High Priority", "Low Priority", "Closed"},
-		ProjectBoardDefault:         "Uncategorized",
+		ProjectBoardDefault:         "Backlog",
 	}
 )
 

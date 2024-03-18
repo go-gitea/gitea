@@ -829,7 +829,7 @@ Default templates for project boards:
 - `PROJECT_BOARD_BASIC_KANBAN_TYPE`: **To Do, In Progress, Done**
 - `PROJECT_BOARD_BUG_TRIAGE_TYPE`: **Needs Triage, High Priority, Low Priority, Closed**
 
-- `PROJECT_BOARD_DEFAULT`: **Uncategorized**: Title of default project board in new empty project
+- `PROJECT_BOARD_DEFAULT`: **Backlog**: Title of default project board in new empty project
 
 ## Issue and pull request attachments (`attachment`)
 
