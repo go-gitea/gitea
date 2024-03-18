@@ -4,14 +4,12 @@
   flex-wrap: wrap;
   align-items: stretch;
   padding: 0;
-}
-
-.ui.grid {
   margin-top: -1rem;
   margin-bottom: -1rem;
   margin-left: -1rem;
   margin-right: -1rem;
 }
+
 .ui.relaxed.grid {
   margin-left: -1.5rem;
   margin-right: -1.5rem;
@@ -80,7 +78,7 @@
 
 .ui.grid .row + .ui.divider {
   flex-grow: 1;
-  margin: 1rem 1rem;
+  margin: 1rem;
 }
 .ui.grid .column + .ui.vertical.divider {
   height: calc(50% - 1rem);
@@ -454,9 +452,9 @@
   .ui.stackable.grid > .column:not(.row),
   .ui.grid > .stackable.stackable.stackable.row > .column {
     width: 100% !important;
-    margin: 0 0 !important;
+    margin: 0 !important;
     box-shadow: none !important;
-    padding: 1rem 1rem;
+    padding: 1rem;
   }
   .ui.stackable.grid:not(.vertically) > .row {
     margin: 0;
