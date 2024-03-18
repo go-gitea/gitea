@@ -36,7 +36,7 @@
 				{{else}}
 					{{range $notification := .Notifications}}
 						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
-							<div class="notifications-icon gt-ml-3 gt-mr-2 gt-self-start gt-mt-2">
+							<div class="notifications-icon gt-ml-3 gt-mr-2 tw-self-start gt-mt-2">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
 								{{else}}

@@ -388,9 +388,8 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "issue", "issue.id = attachment.issue_id").
-			In("issue.id", issuesIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("issue_id", issuesIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
@@ -475,6 +474,16 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		return nil
 	}
 	trackedTimes := make(map[int64]int64, len(issues))
+
+	reposMap := make(map[int64]*repo_model.Repository, len(issues))
+	for _, issue := range issues {
+		reposMap[issue.RepoID] = issue.Repo
+	}
+	repos := repo_model.RepositoryListOfMap(reposMap)
+
+	if err := repos.LoadUnits(ctx); err != nil {
+		return err
+	}
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
@@ -598,4 +607,24 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
+}
+
+func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
+	issueIDs := issues.getIssueIDs()
+	issueUsers := make([]*IssueUser, 0, len(issueIDs))
+	if err := db.GetEngine(ctx).Where("uid =?", userID).
+		In("issue_id").
+		Find(&issueUsers); err != nil {
+		return err
+	}
+
+	for _, issueUser := range issueUsers {
+		for _, issue := range issues {
+			if issue.ID == issueUser.IssueID {
+				issue.IsRead = issueUser.IsRead
+			}
+		}
+	}
+
+	return nil
 }

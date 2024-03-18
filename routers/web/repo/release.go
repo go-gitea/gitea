@@ -113,7 +113,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.Note, err = markdown.RenderString(&markup.RenderContext{
+		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
 			Links: markup.Links{
 				Base: ctx.Repo.RepoLink,
 			},
@@ -190,6 +190,11 @@ func Releases(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("getReleaseInfos", err)
 		return
+	}
+	for _, rel := range releases {
+		if rel.Release.IsTag && rel.Release.Title == "" {
+			rel.Release.Title = rel.Release.TagName
+		}
 	}
 
 	ctx.Data["Releases"] = releases
@@ -289,6 +294,7 @@ func SingleRelease(ctx *context.Context) {
 		TagNames:    []string{ctx.Params("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
+		IncludeTags:   true,
 	})
 	if err != nil {
 		ctx.ServerError("getReleaseInfos", err)
@@ -300,6 +306,9 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	release := releases[0].Release
+	if release.IsTag && release.Title == "" {
+		release.Title = release.TagName
+	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
 	if release.IsTag {

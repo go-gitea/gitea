@@ -46,75 +46,11 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
-.gt-max-width-12rem { max-width: 12rem !important; }
-.gt-max-width-24rem { max-width: 24rem !important; }
-
-/* below class names match Tailwind CSS */
-.gt-break-all { word-break: break-all !important; }
-.gt-content-center { align-content: center !important; }
-.gt-cursor-default { cursor: default !important; }
-.gt-cursor-pointer { cursor: pointer !important; }
-.gt-cursor-grab { cursor: grab !important; }
-.gt-invisible { visibility: hidden !important; }
-.gt-items-start { align-items: flex-start !important; }
-.gt-pointer-events-none { pointer-events: none !important; }
-.gt-relative { position: relative !important; }
-.gt-whitespace-nowrap { white-space: nowrap !important; }
-.gt-whitespace-pre { white-space: pre !important; }
-.gt-whitespace-pre-wrap { white-space: pre-wrap !important; }
-.gt-object-contain { object-fit: contain !important; }
-.gt-self-center { align-self: center !important; }
-.gt-self-start { align-self: flex-start !important; }
-.gt-self-end { align-self: flex-end !important; }
-.gt-no-underline { text-decoration-line: none !important; }
-.gt-normal-case { text-transform: none !important; }
-.gt-italic { font-style: italic !important; }
-.gt-overflow-x-auto { overflow-x: auto !important; }
-.gt-overflow-x-scroll { overflow-x: scroll !important; }
-.gt-overflow-y-hidden { overflow-y: hidden !important; }
-
-.gt-float-left { float: left !important; }
-.gt-float-right { float: right !important; }
-.gt-clear-both { clear: both !important; }
-
-.gt-text-center { text-align: center !important; }
-.gt-text-left { text-align: left !important; }
-.gt-text-right { text-align: right !important; }
-
 .gt-font-light { font-weight: var(--font-weight-light) !important; }
 .gt-font-normal { font-weight: var(--font-weight-normal) !important; }
 .gt-font-medium { font-weight: var(--font-weight-medium) !important; }
 .gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
 .gt-font-bold { font-weight: var(--font-weight-bold) !important; }
-
-.gt-rounded { border-radius: var(--border-radius) !important; }
-.gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
-.gt-rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
-.gt-rounded-left { border-radius: var(--border-radius) 0 0 var(--border-radius) !important; }
-.gt-rounded-right { border-radius: 0 var(--border-radius) var(--border-radius) 0 !important; }
-
-.gt-border-secondary { border: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-top { border-top: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
-.gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
-.gt-bg-red { background: var(--color-red) !important; }
-.gt-bg-orange { background: var(--color-orange) !important; }
-.gt-bg-yellow { background: var(--color-yellow) !important; }
-.gt-bg-olive { background: var(--color-olive) !important; }
-.gt-bg-green { background: var(--color-green) !important; }
-.gt-bg-teal { background: var(--color-teal) !important; }
-.gt-bg-blue { background: var(--color-blue) !important; }
-.gt-bg-violet { background: var(--color-violet) !important; }
-.gt-bg-purple { background: var(--color-purple) !important; }
-.gt-bg-pink { background: var(--color-pink) !important; }
-.gt-bg-brown { background: var(--color-brown) !important; }
-.gt-bg-grey { background: var(--color-grey) !important; }
-.gt-bg-gold { background: var(--color-gold) !important; }
-.gt-bg-transparent { background: transparent !important; }
-
-.gt-text-white { color: var(--color-white) !important; }
 
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
@@ -172,14 +108,6 @@ Gitea's private styles use `g-` prefix.
 .gt-my-3 { margin-top: .5rem !important; margin-bottom: .5rem !important; }
 .gt-my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
 .gt-my-5 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
-
-.gt-m-auto  { margin: auto !important; }
-.gt-mx-auto { margin-left: auto !important; margin-right: auto !important; }
-.gt-my-auto { margin-top: auto !important; margin-bottom: auto !important; }
-.gt-mt-auto { margin-top: auto !important; }
-.gt-mr-auto { margin-right: auto !important; }
-.gt-mb-auto { margin-bottom: auto !important; }
-.gt-ml-auto { margin-left: auto !important; }
 
 .gt-p-0 { padding: 0 !important; }
 .gt-p-1 { padding: .125rem !important; }
@@ -250,8 +178,6 @@ Gitea's private styles use `g-` prefix.
 .gt-gap-y-3 { row-gap: .5rem !important; }
 .gt-gap-y-4 { row-gap: 1rem !important; }
 .gt-gap-y-5 { row-gap: 2rem !important; }
-
-.gt-shrink-0 { flex-shrink: 0 !important; }
 
 .gt-font-12 { font-size: 12px !important }
 .gt-font-13 { font-size: 13px !important }

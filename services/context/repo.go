@@ -408,26 +408,6 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
-// RepoIDAssignment returns a handler which assigns the repo to the context.
-func RepoIDAssignment() func(ctx *Context) {
-	return func(ctx *Context) {
-		repoID := ctx.ParamsInt64(":repoid")
-
-		// Get repository.
-		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", nil)
-			} else {
-				ctx.ServerError("GetRepositoryByID", err)
-			}
-			return
-		}
-
-		repoAssignment(ctx, repo)
-	}
-}
-
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) context.CancelFunc {
 	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
@@ -701,7 +681,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		} else {
-			ctx.Repo.BranchName, _ = gitRepo.GetDefaultBranch()
+			ctx.Repo.BranchName, _ = gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository)
 			if ctx.Repo.BranchName == "" {
 				// If it still can't get a default branch, fall back to default branch from setting.
 				// Something might be wrong. Either site admin should fix the repo sync or Gitea should fix a potential bug.

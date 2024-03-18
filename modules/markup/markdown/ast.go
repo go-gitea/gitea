@@ -175,13 +175,6 @@ func NewColorPreview(color []byte) *ColorPreview {
 	}
 }
 
-// IsColorPreview returns true if the given node implements the ColorPreview interface,
-// otherwise false.
-func IsColorPreview(node ast.Node) bool {
-	_, ok := node.(*ColorPreview)
-	return ok
-}
-
 // Attention is an inline for an attention
 type Attention struct {
 	ast.BaseInline

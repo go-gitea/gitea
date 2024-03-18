@@ -11,7 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
-import {request, POST} from '../modules/fetch.js';
+import {request, POST, GET} from '../modules/fetch.js';
 import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
@@ -37,11 +37,10 @@ export function initHeadNavbarContentToggle() {
 }
 
 export function initFootLanguageMenu() {
-  function linkLanguageAction() {
+  async function linkLanguageAction() {
     const $this = $(this);
-    $.get($this.data('url')).always(() => {
-      window.location.reload();
-    });
+    await GET($this.data('url'));
+    window.location.reload();
   }
 
   $('.language-menu a[lang]').on('click', linkLanguageAction);
@@ -92,19 +91,26 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       } else {
         window.location.reload();
       }
+      return;
     } else if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-      showErrorToast(data.errorMessage || `server error: ${resp.status}`);
+      if (data.errorMessage) {
+        showErrorToast(data.errorMessage, {useHtmlBody: data.renderFormat === 'html'});
+      } else {
+        showErrorToast(`server error: ${resp.status}`);
+      }
     } else {
       showErrorToast(`server error: ${resp.status}`);
     }
   } catch (e) {
-    console.error('error when doRequest', e);
-    actionElem.classList.remove('is-loading', 'small-loading-icon');
-    showErrorToast(i18n.network_error);
+    if (e.name !== 'AbortError') {
+      console.error('error when doRequest', e);
+      showErrorToast(`${i18n.network_error} ${e}`);
+    }
   }
+  actionElem.classList.remove('is-loading', 'small-loading-icon');
 }
 
 async function formFetchAction(e) {
@@ -225,12 +231,12 @@ export function initDropzone(el) {
     init() {
       this.on('success', (file, data) => {
         file.uuid = data.uuid;
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $dropzone.find('.files').append(input);
+        const $input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $dropzone.find('.files').append($input);
         // Create a "Copy Link" element, to conveniently copy the image
         // or file link as Markdown to the clipboard
         const copyLinkElement = document.createElement('div');
-        copyLinkElement.className = 'gt-text-center';
+        copyLinkElement.className = 'tw-text-center';
         // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
         copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
         copyLinkElement.addEventListener('click', async (e) => {
@@ -299,37 +305,36 @@ export function initGlobalLinkActions() {
       filter += `#${$this.attr('data-modal-id')}`;
     }
 
-    const dialog = $(`.delete.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
+    const $dialog = $(`.delete.modal${filter}`);
+    $dialog.find('.name').text($this.data('name'));
     for (const [key, value] of Object.entries(dataArray)) {
       if (key && key.startsWith('data')) {
-        dialog.find(`.${key}`).text(value);
+        $dialog.find(`.${key}`).text(value);
       }
     }
 
-    dialog.modal({
+    $dialog.modal({
       closable: false,
-      onApprove() {
+      onApprove: async () => {
         if ($this.data('type') === 'form') {
           $($this.data('form')).trigger('submit');
           return;
         }
-
-        const postData = {
-          _csrf: csrfToken,
-        };
+        const postData = new FormData();
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.slice(4)] = value;
+            postData.append(key.slice(4), value);
           }
           if (key === 'id') {
-            postData['id'] = value;
+            postData.append('id', value);
           }
         }
 
-        $.post($this.data('url'), postData).done((data) => {
+        const response = await POST($this.data('url'), {data: postData});
+        if (response.ok) {
+          const data = await response.json();
           window.location.href = data.redirect;
-        });
+        }
       }
     }).modal('show');
   }
@@ -375,8 +380,8 @@ function initGlobalShowModal() {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const colorPickers = $modal.find('.color-picker');
-    if (colorPickers.length > 0) {
+    const $colorPickers = $modal.find('.color-picker');
+    if ($colorPickers.length > 0) {
       initCompColorPicker(); // FIXME: this might cause duplicate init
     }
     $modal.modal('setting', {

@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"sort"
 	"strconv"
@@ -80,7 +81,7 @@ type Release struct {
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
-	RenderedNote     string             `xorm:"-"`
+	RenderedNote     template.HTML      `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
