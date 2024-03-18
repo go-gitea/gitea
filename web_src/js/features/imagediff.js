@@ -133,17 +133,25 @@ export function initImageDiff() {
         $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
       }
 
-      sizes.image1[0].style.width = `${sizes.size1.width * factor}px`;
-      sizes.image1[0].style.height = `${sizes.size1.height * factor}px`;
-      sizes.image1.parent()[0].style.margin = '10px auto';
-      sizes.image1.parent()[0].style.width = `${sizes.size1.width * factor + 2}px`;
-      sizes.image1.parent()[0].style.height = `${sizes.size1.height * factor + 2}px`;
+      const image1 = sizes.image1[0];
+      if (image1) {
+        const container = image1.parentNode;
+        image1.style.width = `${sizes.size1.width * factor}px`;
+        image1.style.height = `${sizes.size1.height * factor}px`;
+        container.style.margin = '10px auto';
+        container.style.width = `${sizes.size1.width * factor + 2}px`;
+        container.style.height = `${sizes.size1.height * factor + 2}px`;
+      }
 
-      sizes.image2[0].style.width = `${sizes.size2.width * factor}px`;
-      sizes.image2[0].style.height = `${sizes.size2.height * factor}px`;
-      sizes.image2.parent()[0].style.margin = '10px auto';
-      sizes.image2.parent()[0].style.width = `${sizes.size2.width * factor + 2}px`;
-      sizes.image2.parent()[0].style.height = `${sizes.size2.height * factor + 2}px`;
+      const image2 = sizes.image2[0];
+      if (image2) {
+        const container = image2.parentNode;
+        image2.style.width = `${sizes.size2.width * factor}px`;
+        image2.style.height = `${sizes.size2.height * factor}px`;
+        container.style.margin = '10px auto';
+        container.style.width = `${sizes.size2.width * factor + 2}px`;
+        container.style.height = `${sizes.size2.height * factor + 2}px`;
+      }
     }
 
     function initSwipe(sizes) {
@@ -152,25 +160,38 @@ export function initImageDiff() {
         factor = (diffContainerWidth - 12) / sizes.max.width;
       }
 
-      sizes.image1[0].style.width = `${sizes.size1.width * factor}px`;
-      sizes.image1[0].style.height = `${sizes.size1.height * factor}px`;
-      sizes.image1.parent()[0].style.margin = `0px ${sizes.ratio[0] * factor}px`;
-      sizes.image1.parent()[0].style.width = `${sizes.size1.width * factor + 2}px`;
-      sizes.image1.parent()[0].style.height = `${sizes.size1.height * factor + 2}px`;
-      sizes.image1.parent().parent()[0].style.padding = `${sizes.ratio[1] * factor}px 0 0 0`;
-      sizes.image1.parent().parent()[0].style.width = `${sizes.max.width * factor + 2}px`;
+      const image1 = sizes.image1[0];
+      if (image1) {
+        const container = image1.parentNode;
+        const swipeFrame = container.parentNode;
+        image1.style.width = `${sizes.size1.width * factor}px`;
+        image1.style.height = `${sizes.size1.height * factor}px`;
+        container.style.margin = `0px ${sizes.ratio[0] * factor}px`;
+        container.style.width = `${sizes.size1.width * factor + 2}px`;
+        container.style.height = `${sizes.size1.height * factor + 2}px`;
+        swipeFrame.style.padding = `${sizes.ratio[1] * factor}px 0 0 0`;
+        swipeFrame.style.width = `${sizes.max.width * factor + 2}px`;
+      }
 
-      sizes.image2[0].style.width = `${sizes.size2.width * factor}px`;
-      sizes.image2[0].style.height = `${sizes.size2.height * factor}px`;
-      sizes.image2.parent()[0].style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
-      sizes.image2.parent()[0].style.width = `${sizes.size2.width * factor + 2}px`;
-      sizes.image2.parent()[0].style.height = `${sizes.size2.height * factor + 2}px`;
-      sizes.image2.parent().parent()[0].style.width = `${sizes.max.width * factor + 2}px`;
-      sizes.image2.parent().parent()[0].style.height = `${sizes.max.height * factor + 2}px`;
+      const image2 = sizes.image2[0];
+      if (image2) {
+        const container = image2.parentNode;
+        const swipeFrame = container.parentNode;
+        image2.style.width = `${sizes.size2.width * factor}px`;
+        image2.style.height = `${sizes.size2.height * factor}px`;
+        container.style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
+        container.style.width = `${sizes.size2.width * factor + 2}px`;
+        container.style.height = `${sizes.size2.height * factor + 2}px`;
+        swipeFrame.style.width = `${sizes.max.width * factor + 2}px`;
+        swipeFrame.style.height = `${sizes.max.height * factor + 2}px`;
+      }
 
       // extra height for inner "position: absolute" elements
-      $container.find('.diff-swipe')[0].style.width = `${sizes.max.width * factor + 2}px`;
-      $container.find('.diff-swipe')[0].style.height = `${sizes.max.height * factor + 30}px`;
+      const swipe = $container.find('.diff-swipe')[0];
+      if (swipe) {
+        swipe.style.width = `${sizes.max.width * factor + 2}px`;
+        swipe.style.height = `${sizes.max.height * factor + 30}px`;
+      }
 
       $container.find('.swipe-bar').on('mousedown', function(e) {
         e.preventDefault();
