@@ -114,7 +114,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 
 	for _, u := range uniqUsers {
 		if u.ID != pull.Poster.ID {
-			comment, err := issues_model.AddReviewRequest(ctx, pull, pull.Poster, u)
+			comment, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster)
 			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
