@@ -127,8 +127,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 		err = r.LoadArchiveDownloadCount(ctx)
 		if err != nil {
-			ctx.ServerError("LoadArchiveDownloadCount", err)
-			return
+			return nil, err
 		}
 
 		if !r.IsDraft {
@@ -321,7 +320,7 @@ func SingleRelease(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("LoadArchiveDownloadCount", err)
 	}
-  
+
 	ctx.Data["Releases"] = releases
 
 	ctx.HTML(http.StatusOK, tplReleasesList)
