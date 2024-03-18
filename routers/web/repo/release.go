@@ -316,7 +316,7 @@ func SingleRelease(ctx *context.Context) {
 		ctx.Data["Title"] = release.Title
 	}
 
-  err = release.LoadArchiveDownloadCount(ctx)
+	err = release.LoadArchiveDownloadCount(ctx)
 	if err != nil {
 		ctx.ServerError("LoadArchiveDownloadCount", err)
 	}
