@@ -356,8 +356,8 @@ export default sfc; // activate the IDE's Vue plugin
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input" :class="{loading: isLoading}">
-          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
+          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
