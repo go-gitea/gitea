@@ -29,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/statmiddleware"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -122,6 +123,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
+
+	statmiddleware.WebDownloadMiddleware(ctx)
 
 	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
