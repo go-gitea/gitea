@@ -116,7 +116,6 @@
 								<th></th>
 							</tr>
 						</thead>
-						{{end}}
 						{{if $modifyBrokenPullMirror}}
 							{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 							<tbody>
@@ -201,8 +200,9 @@
 								</td>
 							</tr>
 						</tbody>
-						{{end}}{{/* end if: IsMirror */}}
+						{{end}}{{/* end if: mirror is broken or working */}}
 					</table>
+					{{end}}{{/* end if: IsMirror */}}
 
 					<table class="ui table">
 						<thead>
