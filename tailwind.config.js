@@ -55,5 +55,16 @@ export default {
       current: 'currentcolor',
       transparent: 'transparent',
     },
+    borderRadius: {
+      'none': '0',
+      'sm': '2px',
+      'DEFAULT': 'var(--border-radius)', // 4px
+      'md': 'var(--border-radius-medium)', // 6px
+      'lg': '8px',
+      'xl': '12px',
+      '2xl': '16px',
+      '3xl': '24px',
+      'full': 'var(--border-radius-circle)', // 50%
+    },
   },
 };

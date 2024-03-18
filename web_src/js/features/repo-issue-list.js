@@ -9,6 +9,7 @@ import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector('.issue-checkbox-all');
+  if (!issueSelectAll) return; // logged out state
   const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
 
   const syncIssueSelectionState = () => {
