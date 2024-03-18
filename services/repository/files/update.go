@@ -374,15 +374,15 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		return fmt.Errorf("UpdateRepoFile: %w", err)
 	}
 	// If is a new file (not updating) then the given path shouldn't exist
-	if file.Operation == "create" {
-		for _, indexFile := range filesInIndex {
-			if indexFile == file.TreePath {
-				return models.ErrRepoFileAlreadyExists{
-					Path: file.TreePath,
-				}
-			}
-		}
-	}
+	//if file.Operation == "create" {
+	//	for _, indexFile := range filesInIndex {
+	//		if indexFile == file.TreePath {
+	//			return models.ErrRepoFileAlreadyExists{
+	//				Path: file.TreePath,
+	//			}
+	//		}
+	//	}
+	//}
 
 	// Remove the old path from the tree
 	if file.Options.fromTreePath != file.Options.treePath && len(filesInIndex) > 0 {
