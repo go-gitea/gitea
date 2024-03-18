@@ -12,6 +12,7 @@
 @import "./modules/divider.css";
 @import "./modules/svg.css";
 @import "./modules/flexcontainer.css";
+@import "./modules/message.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
