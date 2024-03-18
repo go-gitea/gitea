@@ -13,5 +13,12 @@ type HookTask struct {
 
 func AddPayloadVersionToHookTaskTable(x *xorm.Engine) error {
 	// create missing column
-	return x.Sync(new(HookTask))
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, new(HookTask)); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE hook_task SET payload_version = 1 WHERE payload_version IS NULL")
+	return err
 }
