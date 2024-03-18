@@ -235,7 +235,7 @@ const sfc = {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count');
+          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
         }
 
         response = await GET(searchedURL);
@@ -409,7 +409,7 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -425,8 +425,9 @@ export default sfc; // activate the IDE's Vue plugin
             </a>
           </li>
         </ul>
-        <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
-          <div class="ui borderless pagination menu narrow">
+        <div v-if="showMoreReposLink" class="tw-text-center">
+          <div class="divider gt-my-0"/>
+          <div class="ui borderless pagination menu narrow gt-my-3">
             <a
               class="item navigation gt-py-2" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
@@ -466,7 +467,7 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
