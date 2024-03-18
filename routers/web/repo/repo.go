@@ -626,9 +626,14 @@ func SearchRepo(ctx *context.Context) {
 	if ctx.FormBool("count_only") {
 		count, err := repo_model.CountRepository(ctx, opts)
 		if err != nil {
+			log.Error("CountRepository: %v", err)
+			errStr := "CountRepository internal error"
+			if ctx.Doer != nil && ctx.Doer.IsAdmin {
+				errStr += ": " + err.Error()
+			}
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
-				Error: err.Error(),
+				Error: errStr,
 			})
 			return
 		}
@@ -638,9 +643,14 @@ func SearchRepo(ctx *context.Context) {
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
+		log.Error("SearchRepository: %v", err)
+		errStr := "SearchRepository internal error"
+		if ctx.Doer != nil && ctx.Doer.IsAdmin {
+			errStr += ": " + err.Error()
+		}
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
-			Error: err.Error(),
+			Error: errStr,
 		})
 		return
 	}
@@ -650,6 +660,14 @@ func SearchRepo(ctx *context.Context) {
 	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(ctx, repos)
 	if err != nil {
 		log.Error("FindReposLastestCommitStatuses: %v", err)
+		errStr := "FindReposLastestCommitStatuses internal error"
+		if ctx.Doer != nil && ctx.Doer.IsAdmin {
+			errStr += ": " + err.Error()
+		}
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: errStr,
+		})
 		return
 	}
 
