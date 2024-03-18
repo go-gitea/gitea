@@ -58,7 +58,7 @@ cpu.out
 /data
 /indexers
 /log
-/public/img/avatar
+/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*

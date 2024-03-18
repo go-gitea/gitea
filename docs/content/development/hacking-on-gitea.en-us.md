@@ -214,7 +214,7 @@ REPO_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
 
 ### Building and adding SVGs
 
-SVG icons are built using the `make svg` target which compiles the icon sources defined in `build/generate-svg.js` into the output directory `public/assets/img/svg`. Custom icons can be added in the `web_src/svg` directory.
+SVG icons are built using the `make svg` target which compiles the icon sources into the output directory `public/assets/img/svg`. Custom icons can be added in the `web_src/svg` directory.
 
 ### Building the Logo
 
