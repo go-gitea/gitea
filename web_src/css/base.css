@@ -264,7 +264,7 @@ ol.ui.list li,
 
 /* currently used for search bar dropdowns in repo search and explore code */
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
-  min-width: 10em;
+  min-width: 7em;
 }
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
   border-right: none;
