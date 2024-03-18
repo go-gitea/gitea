@@ -93,12 +93,12 @@
 /* When the activity section is empty */
 .dashboard .ui.container .activity-empty {
   text-align: center;
-  width: 40%;
-  margin: 150px auto 0;
+  padding-top: 150px;
+  padding-left: 3rem;
+  padding-right: 3rem;
 }
 @media (max-width: 767.98px) {
   .dashboard .ui.container .activity-empty {
-    width: 60%;
-    margin-top: 50px;
+    padding-top: 50px;
   }
 }
