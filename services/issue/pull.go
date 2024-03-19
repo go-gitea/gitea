@@ -33,34 +33,41 @@ func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch
 	return mergeBase, err
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, pr *issues_model.PullRequest) error {
+type ReviewRequestNotifier struct {
+	Comment    *issues_model.Comment
+	IsAdd      bool
+	Reviwer    *user_model.User
+	ReviewTeam *org_model.Team
+}
+
+func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
 	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
 	if pr.IsWorkInProgress(ctx) {
-		return nil
+		return nil, nil
 	}
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
 	if pr.HeadRepo.IsFork {
-		return nil
+		return nil, nil
 	}
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
 	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer repo.Close()
 
 	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var data string
@@ -78,14 +85,14 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 	// get the mergebase
 	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
 	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.HeadCommitID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	uniqUsers := make(map[int64]*user_model.User)
@@ -103,20 +110,34 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 		}
 	}
 
+	notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
+
 	for _, u := range uniqUsers {
 		if u.ID != pull.Poster.ID {
-			if _, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
+			comment, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster)
+			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
-				return err
+				return nil, err
 			}
+			notifiers = append(notifiers, &ReviewRequestNotifier{
+				Comment: comment,
+				IsAdd:   true,
+				Reviwer: pull.Poster,
+			})
 		}
 	}
 	for _, t := range uniqTeams {
-		if _, err := issues_model.AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
+		comment, err := issues_model.AddTeamReviewRequest(ctx, pull, t, pull.Poster)
+		if err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
-			return err
+			return nil, err
 		}
+		notifiers = append(notifiers, &ReviewRequestNotifier{
+			Comment:    comment,
+			IsAdd:      true,
+			ReviewTeam: t,
+		})
 	}
 
-	return nil
+	return notifiers, nil
 }
