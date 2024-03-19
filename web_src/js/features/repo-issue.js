@@ -144,9 +144,9 @@ export function initRepoIssueSidebarList() {
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
-      const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItems.length > 0) {
-        excludeLabel($(selectedItems[0]));
+      const $selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
+      if ($selectedItems.length > 0) {
+        excludeLabel($($selectedItems[0]));
       }
     }
   });
@@ -214,12 +214,12 @@ export function initRepoIssueDependencyDelete() {
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
   $(document).on('click', '.cancel-code-comment', (e) => {
-    const form = $(e.currentTarget).closest('form');
-    if (form.length > 0 && form.hasClass('comment-form')) {
-      form.addClass('gt-hidden');
-      showElem(form.closest('.comment-code-cloud').find('button.comment-form-reply'));
+    const $form = $(e.currentTarget).closest('form');
+    if ($form.length > 0 && $form.hasClass('comment-form')) {
+      $form.addClass('gt-hidden');
+      showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
-      form.closest('.comment-code-cloud').remove();
+      $form.closest('.comment-code-cloud').remove();
     }
   });
 }
@@ -370,10 +370,10 @@ export function initRepoIssueComments() {
   });
 
   $(document).on('click', (event) => {
-    const urlTarget = $(':target');
-    if (urlTarget.length === 0) return;
+    const $urlTarget = $(':target');
+    if ($urlTarget.length === 0) return;
 
-    const urlTargetId = urlTarget.attr('id');
+    const urlTargetId = $urlTarget.attr('id');
     if (!urlTargetId) return;
     if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
 
@@ -390,18 +390,18 @@ export function initRepoIssueComments() {
 
 export async function handleReply($el) {
   hideElem($el);
-  const form = $el.closest('.comment-code-cloud').find('.comment-form');
-  form.removeClass('gt-hidden');
+  const $form = $el.closest('.comment-code-cloud').find('.comment-form');
+  $form.removeClass('gt-hidden');
 
-  const $textarea = form.find('textarea');
+  const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
     // FIXME: the initialization of the dropzone is not consistent.
     // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
     // When the form is submitted and partially reload, none of them is initialized.
-    const dropzone = form.find('.dropzone')[0];
+    const dropzone = $form.find('.dropzone')[0];
     if (!dropzone.dropzone) initDropzone(dropzone);
-    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
+    editor = await initComboMarkdownEditor($form.find('.combo-markdown-editor'));
   }
   editor.focus();
   return editor;
@@ -413,30 +413,30 @@ export function initRepoPullRequestReview() {
     if (window.history.scrollRestoration !== 'manual') {
       window.history.scrollRestoration = 'manual';
     }
-    const commentDiv = $(window.location.hash);
-    if (commentDiv) {
+    const $commentDiv = $(window.location.hash);
+    if ($commentDiv) {
       // get the name of the parent id
-      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      const groupID = $commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        const $ancestorDiffBox = $commentDiv.closest('.diff-file-box');
         // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox.find('.diff-file-header');
+        const $diffHeader = $ancestorDiffBox.find('.diff-file-header');
         // offset is for scrolling
         let offset = 30;
-        if (diffHeader[0]) {
-          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
+        if ($diffHeader[0]) {
+          offset += $('.diff-detail-box').outerHeight() + $diffHeader.outerHeight();
         }
         $(`#show-outdated-${id}`).addClass('gt-hidden');
         $(`#code-comments-${id}`).removeClass('gt-hidden');
         $(`#code-preview-${id}`).removeClass('gt-hidden');
         $(`#hide-outdated-${id}`).removeClass('gt-hidden');
         // if the comment box is folded, expand it
-        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
-          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
+        if ($ancestorDiffBox.attr('data-folded') && $ancestorDiffBox.attr('data-folded') === 'true') {
+          setFileFolding($ancestorDiffBox[0], $ancestorDiffBox.find('.fold-file')[0], false);
         }
         window.scrollTo({
-          top: commentDiv.offset().top - offset,
+          top: $commentDiv.offset().top - offset,
           behavior: 'instant'
         });
       }
@@ -504,12 +504,12 @@ export function initRepoPullRequestReview() {
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).closest('[data-path]').data('path');
-    const tr = $(this).closest('tr');
-    const lineType = tr.data('line-type');
+    const $tr = $(this).closest('tr');
+    const lineType = $tr.data('line-type');
 
-    let ntr = tr.next();
-    if (!ntr.hasClass('add-comment')) {
-      ntr = $(`
+    let $ntr = $tr.next();
+    if (!$ntr.hasClass('add-comment')) {
+      $ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
@@ -518,22 +518,22 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      tr.after(ntr);
+      $tr.after($ntr);
     }
 
-    const td = ntr.find(`.add-comment-${side}`);
-    const commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
+    const $td = $ntr.find(`.add-comment-${side}`);
+    const $commentCloud = $td.find('.comment-code-cloud');
+    if ($commentCloud.length === 0 && !$ntr.find('button[name="pending_review"]').length) {
       try {
         const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
         const html = await response.text();
-        td.html(html);
-        td.find("input[name='line']").val(idx);
-        td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-        td.find("input[name='path']").val(path);
+        $td.html(html);
+        $td.find("input[name='line']").val(idx);
+        $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
+        $td.find("input[name='path']").val(path);
 
-        initDropzone(td.find('.dropzone')[0]);
-        const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
+        initDropzone($td.find('.dropzone')[0]);
+        const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
         editor.focus();
       } catch (error) {
         console.error(error);
@@ -646,18 +646,18 @@ export function initRepoIssueTitleEdit() {
 
 export function initRepoIssueBranchSelect() {
   const changeBranchSelect = function () {
-    const selectionTextField = $('#pull-target-branch');
+    const $selectionTextField = $('#pull-target-branch');
 
-    const baseName = selectionTextField.data('basename');
+    const baseName = $selectionTextField.data('basename');
     const branchNameNew = $(this).data('branch');
-    const branchNameOld = selectionTextField.data('branch');
+    const branchNameOld = $selectionTextField.data('branch');
 
     // Replace branch name to keep translation from HTML template
-    selectionTextField.html(selectionTextField.html().replace(
+    $selectionTextField.html($selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
       `${baseName}:${branchNameNew}`
     ));
-    selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    $selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
 }

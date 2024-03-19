@@ -204,7 +204,7 @@ export default {
     </button>
     <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+      <div v-if="!isLoading" class="vertical item" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
@@ -215,7 +215,7 @@ export default {
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
         v-if="lastReviewCommitSha != null" role="menuitem"
-        class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
+        class="vertical item"
         :class="{disabled: commitsSinceLastReview === 0}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
@@ -227,10 +227,10 @@ export default {
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <span v-if="!isLoading" class="info text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="commit in commits" :key="commit.id">
         <div
-          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem"
+          class="vertical item" role="menuitem"
           :class="{selection: commit.selected, hovered: commit.hovered}"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
@@ -285,10 +285,14 @@ export default {
     width: 350px;
   }
 
-  #diff-commit-selector-menu .item {
+  #diff-commit-selector-menu .item,
+  #diff-commit-selector-menu .info {
+    display: flex !important;
     flex-direction: row;
     line-height: 1.4;
     padding: 7px 14px !important;
+    border-top: 1px solid var(--color-secondary) !important;
+    gap: 0.25em;
   }
 
   #diff-commit-selector-menu .item:focus {

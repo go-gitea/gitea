@@ -353,7 +353,7 @@ export default {
       </div>
     </div>
     <div class="gt-df ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
           {{ locale.loadingInfo }}
