@@ -94,8 +94,6 @@
 .dashboard .ui.container .activity-empty {
   text-align: center;
   padding-top: 150px;
-  padding-left: 3rem;
-  padding-right: 3rem;
 }
 @media (max-width: 767.98px) {
   .dashboard .ui.container .activity-empty {

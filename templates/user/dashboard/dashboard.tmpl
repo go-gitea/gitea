@@ -7,7 +7,7 @@
 			<div class="ui container ten wide column">
 				{{template "user/heatmap" .}}
 				{{if eq (len .Feeds) 0}}
-					<div class="activity-empty">
+					<div class="activity-empty gt-px-5">
 						{{svg "octicon-rss" 48}}
 						<h2>{{ctx.Locale.Tr "action.empty"}}</h2>
 						<p>{{ctx.Locale.Tr "action.empty.desc" "/repo/create" "/repo/migrate" "/org/create"}}</p>
