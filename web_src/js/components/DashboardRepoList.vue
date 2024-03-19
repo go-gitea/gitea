@@ -407,7 +407,7 @@ export default sfc; // activate the IDE's Vue plugin
           </a>
         </div>
       </div>
-      <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="repos.length" class="ui attached table  gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -453,7 +453,7 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </div>
       </div>
-      <div v-if="!repos.length && !isLoading" class="empty-placeholder">
+      <div v-if="!repos.length && !isLoading" class="ui attached table segment gt-rounded-bottom empty-placeholder">
         {{ noRepos }}
       </div>
     </div>
@@ -536,18 +536,11 @@ ul li:not(:last-child) {
   background: var(--color-hover);
 }
 .empty-placeholder {
-  width: calc(100% + 2px);
-  margin-left: -1px;
-  border-width: 1px;
-  border-color: var(--color-secondary);
-  border-top: none;
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-  padding: 80px 0;
-  background: var(--color-box-body);
+  padding: 80px 0 !important;
 }
 @media (max-width: 767.98px) {
   .empty-placeholder {
-    padding: 20px 0;
+    padding: 20px 0 !important;
   }
 }
 </style>
