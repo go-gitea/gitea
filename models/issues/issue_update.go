@@ -282,7 +282,6 @@ type NewIssueOptions struct {
 
 // NewIssueWithIndex creates issue with given index
 func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
-	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
@@ -306,7 +305,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return fmt.Errorf("issue exist")
 	}
 
-	if _, err := e.Insert(opts.Issue); err != nil {
+	if err := db.Insert(ctx, opts.Issue); err != nil {
 		return err
 	}
 
@@ -336,7 +335,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
 		// So we have to get all needed labels first.
 		labels := make([]*Label, 0, len(opts.LabelIDs))
-		if err = e.In("id", opts.LabelIDs).Find(&labels); err != nil {
+		if err = db.GetEngine(ctx).In("id", opts.LabelIDs).Find(&labels); err != nil {
 			return fmt.Errorf("find all labels [label_ids: %v]: %w", opts.LabelIDs, err)
 		}
 
@@ -368,8 +367,8 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 
 		for i := 0; i < len(attachments); i++ {
 			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("issue_id").Update(attachments[i]); err != nil {
+				return fmt.Errorf("update attachment issue_id [id: %d]: %w", attachments[i].ID, err)
 			}
 		}
 	}

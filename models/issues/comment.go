@@ -577,28 +577,6 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 	return nil
 }
 
-// UpdateAttachments update attachments by UUIDs for the comment
-func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-	}
-	for i := 0; i < len(attachments); i++ {
-		attachments[i].IssueID = c.IssueID
-		attachments[i].CommentID = c.ID
-		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-		}
-	}
-	return committer.Commit()
-}
-
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
 	var err error
@@ -868,6 +846,9 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
+		if err = updateAttachments(ctx, opts, comment); err != nil {
+			return err
+		}
 		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
@@ -893,8 +874,7 @@ func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment 
 	for i := range attachments {
 		attachments[i].IssueID = opts.Issue.ID
 		attachments[i].CommentID = comment.ID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("issue_id", "comment_id").Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 		}
 	}
@@ -1122,6 +1102,7 @@ func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
+
 	if err := c.LoadIssue(ctx); err != nil {
 		return err
 	}

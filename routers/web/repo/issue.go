@@ -3157,7 +3157,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent, ctx.FormStrings("files[]"), ctx.FormBool("ignore_attachments")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 		} else {
@@ -3169,14 +3169,6 @@ func UpdateCommentContent(ctx *context.Context) {
 	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.ServerError("LoadAttachments", err)
 		return
-	}
-
-	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
-	if !ctx.FormBool("ignore_attachments") {
-		if err := updateAttachments(ctx, comment, ctx.FormStrings("files[]")); err != nil {
-			ctx.ServerError("UpdateAttachments", err)
-			return
-		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
@@ -3545,7 +3537,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		case *issues_model.Issue:
 			err = issues_model.UpdateIssueAttachments(ctx, content.ID, files)
 		case *issues_model.Comment:
-			err = content.UpdateAttachments(ctx, files)
+			err = issues_model.UpdateAttachments(ctx, content, files)
 		default:
 			return fmt.Errorf("unknown Type: %T", content)
 		}
