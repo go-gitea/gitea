@@ -21,8 +21,8 @@ func TestRepoArchiveDownloadCount(t *testing.T) {
 	// We have no count, so it should return 0
 	downloadCount, err := repo_model.GetArchiveDownloadCount(db.DefaultContext, release.RepoID, release.ID)
 	require.NoError(t, err)
-	assert.Equal(t, 0, downloadCount.Zip)
-	assert.Equal(t, 0, downloadCount.TarGz)
+	assert.Equal(t, int64(0), downloadCount.Zip)
+	assert.Equal(t, int64(0), downloadCount.TarGz)
 
 	// Set the TarGz counter to 1
 	err = repo_model.CountArchiveDownload(db.DefaultContext, release.RepoID, release.ID, git.TARGZ)
@@ -30,8 +30,8 @@ func TestRepoArchiveDownloadCount(t *testing.T) {
 
 	downloadCount, err = repo_model.GetArchiveDownloadCountForTagName(db.DefaultContext, release.RepoID, release.TagName)
 	require.NoError(t, err)
-	assert.Equal(t, 0, downloadCount.Zip)
-	assert.Equal(t, 1, downloadCount.TarGz)
+	assert.Equal(t, int64(0), downloadCount.Zip)
+	assert.Equal(t, int64(1), downloadCount.TarGz)
 
 	// Set the TarGz counter to 2
 	err = repo_model.CountArchiveDownload(db.DefaultContext, release.RepoID, release.ID, git.TARGZ)
@@ -39,8 +39,8 @@ func TestRepoArchiveDownloadCount(t *testing.T) {
 
 	downloadCount, err = repo_model.GetArchiveDownloadCountForTagName(db.DefaultContext, release.RepoID, release.TagName)
 	require.NoError(t, err)
-	assert.Equal(t, 0, downloadCount.Zip)
-	assert.Equal(t, 2, downloadCount.TarGz)
+	assert.Equal(t, int64(0), downloadCount.Zip)
+	assert.Equal(t, int64(2), downloadCount.TarGz)
 
 	// Set the Zip counter to 1
 	err = repo_model.CountArchiveDownload(db.DefaultContext, release.RepoID, release.ID, git.ZIP)
@@ -48,8 +48,8 @@ func TestRepoArchiveDownloadCount(t *testing.T) {
 
 	downloadCount, err = repo_model.GetArchiveDownloadCountForTagName(db.DefaultContext, release.RepoID, release.TagName)
 	require.NoError(t, err)
-	assert.Equal(t, 1, downloadCount.Zip)
-	assert.Equal(t, 2, downloadCount.TarGz)
+	assert.Equal(t, int64(1), downloadCount.Zip)
+	assert.Equal(t, int64(2), downloadCount.TarGz)
 
 	// Delete the count
 	err = repo_model.DeleteArchiveDownloadCountForRelease(db.DefaultContext, release.ID)
@@ -57,6 +57,6 @@ func TestRepoArchiveDownloadCount(t *testing.T) {
 
 	downloadCount, err = repo_model.GetArchiveDownloadCountForTagName(db.DefaultContext, release.RepoID, release.TagName)
 	require.NoError(t, err)
-	assert.Equal(t, 0, downloadCount.Zip)
-	assert.Equal(t, 0, downloadCount.TarGz)
+	assert.Equal(t, int64(0), downloadCount.Zip)
+	assert.Equal(t, int64(0), downloadCount.TarGz)
 }

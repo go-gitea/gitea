@@ -99,14 +99,17 @@ func NewRequest(ctx context.Context, repoID int64, repo *git.Repository, uri str
 		return nil, RepoRefNotFoundError{RefName: r.refName}
 	}
 
-	repo_model.GetRelease(ctx, repoID, r.refName)
 	r.CommitID = commitID.String()
 
 	release, err := repo_model.GetRelease(ctx, repoID, r.refName)
 	if err != nil {
-		return nil, err
+		if !repo_model.IsErrReleaseNotExist(err) {
+			return nil, err
+		}
 	}
-	r.ReleaseID = release.ID
+	if release != nil {
+		r.ReleaseID = release.ID
+	}
 
 	return r, nil
 }
