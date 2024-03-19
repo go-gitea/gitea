@@ -68,15 +68,12 @@ func GetArchiveDownloadCount(ctx context.Context, repoID, releaseID int64) (*api
 	}
 
 	return tagCounter, nil
-}
+}s
 
 // GetDownloadCountForTagName returns the download count of a tag with the given name
 func GetArchiveDownloadCountForTagName(ctx context.Context, repoID int64, tagName string) (*api.TagArchiveDownloadCount, error) {
 	release, err := GetRelease(ctx, repoID, tagName)
 	if err != nil {
-		if IsErrReleaseNotExist(err) {
-			return new(api.TagArchiveDownloadCount), nil
-		}
 		return nil, err
 	}
 
