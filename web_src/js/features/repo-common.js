@@ -3,18 +3,20 @@ import {hideElem, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 async function getArchive($target, url, first) {
+  const dropdownBtn = $target[0].closest('.ui.dropdown.button');
+
   try {
+    dropdownBtn.classList.add('is-loading');
     const response = await POST(url);
     if (response.status === 200) {
       const data = await response.json();
       if (!data) {
         // XXX Shouldn't happen?
-        $target.closest('.dropdown').children('i').removeClass('loading');
+        dropdownBtn.classList.remove('is-loading');
         return;
       }
 
       if (!data.complete) {
-        $target.closest('.dropdown').children('i').addClass('loading');
         // Wait for only three quarters of a second initially, in case it's
         // quickly archived.
         setTimeout(() => {
@@ -22,12 +24,12 @@ async function getArchive($target, url, first) {
         }, first ? 750 : 2000);
       } else {
         // We don't need to continue checking.
-        $target.closest('.dropdown').children('i').removeClass('loading');
+        dropdownBtn.classList.remove('is-loading');
         window.location.href = url;
       }
     }
   } catch {
-    $target.closest('.dropdown').children('i').removeClass('loading');
+    dropdownBtn.classList.remove('is-loading');
   }
 }
 
