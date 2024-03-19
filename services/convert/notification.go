@@ -61,10 +61,10 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 				result.Subject.LatestCommentHTMLURL = comment.HTMLURL(ctx)
 			}
 
-			if err := n.Issue.LoadPullRequest(ctx); err == nil && n.Issue.PullRequest != nil {
-				if n.Issue.PullRequest != nil && n.Issue.PullRequest.HasMerged {
-					result.Subject.State = "merged"
-				}
+			if err := n.Issue.LoadPullRequest(ctx); err == nil &&
+				n.Issue.PullRequest != nil &&
+				n.Issue.PullRequest.HasMerged {
+				result.Subject.State = "merged"
 			}
 		}
 	case activities_model.NotificationSourceCommit:
