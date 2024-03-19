@@ -63,21 +63,10 @@ func setup(ctx context.Context, debug bool) {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
 	setting.MustInstalled()
-	if debug {
-		setting.RunMode = "dev"
-	}
-
-	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
-	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
-		if os.IsNotExist(err) {
-			_ = fail(ctx, "Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
-		} else {
-			_ = fail(ctx, "Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
-		}
+		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
 		return
 	}
-
 	if err := git.InitSimple(context.Background()); err != nil {
 		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
@@ -216,16 +205,18 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	// LowerCase and trim the repoPath as that's how they are stored.
-	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
-
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
 		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
-	username := strings.ToLower(rr[0])
-	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
+	username := rr[0]
+	reponame := strings.TrimSuffix(rr[1], ".git")
+
+	// LowerCase and trim the repoPath as that's how they are stored.
+	// This should be done after splitting the repoPath into username and reponame
+	// so that username and reponame are not affected.
+	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
 	if alphaDashDotPattern.MatchString(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)

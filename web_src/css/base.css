@@ -21,11 +21,20 @@
   --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
 }
 
 :root * {
   --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
 }
 
 textarea {
@@ -96,31 +105,7 @@ progress::-moz-progress-bar {
 }
 
 * {
-  scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-  border: 2px solid transparent;
-  border-radius: var(--border-radius);
-}
-
-::-webkit-scrollbar-thumb:window-inactive {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  box-shadow: inset 0 0 0 6px var(--color-primary-dark-2);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 ::file-selector-button {
@@ -164,24 +149,32 @@ a {
   text-decoration-skip-ink: all;
 }
 
-/* muted link = only colored when hovered */
-/* silenced link = never colored */
+/* a = always colored, underlined on hover */
+/* a.muted = colored on hover, underlined on hover */
+/* a.suppressed = never colored, underlined on hover */
+/* a.silenced = never colored, never underlined */
 
 a.muted,
+a.suppressed,
 a.silenced,
 .muted-links a {
   color: inherit;
 }
 
 a:hover,
+a.suppressed:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }
 
-a.silenced:hover {
+a.silenced:hover,
+a.suppressed:hover {
   color: inherit;
+}
+
+a.silenced:hover {
   text-decoration: none;
 }
 
@@ -196,10 +189,14 @@ a.label,
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
+  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
 }
 
 .ui.search > .results .result {
   background: var(--color-body);
+  border-color: var(--color-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .ui.search > .results .result .title {
@@ -235,7 +232,7 @@ a.label,
 }
 
 .page-content .header-wrapper,
-.page-content .new-menu {
+.page-content overflow-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
 }
@@ -269,16 +266,28 @@ ol.ui.list li,
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
 }
-
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus,:hover) {
-  border-right-color: transparent;
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
+  border-color: var(--color-input-border);
+}
+.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
 .ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: 1px solid transparent;
+  border-right: none;
 }
-
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
+  border-left-color: var(--color-primary);
+}
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
@@ -409,6 +418,13 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
+/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
+.ui.dropdown > .text > .img {
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
+}
+
 .ui.dropdown > .text > .description,
 .ui.dropdown .menu > .item > .description {
   color: var(--color-text-light-2);
@@ -481,6 +497,11 @@ ol.ui.list li,
   background: var(--color-active) !important;
 }
 
+.ui.form textarea:not([rows]) {
+  height: var(--min-height-textarea); /* override fomantic default 12em */
+  min-height: var(--min-height-textarea); /* override fomantic default 8em */
+}
+
 /* styles from removed fomantic transition module */
 .hidden.transition {
   visibility: hidden;
@@ -489,73 +510,6 @@ ol.ui.list li,
 .visible.transition {
   display: block !important;
   visibility: visible !important;
-}
-
-.ui.message {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  box-shadow: none !important;
-  border: 1px solid var(--color-secondary);
-}
-
-.ui.info.message .header,
-.ui.blue.message .header {
-  color: var(--color-blue);
-}
-
-.ui.info.message,
-.ui.attached.info.message,
-.ui.blue.message,
-.ui.attached.blue.message {
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border-color: var(--color-info-border);
-}
-
-.ui.success.message .header,
-.ui.positive.message .header,
-.ui.green.message .header {
-  color: var(--color-green);
-}
-
-.ui.success.message,
-.ui.attached.success.message,
-.ui.positive.message,
-.ui.attached.positive.message {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  border-color: var(--color-success-border);
-}
-
-.ui.error.message .header,
-.ui.negative.message .header,
-.ui.red.message .header {
-  color: var(--color-red);
-}
-
-.ui.error.message,
-.ui.attached.error.message,
-.ui.red.message,
-.ui.attached.red.message,
-.ui.negative.message,
-.ui.attached.negative.message {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border-color: var(--color-error-border);
-}
-
-.ui.warning.message .header,
-.ui.yellow.message .header {
-  color: var(--color-yellow);
-}
-
-.ui.warning.message,
-.ui.attached.warning.message,
-.ui.yellow.message,
-.ui.attached.yellow.message {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  border-color: var(--color-warning-border);
 }
 
 .ui.error.header {
@@ -583,10 +537,6 @@ ol.ui.list li,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
   border-color: var(--color-primary);
-}
-
-.ui.selection.dropdown .menu {
-  margin: 0 -1.25px;
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
@@ -847,10 +797,18 @@ img.ui.avatar,
   border-color: var(--color-error-border) !important;
 }
 
-/* A fix for text visibility issue in Chrome autofill in dark mode. */
-/* It's a problem from Formatic UI, and this rule overrides it. */
-.ui.form .field.field input:-webkit-autofill {
-  -webkit-text-fill-color: var(--color-black) !important;
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+.ui.form .field.field input:-webkit-autofill,
+.ui.form .field.field input:-webkit-autofill:focus,
+.ui.form .field.field input:-webkit-autofill:hover,
+.ui.form .field.field input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
+  border-color: var(--color-primary-light-4) !important;
 }
 
 .ui.form .field.muted {
@@ -1264,18 +1222,48 @@ img.ui.avatar,
   border-radius: var(--border-radius);
 }
 
+.attention-header {
+  padding: 0.5em 0.75em !important;
+  color: var(--color-text) !important;
+}
+
 .attention-icon {
-  vertical-align: text-top;
+  margin: 2px 6px 0 0;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, svg.attention-note {
+  color: var(--color-blue-dark-1);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, svg.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, svg.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, svg.attention-warning {
   color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, svg.attention-caution {
+  color: var(--color-red-dark-1);
 }
 
 .center:not(.popup) {
@@ -1289,73 +1277,19 @@ img.ui.avatar,
   }
 }
 
-.ui.menu.new-menu {
-  margin-bottom: 15px;
-  background: var(--color-header-wrapper);
+overflow-menu {
+  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
-  overflow: auto;
-}
-
-.ui.menu.new-menu .new-menu-inner {
   display: flex;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-x: auto;
-  width: 100%;
-  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
-.ui.menu.new-menu .item {
+overflow-menu .overflow-menu-items {
+  display: flex;
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
-}
-
-@media (max-width: 767.98px) {
-  .ui.menu.new-menu .item {
-    width: auto !important;
-  }
-}
-
-.ui.menu.new-menu .item:first-child {
-  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
-}
-
-.ui.menu.new-menu .item:last-child {
-  padding-right: 30px !important;
-  margin-right: auto;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar {
-  height: 6px;
-  display: none;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-track {
-  background: none !important;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-thumb {
-  box-shadow: none !important;
-}
-
-.ui.menu.new-menu:hover::-webkit-scrollbar {
-  display: block;
-}
-
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
-  justify-content: space-evenly;
-}
-
-.ui.secondary.pointing.menu.repos-filter .item {
-  padding-left: 4.5px;
-  padding-right: 4.5px;
 }
 
 .activity-bar-graph {
@@ -1398,7 +1332,9 @@ img.ui.avatar,
 }
 
 .ui.label,
-.ui.menu .item > .label {
+.ui.menu .item > .label,
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
 }
@@ -1526,7 +1462,7 @@ a.ui.active.label:hover {
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-grey);
+  color: var(--color-text-light-2);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -1567,6 +1503,10 @@ a.ui.active.label:hover {
 
 .top-line-blame {
   border-top: 1px solid var(--color-secondary);
+}
+
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
 }
 
 .lines-code .bottom-line,
@@ -1764,11 +1704,12 @@ a.ui.basic.label:hover {
   bottom: 0;
   display: flex;
   align-items: center;
+  gap: 0.25em;
 }
 
-.ui.attached.header > .ui.right > .button,
-.ui.attached.header > .ui.right > .dropdown > .button {
-  padding: 8px 10px;
+/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
+.ui.attached.header > .ui.right .ui.tiny.button {
+  padding: 6px 10px;
   font-weight: var(--font-weight-normal);
 }
 
@@ -1856,7 +1797,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-body);
   border-color: var(--color-secondary);
   color: var(--color-text);
-  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
 }
 
 .ui.segment .ui.tabular.menu .active.item,
@@ -1988,7 +1928,6 @@ table th[data-sortt-desc] .svg {
 .ui.ui.button,
 .ui.ui.dropdown,
 .ui.ui.label,
-.flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -2019,9 +1958,20 @@ table th[data-sortt-desc] .svg {
   justify-content: center;
 }
 
+.ui.icon.input > i.icon {
+  transition: none;
+}
+
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;
   gap: .25rem;
+}
+
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
+.ui.dropdown .menu.flex-items-menu > .item {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
 }

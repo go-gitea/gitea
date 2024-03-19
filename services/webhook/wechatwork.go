@@ -4,11 +4,13 @@
 package webhook
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
@@ -28,20 +30,8 @@ type (
 	}
 )
 
-// SetSecret sets the Wechatwork secret
-func (f *WechatworkPayload) SetSecret(_ string) {}
-
-// JSONPayload Marshals the WechatworkPayload to json
-func (f *WechatworkPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(f, "", "  ")
-	if err != nil {
-		return []byte{}, err
-	}
-	return data, nil
-}
-
-func newWechatworkMarkdownPayload(title string) *WechatworkPayload {
-	return &WechatworkPayload{
+func newWechatworkMarkdownPayload(title string) WechatworkPayload {
+	return WechatworkPayload{
 		Msgtype: "markdown",
 		Markdown: struct {
 			Content string `json:"content"`
@@ -51,10 +41,8 @@ func newWechatworkMarkdownPayload(title string) *WechatworkPayload {
 	}
 }
 
-var _ PayloadConvertor = &WechatworkPayload{}
-
 // Create implements PayloadConvertor Create method
-func (f *WechatworkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Create(p *api.CreatePayload) (WechatworkPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -63,7 +51,7 @@ func (f *WechatworkPayload) Create(p *api.CreatePayload) (api.Payloader, error) 
 }
 
 // Delete implements PayloadConvertor Delete method
-func (f *WechatworkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Delete(p *api.DeletePayload) (WechatworkPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -72,14 +60,14 @@ func (f *WechatworkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) 
 }
 
 // Fork implements PayloadConvertor Fork method
-func (f *WechatworkPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Fork(p *api.ForkPayload) (WechatworkPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return newWechatworkMarkdownPayload(title), nil
 }
 
 // Push implements PayloadConvertor Push method
-func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -108,7 +96,7 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 }
 
 // Issue implements PayloadConvertor Issue method
-func (f *WechatworkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Issue(p *api.IssuePayload) (WechatworkPayload, error) {
 	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 	var content string
 	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\"> %s</font> \n [%s](%s)", text, attachmentText, issueTitle, p.Issue.HTMLURL, p.Issue.HTMLURL)
@@ -117,7 +105,7 @@ func (f *WechatworkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
-func (f *WechatworkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) IssueComment(p *api.IssueCommentPayload) (WechatworkPayload, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 	var content string
 	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\">%s</font> \n [%s](%s)", text, p.Comment.Body, issueTitle, p.Comment.HTMLURL, p.Comment.HTMLURL)
@@ -126,7 +114,7 @@ func (f *WechatworkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloa
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
-func (f *WechatworkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) PullRequest(p *api.PullRequestPayload) (WechatworkPayload, error) {
 	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 	pr := fmt.Sprintf("> <font color=\"info\"> %s </font> \r\n > <font color=\"comment\">%s </font> \r\n > <font color=\"comment\">%s </font> \r\n",
 		text, issueTitle, attachmentText)
@@ -135,13 +123,13 @@ func (f *WechatworkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloade
 }
 
 // Review implements PayloadConvertor Review method
-func (f *WechatworkPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
+func (wc wechatworkConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (WechatworkPayload, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
-			return nil, err
+			return WechatworkPayload{}, err
 		}
 		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.Review.Content
@@ -151,7 +139,7 @@ func (f *WechatworkPayload) Review(p *api.PullRequestPayload, event webhook_modu
 }
 
 // Repository implements PayloadConvertor Repository method
-func (f *WechatworkPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Repository(p *api.RepositoryPayload) (WechatworkPayload, error) {
 	var title string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -162,30 +150,33 @@ func (f *WechatworkPayload) Repository(p *api.RepositoryPayload) (api.Payloader,
 		return newWechatworkMarkdownPayload(title), nil
 	}
 
-	return nil, nil
+	return WechatworkPayload{}, nil
 }
 
 // Wiki implements PayloadConvertor Wiki method
-func (f *WechatworkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Wiki(p *api.WikiPayload) (WechatworkPayload, error) {
 	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
 
 	return newWechatworkMarkdownPayload(text), nil
 }
 
 // Release implements PayloadConvertor Release method
-func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Release(p *api.ReleasePayload) (WechatworkPayload, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
 	return newWechatworkMarkdownPayload(text), nil
 }
 
-func (f *WechatworkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+func (wc wechatworkConvertor) Package(p *api.PackagePayload) (WechatworkPayload, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 
 	return newWechatworkMarkdownPayload(text), nil
 }
 
-// GetWechatworkPayload GetWechatworkPayload converts a ding talk webhook into a WechatworkPayload
-func GetWechatworkPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
-	return convertPayloader(new(WechatworkPayload), p, event)
+type wechatworkConvertor struct{}
+
+var _ payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
+
+func newWechatworkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	return newJSONRequest(wechatworkConvertor{}, w, t, true)
 }

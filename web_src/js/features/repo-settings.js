@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
 import {onInputDebounce, toggleElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -11,18 +12,19 @@ export function initRepoSettingsCollaboration() {
     const $dropdown = $(e);
     const $text = $dropdown.find('> .text');
     $dropdown.dropdown({
-      action(_text, value) {
+      async action(_text, value) {
         const lastValue = $dropdown.attr('data-last-value');
-        $.post($dropdown.attr('data-url'), {
-          _csrf: csrfToken,
-          uid: $dropdown.attr('data-uid'),
-          mode: value,
-        }).fail(() => {
+        try {
+          $dropdown.attr('data-last-value', value);
+          $dropdown.dropdown('hide');
+          const data = new FormData();
+          data.append('uid', $dropdown.attr('data-uid'));
+          data.append('mode', value);
+          await POST($dropdown.attr('data-url'), {data});
+        } catch {
           $text.text('(error)'); // prevent from misleading users when error occurs
           $dropdown.attr('data-last-value', lastValue);
-        });
-        $dropdown.attr('data-last-value', value);
-        $dropdown.dropdown('hide');
+        }
       },
       onChange(_value, text, _$choice) {
         $text.text(text); // update the text when using keyboard navigating
@@ -52,9 +54,9 @@ export function initRepoSettingSearchTeamBox() {
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
-          const title = `${item.name} (${item.permission} access)`;
           items.push({
-            title,
+            title: item.name,
+            description: `${item.permission} access` // TODO: translate this string
           });
         });
 
@@ -81,6 +83,10 @@ export function initRepoSettingBranches() {
   $('.toggle-target-disabled').on('change', function () {
     const $target = $($(this).attr('data-target'));
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
+  });
+  $('#dismiss_stale_approvals').on('change', function () {
+    const $target = $('#ignore_stale_approvals_box');
+    $target.toggleClass('disabled', this.checked);
   });
 
   // show the `Matched` mark for the status checks that match the pattern

@@ -21,7 +21,7 @@
 				</i>
 			</label>
 		</div>
-		<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
+		<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
 		<div class="divider"></div>
 		<a class="{{if .AllLabels}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
 		<a class="{{if .NoLabel}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
@@ -42,8 +42,8 @@
 						{{svg "octicon-check"}}
 					{{end}}
 				{{end}}
-				{{RenderLabel $.Context .}}
-				<p class="gt-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+				{{RenderLabel $.Context ctx.Locale .}}
+				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 			</a>
 		{{end}}
 	</div>
@@ -108,7 +108,7 @@
 			</div>
 			{{range .OpenProjects}}
 				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
-					{{svg .IconName 18 "gt-mr-3 gt-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
+					{{svg .IconName 18 "gt-mr-3 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}

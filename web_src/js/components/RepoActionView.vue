@@ -3,9 +3,9 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
-import {getCurrentLocale} from '../utils.js';
+import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST} from '../modules/fetch.js';
+import {GET, POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -167,7 +167,7 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      const timeStamp = formatDatetime(date);
       logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
       // for "Show seconds"
@@ -196,8 +196,14 @@ const sfc = {
     },
 
     async fetchArtifacts() {
-      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
       return await resp.json();
+    },
+
+    async deleteArtifact(name) {
+      if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
+      await DELETE(`${this.run.link}/artifacts/${name}`);
+      await this.loadJob();
     },
 
     async fetchJob() {
@@ -329,6 +335,8 @@ export function initRepositoryActionView() {
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
+      areYouSure: el.getAttribute('data-locale-are-you-sure'),
+      confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
@@ -404,6 +412,9 @@ export function initRepositoryActionView() {
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                 <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
               </a>
+              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
+                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
+              </a>
             </li>
           </ul>
         </div>
@@ -446,7 +457,7 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps">
+        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -513,7 +524,7 @@ export function initRepositoryActionView() {
   width: 30%;
   max-width: 400px;
   position: sticky;
-  top: 0;
+  top: 12px;
   max-height: 100vh;
   overflow-y: auto;
 }
@@ -528,6 +539,8 @@ export function initRepositoryActionView() {
 .job-artifacts-item {
   margin: 5px 0;
   padding: 6px;
+  display: flex;
+  justify-content: space-between;
 }
 
 .job-artifacts-list {
@@ -609,6 +622,8 @@ export function initRepositoryActionView() {
   width: 70%;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--color-console-border);
+  border-radius: var(--border-radius);
 }
 
 /* begin fomantic button overrides */
@@ -668,13 +683,16 @@ export function initRepositoryActionView() {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-radius: var(--border-radius);
   height: 60px;
   z-index: 1;
+}
+
+.job-info-header:has(+ .job-step-container) {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .job-info-header .job-info-header-title {
@@ -692,6 +710,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  border-top: 1px solid var(--color-console-border);
   z-index: 0;
 }
 
@@ -747,7 +766,7 @@ export function initRepositoryActionView() {
 
 @keyframes job-status-rotate-keyframes {
   100% {
-    transform: rotate(360deg);
+    transform: rotate(-360deg);
   }
 }
 
@@ -777,7 +796,7 @@ export function initRepositoryActionView() {
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
 .job-log-line .line-num, .log-time-seconds {
   width: 48px;
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   text-align: right;
   user-select: none;
 }
@@ -793,7 +812,7 @@ export function initRepositoryActionView() {
 
 .job-log-line .log-time,
 .log-time-stamp {
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   margin-left: 10px;
   white-space: nowrap;
 }

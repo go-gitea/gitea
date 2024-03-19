@@ -37,13 +37,12 @@
 .combo-markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
-  min-height: 200px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
   resize: vertical;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
 }
 
 /* use the same styles as markup/content.css */

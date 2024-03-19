@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -194,18 +195,6 @@ func (u *User) AfterLoad() {
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
 	u.LastLoginUnix = timeutil.TimeStampNow()
-}
-
-// UpdateUserDiffViewStyle updates the users diff view style
-func UpdateUserDiffViewStyle(ctx context.Context, u *User, style string) error {
-	u.DiffViewStyle = style
-	return UpdateUserCols(ctx, u, "diff_view_style")
-}
-
-// UpdateUserTheme updates a users' theme irrespective of the site wide theme
-func UpdateUserTheme(ctx context.Context, u *User, themeName string) error {
-	u.Theme = themeName
-	return UpdateUserCols(ctx, u, "theme")
 }
 
 // GetPlaceholderEmail returns an noreply email
@@ -378,13 +367,6 @@ func (u *User) NewGitSig() *git.Signature {
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
 // change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
-	if len(passwd) == 0 {
-		u.Passwd = ""
-		u.Salt = ""
-		u.PasswdHashAlgo = ""
-		return nil
-	}
-
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
@@ -443,6 +425,17 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
+// GetCompleteName returns the full name and username in the form of
+// "Full Name (username)" if full name is not empty, otherwise it returns
+// "username".
+func (u *User) GetCompleteName() string {
+	trimmedFullName := strings.TrimSpace(u.FullName)
+	if len(trimmedFullName) > 0 {
+		return fmt.Sprintf("%s (%s)", trimmedFullName, u.Name)
+	}
+	return u.Name
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
@@ -475,21 +468,6 @@ func (u *User) ShortName(length int) string {
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
-}
-
-// EmailNotifications returns the User's email notification preference
-func (u *User) EmailNotifications() string {
-	return u.EmailNotificationsPreference
-}
-
-// SetEmailNotifications sets the user's email notification preference
-func SetEmailNotifications(ctx context.Context, u *User, set string) error {
-	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(ctx, u, "email_notifications_preference"); err != nil {
-		log.Error("SetEmailNotifications: %v", err)
-		return err
-	}
-	return nil
 }
 
 // IsUserExist checks if given user name exist,
@@ -596,18 +574,28 @@ func IsUsableUsername(name string) error {
 
 // CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
 type CreateUserOverwriteOptions struct {
-	KeepEmailPrivate             util.OptionalBool
+	KeepEmailPrivate             optional.Option[bool]
 	Visibility                   *structs.VisibleType
-	AllowCreateOrganization      util.OptionalBool
+	AllowCreateOrganization      optional.Option[bool]
 	EmailNotificationsPreference *string
 	MaxRepoCreation              *int
 	Theme                        *string
-	IsRestricted                 util.OptionalBool
-	IsActive                     util.OptionalBool
+	IsRestricted                 optional.Option[bool]
+	IsActive                     optional.Option[bool]
 }
 
 // CreateUser creates record of a new user.
 func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, false, overwriteDefault...)
+}
+
+// AdminCreateUser is used by admins to manually create users
+func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, true, overwriteDefault...)
+}
+
+// createUser creates record of a new user.
+func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -630,14 +618,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
 		overwrite := overwriteDefault[0]
-		if !overwrite.KeepEmailPrivate.IsNone() {
-			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.IsTrue()
+		if overwrite.KeepEmailPrivate.Has() {
+			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.Value()
 		}
 		if overwrite.Visibility != nil {
 			u.Visibility = *overwrite.Visibility
 		}
-		if !overwrite.AllowCreateOrganization.IsNone() {
-			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.IsTrue()
+		if overwrite.AllowCreateOrganization.Has() {
+			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.Value()
 		}
 		if overwrite.EmailNotificationsPreference != nil {
 			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
@@ -648,11 +636,11 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		if overwrite.Theme != nil {
 			u.Theme = *overwrite.Theme
 		}
-		if !overwrite.IsRestricted.IsNone() {
-			u.IsRestricted = overwrite.IsRestricted.IsTrue()
+		if overwrite.IsRestricted.Has() {
+			u.IsRestricted = overwrite.IsRestricted.Value()
 		}
-		if !overwrite.IsActive.IsNone() {
-			u.IsActive = overwrite.IsActive.IsTrue()
+		if overwrite.IsActive.Has() {
+			u.IsActive = overwrite.IsActive.Value()
 		}
 	}
 
@@ -661,8 +649,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	if err := ValidateEmail(u.Email); err != nil {
-		return err
+	if createdByAdmin {
+		if err := ValidateEmailForAdmin(u.Email); err != nil {
+			return err
+		}
+	} else {
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -694,8 +688,13 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if err = u.SetPassword(u.Passwd); err != nil {
-		return err
+	if u.Passwd != "" {
+		if err = u.SetPassword(u.Passwd); err != nil {
+			return err
+		}
+	} else {
+		u.Salt = ""
+		u.PasswdHashAlgo = ""
 	}
 
 	// save changes to database
@@ -730,9 +729,18 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	return committer.Commit()
 }
 
+// IsLastAdminUser check whether user is the last admin
+func IsLastAdminUser(ctx context.Context, user *User) bool {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: optional.Some(true)}) <= 1 {
+		return true
+	}
+	return false
+}
+
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
+	IsAdmin        optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -741,13 +749,25 @@ func CountUsers(ctx context.Context, opts *CountUserFilter) int64 {
 }
 
 func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
-	sess := db.GetEngine(ctx).Where(builder.Eq{"type": "0"})
+	sess := db.GetEngine(ctx)
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"type": UserTypeIndividual})
 
-	if opts != nil && opts.LastLoginSince != nil {
-		sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+	if opts != nil {
+		if opts.LastLoginSince != nil {
+			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+		}
+
+		if opts.IsAdmin.Has() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
+		}
 	}
 
-	count, _ := sess.Count(new(User))
+	count, err := sess.Where(cond).Count(new(User))
+	if err != nil {
+		log.Error("user.countUsers: %v", err)
+	}
+
 	return count
 }
 
@@ -785,24 +805,6 @@ func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
 	return nil
 }
 
-// checkDupEmail checks whether there are the same email with the user
-func checkDupEmail(ctx context.Context, u *User) error {
-	u.Email = strings.ToLower(u.Email)
-	has, err := db.GetEngine(ctx).
-		Where("id!=?", u.ID).
-		And("type=?", u.Type).
-		And("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if has {
-		return ErrEmailAlreadyUsed{
-			Email: u.Email,
-		}
-	}
-	return nil
-}
-
 // ValidateUser check if user is valid to insert / update into database
 func ValidateUser(u *User, cols ...string) error {
 	if len(cols) == 0 || util.SliceContainsString(cols, "visibility", true) {
@@ -811,79 +813,7 @@ func ValidateUser(u *User, cols ...string) error {
 		}
 	}
 
-	if len(cols) == 0 || util.SliceContainsString(cols, "email", true) {
-		u.Email = strings.ToLower(u.Email)
-		if err := ValidateEmail(u.Email); err != nil {
-			return err
-		}
-	}
 	return nil
-}
-
-// UpdateUser updates user's information.
-func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
-	err := ValidateUser(u, cols...)
-	if err != nil {
-		return err
-	}
-
-	e := db.GetEngine(ctx)
-
-	if changePrimaryEmail {
-		var emailAddress EmailAddress
-		has, err := e.Where("lower_email=?", strings.ToLower(u.Email)).Get(&emailAddress)
-		if err != nil {
-			return err
-		}
-		if has && emailAddress.UID != u.ID {
-			return ErrEmailAlreadyUsed{
-				Email: u.Email,
-			}
-		}
-		// 1. Update old primary email
-		if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
-			IsPrimary: false,
-		}); err != nil {
-			return err
-		}
-
-		if !has {
-			emailAddress.Email = u.Email
-			emailAddress.UID = u.ID
-			emailAddress.IsActivated = true
-			emailAddress.IsPrimary = true
-			if _, err := e.Insert(&emailAddress); err != nil {
-				return err
-			}
-		} else if _, err := e.ID(emailAddress.ID).Cols("is_primary").Update(&EmailAddress{
-			IsPrimary: true,
-		}); err != nil {
-			return err
-		}
-	} else if !u.IsOrganization() { // check if primary email in email_address table
-		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
-		if err != nil {
-			return err
-		}
-
-		if !primaryEmailExist {
-			if _, err := e.Insert(&EmailAddress{
-				Email:       u.Email,
-				UID:         u.ID,
-				IsActivated: true,
-				IsPrimary:   true,
-			}); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(cols) == 0 {
-		_, err = e.ID(u.ID).AllCols().Update(u)
-	} else {
-		_, err = e.ID(u.ID).Cols(cols...).Update(u)
-	}
-	return err
 }
 
 // UpdateUserCols update user according special columns
@@ -894,25 +824,6 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Update(u)
 	return err
-}
-
-// UpdateUserSetting updates user's settings.
-func UpdateUserSetting(ctx context.Context, u *User) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if !u.IsOrganization() {
-		if err = checkDupEmail(ctx, u); err != nil {
-			return err
-		}
-	}
-	if err = UpdateUser(ctx, u, false); err != nil {
-		return err
-	}
-	return committer.Commit()
 }
 
 // GetInactiveUsers gets all inactive users
@@ -941,7 +852,7 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, "", 0}
+		return nil, ErrUserNotExist{UID: id}
 	}
 	return u, nil
 }
@@ -991,14 +902,14 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 // GetUserByNameCtx returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
 	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
 }
@@ -1012,7 +923,7 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() && u.EmailNotifications() != EmailNotificationsDisabled {
+		if u.IsMailable() && u.EmailNotificationsPreference != EmailNotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}
@@ -1139,7 +1050,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, email, 0}
+		return nil, ErrUserNotExist{Name: email}
 	}
 
 	email = strings.ToLower(email)
@@ -1166,7 +1077,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		}
 	}
 
-	return nil, ErrUserNotExist{0, email, 0}
+	return nil, ErrUserNotExist{Name: email}
 }
 
 // GetUser checks if a user already exists
@@ -1177,7 +1088,7 @@ func GetUser(ctx context.Context, user *User) (bool, error) {
 // GetUserByOpenID returns the user object by given OpenID if exists.
 func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 	if len(uri) == 0 {
-		return nil, ErrUserNotExist{0, uri, 0}
+		return nil, ErrUserNotExist{Name: uri}
 	}
 
 	uri, err := openid.Normalize(uri)
@@ -1197,7 +1108,7 @@ func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 		return GetUserByID(ctx, oid.UID)
 	}
 
-	return nil, ErrUserNotExist{0, uri, 0}
+	return nil, ErrUserNotExist{Name: uri}
 }
 
 // GetAdminUser returns the first administrator
@@ -1230,6 +1141,8 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	return builder.Neq{
 		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
+		// viewer self
+		builder.Eq{"`user`.id": viewer.ID},
 		// viewer's following
 		builder.In("`user`.id",
 			builder.
@@ -1270,7 +1183,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		// If they follow - they see each over
+		// If they follow - they see each other
 		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -209,7 +210,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +325,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 	log.Trace("Doing: ArchiveCleanup")
 
 	for {
-		archivers, err := repo_model.FindRepoArchives(ctx, repo_model.FindRepoArchiversOption{
+		archivers, err := db.Find[repo_model.RepoArchiver](ctx, repo_model.FindRepoArchiversOption{
 			ListOptions: db.ListOptions{
 				PageSize: 100,
 				Page:     1,

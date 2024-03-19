@@ -32,7 +32,7 @@
 		{{range .Labels}}
 		<li class="item">
 			<div class="label-title">
-				{{RenderLabel $.Context .}}
+				{{RenderLabel $.Context ctx.Locale .}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 			</div>
 			<div class="label-issues">
@@ -44,7 +44,7 @@
 			</div>
 			<div class="label-operation gt-df">
 				{{template "repo/issue/labels/label_archived" .}}
-				<div class="gt-df gt-ml-auto">
+				<div class="gt-df tw-ml-auto">
 					{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
 						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
@@ -61,7 +61,7 @@
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
-						{{ctx.Locale.Tr "repo.org_labels_desc" | Str2html}}
+						{{ctx.Locale.Tr "repo.org_labels_desc"}}
 						{{if .IsOrganizationOwner}}
 							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}
@@ -72,7 +72,7 @@
 			{{range .OrgLabels}}
 			<li class="item org-label">
 				<div class="label-title">
-					{{RenderLabel $.Context .}}
+					{{RenderLabel $.Context ctx.Locale .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">

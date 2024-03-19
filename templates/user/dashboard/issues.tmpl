@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu gt-bg-transparent">
+				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
@@ -50,14 +50,14 @@
 							<input type="hidden" name="type" value="{{$.ViewType}}">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							{{template "shared/searchinput" dict "Value" $.Keyword}}
+							{{template "shared/search/input" dict "Value" $.Keyword}}
 							<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}">{{svg "octicon-hash"}}</button>
-							<button class="ui small icon button" aria-label="{{ctx.Locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+							{{template "shared/search/button"}}
 						</div>
 					</form>
 					<!-- Sort -->
 					<div class="list-header-sort ui small dropdown type jump item">
-						<span class="text gt-whitespace-nowrap">
+						<span class="text tw-whitespace-nowrap">
 							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>

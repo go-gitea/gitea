@@ -21,11 +21,13 @@
 							<a href="mailto:{{.Email}}">{{.Email}}</a>
 						</span>
 					{{end}}
-					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}</span>
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix)}}</span>
 				</div>
 			</div>
 		</div>
 	{{else}}
-		<div class="flex-item">{{ctx.Locale.Tr "explore.user_no_results"}}</div>
+		<div class="flex-item">
+			{{ctx.Locale.Tr "search.no_results"}}
+		</div>
 	{{end}}
 </div>

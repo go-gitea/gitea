@@ -5,15 +5,16 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -61,7 +62,7 @@ func KeysPost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if _, err = asymkey_model.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0); err != nil {
+		if _, err = asymkey_service.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0); err != nil {
 			ctx.Data["HasPrincipalError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err), asymkey_model.IsErrKeyNameAlreadyUsed(err):
@@ -77,6 +78,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+			return
+		}
+
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -153,6 +159,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		content, err := asymkey_model.CheckPublicKeyString(form.Content)
 		if err != nil {
 			if db.IsErrSSHDisabled(err) {
@@ -192,6 +203,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -224,12 +240,21 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageGPGKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+			return
+		}
 		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
+		if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+			return
+		}
+
 		keyID := ctx.FormInt64("id")
 		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
@@ -277,9 +302,16 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["ExternalKeys"] = externalKeys
 
-	gpgkeys, err := asymkey_model.ListGPGKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	gpgkeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.Doer.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+	if err := asymkey_model.GPGKeyList(gpgkeys).LoadSubKeys(ctx); err != nil {
+		ctx.ServerError("LoadSubKeys", err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
@@ -288,7 +320,11 @@ func loadKeysData(ctx *context.Context) {
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
 
-	principals, err := asymkey_model.ListPrincipalKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	principals, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.Doer.ID,
+		KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypePrincipal},
+	})
 	if err != nil {
 		ctx.ServerError("ListPrincipalKeys", err)
 		return
@@ -297,4 +333,5 @@ func loadKeysData(ctx *context.Context) {
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
+	ctx.Data["UserDisabledFeatures"] = &setting.Admin.UserDisabledFeatures
 }

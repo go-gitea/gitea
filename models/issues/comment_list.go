@@ -19,7 +19,9 @@ type CommentList []*Comment
 func (comments CommentList) getPosterIDs() []int64 {
 	posterIDs := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		posterIDs.Add(comment.PosterID)
+		if comment.PosterID > 0 {
+			posterIDs.Add(comment.PosterID)
+		}
 	}
 	return posterIDs.Values()
 }
@@ -41,18 +43,12 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) getCommentIDs() []int64 {
-	ids := make([]int64, 0, len(comments))
-	for _, comment := range comments {
-		ids = append(ids, comment.ID)
-	}
-	return ids
-}
-
 func (comments CommentList) getLabelIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.LabelID)
+		if comment.LabelID > 0 {
+			ids.Add(comment.LabelID)
+		}
 	}
 	return ids.Values()
 }
@@ -100,7 +96,9 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 func (comments CommentList) getMilestoneIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.MilestoneID)
+		if comment.MilestoneID > 0 {
+			ids.Add(comment.MilestoneID)
+		}
 	}
 	return ids.Values()
 }
@@ -141,7 +139,9 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 func (comments CommentList) getOldMilestoneIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.OldMilestoneID)
+		if comment.OldMilestoneID > 0 {
+			ids.Add(comment.OldMilestoneID)
+		}
 	}
 	return ids.Values()
 }
@@ -182,7 +182,9 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 func (comments CommentList) getAssigneeIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.AssigneeID)
+		if comment.AssigneeID > 0 {
+			ids.Add(comment.AssigneeID)
+		}
 	}
 	return ids.Values()
 }
@@ -225,6 +227,10 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 
 	for _, comment := range comments {
 		comment.Assignee = assignees[comment.AssigneeID]
+		if comment.Assignee == nil {
+			comment.AssigneeID = user_model.GhostUserID
+			comment.Assignee = user_model.NewGhostUser()
+		}
 	}
 	return nil
 }
@@ -310,7 +316,9 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 		if comment.DependentIssue != nil {
 			continue
 		}
-		ids.Add(comment.DependentIssueID)
+		if comment.DependentIssueID > 0 {
+			ids.Add(comment.DependentIssueID)
+		}
 	}
 	return ids.Values()
 }
@@ -365,6 +373,41 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
+// getAttachmentCommentIDs only return the comment ids which possibly has attachments
+func (comments CommentList) getAttachmentCommentIDs() []int64 {
+	ids := make(container.Set[int64], len(comments))
+	for _, comment := range comments {
+		if comment.Type == CommentTypeComment ||
+			comment.Type == CommentTypeReview ||
+			comment.Type == CommentTypeCode {
+			ids.Add(comment.ID)
+		}
+	}
+	return ids.Values()
+}
+
+// LoadAttachmentsByIssue loads attachments by issue id
+func (comments CommentList) LoadAttachmentsByIssue(ctx context.Context) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	attachments := make([]*repo_model.Attachment, 0, len(comments)/2)
+	if err := db.GetEngine(ctx).Where("issue_id=? AND comment_id>0", comments[0].IssueID).Find(&attachments); err != nil {
+		return err
+	}
+
+	commentAttachmentsMap := make(map[int64][]*repo_model.Attachment, len(comments))
+	for _, attach := range attachments {
+		commentAttachmentsMap[attach.CommentID] = append(commentAttachmentsMap[attach.CommentID], attach)
+	}
+
+	for _, comment := range comments {
+		comment.Attachments = commentAttachmentsMap[comment.ID]
+	}
+	return nil
+}
+
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
@@ -372,16 +415,15 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	}
 
 	attachments := make(map[int64][]*repo_model.Attachment, len(comments))
-	commentsIDs := comments.getCommentIDs()
+	commentsIDs := comments.getAttachmentCommentIDs()
 	left := len(commentsIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "comment", "comment.id = attachment.comment_id").
-			In("comment.id", commentsIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("comment_id", commentsIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
@@ -411,7 +453,9 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 func (comments CommentList) getReviewIDs() []int64 {
 	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		ids.Add(comment.ReviewID)
+		if comment.ReviewID > 0 {
+			ids.Add(comment.ReviewID)
+		}
 	}
 	return ids.Values()
 }
@@ -430,7 +474,8 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
 		if comment.Review == nil {
-			if comment.ReviewID > 0 {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so don't log errors for them.
+			if comment.ReviewID > 0 && comment.Type != CommentTypeReviewRequest {
 				log.Error("comment with review id [%d] but has no review record", comment.ReviewID)
 			}
 			continue

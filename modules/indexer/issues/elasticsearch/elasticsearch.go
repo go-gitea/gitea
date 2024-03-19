@@ -19,6 +19,10 @@ import (
 
 const (
 	issueIndexerLatestVersion = 1
+	// multi-match-types, currently only 2 types are used
+	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
+	esMultiMatchTypeBestFields   = "best_fields"
+	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -141,7 +145,13 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments"))
+
+		searchType := esMultiMatchTypePhrasePrefix
+		if options.IsFuzzyKeyword {
+			searchType = esMultiMatchTypeBestFields
+		}
+
+		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(searchType))
 	}
 
 	if len(options.RepoIDs) > 0 {
@@ -153,11 +163,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(q)
 	}
 
-	if !options.IsPull.IsNone() {
-		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.IsTrue()))
+	if options.IsPull.Has() {
+		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.Value()))
 	}
-	if !options.IsClosed.IsNone() {
-		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.IsTrue()))
+	if options.IsClosed.Has() {
+		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
 	}
 
 	if options.NoLabelOnly {
@@ -185,43 +195,43 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
 	}
 
-	if options.ProjectID != nil {
-		query.Must(elastic.NewTermQuery("project_id", *options.ProjectID))
+	if options.ProjectID.Has() {
+		query.Must(elastic.NewTermQuery("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID != nil {
-		query.Must(elastic.NewTermQuery("project_board_id", *options.ProjectBoardID))
-	}
-
-	if options.PosterID != nil {
-		query.Must(elastic.NewTermQuery("poster_id", *options.PosterID))
+	if options.ProjectBoardID.Has() {
+		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectBoardID.Value()))
 	}
 
-	if options.AssigneeID != nil {
-		query.Must(elastic.NewTermQuery("assignee_id", *options.AssigneeID))
+	if options.PosterID.Has() {
+		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
 	}
 
-	if options.MentionID != nil {
-		query.Must(elastic.NewTermQuery("mention_ids", *options.MentionID))
+	if options.AssigneeID.Has() {
+		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
 	}
 
-	if options.ReviewedID != nil {
-		query.Must(elastic.NewTermQuery("reviewed_ids", *options.ReviewedID))
-	}
-	if options.ReviewRequestedID != nil {
-		query.Must(elastic.NewTermQuery("review_requested_ids", *options.ReviewRequestedID))
+	if options.MentionID.Has() {
+		query.Must(elastic.NewTermQuery("mention_ids", options.MentionID.Value()))
 	}
 
-	if options.SubscriberID != nil {
-		query.Must(elastic.NewTermQuery("subscriber_ids", *options.SubscriberID))
+	if options.ReviewedID.Has() {
+		query.Must(elastic.NewTermQuery("reviewed_ids", options.ReviewedID.Value()))
+	}
+	if options.ReviewRequestedID.Has() {
+		query.Must(elastic.NewTermQuery("review_requested_ids", options.ReviewRequestedID.Value()))
 	}
 
-	if options.UpdatedAfterUnix != nil || options.UpdatedBeforeUnix != nil {
+	if options.SubscriberID.Has() {
+		query.Must(elastic.NewTermQuery("subscriber_ids", options.SubscriberID.Value()))
+	}
+
+	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
 		q := elastic.NewRangeQuery("updated_unix")
-		if options.UpdatedAfterUnix != nil {
-			q.Gte(*options.UpdatedAfterUnix)
+		if options.UpdatedAfterUnix.Has() {
+			q.Gte(options.UpdatedAfterUnix.Value())
 		}
-		if options.UpdatedBeforeUnix != nil {
-			q.Lte(*options.UpdatedBeforeUnix)
+		if options.UpdatedBeforeUnix.Has() {
+			q.Lte(options.UpdatedBeforeUnix.Value())
 		}
 		query.Must(q)
 	}

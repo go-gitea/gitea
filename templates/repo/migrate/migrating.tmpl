@@ -21,14 +21,14 @@
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
 							<div id="repo_migrating_progress">
-								<p>{{ctx.Locale.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
+								<p>{{ctx.Locale.Tr "repo.migrate.migrating" .CloneAddr}}</p>
 								<p id="repo_migrating_progress_message"></p>
 							</div>
 							<div id="repo_migrating_failed" class="gt-hidden">
 								{{if .CloneAddr}}
-									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
+									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed" .CloneAddr}}</p>
 								{{else}}
-									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed_no_addr" | Safe}}</p>
+									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed_no_addr"}}</p>
 								{{end}}
 								<p id="repo_migrating_failed_error"></p>
 							</div>
@@ -57,8 +57,8 @@
 	</div>
 	<div class="content">
 		<div class="ui warning message">
-			{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-			{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+			{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+			{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
 			{{if .Repository.NumForks}}<br>
 			{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 			{{end}}
