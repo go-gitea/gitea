@@ -300,10 +300,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			ProjectID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -321,10 +318,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: func() *int64 {
-				id := int64(0)
-				return &id
-			}(),
+			ProjectID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -342,10 +336,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			ProjectBoardID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -363,10 +354,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: func() *int64 {
-				id := int64(0)
-				return &id
-			}(),
+			ProjectBoardID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -384,10 +372,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			PosterID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			PosterID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -405,10 +390,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			AssigneeID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -426,10 +408,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: func() *int64 {
-				id := int64(0)
-				return &id
-			}(),
+			AssigneeID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -447,10 +426,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			MentionID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			MentionID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -468,10 +444,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ReviewedID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			ReviewedID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -489,10 +462,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ReviewRequestedID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			ReviewRequestedID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -510,10 +480,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			SubscriberID: func() *int64 {
-				id := int64(1)
-				return &id
-			}(),
+			SubscriberID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
@@ -531,14 +498,8 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			UpdatedAfterUnix: func() *int64 {
-				var t int64 = 20
-				return &t
-			}(),
-			UpdatedBeforeUnix: func() *int64 {
-				var t int64 = 30
-				return &t
-			}(),
+			UpdatedAfterUnix:  optional.Some(int64(20)),
+			UpdatedBeforeUnix: optional.Some(int64(30)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))

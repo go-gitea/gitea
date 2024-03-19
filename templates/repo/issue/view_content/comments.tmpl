@@ -148,7 +148,7 @@
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
-				<div class="detail">
+				<div class="detail flex-text-block">
 					<span class="text grey muted-links"><a href="{{.RefIssueLink ctx}}"><b>{{.RefIssueTitle ctx}}</b> {{.RefIssueIdent ctx}}</a></span>
 				</div>
 			</div>
@@ -160,7 +160,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr}}
 				</span>
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-git-commit"}}
 					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
@@ -252,7 +252,7 @@
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
@@ -271,7 +271,7 @@
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
@@ -331,7 +331,7 @@
 					{{ctx.Locale.Tr "repo.issues.dependency.added_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
-					<div class="detail">
+					<div class="detail flex-text-block">
 						{{svg "octicon-plus"}}
 						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
@@ -354,8 +354,8 @@
 					{{ctx.Locale.Tr "repo.issues.dependency.removed_dependency" $createdStr}}
 				</span>
 				{{if .DependentIssue}}
-					<div class="detail">
-						<span class="text grey muted-links">{{svg "octicon-trash"}}</span>
+					<div class="detail flex-text-block">
+						{{svg "octicon-trash"}}
 						<span class="text grey muted-links">
 							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -371,27 +371,31 @@
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group" id="{{.HashTag}}">
 				<div class="timeline-item event">
+					{{$reviewType := -1}}
+					{{if .Review}}{{$reviewType = .Review.Type}}{{end}}
 					{{if not .OriginalAuthor}}
 					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
-					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<a class="timeline-avatar{{if or (and (eq $reviewType 1) (or .Content .Attachments)) (and (eq $reviewType 2) (or .Content .Attachments)) (eq $reviewType 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
-					<span class="badge{{if eq .Review.Type 1}} tw-bg-green tw-text-white{{else if eq .Review.Type 3}} tw-bg-red tw-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
+					<span class="badge{{if eq $reviewType 1}} tw-bg-green tw-text-white{{else if eq $reviewType 3}} tw-bg-red tw-text-white{{end}}">
+						{{if .Review}}{{svg (printf "octicon-%s" .Review.Type.Icon)}}{{end}}
+					</span>
 					<span class="text grey muted-links">
 						{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
-						{{if eq .Review.Type 1}}
+						{{if eq $reviewType 1}}
 							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
-						{{else if eq .Review.Type 2}}
+						{{else if eq $reviewType 2}}
 							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr}}
-						{{else if eq .Review.Type 3}}
+						{{else if eq $reviewType 3}}
 							{{ctx.Locale.Tr "repo.issues.review.reject" $createdStr}}
 						{{else}}
 							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr}}
 						{{end}}
-						{{if .Review.Dismissed}}
+						{{if and .Review .Review.Dismissed}}
 							<div class="ui small label">{{ctx.Locale.Tr "repo.issues.review.dismissed_label"}}</div>
 						{{end}}
 					</span>
@@ -451,7 +455,7 @@
 				</div>
 				{{end}}
 
-				{{if .Review.CodeComments}}
+				{{if and .Review .Review.CodeComments}}
 				<div class="timeline-item event">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
@@ -506,7 +510,7 @@
 
 					{{ctx.Locale.Tr "repo.issues.del_time_history" $createdStr}}
 				</span>
-				<div class="detail">
+				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
@@ -607,10 +611,12 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
-						{{if eq .Review.OriginalAuthor ""}}
-							{{$reviewerName = .Review.Reviewer.Name}}
-						{{else}}
-							{{$reviewerName = .Review.OriginalAuthor}}
+						{{if .Review}}
+							{{if eq .Review.OriginalAuthor ""}}
+								{{$reviewerName = .Review.Reviewer.Name}}
+							{{else}}
+								{{$reviewerName = .Review.OriginalAuthor}}
+							{{end}}
 						{{end}}
 						{{ctx.Locale.Tr "repo.issues.review.dismissed" $reviewerName $createdStr}}
 					</span>

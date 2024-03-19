@@ -89,22 +89,22 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID      *int64 // project the issues belong to
-	ProjectBoardID *int64 // project board the issues belong to
+	ProjectID      optional.Option[int64] // project the issues belong to
+	ProjectBoardID optional.Option[int64] // project board the issues belong to
 
-	PosterID *int64 // poster of the issues
+	PosterID optional.Option[int64] // poster of the issues
 
-	AssigneeID *int64 // assignee of the issues, zero means no assignee
+	AssigneeID optional.Option[int64] // assignee of the issues, zero means no assignee
 
-	MentionID *int64 // mentioned user of the issues
+	MentionID optional.Option[int64] // mentioned user of the issues
 
-	ReviewedID        *int64 // reviewer of the issues
-	ReviewRequestedID *int64 // requested reviewer of the issues
+	ReviewedID        optional.Option[int64] // reviewer of the issues
+	ReviewRequestedID optional.Option[int64] // requested reviewer of the issues
 
-	SubscriberID *int64 // subscriber of the issues
+	SubscriberID optional.Option[int64] // subscriber of the issues
 
-	UpdatedAfterUnix  *int64
-	UpdatedBeforeUnix *int64
+	UpdatedAfterUnix  optional.Option[int64]
+	UpdatedBeforeUnix optional.Option[int64]
 
 	db.Paginator
 

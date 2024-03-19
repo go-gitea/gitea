@@ -51,6 +51,10 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		}
 		linesInAuthorizedKeys.Add(line)
 	}
+	err = scanner.Err()
+	if err != nil {
+		return fmt.Errorf("scan: %w", err)
+	}
 	f.Close()
 
 	// now we regenerate and check if there are any lines missing
