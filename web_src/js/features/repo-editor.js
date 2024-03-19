@@ -72,7 +72,7 @@ export function initRepoEditor() {
       hideElem($('.quick-pull-branch-name'));
       document.querySelector('.quick-pull-branch-name input').required = false;
     }
-    $('#commit-button').text($(this).attr('button_text'));
+    $('#commit-button').text(this.getAttribute('button_text'));
   });
 
   const joinTreePath = ($fileNameEl) => {
