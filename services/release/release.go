@@ -318,7 +318,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 			}
 		}
 
-		err = repo_model.DeleteTagArchiveDownloadCount(ctx, rel.RepoID, rel.TagName)
+		err = repo_model.DeleteArchiveDownloadCountForRelease(ctx, rel.ID)
 		if err != nil {
 			return err
 		}

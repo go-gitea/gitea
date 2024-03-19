@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -13,11 +13,11 @@ import (
 
 // RepoArchiveDownloadCount counts all archive downloads for a tag
 type RepoArchiveDownloadCount struct { //nolint:revive
-	ID     int64           `xorm:"pk autoincr"`
-	RepoID int64           `xorm:"index unique(s)"`
-	Type   git.ArchiveType `xorm:"unique(s)"`
-	Tag    string          `xorm:"index unique(s)"`
-	Count  int64
+	ID        int64           `xorm:"pk autoincr"`
+	RepoID    int64           `xorm:"index unique(s)"`
+	ReleaseID int64           `xorm:"index unique(s)"`
+	Type      git.ArchiveType `xorm:"unique(s)"`
+	Count     int64
 }
 
 func init() {
@@ -25,64 +25,66 @@ func init() {
 }
 
 // CountArchiveDownload adds one download the the given archive
-func CountArchiveDownload(ctx context.Context, repoID int64, tp git.ArchiveType, tag string) error {
-	var counter RepoArchiveDownloadCount
-	has, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).And("`type` = ?", tp).And("tag = ?", tag).Get(&counter)
+func CountArchiveDownload(ctx context.Context, repoID, releaseID int64, tp git.ArchiveType) error {
+	updateCount, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).And("release_id = ?", releaseID).And("`type` = ?", tp).Incr("count").Update(new(RepoArchiveDownloadCount))
 	if err != nil {
 		return err
 	}
 
-	if has {
-		// The archive already exists in the database, so let's increase the counter
-		_, err = db.GetEngine(ctx).Incr("count").ID(counter.ID).Update(new(RepoArchiveDownloadCount))
-		return err
+	if updateCount != 0 {
+		// The count was updated, so we can exit
+		return nil
 	}
 
 	// The archive does not esxists in the databse, so let's add it
 	newCounter := &RepoArchiveDownloadCount{
-		RepoID: repoID,
-		Type:   tp,
-		Tag:    tag,
-		Count:  1,
+		RepoID:    repoID,
+		ReleaseID: releaseID,
+		Type:      tp,
+		Count:     1,
 	}
 
 	_, err = db.GetEngine(ctx).Insert(newCounter)
 	return err
 }
 
-// GetTagDownloadCount returns the download count of a tag
-func GetTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) (*api.TagArchiveDownloadCount, error) {
+// GetArchiveDownloadCount returns the download count of a tag
+func GetArchiveDownloadCount(ctx context.Context, repoID, releaseID int64) (*api.TagArchiveDownloadCount, error) {
+	downloadCountList := make([]RepoArchiveDownloadCount, 0)
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).And("release_id = ?", releaseID).Find(&downloadCountList)
+	if err != nil {
+		return nil, err
+	}
+
 	tagCounter := new(api.TagArchiveDownloadCount)
 
-	var zipCounter RepoArchiveDownloadCount
-	has, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).And("`type` = ?", git.ZIP).And("tag = ?", tag).Get(&zipCounter)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		tagCounter.Zip = zipCounter.Count
-	}
-
-	var targzCounter RepoArchiveDownloadCount
-	has, err = db.GetEngine(ctx).Where("repo_id = ?", repoID).And("`type` = ?", git.TARGZ).And("tag = ?", tag).Get(&targzCounter)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		tagCounter.TarGz = targzCounter.Count
+	for _, singleCount := range downloadCountList {
+		switch singleCount.Type {
+		case git.ZIP:
+			tagCounter.Zip = singleCount.Count
+		case git.TARGZ:
+			tagCounter.TarGz = singleCount.Count
+		}
 	}
 
 	return tagCounter, nil
 }
 
-// DeleteTagArchiveDownloadCount deletes the tag from the repo_archive_download_count table
-func DeleteTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) error {
-	_, err := db.GetEngine(ctx).Exec("DELETE FROM repo_archive_download_count WHERE repo_id = ? AND tag = ?", repoID, tag)
-	return err
+// GetDownloadCountForTagName returns the download count of a tag with the given name
+func GetArchiveDownloadCountForTagName(ctx context.Context, repoID int64, tagName string) (*api.TagArchiveDownloadCount, error) {
+	release, err := GetRelease(ctx, repoID, tagName)
+	if err != nil {
+		if IsErrReleaseNotExist(err) {
+			return new(api.TagArchiveDownloadCount), nil
+		}
+		return nil, err
+	}
+
+	return GetArchiveDownloadCount(ctx, repoID, release.ID)
 }
 
-// DeleteRepoArchiveDownloadCount deletes the repo from the repo_archive_download_count table
-func DeleteRepoArchiveDownloadCount(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Exec("DELETE FROM repo_archive_download_count WHERE repo_id = ?", repoID)
+// DeleteArchiveDownloadCountForRelease deletes the release from the repo_archive_download_count table
+func DeleteArchiveDownloadCountForRelease(ctx context.Context, releaseID int64) error {
+	_, err := db.GetEngine(ctx).Delete(&RepoArchiveDownloadCount{ReleaseID: releaseID})
 	return err
 }

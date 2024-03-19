@@ -295,7 +295,7 @@ func GetArchive(ctx *context.APIContext) {
 
 func archiveDownload(ctx *context.APIContext) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, "unknown archive format", err)

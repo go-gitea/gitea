@@ -125,7 +125,7 @@ func (r *Release) LoadAttributes(ctx context.Context) error {
 // LoadArchiveDownloadCount loads the download count for the source archives
 func (r *Release) LoadArchiveDownloadCount(ctx context.Context) error {
 	var err error
-	r.ArchiveDownloadCount, err = GetTagArchiveDownloadCount(ctx, r.RepoID, r.TagName)
+	r.ArchiveDownloadCount, err = GetArchiveDownloadCount(ctx, r.RepoID, r.ID)
 	return err
 }
 
@@ -459,6 +459,18 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 	lowerTags := make([]string, 0, len(tags))
 	for _, tag := range tags {
 		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	for _, tag := range tags {
+		release, err := GetRelease(ctx, repo.ID, tag)
+		if err != nil {
+			return fmt.Errorf("GetRelease: %w", err)
+		}
+
+		err = DeleteArchiveDownloadCountForRelease(ctx, release.ID)
+		if err != nil {
+			return fmt.Errorf("DeleteTagArchiveDownloadCount: %w", err)
+		}
 	}
 
 	if _, err := db.GetEngine(ctx).

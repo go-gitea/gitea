@@ -41,8 +41,8 @@ type CreateTagOption struct {
 	Target  string `json:"target"`
 }
 
-// CreateTagOption counts how many times a archive was downloaded
+// TagArchiveDownloadCount counts how many times a archive was downloaded
 type TagArchiveDownloadCount struct {
 	Zip   int64 `json:"zip"`
-	TarGz int64 `json:"targz"`
+	TarGz int64 `json:"tar_gz"`
 }

@@ -168,23 +168,16 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api
 }
 
 // ToTag convert a git.Tag to an api.Tag
-func ToTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag) (*api.Tag, error) {
-	tag := &api.Tag{
-		Name:       t.Name,
-		Message:    strings.TrimSpace(t.Message),
-		ID:         t.ID.String(),
-		Commit:     ToCommitMeta(repo, t),
-		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
+	return &api.Tag{
+		Name:                 t.Name,
+		Message:              strings.TrimSpace(t.Message),
+		ID:                   t.ID.String(),
+		Commit:               ToCommitMeta(repo, t),
+		ZipballURL:           util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
+		TarballURL:           util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+		ArchiveDownloadCount: t.ArchiveDownloadCount,
 	}
-
-	var err error
-	tag.ArchiveDownloadCount, err = repo_model.GetTagArchiveDownloadCount(ctx, repo.ID, t.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return tag, nil
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
@@ -354,24 +347,17 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag, c *git.Commit) (*api.AnnotatedTag, error) {
-	tag := &api.AnnotatedTag{
-		Tag:          t.Name,
-		SHA:          t.ID.String(),
-		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
-		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
-		Tagger:       ToCommitUser(t.Tagger),
-		Verification: ToVerification(ctx, c),
+func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+	return &api.AnnotatedTag{
+		Tag:                  t.Name,
+		SHA:                  t.ID.String(),
+		Object:               ToAnnotatedTagObject(repo, c),
+		Message:              t.Message,
+		URL:                  util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
+		Tagger:               ToCommitUser(t.Tagger),
+		Verification:         ToVerification(ctx, c),
+		ArchiveDownloadCount: t.ArchiveDownloadCount,
 	}
-
-	var err error
-	tag.ArchiveDownloadCount, err = repo_model.GetTagArchiveDownloadCount(ctx, repo.ID, t.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return tag, nil
 }
 
 // ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject

@@ -30,11 +30,11 @@ import (
 // This is entirely opaque to external entities, though, and mostly used as a
 // handle elsewhere.
 type ArchiveRequest struct {
-	RepoID   int64
-	refName  string
-	Type     git.ArchiveType
-	CommitID string
-	TagName  string
+	RepoID    int64
+	refName   string
+	Type      git.ArchiveType
+	CommitID  string
+	ReleaseID int64
 }
 
 // ErrUnknownArchiveFormat request archive format is not supported
@@ -71,7 +71,7 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
+func NewRequest(ctx context.Context, repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
 		RepoID: repoID,
 	}
@@ -99,8 +99,15 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 		return nil, RepoRefNotFoundError{RefName: r.refName}
 	}
 
+	repo_model.GetRelease(ctx, repoID, r.refName)
 	r.CommitID = commitID.String()
-	r.TagName = r.refName
+
+	release, err := repo_model.GetRelease(ctx, repoID, r.refName)
+	if err != nil {
+		return nil, err
+	}
+	r.ReleaseID = release.ID
+
 	return r, nil
 }
 
@@ -123,7 +130,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 
 	if archiver != nil {
-		archiver.TagName = aReq.TagName
+		archiver.ReleaseID = aReq.ReleaseID
 	}
 
 	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
@@ -151,7 +158,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
 			}
 			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-				archiver.TagName = aReq.TagName
+				archiver.ReleaseID = aReq.ReleaseID
 				return archiver, nil
 			}
 		}

@@ -223,6 +223,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find redirects without existing user.
 		genericOrphanCheck("Orphaned Redirects without existing redirect user",
 			"user_redirect", "user", "user_redirect.redirect_user_id=`user`.id"),
+		// find archive download count without existing release
+		genericOrphanCheck("Archive download count without existing Release",
+			"repo_archive_download_count", "release", "repo_archive_download_count.release_id=release.id"),
 	)
 
 	for _, c := range consistencyChecks {

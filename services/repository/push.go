@@ -304,10 +304,6 @@ func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, g
 			return err
 		}
 
-		if err := pushUpdateArchiveDownloadCount(ctx, repo, delTags); err != nil {
-			return err
-		}
-
 		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
 	})
 }
@@ -423,20 +419,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if len(newReleases) > 0 {
 		if err = db.Insert(ctx, newReleases); err != nil {
 			return fmt.Errorf("Insert: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// pushUpdateArchiveDownloadCount updates the archive download count
-func pushUpdateArchiveDownloadCount(ctx context.Context, repo *repo_model.Repository, delTags []string) error {
-	var err error
-
-	for _, delTag := range delTags {
-		err = repo_model.DeleteTagArchiveDownloadCount(ctx, repo.ID, delTag)
-		if err != nil {
-			return err
 		}
 	}
 
