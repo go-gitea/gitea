@@ -66,6 +66,8 @@ var microcmdUserCreate = &cli.Command{
 }
 
 func runCreateUser(c *cli.Context) error {
+	setting.LoadSettings()
+
 	if err := argsSet(c, "email"); err != nil {
 		return err
 	}
