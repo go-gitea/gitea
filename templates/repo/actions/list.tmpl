@@ -11,11 +11,6 @@
 					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
-							{{if .ErrMsg}}
-								<span data-tooltip-content="{{.ErrMsg}}">
-									{{svg "octicon-alert" 16 "text red"}}
-								</span>
-							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
 								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
@@ -25,6 +20,11 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
+			{{range .workflows}}
+				{{if .ErrMsg}}
+					<div class="ui error message">{{.Entry.Name}}: {{.ErrMsg}}</div>
+				{{end}}
+			{{end}}
 				<div class="ui secondary filter menu gt-je gt-df gt-ac">
 					<!-- Actor -->
 					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
