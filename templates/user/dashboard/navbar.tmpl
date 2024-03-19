@@ -78,7 +78,7 @@
 
 	{{if .ContextUser.IsOrganization}}
 		<div class="right menu">
-			<a class="{{if .PageIsNews}}active {{end}}item gt-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 			</a>
 			{{if not .UnitIssuesGlobalDisabled}}
