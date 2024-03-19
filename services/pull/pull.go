@@ -77,6 +77,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	defer baseGitRepo.Close()
 
+	var reviewNotifers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -136,7 +137,8 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			if err := issue_service.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
+			reviewNotifers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			if err != nil {
 				return err
 			}
 		}
@@ -150,11 +152,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
+	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
+
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
-
 	notify_service.NewPullRequest(ctx, pr, mentions)
 	if len(issue.Labels) > 0 {
 		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
