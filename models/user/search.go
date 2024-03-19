@@ -160,6 +160,11 @@ func BuildCanSeeUserCondition(actor *User) builder.Cond {
 			if !actor.IsRestricted {
 				// Not-Restricted users can see public and limited users/organizations
 				cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+				// or private users who do follow them
+				cond = cond.Or(builder.Eq{
+					"`user`.visibility": structs.VisibleTypePrivate,
+					"`user`.id":         builder.Select("follow.user_id").From("follow").Where(builder.Eq{"follow.follow_id": actor.ID}),
+				})
 			}
 			// Don't forget about self
 			return cond.Or(builder.Eq{"`user`.id": actor.ID})
