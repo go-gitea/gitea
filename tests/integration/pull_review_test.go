@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -25,10 +26,19 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 
 	req = NewRequest(t, "GET", "/user2/repo1/pulls/3")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
+	// if some reviews are missing, the page shouldn't fail
+	err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user2/repo1/pulls/2")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
 
 func TestPullView_CodeOwner(t *testing.T) {
