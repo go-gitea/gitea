@@ -1,7 +1,7 @@
 <div class="flex-text-block gt-fw">
 	{{range $term := .SearchResultLanguages}}
 	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0"
-		href="{{$.Link}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
+		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
 		<i class="color-icon gt-mr-3" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail">{{$term.Count}}</div>

@@ -8,9 +8,9 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
-					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
+					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
+						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
 								<span data-tooltip-content="{{.ErrMsg}}">
 									{{svg "octicon-alert" 16 "text red"}}
@@ -35,11 +35,11 @@
 								<i class="icon">{{svg "octicon-search"}}</i>
 								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
 							</div>
-							<a class="item{{if not $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
+							<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
 								{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 							</a>
 							{{range .Actors}}
-								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
+								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
 									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 								</a>
 							{{end}}
@@ -54,11 +54,11 @@
 								<i class="icon">{{svg "octicon-search"}}</i>
 								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
 							</div>
-							<a class="item{{if not $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
+							<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
 								{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 							</a>
 							{{range .StatusInfoList}}
-								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
+								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
 									{{.DisplayedStatus}}
 								</a>
 							{{end}}
