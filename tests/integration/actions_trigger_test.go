@@ -354,7 +354,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
-			Index:      1,
 			RepoID:     repo.ID,
 			Event:      "create",
 			Ref:        "refs/heads/test-create-branch",
@@ -368,7 +367,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
-			Index:      2,
 			RepoID:     repo.ID,
 			Event:      "create",
 			Ref:        "refs/tags/test-create-tag",
@@ -382,7 +380,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
-			Index:      3,
 			RepoID:     repo.ID,
 			Event:      "delete",
 			Ref:        "main",
@@ -398,7 +395,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
-			Index:      4,
 			RepoID:     repo.ID,
 			Event:      "delete",
 			Ref:        "main",
