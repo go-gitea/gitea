@@ -318,7 +318,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 		for i, branchName := range branchNames {
 			commitID := commitIDs[i]
 			branch, exist := branchMap[branchName]
-			if exist && branch.CommitID == commitID { // FIXME: TBD
+			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
 			}
 
