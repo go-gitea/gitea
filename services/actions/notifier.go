@@ -515,6 +515,12 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	commitID, _ := git.NewIDFromString(opts.NewCommitID)
+	if commitID.IsZero() {
+		log.Trace("new commitID is empty")
+		return
+	}
+
 	ctx = withMethod(ctx, "PushCommits")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
@@ -623,6 +629,10 @@ func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.Us
 }
 
 func (n *actionsNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if rel.IsTag {
+		// has sent same action in `PushCommits`, so skip it.
+		return
+	}
 	ctx = withMethod(ctx, "DeleteRelease")
 	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }
