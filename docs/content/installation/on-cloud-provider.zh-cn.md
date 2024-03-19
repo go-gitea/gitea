@@ -34,12 +34,6 @@ Gitea 可以在 [Vultr](https://www.vultr.com) 的市场中被找到。
 
 要将 Gitea 部署到 Vultr，请参考 [Vultr Marketplace](https://www.vultr.com/marketplace/apps/gitea).
 
-## DigitalOcean
-
-[DigitalOcean](https://www.digitalocean.com) 将 Gitea 作为其市场中的一个 droplet。
-
-要将 Gitea 部署到 DigitalOcean, 请参考 [DigitalOcean Marketplace](https://marketplace.digitalocean.com/apps/gitea).
-
 ## Linode
 
 [Linode](https://www.linode.com/) 将 Gitea 作为其市场中的一个应用程序.
