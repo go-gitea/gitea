@@ -37,7 +37,7 @@ func redisServerCmd(t *testing.T) *exec.Cmd {
 	}
 	c := &exec.Cmd{
 		Path:   redisServerProg,
-		Args:   []string{redisServerProg, "--bind", "127.0.0.1", "--port", "6379"},
+		Args:   []string{redisServerProg, "--bind", "redis", "--port", "6379"},
 		Dir:    t.TempDir(),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
@@ -54,18 +54,18 @@ func TestBaseRedis(t *testing.T) {
 			_ = redisServer.Wait()
 		}
 	}()
-	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
+	if !waitRedisReady("redis://redis:6379/0", 0) {
 		redisServer = redisServerCmd(t)
 		if redisServer == nil && os.Getenv("CI") == "" {
 			t.Skip("redis-server not found")
 			return
 		}
 		assert.NoError(t, redisServer.Start())
-		if !assert.True(t, waitRedisReady("redis://127.0.0.1:6379/0", 5*time.Second), "start redis-server") {
+		if !assert.True(t, waitRedisReady("redis://redis:6379/0", 5*time.Second), "start redis-server") {
 			return
 		}
 	}
 
-	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", setting.QueueSettings{Length: 10}), false)
-	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", setting.QueueSettings{Length: 10}), true)
+	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", setting.QueueSettings{Length: 10, ConnStr: "redis://redis:6379/0"}), false)
+	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", setting.QueueSettings{Length: 10, ConnStr: "redis://redis:6379/0"}), true)
 }

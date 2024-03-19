@@ -126,7 +126,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap redis minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
