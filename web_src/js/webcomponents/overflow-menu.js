@@ -134,14 +134,13 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       for (const item of this.querySelectorAll('.item')) {
         for (const child of item.childNodes) {
           if (child.nodeType === Node.TEXT_NODE) {
-            const text = child.textContent.trim();
-            if (text) {
-              const div = document.createElement('div');
-              div.classList.add('size-for-semibold');
-              div.setAttribute('data-text', text);
-              div.textContent = text;
-              child.replaceWith(div);
-            }
+            const text = child.textContent.trim(); // whitespace is insignificant inside flexbox
+            if (!text) continue;
+            const span = document.createElement('span');
+            span.classList.add('size-for-semibold');
+            span.setAttribute('data-text', text);
+            span.textContent = text;
+            child.replaceWith(span);
           }
         }
       }
