@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/actions"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -353,7 +352,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		// create a branch
 		err = repo_service.CreateNewBranchFromCommit(db.DefaultContext, user2, repo, gitRepo, branch.CommitID, "test-create-branch")
 		assert.NoError(t, err)
-		run := unittest.AssertExistsAndLoadBean(t, &actions.ActionRun{
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			Index:      1,
 			RepoID:     repo.ID,
@@ -367,7 +366,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		// create a tag
 		err = release_service.CreateNewTag(db.DefaultContext, user2, repo, branch.CommitID, "test-create-tag", "test create tag event")
 		assert.NoError(t, err)
-		run = unittest.AssertExistsAndLoadBean(t, &actions.ActionRun{
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			Index:      2,
 			RepoID:     repo.ID,
@@ -381,7 +380,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		// delete the branch
 		err = repo_service.DeleteBranch(db.DefaultContext, user2, repo, gitRepo, "test-create-branch")
 		assert.NoError(t, err)
-		run = unittest.AssertExistsAndLoadBean(t, &actions.ActionRun{
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			Index:      3,
 			RepoID:     repo.ID,
@@ -397,7 +396,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		err = release_service.DeleteReleaseByID(db.DefaultContext, repo, tag, user2, true)
 		assert.NoError(t, err)
-		run = unittest.AssertExistsAndLoadBean(t, &actions.ActionRun{
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			Index:      4,
 			RepoID:     repo.ID,
