@@ -122,6 +122,10 @@ func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 				return err
 			}
 		}
+		err = scanner.Err()
+		if err != nil {
+			return fmt.Errorf("scan: %w", err)
+		}
 		f.Close()
 	}
 	return nil
