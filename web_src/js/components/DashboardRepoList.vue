@@ -407,7 +407,7 @@ export default sfc; // activate the IDE's Vue plugin
           </a>
         </div>
       </div>
-      <div v-if="repos.length" class="ui attached table  gt-rounded-bottom">
+      <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
