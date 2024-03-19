@@ -92,7 +92,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
-
 	var cacheAuthor *user_model.User
 	var ok bool
 	if userCache == nil {
@@ -138,16 +137,6 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		}
 	}
 
-	// Retrieve parent(s) of the commit
-	apiParents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i < commit.ParentCount(); i++ {
-		sha, _ := commit.ParentID(i)
-		apiParents[i] = &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
-			SHA: sha.String(),
-		}
-	}
-
 	res := &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
@@ -180,8 +169,19 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
-		Parents:   apiParents,
 	}
+
+	// Retrieve parent(s) of the commit
+	apiParents := make([]*api.CommitMeta, commit.ParentCount())
+	for i := 0; i < commit.ParentCount(); i++ {
+		sha, _ := commit.ParentID(i)
+		apiParents[i] = &api.CommitMeta{
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
+			SHA: sha.String(),
+		}
+	}
+
+	res.Parents = apiParents
 
 	// Retrieve verification for commit
 	if opts.Verification {

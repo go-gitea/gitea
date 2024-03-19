@@ -68,6 +68,11 @@ type ListPullRequestsOptions struct {
 	State string `json:"state"`
 }
 
+type MergeStrategy struct {
+	Path     string `json:"path"`
+	Strategy string `json:"strategy"`
+}
+
 // CreatePullRequestOption options when creating a pull request
 type CreatePullRequestOption struct {
 	Head      string   `json:"head" binding:"Required"`
@@ -100,6 +105,7 @@ type EditPullRequestOption struct {
 
 // ChangedFile store information about files affected by the pull request
 type ChangedFile struct {
+	HasConflict      bool   `json:"has_conflict"`
 	Filename         string `json:"filename"`
 	PreviousFilename string `json:"previous_filename,omitempty"`
 	Status           string `json:"status"`

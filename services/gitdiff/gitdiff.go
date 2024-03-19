@@ -1180,7 +1180,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
 		gotVendor := false
 		gotGenerated := false
 		if checker != nil {

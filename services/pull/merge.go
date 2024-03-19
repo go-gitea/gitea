@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -149,9 +151,17 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
 }
 
-// Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func IsStrategyValid(strategy string) bool {
+	return strategy == "theirs" ||
+		strategy == "ours" ||
+		strategy == "add" ||
+		strategy == "delete"
+}
+
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool, strategy []structs.MergeStrategy) error {
+	// Merge merges pull request to base repository.
+	// Caller should check PR is ready to be merged (review and status checks)
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repo: %v", err)
 		return fmt.Errorf("unable to load base repo: %w", err)
@@ -188,7 +198,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	// Run the merge in the hammer context to prevent cancellation
 	hammerCtx := graceful.GetManager().HammerContext()
 
-	pr.MergedCommitID, err = doMergeAndPush(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	pr.MergedCommitID, err = doMergeAndPush(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message, strategy)
 	if err != nil {
 		return err
 	}
@@ -249,7 +259,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, strategy []structs.MergeStrategy) (string, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -260,7 +270,79 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
-		if err := doMergeStyleMerge(mergeCtx, message); err != nil {
+		// Do the merge
+		log.Info("Starting a merge")
+		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
+		if err := runMergeCommand(mergeCtx, mergeStyle, cmd); err != nil {
+			log.Info("Error while merging: %v", err)
+
+			// If the error was from a merge conflict, that's okay. The strategy might fix it
+			if !models.IsErrMergeConflicts(err) || len(strategy) == 0 {
+				log.Error("Unable to merge tracking into base: %v", err)
+				return "", err
+			}
+		}
+
+		// Apply the strategy
+		log.Info("Beginning to apply strategies: %v", strategy)
+		for _, strat := range strategy {
+			log.Info("Processing strategy %v", strat)
+
+			if strat.Strategy == "ours" || strat.Strategy == "theirs" {
+				strategyFlag := fmt.Sprintf("--%s", strat.Strategy)
+				strategyArg := git.ToTrustedCmdArgs([]string{strategyFlag})[0]
+				log.Info("Running %s on file %s", strategyFlag, strat.Path)
+
+				// First checkout one or the other
+				if err := git.NewCommand(ctx, "checkout").AddOptionValues(strategyArg, strat.Path).Run(&git.RunOpts{
+					Dir:    mergeCtx.tmpBasePath,
+					Stdout: mergeCtx.outbuf,
+					Stderr: mergeCtx.errbuf,
+				}); err != nil {
+					log.Error("Could not checkout file: %v", err)
+					return "", err
+				}
+
+				// Then add the changes
+				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    mergeCtx.tmpBasePath,
+					Stdout: mergeCtx.outbuf,
+					Stderr: mergeCtx.errbuf,
+				}); err != nil {
+					log.Error("Could not add file: %v", err)
+					return "", err
+				}
+			} else if strat.Strategy == "add" {
+				log.Info("Running ADD on file %s", strat.Path)
+				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    mergeCtx.tmpBasePath,
+					Stdout: mergeCtx.outbuf,
+					Stderr: mergeCtx.errbuf,
+				}); err != nil {
+					log.Error("Could not add file: %v", err)
+					return "", err
+				}
+			} else if strat.Strategy == "delete" {
+				log.Info("Running DELETE on file %s", strat.Path)
+				if err := git.NewCommand(ctx, "rm").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    mergeCtx.tmpBasePath,
+					Stdout: mergeCtx.outbuf,
+					Stderr: mergeCtx.errbuf,
+				}); err != nil {
+					log.Error("Could not add file: %v", err)
+					return "", err
+				}
+			} else {
+				log.Error("Invalid strategy %s on file %s", strat.Strategy, strat.Path)
+				return "", errors.New("invalid strategy")
+			}
+
+			log.Info("Done with file %s", strat.Path)
+		}
+
+		// Commit the result
+		if err := commitAndSignNoAuthor(mergeCtx, message); err != nil {
+			log.Error("Unable to make final commit: %v", err)
 			return "", err
 		}
 	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:

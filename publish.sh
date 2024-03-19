@@ -1,0 +1,1 @@
+make docker && docker push ghcr.io/shapeci/gitea:latest

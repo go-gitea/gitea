@@ -409,7 +409,7 @@ func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
 }
 
 // ToChangedFile convert a gitdiff.DiffFile to api.ChangedFile
-func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit string) *api.ChangedFile {
+func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit string, conflictingFiles []string) *api.ChangedFile {
 	status := "changed"
 	if f.IsDeleted {
 		status = "deleted"
@@ -424,6 +424,7 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 	}
 
 	file := &api.ChangedFile{
+		HasConflict: util.SliceContainsString(conflictingFiles, f.Name),
 		Filename:    f.GetDiffFileName(),
 		Status:      status,
 		Additions:   f.Addition,

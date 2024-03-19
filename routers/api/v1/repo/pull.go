@@ -733,7 +733,6 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/error"
-
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -777,24 +776,26 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// start with merging by checking
 	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
-		if errors.Is(err, pull_service.ErrIsClosed) {
-			ctx.NotFound()
-		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
-			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
-			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		} else if errors.Is(err, pull_service.ErrNotMergableState) {
-			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
-		} else if models.IsErrDisallowedToMerge(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
-		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
-		} else {
-			ctx.InternalServerError(err)
+		// If there are conflicts, they might be solved by the resolution strategy
+		if !errors.Is(err, pull_service.ErrNotMergableState) {
+			if errors.Is(err, pull_service.ErrIsClosed) {
+				ctx.NotFound()
+			} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+				ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+			} else if errors.Is(err, pull_service.ErrHasMerged) {
+				ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+			} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+				ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
+			} else if models.IsErrDisallowedToMerge(err) {
+				ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+			} else if asymkey_service.IsErrWontSign(err) {
+				ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+			} else {
+				ctx.InternalServerError(err)
+			}
+
+			return
 		}
-		return
 	}
 
 	// handle manually-merged mark
@@ -849,7 +850,16 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	// Verify that the merge strategy is valid
+	strategy := form.Strategy
+	for _, s := range strategy {
+		if !pull_service.IsStrategyValid(s.Strategy) {
+			log.Warn("Path %s has invalid strategy %s", s.Path, s.Strategy)
+			return
+		}
+	}
+
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false, strategy); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if models.IsErrMergeConflicts(err) {
@@ -1461,7 +1471,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
-		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID, pr.ConflictedFiles))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)

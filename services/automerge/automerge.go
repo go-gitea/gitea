@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -254,7 +255,7 @@ func handlePull(pullID int64, sha string) {
 		defer baseGitRepo.Close()
 	}
 
-	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
+	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true, make([]structs.MergeStrategy, 0)); err != nil {
 		log.Error("pull_service.Merge: %v", err)
 		return
 	}

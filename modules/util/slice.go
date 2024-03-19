@@ -88,3 +88,15 @@ func SliceRemoveAllFunc[T comparable](slice []T, targetFunc func(T) bool) []T {
 	}
 	return slice[:idx]
 }
+
+func SliceDifference[T comparable](first, second []T) []T {
+	var difference []T
+
+	for _, item := range first {
+		if !SliceContains(second, item) {
+			difference = append(difference, item)
+		}
+	}
+
+	return difference
+}

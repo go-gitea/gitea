@@ -86,3 +86,22 @@ func TestSliceRemoveAll(t *testing.T) {
 	assert.ElementsMatch(t, []float64{2, 2, 3}, SliceRemoveAll([]float64{2, 0, 2, 3}, 0))
 	assert.ElementsMatch(t, []bool{false, false}, SliceRemoveAll([]bool{false, true, false}, true))
 }
+
+func TestSliceDifference(t *testing.T) {
+	s1 := []string{"1", "2", "4", "5", "9"}
+	s2 := []string{"2", "3", "9"}
+
+	diff := SliceDifference(s1, s2)
+	assert.True(t, len(diff) == 3)
+	assert.True(t, diff[0] == "1")
+	assert.True(t, diff[1] == "4")
+	assert.True(t, diff[2] == "5")
+}
+
+func TestSLiceEmptyDifference(t *testing.T) {
+	s1 := []int{}
+	s2 := []int{1, 2, 3}
+
+	diff := SliceDifference(s1, s2)
+	assert.True(t, len(diff) == 0)
+}

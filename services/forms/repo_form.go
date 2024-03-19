@@ -604,11 +604,12 @@ type MergePullRequestForm struct {
 	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
-	MergeCommitID          string // only used for manually-merged
-	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             bool   `json:"force_merge,omitempty"`
-	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
+	MergeCommitID          string                  // only used for manually-merged
+	HeadCommitID           string                  `json:"head_commit_id,omitempty"`
+	ForceMerge             bool                    `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool                    `json:"merge_when_checks_succeed,omitempty"`
+	DeleteBranchAfterMerge bool                    `json:"delete_branch_after_merge,omitempty"`
+	Strategy               []structs.MergeStrategy `json:"merge_strategy"`
 }
 
 // Validate validates the fields
