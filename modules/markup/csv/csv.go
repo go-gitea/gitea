@@ -6,6 +6,7 @@ package markup
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"html"
 	"io"
 	"regexp"
@@ -97,6 +98,10 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 			return err
 		}
 		return tmpBlock.Flush()
+	}
+	err = scan.Err()
+	if err != nil {
+		return fmt.Errorf("scan: %w", err)
 	}
 
 	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
