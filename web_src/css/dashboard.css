@@ -78,8 +78,7 @@
 }
 
 .dashboard .dashboard-navbar {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding: 4px 12px;
 }
 
 .dashboard .dashboard-navbar .org-visibility .label {
