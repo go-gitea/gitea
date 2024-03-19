@@ -129,9 +129,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				commitIDs = append(commitIDs, update.NewCommitID)
 			}
 
-			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, func(commitID string) (*git.Commit, error) {
-				return gitRepo.GetCommit(commitID)
-			}); err != nil {
+			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
 				})
