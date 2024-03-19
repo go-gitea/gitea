@@ -100,7 +100,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {
-			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
+			if _, err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}
 		}

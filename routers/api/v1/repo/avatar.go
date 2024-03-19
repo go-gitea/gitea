@@ -36,8 +36,12 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/UpdateRepoAvatarOption"
 	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/ByteSlice"
+	//   "201":
+	//     "$ref": "#/responses/ByteSlice"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateRepoAvatarOption)
@@ -48,12 +52,24 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	err = repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
+	hasAvatar := len(ctx.Repo.Repository.Avatar) > 0
+
+	avatarData, err := repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
+		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if hasAvatar {
+		ctx.Status(http.StatusOK)
+	} else {
+		ctx.Status(http.StatusCreated)
+	}
+	_, err = ctx.Write(avatarData)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Write", err)
+		return
+	}
 }
 
 // UpdateAvatar deletes the Avatar of an Repo
@@ -82,6 +98,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

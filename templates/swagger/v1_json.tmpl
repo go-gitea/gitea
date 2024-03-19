@@ -1919,8 +1919,14 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "201": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -3891,8 +3897,14 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "201": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15220,8 +15232,14 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "201": {
+            "$ref": "#/responses/ByteSlice"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23821,6 +23839,16 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/BranchProtection"
+        }
+      }
+    },
+    "ByteSlice": {
+      "description": "ByteSlice",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "format": "uint8"
         }
       }
     },
