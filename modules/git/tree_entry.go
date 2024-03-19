@@ -101,6 +101,16 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 	return entry, nil
 }
 
+// TryFollowingLinks attempts to follow the symlinks of this entry to the origin
+// If that fails, it defaults to the entry itself
+func (te *TreeEntry) TryFollowingLinks() *TreeEntry {
+	newEntry, err := te.FollowLinks()
+	if err != nil {
+		return te
+	}
+	return newEntry
+}
+
 // returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
 func (te *TreeEntry) Tree() *Tree {
 	t, err := te.ptree.repo.getTree(te.ID)

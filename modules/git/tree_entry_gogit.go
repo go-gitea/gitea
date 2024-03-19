@@ -55,6 +55,10 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
+func (te *TreeEntry) FullPath() string {
+	return te.Name()
+}
+
 // IsSubModule if the entry is a sub module
 func (te *TreeEntry) IsSubModule() bool {
 	return te.gogitTreeEntry.Mode == filemode.Submodule
