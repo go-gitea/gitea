@@ -192,5 +192,8 @@ type swaggerParameterBodies struct {
 	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
 
 	// in:body
+	UserBadgeOption api.UserBadgeOption
+
+	// in:body
 	CreateEditStarListOptions api.CreateEditStarListOptions
 }

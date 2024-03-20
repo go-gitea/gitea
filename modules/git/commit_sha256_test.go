@@ -140,10 +140,13 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 	commit, err := repo.GetCommit("f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc")
 	assert.NoError(t, err)
 
+	objectFormat, err := repo.GetObjectFormat()
+	assert.NoError(t, err)
+
 	parentSHA := MustIDFromString("b0ec7af4547047f12d5093e37ef8f1b3b5415ed8ee17894d43a34d7d34212e9c")
 	notParentSHA := MustIDFromString("42e334efd04cd36eea6da0599913333c26116e1a537ca76e5b6e4af4dda00236")
-	assert.Equal(t, repo.objectFormat, parentSHA.Type())
-	assert.Equal(t, repo.objectFormat.Name(), "sha256")
+	assert.Equal(t, objectFormat, parentSHA.Type())
+	assert.Equal(t, objectFormat.Name(), "sha256")
 
 	haz, err := commit.HasPreviousCommit(parentSHA)
 	assert.NoError(t, err)

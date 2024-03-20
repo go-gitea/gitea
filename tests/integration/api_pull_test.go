@@ -61,6 +61,27 @@ func TestAPIViewPulls(t *testing.T) {
 	}
 }
 
+func TestAPIViewPullsByBaseHead(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
+		AddTokenAuth(ctx.Token)
+	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+	pull := &api.PullRequest{}
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, 3, pull.Index)
+	assert.EqualValues(t, 2, pull.ID)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
+		AddTokenAuth(ctx.Token)
+	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+}
+
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -100,6 +121,23 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
 		Title: "create a failure pr",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
+}
+
+func TestAPICreatePullSameRepoSuccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner.Name, repo.Name), &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:pr-to-update", owner.Name),
+		Base:  "master",
+		Title: "successfully create a PR between branches of the same repository",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail

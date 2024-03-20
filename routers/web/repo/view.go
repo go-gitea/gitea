@@ -35,8 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
@@ -45,9 +43,11 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -634,11 +634,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			defer deferable()
 			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 			if err == nil {
-				vendored, has := attrs["linguist-vendored"]
-				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
-
-				generated, has := attrs["linguist-generated"]
-				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
+				ctx.Data["IsVendored"] = git.AttributeToBool(attrs, git.AttributeLinguistVendored).Value()
+				ctx.Data["IsGenerated"] = git.AttributeToBool(attrs, git.AttributeLinguistGenerated).Value()
 			}
 		}
 	}
@@ -792,7 +789,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	renderCode(ctx)
+	renderHomeCode(ctx)
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -861,24 +858,17 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	selected := make(container.Set[string])
-	selected.AddMultiple(ctx.FormStrings("f[]")...)
-
-	entries := allEntries
-	if len(selected) > 0 {
-		entries = make(git.Entries, 0, len(selected))
-		for _, entry := range allEntries {
-			if selected.Contains(entry.Name()) {
-				entries = append(entries, entry)
-			}
-		}
-	}
-
-	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
+	}
+	ctx.Data["Files"] = files
+	for _, f := range files {
+		if f.Commit == nil {
+			ctx.Data["HasFilesWithoutLatestCommit"] = true
+			break
+		}
 	}
 
 	if !loadLatestCommitData(ctx, latestCommit) {
@@ -919,9 +909,33 @@ func renderRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func renderCode(ctx *context.Context) {
+func prepareOpenWithEditorApps(ctx *context.Context) {
+	var tmplApps []map[string]any
+	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
+	if len(apps) == 0 {
+		apps = setting.DefaultOpenWithEditorApps()
+	}
+	for _, app := range apps {
+		schema, _, _ := strings.Cut(app.OpenURL, ":")
+		var iconHTML template.HTML
+		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "gt-mr-3")
+		} else {
+			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
+		}
+		tmplApps = append(tmplApps, map[string]any{
+			"DisplayName": app.DisplayName,
+			"OpenURL":     app.OpenURL,
+			"IconHTML":    iconHTML,
+		})
+	}
+	ctx.Data["OpenWithEditorApps"] = tmplApps
+}
+
+func renderHomeCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
+	prepareOpenWithEditorApps(ctx)
 
 	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
 		showEmpty := true
@@ -983,6 +997,8 @@ func renderCode(ctx *context.Context) {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
+
+	checkOutdatedBranch(ctx)
 
 	checkCitationFile(ctx, entry)
 	if ctx.Written() {
@@ -1048,6 +1064,31 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+func checkOutdatedBranch(ctx *context.Context) {
+	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+		return
+	}
+
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranch: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if dbBranch.CommitID != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
+	}
 }
 
 // RenderUserCards render a page show users according the input template

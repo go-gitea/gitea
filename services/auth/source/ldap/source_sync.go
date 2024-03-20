@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -78,7 +78,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.authSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = asymkey_model.RewriteAllPublicKeys(ctx)
+				err = asymkey_service.RewriteAllPublicKeys(ctx)
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -125,8 +125,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsAdmin:     su.IsAdmin,
 			}
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsRestricted: util.OptionalBoolOf(su.IsRestricted),
-				IsActive:     util.OptionalBoolTrue,
+				IsRestricted: optional.Some(su.IsRestricted),
+				IsActive:     optional.Some(true),
 			}
 
 			err = user_model.CreateUser(ctx, usr, overwriteDefault)
@@ -196,7 +196,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = asymkey_model.RewriteAllPublicKeys(ctx)
+		err = asymkey_service.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}

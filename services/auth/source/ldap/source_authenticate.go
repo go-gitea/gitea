@@ -13,7 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -69,7 +69,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
@@ -85,8 +85,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			IsAdmin:     sr.IsAdmin,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(sr.IsRestricted),
+			IsActive:     optional.Some(true),
 		}
 
 		err := user_model.CreateUser(ctx, user, overwriteDefault)
@@ -95,7 +95,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
