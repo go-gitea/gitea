@@ -1,9 +1,8 @@
 import {svg} from '../svg.js';
 
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
-function scrollToAnchor(encodedId, initial) {
-  // abort if the browser has already scrolled to another anchor during page load
-  if (!encodedId || (initial && document.querySelector(':target'))) return;
+function scrollToAnchor(encodedId) {
+  if (!encodedId) return;
   const id = decodeURIComponent(encodedId);
   let el = document.getElementById(`user-content-${id}`);
 
@@ -32,7 +31,7 @@ export function initMarkupAnchors() {
 
   for (const markupEl of markupEls) {
     // create link icons for markup headings, the resulting link href will remove `user-content-`
-    for (const heading of markupEl.querySelectorAll(`:is(h1, h2, h3, h4, h5, h6`)) {
+    for (const heading of markupEl.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
       const originalId = heading.id.replace(/^user-content-/, '');
       const a = document.createElement('a');
       a.classList.add('anchor');
@@ -59,10 +58,13 @@ export function initMarkupAnchors() {
 
     for (const a of markupEl.querySelectorAll('a[href^="#"]')) {
       a.addEventListener('click', (e) => {
-        scrollToAnchor(e.currentTarget.getAttribute('href')?.substring(1), false);
+        scrollToAnchor(e.currentTarget.getAttribute('href')?.substring(1));
       });
     }
   }
 
-  scrollToAnchor(window.location.hash.substring(1), true);
+  // scroll to anchor unless browser has already scrolled somewhere during page load
+  if (!document.querySelector(':target')) {
+    scrollToAnchor(window.location.hash?.substring(1));
+  }
 }
