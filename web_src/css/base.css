@@ -669,7 +669,8 @@ img.ui.avatar,
 }
 
 .page-content.new:is(.repo,.migrate,.org),
-.page-content.profile:is(.user,.organization) {
+.page-content.profile:is(.user,.organization),
+.page-content.user:is(.settings,.notification) {
   padding-top: 15px;
 }
 
@@ -1796,7 +1797,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
-  padding: 11px 12px !important;
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
 }
 
