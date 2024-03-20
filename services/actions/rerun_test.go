@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+
 	"github.com/stretchr/testify/assert"
 )
 
