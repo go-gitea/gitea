@@ -19,13 +19,13 @@
 					</div>
 					{{if .ContextUser.IsSameUser .SignedUser}}
 						<div>
-							<button class="ui button green show-modal" data-modal="#edit-star-list-modal">{{.locale.Tr "edit"}}</button>
-							<button class="ui button red show-modal" data-modal="#delete-star-list-modal">{{.locale.Tr "remove"}}</button>
+							<button class="ui button green show-modal" data-modal="#edit-star-list-modal">{{ctx.Locale.Tr "edit"}}</button>
+							<button class="ui button red show-modal" data-modal="#delete-star-list-modal">{{ctx.Locale.Tr "remove"}}</button>
 						</div>
 					{{end}}
 				</div>
 
-				{{template "explore/repo_search" .}}
+				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
 			</div>
@@ -39,11 +39,11 @@
 
 	<div class="ui small modal" id="delete-star-list-modal">
 		<div class="header">
-			{{.locale.Tr "starlist.delete_header"}}
+			{{ctx.Locale.Tr "starlist.delete_header"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | SafeHTML}}
 			</div>
 			<form class="ui form" action="{{.EditStarListURL}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -53,8 +53,8 @@
 				<input name="action" type="hidden" value="delete">
 
 				<div class="text right actions">
-					<button class="ui cancel button">{{.locale.Tr "cancel"}}</button>
-					<button class="ui red button">{{.locale.Tr "remove"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
+					<button class="ui red button">{{ctx.Locale.Tr "remove"}}</button>
 				</div>
 			</form>
 		</div>

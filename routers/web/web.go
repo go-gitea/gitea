@@ -794,7 +794,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user.UsernameSubRoute)
 			m.Get("/-/starlist/{name}", user.ShowStarList)
 			m.Post("/-/starlist_edit", web.Bind(forms.EditStarListForm{}), user.EditStarListPost)
-		}, context_service.UserAssignmentWeb())
+		}, context.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 		m.Get("/{username}", user.UsernameSubRoute)
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)

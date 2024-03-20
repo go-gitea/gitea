@@ -60,20 +60,7 @@
 					{{end}}
 					{{template "repo/watch_unwatch" $}}
 					{{if not $.DisableStars}}
-						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-							{{$.CsrfTokenHtml}}
-							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
-								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{ctx.Locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{ctx.Locale.Tr "repo.star"}}{{end}}
-								</button>
-								<a class="ui basic label {{if $.StarLists}}no-border-radius{{end}}" href="{{.Link}}/stars">
-									{{CountFmt .NumStars}}
-								</a>
-								{{if $.StarLists}}
-									<button type="button" class="ui compact small basic button show-modal no-border-radius-left no-margin-left" data-modal="#repo-star-list-modal">{{svg "octicon-pencil"}}</button>
-								{{end}}
-							</div>
-						</form>
+						{{template "repo/star_unstar" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
@@ -242,7 +229,3 @@
 	</overflow-menu>
 	<div class="ui tabs divider"></div>
 </div>
-
-{{if not $.DisableStars}}
-	{{template "repo/starlistmodal" .}}
-{{end}}

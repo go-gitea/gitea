@@ -9,5 +9,12 @@
 		<a hx-boost="false" class="ui basic label" href="{{$.RepoLink}}/stars">
 			{{CountFmt .Repository.NumStars}}
 		</a>
+		{{if $.StarLists}}
+			<button type="button" class="ui compact small basic button show-modal no-border-radius-left no-margin-left" data-modal="#repo-star-list-modal">{{svg "octicon-pencil"}}</button>
+		{{end}}
 	</div>
+
+	{{if not $.DisableStars}}
+		{{template "repo/starlistmodal" .}}
+	{{end}}
 </form>

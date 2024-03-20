@@ -1,9 +1,9 @@
 <div class="star-list-box">
 	<h4 class="ui top attached header">
-		{{.locale.Tr "starlist.list_header"}}
+		{{ctx.Locale.Tr "starlist.list_header"}}
 		{{if .ContextUser.IsSameUser .SignedUser}}
 			<div class="ui right">
-				<button class="ui tiny button green show-modal" data-modal="#edit-star-list-modal">{{.locale.Tr "add"}}</button>
+				<button class="ui tiny button green show-modal" data-modal="#edit-star-list-modal">{{ctx.Locale.Tr "add"}}</button>
 			</div>
 		{{end}}
 	</h4>
@@ -16,14 +16,14 @@
 							<div class="flex-item-title">
 								{{.Name}}
 								{{if .IsPrivate}}
-									<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
+									<span class="ui basic label">{{$.ctx.Locale.Tr "repo.desc.private"}}</span>
 								{{end}}
 							</div>
 							<div class="flex-item-trailing">
 								{{if eq .RepositoryCount 1}}
-									<span class="text grey flex-text-inline">{{$.locale.Tr "repository_count_1"}}</span>
+									<span class="text grey flex-text-inline">{{$.ctx.Locale.Tr "repository_count_1"}}</span>
 								{{else}}
-									<span class="text grey flex-text-inline">{{$.locale.Tr "repository_count_n" .RepositoryCount}}</span>
+									<span class="text grey flex-text-inline">{{$.ctx.Locale.Tr "repository_count_n" .RepositoryCount}}</span>
 								{{end}}
 							</div>
 						</a>
@@ -31,7 +31,7 @@
 				{{end}}
 			</div>
 		{{else}}
-			{{.locale.Tr "starlist.no_star_lists_text"}}
+			{{ctx.Locale.Tr "starlist.no_star_lists_text"}}
 		{{end}}
 	</div>
 </div>

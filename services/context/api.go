@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	mc "code.gitea.io/gitea/modules/cache"

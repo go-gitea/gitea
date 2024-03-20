@@ -226,7 +226,17 @@ func (starList *StarList) AddRepo(ctx context.Context, repoID int64) error {
 		return nil
 	}
 
-	err = StarRepo(ctx, starList.UserID, repoID, true)
+	err = starList.LoadUser(ctx)
+	if err != nil {
+		return err
+	}
+
+	repo, err := GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return err
+	}
+
+	err = StarRepo(ctx, starList.User, repo, true)
 	if err != nil {
 		return err
 	}
