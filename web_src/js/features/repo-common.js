@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
-import {POST} from '../modules/fetch.js';
+import {POST, GET} from '../modules/fetch.js';
 
 async function getArchive($target, url, first) {
   try {
@@ -91,47 +91,42 @@ export function initRepoCommonFilterSearchDropdown(selector) {
 const {appSubUrl} = window.config;
 
 export function initRepoCommonForksRepoSearchDropdown(selector) {
-  const $dropdown = $(selector);
-  $dropdown.find('input').on('input', function() {
-    const $root = $(this).closest(selector).find('.reference-list-menu');
-    const $query = $(this).val().trim();
-    if ($query.length === 0) {
+  const dropdown = document.querySelector(selector);
+  const dropdownInput = dropdown.querySelector('input');
+
+  dropdownInput.addEventListener('input', async function() {
+    const root = this.closest(selector).querySelector('.reference-list-menu');
+    const query = this.value.trim();
+    if (query.length === 0) {
       return;
     }
 
-    $.get(`${appSubUrl}/repo/search?q=${$query}`).done((data) => {
-      if (data.ok !== true) {
-        return;
+    const rsp = await GET(`${appSubUrl}/repo/search?q=${query}`);
+    const data = await rsp.json();
+    if (data.ok !== true) {
+      return;
+    }
+
+    const linkTmpl = root.getAttribute('data-url-tmpl');
+
+    for (const item of data.data) {
+      const {id, full_name, link} = item.repository;
+      const found = root.querySelector(`.item[data-id="${id}"]`);
+      if (found) {
+        continue;
       }
 
-      const $linkTmpl = $root.data('url-tmpl');
-
-      for (let i = 0; i < data.data.length; i++) {
-        const {id, full_name, link} = data.data[i].repository;
-
-        const found = $root.find('.item').filter(function() {
-          return $(this).data('id') === id;
-        });
-
-        if (found.length !== 0) {
-          continue;
-        }
-
-        const compareLink = $linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
-        $root.append($(`<div class="item" data-id="${id}" data-url="${compareLink}">${full_name}</div>`));
-      }
-    }).always(() => {
-      $root.find('.item').each((_, e) => {
-        if (!$(e).html().includes($query)) {
-          $(e).addClass('filtered');
-        }
-      });
-    });
-
-    return false;
+      const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
+      const newItem = document.createElement('div');
+      newItem.classList.add('item');
+      newItem.setAttribute('data-id', id);
+      newItem.setAttribute('data-url', compareLink);
+      newItem.textContent = full_name;
+      root.append(newItem);
+    }
   });
 
-  $dropdown.dropdown({
+  $(selector).dropdown({
     fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
@@ -139,20 +134,6 @@ export function initRepoCommonForksRepoSearchDropdown(selector) {
         window.location.href = $choice.attr('data-url');
       }
     },
-    message: {noResults: $dropdown.attr('data-no-results')},
-  });
-
-  const $acrossServiceCompareBtn = $('.choose.branch .compare-across-server-btn');
-  const $acrossServiceCompareInput = $('.choose.branch .compare-across-server-input');
-
-  if ($acrossServiceCompareBtn.length === 0 || $acrossServiceCompareInput.length === 0) {
-    return;
-  }
-
-  $acrossServiceCompareBtn.on('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    window.location.href = $(this).data('compare-url') + encodeURIComponent($acrossServiceCompareInput.val());
+    message: {noResults: $(selector).attr('data-no-results')},
   });
 }
