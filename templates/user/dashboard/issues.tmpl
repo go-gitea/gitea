@@ -62,14 +62,14 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
-							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="?type={{$.ViewType}}&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?type={{$.ViewType}}&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 						</div>
 					</div>
 				</div>
