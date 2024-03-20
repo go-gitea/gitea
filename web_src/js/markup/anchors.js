@@ -28,7 +28,7 @@ function scrollToAnchor(encodedId, initial) {
 
 export function initMarkupAnchors() {
   const markupEls = document.querySelectorAll('.markup');
-  if (!markupEls) return;
+  if (!markupEls.length) return;
 
   for (const markupEl of markupEls) {
     // create link icons for markup headings, the resulting link href will remove `user-content-`
