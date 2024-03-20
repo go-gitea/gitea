@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
 // NewCommitStatus creates a new CommitStatus
@@ -63,7 +63,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := files_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
+	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
 		return
 	}
