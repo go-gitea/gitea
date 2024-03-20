@@ -71,6 +71,7 @@
 }
 
 .repository .header-wrapper {
+  padding-top: 12px;
   background-color: var(--color-header-wrapper);
 }
 

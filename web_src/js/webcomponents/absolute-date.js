@@ -1,3 +1,9 @@
+import {Temporal} from 'temporal-polyfill';
+
+export function toAbsoluteLocaleDate(dateStr, lang, opts) {
+  return Temporal.PlainDate.from(dateStr).toLocaleString(lang ?? [], opts);
+}
+
 window.customElements.define('absolute-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
 
@@ -7,19 +13,13 @@ window.customElements.define('absolute-date', class extends HTMLElement {
     const weekday = this.getAttribute('weekday') ?? '';
     const day = this.getAttribute('day') ?? '';
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
-      this.ownerDocument.documentElement.getAttribute('lang') ||
-      '';
+      this.ownerDocument.documentElement.getAttribute('lang') || '';
 
-    // only extract the `yyyy-mm-dd` part. When converting to Date, it will become midnight UTC and when rendered
-    // as localized date, will have a offset towards UTC, which we remove to shift the timestamp to midnight in the
-    // localized date. We should eventually use `Temporal.PlainDate` which will make the correction unnecessary.
-    // - https://stackoverflow.com/a/14569783/808699
-    // - https://tc39.es/proposal-temporal/docs/plaindate.html
-    const date = new Date(this.getAttribute('date').substring(0, 10));
-    const correctedDate = new Date(date.getTime() - date.getTimezoneOffset() * -60000);
+    // only use the first 10 characters, e.g. the `yyyy-mm-dd` part
+    const dateStr = this.getAttribute('date').substring(0, 10);
 
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
-    this.shadowRoot.textContent = correctedDate.toLocaleString(lang ?? [], {
+    this.shadowRoot.textContent = toAbsoluteLocaleDate(dateStr, lang, {
       ...(year && {year}),
       ...(month && {month}),
       ...(weekday && {weekday}),

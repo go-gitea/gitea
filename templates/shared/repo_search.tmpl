@@ -1,22 +1,18 @@
 <div class="ui small secondary filter menu">
-	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-flex-row tw-gap-x-2 gt-ac">
-		{{if .Language}}<input hidden name="language" value="{{.Language}}">{{end}}
+	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-gap-x-2">
+		{{if .Language}}<input type="hidden" name="language" value="{{.Language}}">{{end}}
+		{{if .PageIsExploreRepositories}}<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">{{end}}
+		{{if .TabName}}<input type="hidden" name="tab" value="{{.TabName}}">{{end}}
+		{{if .TopicOnly}}<input type="hidden" name="topic" value="{{.TopicOnly}}">{{end}}
 		<div class="ui small fluid action input tw-flex-1">
 			{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.repo_kind")}}
-			{{if .PageIsExploreRepositories}}
-				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
-			{{else if .TabName}}
-				<input type="hidden" name="tab" value="{{.TabName}}">
-			{{end}}
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
-		<div class="ui small dropdown type jump item tw-mr-0">
-			<span class="text">
-				{{ctx.Locale.Tr "filter"}}
-			</span>
+		<div class="item ui small dropdown jump">
+			<span class="text">{{ctx.Locale.Tr "filter"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
+			<div class="menu flex-items-menu">
 				<label class="item"><input type="radio" name="clear-filter"> {{ctx.Locale.Tr "filter.clear"}}</label>
 				<div class="divider"></div>
 				<label class="item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
@@ -36,10 +32,8 @@
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="ui small dropdown type jump item gt-mr-0">
-			<span class="text">
-				{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-			</span>
+		<div class="item ui small dropdown jump">
+			<span class="text">{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				<label class="{{if eq .SortType "newest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>
@@ -61,8 +55,10 @@
 	</form>
 </div>
 {{if and .PageIsExploreRepositories .OnlyShowRelevant}}
-	<div class="ui message explore-relevancy-note">
-		<span data-tooltip-content="{{ctx.Locale.Tr "explore.relevant_repositories_tooltip"}}">{{ctx.Locale.Tr "explore.relevant_repositories" (printf "?only_show_relevant=0&sort=%s&q=%s&language=%s" $.SortType (QueryEscape $.Keyword) (QueryEscape $.Language))}}</span>
+	<div class="ui message">
+		<span data-tooltip-content="{{ctx.Locale.Tr "explore.relevant_repositories_tooltip"}}">
+			{{ctx.Locale.Tr "explore.relevant_repositories" (printf "?only_show_relevant=0&sort=%s&q=%s&language=%s" $.SortType (QueryEscape $.Keyword) (QueryEscape $.Language))}}
+		</span>
 	</div>
 {{end}}
 <div class="divider"></div>

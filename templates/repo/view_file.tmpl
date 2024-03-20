@@ -37,7 +37,7 @@
 		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons">
-					<a href="{{$.Link}}?display=source" class="ui mini basic button {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
+					<a href="?display=source" class="ui mini basic button {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
 					<a href="{{$.Link}}" class="ui mini basic button {{if .IsDisplayingRendered}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
