@@ -283,7 +283,9 @@ ol.ui.list li,
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .button:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -1954,6 +1956,10 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ui.icon.input > i.icon {
+  transition: none;
 }
 
 .flex-items-block > .item,
