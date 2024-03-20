@@ -18,12 +18,12 @@
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
-						<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-						<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-						<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-						<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-						<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-						<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+						<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}item" href="?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+						<a class="{{if eq .SortType "newest"}}active {{end}}item" href="?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+						<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+						<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+						<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?sort=recentupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+						<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?sort=leastupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 					</div>
 				</div>
 			</div>

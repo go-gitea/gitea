@@ -158,10 +158,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
-	divergence := &git.DivergeObject{
-		Ahead:  -1,
-		Behind: -1,
-	}
+	var divergence *git.DivergeObject
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
@@ -178,6 +175,11 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 				}
 			}
 		}
+	}
+
+	if divergence == nil {
+		// tolerate the error that we cannot get divergence
+		divergence = &git.DivergeObject{Ahead: -1, Behind: -1}
 	}
 
 	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
@@ -318,11 +320,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 		for i, branchName := range branchNames {
 			commitID := commitIDs[i]
 			branch, exist := branchMap[branchName]
-			if exist && branch.CommitID == commitID {
+			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
 			}
 
-			commit, err := getCommit(branchName)
+			commit, err := getCommit(commitID)
 			if err != nil {
 				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
 			}

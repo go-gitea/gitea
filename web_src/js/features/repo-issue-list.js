@@ -93,9 +93,9 @@ function initRepoIssueListAuthorDropdown() {
   const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) return;
 
-  let searchUrl = $searchDropdown.attr('data-search-url');
-  const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+  let searchUrl = $searchDropdown[0].getAttribute('data-search-url');
+  const actionJumpUrl = $searchDropdown[0].getAttribute('data-action-jump-url');
+  const selectedUserId = $searchDropdown[0].getAttribute('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {

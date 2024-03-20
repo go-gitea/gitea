@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -395,6 +396,10 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 				ismodule = false
 			}
 		}
+	}
+	err = scanner.Err()
+	if err != nil {
+		return nil, fmt.Errorf("scan: %w", err)
 	}
 
 	return c.submoduleCache, nil
