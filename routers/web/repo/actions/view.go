@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -306,6 +305,7 @@ func Rerun(ctx *context_module.Context) {
 
 	if jobIndexStr == "" { // rerun all jobs
 		for _, j := range jobs {
+			// if the job has needs, it should be set to "blocked" status to wait for other jobs
 			shouldBlock := len(j.Needs) > 0
 			if err := rerunJob(ctx, j, shouldBlock); err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -315,32 +315,11 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	rerunJobs := []*actions_model.ActionRunJob{job}
-	rerunJobsIDSet := make(container.Set[string])
-	rerunJobsIDSet.Add(job.JobID)
-
-	for {
-		found := false
-		for _, j := range jobs {
-			if rerunJobsIDSet.Contains(j.JobID) {
-				continue
-			}
-			for _, need := range j.Needs {
-				if rerunJobsIDSet.Contains(need) {
-					found = true
-					rerunJobs = append(rerunJobs, j)
-					rerunJobsIDSet.Add(j.JobID)
-					break
-				}
-			}
-		}
-		if !found {
-			break
-		}
-	}
+	rerunJobs := actions_service.GetAllRerunJobs(job, jobs)
 
 	for _, j := range rerunJobs {
-		shouldBlock := j.JobID != job.JobID && len(j.Needs) > 0
+		// jobs other than the specified one should be set to "blocked" status
+		shouldBlock := j.JobID != job.JobID
 		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
