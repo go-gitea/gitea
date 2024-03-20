@@ -5,29 +5,29 @@
 		<div class="flex-container">
 			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu tw-bg-transparent">
-					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="?type=assigned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong>{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="?type=created_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong>{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
-						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="?type=review_requested&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong>{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="?type=reviewed_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
 							<strong>{{CountFmt .IssueStats.ReviewedCount}}</strong>
 						</a>
 					{{end}}
-					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="?type=mentioned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong>{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
@@ -36,11 +36,11 @@
 			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 							{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
