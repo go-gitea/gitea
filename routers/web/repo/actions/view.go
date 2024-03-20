@@ -306,7 +306,8 @@ func Rerun(ctx *context_module.Context) {
 
 	if jobIndexStr == "" { // rerun all jobs
 		for _, j := range jobs {
-			if err := rerunJob(ctx, j, len(j.Needs) > 0); err != nil {
+			shouldBlock := len(j.Needs) > 0
+			if err := rerunJob(ctx, j, shouldBlock); err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -325,11 +326,11 @@ func Rerun(ctx *context_module.Context) {
 				continue
 			}
 			for _, need := range j.Needs {
-				if rerunJobsIDSet.Contains(need) && !rerunJobsIDSet.Contains(j.JobID) {
+				if rerunJobsIDSet.Contains(need) {
 					found = true
 					rerunJobs = append(rerunJobs, j)
 					rerunJobsIDSet.Add(j.JobID)
-					continue
+					break
 				}
 			}
 		}
@@ -339,8 +340,8 @@ func Rerun(ctx *context_module.Context) {
 	}
 
 	for _, j := range rerunJobs {
-		shouldlock := j.JobID != job.JobID && len(j.Needs) > 0
-		if err := rerunJob(ctx, j, shouldlock); err != nil {
+		shouldBlock := j.JobID != job.JobID && len(j.Needs) > 0
+		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
