@@ -14,10 +14,6 @@
   color: var(--color-red-light);
 }
 
-.runner-container .runner-basic-info .gt-dib {
-  margin-right: 1em;
-}
-
 .runner-container .runner-new-text {
   color: var(--color-white);
 }

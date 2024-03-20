@@ -90,8 +90,8 @@
 				<a class="tw-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
 				<div class="ui relaxed list">
 				{{range .LatestVersions}}
-					<div class="item gt-df">
-						<a class="gt-f1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+					<div class="item tw-flex">
+						<a class="tw-flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
 						<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
 					</div>
 				{{end}}

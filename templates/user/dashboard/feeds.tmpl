@@ -84,7 +84,7 @@
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := (.GetRepoLink ctx)}}
 					{{$repo := .Repo}}
-					<div class="gt-df gt-fc gt-gap-2">
+					<div class="tw-flex tw-flex-col gt-gap-2">
 						{{range $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">

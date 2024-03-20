@@ -1267,7 +1267,7 @@ strong.attention-caution, svg.attention-caution {
 }
 
 @media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
+  /* double selector so it wins over .tw-flex etc */
   .not-mobile.not-mobile {
     display: none !important;
   }

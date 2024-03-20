@@ -21,7 +21,7 @@
 					{{else}}
 						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
 						<input id="tag-name-editor" type="hidden" data-existing-tags="{{JsonUtils.EncodeToString .Tags}}" data-tag-helper="{{ctx.Locale.Tr "repo.release.tag_helper"}}" data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}" data-tag-helper-existing="{{ctx.Locale.Tr "repo.release.tag_helper_existing"}}">
-						<div id="tag-target-selector" class="gt-dib">
+						<div id="tag-target-selector" class="tw-inline-block">
 							<span class="at">@</span>
 							<div class="ui selection dropdown">
 								<input type="hidden" name="tag_target" value="{{.tag_target}}">
@@ -61,7 +61,7 @@
 				</div>
 				{{range .attachments}}
 					<div class="field flex-text-block" id="attachment-{{.ID}}">
-						<div class="flex-text-inline gt-f1">
+						<div class="flex-text-inline tw-flex-1">
 							<input name="attachment-edit-{{.UUID}}"  class="attachment_edit" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
 							<span class="ui text grey tw-whitespace-nowrap">{{.Size | FileSize}}</span>
@@ -101,7 +101,7 @@
 					</div>
 					<span class="help">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</span>
 					<div class="divider gt-mt-0"></div>
-					<div class="gt-df gt-je">
+					<div class="tw-flex tw-justify-end">
 						{{if .PageIsEditRelease}}
 							<a class="ui small button" href="{{.RepoLink}}/releases">
 								{{ctx.Locale.Tr "repo.release.cancel"}}

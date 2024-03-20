@@ -11,8 +11,8 @@
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq .Status 1}}
-				<div class="gt-df gt-sb">
-					<div class="gt-df">
+				<div class="tw-flex tw-justify-between">
+					<div class="tw-flex">
 						<div class="small-menu-items ui compact tiny menu">
 							<a class="{{if eq .State "all"}}active {{end}}item" href="?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{ctx.Locale.Tr "all"}}
@@ -27,7 +27,7 @@
 							</a>
 						</div>
 					</div>
-					<div class="gt-df gt-sb">
+					<div class="tw-flex tw-justify-between">
 						<div class="ui right aligned secondary filter menu labels">
 							<!-- Type -->
 								<div class="ui dropdown type jump item">
