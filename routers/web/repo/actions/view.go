@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -303,12 +304,43 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndexStr != "" {
-		jobs = []*actions_model.ActionRunJob{job}
+	if jobIndexStr == "" { // rerun all jobs
+		for _, j := range jobs {
+			if err := rerunJob(ctx, j, len(j.Needs) > 0); err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+		return
 	}
 
-	for _, j := range jobs {
-		if err := rerunJob(ctx, j); err != nil {
+	rerunJobs := []*actions_model.ActionRunJob{job}
+	rerunJobsIDSet := make(container.Set[string])
+	rerunJobsIDSet.Add(job.JobID)
+
+	for {
+		found := false
+		for _, j := range jobs {
+			if rerunJobsIDSet.Contains(j.JobID) {
+				continue
+			}
+			for _, need := range j.Needs {
+				if rerunJobsIDSet.Contains(need) && !rerunJobsIDSet.Contains(j.JobID) {
+					found = true
+					rerunJobs = append(rerunJobs, j)
+					rerunJobsIDSet.Add(j.JobID)
+					continue
+				}
+			}
+		}
+		if !found {
+			break
+		}
+	}
+
+	for _, j := range rerunJobs {
+		shouldlock := j.JobID != job.JobID && len(j.Needs) > 0
+		if err := rerunJob(ctx, j, shouldlock); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -317,7 +349,7 @@ func Rerun(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
+func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
 	if !status.IsDone() {
 		return nil
@@ -325,6 +357,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) erro
 
 	job.TaskID = 0
 	job.Status = actions_model.StatusWaiting
+	if shouldBlock {
+		job.Status = actions_model.StatusBlocked
+	}
 	job.Started = 0
 	job.Stopped = 0
 
