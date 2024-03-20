@@ -1778,15 +1778,6 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
-.ui.tabular.menu .item {
-  padding: 11px 12px;
-  color: var(--color-text-light-2);
-}
-
-.ui.tabular.menu .item:hover {
-  color: var(--color-text);
-}
-
 .ui.tabular.menu .active.item,
 .ui.tabular.menu .active.item:hover {
   background: var(--color-body);
@@ -1803,15 +1794,34 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
+.ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
+  padding: 11px 12px !important;
   color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
+.ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
+}
+
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .ui.header {
