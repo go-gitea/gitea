@@ -1797,7 +1797,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
-  padding: 11px 12px !important;
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
 }
 
