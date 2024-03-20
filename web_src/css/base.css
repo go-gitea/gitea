@@ -227,16 +227,6 @@ a.label,
   border-bottom-color: var(--color-secondary);
 }
 
-.page-content {
-  margin-top: 15px;
-}
-
-.page-content .header-wrapper,
-.page-content overflow-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
-}
-
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
   line-height: var(--line-height-default);
@@ -283,7 +273,9 @@ ol.ui.list li,
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .button:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -674,6 +666,12 @@ img.ui.avatar,
 .full.height {
   flex-grow: 1;
   padding-bottom: 80px;
+}
+
+.page-content.new:is(.repo,.migrate,.org),
+.page-content.profile:is(.user,.organization),
+.page-content.user:is(.settings,.notification) {
+  padding-top: 15px;
 }
 
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
@@ -1781,15 +1779,6 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
-.ui.tabular.menu .item {
-  padding: 11px 12px;
-  color: var(--color-text-light-2);
-}
-
-.ui.tabular.menu .item:hover {
-  color: var(--color-text);
-}
-
 .ui.tabular.menu .active.item,
 .ui.tabular.menu .active.item:hover {
   background: var(--color-body);
@@ -1806,15 +1795,34 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
+.ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
+.ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
+}
+
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .ui.header {
@@ -1954,6 +1962,10 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ui.icon.input > i.icon {
+  transition: none;
 }
 
 .flex-items-block > .item,
