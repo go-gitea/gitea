@@ -25,7 +25,7 @@ export function initMarkupAnchors() {
     const originalId = heading.id.replace(/^user-content-/, '');
     const a = document.createElement('a');
     a.classList.add('anchor');
-    a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
+    a.setAttribute('href', `#${decodeURIComponent(originalId)}`);
     a.innerHTML = svg('octicon-link');
     a.addEventListener('click', (e) => {
       scrollToAnchor(e.currentTarget.getAttribute('href'), false);
@@ -38,8 +38,8 @@ export function initMarkupAnchors() {
     const href = a.getAttribute('href');
     if (!href.startsWith('#user-content-')) continue;
     const originalId = href.replace(/^#user-content-/, '');
-    a.setAttribute('href', `#${originalId}`);
-    if (a.closest('.markup').querySelectorAll(`a[name="${originalId}"]`).length !== 1) {
+    a.setAttribute('href', `#${decodeURIComponent(originalId)}`);
+    if (a.closest('.markup').querySelectorAll(`a[name="${decodeURIComponent(originalId)}"]`).length !== 1) {
       a.addEventListener('click', (e) => {
         scrollToAnchor(e.currentTarget.getAttribute('href'), false);
       });
