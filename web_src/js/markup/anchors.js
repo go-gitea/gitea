@@ -50,6 +50,7 @@ export function initMarkupAnchors() {
     }
 
     // add `user-content-` prefix to user-generated `a[name]` link targets
+    // TODO: this prefix should be added in backend instead
     for (const a of markupEl.querySelectorAll('a[name]')) {
       const name = a.getAttribute('name');
       if (!name) continue;
