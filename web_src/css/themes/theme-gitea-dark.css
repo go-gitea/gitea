@@ -180,16 +180,16 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #1e2224;
+  --color-body: #1c1f25;
   --color-box-header: #1a1d1f;
   --color-box-body: #14171a;
   --color-box-body-highlight: #121517;
   --color-text-dark: #f8f8f9;
-  --color-text: #ced2d5;
-  --color-text-light: #bec4c8;
-  --color-text-light-1: #acb3b8;
-  --color-text-light-2: #8d969c;
-  --color-text-light-3: #747f87;
+  --color-text: #d1d5d8;
+  --color-text-light: #bdc3c7;
+  --color-text-light-1: #a8afb5;
+  --color-text-light-2: #929ba2;
+  --color-text-light-3: #7c8790;
   --color-footer: var(--color-nav-bg);
   --color-timeline: #353c42;
   --color-input-text: var(--color-text-dark);
