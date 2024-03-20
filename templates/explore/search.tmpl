@@ -13,10 +13,10 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
 		</div>
 	</div>
 </div>

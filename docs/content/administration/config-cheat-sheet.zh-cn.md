@@ -562,7 +562,7 @@ Gitea 创建以下非唯一队列：
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**：允许通过OpenID进行身份验证。
+- `ENABLE_OPENID_SIGNIN`: **true**：允许通过OpenID进行身份验证。
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**：允许通过OpenID进行注册。
 - `WHITELISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于允许访问。
 - `BLACKLISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于阻止访问。
