@@ -1,3 +1,6 @@
+/* based on Fomantic UI grid module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
 .ui.grid {
   display: flex;
   flex-direction: row;
