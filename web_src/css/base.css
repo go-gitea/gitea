@@ -680,11 +680,11 @@ img.ui.avatar,
 
 .ui.tabular.menu .active.item,
 .ui.secondary.pointing.menu .active.item,
-.size-for-semibold::before {
+.resize-for-semibold::before {
   font-weight: var(--font-weight-semibold);
 }
 
-.size-for-semibold::before {
+.resize-for-semibold::before {
   content: attr(data-text);
   visibility: hidden;
   display: block;

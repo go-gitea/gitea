@@ -137,7 +137,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
             const text = child.textContent.trim(); // whitespace is insignificant inside flexbox
             if (!text) continue;
             const span = document.createElement('span');
-            span.classList.add('size-for-semibold');
+            span.classList.add('resize-for-semibold');
             span.setAttribute('data-text', text);
             span.textContent = text;
             child.replaceWith(span);
