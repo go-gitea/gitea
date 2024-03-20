@@ -7,7 +7,7 @@ export async function createSortable(el, opts = {}) {
     onChoose: (e) => {
       const handle = opts?.handle ? e.item.querySelector(opts.handle) : e.item;
       handle.classList.add('tw-cursor-grabbing');
-      opts.onStart?.(e);
+      opts.onChoose?.(e);
     },
     onUnchoose: (e) => {
       const handle = opts?.handle ? e.item.querySelector(opts.handle) : e.item;
