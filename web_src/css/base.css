@@ -227,16 +227,6 @@ a.label,
   border-bottom-color: var(--color-secondary);
 }
 
-.page-content {
-  margin-top: 15px;
-}
-
-.page-content .header-wrapper,
-.page-content overflow-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
-}
-
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
   line-height: var(--line-height-default);
@@ -678,17 +668,9 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-.ui.tabular.menu .active.item,
-.ui.secondary.pointing.menu .active.item,
-.resize-for-semibold::before {
-  font-weight: var(--font-weight-semibold);
-}
-
-.resize-for-semibold::before {
-  content: attr(data-text);
-  visibility: hidden;
-  display: block;
-  height: 0;
+.page-content.new:is(.repo,.migrate,.org),
+.page-content.profile:is(.user,.organization) {
+  padding-top: 15px;
 }
 
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
@@ -1827,6 +1809,19 @@ table th[data-sortt-desc] .svg {
 .ui.secondary.pointing.menu .active.item:hover,
 .ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
+}
+
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .ui.header {

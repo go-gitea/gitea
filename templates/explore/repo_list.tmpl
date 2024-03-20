@@ -32,7 +32,7 @@
 					</div>
 					<div class="flex-item-trailing">
 						{{if .PrimaryLanguage}}
-							<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
+							<a class="muted" href="?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
 								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
 							</a>
 						{{end}}

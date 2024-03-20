@@ -9,7 +9,7 @@
 				<a class="ui tiny primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 			{{end}}
 		</div>
-		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
+		<form class="ui form" action="?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.page_title"}}" autofocus required>

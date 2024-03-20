@@ -69,6 +69,23 @@ func testGitPush(t *testing.T, u *url.URL) {
 			return pushed, deleted
 		})
 	})
+
+	t.Run("Push to deleted branch", func(t *testing.T) {
+		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
+			doGitPushTestRepository(gitPath, "origin", "master")(t) // make sure master is the default branch instead of a branch we are going to delete
+			pushed = append(pushed, "master")
+
+			doGitCreateBranch(gitPath, "branch-1")(t)
+			doGitPushTestRepository(gitPath, "origin", "branch-1")(t)
+			pushed = append(pushed, "branch-1")
+
+			// delete and restore
+			doGitPushTestRepository(gitPath, "origin", "--delete", "branch-1")(t)
+			doGitPushTestRepository(gitPath, "origin", "branch-1")(t)
+
+			return pushed, deleted
+		})
+	})
 }
 
 func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gitPath string) (pushed, deleted []string)) {
