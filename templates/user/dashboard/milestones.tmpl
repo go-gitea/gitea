@@ -12,7 +12,7 @@
 					<div class="divider"></div>
 					{{range .Repos}}
 						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}active{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}active{{end}}{{end}} repo name item" href="?repos=[
 								{{- with $include := true -}}
 										{{- range $.RepoIDs -}}
 											{{- if eq . $Repo.ID -}}
@@ -36,11 +36,11 @@
 			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 							{{svg "octicon-milestone" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 							{{svg "octicon-check" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
@@ -59,12 +59,12 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
-							<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
-							<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-							<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-							<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-							<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
+							<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
+							<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+							<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+							<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+							<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
 						</div>
 					</div>
 				</div>

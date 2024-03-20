@@ -318,11 +318,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 		for i, branchName := range branchNames {
 			commitID := commitIDs[i]
 			branch, exist := branchMap[branchName]
-			if exist && branch.CommitID == commitID {
+			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
 			}
 
-			commit, err := getCommit(branchName)
+			commit, err := getCommit(commitID)
 			if err != nil {
 				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
 			}

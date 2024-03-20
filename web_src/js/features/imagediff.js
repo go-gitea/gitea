@@ -70,7 +70,7 @@ export function initImageDiff() {
 
   $('.image-diff:not([data-image-diff-loaded])').each(async function() {
     const $container = $(this);
-    $container.attr('data-image-diff-loaded', 'true');
+    this.setAttribute('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);

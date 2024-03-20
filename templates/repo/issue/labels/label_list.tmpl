@@ -9,10 +9,10 @@
 				</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="left menu">
-					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="?sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?sort=leastissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?sort=mostissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
 				</div>
 			</div>
 		</div>
