@@ -222,6 +222,10 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		}}, nil)
 		assert.NoError(t, err)
 
+		// reload units
+		repo.Units = nil
+		assert.NoError(t, repo.LoadUnits(db.DefaultContext))
+
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
