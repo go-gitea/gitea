@@ -14,14 +14,14 @@
 				<div class="gt-df gt-sb">
 					<div class="gt-df">
 						<div class="small-menu-items ui compact tiny menu">
-							<a class="{{if eq .State "all"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
+							<a class="{{if eq .State "all"}}active {{end}}item" href="?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{ctx.Locale.Tr "all"}}
 							</a>
-							<a class="{{if eq .State "open"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=open&issueType={{$.IssueType}}&labels={{$.Labels}}">
+							<a class="{{if eq .State "open"}}active {{end}}item" href="?sort={{$.SortType}}&state=open&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 								{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</a>
-							<a class="{{if eq .State "closed"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=closed&issueType={{$.IssueType}}&labels={{$.Labels}}">
+							<a class="{{if eq .State "closed"}}active {{end}}item" href="?sort={{$.SortType}}&state=closed&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 								{{ctx.Locale.Tr "repo.issues.closed_title"}}
 							</a>
@@ -36,9 +36,9 @@
 									</span>
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
-										<a class="{{if or (eq .IssueType "all") (not .IssueType)}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state={{$.State}}&issueType=all&labels={{$.Labels}}">{{ctx.Locale.Tr "all"}}</a>
-										<a class="{{if eq .IssueType "issues"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state={{$.State}}&issueType=issues&labels={{$.Labels}}">{{ctx.Locale.Tr "issues"}}</a>
-										<a class="{{if eq .IssueType "pulls"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state={{$.State}}&issueType=pulls&labels={{$.Labels}}">{{ctx.Locale.Tr "pull_requests"}}</a>
+										<a class="{{if or (eq .IssueType "all") (not .IssueType)}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=all&labels={{$.Labels}}">{{ctx.Locale.Tr "all"}}</a>
+										<a class="{{if eq .IssueType "issues"}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=issues&labels={{$.Labels}}">{{ctx.Locale.Tr "issues"}}</a>
+										<a class="{{if eq .IssueType "pulls"}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=pulls&labels={{$.Labels}}">{{ctx.Locale.Tr "pull_requests"}}</a>
 									</div>
 								</div>
 
@@ -49,14 +49,14 @@
 								</span>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
-									<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=latest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-									<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?sort=oldest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-									<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?sort=recentupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-									<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?sort=leastupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-									<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?sort=mostcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-									<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?sort=leastcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-									<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?sort=nearduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-									<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?sort=farduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+									<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="?sort=latest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+									<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?sort=oldest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+									<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?sort=recentupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+									<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?sort=leastupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+									<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="?sort=mostcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+									<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?sort=leastcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+									<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?sort=nearduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+									<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?sort=farduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 								</div>
 							</div>
 						</div>
