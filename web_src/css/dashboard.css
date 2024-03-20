@@ -78,7 +78,7 @@
 }
 
 .dashboard .dashboard-navbar {
-  padding: 1px 12px; /* match overflow-menu in height */
+  padding: 1px 12px; /* match .overflow-menu-items in height */
   background: var(--color-header-wrapper);
 }
 
