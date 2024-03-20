@@ -43,7 +43,6 @@ export function initCompLabelEdit(selector) {
 
   // Edit label
   $('.edit-label-button').on('click', function () {
-    $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
 
     const $nameInput = $('.edit-label .label-name-input');
@@ -60,9 +59,8 @@ export function initCompLabelEdit(selector) {
       (!this.hasAttribute('data-exclusive') || !isExclusiveScopeName($nameInput.val())));
     updateExclusiveLabelEdit('.edit-label');
 
-    $('.edit-label .label-desc-input').val($(this).data('description'));
-    $('.edit-label .color-picker').val($(this).data('color'));
-    $('.edit-label .minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label .label-desc-input').val(this.getAttribute('data-description'));
+    $('.edit-label .color-picker').minicolors('value', this.getAttribute('data-color'));
 
     $('.edit-label.modal').modal({
       onApprove() {

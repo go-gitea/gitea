@@ -72,7 +72,7 @@ async function initRepoProjectSortable() {
             await PUT($(column).data('url'), {
               data: {
                 sorting: i,
-                color: rgbToHex($(column).css('backgroundColor')),
+                color: rgbToHex(window.getComputedStyle($(column)[0]).backgroundColor),
               },
             });
           } catch (error) {
@@ -111,8 +111,9 @@ export function initRepoProject() {
     const $projectColorInput = $(this).find('#new_project_column_color');
     const $boardColumn = $(this).closest('.project-column');
 
-    if ($boardColumn.css('backgroundColor')) {
-      setLabelColor($projectHeader, rgbToHex($boardColumn.css('backgroundColor')));
+    const bgColor = $boardColumn[0].style.backgroundColor;
+    if (bgColor) {
+      setLabelColor($projectHeader, rgbToHex(bgColor));
     }
 
     $(this).find('.edit-project-column-button').on('click', async function (e) {
