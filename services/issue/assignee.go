@@ -226,16 +226,33 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, nil
 	}
 
+	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
+}
+
+func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifers []*ReviewRequestNotifier) {
+	for _, reviewNotifer := range reviewNotifers {
+		if reviewNotifer.Reviwer != nil {
+			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifer.Reviwer, reviewNotifer.IsAdd, reviewNotifer.Comment)
+		} else if reviewNotifer.ReviewTeam != nil {
+			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifer.ReviewTeam, reviewNotifer.IsAdd, reviewNotifer.Comment); err != nil {
+				log.Error("teamReviewRequestNotify: %v", err)
+			}
+		}
+	}
+}
+
+// teamReviewRequestNotify notify all user in this team
+func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool, comment *issues_model.Comment) error {
 	// notify all user in this team
 	if err := comment.LoadIssue(ctx); err != nil {
-		return nil, err
+		return err
 	}
 
 	members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		TeamID: reviewer.ID,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, member := range members {
@@ -246,7 +263,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		notify_service.PullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
-	return comment, err
+	return err
 }
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
