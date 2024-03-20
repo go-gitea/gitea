@@ -3,7 +3,7 @@
 		<div class="item">
 			<div class="ui floating dropdown jump">
 				<span class="text truncated-item-container">
-					{{ctx.AvatarUtils.Avatar .ContextUser}}
+					{{ctx.AvatarUtils.Avatar .ContextUser 24}}
 					<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 					<span class="org-visibility">
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
