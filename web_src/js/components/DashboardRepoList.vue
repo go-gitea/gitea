@@ -453,7 +453,7 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </div>
       </div>
-      <div v-if="!repos.length && !isLoading" class="ui attached table segment gt-rounded-bottom empty-placeholder">
+      <div v-if="!repos.length && !isLoading" class="ui attached table segment gt-rounded-bottom tw-py-[80px] empty-placeholder">
         {{ noRepos }}
       </div>
     </div>
@@ -486,7 +486,7 @@ export default sfc; // activate the IDE's Vue plugin
           </li>
         </ul>
       </div>
-      <div v-if="!organizations.length" class="ui attached table segment gt-rounded-bottom empty-placeholder">
+      <div v-if="!organizations.length" class="ui attached table segment gt-rounded-bottom tw-py-[80px] empty-placeholder">
         {{ noOrgs }}
       </div>
     </div>
@@ -534,13 +534,5 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
-}
-.empty-placeholder {
-  padding: 80px 0 !important;
-}
-@media (max-width: 767.98px) {
-  .empty-placeholder {
-    padding: 20px 0 !important;
-  }
 }
 </style>

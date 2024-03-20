@@ -1775,14 +1775,6 @@
   flex: 1
 }
 
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
 .repository.packages .file-size {
   white-space: nowrap;
 }

@@ -90,7 +90,3 @@
   max-width: 100%;
 }
 
-/* When the activity section is empty */
-.dashboard .ui.container .activity-empty {
-  padding-top: 60px;
-}

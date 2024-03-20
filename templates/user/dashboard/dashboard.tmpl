@@ -4,10 +4,10 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="ui mobile reversed stackable grid">
-			<div class="ui container ten wide column">
+			<div class="ui container ten wide column tw-text-center">
 				{{template "user/heatmap" .}}
 				{{if eq (len .Feeds) 0}}
-					<div class="gt-df gt-fc gt-ac gt-px-5 activity-empty">
+					<div class="tw-pt-[60px] empty-placeholder">
 						{{svg "octicon-rss" 48}}
 						<h2>{{ctx.Locale.Tr "action.empty"}}</h2>
 						<p>{{ctx.Locale.Tr "action.empty.desc" "/repo/create" "/repo/migrate" "/org/create"}}</p>
