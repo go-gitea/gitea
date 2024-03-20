@@ -312,6 +312,7 @@ func Rerun(ctx *context_module.Context) {
 				return
 			}
 		}
+		ctx.JSON(http.StatusOK, struct{}{})
 		return
 	}
 
