@@ -76,6 +76,8 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
+  if (!$dropdown.length) return;
+
   $dropdown.dropdown({
     fullTextSearch: 'exact',
     selectOnKeydown: false,
