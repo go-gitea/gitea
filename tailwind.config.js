@@ -31,6 +31,9 @@ export default {
     isProduction && '!./web_src/js/standalone/devtest.js',
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
+    '!**/*_test.go',
+    '!./modules/{public,options,templates}/bindata.go',
+    './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{js,vue}',
   ].filter(Boolean),
@@ -51,6 +54,17 @@ export default {
       inherit: 'inherit',
       current: 'currentcolor',
       transparent: 'transparent',
+    },
+    borderRadius: {
+      'none': '0',
+      'sm': '2px',
+      'DEFAULT': 'var(--border-radius)', // 4px
+      'md': 'var(--border-radius-medium)', // 6px
+      'lg': '8px',
+      'xl': '12px',
+      '2xl': '16px',
+      '3xl': '24px',
+      'full': 'var(--border-radius-circle)', // 50%
     },
   },
 };

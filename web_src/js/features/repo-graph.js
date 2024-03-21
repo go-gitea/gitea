@@ -63,10 +63,10 @@ export function initRepoGraphGit() {
     (async () => {
       const response = await GET(String(ajaxUrl));
       const html = await response.text();
-      const div = $(html);
-      $('#pagination').html(div.find('#pagination').html());
-      $('#rel-container').html(div.find('#rel-container').html());
-      $('#rev-container').html(div.find('#rev-container').html());
+      const $div = $(html);
+      $('#pagination').html($div.find('#pagination').html());
+      $('#rel-container').html($div.find('#rel-container').html());
+      $('#rev-container').html($div.find('#rev-container').html());
       $('#loading-indicator').addClass('gt-hidden');
       $('#rel-container').removeClass('gt-hidden');
       $('#rev-container').removeClass('gt-hidden');

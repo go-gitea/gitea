@@ -62,7 +62,6 @@ cpu.out
 /data
 /indexers
 /log
-/public/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -78,6 +77,7 @@ cpu.out
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
+/public/assets/img/avatar
 /public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules

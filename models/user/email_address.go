@@ -434,7 +434,7 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 		cond = cond.And(builder.Eq{"email_address.is_activated": opts.IsActivated.Value()})
 	}
 
-	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %w", err)
@@ -450,7 +450,7 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
 	err = db.GetEngine(ctx).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
-		Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).
 		OrderBy(orderby).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
@@ -539,17 +539,17 @@ func validateEmailBasic(email string) error {
 
 // validateEmailDomain checks whether the email domain is allowed or blocked
 func validateEmailDomain(email string) error {
-	// if there is no allow list, then check email against block list
-	if len(setting.Service.EmailDomainAllowList) == 0 &&
-		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is an allow list, then check email against allow list
-	if len(setting.Service.EmailDomainAllowList) > 0 &&
-		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+	if !IsEmailDomainAllowed(email) {
 		return ErrEmailInvalid{email}
 	}
 
 	return nil
+}
+
+func IsEmailDomainAllowed(email string) bool {
+	if len(setting.Service.EmailDomainAllowList) == 0 {
+		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email)
+	}
+
+	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
 }

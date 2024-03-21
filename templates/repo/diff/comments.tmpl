@@ -37,7 +37,7 @@
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
-				{{if and .Review}}
+				{{if .Review}}
 					{{if eq .Review.Type 0}}
 						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.pending.tooltip" (ctx.Locale.Tr "repo.diff.review") (ctx.Locale.Tr "repo.diff.review.approve") (ctx.Locale.Tr "repo.diff.review.comment") (ctx.Locale.Tr "repo.diff.review.reject")}}">
 						{{ctx.Locale.Tr "repo.issues.review.pending"}}
