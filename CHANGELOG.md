@@ -33,6 +33,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix double border and border-radius on empty action steps (#29845) (#29850)
   * Use `Temporal.PlainDate` for absolute dates (#29804) (#29808)
   * Fix incorrect package link method calls in templates (#29580) (#29764)
+  * Fix the bug that user may logout if GetUserByID return unknow error (#29962) #29964
 
 ## [1.21.8](https://github.com/go-gitea/gitea/releases/tag/1.21.8) - 2024-03-12
 
