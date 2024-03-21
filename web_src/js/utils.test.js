@@ -1,6 +1,6 @@
 import {
   basename, extname, isObject, stripTags, parseIssueHref, parseUrl, translateMonth, translateDay,
-  blobToDataURI, toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, createExternalLink,
+  blobToDataURI, toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
 
 test('basename', () => {
@@ -110,11 +110,4 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(Array.from(decodeURLEncodedBase64('YQ'))).toEqual(Array.from(uint8array('a')));
   expect(Array.from(decodeURLEncodedBase64('YQ=='))).toEqual(Array.from(uint8array('a')));
-});
-
-test('createExternalLink', () => {
-  const link = createExternalLink({href: 'https://example.com', textContent: 'example'});
-  expect(link.tagName).toEqual('A');
-  expect(link.href).toEqual('https://example.com/');
-  expect(link.textContent).toEqual('example');
 });

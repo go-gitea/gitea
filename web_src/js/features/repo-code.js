@@ -3,8 +3,7 @@ import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
 import {clippie} from 'clippie';
-import {toAbsoluteUrl, createExternalLink} from '../utils.js';
-import {getFileViewContent, getFileViewFileName} from '../utils/misc.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
@@ -121,48 +120,6 @@ function showLineButton() {
   });
 }
 
-function postProcessPackageJson() {
-  let data;
-  try {
-    data = JSON.parse(getFileViewContent());
-  } catch {
-    return;
-  }
-
-  const packages = new Set();
-  for (const key of [
-    'dependencies',
-    'devDependencies',
-    'optionalDependencies',
-    'peerDependencies',
-  ]) {
-    for (const packageName of Object.keys(data?.[key] || {})) {
-      packages.add(packageName);
-    }
-  }
-
-  // match chroma NameTag token to detect JSON object keys
-  for (const el of document.querySelectorAll('.code-inner .nt')) {
-    const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
-    if (packages.has(jsonKey)) {
-      const link = createExternalLink({
-        className: 'suppressed',
-        textContent: jsonKey,
-        href: `https://www.npmjs.com/package/${jsonKey}`,
-      });
-      el.textContent = '';
-      el.append('"', link, '"');
-    }
-  }
-}
-
-function postProcessFile() {
-  const fileName = getFileViewFileName();
-  if (fileName === 'package.json') {
-    postProcessPackageJson();
-  }
-}
-
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -232,5 +189,4 @@ export function initRepoCodeView() {
   $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
     await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
   });
-  postProcessFile();
 }

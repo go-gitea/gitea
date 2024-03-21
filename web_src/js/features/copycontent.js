@@ -1,7 +1,7 @@
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {convertImage} from '../utils.js';
-import {getFileViewContent} from '../utils/misc.js';
+import {getFileViewFileText} from '../utils/misc.js';
 import {GET} from '../modules/fetch.js';
 
 const {i18n} = window.config;
@@ -37,7 +37,7 @@ export function initCopyContent() {
         btn.classList.remove('is-loading', 'small-loading-icon');
       }
     } else { // text, read from DOM
-      content = getFileViewContent();
+      content = getFileViewFileText();
     }
 
     // try copy original first, if that fails and it's an image, convert it to png
