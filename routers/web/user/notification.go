@@ -144,6 +144,12 @@ func getNotifications(ctx *context.Context) {
 		ctx.ServerError("LoadIssues", err)
 		return
 	}
+
+	if err = notifications.LoadIssuePullRequests(ctx); err != nil {
+		ctx.ServerError("LoadIssuePullRequests", err)
+		return
+	}
+
 	notifications = notifications.Without(failures)
 	failCount += len(failures)
 
@@ -344,8 +350,8 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
 	}
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", state)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplNotificationSubscriptions)

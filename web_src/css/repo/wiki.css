@@ -58,7 +58,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
+  .repository.wiki .clone-panel #repo-clone-url {
     width: 160px;
   }
   .repository.wiki .wiki-content-main.with-sidebar,

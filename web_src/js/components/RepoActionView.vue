@@ -5,7 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST, DELETE} from '../modules/fetch.js';
+import {GET, POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -196,7 +196,7 @@ const sfc = {
     },
 
     async fetchArtifacts() {
-      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
       return await resp.json();
     },
 
@@ -457,7 +457,7 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps">
+        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -524,7 +524,7 @@ export function initRepositoryActionView() {
   width: 30%;
   max-width: 400px;
   position: sticky;
-  top: 0;
+  top: 12px;
   max-height: 100vh;
   overflow-y: auto;
 }
@@ -686,9 +686,13 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-radius: var(--border-radius);
   height: 60px;
   z-index: 1;
+}
+
+.job-info-header:has(+ .job-step-container) {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .job-info-header .job-info-header-title {

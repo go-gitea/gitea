@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.vagrant.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>vagrant box add --box-version {{.PackageDescriptor.Version.Version}} "<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/vagrant/{{.PackageDescriptor.Package.Name}}"></gitea-origin-url>"</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>vagrant box add --box-version {{.PackageDescriptor.Version.Version}} "<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/vagrant/{{.PackageDescriptor.Package.Name}}"></origin-url>"</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Vagrant" "https://docs.gitea.com/usage/packages/vagrant/"}}</label>

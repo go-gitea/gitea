@@ -32,6 +32,8 @@ type ResultLine struct {
 
 type SearchResultLanguages = internal.SearchResultLanguages
 
+type SearchOptions = internal.SearchOptions
+
 func indices(content string, selectionStartIndex, selectionEndIndex int) (int, int) {
 	startIndex := selectionStartIndex
 	numLinesBefore := 0
@@ -125,12 +127,12 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 
 // PerformSearch perform a search on a repository
 // if isFuzzy is true set the Damerau-Levenshtein distance from 0 to 2
-func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int, []*Result, []*internal.SearchResultLanguages, error) {
-	if len(keyword) == 0 {
+func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []*SearchResultLanguages, error) {
+	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isFuzzy)
+	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, opts)
 	if err != nil {
 		return 0, nil, nil, err
 	}
