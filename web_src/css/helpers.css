@@ -207,7 +207,7 @@ only use:
   }
 }
 @media (min-width: 767.98px) {
-  .mobile-only.mobile-only {
+  .only-mobile.only-mobile {
     display: none !important;
   }
 }
