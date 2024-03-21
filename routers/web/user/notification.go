@@ -144,6 +144,12 @@ func getNotifications(ctx *context.Context) {
 		ctx.ServerError("LoadIssues", err)
 		return
 	}
+
+	if err = notifications.LoadIssuePullRequests(ctx); err != nil {
+		ctx.ServerError("LoadIssuePullRequests", err)
+		return
+	}
+
 	notifications = notifications.Without(failures)
 	failCount += len(failures)
 

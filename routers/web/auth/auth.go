@@ -133,7 +133,7 @@ func RedirectAfterLogin(ctx *context.Context) {
 	if setting.LandingPageURL == setting.LandingPageLogin {
 		nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
 	}
-	ctx.RedirectToFirst(redirectTo, nextRedirectTo)
+	ctx.RedirectToCurrentSite(redirectTo, nextRedirectTo)
 }
 
 func CheckAutoLogin(ctx *context.Context) bool {
@@ -371,7 +371,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
-			ctx.RedirectToFirst(redirectTo)
+			ctx.RedirectToCurrentSite(redirectTo)
 		}
 		return redirectTo
 	}
@@ -808,7 +808,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 
