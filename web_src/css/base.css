@@ -1252,13 +1252,6 @@ strong.attention-caution, svg.attention-caution {
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
-}
-
 overflow-menu {
   margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
