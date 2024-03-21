@@ -7,6 +7,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	notify_service "code.gitea.io/gitea/services/notify"
+
 	"github.com/olahol/melody"
 )
 
