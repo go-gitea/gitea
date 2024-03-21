@@ -49,8 +49,8 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
-									{{ctx.Locale.Tr "admin.notices.delete_selected"}}
+								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
+									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>
 						</tr>

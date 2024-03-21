@@ -49,7 +49,7 @@ export function initAdminCommon() {
   }
 
   function onUsePagedSearchChange() {
-    if ($('#use_paged_search').prop('checked')) {
+    if (document.getElementById('use_paged_search').checked) {
       showElem('.search-page-size');
       $('.search-page-size').find('input').attr('required', 'required');
     } else {
@@ -208,7 +208,7 @@ export function initAdminCommon() {
     $('#delete-selection').on('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
-      $this.addClass('loading disabled');
+      $this.addClass('is-loading disabled');
       const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {

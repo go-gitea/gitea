@@ -42,7 +42,7 @@
 			<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div id="search-user-box" class="ui search input gt-vm">
-					<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
+					<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autocomplete="off" autofocus required>
 				</div>
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
@@ -90,7 +90,7 @@
 				<form class="ui form" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
 					{{.CsrfTokenHtml}}
 					<div id="search-team-box" class="ui search input gt-vm" data-org-name="{{.OrgName}}">
-						<input class="prompt" name="team" placeholder="{{ctx.Locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
+						<input class="prompt" name="team" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autocomplete="off" autofocus required>
 					</div>
 					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_team"}}</button>
 				</form>

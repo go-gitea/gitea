@@ -67,140 +67,136 @@
 			</div>
 		{{end}}
 
-		{{if .Branches}}
-			<h4 class="ui top attached header gt-df gt-ac gt-sb">
-				<div class="gt-df gt-ac">
-					{{ctx.Locale.Tr "repo.branches"}}
-				</div>
-				<div class="tw-whitespace-nowrap">
-					<form class="ignore-dirty" method="get">
-						<div class="ui tiny search input">
-							<input name="q" placeholder="{{ctx.Locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
-						</div>
-						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
-					</form>
-				</div>
-			</h4>
-
-			<div class="ui attached table segment">
-				<table class="ui very basic striped fixed table single line">
-					<tbody>
-						{{range .Branches}}
-							<tr>
-								<td class="eight wide">
-								{{if .DBBranch.IsDeleted}}
-									<div class="flex-text-block">
-										<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
-										<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
-									</div>
-									<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{TimeSinceUnix .DBBranch.DeletedUnix ctx.Locale}}</p>
-								{{else}}
-									<div class="flex-text-block">
-										{{if .IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
-										<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
-										<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
-										{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
-									</div>
-									<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage ($.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
-								{{end}}
-								</td>
-								<td class="two wide ui">
-									{{if and (not .DBBranch.IsDeleted) $.DefaultBranchBranch}}
-									<div class="commit-divergence">
-										<div class="bar-group">
-											<div class="count count-behind">{{.CommitsBehind}}</div>
-											{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
-											<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
-										</div>
-										<div class="bar-group">
-											<div class="count count-ahead">{{.CommitsAhead}}</div>
-											<div class="bar bar-ahead" style="width: {{Eval 100 "*" .CommitsAhead "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
-										</div>
-									</div>
-									{{end}}
-								</td>
-								<td class="two wide right aligned">
-									{{if not .LatestPullRequest}}
-										{{if .IsIncluded}}
-											<span class="ui orange large label" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.included_desc"}}">
-												{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.branch.included"}}
-											</span>
-										{{else if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
-											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}</button>
-										</a>
-										{{end}}
-									{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
-										{{if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
-											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}</button>
-										</a>
-										{{end}}
-									{{else}}
-										<a href="{{.LatestPullRequest.Issue.Link}}" class="gt-vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
-										{{if .LatestPullRequest.HasMerged}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui purple large label">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.pulls.merged"}}</a>
-										{{else if .LatestPullRequest.Issue.IsClosed}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.issues.closed_title"}}</a>
-										{{else}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui green large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.issues.open_title"}}</a>
-										{{end}}
-									{{end}}
-								</td>
-								<td class="three wide right aligned overflow-visible">
-									{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
-										<button class="btn interact-bg gt-p-3 show-modal show-create-branch-modal"
-											data-branch-from="{{.DBBranch.Name}}"
-											data-branch-from-urlcomponent="{{PathEscapeSegments .DBBranch.Name}}"
-											data-tooltip-content="{{ctx.Locale.Tr "repo.branch.new_branch_from" .DBBranch.Name}}"
-											data-modal="#create-branch-modal" data-name="{{.DBBranch.Name}}"
-										>
-											{{svg "octicon-git-branch"}}
-										</button>
-									{{end}}
-									{{if $.EnableFeed}}
-										<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
-									{{end}}
-									{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
-										<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
-											{{svg "octicon-download"}}
-											<div class="menu">
-												<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-												<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
-											</div>
-										</div>
-									{{end}}
-									{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted) (not $.IsMirror)}}
-										<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
-											data-is-default-branch="false"
-											data-old-branch-name="{{.DBBranch.Name}}"
-											data-modal="#rename-branch-modal"
-											data-tooltip-content="{{ctx.Locale.Tr "repo.branch.rename" (.DBBranch.Name)}}"
-										>
-											{{svg "octicon-pencil"}}
-										</button>
-									{{end}}
-									{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
-										{{if .DBBranch.IsDeleted}}
-											<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
-												<span class="text blue">
-													{{svg "octicon-reply"}}
-												</span>
-											</button>
-										{{else}}
-											<button class="btn interact-bg gt-p-3 delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-name="{{.DBBranch.Name}}">
-												{{svg "octicon-trash"}}
-											</button>
-										{{end}}
-									{{end}}
-								</td>
-							</tr>
-						{{end}}
-					</tbody>
-				</table>
+		<h4 class="ui top attached header gt-df gt-ac gt-sb">
+			<div class="gt-df gt-ac">
+				{{ctx.Locale.Tr "repo.branches"}}
 			</div>
-			{{template "base/paginate" .}}
-		{{end}}
+		</h4>
+
+		<div class="ui attached segment">
+			<form class="ignore-dirty" method="get">
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.branch_kind")}}
+			</form>
+		</div>
+
+		<div class="ui attached table segment">
+			<table class="ui very basic striped fixed table single line">
+				<tbody>
+					{{range .Branches}}
+						<tr>
+							<td class="eight wide">
+							{{if .DBBranch.IsDeleted}}
+								<div class="flex-text-block">
+									<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
+									<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+								</div>
+								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{TimeSinceUnix .DBBranch.DeletedUnix ctx.Locale}}</p>
+							{{else}}
+								<div class="flex-text-block">
+									{{if .IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
+									<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
+									<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
+								</div>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage ($.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
+							{{end}}
+							</td>
+							<td class="two wide ui">
+								{{if and (not .DBBranch.IsDeleted) $.DefaultBranchBranch}}
+								<div class="commit-divergence">
+									<div class="bar-group">
+										<div class="count count-behind">{{.CommitsBehind}}</div>
+										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
+										<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
+									</div>
+									<div class="bar-group">
+										<div class="count count-ahead">{{.CommitsAhead}}</div>
+										<div class="bar bar-ahead" style="width: {{Eval 100 "*" .CommitsAhead "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
+									</div>
+								</div>
+								{{end}}
+							</td>
+							<td class="two wide right aligned">
+								{{if not .LatestPullRequest}}
+									{{if .IsIncluded}}
+										<span class="ui orange large label" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.included_desc"}}">
+											{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.branch.included"}}
+										</span>
+									{{else if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+									<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
+										<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}</button>
+									</a>
+									{{end}}
+								{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
+									{{if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+									<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
+										<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}</button>
+									</a>
+									{{end}}
+								{{else}}
+									<a href="{{.LatestPullRequest.Issue.Link}}" class="gt-vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+									{{if .LatestPullRequest.HasMerged}}
+										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui purple large label">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.pulls.merged"}}</a>
+									{{else if .LatestPullRequest.Issue.IsClosed}}
+										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.issues.closed_title"}}</a>
+									{{else}}
+										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui green large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.issues.open_title"}}</a>
+									{{end}}
+								{{end}}
+							</td>
+							<td class="three wide right aligned overflow-visible">
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
+									<button class="btn interact-bg gt-p-3 show-modal show-create-branch-modal"
+										data-branch-from="{{.DBBranch.Name}}"
+										data-branch-from-urlcomponent="{{PathEscapeSegments .DBBranch.Name}}"
+										data-tooltip-content="{{ctx.Locale.Tr "repo.branch.new_branch_from" .DBBranch.Name}}"
+										data-modal="#create-branch-modal" data-name="{{.DBBranch.Name}}"
+									>
+										{{svg "octicon-git-branch"}}
+									</button>
+								{{end}}
+								{{if $.EnableFeed}}
+									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
+								{{end}}
+								{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
+									<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
+										{{svg "octicon-download"}}
+										<div class="menu">
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+										</div>
+									</div>
+								{{end}}
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted) (not $.IsMirror)}}
+									<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
+										data-is-default-branch="false"
+										data-old-branch-name="{{.DBBranch.Name}}"
+										data-modal="#rename-branch-modal"
+										data-tooltip-content="{{ctx.Locale.Tr "repo.branch.rename" (.DBBranch.Name)}}"
+									>
+										{{svg "octicon-pencil"}}
+									</button>
+								{{end}}
+								{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
+									{{if .DBBranch.IsDeleted}}
+										<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
+											<span class="text blue">
+												{{svg "octicon-reply"}}
+											</span>
+										</button>
+									{{else}}
+										<button class="btn interact-bg gt-p-3 delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-name="{{.DBBranch.Name}}">
+											{{svg "octicon-trash"}}
+										</button>
+									{{end}}
+								{{end}}
+							</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		{{template "base/paginate" .}}
 	</div>
 </div>
 
