@@ -60,6 +60,7 @@ RUN groupadd -r -g 1000 git && useradd -r -u 1000 -g git git
 
 RUN mkdir -p /var/lib/gitea/custom /etc/gitea /tmp/gitea
 RUN chown git:git /var/lib/gitea/custom /etc/gitea /tmp/gitea /var/lib/gitea
+RUN echo "umask 027" >> /etc/profile
 
 COPY --from=build-env /tmp/local /
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
