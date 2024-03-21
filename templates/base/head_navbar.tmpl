@@ -11,7 +11,7 @@
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu item navbar-mobile-right">
+		<div class="ui secondary menu item navbar-mobile-right mobile-only">
 			{{if .IsSigned}}
 			<a id="mobile-notifications-icon" class="item tw-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="tw-relative">
