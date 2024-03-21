@@ -44,8 +44,8 @@ func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
-// RedirectToFirst redirects to first not empty URL
-func (ctx *Context) RedirectToFirst(location ...string) {
+// RedirectToCurrentSite redirects to first not empty URL which belongs to current site
+func (ctx *Context) RedirectToCurrentSite(location ...string) {
 	for _, loc := range location {
 		if len(loc) == 0 {
 			continue
