@@ -68,7 +68,7 @@
 				binaryFileMessage: "{{ctx.Locale.Tr "repo.diff.bin"}}",
 				showMoreMessage: "{{ctx.Locale.Tr "repo.diff.show_more"}}",
 				statisticsMessage: "{{ctx.Locale.Tr "repo.diff.stats_desc_file"}}",
-				linkLoadMore: "{{$.Link}}?skip-to={{.Diff.End}}&file-only=true",
+				linkLoadMore: "?skip-to={{.Diff.End}}&file-only=true",
 			};
 
 			// for first time loading, the diffFileInfo is a plain object
@@ -184,7 +184,7 @@
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 											{{else}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button diff-load-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												<a class="ui basic tiny button diff-load-button" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
@@ -220,7 +220,7 @@
 					<div class="diff-file-box diff-box file-content gt-mt-3" id="diff-incomplete">
 						<h4 class="ui top attached normal header gt-df gt-ac gt-sb">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
 					</div>
 				{{end}}

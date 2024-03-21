@@ -35,7 +35,7 @@ export function initCompWebHookEditor() {
 
   // Test delivery
   document.getElementById('test-delivery')?.addEventListener('click', async function () {
-    this.classList.add('loading', 'disabled');
+    this.classList.add('is-loading', 'disabled');
     await POST(this.getAttribute('data-link'));
     setTimeout(() => {
       window.location.href = this.getAttribute('data-redirect');
