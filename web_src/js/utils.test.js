@@ -1,6 +1,7 @@
 import {
-  basename, extname, isObject, stripTags, parseIssueHref, parseUrl, translateMonth, translateDay,
-  blobToDataURI, toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
+  basename, extname, isObject, stripTags, parseIssueHref,
+  parseUrl, translateMonth, translateDay, blobToDataURI,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
 
 test('basename', () => {
