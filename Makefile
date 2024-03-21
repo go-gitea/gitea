@@ -673,22 +673,22 @@ integration-test-coverage: integrations.cover.test generate-ini-mysql
 integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.cover.sqlite.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: git-check $(GO_SOURCES)
+integrations.mysql.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mysql.test
 
-integrations.pgsql.test: git-check $(GO_SOURCES)
+integrations.pgsql.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.pgsql.test
 
-integrations.mssql.test: git-check $(GO_SOURCES)
+integrations.mssql.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mssql.test
 
-integrations.sqlite.test: git-check $(GO_SOURCES)
+integrations.sqlite.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
-integrations.cover.test: git-check $(GO_SOURCES)
+integrations.cover.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
-integrations.cover.sqlite.test: git-check $(GO_SOURCES)
+integrations.cover.sqlite.test: git-check backend $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: migrations.mysql.test
