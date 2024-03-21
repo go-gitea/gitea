@@ -7,13 +7,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.21.9](https://github.com/go-gitea/gitea/releases/tag/1.21.9) - 2024-03-21
 
 * PERFORMANCE
+  * Only do counting when count_only=true for repo dashboard (#29884) (#29905)
   * Add cache for dashbaord commit status (#29932)
 * ENHANCEMENT
   * Make runs-on support variable expression (#29468) (#29782)
+  * Show Actions post step when it's running (#29926) (#29928)
 * BUGFIXES
   * Fix PR creation via api between branches of same repo with head field namespaced (#26986) (#29857)
   * Fix and rewrite markup anchor processing (#29931) (#29946)
-  * Show Actions post step when it's running (#29926) (#29928)
   * Notify reviewers added via CODEOWNERS (#29842) (#29902)
   * Fix template error when comment review doesn't exist (#29888) (#29889)
   * Fix user id column case (#29863) (#29867)
@@ -28,7 +29,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Solving the issue of UI disruption when the review is deleted without refreshing (#29951) (#29968)
   * Fix loadOneBranch panic (#29938) (#29939)
   * Fix invalid link of the commit status when ref is tag (#29752) (#29908)
-  * Only do counting when count_only=true for repo dashboard (#29884) (#29905)
   * Editor error message misleading due to re-used key. (#29859) (#29876)
   * Fix double border and border-radius on empty action steps (#29845) (#29850)
   * Use `Temporal.PlainDate` for absolute dates (#29804) (#29808)
