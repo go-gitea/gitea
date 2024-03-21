@@ -179,8 +179,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		// Actually, the status of a run cannot be 'Blocked' now, but it's included for future compatibility.
-		Status: []Status{StatusRunning, StatusWaiting, StatusBlocked},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
 		return err
