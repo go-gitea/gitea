@@ -465,7 +465,7 @@ export function initRepositoryActionView() {
               -->
               <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
               <SvgIcon v-else-if="jobStep.status !== 'skipped'" :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
-              <div v-else class="tw-w-4 tw-h-4 gt-mr-3"/>
+              <div v-else class="tw-w-[16px] tw-h-[16px] gt-mr-3"/>
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
