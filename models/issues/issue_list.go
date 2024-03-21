@@ -436,6 +436,7 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Where(cond).
+			NoAutoCondition().
 			Rows(new(Comment))
 		if err != nil {
 			return err

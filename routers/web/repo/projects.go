@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 const (
@@ -628,16 +629,16 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	var board *project_model.Board
+	var targetColumn *project_model.Board
 
 	if ctx.ParamsInt64(":boardID") == 0 {
-		board = &project_model.Board{
+		targetColumn = &project_model.Board{
 			ID:        0,
 			ProjectID: project.ID,
 			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
 		}
 	} else {
-		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+		targetColumn, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if project_model.IsErrProjectBoardNotExist(err) {
 				ctx.NotFound("ProjectBoardNotExist", nil)
@@ -646,7 +647,7 @@ func MoveIssues(ctx *context.Context) {
 			}
 			return
 		}
-		if board.ProjectID != project.ID {
+		if targetColumn.ProjectID != project.ID {
 			ctx.NotFound("BoardNotInProject", nil)
 			return
 		}
@@ -692,7 +693,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
+	if err = project_service.MoveIssuesOnProjectBoard(ctx, ctx.Doer, targetColumn, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
