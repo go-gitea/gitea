@@ -371,7 +371,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {

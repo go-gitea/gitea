@@ -7,32 +7,65 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsRiskyRedirectURL(t *testing.T) {
-	setting.AppURL = "http://localhost:3000/"
-	tests := []struct {
-		input string
-		want  bool
-	}{
-		{"", false},
-		{"foo", false},
-		{"/", false},
-		{"/foo?k=%20#abc", false},
+func TestIsRelativeURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	rel := []string{
+		"",
+		"foo",
+		"/",
+		"/foo?k=%20#abc",
+	}
+	for _, s := range rel {
+		assert.True(t, IsRelativeURL(s), "rel = %q", s)
+	}
+	abs := []string{
+		"//",
+		"\\\\",
+		"/\\",
+		"\\/",
+		"mailto:a@b.com",
+		"https://test.com",
+	}
+	for _, s := range abs {
+		assert.False(t, IsRelativeURL(s), "abs = %q", s)
+	}
+}
 
-		{"//", true},
-		{"\\\\", true},
-		{"/\\", true},
-		{"\\/", true},
-		{"mail:a@b.com", true},
-		{"https://test.com", true},
-		{setting.AppURL + "/foo", false},
+func TestIsCurrentGiteaSiteURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	good := []string{
+		"?key=val",
+		"/sub",
+		"/sub/",
+		"/sub/foo",
+		"/sub/foo/",
+		"http://localhost:3000/sub?key=val",
+		"http://localhost:3000/sub/",
 	}
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			assert.Equal(t, tt.want, IsRiskyRedirectURL(tt.input))
-		})
+	for _, s := range good {
+		assert.True(t, IsCurrentGiteaSiteURL(s), "good = %q", s)
 	}
+	bad := []string{
+		"/",
+		"//",
+		"\\\\",
+		"/foo",
+		"http://localhost:3000/sub/..",
+		"http://localhost:3000/other",
+		"http://other/",
+	}
+	for _, s := range bad {
+		assert.False(t, IsCurrentGiteaSiteURL(s), "bad = %q", s)
+	}
+
+	setting.AppURL = "http://localhost:3000/"
+	setting.AppSubURL = ""
+	assert.True(t, IsCurrentGiteaSiteURL("http://localhost:3000?key=val"))
 }
