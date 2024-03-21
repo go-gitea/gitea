@@ -32,9 +32,11 @@ func IsCurrentGiteaSiteURL(s string) bool {
 		return false
 	}
 	if u.Path != "" {
-		u.Path = "/" + util.PathJoinRelX(u.Path)
-		if !strings.HasSuffix(u.Path, "/") {
-			u.Path += "/"
+		cleanedPath := util.PathJoinRelX(u.Path)
+		if cleanedPath == "" || cleanedPath == "." {
+			u.Path = "/"
+		} else {
+			u.Path += "/" + cleanedPath + "/"
 		}
 	}
 	if urlIsRelative(s, u) {
