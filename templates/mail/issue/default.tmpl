@@ -62,7 +62,7 @@
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
-			{{$.locale.Tr "mail.issue.in_tree_path" .TreePath}}
+			{{ctx.Locale.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent}}</div>

@@ -34,7 +34,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	total := time.Duration(form.Hours)*time.Hour + time.Duration(form.Minutes)*time.Minute
+	total := util.TimeEstimateFromStr(form.TimeString)
 
 	if total <= 0 {
 		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
@@ -42,7 +42,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	if _, err := issues_model.AddTime(c, c.Doer, issue, int64(total.Seconds()), time.Now()); err != nil {
+	if _, err := issues_model.AddTime(c, c.Doer, issue, total, time.Now()); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}

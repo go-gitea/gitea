@@ -568,6 +568,8 @@ var migrations = []Migration{
 	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 	// v291 -> v292
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v282 -> v293
+	NewMigration("Add TimeEstimate to issue table", v1_22.AddTimeEstimateColumnToIssueTable),
 }
 
 // GetCurrentDBVersion returns the current db version

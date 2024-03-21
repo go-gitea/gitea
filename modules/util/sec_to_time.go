@@ -66,6 +66,43 @@ func SecToTime(durationVal any) string {
 	return strings.TrimRight(formattedTime, " ")
 }
 
+func SecToTimeExact(duration int64, withSeconds bool) string {
+	formattedTime := ""
+
+	// The following four variables are calculated by taking
+	// into account the previously calculated variables, this avoids
+	// pitfalls when using remainders. As that could lead to incorrect
+	// results when the calculated number equals the quotient number.
+	remainingDays := duration / (60 * 60 * 24)
+	years := remainingDays / 365
+	remainingDays -= years * 365
+	months := remainingDays * 12 / 365
+	remainingDays -= months * 365 / 12
+	weeks := remainingDays / 7
+	remainingDays -= weeks * 7
+	days := remainingDays
+
+	// The following three variables are calculated without depending
+	// on the previous calculated variables.
+	hours := (duration / 3600) % 24
+	minutes := (duration / 60) % 60
+	seconds := duration % 60
+
+	// Show exact time information
+	formattedTime = formatTime(years, "year", formattedTime)
+	formattedTime = formatTime(months, "month", formattedTime)
+	formattedTime = formatTime(weeks, "week", formattedTime)
+	formattedTime = formatTime(days, "day", formattedTime)
+	formattedTime = formatTime(hours, "hour", formattedTime)
+	formattedTime = formatTime(minutes, "minute", formattedTime)
+	if withSeconds {
+		formattedTime = formatTime(seconds, "second", formattedTime)
+	}
+
+	// The formatTime() function always appends a space at the end. This will be trimmed
+	return strings.TrimRight(formattedTime, " ")
+}
+
 // formatTime appends the given value to the existing forammattedTime. E.g:
 // formattedTime = "1 year"
 // input: value = 3, name = "month"
