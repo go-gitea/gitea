@@ -734,7 +734,6 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-hover-bg);
 }
 
-
 .job-step-container .job-step-summary .step-summary-msg {
   flex: 1;
 }
