@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func isRelativeURL(s string, u *url.URL) bool {
+func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
 	// Therefore we should ignore these redirect locations to prevent open redirects
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
@@ -23,7 +23,7 @@ func isRelativeURL(s string, u *url.URL) bool {
 // IsRelativeURL detects if a URL is relative (no scheme or host)
 func IsRelativeURL(s string) bool {
 	u, err := url.Parse(s)
-	return err == nil && isRelativeURL(s, u)
+	return err == nil && urlIsRelative(s, u)
 }
 
 func IsCurrentGiteaSiteURL(s string) bool {
