@@ -8,6 +8,7 @@
   flex-flow: row wrap;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 4px;
 }
 
 .repo-header .flex-item {
@@ -71,6 +72,7 @@
 }
 
 .repository .header-wrapper {
+  padding-top: 12px;
   background-color: var(--color-header-wrapper);
 }
 

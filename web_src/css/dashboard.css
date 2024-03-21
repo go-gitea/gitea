@@ -78,8 +78,8 @@
 }
 
 .dashboard .dashboard-navbar {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding: 1px 12px; /* match .overflow-menu-items in height */
+  background: var(--color-header-wrapper);
 }
 
 .dashboard .dashboard-navbar .org-visibility .label {
