@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,12 +25,11 @@ func Search(ctx *context.Context) {
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
-	queryType := ctx.FormTrim("t")
-	isFuzzy := queryType != "match"
+	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
 
 	if keyword == "" {
@@ -42,8 +42,16 @@ func Search(ctx *context.Context) {
 		page = 1
 	}
 
-	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
-		language, keyword, page, setting.UI.RepoSearchPagingNum, isFuzzy)
+	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
+		RepoIDs:        []int64{ctx.Repo.Repository.ID},
+		Keyword:        keyword,
+		IsKeywordFuzzy: isFuzzy,
+		Language:       language,
+		Paginator: &db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.RepoSearchPagingNum,
+		},
+	})
 	if err != nil {
 		if code_indexer.IsAvailable(ctx) {
 			ctx.ServerError("SearchResults", err)
@@ -54,13 +62,13 @@ func Search(ctx *context.Context) {
 		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 	}
 
-	ctx.Data["SourcePath"] = ctx.Repo.Repository.Link()
+	ctx.Data["Repo"] = ctx.Repo.Repository
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
+	pager.AddParamString("l", language)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)

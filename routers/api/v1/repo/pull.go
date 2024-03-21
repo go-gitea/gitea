@@ -1068,6 +1068,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			return nil, nil, nil, nil, "", ""
 		}
 		headBranch = headInfos[1]
+		// The head repository can also point to the same repo
+		isSameRepo = ctx.Repo.Owner.ID == headUser.ID
 
 	} else {
 		ctx.NotFound()

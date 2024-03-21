@@ -259,7 +259,6 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 
 	for typ := range cases {
 		cases[typ].gotBody = make(chan []byte, 1)
-		typ := typ // TODO: remove this workaround when Go >= 1.22
 		t.Run(typ, func(t *testing.T) {
 			t.Parallel()
 			hook := &webhook_model.Webhook{

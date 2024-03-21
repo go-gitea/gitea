@@ -37,7 +37,7 @@ gitea embedded list [--include-vendored] [patterns...]
 
 - 列出所有模板文件，无论在哪个虚拟目录下：`**.tmpl`
 - 列出所有邮件模板文件：`templates/mail/**.tmpl`
-- 列出 `public/img` 目录下的所有文件：`public/img/**`
+列出 `public/assets/img` 目录下的所有文件：`public/assets/img/**`
 
 不要忘记为模式使用引号，因为空格、`*` 和其他字符可能对命令行解释器有特殊含义。
 
@@ -49,8 +49,8 @@ gitea embedded list [--include-vendored] [patterns...]
 
 ```sh
 $ gitea embedded list '**openid**'
-public/img/auth/openid_connect.svg
-public/img/openid-16x16.png
+public/assets/img/auth/openid_connect.svg
+public/assets/img/openid-16x16.png
 templates/user/auth/finalize_openid.tmpl
 templates/user/auth/signin_openid.tmpl
 templates/user/auth/signup_openid_connect.tmpl

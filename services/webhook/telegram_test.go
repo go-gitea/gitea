@@ -18,6 +18,15 @@ import (
 
 func TestTelegramPayload(t *testing.T) {
 	tc := telegramConvertor{}
+
+	t.Run("Correct webhook params", func(t *testing.T) {
+		p := createTelegramPayload("testMsg ")
+
+		assert.Equal(t, "HTML", p.ParseMode)
+		assert.Equal(t, true, p.DisableWebPreview)
+		assert.Equal(t, "testMsg", p.Message)
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 

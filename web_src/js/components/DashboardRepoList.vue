@@ -235,7 +235,7 @@ const sfc = {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count');
+          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
         }
 
         response = await GET(searchedURL);
@@ -355,7 +355,7 @@ export default sfc; // activate the IDE's Vue plugin
         </a>
       </h4>
       <div class="ui attached segment repos-search">
-        <div class="ui fluid action left icon input" :class="{loading: isLoading}">
+        <div class="ui small fluid action left icon input" :class="{loading: isLoading}">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
@@ -384,30 +384,32 @@ export default sfc; // activate the IDE's Vue plugin
             </div>
           </div>
         </div>
-        <div class="ui secondary tiny pointing borderless menu center grid repos-filter">
-          <a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
-            {{ textAll }}
-            <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
-            {{ textSources }}
-            <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
-            {{ textForks }}
-            <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
-            {{ textMirrors }}
-            <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-          <a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
-            {{ textCollaborative }}
-            <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
-          </a>
-        </div>
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
+          <div class="overflow-menu-items tw-justify-center">
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
+              {{ textAll }}
+              <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
+              {{ textSources }}
+              <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
+              {{ textForks }}
+              <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
+              {{ textMirrors }}
+              <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+            <a class="item" tabindex="0" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
+              {{ textCollaborative }}
+              <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+            </a>
+          </div>
+        </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -423,8 +425,9 @@ export default sfc; // activate the IDE's Vue plugin
             </a>
           </li>
         </ul>
-        <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
-          <div class="ui borderless pagination menu narrow">
+        <div v-if="showMoreReposLink" class="tw-text-center">
+          <div class="divider gt-my-0"/>
+          <div class="ui borderless pagination menu narrow gt-my-3">
             <a
               class="item navigation gt-py-2" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
@@ -467,7 +470,7 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
+      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
@@ -505,6 +508,22 @@ ul li {
 
 ul li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.repos-search {
+  padding-bottom: 0 !important;
+}
+
+.repos-filter {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
+}
+
+.repos-filter .item {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
 }
 
 .repo-list-link {
