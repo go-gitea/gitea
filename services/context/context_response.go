@@ -51,7 +51,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 			continue
 		}
 
-		if httplib.IsRiskyRedirectURL(loc) {
+		if !httplib.IsCurrentGiteaSiteURL(loc) {
 			continue
 		}
 
