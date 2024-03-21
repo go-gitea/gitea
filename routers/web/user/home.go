@@ -529,17 +529,14 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
-	var labelIDs []int64
 	selectedLabels := ctx.FormString("labels")
 	if len(selectedLabels) > 0 && selectedLabels != "0" {
 		var err error
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
+		opts.LabelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
-			ctx.ServerError("StringsToInt64s", err)
-			return
+			ctx.Flash.Error(ctx.Tr("invalid_data", selectedLabels), true)
 		}
 	}
-	opts.LabelIDs = labelIDs
 
 	// ------------------------------
 	// Get issues as defined by opts.

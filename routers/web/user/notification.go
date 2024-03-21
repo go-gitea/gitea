@@ -268,8 +268,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		var err error
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
-			ctx.ServerError("StringsToInt64s", err)
-			return
+			ctx.Flash.Error(ctx.Tr("invalid_data", selectedLabels), true)
 		}
 	}
 
