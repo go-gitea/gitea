@@ -24,8 +24,10 @@ func AddDefaultProjectColumn(x *xorm.Engine) error {
 		})
 	}
 
-	if _, err := x.Insert(boards); err != nil {
-		return err
+	if len(boards) > 0 {
+		if _, err := x.Insert(boards); err != nil {
+			return err
+		}
 	}
 
 	return nil
