@@ -317,7 +317,7 @@ func handleWorkflows(
 			continue
 		}
 
-		// cancel running jobs if the event is push or
+		// cancel running jobs if the event is push or pull_request_sync
 		if run.Event == webhook_module.HookEventPush ||
 			run.Event == webhook_module.HookEventPullRequestSync {
 			if err := actions_model.CancelPreviousJobs(
