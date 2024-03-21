@@ -37,7 +37,7 @@ func IsCurrentGiteaSiteURL(s string) bool {
 			u.Path += "/"
 		}
 	}
-	if isRelativeURL(s, u) {
+	if urlIsRelative(s, u) {
 		return u.Path == "" || strings.HasPrefix(strings.ToLower(u.Path), strings.ToLower(setting.AppSubURL+"/"))
 	}
 	if u.Path == "" {
