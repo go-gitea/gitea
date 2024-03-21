@@ -459,7 +459,7 @@ export function initRepositoryActionView() {
         </div>
         <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="jobStep.status !== 'skipped' && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', jobStep.status ? `step-status-${jobStep.status}` : '']">
+            <div class="job-step-summary" @click.stop="jobStep.status !== 'skipped' && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', jobStep.status && `step-status-${jobStep.status}`]">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
