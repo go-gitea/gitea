@@ -162,7 +162,8 @@ export function initRepoIssueCommentDelete() {
         const response = await POST($this.data('url'));
         if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
-
+        const $parentTimelineItem = $this.closest('.timeline-item');
+        const $parentTimelineGroup = $this.closest('.timeline-item-group');
         // Check if this was a pending comment.
         if ($conversationHolder.find('.pending-label').length) {
           const $counter = $('#review-box .review-comments-counter');
@@ -184,6 +185,13 @@ export function initRepoIssueCommentDelete() {
             $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
           }
           $conversationHolder.remove();
+        }
+        // Check if there is no review content, move the avatar upward to avoid blocking the content below.
+        if (!$parentTimelineItem.find('.conversation-holder').length) {
+          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar').eq(0);
+          if ($timelineAvatar.hasClass('timeline-avatar-offset')) {
+            $timelineAvatar.removeClass('timeline-avatar-offset');
+          }
         }
       } catch (error) {
         console.error(error);
