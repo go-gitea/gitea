@@ -240,18 +240,12 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	}
 
 	apiPrs := make([]*api.PullRequest, len(issues))
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPullRequests", err)
+		return
+	}
 	for i, currentIssue := range issues {
-		pr, err := currentIssue.GetPullRequest(ctx)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
-			return
-		}
-
-		if err = pr.LoadIssue(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-			return
-		}
-
+		pr := currentIssue.PullRequest
 		if err = pr.LoadAttributes(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return

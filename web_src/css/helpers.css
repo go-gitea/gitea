@@ -199,3 +199,15 @@ only use:
 * showElem/hideElem/toggleElem functions in "utils/dom.js"
 */
 .gt-hidden.gt-hidden { display: none !important; }
+
+@media (max-width: 767.98px) {
+  /* double selector so it wins over .tw-flex (old .gt-df) etc */
+  .not-mobile.not-mobile {
+    display: none !important;
+  }
+}
+@media (min-width: 767.98px) {
+  .only-mobile.only-mobile {
+    display: none !important;
+  }
+}

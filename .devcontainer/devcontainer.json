@@ -4,7 +4,7 @@
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
-      "version":"20"
+      "version": "20"
     },
     "ghcr.io/devcontainers/features/git-lfs:1.1.0": {},
     "ghcr.io/devcontainers-contrib/features/poetry:2": {},
@@ -24,7 +24,7 @@
         "DavidAnson.vscode-markdownlint",
         "Vue.volar",
         "ms-azuretools.vscode-docker",
-        "zixuanchen.vitest-explorer",
+        "vitest.explorer",
         "qwtel.sqlite-viewer",
         "GitHub.vscode-pull-request-github"
       ]

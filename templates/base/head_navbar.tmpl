@@ -11,7 +11,7 @@
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu item navbar-mobile-right">
+		<div class="ui secondary menu item navbar-mobile-right only-mobile">
 			{{if .IsSigned}}
 			<a id="mobile-notifications-icon" class="item tw-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="tw-relative">
@@ -58,7 +58,7 @@
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
-					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
+					<span class="only-mobile gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
@@ -80,7 +80,7 @@
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
 				</div>
-				<span class="mobile-only gt-ml-3">{{ctx.Locale.Tr "active_stopwatch"}}</span>
+				<span class="only-mobile gt-ml-3">{{ctx.Locale.Tr "active_stopwatch"}}</span>
 			</a>
 			<div class="active-stopwatch-popup item tippy-target gt-p-3">
 				<div class="gt-df gt-ac">
@@ -122,7 +122,7 @@
 				<span class="text">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
-					<span class="mobile-only">{{ctx.Locale.Tr "create_new"}}</span>
+					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
@@ -144,7 +144,7 @@
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
-					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
+					<span class="only-mobile gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
