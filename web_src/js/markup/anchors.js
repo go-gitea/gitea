@@ -63,7 +63,7 @@ export function initMarkupAnchors() {
     }
   }
 
-  // scroll to anchor unless browser has already scrolled somewhere during page load
+  // scroll to anchor unless the browser has already scrolled somewhere during page load
   if (!document.querySelector(':target')) {
     scrollToAnchor(window.location.hash?.substring(1));
   }
