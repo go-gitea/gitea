@@ -11,7 +11,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -23,7 +22,7 @@ type PullRequestsOptions struct {
 	db.ListOptions
 	State       string
 	SortType    string
-	Labels      []string
+	Labels      []int64
 	MilestoneID int64
 }
 
@@ -36,11 +35,9 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 		sess.And("issue.is_closed=?", opts.State == "closed")
 	}
 
-	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
-		return nil, err
-	} else if len(labelIDs) > 0 {
+	if len(opts.Labels) > 0 {
 		sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-			In("issue_label.label_id", labelIDs)
+			In("issue_label.label_id", opts.Labels)
 	}
 
 	if opts.MilestoneID > 0 {
@@ -211,4 +208,13 @@ func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bo
 		Select("issue.id").
 		Limit(1).
 		Get(new(Issue))
+}
+
+// GetPullRequestByIssueIDs returns all pull requests by issue ids
+func GetPullRequestByIssueIDs(ctx context.Context, issueIDs []int64) (PullRequestList, error) {
+	prs := make([]*PullRequest, 0, len(issueIDs))
+	return prs, db.GetEngine(ctx).
+		Where("issue_id > 0").
+		In("issue_id", issueIDs).
+		Find(&prs)
 }

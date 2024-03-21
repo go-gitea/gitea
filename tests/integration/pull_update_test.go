@@ -177,8 +177,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
-	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
 
-	return pr
+	return issue.PullRequest
 }

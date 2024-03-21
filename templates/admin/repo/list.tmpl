@@ -19,13 +19,13 @@
 							{{ctx.Locale.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{ctx.Locale.Tr "admin.repos.watches"}}</th>
+						<th>{{ctx.Locale.Tr "repo.watchers"}}</th>
 						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-							{{ctx.Locale.Tr "admin.repos.stars"}}
+							{{ctx.Locale.Tr "repo.stars"}}
 							{{SortArrow "moststars" "feweststars" $.SortType false}}
 						</th>
 						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-							{{ctx.Locale.Tr "admin.repos.forks"}}
+							{{ctx.Locale.Tr "repo.forks"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
 						<th>{{ctx.Locale.Tr "admin.repos.issues"}}</th>

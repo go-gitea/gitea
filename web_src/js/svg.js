@@ -205,7 +205,7 @@ export const SvgIcon = {
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
     const classes = [];
-    for (const cls of svgOuter.classList) {
+    for (const cls of svgOuter.classList.values()) {
       classes.push(cls);
     }
     // TODO: drop the `className/class-name` prop in the future, only use "class" prop

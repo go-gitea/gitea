@@ -138,12 +138,13 @@ func TestStringsToInt64s(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result)
 	}
+	testSuccess(nil, nil)
 	testSuccess([]string{}, []int64{})
 	testSuccess([]string{"-1234"}, []int64{-1234})
-	testSuccess([]string{"1", "4", "16", "64", "256"},
-		[]int64{1, 4, 16, 64, 256})
+	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
-	_, err := StringsToInt64s([]string{"-1", "a", "$"})
+	ints, err := StringsToInt64s([]string{"-1", "a"})
+	assert.Len(t, ints, 0)
 	assert.Error(t, err)
 }
 
