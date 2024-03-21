@@ -1,1 +1,27 @@
-[] # empty
+-
+  id: 1
+  repo_id: 1
+  branch_name: branch2 # master will be conflicted with TestRenameBranch test
+  can_push: true
+  enable_whitelist: false
+  whitelist_user_i_ds: '[]'
+  whitelist_team_i_ds: '[]'
+  enable_merge_whitelist: false
+  whitelist_deploy_keys: false
+  merge_whitelist_user_i_ds: '[]'
+  merge_whitelist_team_i_ds: '[]'
+  enable_status_check: false
+  status_check_contexts: '[]'
+  enable_approvals_whitelist: false
+  approvals_whitelist_user_i_ds: '[]'
+  approvals_whitelist_team_i_ds: '[]'
+  required_approvals: 0
+  block_on_rejected_reviews: false
+  block_on_official_review_requests: false
+  block_on_outdated_branch: false
+  dismiss_stale_approvals: false
+  require_signed_commits: false
+  protected_file_patterns: 'disallow_push'
+  unprotected_file_patterns: 'allow_push'
+  created_unix: 1688973030
+  updated_unix: 1688973030
