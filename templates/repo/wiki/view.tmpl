@@ -66,12 +66,12 @@
 
 		<div class="wiki-content-parts">
 			{{if .sidebarTocContent}}
-			<div class="markup wiki-content-sidebar wiki-content-toc tw-rounded">
+			<div class="markup wiki-content-sidebar wiki-content-toc">
 				{{.sidebarTocContent | SafeHTML}}
 			</div>
 			{{end}}
 
-			<div class="markup wiki-content-main tw-rounded {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
+			<div class="markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | SafeHTML}}
 			</div>
