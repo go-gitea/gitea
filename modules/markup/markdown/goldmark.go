@@ -216,7 +216,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			attentionType := strings.ToLower(strings.TrimPrefix(string(secondTextNode.Segment.Value(reader.Source())), "!"))
 
 			// color the blockquote
-			v.SetAttributeString("class", []byte("gt-py-3 attention attention-"+attentionType))
+			v.SetAttributeString("class", []byte("attention-header attention-"+attentionType))
 
 			// create an emphasis to make it bold
 			attentionParagraph := ast.NewParagraph()
@@ -364,27 +364,21 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<span class="gt-mr-2 gt-vm attention-`)
 		n := node.(*Attention)
-		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
-		_, _ = w.WriteString(`">`)
-
-		var octiconType string
+		var octiconName string
 		switch n.AttentionType {
-		case "note":
-			octiconType = "info"
 		case "tip":
-			octiconType = "light-bulb"
+			octiconName = "light-bulb"
 		case "important":
-			octiconType = "report"
+			octiconName = "report"
 		case "warning":
-			octiconType = "alert"
+			octiconName = "alert"
 		case "caution":
-			octiconType = "stop"
+			octiconName = "stop"
+		default: // including "note"
+			octiconName = "info"
 		}
-		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
-	} else {
-		_, _ = w.WriteString("</span>\n")
+		_, _ = w.WriteString(string(svg.RenderHTML("octicon-"+octiconName, 16, "attention-icon attention-"+n.AttentionType)))
 	}
 	return ast.WalkContinue, nil
 }

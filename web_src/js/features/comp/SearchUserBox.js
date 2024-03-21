@@ -5,9 +5,12 @@ const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {
-  const $searchUserBox = $('#search-user-box');
-  const allowEmailInput = $searchUserBox.attr('data-allow-email') === 'true';
-  const allowEmailDescription = $searchUserBox.attr('data-allow-email-description');
+  const searchUserBox = document.getElementById('search-user-box');
+  if (!searchUserBox) return;
+
+  const $searchUserBox = $(searchUserBox);
+  const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
+  const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {

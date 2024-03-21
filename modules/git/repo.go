@@ -283,7 +283,7 @@ type DivergeObject struct {
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
 func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
 	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
-		AddDynamicArguments(baseBranch + "..." + targetBranch)
+		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return do, err

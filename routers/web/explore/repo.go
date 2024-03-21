@@ -169,8 +169,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "topic", "TopicOnly")
-	pager.AddParam(ctx, "language", "Language")
+	pager.AddParamString("topic", fmt.Sprint(topicOnly))
+	pager.AddParamString("language", language)
 	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
 	ctx.Data["Page"] = pager
 

@@ -515,6 +515,12 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	commitID, _ := git.NewIDFromString(opts.NewCommitID)
+	if commitID.IsZero() {
+		log.Trace("new commitID is empty")
+		return
+	}
+
 	ctx = withMethod(ctx, "PushCommits")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
@@ -547,9 +553,9 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
+		WithRef(refFullName.String()).
 		WithPayload(&api.CreatePayload{
-			Ref:     refFullName.ShortName(),
+			Ref:     refFullName.String(),
 			Sha:     refID,
 			RefType: refFullName.RefType(),
 			Repo:    apiRepo,
@@ -566,7 +572,7 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
 		WithPayload(&api.DeletePayload{
-			Ref:        refFullName.ShortName(),
+			Ref:        refFullName.String(),
 			RefType:    refFullName.RefType(),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
@@ -623,6 +629,10 @@ func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.Us
 }
 
 func (n *actionsNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if rel.IsTag {
+		// has sent same action in `PushCommits`, so skip it.
+		return
+	}
 	ctx = withMethod(ctx, "DeleteRelease")
 	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }

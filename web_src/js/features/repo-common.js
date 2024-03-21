@@ -34,7 +34,7 @@ async function getArchive($target, url, first) {
 export function initRepoArchiveLinks() {
   $('.archive-link').on('click', function (event) {
     event.preventDefault();
-    const url = $(this).attr('href');
+    const url = this.getAttribute('href');
     if (!url) return;
     getArchive($(event.target), url, true);
   });
@@ -76,14 +76,16 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
+  if (!$dropdown.length) return;
+
   $dropdown.dropdown({
     fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.attr('data-url')) {
-        window.location.href = $choice.attr('data-url');
+      if ($choice[0].getAttribute('data-url')) {
+        window.location.href = $choice[0].getAttribute('data-url');
       }
     },
-    message: {noResults: $dropdown.attr('data-no-results')},
+    message: {noResults: $dropdown[0].getAttribute('data-no-results')},
   });
 }
