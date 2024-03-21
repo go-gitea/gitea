@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -469,4 +470,32 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 		}
 	}
 	return failures, nil
+}
+
+// LoadIssuePullRequests loads all issues' pull requests if possible
+func (nl NotificationList) LoadIssuePullRequests(ctx context.Context) error {
+	issues := make(map[int64]*issues_model.Issue, len(nl))
+	for _, notification := range nl {
+		if notification.Issue != nil && notification.Issue.IsPull && notification.Issue.PullRequest == nil {
+			issues[notification.Issue.ID] = notification.Issue
+		}
+	}
+
+	if len(issues) == 0 {
+		return nil
+	}
+
+	pulls, err := issues_model.GetPullRequestByIssueIDs(ctx, util.KeysOfMap(issues))
+	if err != nil {
+		return err
+	}
+
+	for _, pull := range pulls {
+		if issue := issues[pull.IssueID]; issue != nil {
+			issue.PullRequest = pull
+			issue.PullRequest.Issue = issue
+		}
+	}
+
+	return nil
 }
