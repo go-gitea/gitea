@@ -7,6 +7,7 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -15,8 +16,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
@@ -25,10 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/auth/source/saml"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -38,12 +38,10 @@ import (
 )
 
 const (
-	// tplSignIn template for sign in page
-	tplSignIn base.TplName = "user/auth/signin"
-	// tplSignUp template path for sign up page
-	tplSignUp base.TplName = "user/auth/signup"
-	// TplActivate template path for activate user
-	TplActivate base.TplName = "user/auth/activate"
+	tplSignIn         base.TplName = "user/auth/signin"          // for sign in page
+	tplSignUp         base.TplName = "user/auth/signup"          // for sign up page
+	TplActivate       base.TplName = "user/auth/activate"        // for activate user
+	TplActivatePrompt base.TplName = "user/auth/activate_prompt" // for showing a message for user activation
 )
 
 // autoSignIn reads cookie and try to auto-login.
@@ -125,9 +123,21 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	return nil
 }
 
+func RedirectAfterLogin(ctx *context.Context) {
+	redirectTo := ctx.FormString("redirect_to")
+	if redirectTo == "" {
+		redirectTo = ctx.GetSiteCookie("redirect_to")
+	}
+	middleware.DeleteRedirectToCookie(ctx.Resp)
+	nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
+	if setting.LandingPageURL == setting.LandingPageLogin {
+		nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+	}
+	ctx.RedirectToCurrentSite(redirectTo, nextRedirectTo)
+}
+
 func CheckAutoLogin(ctx *context.Context) bool {
-	// Check auto-login
-	isSucceed, err := autoSignIn(ctx)
+	isSucceed, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
 		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
 			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
@@ -140,17 +150,10 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	} else {
-		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
-		if setting.LandingPageURL == setting.LandingPageLogin {
-			nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
-		}
-		ctx.RedirectToFirst(redirectTo, nextRedirectTo)
+		RedirectAfterLogin(ctx)
 		return true
 	}
 
@@ -165,20 +168,17 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	if ctx.IsSigned {
+		RedirectAfterLogin(ctx)
+		return
+	}
+
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-
-	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
-	}
-	ctx.Data["SAMLProviders"] = samlProviders
-
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
@@ -196,20 +196,12 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-
-	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
-	}
-	ctx.Data["SAMLProviders"] = samlProviders
-
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
@@ -376,10 +368,10 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
-			ctx.RedirectToFirst(redirectTo)
+			ctx.RedirectToCurrentSite(redirectTo)
 		}
 		return redirectTo
 	}
@@ -428,7 +420,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -457,7 +449,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -521,7 +513,7 @@ func SignUpPost(ctx *context.Context) {
 		Passwd: form.Password,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false, auth.NoType) {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
 		// error already handled
 		return
 	}
@@ -532,16 +524,16 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool, authType auth.Type) bool {
-	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink, authType) {
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
+	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
 		return false
 	}
-	return handleUserCreated(ctx, u, gothUser, authType)
+	return handleUserCreated(ctx, u, gothUser)
 }
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool, authType auth.Type) (ok bool) {
+func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
 	if err := user_model.CreateUser(ctx, u, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
@@ -558,10 +550,10 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 				}
 
 				// TODO: probably we should respect 'remember' user's choice...
-				linkAccount(ctx, user, *gothUser, true, authType)
+				linkAccount(ctx, user, *gothUser, true)
 				return false // user is already created here, all redirects are handled
 			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
-				showLinkingLogin(ctx, *gothUser, authType)
+				showLinkingLogin(ctx, *gothUser)
 				return false // user will be created only after linking login
 			}
 		}
@@ -607,7 +599,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 // handleUserCreated does additional steps after a new user is created.
 // It auto-sets admin for the only user, updates the optional external user and
 // sends a confirmation email if required.
-func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User, authType auth.Type) (ok bool) {
+func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
 	if user_model.CountUsers(ctx, nil) == 1 {
 		opts := &user_service.UpdateOptions{
@@ -623,79 +615,94 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := externalaccount.UpdateExternalUser(ctx, u, *gothUser, authType); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, *gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
 		}
 	}
 
-	// Send confirmation email
-	if !u.IsActive && u.ID > 1 {
-		if setting.Service.RegisterManualConfirm {
-			ctx.Data["ManualActivationOnly"] = true
-			ctx.HTML(http.StatusOK, TplActivate)
-			return false
-		}
+	// for active user or the first (admin) user, we don't need to send confirmation email
+	if u.IsActive || u.ID == 1 {
+		return true
+	}
 
-		mailer.SendActivateAccountMail(ctx.Locale, u)
-
-		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
-		ctx.HTML(http.StatusOK, TplActivate)
-
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
+	if setting.Service.RegisterManualConfirm {
+		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.manual_activation_only"))
 		return false
 	}
 
-	return true
+	sendActivateEmail(ctx, u)
+	return false
+}
+
+func renderActivationPromptMessage(ctx *context.Context, msg template.HTML) {
+	ctx.Data["ActivationPromptMessage"] = msg
+	ctx.HTML(http.StatusOK, TplActivatePrompt)
+}
+
+func sendActivateEmail(ctx *context.Context, u *user_model.User) {
+	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
+		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.resent_limit_prompt"))
+		return
+	}
+
+	if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
+		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.resent_limit_prompt"))
+		return
+	}
+
+	mailer.SendActivateAccountMail(ctx.Locale, u)
+
+	activeCodeLives := timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
+	msgHTML := ctx.Locale.Tr("auth.confirmation_mail_sent_prompt_ex", u.Email, activeCodeLives)
+	renderActivationPromptMessage(ctx, msgHTML)
+}
+
+func renderActivationVerifyPassword(ctx *context.Context, code string) {
+	ctx.Data["ActivationCode"] = code
+	ctx.Data["NeedVerifyLocalPassword"] = true
+	ctx.HTML(http.StatusOK, TplActivate)
+}
+
+func renderActivationChangeEmail(ctx *context.Context) {
+	ctx.HTML(http.StatusOK, TplActivate)
 }
 
 // Activate render activate user page
 func Activate(ctx *context.Context) {
 	code := ctx.FormString("code")
 
-	if len(code) == 0 {
-		ctx.Data["IsActivatePage"] = true
-		if ctx.Doer == nil || ctx.Doer.IsActive {
-			ctx.NotFound("invalid user", nil)
+	if code == "" {
+		if ctx.Doer == nil {
+			ctx.Redirect(setting.AppSubURL + "/user/login")
+			return
+		} else if ctx.Doer.IsActive {
+			ctx.Redirect(setting.AppSubURL + "/")
 			return
 		}
-		// Resend confirmation email.
-		if setting.Service.RegisterEmailConfirm {
-			if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
-				ctx.Data["ResendLimited"] = true
-			} else {
-				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
-				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
-				if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-					log.Error("Set cache(MailResendLimit) fail: %v", err)
-				}
-			}
-		} else {
-			ctx.Data["ServiceNotEnabled"] = true
+		if setting.MailService == nil || !setting.Service.RegisterEmailConfirm {
+			renderActivationPromptMessage(ctx, ctx.Tr("auth.disable_register_mail"))
+			return
 		}
-		ctx.HTML(http.StatusOK, TplActivate)
+
+		// Resend confirmation email. FIXME: ideally this should be in a POST request
+		sendActivateEmail(ctx, ctx.Doer)
 		return
 	}
 
+	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
 	user := user_model.VerifyUserActiveCode(ctx, code)
-	// if code is wrong
-	if user == nil {
-		ctx.Data["IsCodeInvalid"] = true
-		ctx.HTML(http.StatusOK, TplActivate)
+	if user == nil { // if code is wrong
+		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return
 	}
 
 	// if account is local account, verify password
 	if user.LoginSource == 0 {
-		ctx.Data["Code"] = code
-		ctx.Data["NeedsPassword"] = true
-		ctx.HTML(http.StatusOK, TplActivate)
+		renderActivationVerifyPassword(ctx, code)
 		return
 	}
 
@@ -705,31 +712,49 @@ func Activate(ctx *context.Context) {
 // ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
 	code := ctx.FormString("code")
-	if len(code) == 0 {
+	if ctx.Doer != nil && ctx.Doer.IsActive {
+		ctx.Redirect(setting.AppSubURL + "/user/activate") // it will redirect again to the correct page
+		return
+	}
+
+	if code == "" {
+		newEmail := strings.TrimSpace(ctx.FormString("change_email"))
+		if ctx.Doer != nil && newEmail != "" && !strings.EqualFold(ctx.Doer.Email, newEmail) {
+			if user_model.ValidateEmail(newEmail) != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("form.email_invalid"), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			err := user_model.ChangeInactivePrimaryEmail(ctx, ctx.Doer.ID, ctx.Doer.Email, newEmail)
+			if err != nil {
+				ctx.Flash.Error(ctx.Locale.Tr("admin.emails.not_updated", newEmail), true)
+				renderActivationChangeEmail(ctx)
+				return
+			}
+			ctx.Doer.Email = newEmail
+		}
+		// FIXME: at the moment, GET request handles the "send confirmation email" action. But the old code does this redirect and then send a confirmation email.
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
 	}
 
+	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
 	user := user_model.VerifyUserActiveCode(ctx, code)
-	// if code is wrong
-	if user == nil {
-		ctx.Data["IsCodeInvalid"] = true
-		ctx.HTML(http.StatusOK, TplActivate)
+	if user == nil { // if code is wrong
+		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return
 	}
 
 	// if account is local account, verify password
 	if user.LoginSource == 0 {
 		password := ctx.FormString("password")
-		if len(password) == 0 {
-			ctx.Data["Code"] = code
-			ctx.Data["NeedsPassword"] = true
-			ctx.HTML(http.StatusOK, TplActivate)
+		if password == "" {
+			renderActivationVerifyPassword(ctx, code)
 			return
 		}
 		if !user.ValidatePassword(password) {
-			ctx.Data["IsPasswordInvalid"] = true
-			ctx.HTML(http.StatusOK, TplActivate)
+			ctx.Flash.Error(ctx.Locale.Tr("auth.invalid_password"), true)
+			renderActivationVerifyPassword(ctx, code)
 			return
 		}
 	}
@@ -783,7 +808,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 

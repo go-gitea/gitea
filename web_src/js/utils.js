@@ -2,13 +2,14 @@ import {encode, decode} from 'uint8-to-base64';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
-  return path ? path.replace(/^.*\//, '') : '';
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
 // transform /path/to/file.ext to .ext
 export function extname(path = '') {
-  const [_, ext] = /.+(\.[^.]+)$/.exec(path) || [];
-  return ext || '';
+  const lastPointIndex = path.lastIndexOf('.');
+  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
 // test whether a variable is an object
@@ -140,12 +141,4 @@ export function serializeXml(node) {
   return xmlSerializer.serializeToString(node);
 }
 
-export function createExternalLink(props = {}) {
-  const a = document.createElement('a');
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer nofollow';
-  for (const [key, value] of Object.entries(props)) {
-    a[key] = value;
-  }
-  return a;
-}
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

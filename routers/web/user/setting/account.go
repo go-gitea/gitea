@@ -13,13 +13,15 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/db"
+	"code.gitea.io/gitea/services/auth/source/smtp"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/user"
@@ -92,9 +94,9 @@ func EmailPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	// Make emailaddress primary.
+	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeEmailPrimary(ctx, &user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.FormInt64("id")); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -242,11 +244,24 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		switch {
+		case user_model.IsErrUserNotExist(err):
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
+		case errors.Is(err, smtp.ErrUnsupportedLoginType):
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
+		case errors.As(err, &db.ErrUserPasswordNotSet{}):
+			loadAccountData(ctx)
+
+			ctx.RenderWithErr(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
+		case errors.As(err, &db.ErrUserPasswordInvalid{}):
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
-		} else {
+		default:
 			ctx.ServerError("UserSignIn", err)
 		}
 		return

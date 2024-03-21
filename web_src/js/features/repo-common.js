@@ -1,44 +1,42 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
 
-const {csrfToken} = window.config;
+async function getArchive($target, url, first) {
+  const dropdownBtn = $target[0].closest('.ui.dropdown.button');
 
-function getArchive($target, url, first) {
-  $.ajax({
-    url,
-    type: 'POST',
-    data: {
-      _csrf: csrfToken,
-    },
-    complete(xhr) {
-      if (xhr.status === 200) {
-        if (!xhr.responseJSON) {
-          // XXX Shouldn't happen?
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          return;
-        }
-
-        if (!xhr.responseJSON.complete) {
-          $target.closest('.dropdown').children('i').addClass('loading');
-          // Wait for only three quarters of a second initially, in case it's
-          // quickly archived.
-          setTimeout(() => {
-            getArchive($target, url, false);
-          }, first ? 750 : 2000);
-        } else {
-          // We don't need to continue checking.
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          window.location.href = url;
-        }
+  try {
+    dropdownBtn.classList.add('is-loading');
+    const response = await POST(url);
+    if (response.status === 200) {
+      const data = await response.json();
+      if (!data) {
+        // XXX Shouldn't happen?
+        dropdownBtn.classList.remove('is-loading');
+        return;
       }
-    },
-  });
+
+      if (!data.complete) {
+        // Wait for only three quarters of a second initially, in case it's
+        // quickly archived.
+        setTimeout(() => {
+          getArchive($target, url, false);
+        }, first ? 750 : 2000);
+      } else {
+        // We don't need to continue checking.
+        dropdownBtn.classList.remove('is-loading');
+        window.location.href = url;
+      }
+    }
+  } catch {
+    dropdownBtn.classList.remove('is-loading');
+  }
 }
 
 export function initRepoArchiveLinks() {
   $('.archive-link').on('click', function (event) {
     event.preventDefault();
-    const url = $(this).attr('href');
+    const url = this.getAttribute('href');
     if (!url) return;
     getArchive($(event.target), url, true);
   });
@@ -80,14 +78,16 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
+  if (!$dropdown.length) return;
+
   $dropdown.dropdown({
     fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.attr('data-url')) {
-        window.location.href = $choice.attr('data-url');
+      if ($choice[0].getAttribute('data-url')) {
+        window.location.href = $choice[0].getAttribute('data-url');
       }
     },
-    message: {noResults: $dropdown.attr('data-no-results')},
+    message: {noResults: $dropdown[0].getAttribute('data-no-results')},
   });
 }

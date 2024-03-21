@@ -11,25 +11,10 @@ import (
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
-	// See the comment of issues_model.SearchOptions for the reason why we need to convert
-	convertID := func(id *int64) int64 {
-		if id == nil {
-			return 0
-		}
-		if *id == 0 {
-			return db.NoConditionID
-		}
-		return *id
-	}
-	convertInt64 := func(i *int64) int64 {
-		if i == nil {
-			return 0
-		}
-		return *i
-	}
 	var sortType string
 	switch options.SortBy {
 	case internal.SortByCreatedAsc:
@@ -52,6 +37,18 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "newest"
 	}
 
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
+	convertID := func(id optional.Option[int64]) int64 {
+		if !id.Has() {
+			return 0
+		}
+		value := id.Value()
+		if value == 0 {
+			return db.NoConditionID
+		}
+		return value
+	}
+
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
@@ -72,10 +69,10 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		IncludeMilestones:  nil,
 		SortType:           sortType,
 		IssueIDs:           nil,
-		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
-		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
+		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
+		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
-		IsArchived:         0,
+		IsArchived:         optional.None[bool](),
 		Org:                nil,
 		Team:               nil,
 		User:               nil,

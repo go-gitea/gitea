@@ -37,14 +37,6 @@ jobs:
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
-      simplesaml:
-        image: allspice/simple-saml
-        ports:
-          - "8080:8080"
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3002/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3002/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3002/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -57,7 +49,10 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-pgsql-migration test-pgsql
+      - name: run migration tests
+        run: make test-pgsql-migration
+      - name: run tests
+        run: make test-pgsql
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
@@ -80,7 +75,10 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - run: make test-sqlite-migration test-sqlite
+      - name: run migration tests
+        run: make test-sqlite-migration
+      - name: run tests
+        run: make test-sqlite
         timeout-minutes: 50
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -183,8 +181,10 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
+      - name: run migration tests
+        run: make test-mysql-migration
       - name: run tests
-        run: make test-mysql-migration integration-test-coverage
+        run: make integration-test-coverage
         env:
           TAGS: bindata
           RACE_ENABLED: true
@@ -216,7 +216,9 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mssql-migration test-mssql
+      - run: make test-mssql-migration
+      - name: run tests
+        run: make test-mssql
         timeout-minutes: 50
         env:
           TAGS: bindata

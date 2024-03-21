@@ -194,7 +194,6 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 }
 
 func TestRepository_parseTagRef(t *testing.T) {
-	sha1 := Sha1ObjectFormat
 	tests := []struct {
 		name string
 
@@ -351,7 +350,7 @@ Add changelog of v1.9.1 (#7859)
 	for _, test := range tests {
 		tc := test // don't close over loop variable
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseTagRef(sha1, tc.givenRef)
+			got, err := parseTagRef(tc.givenRef)
 
 			if tc.wantErr {
 				require.Error(t, err)

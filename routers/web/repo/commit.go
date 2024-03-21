@@ -19,7 +19,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 	git_service "code.gitea.io/gitea/services/repository"
 )
@@ -163,8 +163,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParam(ctx, "mode", "Mode")
-	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
+	paginator.AddParamString("mode", mode)
+	paginator.AddParamString("hide-pr-refs", fmt.Sprint(hidePRRefs))
 	for _, branch := range branches {
 		paginator.AddParamString("branch", branch)
 	}
@@ -203,7 +203,7 @@ func SearchCommits(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = query
 	if all {
-		ctx.Data["All"] = "checked"
+		ctx.Data["All"] = true
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name

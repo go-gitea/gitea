@@ -2,6 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
+		{{template "base/alert" .}}
 		<div class="gt-df">
 			<h1 class="gt-mb-3">{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
@@ -22,7 +23,7 @@
 		</div>
 		{{if .Milestone.RenderedContent}}
 		<div class="markup content gt-mb-4">
-				{{.Milestone.RenderedContent|Str2html}}
+				{{.Milestone.RenderedContent}}
 		</div>
 		{{end}}
 		<div class="gt-df gt-fc gt-gap-3">
