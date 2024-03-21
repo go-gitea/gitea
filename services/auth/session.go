@@ -49,6 +49,7 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByID: %v", err)
+			// Return the err as-is to keep current signed-in session, in case the err is something like context.Canceled. Otherwise non-existing user (nil, nil) will make the caller clear the signed-in session.
 			return nil, err
 		}
 		return nil, nil
