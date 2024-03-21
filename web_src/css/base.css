@@ -710,16 +710,6 @@ img.ui.avatar,
   background: var(--color-active);
 }
 
-.ui.loading.segment::before,
-.ui.loading.form::before {
-  background: none;
-}
-
-.ui.loading.form > *,
-.ui.loading.segment > * {
-  opacity: 0.35;
-}
-
 .ui.form .fields.error .field textarea,
 .ui.form .fields.error .field select,
 .ui.form .fields.error .field input:not([type]),
@@ -809,10 +799,6 @@ input:-webkit-autofill:active,
 
 .ui.form .field.muted {
   opacity: var(--opacity-disabled);
-}
-
-.ui.loading.loading.input > i.icon svg {
-  visibility: hidden;
 }
 
 .text.primary {
@@ -1264,13 +1250,6 @@ strong.attention-caution, svg.attention-caution {
 
 .center:not(.popup) {
   text-align: center;
-}
-
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
 }
 
 overflow-menu {

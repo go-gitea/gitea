@@ -43,14 +43,14 @@ export function initRepoIssueTimeTracking() {
 
 async function updateDeadline(deadlineString) {
   hideElem($('#deadline-err-invalid-date'));
-  $('#deadline-loader').addClass('loading');
+  $('#deadline-loader').addClass('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      $('#deadline-loader').removeClass('loading');
+      $('#deadline-loader').removeClass('is-loading');
       showElem($('#deadline-err-invalid-date'));
       return false;
     }
@@ -69,7 +69,7 @@ async function updateDeadline(deadlineString) {
     }
   } catch (error) {
     console.error(error);
-    $('#deadline-loader').removeClass('loading');
+    $('#deadline-loader').removeClass('is-loading');
     showElem($('#deadline-err-invalid-date'));
   }
 }
@@ -237,14 +237,14 @@ export function initRepoPullRequestUpdate() {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
-    $this.addClass('loading');
+    $this.addClass('is-loading');
     let response;
     try {
       response = await POST($this.data('do'));
     } catch (error) {
       console.error(error);
     } finally {
-      $this.removeClass('loading');
+      $this.removeClass('is-loading');
     }
     let data;
     try {

@@ -208,7 +208,7 @@ export function initAdminCommon() {
     $('#delete-selection').on('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
-      $this.addClass('loading disabled');
+      $this.addClass('is-loading disabled');
       const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {
