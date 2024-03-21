@@ -1,4 +1,4 @@
-import {createExternalLink} from "./misc.js";
+import {createExternalLink} from '/misc.js';
 
 test('createExternalLink', () => {
   const link = createExternalLink({href: 'https://example.com', textContent: 'example'});
