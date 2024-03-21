@@ -187,7 +187,7 @@ export function initRepoIssueCommentDelete() {
           $conversationHolder.remove();
         }
         // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
-        if (!$parentTimelineItem.find('.conversation-holder').length) {
+        if (!$parentTimelineGroup.find('.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
           const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
           $timelineAvatar.removeClass('timeline-avatar-offset');
         }
