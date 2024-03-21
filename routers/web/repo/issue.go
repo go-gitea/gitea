@@ -446,13 +446,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
 	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -472,16 +472,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
 
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "project", "ProjectID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
-	pager.AddParam(ctx, "poster", "PosterID")
-	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("type", viewType)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("labels", fmt.Sprint(selectLabels))
+	pager.AddParamString("milestone", fmt.Sprint(milestoneID))
+	pager.AddParamString("project", fmt.Sprint(projectID))
+	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
+	pager.AddParamString("poster", fmt.Sprint(posterID))
+	pager.AddParamString("archived", fmt.Sprint(archived))
 
 	ctx.Data["Page"] = pager
 }
@@ -2634,9 +2634,9 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	var projectID *int64
+	projectID := optional.None[int64]()
 	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = &v
+		projectID = optional.Some(v)
 	}
 
 	// this api is also used in UI,
@@ -2665,28 +2665,28 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = &ctxUserID
+			searchOpt.PosterID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = &ctxUserID
+			searchOpt.AssigneeID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("mentioned") {
-			searchOpt.MentionID = &ctxUserID
+			searchOpt.MentionID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("review_requested") {
-			searchOpt.ReviewRequestedID = &ctxUserID
+			searchOpt.ReviewRequestedID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("reviewed") {
-			searchOpt.ReviewedID = &ctxUserID
+			searchOpt.ReviewedID = optional.Some(ctxUserID)
 		}
 	}
 
@@ -2791,9 +2791,9 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
-	var projectID *int64
+	projectID := optional.None[int64]()
 	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = &v
+		projectID = optional.Some(v)
 	}
 
 	isPull := optional.None[bool]()
@@ -2831,10 +2831,10 @@ func ListIssues(ctx *context.Context) {
 		SortBy:         issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 	if len(labelIDs) == 1 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
@@ -2855,13 +2855,13 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = &createdByID
+		searchOpt.PosterID = optional.Some(createdByID)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = &assignedByID
+		searchOpt.AssigneeID = optional.Some(assignedByID)
 	}
 	if mentionedByID > 0 {
-		searchOpt.MentionID = &mentionedByID
+		searchOpt.MentionID = optional.Some(mentionedByID)
 	}
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)

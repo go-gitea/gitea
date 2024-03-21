@@ -8,6 +8,7 @@
   flex-flow: row wrap;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 4px;
 }
 
 .repo-header .flex-item {
@@ -71,18 +72,8 @@
 }
 
 .repository .header-wrapper {
+  padding-top: 12px;
   background-color: var(--color-header-wrapper);
-}
-
-.repository .header-wrapper .new-menu {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.repository .header-wrapper .new-menu .item {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
 }
 
 @media (max-width: 767.98px) {

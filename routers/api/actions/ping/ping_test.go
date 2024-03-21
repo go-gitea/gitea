@@ -11,7 +11,7 @@ import (
 
 	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
 	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

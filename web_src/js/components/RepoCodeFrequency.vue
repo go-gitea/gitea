@@ -148,7 +148,7 @@ export default {
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
     <div class="gt-df ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
           {{ locale.loadingInfo }}

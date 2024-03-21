@@ -17413,21 +17413,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "BadgeList": {
-      "description": "BadgeList",
-      "type": "object",
-      "properties": {
-        "body": {
-          "description": "in:body",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Badge"
-          },
-          "x-go-name": "Body"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "Branch": {
       "description": "Branch represents a repository branch",
       "type": "object",
@@ -24722,7 +24707,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/BadgeList"
+        "$ref": "#/definitions/UserBadgeOption"
       }
     },
     "redirect": {

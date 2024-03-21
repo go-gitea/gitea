@@ -40,28 +40,35 @@ export async function initCitationFileCopyContent() {
     $citationCopyApa.toggleClass('primary', !isBibtex);
   };
 
-  try {
-    await initInputCitationValue($citationCopyApa, $citationCopyBibtex);
-  } catch (e) {
-    console.error(`initCitationFileCopyContent error: ${e}`, e);
-    return;
-  }
-  updateUi();
+  $('#cite-repo-button').on('click', async (e) => {
+    const dropdownBtn = e.target.closest('.ui.dropdown.button');
+    dropdownBtn.classList.add('is-loading');
 
-  $citationCopyApa.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'apa');
-    updateUi();
-  });
-  $citationCopyBibtex.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'bibtex');
-    updateUi();
-  });
+    try {
+      try {
+        await initInputCitationValue($citationCopyApa, $citationCopyBibtex);
+      } catch (e) {
+        console.error(`initCitationFileCopyContent error: ${e}`, e);
+        return;
+      }
+      updateUi();
 
-  $inputContent.on('click', () => {
-    $inputContent.trigger('select');
-  });
+      $citationCopyApa.on('click', () => {
+        localStorage.setItem('citation-copy-format', 'apa');
+        updateUi();
+      });
+      $citationCopyBibtex.on('click', () => {
+        localStorage.setItem('citation-copy-format', 'bibtex');
+        updateUi();
+      });
 
-  $('#cite-repo-button').on('click', () => {
+      $inputContent.on('click', () => {
+        $inputContent.trigger('select');
+      });
+    } finally {
+      dropdownBtn.classList.remove('is-loading');
+    }
+
     $('#cite-repo-modal').modal('show');
   });
 }

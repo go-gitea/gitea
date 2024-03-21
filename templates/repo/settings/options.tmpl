@@ -116,13 +116,12 @@
 								<th></th>
 							</tr>
 						</thead>
-						{{end}}
 						{{if $modifyBrokenPullMirror}}
 							{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 							<tbody>
 								<tr>
 									<td colspan="4">
-										<div class="text red gt-py-4 gt-border-secondary-bottom">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+										<div class="text red gt-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 									</td>
 								</tr>
 							</tbody>
@@ -201,8 +200,9 @@
 								</td>
 							</tr>
 						</tbody>
+						{{end}}{{/* end if: $modifyBrokenPullMirror / $isWorkingPullMirror */}}
 					</table>
-					{{end}}{{/* end if: IsMirror */}}
+					{{end}}{{/* end if .Repository.IsMirror */}}
 
 					<table class="ui table">
 						<thead>
