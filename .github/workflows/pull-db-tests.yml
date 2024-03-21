@@ -46,9 +46,6 @@ jobs:
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: run migration tests
         run: make test-pgsql-migration
       - name: run tests
@@ -72,9 +69,6 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
       - name: run migration tests
         run: make test-sqlite-migration
       - name: run tests
@@ -128,9 +122,6 @@ jobs:
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: unit-tests
         run: make unit-test-coverage test-check
         env:
@@ -178,9 +169,6 @@ jobs:
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: run migration tests
         run: make test-mysql-migration
       - name: run tests
@@ -213,9 +201,6 @@ jobs:
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - run: make test-mssql-migration
       - name: run tests
         run: make test-mssql
