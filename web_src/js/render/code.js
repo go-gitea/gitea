@@ -20,11 +20,16 @@ function processPackageJson() {
   if (!isObject(obj)) return;
 
   const packages = new Set();
+
   for (const key of [
     'dependencies',
+    'dependenciesMeta',
     'devDependencies',
     'optionalDependencies',
+    'overrides',
     'peerDependencies',
+    'peerDependenciesMeta',
+    'resolutions',
   ]) {
     for (const packageName of Object.keys(obj?.[key] || {})) {
       packages.add(packageName);
