@@ -186,12 +186,10 @@ export function initRepoIssueCommentDelete() {
           }
           $conversationHolder.remove();
         }
-        // Check if there is no review content, move the avatar upward to avoid blocking the content below.
+        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
         if (!$parentTimelineItem.find('.conversation-holder').length) {
-          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar').eq(0);
-          if ($timelineAvatar.hasClass('timeline-avatar-offset')) {
-            $timelineAvatar.removeClass('timeline-avatar-offset');
-          }
+          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
+          $timelineAvatar.removeClass('timeline-avatar-offset');
         }
       } catch (error) {
         console.error(error);
