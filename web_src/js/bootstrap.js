@@ -23,7 +23,7 @@ export function showGlobalErrorMessage(msg) {
   let msgDiv = pageContent.querySelector(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
-    el.innerHTML = `<div class="ui container negative message center aligned js-global-error" style="white-space: pre-line;"></div>`;
+    el.innerHTML = `<div class="ui container negative message center aligned js-global-error tw-mt-[15px] tw-whitespace-pre-line"></div>`;
     msgDiv = el.childNodes[0];
   }
   // merge duplicated messages into "the message (count)" format
