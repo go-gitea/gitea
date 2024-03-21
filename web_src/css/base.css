@@ -1981,6 +1981,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
 }
+
 .empty-placeholder {
   display: flex;
   flex-direction: column;
