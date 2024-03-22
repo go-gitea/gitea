@@ -69,6 +69,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	err = cmd.Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
+		Stderr: stderrWriter,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			_ = stderrWriter.Close()
@@ -110,7 +111,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 		},
 	})
 	if err != nil && !errors.Is(err, context.Canceled) && len(stderr) != 0 {
-		return nil, fmt.Errorf("unable to run grep: %w, stderr: %s", err, string(stderr))
+		return nil, fmt.Errorf("unable to run git grep: %w, stderr: %s", err, string(stderr))
 	}
 	return results, nil
 }
