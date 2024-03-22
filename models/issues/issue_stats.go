@@ -68,12 +68,16 @@ func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int6
 }
 
 // CountIssues number return of issues by given conditions.
-func CountIssues(ctx context.Context, opts *IssuesOptions) (int64, error) {
+func CountIssues(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) (int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("COUNT(issue.id) AS count").
 		Table("issue").
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyConditions(sess, opts)
+
+	for _, cond := range otherConds {
+		sess.And(cond)
+	}
 
 	return sess.Count()
 }

@@ -164,7 +164,7 @@ func TestIssues(t *testing.T) {
 			issues_model.IssuesOptions{
 				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
-				Paginator: &db.ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -174,7 +174,7 @@ func TestIssues(t *testing.T) {
 		{
 			issues_model.IssuesOptions{
 				LabelIDs: []int64{1},
-				Paginator: &db.ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -184,7 +184,7 @@ func TestIssues(t *testing.T) {
 		{
 			issues_model.IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				Paginator: &db.ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -326,7 +326,7 @@ func TestCorrectIssueStats(t *testing.T) {
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
 	issues, err := issues_model.Issues(context.TODO(), &issues_model.IssuesOptions{
-		Paginator: &db.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: issueAmount,
 		},
 		RepoIDs: []int64{1},

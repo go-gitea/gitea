@@ -397,7 +397,7 @@ func searchIssueWithPaginator(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				Paginator: &db.ListOptions{
+				ListOptions: db.ListOptions{
 					PageSize: 5,
 				},
 			},
