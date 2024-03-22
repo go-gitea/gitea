@@ -303,7 +303,7 @@ export default {
 </script>
 <template>
   <div>
-    <div class="ui header tw-flex tw-content-center tw-justify-between">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
           v-if="xAxisMin > 0"

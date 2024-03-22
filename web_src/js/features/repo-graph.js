@@ -18,13 +18,13 @@ export function initRepoGraphGit() {
       window.history.replaceState({}, '', window.location.pathname);
     }
     $('.pagination a').each((_, that) => {
-      const href = $(that).attr('href');
+      const href = that.getAttribute('href');
       if (!href) return;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.set('mode', 'monochrome');
       url.search = `?${params.toString()}`;
-      $(that).attr('href', url.href);
+      that.setAttribute('href', url.href);
     });
   });
   $('#flow-color-colored').on('click', () => {
@@ -32,13 +32,13 @@ export function initRepoGraphGit() {
     $('#flow-color-monochrome').removeClass('active');
     $('#git-graph-container').addClass('colored').removeClass('monochrome');
     $('.pagination a').each((_, that) => {
-      const href = $(that).attr('href');
+      const href = that.getAttribute('href');
       if (!href) return;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.delete('mode');
       url.search = `?${params.toString()}`;
-      $(that).attr('href', url.href);
+      that.setAttribute('href', url.href);
     });
     const params = new URLSearchParams(window.location.search);
     params.delete('mode');

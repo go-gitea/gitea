@@ -27,7 +27,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="tw-flex tw-content-center tw-flex-wrap gt-gap-2" id="repo-topics">
+		<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-2" id="repo-topics">
 			{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 		</div>
@@ -61,7 +61,7 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-content-center tw-flex-wrap gt-gap-y-3">
+			<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-y-3">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -121,7 +121,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="tw-flex tw-content-center">
+			<div class="tw-flex tw-items-center">
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
 					<div class="clone-panel ui action tiny input">
