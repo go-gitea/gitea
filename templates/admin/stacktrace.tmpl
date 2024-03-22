@@ -4,8 +4,8 @@
 	<div class="gt-df gt-ac">
 		<div class="gt-f1">
 			<div class="ui compact small menu">
-				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="{{.Link}}?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
-				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="{{.Link}}?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>
+				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
+				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>
 			</div>
 		</div>
 		<form target="_blank" action="{{AppSubUrl}}/admin/monitor/diagnosis" class="ui form">
