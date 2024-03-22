@@ -622,9 +622,9 @@ export function initRepositoryActionView() {
   width: 70%;
   display: flex;
   flex-direction: column;
-  background: var(--color-console-bg);
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
+  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */
