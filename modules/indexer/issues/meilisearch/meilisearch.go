@@ -218,6 +218,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
+	counting := limit == 0
+	if counting {
+		// If set limit to 0, it will be 20 by default, and -1 is not allowed.
+		// See https://www.meilisearch.com/docs/reference/api/search#limit
+		// So set limit to 1 to make the cost as low as possible, then clear the result before returning.
+		limit = 1
+	}
+
 	keyword := options.Keyword
 	if !options.IsFuzzyKeyword {
 		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
@@ -234,6 +242,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if counting {
+		searchRes.Hits = nil
 	}
 
 	hits, err := convertHits(searchRes)
