@@ -21,6 +21,7 @@ func ParsePaginator(listOptions db.ListOptions, max ...int) (int, int) {
 	if listOptions.IsListAll() {
 		// It shouldn't happen. In actual usage scenarios, there should not be requests to search all.
 		// But if it does happen, respect it and return "unlimited".
+		// And it's also useful for testing.
 		return 0, unlimited
 	}
 

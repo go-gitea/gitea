@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -80,8 +79,8 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			}
 
 			// test counting
-			opts := c.SearchOptions.Copy(func(options *issues.SearchOptions) { options.ListOptions = db.ListOptions{PageSize: 0} })
-			countResult, err := indexer.Search(context.Background(), opts)
+			c.SearchOptions.ListOptions = db.ListOptions{PageSize: 0}
+			countResult, err := indexer.Search(context.Background(), c.SearchOptions)
 			require.NoError(t, err)
 			assert.Empty(t, countResult.Hits)
 			assert.Equal(t, result.Total, countResult.Total)
@@ -91,8 +90,12 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 
 var cases = []*testIndexerCase{
 	{
-		Name:          "default",
-		SearchOptions: &internal.SearchOptions{},
+		Name: "default",
+		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
+		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
 			assert.Equal(t, len(data), int(result.Total))
@@ -126,6 +129,9 @@ var cases = []*testIndexerCase{
 			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
 			Keyword: "hello",
 		},
 		ExpectedIDs:   []int64{1002, 1001, 1000},
@@ -143,6 +149,9 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
 			Keyword: "hello",
 			RepoIDs: []int64{1, 4},
 		},
@@ -161,6 +170,9 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
 			Keyword:   "hello",
 			RepoIDs:   []int64{1, 4},
 			AllPublic: true,
@@ -242,6 +254,9 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
 			Keyword:          "hello",
 			IncludedLabelIDs: []int64{2000, 2001},
 			ExcludedLabelIDs: []int64{2003},
@@ -259,6 +274,9 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
 			Keyword:             "hello",
 			IncludedAnyLabelIDs: []int64{2001, 2002},
 			ExcludedLabelIDs:    []int64{2003},
