@@ -125,9 +125,6 @@ var cases = []*testIndexerCase{
 			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
 			Keyword: "hello",
 		},
 		ExpectedIDs:   []int64{1002, 1001, 1000},
@@ -145,9 +142,6 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
 			Keyword: "hello",
 			RepoIDs: []int64{1, 4},
 		},
@@ -166,9 +160,6 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
 			Keyword:   "hello",
 			RepoIDs:   []int64{1, 4},
 			AllPublic: true,
@@ -250,9 +241,6 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
 			Keyword:          "hello",
 			IncludedLabelIDs: []int64{2000, 2001},
 			ExcludedLabelIDs: []int64{2003},
@@ -270,9 +258,6 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
 			Keyword:             "hello",
 			IncludedAnyLabelIDs: []int64{2001, 2002},
 			ExcludedLabelIDs:    []int64{2003},
