@@ -36,7 +36,7 @@ export async function initCitationFileCopyContent() {
   const updateUi = () => {
     const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
     const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text');
-    inputContent.setAttribute('value', copyContent);
+    inputContent.value = copyContent;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
