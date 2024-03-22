@@ -35,7 +35,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	}
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("unable to creata os pipe to grep: %w", err)
+		return nil, fmt.Errorf("unable to create os pipe to grep: %w", err)
 	}
 	defer func() {
 		_ = stdoutReader.Close()
