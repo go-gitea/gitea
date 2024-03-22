@@ -1429,7 +1429,7 @@ a.ui.active.label:hover {
   padding-left: 10px;
   padding-right: 10px;
   text-align: right !important;
-  color: var(--color-text-light-1);
+  color: var(--color-text-light-2);
   width: 1%;
   font-family: var(--fonts-monospace);
 }
@@ -1487,8 +1487,8 @@ a.ui.active.label:hover {
   padding-left: 5px;
 }
 
-.lines-code.active,
-.lines-code .active {
+.file-view tr.active,
+.file-view tr.active .lines-code {
   background: var(--color-active-line) !important;
 }
 

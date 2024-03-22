@@ -17,7 +17,7 @@ function changeHash(hash) {
 }
 
 function selectRange($list, $select, $from) {
-  $list.removeClass('active');
+  $list.closest('tr').removeClass('active');
 
   // add hashchange to permalink
   const $refInNewIssue = $('a.ref-in-new-issue');
@@ -69,7 +69,9 @@ function selectRange($list, $select, $from) {
       for (let i = a; i <= b; i++) {
         classes.push(`[rel=L${i}]`);
       }
-      $list.filter(classes.join(',')).addClass('active');
+      $list.filter(classes.join(',')).each(function () {
+        $(this).closest('tr').addClass('active');
+      });
       changeHash(`#L${a}-L${b}`);
 
       updateIssueHref(`L${a}-L${b}`);
@@ -78,7 +80,7 @@ function selectRange($list, $select, $from) {
       return;
     }
   }
-  $select.addClass('active');
+  $select.closest('tr').addClass('active');
   changeHash(`#${$select.attr('rel')}`);
 
   updateIssueHref($select.attr('rel'));
@@ -96,10 +98,10 @@ function showLineButton() {
   }
 
   // find active row and add button
-  const tr = document.querySelector('.code-view td.lines-code.active').closest('tr');
+  const tr = document.querySelector('.code-view tr.active .lines-code').closest('tr');
   const td = tr.querySelector('td');
   const btn = document.createElement('button');
-  btn.classList.add('code-line-button');
+  btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
   td.prepend(btn);
 
@@ -130,7 +132,12 @@ export function initRepoCodeView() {
       } else {
         $list = $('.code-view td.lines-code');
       }
-      selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
+      const $sel = $list.filter(`[rel=${$select.attr('id')}]`);
+      let $from = null;
+      if (e.shiftKey) {
+        $from = $list.closest('tr').filter('.active').children('.lines-code').eq(0);
+      }
+      selectRange($list, $sel, $from);
 
       if (window.getSelection) {
         window.getSelection().removeAllRanges();

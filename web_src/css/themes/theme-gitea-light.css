@@ -183,7 +183,7 @@
   --color-body: #ffffff;
   --color-box-header: #f1f3f5;
   --color-box-body: #ffffff;
-  --color-box-body-highlight: #f4faff;
+  --color-box-body-highlight: #ecf5fd;
   --color-text-dark: #01050a;
   --color-text: #181c21;
   --color-text-light: #30363b;
@@ -211,7 +211,7 @@
   --color-code-sidebar-bg: #f2f5f8;
   --color-shadow: #00001726;
   --color-secondary-bg: #f2f5f8;
-  --color-expand-button: #d8efff;
+  --color-expand-button: #cfe8fa;
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
