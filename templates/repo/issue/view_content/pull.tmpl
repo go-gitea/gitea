@@ -374,17 +374,15 @@
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="divider"></div>
-				<div class="ui form">
-					<form action="{{.Link}}/merge" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="field">
-							<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
-						</div>
-						<button class="ui red button" type="submit" name="do" value="manually-merged">
-							{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
-						</button>
-					</form>
-				</div>
+				<form class="ui form form-fetch-action" action="{{.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
+					</div>
+					<button class="ui red button" type="submit" name="do" value="manually-merged">
+						{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
+					</button>
+				</form>
 			{{end}}
 
 			{{if and .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
