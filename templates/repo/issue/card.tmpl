@@ -13,7 +13,7 @@
 			</div>
 			<a class="issue-card-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
-				<a role="button" class="issue-card-unpin muted tw-flex tw-content-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
+				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}

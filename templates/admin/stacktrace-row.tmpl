@@ -1,5 +1,5 @@
 <div class="item">
-	<div class="tw-flex tw-content-center">
+	<div class="tw-flex tw-items-center">
 		<div class="icon gt-ml-3 gt-mr-3">
 			{{if eq .Process.Type "request"}}
 				{{svg "octicon-globe" 16}}
@@ -40,7 +40,7 @@
 						</summary>
 						<div class="list">
 							{{range .Entry}}
-								<div class="item tw-flex tw-content-center">
+								<div class="item tw-flex tw-items-center">
 									<span class="icon gt-mr-4">{{svg "octicon-dot-fill" 16}}</span>
 									<div class="content tw-flex-1">
 										<div class="header"><code>{{.Function}}</code></div>
