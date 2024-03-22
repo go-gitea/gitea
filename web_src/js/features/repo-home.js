@@ -146,7 +146,7 @@ export function initRepoTopicBar() {
       addedValue = addedValue.toLowerCase().trim();
       $($addedChoice).attr('data-value', addedValue);
       $($addedChoice).attr('data-text', addedValue);
-    }
+    },
   });
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
@@ -168,14 +168,14 @@ export function initRepoTopicBar() {
           {
             type: 'validateTopic',
             value: /^\s*[a-z0-9][-.a-z0-9]{0,35}\s*$/,
-            prompt: topicPrompts.formatPrompt
+            prompt: topicPrompts.formatPrompt,
           },
           {
             type: 'maxCount[25]',
-            prompt: topicPrompts.countPrompt
-          }
-        ]
+            prompt: topicPrompts.countPrompt,
+          },
+        ],
       },
-    }
+    },
   });
 }

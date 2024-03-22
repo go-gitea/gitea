@@ -21,11 +21,11 @@ window.addEventListener('load', async () => {
     docExpansion: 'none',
     defaultModelRendering: 'model', // don't show examples by default, because they may be incomplete
     presets: [
-      SwaggerUI.presets.apis
+      SwaggerUI.presets.apis,
     ],
     plugins: [
-      SwaggerUI.plugins.DownloadUrl
-    ]
+      SwaggerUI.plugins.DownloadUrl,
+    ],
   });
 
   window.ui = ui;

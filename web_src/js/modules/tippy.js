@@ -148,7 +148,7 @@ export function initGlobalTooltips() {
   const observerConnect = (observer) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title']
+    attributeFilter: ['data-tooltip-content', 'title'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();

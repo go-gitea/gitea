@@ -31,7 +31,7 @@ export default {
     },
     loadMoreData() {
       loadMoreFiles(this.store.linkLoadMore);
-    }
+    },
   },
 };
 </script>

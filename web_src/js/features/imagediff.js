@@ -20,19 +20,19 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
     if (img.width > 1 && img.width < MaxSize && img.height > 1 && img.height < MaxSize) {
       return {
         width: img.width,
-        height: img.height
+        height: img.height,
       };
     }
     if (svg.hasAttribute('viewBox')) {
       const viewBox = svg.viewBox.baseVal;
       return {
         width: DefaultSize,
-        height: DefaultSize * viewBox.width / viewBox.height
+        height: DefaultSize * viewBox.width / viewBox.height,
       };
     }
     return {
       width: DefaultSize,
-      height: DefaultSize
+      height: DefaultSize,
     };
   }
   return null;
@@ -42,15 +42,15 @@ export function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
       width: image1 && image1.width || 0,
-      height: image1 && image1.height || 0
+      height: image1 && image1.height || 0,
     };
     const size2 = {
       width: image2 && image2.width || 0,
-      height: image2 && image2.height || 0
+      height: image2 && image2.height || 0,
     };
     const max = {
       width: Math.max(size2.width, size1.width),
-      height: Math.max(size2.height, size1.height)
+      height: Math.max(size2.height, size1.height),
     };
 
     return {
@@ -63,8 +63,8 @@ export function initImageDiff() {
         Math.floor(max.width - size1.width) / 2,
         Math.floor(max.height - size1.height) / 2,
         Math.floor(max.width - size2.width) / 2,
-        Math.floor(max.height - size2.height) / 2
-      ]
+        Math.floor(max.height - size2.height) / 2,
+      ],
     };
   }
 
@@ -79,12 +79,12 @@ export function initImageDiff() {
       path: this.getAttribute('data-path-after'),
       mime: this.getAttribute('data-mime-after'),
       $images: $container.find('img.image-after'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-after')
+      $boundsInfo: $container.find('.bounds-info-after'),
     }, {
       path: this.getAttribute('data-path-before'),
       mime: this.getAttribute('data-mime-before'),
       $images: $container.find('img.image-before'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-before')
+      $boundsInfo: $container.find('.bounds-info-before'),
     }];
 
     await Promise.all(imageInfos.map(async (info) => {
@@ -222,21 +222,21 @@ export function initImageDiff() {
 
       sizes.image1.css({
         width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
+        height: sizes.size1.height * factor,
       });
       sizes.image2.css({
         width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
+        height: sizes.size2.height * factor,
       });
       sizes.image1.parent().css({
         margin: `${sizes.ratio[1] * factor}px ${sizes.ratio[0] * factor}px`,
         width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
+        height: sizes.size1.height * factor + 2,
       });
       sizes.image2.parent().css({
         margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
         width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
+        height: sizes.size2.height * factor + 2,
       });
 
       // some inner elements are `position: absolute`, so the container's height must be large enough
@@ -248,7 +248,7 @@ export function initImageDiff() {
 
       const $range = $container.find("input[type='range']");
       const onInput = () => sizes.image1.parent().css({
-        opacity: $range.val() / 100
+        opacity: $range.val() / 100,
       });
       $range.on('input', onInput);
       onInput();

@@ -36,7 +36,7 @@ const sfc = {
     },
     shouldCreateTag() {
       return this.mode === 'tags';
-    }
+    },
   },
 
   watch: {
@@ -45,7 +45,7 @@ const sfc = {
         this.focusSearchField();
         this.fetchBranchesOrTags();
       }
-    }
+    },
   },
 
   beforeMount() {
@@ -209,7 +209,7 @@ const sfc = {
         this.isLoading = false;
       }
     },
-  }
+  },
 };
 
 export function initRepoBranchTagSelector(selector) {

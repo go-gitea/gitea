@@ -9,7 +9,7 @@ try {
       return {
         format(value) {
           return ` ${value} ${options.unit}`;
-        }
+        },
       };
     }
     return intlNumberFormat(locales, options);

@@ -20,7 +20,7 @@ async function generate(svg, path, {size, bg}) {
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
-          params: {attributes: [{width: size}, {height: size}]}
+          params: {attributes: [{width: size}, {height: size}]},
         },
       ],
     });

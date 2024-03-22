@@ -189,7 +189,7 @@ export const SvgIcon = {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
-    symbolId: {type: String}
+    symbolId: {type: String},
   },
   render() {
     let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);

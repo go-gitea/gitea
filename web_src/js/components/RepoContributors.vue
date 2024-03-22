@@ -34,7 +34,7 @@ const customEventListener = {
       chart.resetZoom();
       opts.instance.updateOtherCharts(args.event, true);
     }
-  }
+  },
 };
 
 Chart.defaults.color = chartJsColors.text;
@@ -82,7 +82,7 @@ export default {
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
         this.sortContributors();
-      }
+      },
     });
   },
   methods: {
@@ -175,7 +175,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type])
+        ...this.totalStats.weeks.map((o) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -187,7 +187,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type)
+        ...this.sortedContributors.map((c) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;

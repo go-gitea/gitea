@@ -39,7 +39,7 @@ export default {
   props: {
     locale: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -128,12 +128,12 @@ export default {
             },
             ticks: {
               maxRotation: 0,
-              maxTicksLimit: 12
+              maxTicksLimit: 12,
             },
           },
           y: {
             ticks: {
-              maxTicksLimit: 6
+              maxTicksLimit: 6,
             },
           },
         },

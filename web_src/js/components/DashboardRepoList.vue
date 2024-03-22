@@ -253,7 +253,7 @@ const sfc = {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status.State,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
@@ -325,7 +325,7 @@ const sfc = {
       if (this.activeIndex === -1 || this.activeIndex > this.repos.length - 1) {
         this.activeIndex = 0;
       }
-    }
+    },
   },
 };
 

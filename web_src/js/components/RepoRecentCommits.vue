@@ -35,7 +35,7 @@ export default {
   props: {
     locale: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -105,12 +105,12 @@ export default {
             },
             ticks: {
               maxRotation: 0,
-              maxTicksLimit: 52
+              maxTicksLimit: 52,
             },
           },
           y: {
             ticks: {
-              maxTicksLimit: 6
+              maxTicksLimit: 6,
             },
           },
         },

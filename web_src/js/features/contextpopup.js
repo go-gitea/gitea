@@ -37,7 +37,7 @@ export function attachRefIssueContextPopup(refIssues) {
       interactiveBorder: 5,
       onShow: () => {
         el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
-      }
+      },
     });
   }
 }

@@ -191,7 +191,7 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
       textarea.removeEventListener('mousemove', onUserResize);
       textarea.removeEventListener('input', resizeToFit);
       textarea.form?.removeEventListener('reset', onFormReset);
-    }
+    },
   };
 }
 

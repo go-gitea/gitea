@@ -26,7 +26,7 @@ export async function initUserAuthWebAuthn() {
   }
   try {
     const credential = await navigator.credentials.get({
-      publicKey: options.publicKey
+      publicKey: options.publicKey,
     });
     await verifyAssertion(credential);
   } catch (err) {
@@ -37,7 +37,7 @@ export async function initUserAuthWebAuthn() {
     delete options.publicKey.extensions.appid;
     try {
       const credential = await navigator.credentials.get({
-        publicKey: options.publicKey
+        publicKey: options.publicKey,
       });
       await verifyAssertion(credential);
     } catch (err) {
@@ -185,7 +185,7 @@ async function webAuthnRegisterRequest() {
 
   try {
     const credential = await navigator.credentials.create({
-      publicKey: options.publicKey
+      publicKey: options.publicKey,
     });
     await webauthnRegistered(credential);
   } catch (err) {

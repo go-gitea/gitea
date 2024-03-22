@@ -10,20 +10,20 @@ export default {
   props: {
     status: {
       type: String,
-      required: true
+      required: true,
     },
     size: {
       type: Number,
-      default: 16
+      default: 16,
     },
     className: {
       type: String,
-      default: ''
+      default: '',
     },
     localeStatus: {
       type: String,
-      default: ''
-    }
+      default: '',
+    },
   },
 };
 </script>

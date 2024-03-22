@@ -29,13 +29,13 @@ export function initRepoTemplateSearch() {
             const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
               name: '',
-              value: ''
+              value: '',
             });
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
                 name: htmlEscape(repo.repository.full_name),
-                value: repo.repository.id
+                value: repo.repository.id,
               });
             });
             return filteredResponse;
@@ -43,7 +43,7 @@ export function initRepoTemplateSearch() {
           cache: false,
         },
 
-        fullTextSearch: true
+        fullTextSearch: true,
       });
   };
   $('#uid').on('change', changeOwner);

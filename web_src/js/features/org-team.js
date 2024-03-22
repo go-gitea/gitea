@@ -26,14 +26,14 @@ export function initOrgTeamSearchRepoBox() {
         $.each(response.data, (_i, item) => {
           items.push({
             title: item.repository.full_name.split('/')[1],
-            description: item.repository.full_name
+            description: item.repository.full_name,
           });
         });
 
         return {results: items};
-      }
+      },
     },
     searchFields: ['full_name'],
-    showNoResults: false
+    showNoResults: false,
   });
 }

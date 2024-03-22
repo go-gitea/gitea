@@ -59,7 +59,7 @@ async function updateDeadline(deadlineString) {
 
   try {
     const response = await POST($('#update-issue-deadline-form').attr('action'), {
-      data: {due_date: realDeadline}
+      data: {due_date: realDeadline},
     });
 
     if (response.ok) {
@@ -268,7 +268,7 @@ export function initRepoPullRequestUpdate() {
         $pullUpdateButton.find('.button-text').text($choice.text());
         $pullUpdateButton.data('do', $url);
       }
-    }
+    },
   });
 }
 
@@ -316,7 +316,7 @@ export function initRepoIssueReferenceRepositorySearch() {
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name
+              value: repo.repository.full_name,
             });
           });
           return filteredResponse;
@@ -327,7 +327,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         const $form = $choice.closest('form');
         $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
       },
-      fullTextSearch: true
+      fullTextSearch: true,
     });
 }
 
@@ -443,7 +443,7 @@ export function initRepoPullRequestReview() {
         }
         window.scrollTo({
           top: $commentDiv.offset().top - offset,
-          behavior: 'instant'
+          behavior: 'instant',
         });
       }
     }
@@ -661,7 +661,7 @@ export function initRepoIssueBranchSelect() {
     // Replace branch name to keep translation from HTML template
     $selectionTextField.html($selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`
+      `${baseName}:${branchNameNew}`,
     ));
     $selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
@@ -695,7 +695,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
     const editor = await initComboMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
-      }
+      },
     });
 
     $formField.on('focus', async () => {

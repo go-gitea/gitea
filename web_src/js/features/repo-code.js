@@ -116,7 +116,7 @@ function showLineButton() {
       tippy.popper.addEventListener('click', () => {
         tippy.hide();
       }, {once: true});
-    }
+    },
   });
 }
 

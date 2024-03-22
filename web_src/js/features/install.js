@@ -19,7 +19,7 @@ function initPreInstall() {
   const defaultDbHosts = {
     mysql: '127.0.0.1:3306',
     postgres: '127.0.0.1:5432',
-    mssql: '127.0.0.1:1433'
+    mssql: '127.0.0.1:1433',
   };
 
   const dbHost = document.getElementById('db_host');

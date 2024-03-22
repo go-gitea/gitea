@@ -30,7 +30,7 @@ export default {
           let newParent = {
             name: split,
             children: [],
-            isFile
+            isFile,
           };
 
           if (isFile === true) {
@@ -40,7 +40,7 @@ export default {
           if (parent) {
             // check if the folder already exists
             const existingFolder = parent.children.find(
-              (x) => x.name === split
+              (x) => x.name === split,
             );
             if (existingFolder) {
               newParent = existingFolder;
@@ -74,7 +74,7 @@ export default {
       // reduce the depth of our tree.
       mergeChildIfOnlyOneDir(result);
       return result;
-    }
+    },
   },
   mounted() {
     // Default to true if unset

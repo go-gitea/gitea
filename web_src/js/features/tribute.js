@@ -25,7 +25,7 @@ function makeCollections({mentions, emoji}) {
       },
       menuItemTemplate: (item) => {
         return `<div class="tribute-item">${emojiHTML(item.original)}<span>${htmlEscape(item.original)}</span></div>`;
-      }
+      },
     });
   }
 
@@ -41,7 +41,7 @@ function makeCollections({mentions, emoji}) {
             ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
           </div>
         `;
-      }
+      },
     });
   }
 

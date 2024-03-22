@@ -11,7 +11,7 @@ export async function initRepoCodeFrequency() {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),
         loadingInfo: el.getAttribute('data-locale-loading-info'),
-      }
+      },
     });
     View.mount(el);
   } catch (err) {

@@ -335,7 +335,7 @@ export function initGlobalLinkActions() {
           const data = await response.json();
           window.location.href = data.redirect;
         }
-      }
+      },
     }).modal('show');
   }
 

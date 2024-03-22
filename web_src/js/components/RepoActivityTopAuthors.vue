@@ -47,7 +47,7 @@ const sfc = {
     this.colors.barColor = refStyle.backgroundColor;
     this.colors.textColor = refStyle.color;
     this.colors.textAltColor = refAltStyle.color;
-  }
+  },
 };
 
 export function initRepoActivityTopAuthorsChart() {

@@ -69,7 +69,7 @@ export default {
         }
         return {name: label.name, color: `#${label.color}`, textColor};
       });
-    }
+    },
   },
   mounted() {
     this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
@@ -97,8 +97,8 @@ export default {
       } finally {
         this.loading = false;
       }
-    }
-  }
+    },
+  },
 };
 </script>
 <template>
