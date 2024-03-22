@@ -522,10 +522,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCreatedDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCreatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -540,10 +538,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByUpdatedDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByUpdatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -558,10 +554,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCommentsDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCommentsDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -576,10 +570,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByDeadlineDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByDeadlineDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -594,10 +586,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCreatedAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCreatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -612,10 +602,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByUpdatedAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByUpdatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -630,10 +618,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCommentsAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCommentsAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -648,10 +634,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByDeadlineAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByDeadlineAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
