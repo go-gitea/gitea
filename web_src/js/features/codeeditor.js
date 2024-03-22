@@ -80,7 +80,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
     rules: [
       {
         background: getColor('--color-code-bg'),
-      }
+      },
     ],
     colors: {
       'editor.background': getColor('--color-code-bg'),
@@ -98,7 +98,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
       'input.foreground': getColor('--color-input-text'),
       'scrollbar.shadow': getColor('--color-shadow'),
       'progressBar.background': getColor('--color-primary'),
-    }
+    },
   });
 
   // Quick fix: https://github.com/microsoft/monaco-editor/issues/2962

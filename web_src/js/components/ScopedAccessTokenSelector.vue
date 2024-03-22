@@ -39,7 +39,7 @@ const sfc = {
         'repository',
         'user');
       return categories;
-    }
+    },
   },
 
   mounted() {
@@ -68,7 +68,7 @@ const sfc = {
       }
       // no scopes selected, show validation error
       showElem(warningEl);
-    }
+    },
   },
 };
 
