@@ -124,9 +124,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					}
 				}
 			}
-			err = scanner.Err()
-			if err != nil {
-				return fmt.Errorf("scan: %w", err)
+			if err = scanner.Err(); err != nil {
+				_ = stdoutReader.Close()
+				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
 			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
