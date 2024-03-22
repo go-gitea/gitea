@@ -688,9 +688,7 @@ func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
@@ -723,9 +721,7 @@ func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {

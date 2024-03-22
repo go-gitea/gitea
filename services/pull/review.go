@@ -52,9 +52,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	issueIDs := prs.GetIssueIDs()
 
 	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: optional.Some(false),
 		IssueIDs:    issueIDs,
@@ -322,12 +320,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 // DismissApprovalReviews dismiss all approval reviews because of new commits
 func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IssueID:   pull.IssueID,
-		Type:      issues_model.ReviewTypeApprove,
-		Dismissed: optional.Some(false),
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pull.IssueID,
+		Type:        issues_model.ReviewTypeApprove,
+		Dismissed:   optional.Some(false),
 	})
 	if err != nil {
 		return err
