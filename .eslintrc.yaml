@@ -119,7 +119,7 @@ rules:
   "@stylistic/js/arrow-spacing": [2, {before: true, after: true}]
   "@stylistic/js/block-spacing": [0]
   "@stylistic/js/brace-style": [2, 1tbs, {allowSingleLine: true}]
-  "@stylistic/js/comma-dangle": [2, only-multiline]
+  "@stylistic/js/comma-dangle": [2, always-multiline]
   "@stylistic/js/comma-spacing": [2, {before: false, after: true}]
   "@stylistic/js/comma-style": [2, last]
   "@stylistic/js/computed-property-spacing": [2, never]

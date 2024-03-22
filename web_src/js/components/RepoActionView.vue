@@ -66,7 +66,7 @@ const sfc = {
             name: '',
             link: '',
           },
-        }
+        },
       },
       currentJob: {
         title: '',
@@ -315,7 +315,7 @@ const sfc = {
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector('.line-num').click();
-    }
+    },
   },
 };
 
