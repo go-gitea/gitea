@@ -189,8 +189,8 @@ progress::-moz-progress-bar {
 }
 
 ::selection {
-  background: var(--color-primary-light-1) !important;
-  color: var(--color-white) !important;
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
 }
 
 ::placeholder,
