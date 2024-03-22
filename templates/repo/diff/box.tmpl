@@ -1,7 +1,7 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
-		<div class="gt-df gt-ac gt-fw gt-gap-3 gt-ml-1">
+		<div class="tw-flex tw-content-center tw-flex-wrap gt-gap-3 gt-ml-1">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
@@ -18,14 +18,14 @@
 				</script>
 			{{end}}
 			{{if not .DiffNotAvailable}}
-				<div class="diff-detail-stats gt-df gt-ac gt-fw">
+				<div class="diff-detail-stats tw-flex tw-content-center tw-flex-wrap">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
-				<div class="not-mobile gt-df gt-ac gt-fc tw-whitespace-nowrap gt-mr-2">
+				<div class="not-mobile tw-flex tw-content-center tw-flex-col tw-whitespace-nowrap gt-mr-2">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
@@ -110,8 +110,8 @@
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
-						<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb gt-fw">
-							<div class="diff-file-name gt-df gt-ac gt-gap-2 gt-fw">
+						<h4 class="diff-file-header sticky-2nd-row ui top attached normal header tw-flex tw-content-center tw-justify-between tw-flex-wrap">
+							<div class="diff-file-name tw-flex tw-content-center gt-gap-2 tw-flex-wrap">
 								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
 										{{svg "octicon-chevron-right" 18}}
@@ -119,7 +119,7 @@
 										{{svg "octicon-chevron-down" 18}}
 									{{end}}
 								</button>
-								<div class="gt-font-semibold gt-df gt-ac gt-mono">
+								<div class="gt-font-semibold tw-flex tw-content-center gt-mono">
 									{{if $file.IsBin}}
 										<span class="gt-ml-1 gt-mr-3">
 											{{ctx.Locale.Tr "repo.diff.bin"}}
@@ -144,7 +144,7 @@
 									<span class="gt-ml-4 gt-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
 							</div>
-							<div class="diff-file-header-actions gt-df gt-ac gt-gap-2 gt-fw">
+							<div class="diff-file-header-actions tw-flex tw-content-center gt-gap-2 tw-flex-wrap">
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
@@ -218,7 +218,7 @@
 
 				{{if .Diff.IsIncomplete}}
 					<div class="diff-file-box diff-box file-content gt-mt-3" id="diff-incomplete">
-						<h4 class="ui top attached normal header gt-df gt-ac gt-sb">
+						<h4 class="ui top attached normal header tw-flex tw-content-center tw-justify-between">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
 							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
