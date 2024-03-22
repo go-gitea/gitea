@@ -12,7 +12,7 @@
 			{{if eq .GetType 4}}
 				{{if $.root.AfterCommitID}}
 					<td colspan="2" class="lines-num">
-						<div class="gt-df">
+						<div class="tw-flex">
 							{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
 								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 									{{svg "octicon-fold-down"}}
