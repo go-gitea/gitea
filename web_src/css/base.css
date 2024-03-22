@@ -25,6 +25,18 @@
   --tab-size: 4;
 }
 
+:root * {
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
+}
+
 html, body {
   height: 100%;
   font-size: 14px;
@@ -40,18 +52,6 @@ body {
   flex-direction: column;
   overflow-x: visible;
   overflow-wrap: break-word;
-}
-
-:root * {
-  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
-}
-
-*, ::before, ::after {
-  /* these are needed for tailwind borders to work because we do not load tailwind's base
-     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
-  border-width: 0;
-  border-style: solid;
-  border-color: currentcolor;
 }
 
 textarea {
