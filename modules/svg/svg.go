@@ -45,10 +45,14 @@ func MockIcon(icon string) func() {
 	if svgIcons == nil {
 		svgIcons = make(map[string]string)
 	}
-	orig := svgIcons[icon]
+	orig, exist := svgIcons[icon]
 	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
 	return func() {
-		svgIcons[icon] = orig
+		if exist {
+			svgIcons[icon] = orig
+		} else {
+			delete(svgIcons, icon)
+		}
 	}
 }
 
