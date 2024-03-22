@@ -136,7 +136,7 @@ export default {
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="gt-df">
+    <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
         <button class="ui button">

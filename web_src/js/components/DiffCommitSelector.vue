@@ -240,7 +240,7 @@ export default {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="gt-f1 gt-df gt-fc gt-gap-2">
+          <div class="tw-flex-1 tw-flex tw-flex-col gt-gap-2">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
