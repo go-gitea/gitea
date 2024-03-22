@@ -124,9 +124,8 @@ func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
 			return err
 		}
 	}
-	err = scan.Err()
-	if err != nil {
-		return fmt.Errorf("scan: %w", err)
+	if err = scan.Err(); err != nil {
+		return fmt.Errorf("fallbackRender scan: %w", err)
 	}
 
 	_, err = tmpBlock.WriteString("</pre>")
