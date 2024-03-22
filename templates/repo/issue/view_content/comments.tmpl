@@ -25,8 +25,8 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header tw-flex tw-content-center tw-justify-between" role="heading" aria-level="3">
-						<div class="comment-header-left tw-flex tw-content-center">
+					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
+						<div class="comment-header-left tw-flex tw-items-center">
 							{{if .OriginalAuthor}}
 								<span class="text black gt-font-semibold gt-mr-2">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
@@ -50,7 +50,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions tw-flex tw-content-center">
+						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
@@ -402,8 +402,8 @@
 				{{if or .Content .Attachments}}
 				<div class="timeline-item comment">
 					<div class="content comment-container">
-						<div class="ui top attached header comment-header tw-flex tw-content-center tw-justify-between">
-							<div class="comment-header-left tw-flex tw-content-center">
+						<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+							<div class="comment-header-left tw-flex tw-items-center">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
@@ -424,7 +424,7 @@
 									{{ctx.Locale.Tr "repo.issues.review.left_comment"}}
 								</span>
 							</div>
-							<div class="comment-header-right actions tw-flex tw-content-center">
+							<div class="comment-header-right actions tw-flex tw-items-center">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
 									{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
@@ -623,7 +623,7 @@
 				{{if .Content}}
 					<div class="timeline-item comment">
 						<div class="content">
-							<div class="ui top attached header comment-header-left tw-flex tw-content-center arrow-top">
+							<div class="ui top attached header comment-header-left tw-flex tw-items-center arrow-top">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}

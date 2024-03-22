@@ -27,7 +27,7 @@
 				{{if .NumMembers}}
 					<h4 class="ui top attached header tw-flex">
 						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.members"}}</strong>
-						<a class="text grey tw-flex tw-content-center" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+						<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
 						{{$isMember := .IsOrganizationMember}}
@@ -41,7 +41,7 @@
 				{{if .IsOrganizationMember}}
 					<div class="ui top attached header tw-flex">
 						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.teams"}}</strong>
-						<a class="text grey tw-flex tw-content-center" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+						<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
 						{{range .Teams}}
