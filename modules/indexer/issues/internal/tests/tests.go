@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -77,6 +78,13 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				assert.Equal(t, c.ExpectedIDs, ids)
 				assert.Equal(t, c.ExpectedTotal, result.Total)
 			}
+
+			// test counting
+			opts := c.SearchOptions.Copy(func(options *issues.SearchOptions) { options.ListOptions = db.ListOptions{PageSize: 0} })
+			countResult, err := indexer.Search(context.Background(), opts)
+			require.NoError(t, err)
+			assert.Empty(t, countResult.Hits)
+			assert.Equal(t, result.Total, countResult.Total)
 		})
 	}
 }
