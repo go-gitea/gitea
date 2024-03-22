@@ -27,19 +27,19 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics">
+		<div class="tw-flex tw-content-center tw-flex-wrap gt-gap-2" id="repo-topics">
 			{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit">
-			<div class="field gt-f1 gt-mb-2">
-				<div class="ui fluid multiple search selection dropdown gt-fw" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
+		<div class="ui form gt-hidden tw-flex tw-flex-col gt-mt-4" id="topic_edit">
+			<div class="field tw-flex-1 gt-mb-2">
+				<div class="ui fluid multiple search selection dropdown tw-flex-wrap" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keey the same layout as Fomantic UI generated labels */}}
-						<a class="ui label transition visible tw-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+						<a class="ui label transition visible tw-cursor-default tw-inline-block" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 					{{end}}
 					<div class="text"></div>
 				</div>
@@ -61,7 +61,7 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
-			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
+			<div class="tw-flex tw-content-center tw-flex-wrap gt-gap-y-3">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -121,7 +121,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="gt-df gt-ac">
+			<div class="tw-flex tw-content-center">
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
 					<div class="clone-panel ui action tiny input">

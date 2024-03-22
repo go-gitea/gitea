@@ -56,7 +56,7 @@
 	<div class="navbar-right ui secondary menu">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text gt-df gt-ac">
+				<span class="text tw-flex tw-content-center">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="only-mobile gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
@@ -83,8 +83,8 @@
 				<span class="only-mobile gt-ml-3">{{ctx.Locale.Tr "active_stopwatch"}}</span>
 			</a>
 			<div class="active-stopwatch-popup item tippy-target gt-p-3">
-				<div class="gt-df gt-ac">
-					<a class="stopwatch-link gt-df gt-ac" href="{{.ActiveStopwatch.IssueLink}}">
+				<div class="tw-flex tw-content-center">
+					<a class="stopwatch-link tw-flex tw-content-center" href="{{.ActiveStopwatch.IssueLink}}">
 						{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui primary label stopwatch-time gt-my-0 gt-mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
@@ -142,7 +142,7 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text gt-df gt-ac">
+				<span class="text tw-flex tw-content-center">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="only-mobile gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>

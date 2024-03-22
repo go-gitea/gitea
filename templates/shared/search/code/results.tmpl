@@ -1,4 +1,4 @@
-<div class="flex-text-block gt-fw">
+<div class="flex-text-block tw-flex-wrap">
 	{{range $term := .SearchResultLanguages}}
 	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0"
 		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
@@ -12,9 +12,9 @@
 	{{range $result := .SearchResults}}
 		{{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
 		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-			<h4 class="ui top attached normal header gt-df gt-fw">
+			<h4 class="ui top attached normal header tw-flex tw-flex-wrap">
 				{{if not $.Repo}}
-					<span class="file gt-f1">
+					<span class="file tw-flex-1">
 						<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 						{{if $repo.IsArchived}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
@@ -22,7 +22,7 @@
 						- {{.Filename}}
 					</span>
 				{{else}}
-					<span class="file gt-f1">{{.Filename}}</span>
+					<span class="file tw-flex-1">{{.Filename}}</span>
 				{{end}}
 				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>

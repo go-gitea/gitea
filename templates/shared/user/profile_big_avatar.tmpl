@@ -1,5 +1,5 @@
 <div id="profile-avatar-card" class="ui card">
-	<div id="profile-avatar" class="content gt-df">
+	<div id="profile-avatar" class="content tw-flex">
 	{{if eq .SignedUserID .ContextUser.ID}}
 		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
 			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
@@ -36,7 +36,7 @@
 			{{if .ContextUser.Location}}
 				<li>
 					{{svg "octicon-location"}}
-					<span class="gt-f1">{{.ContextUser.Location}}</span>
+					<span class="tw-flex-1">{{.ContextUser.Location}}</span>
 					{{if .ContextUserLocationMapURL}}
 						<a href="{{.ContextUserLocationMapURL}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
 							{{svg "octicon-link-external"}}
@@ -47,7 +47,7 @@
 			{{if (eq .SignedUserID .ContextUser.ID)}}
 				<li>
 					{{svg "octicon-mail"}}
-					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 						{{if .ShowUserEmail}}
 							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
