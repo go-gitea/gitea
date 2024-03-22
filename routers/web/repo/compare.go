@@ -980,9 +980,8 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		}
 		diffLines = append(diffLines, diffLine)
 	}
-	err = scanner.Err()
-	if err != nil {
-		return nil, fmt.Errorf("scan: %w", err)
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
 }
