@@ -16,16 +16,16 @@
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{end}}
-					{{if or .HeatmapData (not .ContextUser.KeepActivityPrivate)}}
+					{{if .ShowHeatmap}}
 						{{template "user/heatmap" .}}
 					{{end}}
-					{{if and (eq (len .Feeds) 0) (not .ContextUser.KeepActivityPrivate)}}
+					{{if .ShowFeeds}}
+						{{template "user/dashboard/feeds" .}}
+					{{else}}
 						<div class="empty-placeholder">
 							{{svg "octicon-rss" 48}}
 							<h2>{{ctx.Locale.Tr "action.empty"}}</h2>
 						</div>
-					{{else}}
-						{{template "user/dashboard/feeds" .}}
 					{{end}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
