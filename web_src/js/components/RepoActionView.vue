@@ -624,7 +624,7 @@ export function initRepositoryActionView() {
   flex-direction: column;
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
-  background-color: var(--color-console-bg);
+  background: var(--color-console-bg);
   align-self: flex-start;
 }
 
