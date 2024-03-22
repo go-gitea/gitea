@@ -60,7 +60,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
     },
     onHide() {
       $(this).dropdown('clear', true);
-    }
+    },
   });
   $dialog.modal({
     async onShow() {

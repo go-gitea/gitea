@@ -9,7 +9,7 @@ export async function initCaptcha() {
 
   const params = {
     sitekey: siteKey,
-    theme: isDark ? 'dark' : 'light'
+    theme: isDark ? 'dark' : 'light',
   };
 
   switch (captchaEl.getAttribute('data-captcha-type')) {
@@ -42,7 +42,7 @@ export async function initCaptcha() {
         siteKey: {
           instanceUrl: new URL(instanceURL),
           key: siteKey,
-        }
+        },
       });
       break;
     }
