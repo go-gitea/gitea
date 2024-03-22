@@ -216,7 +216,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		"id:desc",
 	}
 
-	skip, limit := indexer_internal.ParsePaginator(&options.ListOptions, maxTotalHits)
+	skip, limit := indexer_internal.ParsePaginator(options.ListOptions, maxTotalHits)
 
 	keyword := options.Keyword
 	if !options.IsFuzzyKeyword {

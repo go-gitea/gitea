@@ -248,7 +248,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	// TODO: make it configurable since it's configurable in elasticsearch
 	const maxPageSize = 10000
 
-	skip, limit := indexer_internal.ParsePaginator(&options.ListOptions, maxPageSize)
+	skip, limit := indexer_internal.ParsePaginator(options.ListOptions, maxPageSize)
 	searchResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
