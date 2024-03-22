@@ -130,7 +130,7 @@ func List(ctx *context.Context) {
 				}
 			}
 			if !hasJobWithoutNeeds {
-				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_job_without_needs")
 			}
 			workflows = append(workflows, workflow)
 		}
