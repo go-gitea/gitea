@@ -51,11 +51,11 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		}
 		linesInAuthorizedKeys.Add(line)
 	}
-	err = scanner.Err()
-	if err != nil {
+	if err = scanner.Err(); err != nil {
 		return fmt.Errorf("scan: %w", err)
 	}
-	f.Close()
+	// although there is a "defer close" above, here close explicitly before the generating, because it needs to open the file for writing again
+	_ = f.Close()
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
