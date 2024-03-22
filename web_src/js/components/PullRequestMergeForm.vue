@@ -94,6 +94,7 @@ export default {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
+    <!-- another similar form is in pull.tmpl (manual merge)-->
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
       <input type="hidden" name="_csrf" :value="csrfToken">
       <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">

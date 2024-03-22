@@ -1,4 +1,4 @@
-.fork-flag {
+.header-wrapper .fork-flag {
   margin-top: 0.5rem;
   font-size: 12px;
 }
@@ -15,20 +15,13 @@
   padding: 0;
 }
 
-.repo-header .btn.interact-bg:hover {
-  text-decoration: none;
-}
-
 .repo-header .flex-item-main {
+  flex: 0;
   flex-basis: unset;
 }
 
 .repo-header .flex-item-trailing {
   flex-wrap: nowrap;
-}
-
-.repo-header .flex-item-trailing .repo-icon {
-  display: none;
 }
 
 .repo-buttons {
@@ -74,16 +67,4 @@
 .repository .header-wrapper {
   padding-top: 12px;
   background-color: var(--color-header-wrapper);
-}
-
-@media (max-width: 767.98px) {
-  .repo-header .flex-item {
-    flex-grow: 1;
-  }
-  .repo-header .flex-item-trailing .label {
-    display: none;
-  }
-  .repo-header .flex-item-trailing .repo-icon {
-    display: initial;
-  }
 }

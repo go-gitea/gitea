@@ -3,29 +3,31 @@
 	<div class="ui container">
 		<div class="repo-header">
 			<div class="flex-item gt-ac">
-				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
+				<div class="flex-item-leading">
+					{{template "repo/icon" .}}
+				</div>
 				<div class="flex-item-main">
 					<div class="flex-item-title gt-font-18">
-						<a class="muted gt-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
-						<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a></div>
+						<a class="muted gt-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					</div>
 				</div>
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
 					{{end}}
 					{{if .IsPrivate}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
 					{{else}}
 						{{if .Owner.Visibility.IsPrivate}}
-							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-							<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
+							<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
 					{{end}}
 					{{if .IsTemplate}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.template"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
 					{{end}}
 					{{if eq .ObjectFormatName "sha256"}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.sha256"}}</span>
@@ -76,7 +78,7 @@
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
-										data-modal="#fork-repo-modal"
+										href="#" data-modal="#fork-repo-modal"
 									{{else if eq (len $.UserAndOrgForks) 1}}
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
@@ -84,10 +86,10 @@
 								{{else if not $.UserAndOrgForks}}
 									href="{{$.RepoLink}}/fork"
 								{{else}}
-									data-modal="#fork-repo-modal"
+									href="#" data-modal="#fork-repo-modal"
 								{{end}}
 							>
-								{{svg "octicon-repo-forked"}}<span class="text">{{ctx.Locale.Tr "repo.fork"}}</span>
+								{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
 								<div class="header">
