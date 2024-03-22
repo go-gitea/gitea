@@ -743,7 +743,9 @@ img.ui.avatar,
   margin-bottom: 14px;
 }
 
-/* this uses padding instead of margin because of negative margin on .ui.grid */
+/* add padding to all content when there is no .secondary.nav. this uses padding instead of
+   margin because with the negative margin on .ui.grid we would have to set margin-top: 0,
+   but that does not work universally for all pages */
 .page-content > :first-child:not(.secondary-nav) {
   padding-top: 14px;
 }
