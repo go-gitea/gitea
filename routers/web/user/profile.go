@@ -208,7 +208,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
 
-		showFeeds := len(items) != 0 || ctx.ContextUser.KeepActivityPrivate
+		showFeeds := len(items) > 0 || ctx.ContextUser.KeepActivityPrivate
 		ctx.Data["ShowFeeds"] = showFeeds
 
 		total = int(count)
