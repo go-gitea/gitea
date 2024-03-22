@@ -4,12 +4,6 @@
   min-height: 350px;
 }
 
-#git-graph-container > .ui.segment.loading {
-  border: 0;
-  z-index: 1;
-  min-height: 246px;
-}
-
 #git-graph-container h2 {
   display: flex;
   justify-content: space-between;

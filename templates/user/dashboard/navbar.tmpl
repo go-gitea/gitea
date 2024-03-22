@@ -3,13 +3,13 @@
 		<div class="item">
 			<div class="ui floating dropdown jump">
 				<span class="text truncated-item-container">
-					{{ctx.AvatarUtils.Avatar .ContextUser}}
+					{{ctx.AvatarUtils.Avatar .ContextUser 24 "tw-mr-1"}}
 					<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 					<span class="org-visibility">
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 					</span>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
 				</span>
 				<div class="context user overflow menu">
 					<div class="ui header">
@@ -105,4 +105,4 @@
 	{{end}}
 	</div>
 </div>
-<div class="divider"></div>
+<div class="divider tw-mt-0"></div>
