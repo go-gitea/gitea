@@ -6,6 +6,7 @@ package git
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -89,6 +90,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 				if line == "" {
 					if len(results) >= 50 {
+						cancel()
 						break
 					}
 					isInBlock = false
@@ -107,7 +109,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 			return scanner.Err()
 		},
 	})
-	if err != nil && len(stderr) != 0 {
+	if err != nil && !errors.Is(err, context.Canceled) && len(stderr) != 0 {
 		return nil, fmt.Errorf("unable to run grep: %w, stderr: %s", err, string(stderr))
 	}
 	return results, nil
