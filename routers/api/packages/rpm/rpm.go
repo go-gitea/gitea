@@ -133,7 +133,30 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	pck, err := rpm_module.ParsePackage(buf)
+	pri, _, err := rpm_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	hBuf, seek, err := rpm_module.SignPackage(buf, pri)
+	if _, err := buf.Seek(seek, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	signBuf, err := packages_module.CreateHashedBufferFromReader(io.MultiReader(hBuf, buf))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer signBuf.Close()
+
+	if _, err := signBuf.Seek(0, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pck, err := rpm_module.ParsePackage(signBuf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -142,8 +165,7 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+	if _, err := signBuf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -172,7 +194,7 @@ func UploadPackageFile(ctx *context.Context) {
 				CompositeKey: group,
 			},
 			Creator: ctx.Doer,
-			Data:    buf,
+			Data:    signBuf,
 			IsLead:  true,
 			Properties: map[string]string{
 				rpm_module.PropertyGroup:        group,
