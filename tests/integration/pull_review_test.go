@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -89,6 +90,23 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
+
+			prURL := fmt.Sprintf("/user2/test_codeowner/pulls/%d", pr.Index)
+			req := NewRequest(t, "GET", prURL)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			req = NewRequestWithValues(t, "POST", prURL+"/title", map[string]string{
+				"_csrf": htmlDoc.GetCSRF(),
+				"title": "[WIP] Test Pull Request",
+			})
+			session.MakeRequest(t, req, http.StatusOK)
+
+			req = NewRequestWithValues(t, "POST", prURL+"/title", map[string]string{
+				"_csrf": htmlDoc.GetCSRF(),
+				"title": "Test Pull Request",
+			})
+			session.MakeRequest(t, req, http.StatusOK)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
