@@ -90,7 +90,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.HeadCommitID)
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
