@@ -65,7 +65,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.UpdatedBeforeUnix = optional.Some(opts.UpdatedBeforeUnix)
 	}
 
-	searchOpt.ListOptions = opts.ListOptions
+	searchOpt.Paginator = opts.Paginator
 
 	switch opts.SortType {
 	case "":

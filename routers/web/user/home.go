@@ -522,7 +522,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if page <= 1 {
 		page = 1
 	}
-	opts.ListOptions = &db.ListOptions{
+	opts.Paginator = &db.ListOptions{
 		Page:     page,
 		PageSize: setting.UI.IssuePagingNum,
 	}

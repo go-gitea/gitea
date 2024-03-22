@@ -266,7 +266,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		indexerQuery = bleve.NewMatchAllQuery()
 	}
 
-	skip, limit := indexer_internal.ParsePaginator(options.ListOptions)
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, skip, false)
 
 	if options.SortBy == "" {

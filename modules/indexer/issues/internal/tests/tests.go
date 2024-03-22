@@ -79,7 +79,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			}
 
 			// test counting
-			c.SearchOptions.ListOptions = &db.ListOptions{PageSize: 0}
+			c.SearchOptions.Paginator = &db.ListOptions{PageSize: 0}
 			countResult, err := indexer.Search(context.Background(), c.SearchOptions)
 			require.NoError(t, err)
 			assert.Empty(t, countResult.Hits)
@@ -108,7 +108,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "with limit",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 		},
@@ -125,7 +125,7 @@ var cases = []*testIndexerCase{
 			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			Keyword: "hello",
@@ -145,7 +145,7 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			Keyword: "hello",
@@ -166,7 +166,7 @@ var cases = []*testIndexerCase{
 			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			Keyword:   "hello",
@@ -179,7 +179,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "issue only",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			IsPull: optional.Some(false),
@@ -195,7 +195,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "pull only",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			IsPull: optional.Some(true),
@@ -211,7 +211,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "opened only",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			IsClosed: optional.Some(false),
@@ -227,7 +227,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "closed only",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			IsClosed: optional.Some(true),
@@ -250,7 +250,7 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			Keyword:          "hello",
@@ -270,7 +270,7 @@ var cases = []*testIndexerCase{
 			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
 		},
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			Keyword:             "hello",
@@ -283,7 +283,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "MilestoneIDs",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			MilestoneIDs: []int64{1, 2, 6},
@@ -301,7 +301,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "no MilestoneIDs",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			MilestoneIDs: []int64{0},
@@ -319,7 +319,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "ProjectID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ProjectID: optional.Some(int64(1)),
@@ -337,7 +337,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "no ProjectID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ProjectID: optional.Some(int64(0)),
@@ -355,7 +355,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "ProjectBoardID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ProjectBoardID: optional.Some(int64(1)),
@@ -373,7 +373,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "no ProjectBoardID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ProjectBoardID: optional.Some(int64(0)),
@@ -391,7 +391,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "PosterID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			PosterID: optional.Some(int64(1)),
@@ -409,7 +409,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "AssigneeID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			AssigneeID: optional.Some(int64(1)),
@@ -427,7 +427,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "no AssigneeID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			AssigneeID: optional.Some(int64(0)),
@@ -445,7 +445,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "MentionID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			MentionID: optional.Some(int64(1)),
@@ -463,7 +463,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "ReviewedID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ReviewedID: optional.Some(int64(1)),
@@ -481,7 +481,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "ReviewRequestedID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			ReviewRequestedID: optional.Some(int64(1)),
@@ -499,7 +499,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SubscriberID",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			SubscriberID: optional.Some(int64(1)),
@@ -517,7 +517,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "updated",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
 			UpdatedAfterUnix:  optional.Some(int64(20)),
@@ -537,7 +537,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByCreatedDesc,
@@ -555,7 +555,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByUpdatedDesc,
@@ -573,7 +573,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsDesc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByCommentsDesc,
@@ -591,7 +591,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineDesc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByDeadlineDesc,
@@ -609,7 +609,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByCreatedAsc,
@@ -627,7 +627,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByUpdatedAsc,
@@ -645,7 +645,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsAsc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByCommentsAsc,
@@ -663,7 +663,7 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineAsc",
 		SearchOptions: &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
 			SortBy: internal.SortByDeadlineAsc,
@@ -771,7 +771,7 @@ func waitData(indexer internal.Indexer, total int64) error {
 	var actual int64
 	for i := 0; i < 100; i++ {
 		result, err := indexer.Search(context.Background(), &internal.SearchOptions{
-			ListOptions: &db.ListOptions{
+			Paginator: &db.ListOptions{
 				PageSize: 0,
 			},
 		})

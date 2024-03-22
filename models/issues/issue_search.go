@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	*db.ListOptions
+	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
@@ -100,15 +100,15 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.ListOptions.IsListAll() {
+	if opts.Paginator == nil || opts.Paginator.IsListAll() {
 		return sess
 	}
 
 	start := 0
-	if opts.ListOptions.Page > 0 {
-		start = (opts.ListOptions.Page - 1) * opts.ListOptions.PageSize
+	if opts.Paginator.Page > 1 {
+		start = (opts.Paginator.Page - 1) * opts.Paginator.PageSize
 	}
-	sess.Limit(opts.ListOptions.PageSize, start)
+	sess.Limit(opts.Paginator.PageSize, start)
 
 	return sess
 }
