@@ -1,7 +1,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		{{$notificationUnreadCount := call .NotificationUnreadCount}}
-		<div class="tw-flex tw-content-center tw-justify-between gt-mb-4">
+		<div class="tw-flex tw-items-center tw-justify-between gt-mb-4">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
@@ -25,7 +25,7 @@
 		<div class="gt-p-0">
 			<div id="notification_table">
 				{{if not .Notifications}}
-					<div class="tw-flex tw-content-center tw-flex-col gt-p-4">
+					<div class="tw-flex tw-items-center tw-flex-col gt-p-4">
 						{{svg "octicon-inbox" 56 "gt-mb-4"}}
 						{{if eq .Status 1}}
 							{{ctx.Locale.Tr "notification.no_unread"}}
@@ -35,7 +35,7 @@
 					</div>
 				{{else}}
 					{{range $notification := .Notifications}}
-						<div class="notifications-item tw-flex tw-content-center tw-flex-wrap gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
+						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
 							<div class="notifications-icon gt-ml-3 gt-mr-2 tw-self-start gt-mt-2">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
@@ -60,14 +60,14 @@
 									</span>
 								</div>
 							</a>
-							<div class="notifications-updated tw-content-center gt-mr-3">
+							<div class="notifications-updated tw-items-center gt-mr-3">
 								{{if .Issue}}
 									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
 								{{else}}
 									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 								{{end}}
 							</div>
-							<div class="notifications-buttons tw-content-center tw-justify-end gt-gap-2 gt-px-2">
+							<div class="notifications-buttons tw-items-center tw-justify-end gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
