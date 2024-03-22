@@ -155,8 +155,9 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: 1,
-				SortType:   "oldest",
+				ListOptions: db.ListOptionsAll,
+				AssigneeID:  1,
+				SortType:    "oldest",
 			},
 			[]int64{1, 6},
 		},
@@ -193,6 +194,7 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			issues_model.IssuesOptions{
+				ListOptions:  db.ListOptionsAll,
 				MilestoneIDs: []int64{1},
 			},
 			[]int64{2},
