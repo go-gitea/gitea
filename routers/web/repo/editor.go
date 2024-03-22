@@ -82,7 +82,7 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 
 	returnURI := ctx.FormString("return_uri")
 
-	ctx.RedirectToFirst(
+	ctx.RedirectToCurrentSite(
 		returnURI,
 		ctx.Repo.RepoLink+"/src/branch/"+util.PathEscapeSegments(newBranchName)+"/"+util.PathEscapeSegments(treePath),
 	)
