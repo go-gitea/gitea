@@ -1341,7 +1341,7 @@ overflow-menu .overflow-menu-items .item {
 }
 
 overflow-menu .ui.label {
-  margin-left: 7px !important;
+  margin-left: 7px !important; /* save some space */
 }
 
 .activity-bar-graph {
