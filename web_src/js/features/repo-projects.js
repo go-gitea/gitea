@@ -134,7 +134,7 @@ export function initRepoProject() {
         if ($projectColorInput.val()) {
           setLabelColor($projectHeader, $projectColorInput.val());
         }
-        $boardColumn[0].setAttribute('style', `background: ${$projectColorInput.val()}!important`);
+        $boardColumn[0].style = `background: ${$projectColorInput.val()} !important`;
         $('.ui.modal').modal('hide');
       }
     });
