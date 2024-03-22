@@ -34,7 +34,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use `Temporal.PlainDate` for absolute dates (#29804) (#29808)
   * Fix incorrect package link method calls in templates (#29580) (#29764)
   * Fix the bug that the user may log out if GetUserByID returns unknown error (#29962) #29964
-  * Performance improvements for pull request list page (#29900) #29972 
+  * Performance improvements for pull request list page (#29900) #29972
 
 ## [1.21.8](https://github.com/go-gitea/gitea/releases/tag/1.21.8) - 2024-03-12
 
