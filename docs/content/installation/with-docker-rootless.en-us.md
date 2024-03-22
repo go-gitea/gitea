@@ -59,10 +59,10 @@ services:
       - "2222:2222"
 ```
 
-Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command:
+Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1010 gid:1010. If needed you can set ownership on those folders with the command:
 
 ```sh
-sudo chown 1000:1000 config/ data/
+sudo chown 1010:1010 config/ data/
 ```
 
 > If you don't give the volume correct permissions, the container may not start.

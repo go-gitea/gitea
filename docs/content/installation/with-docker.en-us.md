@@ -46,8 +46,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
     restart: always
     networks:
       - gitea
@@ -78,8 +78,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
     restart: always
     networks:
       - gitea
@@ -113,8 +113,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
 +      - GITEA__database__DB_TYPE=mysql
 +      - GITEA__database__HOST=db:3306
 +      - GITEA__database__NAME=gitea
@@ -164,8 +164,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
 +      - GITEA__database__DB_TYPE=postgres
 +      - GITEA__database__HOST=db:5432
 +      - GITEA__database__NAME=gitea
@@ -256,8 +256,8 @@ documented above, please note that `db` must be used as the database hostname.
 ## Configure the user inside Gitea using environment variables
 
 - `USER`: **git**: The username of the user that runs Gitea within the container.
-- `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
-- `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+- `USER_UID`: **1010**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+- `USER_GID`: **1010**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
 ## Customization
 
@@ -363,8 +363,8 @@ In this option, the idea is that the host simply uses the `authorized_keys` that
 
   ```yaml
   environment:
-    - USER_UID=1000
-    - USER_GID=1000
+    - USER_UID=1010
+    - USER_GID=1010
   ```
 
 - Mount `/home/git/.ssh` of the host into the container. This ensures that the `authorized_keys` file is shared between the host `git` user and the container `git` user otherwise the SSH authentication cannot work inside the container.

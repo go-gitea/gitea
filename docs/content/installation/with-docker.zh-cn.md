@@ -37,8 +37,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
     restart: always
     networks:
       - gitea
@@ -67,8 +67,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
     restart: always
     networks:
       - gitea
@@ -101,8 +101,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
 +      - GITEA__database__DB_TYPE=mysql
 +      - GITEA__database__HOST=db:3306
 +      - GITEA__database__NAME=gitea
@@ -151,8 +151,8 @@ services:
     image: gitea/gitea:@version@
     container_name: gitea
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1010
+      - USER_GID=1010
 +      - GITEA__database__DB_TYPE=postgres
 +      - GITEA__database__HOST=db:5432
 +      - GITEA__database__NAME=gitea
@@ -255,8 +255,8 @@ MySQL 或 PostgreSQL 容器将需要分别创建。
 - `SECRET_KEY`：**""** ：全局密钥。这应该更改。如果它具有一个值并且 `INSTALL_LOCK` 为空，则 `INSTALL_LOCK` 将自动设置为 `true`。
 - `DISABLE_REGISTRATION`：**false**：禁用注册，之后只有管理员才能为用户创建帐户。
 - `REQUIRE_SIGNIN_VIEW`：**false**：启用此选项可强制用户登录以查看任何页面。
-- `USER_UID`：**1000**：在容器内运行 Gitea 的用户的 UID（Unix 用户 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 UID 匹配（对于命名卷，则不需要这样做）。
-- `USER_GID`：**1000**：在容器内运行 Gitea 的用户的 GID（Unix 组 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 GID 匹配（对于命名卷，则不需要这样做）。
+- `USER_UID`：**1010**：在容器内运行 Gitea 的用户的 UID（Unix 用户 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 UID 匹配（对于命名卷，则不需要这样做）。
+- `USER_GID`：**1010**：在容器内运行 Gitea 的用户的 GID（Unix 组 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 GID 匹配（对于命名卷，则不需要这样做）。
 
 ## 自定义
 
@@ -319,8 +319,8 @@ services:
 
 ```bash
 environment:
-  - USER_UID=1000
-  - USER_GID=1000
+  - USER_UID=1010
+  - USER_GID=1010
 ```
 
 接下来将主机的 `/home/git/.ssh` 装入容器。否则，SSH 身份验证将无法在容器内运行。
