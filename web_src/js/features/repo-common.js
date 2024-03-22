@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
-import {POST} from '../modules/fetch.js';
+import {POST, GET} from '../modules/fetch.js';
 
 async function getArchive($target, url, first) {
   const dropdownBtn = $target[0].closest('.ui.dropdown.button');
@@ -89,5 +89,55 @@ export function initRepoCommonFilterSearchDropdown(selector) {
       }
     },
     message: {noResults: $dropdown[0].getAttribute('data-no-results')},
+  });
+}
+
+const {appSubUrl} = window.config;
+
+export function initRepoCommonForksRepoSearchDropdown(selector) {
+  const dropdown = document.querySelector(selector);
+  const dropdownInput = dropdown.querySelector('input');
+
+  dropdownInput.addEventListener('input', async function() {
+    const root = this.closest(selector).querySelector('.reference-list-menu');
+    const query = this.value.trim();
+    if (query.length === 0) {
+      return;
+    }
+
+    const rsp = await GET(`${appSubUrl}/repo/search?q=${query}`);
+    const data = await rsp.json();
+    if (data.ok !== true) {
+      return;
+    }
+
+    const linkTmpl = root.getAttribute('data-url-tmpl');
+
+    for (const item of data.data) {
+      const {id, full_name, link} = item.repository;
+      const found = root.querySelector(`.item[data-id="${id}"]`);
+      if (found) {
+        continue;
+      }
+
+      const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
+      const newItem = document.createElement('div');
+      newItem.classList.add('item');
+      newItem.setAttribute('data-id', id);
+      newItem.setAttribute('data-url', compareLink);
+      newItem.textContent = full_name;
+      root.append(newItem);
+    }
+  });
+
+  $(selector).dropdown({
+    fullTextSearch: 'exact',
+    selectOnKeydown: false,
+    onChange(_text, _value, $choice) {
+      if ($choice.attr('data-url')) {
+        window.location.href = $choice.attr('data-url');
+      }
+    },
+    message: {noResults: $(selector).attr('data-no-results')},
   });
 }

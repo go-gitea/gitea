@@ -1222,6 +1222,10 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	if ci.RefsNotExist {
+		ctx.NotFound("RefsNotExist", nil)
+		return
+	}
 
 	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
