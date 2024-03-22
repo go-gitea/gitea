@@ -45,3 +45,12 @@ func SliceSortedEqual[T comparable](s1, s2 []T) bool {
 func SliceRemoveAll[T comparable](slice []T, target T) []T {
 	return slices.DeleteFunc(slice, func(t T) bool { return t == target })
 }
+
+// TODO: Replace with "maps.Keys" once available, current it only in golang.org/x/exp/maps but not in standard library
+func KeysOfMap[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
