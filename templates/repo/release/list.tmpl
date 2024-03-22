@@ -16,7 +16,7 @@
 						{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
-						<div class="tw-flex tw-content-center tw-justify-between tw-flex-wrap gt-mb-3">
+						<div class="tw-flex tw-items-center tw-justify-between tw-flex-wrap gt-mb-3">
 							<h4 class="release-list-title gt-word-break">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}

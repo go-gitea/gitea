@@ -16,7 +16,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header tw-flex tw-content-center tw-justify-between">
+  <div class="header tw-flex tw-items-center tw-justify-between">
     <div>${itemTitleHtml}</div>
     <div class="ui dropdown dialog-header-options gt-mr-5 gt-hidden">
       ${i18nTextOptions}
