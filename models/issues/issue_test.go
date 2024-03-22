@@ -155,9 +155,8 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				ListOptions: db.ListOptionsAll,
-				AssigneeID:  1,
-				SortType:    "oldest",
+				AssigneeID: 1,
+				SortType:   "oldest",
 			},
 			[]int64{1, 6},
 		},
@@ -165,7 +164,7 @@ func TestIssues(t *testing.T) {
 			issues_model.IssuesOptions{
 				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
-				ListOptions: db.ListOptions{
+				ListOptions: &db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -175,7 +174,7 @@ func TestIssues(t *testing.T) {
 		{
 			issues_model.IssuesOptions{
 				LabelIDs: []int64{1},
-				ListOptions: db.ListOptions{
+				ListOptions: &db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -185,7 +184,7 @@ func TestIssues(t *testing.T) {
 		{
 			issues_model.IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				ListOptions: db.ListOptions{
+				ListOptions: &db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -194,7 +193,6 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			issues_model.IssuesOptions{
-				ListOptions:  db.ListOptionsAll,
 				MilestoneIDs: []int64{1},
 			},
 			[]int64{2},
@@ -328,7 +326,7 @@ func TestCorrectIssueStats(t *testing.T) {
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
 	issues, err := issues_model.Issues(context.TODO(), &issues_model.IssuesOptions{
-		ListOptions: db.ListOptions{
+		ListOptions: &db.ListOptions{
 			PageSize: issueAmount,
 		},
 		RepoIDs: []int64{1},

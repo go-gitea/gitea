@@ -106,7 +106,7 @@ type SearchOptions struct {
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]
 
-	db.ListOptions
+	*db.ListOptions
 
 	SortBy SortBy // sort by field
 }

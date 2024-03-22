@@ -283,7 +283,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		ListOptions: db.ListOptions{
+		ListOptions: &db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},

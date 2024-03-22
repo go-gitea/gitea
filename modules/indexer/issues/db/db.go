@@ -79,7 +79,7 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	// If pagesize == 0, return total count only. It's a special case for search count.
-	if options.ListOptions.PageSize == 0 {
+	if options.ListOptions != nil && options.ListOptions.PageSize == 0 {
 		total, err := issue_model.CountIssues(ctx, opt, cond)
 		if err != nil {
 			return nil, err

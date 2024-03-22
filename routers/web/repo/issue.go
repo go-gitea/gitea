@@ -285,7 +285,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	var issues issues_model.IssueList
 	{
 		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
+			ListOptions: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
@@ -2648,7 +2648,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		ListOptions: db.ListOptions{
+		ListOptions: &db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: limit,
 		},
@@ -2818,7 +2818,7 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		ListOptions: db.ListOptions{
+		ListOptions: &db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
