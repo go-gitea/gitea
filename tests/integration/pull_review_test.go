@@ -101,12 +101,18 @@ func TestPullView_CodeOwner(t *testing.T) {
 				"title": "[WIP] Test Pull Request",
 			})
 			session.MakeRequest(t, req, http.StatusOK)
+			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			assert.NoError(t, prUpdated1.LoadIssue(db.DefaultContext))
+			assert.EqualValues(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
 
 			req = NewRequestWithValues(t, "POST", prURL+"/title", map[string]string{
 				"_csrf": htmlDoc.GetCSRF(),
 				"title": "Test Pull Request",
 			})
 			session.MakeRequest(t, req, http.StatusOK)
+			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			assert.NoError(t, prUpdated2.LoadIssue(db.DefaultContext))
+			assert.EqualValues(t, "Test Pull Request", prUpdated2.Issue.Title)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
