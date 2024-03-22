@@ -84,6 +84,7 @@ h4,
 h5 {
   line-height: 1.28571429;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
   padding: 0;
 }
 
