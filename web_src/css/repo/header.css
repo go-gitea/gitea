@@ -1,4 +1,8 @@
-.header-wrapper .fork-flag {
+.repository .secondary-nav {
+  padding-top: 12px;
+}
+
+.repository .secondary-nav .fork-flag {
   margin-top: 0.5rem;
   font-size: 12px;
 }
@@ -62,9 +66,4 @@
 
 .repo-buttons .ui.labeled.button.disabled > .button {
   pointer-events: none !important;
-}
-
-.repository .header-wrapper {
-  padding-top: 12px;
-  background-color: var(--color-header-wrapper);
 }
