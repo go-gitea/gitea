@@ -6,7 +6,7 @@
 			<a href="{{$.RepoLink}}">{{.RepoName}}</a>
 			<span class="gt-mx-3">/</span>
 			<div class="ui input tw-flex-1">
-				<input id="repo-file-find-input" type="text" autofocus data-url-data-link="{{.DataLink}}" data-url-tree-link="{{.TreeLink}}">
+				<input id="repo-file-find-input" type="text" autofocus data-url-data-link="{{PathEscapeSegments .DataLink}}" data-url-tree-link="{{PathEscapeSegments .TreeLink}}">
 			</div>
 		</div>
 		<table id="repo-find-file-table" class="ui single line table">
