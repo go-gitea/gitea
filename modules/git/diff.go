@@ -272,6 +272,10 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 
 // GetAffectedFiles returns the affected files between two commits
 func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []string) ([]string, error) {
+	// If the old commit is the null commit, then we need to use the empty tree
+	if oldCommitID == EmptySHA {
+		oldCommitID = EmptyTreeSHA
+	}
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)
