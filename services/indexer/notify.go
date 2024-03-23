@@ -70,14 +70,14 @@ func (r *indexerNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 func (r *indexerNotifier) DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(ctx, repo.ID)
 	if setting.Indexer.RepoIndexerEnabled {
-		code_indexer.UpdateRepoIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo, false)
 	}
 }
 
 func (r *indexerNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
-		code_indexer.UpdateRepoIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo, false)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
 		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
@@ -90,7 +90,7 @@ func (r *indexerNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 	}
 
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
-		code_indexer.UpdateRepoIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo, false)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
 		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
@@ -103,7 +103,7 @@ func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 	}
 
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
-		code_indexer.UpdateRepoIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo, false)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
 		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
@@ -112,7 +112,7 @@ func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 
 func (r *indexerNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
-		code_indexer.UpdateRepoIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo, false)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
 		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)

@@ -4,6 +4,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -41,11 +42,13 @@ func CodeSearch(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
+	wikis := ctx.FormOptionalBool("wikis")
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
 	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["IsCodePage"] = true
+	ctx.Data["Wikis"] = wikis
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, tplUserCode)
@@ -79,6 +82,7 @@ func CodeSearch(ctx *context.Context) {
 			RepoIDs:        repoIDs,
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
+			IsWiki:         wikis,
 			Language:       language,
 			Paginator: &db.ListOptions{
 				Page:     page,
@@ -123,6 +127,9 @@ func CodeSearch(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("l", language)
+	if wikis.Has() {
+		pager.AddParamString("wikis", fmt.Sprintf("%v", wikis.Value()))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplUserCode)

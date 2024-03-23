@@ -4,6 +4,7 @@
 package explore
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -36,11 +37,13 @@ func Code(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
+	wikis := ctx.FormOptionalBool("wikis")
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
 	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["Wikis"] = wikis
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, tplExploreCode)
@@ -81,6 +84,7 @@ func Code(ctx *context.Context) {
 			RepoIDs:        repoIDs,
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
+			IsWiki:         wikis,
 			Language:       language,
 			Paginator: &db.ListOptions{
 				Page:     page,
@@ -138,6 +142,9 @@ func Code(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("l", language)
+	if wikis.Has() {
+		pager.AddParamString("wikis", fmt.Sprintf("%v", wikis.Value()))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)

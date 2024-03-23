@@ -20,6 +20,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -51,6 +52,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 // RepoIndexerData data stored in the repo indexer
 type RepoIndexerData struct {
 	RepoID    int64
+	IsWiki    bool
 	CommitID  string
 	Content   string
 	Language  string
@@ -65,7 +67,7 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 6
+	repoIndexerLatestVersion = 7
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -74,6 +76,10 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.IncludeInAll = false
+	docMapping.AddFieldMappingsAt("IsWiki", boolFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.IncludeInAll = false
@@ -125,7 +131,7 @@ func NewIndexer(indexDir string) *Indexer {
 }
 
 func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
+	update internal.FileUpdate, repo *repo_model.Repository, isWiki bool, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
@@ -134,10 +140,15 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 
 	size := update.Size
 
+	repoPath := repo.RepoPath()
+	if isWiki {
+		repoPath = repo.WikiPath()
+	}
+
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repoPath})
 		if err != nil {
 			return err
 		}
@@ -147,7 +158,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	}
 
 	if size > setting.Indexer.MaxIndexerFileSize {
-		return b.addDelete(update.Filename, repo, batch)
+		return b.addDelete(update.Filename, repo, isWiki, batch)
 	}
 
 	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
@@ -170,9 +181,10 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	if _, err = batchReader.Discard(1); err != nil {
 		return err
 	}
-	id := internal.FilenameIndexerID(repo.ID, update.Filename)
+	id := internal.FilenameIndexerID(repo.ID, isWiki, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
+		IsWiki:    isWiki,
 		CommitID:  commitSha,
 		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
@@ -180,34 +192,39 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	})
 }
 
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch) error {
-	id := internal.FilenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, isWiki bool, batch *inner_bleve.FlushingBatch) error {
+	id := internal.FilenameIndexerID(repo.ID, isWiki, filename)
 	return batch.Delete(id)
 }
 
 // Index indexes the data
-func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, isWiki bool, sha string, changes *internal.RepoChanges) error {
+	repoPath := repo.RepoPath()
+	if isWiki {
+		repoPath = repo.WikiPath()
+	}
+
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+		if err := git.EnsureValidGitRepository(ctx, repoPath); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repoPath, repo, err)
 			return err
 		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repoPath)
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			if err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo, batch); err != nil {
+			if err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo, isWiki, batch); err != nil {
 				return err
 			}
 		}
 		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
-		if err := b.addDelete(filename, repo, batch); err != nil {
+		if err := b.addDelete(filename, repo, isWiki, batch); err != nil {
 			return err
 		}
 	}
@@ -215,8 +232,14 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(_ context.Context, repoID int64) error {
-	query := inner_bleve.NumericEqualityQuery(repoID, "RepoID")
+func (b *Indexer) Delete(_ context.Context, repoID int64, isWiki optional.Option[bool]) error {
+	var query query.Query
+	query = inner_bleve.NumericEqualityQuery(repoID, "RepoID")
+	if isWiki.Has() {
+		wikiQuery := bleve.NewBoolFieldQuery(isWiki.Value())
+		wikiQuery.FieldVal = "IsWiki"
+		query = bleve.NewConjunctionQuery(query, wikiQuery)
+	}
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
 	result, err := b.inner.Indexer.Search(searchRequest)
 	if err != nil {
@@ -264,6 +287,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		indexerQuery = keywordQuery
 	}
 
+	if opts.IsWiki.Has() {
+		wikiQuery := bleve.NewBoolFieldQuery(opts.IsWiki.Value())
+		wikiQuery.FieldVal = "IsWiki"
+		indexerQuery = bleve.NewConjunctionQuery(indexerQuery, wikiQuery)
+	}
+
 	// Save for reuse without language filter
 	facetQuery := indexerQuery
 	if len(opts.Language) > 0 {
@@ -279,7 +308,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	from, pageSize := opts.GetSkipTake()
 	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
+	searchRequest.Fields = []string{"Content", "RepoID", "IsWiki", "Language", "CommitID", "UpdatedAt"}
 	searchRequest.IncludeLocations = true
 
 	if len(opts.Language) == 0 {

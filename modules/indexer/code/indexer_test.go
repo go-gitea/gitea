@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
+	"code.gitea.io/gitea/modules/optional"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -29,7 +30,7 @@ func TestMain(m *testing.M) {
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		var repoID int64 = 1
-		err := index(git.DefaultContext, indexer, repoID)
+		err := index(git.DefaultContext, indexer, repoID, false)
 		assert.NoError(t, err)
 		keywords := []struct {
 			RepoIDs []int64
@@ -93,7 +94,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			})
 		}
 
-		assert.NoError(t, indexer.Delete(context.Background(), repoID))
+		assert.NoError(t, indexer.Delete(context.Background(), repoID, optional.Some(false)))
 	})
 }
 

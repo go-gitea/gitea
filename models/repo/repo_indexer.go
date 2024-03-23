@@ -20,6 +20,8 @@ const (
 	RepoIndexerTypeCode RepoIndexerType = iota // 0
 	// RepoIndexerTypeStats repository stats indexer
 	RepoIndexerTypeStats // 1
+	// RepoIndexerTypeWiki wiki indexer
+	RepoIndexerTypeWiki // 2
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
