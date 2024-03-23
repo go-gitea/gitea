@@ -66,5 +66,12 @@ export default {
       '3xl': '24px',
       'full': 'var(--border-radius-circle)', // 50%
     },
+    fontWeight: {
+      light: 'var(--font-weight-light)',
+      normal: 'var(--font-weight-normal)',
+      medium: 'var(--font-weight-medium)',
+      semibold: 'var(--font-weight-semibold)',
+      bold: 'var(--font-weight-bold)',
+    },
   },
 };
