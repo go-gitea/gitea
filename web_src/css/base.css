@@ -219,6 +219,10 @@ a {
   text-decoration-skip-ink: all;
 }
 
+a:hover {
+  text-decoration-line: underline;
+}
+
 /* a = always colored, underlined on hover */
 /* a.muted = colored on hover, underlined on hover */
 /* a.suppressed = never colored, underlined on hover */
@@ -239,18 +243,13 @@ a.muted:hover [class*="color-text"],
   color: var(--color-primary);
 }
 
-a.muted:hover,
-a.suppressed:hover {
-  text-decoration-line: underline;
-}
-
 a.silenced:hover,
 a.suppressed:hover {
   color: inherit;
 }
 
 a.silenced:hover {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 a.label,
@@ -258,7 +257,7 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
