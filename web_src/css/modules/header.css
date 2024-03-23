@@ -2,10 +2,10 @@
   color: var(--color-text);
   border: none;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
-  padding: 0 0;
+  padding: 0;
   font-family: var(--fonts-regular);
-  font-weight: 500;
-  line-height: 1.28571429em;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.28571429;
   text-transform: none;
 }
 
@@ -19,6 +19,7 @@
 
 .ui.header .ui.label {
   margin-left: 0.25rem;
+  vertical-align: middle;
 }
 
 .ui.header > .ui.label.compact {
@@ -27,11 +28,11 @@
 
 .ui.header .sub.header {
   display: block;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   padding: 0;
   margin: 0;
   font-size: 1rem;
-  line-height: 1.2em;
+  line-height: 1.2;
   color: var(--color-text-light-1);
 }
 
@@ -47,12 +48,6 @@
   display: inline-block;
   padding: 0;
   margin-right: 0.75rem;
-}
-
-.ui.header .ui.label {
-  font-size: '';
-  margin-left: 0.5rem;
-  vertical-align: middle;
 }
 
 .ui.header + p {
@@ -76,9 +71,8 @@ h4.ui.header .sub.header {
 .ui.sub.header {
   padding: 0;
   margin-bottom: 0.14285714rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-normal);
   font-size: 0.85714286em;
-  color: '';
 }
 
 .ui.icon.header svg {
@@ -100,7 +94,7 @@ h4.ui.header .sub.header {
   position: relative;
   background: var(--color-box-header);
   padding: 0.78571429rem 1rem;
-  margin: 0 -1px 0 -1px;
+  margin: 0 -1px;
   border-radius: 0;
   border: 1px solid var(--color-secondary);
 }
