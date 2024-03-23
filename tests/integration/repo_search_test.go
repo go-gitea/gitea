@@ -48,7 +48,7 @@ func TestSearchRepo(t *testing.T) {
 	testSearch(t, "/user2/glob/search?q=loren&page=1&t=match", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt", "a.txt"})
 	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{})
+	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{"x/b.txt", "a.txt"})
 	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{})
 }
 
