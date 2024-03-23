@@ -1421,7 +1421,6 @@ a.ui.active.label:hover {
   padding-left: 10px;
   padding-right: 10px;
   text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
   width: 2%;
 }
 
@@ -1483,22 +1482,30 @@ a.ui.active.label:hover {
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
 }
 
-.file-view tr.active,
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
+}
+
+.file-view tr.active .lines-num,
 .file-view tr.active .lines-code {
-  background: var(--color-active-line) !important;
+  background: var(--color-highlight-bg) !important;
 }
 
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
+.file-view tr.active .lines-num {
+  position: relative;
 }
 
-.blame .lines-code {
-  padding: 0 !important;
+.file-view tr.active .lines-num:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -1518,7 +1525,6 @@ a.ui.active.label:hover {
   vertical-align: top;
   color: var(--color-text-light-2);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
@@ -1566,6 +1572,11 @@ a.ui.active.label:hover {
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .code-view table {
