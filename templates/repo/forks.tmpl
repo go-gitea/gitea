@@ -6,7 +6,7 @@
 			{{ctx.Locale.Tr "repo.forks"}}
 		</h2>
 		{{range .Forks}}
-			<div class="gt-df gt-ac gt-py-3">
+			<div class="tw-flex tw-items-center gt-py-3">
 				<span class="gt-mr-2">{{ctx.AvatarUtils.Avatar .Owner}}</span>
 				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
 			</div>

@@ -7,13 +7,13 @@
 		</div>
 	{{end}}
 	<div class="content gt-p-0 tw-w-full">
-		<div class="gt-df tw-items-start">
+		<div class="tw-flex tw-items-start">
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
 			</div>
 			<a class="issue-card-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
-				<a role="button" class="issue-card-unpin muted gt-df gt-ac" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
+				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
@@ -34,8 +34,8 @@
 		{{if .MilestoneID}}
 		<div class="meta gt-my-2">
 			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
-				{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
-				<span class="gt-vm">{{.Milestone.Name}}</span>
+				{{svg "octicon-milestone" 16 "gt-mr-2 tw-align-middle"}}
+				<span class="tw-align-middle">{{.Milestone.Name}}</span>
 			</a>
 		</div>
 		{{end}}
@@ -43,8 +43,8 @@
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="meta gt-my-2">
 			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
-				<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
-				<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
+				<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 tw-align-middle"}}</span>
+				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 			</a>
 		</div>
 		{{end}}
@@ -52,8 +52,8 @@
 		{{$tasks := .GetTasks}}
 		{{if gt $tasks 0}}
 			<div class="meta gt-my-2">
-				{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
-				<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
+				{{svg "octicon-checklist" 16 "gt-mr-2 tw-align-middle"}}
+				<span class="tw-align-middle">{{.GetTasksDone}} / {{$tasks}}</span>
 			</div>
 		{{end}}
 	</div>

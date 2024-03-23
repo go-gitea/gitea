@@ -104,8 +104,13 @@ func List(ctx *context.Context) {
 				workflows = append(workflows, workflow)
 				continue
 			}
-			// Check whether have matching runner
+			// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
+			hasJobWithoutNeeds := false
+			// Check whether have matching runner and a job without "needs"
 			for _, j := range wf.Jobs {
+				if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
+					hasJobWithoutNeeds = true
+				}
 				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
 					if strings.Contains(ro, "${{") {
@@ -122,6 +127,9 @@ func List(ctx *context.Context) {
 				if workflow.ErrMsg != "" {
 					break
 				}
+			}
+			if !hasJobWithoutNeeds {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
 			}
 			workflows = append(workflows, workflow)
 		}

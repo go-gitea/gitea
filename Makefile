@@ -42,9 +42,6 @@ DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), yes)
-	GOPATH ?= $(shell $(GO) env GOPATH)
-	export PATH := $(GOPATH)/bin:$(PATH)
-
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
@@ -147,6 +144,8 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMAN
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
+ESLINT_FILES := web_src/js tools *.config.js tests/e2e
+STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
@@ -375,19 +374,19 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES)
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e --fix
+	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES) --fix
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
+	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
+	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
@@ -444,7 +443,7 @@ lint-yaml: .venv
 
 .PHONY: watch
 watch:
-	@bash build/watch.sh
+	@bash tools/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
@@ -916,7 +915,7 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 .PHONY: svg
 svg: node-check | node_modules
 	rm -rf $(SVG_DEST_DIR)
-	node build/generate-svg.js
+	node tools/generate-svg.js
 
 .PHONY: svg-check
 svg-check: svg
@@ -960,7 +959,7 @@ generate-gitignore:
 .PHONY: generate-images
 generate-images: | node_modules
 	npm install --no-save fabric@6.0.0-beta19 imagemin-zopfli@7
-	node build/generate-images.js $(TAGS)
+	node tools/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage:

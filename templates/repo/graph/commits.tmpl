@@ -28,10 +28,10 @@
 							{{- end -}}
 						</a>
 					</span>
-					<span class="message gt-dib gt-ellipsis gt-mr-3">
+					<span class="message tw-inline-block gt-ellipsis gt-mr-3">
 						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
-					<span class="commit-refs gt-df gt-ac gt-mr-2">
+					<span class="commit-refs tw-flex tw-items-center gt-mr-2">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
@@ -58,7 +58,7 @@
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author gt-df gt-ac gt-mr-3">
+					<span class="author tw-flex tw-items-center gt-mr-3">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if $commit.User.FullName}}
@@ -71,7 +71,7 @@
 							{{$userName}}
 						{{end}}
 					</span>
-					<span class="time gt-df gt-ac">{{DateTime "full" $commit.Date}}</span>
+					<span class="time tw-flex tw-items-center">{{DateTime "full" $commit.Date}}</span>
 				{{end}}
 			</li>
 		{{end}}

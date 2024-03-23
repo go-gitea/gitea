@@ -28,17 +28,14 @@
     "dimmer",
     "dropdown",
     "form",
-    "grid",
     "header",
     "input",
     "label",
     "list",
     "menu",
-    "message",
     "modal",
     "search",
     "segment",
-    "site",
     "tab",
     "table"
   ]
