@@ -1422,7 +1422,7 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding: 0 4px;
+  padding: 0 1px;
   display: flex;
   justify-content: center;
 }
@@ -1535,8 +1535,8 @@ a.ui.active.label:hover {
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: 26vw;
+  max-width: 26vw;
   display: block;
   padding: 0 0 0 6px;
   line-height: 20px;
