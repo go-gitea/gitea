@@ -1422,7 +1422,7 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding: 0 3px;
+  padding: 0 0 0 5px;
   display: flex;
   justify-content: center;
 }
