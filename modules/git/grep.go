@@ -5,10 +5,10 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -33,15 +33,9 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	if err != nil {
 		return nil, fmt.Errorf("unable to create os pipe to grep: %w", err)
 	}
-	stderrReader, stderrWriter, err := os.Pipe()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create os pipe to grep: %w", err)
-	}
 	defer func() {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
-		_ = stderrReader.Close()
-		_ = stderrWriter.Close()
 	}()
 
 	/*
@@ -53,28 +47,26 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 HEAD:.changelog.yml
 	 2^@repo: go-gitea/gitea
 	*/
-	var stderr []byte
 	var results []*GrepResult
 	cmd := NewCommand(ctx, "grep", "--null", "--break", "--heading", "--fixed-strings", "--line-number", "--ignore-case", "--full-name")
 	cmd.AddOptionValues("--context", fmt.Sprint(opts.ContextLineNumber))
 	if opts.IsFuzzy {
 		words := strings.Fields(search)
 		for _, word := range words {
-			cmd.AddOptionValues("-e", word)
+			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
 		}
 	} else {
-		cmd.AddOptionValues("-e", search)
+		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
 	}
 	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
+	stderr := bytes.Buffer{}
 	err = cmd.Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
-		Stderr: stderrWriter,
+		Stderr: &stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
-			_ = stderrWriter.Close()
 			defer stdoutReader.Close()
-			defer stderrReader.Close()
 
 			isInBlock := false
 			scanner := bufio.NewScanner(stdoutReader)
@@ -106,12 +98,15 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 					res.LineCodes = append(res.LineCodes, lineCode)
 				}
 			}
-			stderr, _ = io.ReadAll(stderrReader)
 			return scanner.Err()
 		},
 	})
-	if err != nil && !errors.Is(err, context.Canceled) && len(stderr) != 0 {
-		return nil, fmt.Errorf("unable to run git grep: %w, stderr: %s", err, string(stderr))
+	// git grep exits with 1 if no results are found
+	if IsErrorExitCode(err, 1) && stderr.Len() == 0 {
+		return nil, nil
+	}
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return nil, fmt.Errorf("unable to run git grep: %w, stderr: %s", err, stderr.String())
 	}
 	return results, nil
 }
