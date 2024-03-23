@@ -6,7 +6,7 @@
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description gt-word-break">
-			<div id="repo-desc" class="gt-font-16">
+			<div id="repo-desc" class="tw-text-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
 				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
@@ -29,7 +29,7 @@
 		</div>
 		<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-2" id="repo-topics">
 			{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}

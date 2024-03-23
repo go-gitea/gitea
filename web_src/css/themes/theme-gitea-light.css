@@ -197,7 +197,6 @@
   --color-input-toggle-background: #d0d7de;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-header-wrapper: #f9fafb;
   --color-light: #00001706;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000171d;
@@ -227,6 +226,7 @@
   --color-nav-bg: #f6f7fa;
   --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
+  --color-secondary-nav-bg: #f9fafb;
   --color-label-text: var(--color-text);
   --color-label-bg: #949da64b;
   --color-label-hover-bg: #949da6a0;

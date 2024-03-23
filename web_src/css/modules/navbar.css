@@ -136,3 +136,7 @@
   justify-content: center;
   z-index: 1; /* prevent menu button background from overlaying icon */
 }
+
+.secondary-nav {
+  background: var(--color-secondary-nav-bg) !important; /* important because of .ui.secondary.menu */
+}
