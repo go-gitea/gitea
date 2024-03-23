@@ -14,7 +14,7 @@ export default {
       },
       commits: [],
       hoverActivated: false,
-      lastReviewCommitSha: null
+      lastReviewCommitSha: null,
     };
   },
   computed: {
@@ -29,7 +29,7 @@ export default {
     },
     issueLink() {
       return this.$el.parentNode.getAttribute('data-issuelink');
-    }
+    },
   },
   mounted() {
     document.body.addEventListener('click', this.onBodyClick);
@@ -185,7 +185,7 @@ export default {
         }
       }
     },
-  }
+  },
 };
 </script>
 <template>

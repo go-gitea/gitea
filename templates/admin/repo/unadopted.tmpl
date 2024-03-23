@@ -20,7 +20,7 @@
 				{{if .Dirs}}
 					<div class="ui aligned divided list">
 						{{range $dirI, $dir := .Dirs}}
-							<div class="item tw-flex tw-content-center">
+							<div class="item tw-flex tw-items-center">
 								<span class="tw-flex-1"> {{svg "octicon-file-directory-fill"}} {{$dir}}</span>
 								<div>
 									<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</button>
