@@ -5,6 +5,7 @@ test('createLink', () => {
   expect(internalLink.tagName).toEqual('A');
   expect(internalLink.href).toEqual('https://example.com/');
   expect(internalLink.textContent).toEqual('example');
+  expect(internalLink.target).toEqual('');
 
   const externalLink = createLink({href: 'https://example.com', textContent: 'example', external: true});
   expect(externalLink.tagName).toEqual('A');
