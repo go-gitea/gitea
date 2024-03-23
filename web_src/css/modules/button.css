@@ -61,11 +61,13 @@ It needs some tricks to tweak the left/right borders with active state */
   border-right: none;
 }
 
-.ui.buttons .button:first-child {
+.ui.buttons .button:first-child,
+.ui.buttons .button.gt-hidden:first-child + .button {
   border-left: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button:last-child {
+.ui.buttons .button:last-child,
+.ui.buttons .button:nth-last-child(2):has(+ .button.gt-hidden) {
   border-right: 1px solid var(--color-light-border);
 }
 
