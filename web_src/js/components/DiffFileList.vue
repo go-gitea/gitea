@@ -38,7 +38,7 @@ export default {
 <template>
   <ol class="diff-stats gt-m-0" ref="root" v-if="store.fileListIsVisible">
     <li v-for="file in store.files" :key="file.NameHash">
-      <div class="gt-font-semibold tw-flex tw-items-center pull-right">
+      <div class="tw-font-semibold tw-flex tw-items-center pull-right">
         <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ store.binaryFileMessage }}</span>
         {{ file.IsBin ? '' : file.Addition + file.Deletion }}
         <span v-if="!file.IsBin" class="diff-stats-bar gt-mx-3" :data-tooltip-content="store.statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">

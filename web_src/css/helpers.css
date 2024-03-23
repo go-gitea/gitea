@@ -36,12 +36,6 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
-.gt-font-light { font-weight: var(--font-weight-light) !important; }
-.gt-font-normal { font-weight: var(--font-weight-normal) !important; }
-.gt-font-medium { font-weight: var(--font-weight-medium) !important; }
-.gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
-.gt-font-bold { font-weight: var(--font-weight-bold) !important; }
-
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
 .interact-fg:active { color: var(--color-primary-active) !important; }
