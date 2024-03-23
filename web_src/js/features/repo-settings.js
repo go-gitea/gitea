@@ -8,22 +8,22 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.page-content.repository .ui.dropdown.access-mode').each((_, e) => {
-    const $dropdown = $(e);
+  $('.page-content.repository .ui.dropdown.access-mode').each((_, el) => {
+    const $dropdown = $(el);
     const $text = $dropdown.find('> .text');
     $dropdown.dropdown({
       async action(_text, value) {
-        const lastValue = e.getAttribute('data-last-value');
+        const lastValue = el.getAttribute('data-last-value');
         try {
-          e.setAttribute('data-last-value', value);
+          el.setAttribute('data-last-value', value);
           $dropdown.dropdown('hide');
           const data = new FormData();
-          data.append('uid', e.getAttribute('data-uid'));
+          data.append('uid', el.getAttribute('data-uid'));
           data.append('mode', value);
-          await POST(e.getAttribute('data-url'), {data});
+          await POST(el.getAttribute('data-url'), {data});
         } catch {
           $text.text('(error)'); // prevent from misleading users when error occurs
-          e.setAttribute('data-last-value', lastValue);
+          el.setAttribute('data-last-value', lastValue);
         }
       },
       onChange(_value, text, _$choice) {
@@ -32,9 +32,9 @@ export function initRepoSettingsCollaboration() {
       onHide() {
         // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
         setTimeout(() => {
-          const $item = $dropdown.dropdown('get item', e.getAttribute('data-last-value'));
+          const $item = $dropdown.dropdown('get item', el.getAttribute('data-last-value'));
           if ($item) {
-            $dropdown.dropdown('set selected', e.getAttribute('data-last-value'));
+            $dropdown.dropdown('set selected', el.getAttribute('data-last-value'));
           } else {
             $text.text('(none)'); // prevent from misleading users when the access mode is undefined
           }
