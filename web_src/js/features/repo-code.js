@@ -16,8 +16,8 @@ function changeHash(hash) {
   }
 }
 
-function selectRange($list, $select, $from) {
-  $list.closest('tr').removeClass('active');
+function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
+  $linesEls.closest('tr').removeClass('active');
 
   // add hashchange to permalink
   const $refInNewIssue = $('a.ref-in-new-issue');
@@ -35,9 +35,7 @@ function selectRange($list, $select, $from) {
   };
 
   const updateViewGitBlameFragment = function (anchor) {
-    if ($viewGitBlame.length === 0) {
-      return;
-    }
+    if ($viewGitBlame.length === 0) return;
     let href = $viewGitBlame.attr('href');
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
@@ -47,17 +45,15 @@ function selectRange($list, $select, $from) {
   };
 
   const updateCopyPermalinkUrl = function(anchor) {
-    if ($copyPermalink.length === 0) {
-      return;
-    }
+    if ($copyPermalink.length === 0) return;
     let link = $copyPermalink.attr('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     $copyPermalink.attr('data-url', link);
   };
 
-  if ($from) {
-    let a = parseInt($select.attr('rel').slice(1));
-    let b = parseInt($from.attr('rel').slice(1));
+  if ($selectionStartEls) {
+    let a = parseInt($selectionEndEl.attr('rel').slice(1));
+    let b = parseInt($selectionStartEls.attr('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {
@@ -69,7 +65,7 @@ function selectRange($list, $select, $from) {
       for (let i = a; i <= b; i++) {
         classes.push(`[rel=L${i}]`);
       }
-      $list.filter(classes.join(',')).each(function () {
+      $linesEls.filter(classes.join(',')).each(function () {
         $(this).closest('tr').addClass('active');
       });
       changeHash(`#L${a}-L${b}`);
@@ -80,12 +76,12 @@ function selectRange($list, $select, $from) {
       return;
     }
   }
-  $select.closest('tr').addClass('active');
-  changeHash(`#${$select.attr('rel')}`);
+  $selectionEndEl.closest('tr').addClass('active');
+  changeHash(`#${$selectionEndEl.attr('rel')}`);
 
-  updateIssueHref($select.attr('rel'));
-  updateViewGitBlameFragment($select.attr('rel'));
-  updateCopyPermalinkUrl($select.attr('rel'));
+  updateIssueHref($selectionEndEl.attr('rel'));
+  updateViewGitBlameFragment($selectionEndEl.attr('rel'));
+  updateCopyPermalinkUrl($selectionEndEl.attr('rel'));
 }
 
 function showLineButton() {
@@ -158,17 +154,17 @@ export function initRepoCodeView() {
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(rangeAnchorRegex);
-      let $list;
+      let $linesEls;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code.blame-code');
+        $linesEls = $('.code-view td.lines-code.blame-code');
       } else {
-        $list = $('.code-view td.lines-code');
+        $linesEls = $('.code-view td.lines-code');
       }
       let $first;
       if (m) {
-        $first = $list.filter(`[rel=${m[1]}]`);
+        $first = $linesEls.filter(`[rel=${m[1]}]`);
         if ($first.length) {
-          selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+          selectRange($linesEls, $first, $linesEls.filter(`[rel=${m[2]}]`));
 
           // show code view menu marker (don't show in blame page)
           if ($('div.blame').length === 0) {
@@ -181,9 +177,9 @@ export function initRepoCodeView() {
       }
       m = window.location.hash.match(singleAnchorRegex);
       if (m) {
-        $first = $list.filter(`[rel=L${m[2]}]`);
+        $first = $linesEls.filter(`[rel=L${m[2]}]`);
         if ($first.length) {
-          selectRange($list, $first);
+          selectRange($linesEls, $first);
 
           // show code view menu marker (don't show in blame page)
           if ($('div.blame').length === 0) {
