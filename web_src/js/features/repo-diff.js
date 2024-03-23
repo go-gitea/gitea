@@ -17,9 +17,8 @@ function initRepoDiffReviewButton() {
   if (!reviewBox) return;
 
   const $reviewBox = $(reviewBox);
-  const counters = reviewBox.getElementsByClassName('review-comments-counter');
-  if (!counters.length) return;
-  const counter = counters[0];
+  const counter = reviewBox.querySelector('.review-comments-counter');
+  if (!counters) return;
 
   $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
