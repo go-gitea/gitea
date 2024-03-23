@@ -16,6 +16,14 @@ function changeHash(hash) {
   }
 }
 
+function isBlame() {
+  return Boolean(document.querySelector('div.blame'));
+}
+
+function getLineEls() {
+  return document.querySelectorAll(`.code-view td.lines-code${isBlame() ? '.blame-code' : ''}`);
+}
+
 function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   $linesEls.closest('tr').removeClass('active');
 
@@ -25,7 +33,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($refInNewIssue.length === 0) {
+    if (!$refInNewIssue.length) {
       return;
     }
     const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
@@ -35,7 +43,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   };
 
   const updateViewGitBlameFragment = function (anchor) {
-    if ($viewGitBlame.length === 0) return;
+    if (!$viewGitBlame.length) return;
     let href = $viewGitBlame.attr('href');
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
@@ -121,13 +129,7 @@ function showLineButton() {
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
-      let linesEls;
-      if (document.querySelector('div.blame')) {
-        linesEls = document.querySelectorAll('.code-view td.lines-code.blame-code');
-      } else {
-        linesEls = document.querySelectorAll('.code-view td.lines-code');
-      }
-
+      const linesEls = getLineEls();
       const selectedEls = Array.from(linesEls).filter((el) => {
         return el.matches(`[rel=${this.getAttribute('id')}]`);
       });
@@ -147,19 +149,14 @@ export function initRepoCodeView() {
       }
 
       // show code view menu marker (don't show in blame page)
-      if ($('div.blame').length === 0) {
+      if (!isBlame()) {
         showLineButton();
       }
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(rangeAnchorRegex);
-      let $linesEls;
-      if ($('div.blame').length) {
-        $linesEls = $('.code-view td.lines-code.blame-code');
-      } else {
-        $linesEls = $('.code-view td.lines-code');
-      }
+      const $linesEls = $(getLineEls());
       let $first;
       if (m) {
         $first = $linesEls.filter(`[rel=${m[1]}]`);
@@ -167,7 +164,7 @@ export function initRepoCodeView() {
           selectRange($linesEls, $first, $linesEls.filter(`[rel=${m[2]}]`));
 
           // show code view menu marker (don't show in blame page)
-          if ($('div.blame').length === 0) {
+          if (!isBlame()) {
             showLineButton();
           }
 
@@ -182,7 +179,7 @@ export function initRepoCodeView() {
           selectRange($linesEls, $first);
 
           // show code view menu marker (don't show in blame page)
-          if ($('div.blame').length === 0) {
+          if (!isBlame()) {
             showLineButton();
           }
 
