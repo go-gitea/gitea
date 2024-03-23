@@ -1422,7 +1422,7 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding: 0 1px;
+  padding: 0 3px;
   display: flex;
   justify-content: center;
 }
@@ -1522,9 +1522,8 @@ a.ui.active.label:hover {
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
@@ -1535,8 +1534,7 @@ a.ui.active.label:hover {
 }
 
 .lines-commit .blame-info {
-  width: 26vw;
-  max-width: 26vw;
+  width: min(26vw, 300px);
   display: block;
   padding: 0 0 0 6px;
   line-height: 20px;
