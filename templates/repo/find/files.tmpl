@@ -2,10 +2,10 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="gt-df gt-ac">
+		<div class="tw-flex tw-items-center">
 			<a href="{{$.RepoLink}}">{{.RepoName}}</a>
 			<span class="gt-mx-3">/</span>
-			<div class="ui input gt-f1">
+			<div class="ui input tw-flex-1">
 				<input id="repo-file-find-input" type="text" autofocus data-url-data-link="{{.DataLink}}" data-url-tree-link="{{.TreeLink}}">
 			</div>
 		</div>

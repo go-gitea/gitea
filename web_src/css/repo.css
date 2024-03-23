@@ -4,16 +4,6 @@
   user-select: none;
 }
 
-.repository .navbar {
-  display: flex;
-  justify-content: space-between;
-}
-
-.repository .navbar .ui.label {
-  margin-left: 7px;
-  padding: 3px 5px;
-}
-
 .repository .owner.dropdown {
   min-width: 40% !important;
 }

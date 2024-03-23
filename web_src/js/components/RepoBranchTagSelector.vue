@@ -36,7 +36,7 @@ const sfc = {
     },
     shouldCreateTag() {
       return this.mode === 'tags';
-    }
+    },
   },
 
   watch: {
@@ -45,7 +45,7 @@ const sfc = {
         this.focusSearchField();
         this.fetchBranchesOrTags();
       }
-    }
+    },
   },
 
   beforeMount() {
@@ -83,7 +83,7 @@ const sfc = {
         this.isViewBranch = false;
         this.$refs.dropdownRefName.textContent = item.name;
         if (this.setAction) {
-          $(`#${this.branchForm}`).attr('action', url);
+          document.getElementById(this.branchForm)?.setAttribute('action', url);
         } else {
           $(`#${this.branchForm} input[name="refURL"]`).val(url);
         }
@@ -209,7 +209,7 @@ const sfc = {
         this.isLoading = false;
       }
     },
-  }
+  },
 };
 
 export function initRepoBranchTagSelector(selector) {
@@ -245,8 +245,8 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
   <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text gt-df gt-ac gt-mr-2">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="text tw-flex tw-items-center gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>

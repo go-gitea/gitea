@@ -11,11 +11,11 @@
 	{{end}}
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
-	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
-		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
+	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+		<div class="file-header-left tw-flex tw-items-center gt-py-3 gt-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
-		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
+		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
