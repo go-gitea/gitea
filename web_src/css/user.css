@@ -112,10 +112,6 @@
   border: 1px solid var(--color-secondary);
 }
 
-#notification_div {
-  padding-top: 15px;
-}
-
 #notification_table {
   background: var(--color-box-body);
   border: 1px solid var(--color-secondary);

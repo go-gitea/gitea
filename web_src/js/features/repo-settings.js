@@ -39,7 +39,7 @@ export function initRepoSettingsCollaboration() {
             $text.text('(none)'); // prevent from misleading users when the access mode is undefined
           }
         }, 0);
-      }
+      },
     });
   });
 }
@@ -56,15 +56,15 @@ export function initRepoSettingSearchTeamBox() {
         $.each(response.data, (_i, item) => {
           items.push({
             title: item.name,
-            description: `${item.permission} access` // TODO: translate this string
+            description: `${item.permission} access`, // TODO: translate this string
           });
         });
 
         return {results: items};
-      }
+      },
     },
     searchFields: ['name', 'description'],
-    showNoResults: false
+    showNoResults: false,
   });
 }
 

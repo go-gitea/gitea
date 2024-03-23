@@ -9,8 +9,8 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment gt-df gt-fw gt-gap-3">
-						<form class="ui form ignore-dirty gt-f1 gt-df" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+					<div class="ui attached segment tw-flex tw-flex-wrap gt-gap-3">
+						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
@@ -19,7 +19,7 @@
 							</div>
 							<button class="ui primary button gt-ml-3">{{ctx.Locale.Tr "add"}}</button>
 						</form>
-						<div class="gt-dib">
+						<div class="tw-inline-block">
 							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>
 							<button class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{ctx.Locale.Tr "remove_all"}}</button>
 						</div>
@@ -28,7 +28,7 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Team.Repos}}
-							<div class="flex-item gt-ac">
+							<div class="flex-item tw-items-center">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}
 								</div>

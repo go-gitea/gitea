@@ -109,6 +109,8 @@ func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
+
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -118,15 +120,12 @@ func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
-				f.Close()
 				return err
 			}
 		}
-		err = scanner.Err()
-		if err != nil {
-			return fmt.Errorf("scan: %w", err)
+		if err = scanner.Err(); err != nil {
+			return fmt.Errorf("regeneratePrincipalKeys scan: %w", err)
 		}
-		f.Close()
 	}
 	return nil
 }

@@ -25,8 +25,8 @@
 		</div>
 	{{end}}
 
-	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
-		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
+	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+		<div class="file-header-left tw-flex tw-items-center gt-py-3 gt-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "gt-mr-3"}}
 				<strong><a class="default-link muted" href="#readme">{{.FileName}}</a></strong>
@@ -34,7 +34,7 @@
 				{{template "repo/file_info" .}}
 			{{end}}
 		</div>
-		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
+		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons">
 					<a href="?display=source" class="ui mini basic button {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>

@@ -1,5 +1,5 @@
-<h4 class="ui top attached header commits-table gt-df gt-ac gt-sb">
-	<div class="commits-table-left gt-df gt-ac">
+<h4 class="ui top attached header commits-table tw-flex tw-items-center tw-justify-between">
+	<div class="commits-table-left tw-flex tw-items-center">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
 			{{.CommitCount}} {{ctx.Locale.Tr "repo.commits.commits"}}
 		{{else if .IsNothingToCompare}}

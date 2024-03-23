@@ -1,5 +1,5 @@
 <div id="review-box">
-	<button class="ui tiny primary button gt-pr-2 gt-df js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
+	<button class="ui tiny primary button gt-pr-2 tw-flex js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
 		{{ctx.Locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -10,8 +10,8 @@
 			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
-				<div class="field gt-df gt-ac">
-					<div class="gt-f1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
+				<div class="field tw-flex tw-items-center">
+					<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
 					<a class="muted close">{{svg "octicon-x" 16}}</a>
 				</div>
 				<div class="field">
@@ -31,7 +31,7 @@
 				<div class="divider"></div>
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
-					<span class="gt-dib" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_approve"}}">
+					<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_approve"}}">
 						<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
 				{{else}}
@@ -39,7 +39,7 @@
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{ctx.Locale.Tr "repo.diff.review.comment"}}</button>
 				{{if $showSelfTooltip}}
-					<span class="gt-dib" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_reject"}}">
+					<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_reject"}}">
 						<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>
 					</span>
 				{{else}}
