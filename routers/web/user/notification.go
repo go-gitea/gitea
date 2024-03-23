@@ -144,6 +144,12 @@ func getNotifications(ctx *context.Context) {
 		ctx.ServerError("LoadIssues", err)
 		return
 	}
+
+	if err = notifications.LoadIssuePullRequests(ctx); err != nil {
+		ctx.ServerError("LoadIssuePullRequests", err)
+		return
+	}
+
 	notifications = notifications.Without(failures)
 	failCount += len(failures)
 
@@ -262,8 +268,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		var err error
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
-			ctx.ServerError("StringsToInt64s", err)
-			return
+			ctx.Flash.Error(ctx.Tr("invalid_data", selectedLabels), true)
 		}
 	}
 

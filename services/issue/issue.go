@@ -85,17 +85,27 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		}
 	}
 
-	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
+	var reviewNotifers []*ReviewRequestNotifier
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
+			return err
+		}
+
+		if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+			var err error
+			reviewNotifers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 
-	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-		if err := PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
-			return err
-		}
-	}
-
 	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
 
 	return nil
 }

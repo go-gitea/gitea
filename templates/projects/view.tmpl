@@ -1,7 +1,7 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 <div class="ui container">
-	<div class="gt-df gt-sb gt-ac gt-mb-4">
+	<div class="tw-flex tw-justify-between tw-items-center gt-mb-4">
 		<h2 class="gt-mb-0">{{.Project.Title}}</h2>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
