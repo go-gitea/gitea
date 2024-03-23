@@ -118,16 +118,20 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 		items = setting.Project.ProjectBoardBasicKanbanType
 
 	case BoardTypeNone:
-		board := Board{
-			CreatedUnix: timeutil.TimeStampNow(),
-			CreatorID:   project.CreatorID,
-			Title:       "Backlog",
-			ProjectID:   project.ID,
-			Default:     true,
-		}
-		return db.Insert(ctx, board)
+		fallthrough
 	default:
 		return nil
+	}
+
+	board := Board{
+		CreatedUnix: timeutil.TimeStampNow(),
+		CreatorID:   project.CreatorID,
+		Title:       "Backlog",
+		ProjectID:   project.ID,
+		Default:     true,
+	}
+	if err := db.Insert(ctx, board); err != nil {
+		return err
 	}
 
 	if len(items) == 0 {

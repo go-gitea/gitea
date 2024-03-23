@@ -353,10 +353,6 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
-	}
-
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
@@ -659,28 +655,19 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	var board *project_model.Board
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("ProjectBoardNotExist", nil)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+		return
+	}
 
-	if ctx.ParamsInt64(":boardID") == 0 {
-		board = &project_model.Board{
-			ID:        0,
-			ProjectID: project.ID,
-			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
-		}
-	} else {
-		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
-		if err != nil {
-			if project_model.IsErrProjectBoardNotExist(err) {
-				ctx.NotFound("ProjectBoardNotExist", nil)
-			} else {
-				ctx.ServerError("GetProjectBoard", err)
-			}
-			return
-		}
-		if board.ProjectID != project.ID {
-			ctx.NotFound("BoardNotInProject", nil)
-			return
-		}
+	if board.ProjectID != project.ID {
+		ctx.NotFound("BoardNotInProject", nil)
+		return
 	}
 
 	type movedIssuesForm struct {
