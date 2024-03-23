@@ -300,3 +300,50 @@ func UpdateBoardSorting(ctx context.Context, bs BoardList) error {
 	}
 	return nil
 }
+
+// CheckBoardsConsistency ensures every project has exactly one default column
+func CheckBoardsConsistency(ctx context.Context) error {
+	var projects []Project
+	if err := db.GetEngine(ctx).SQL("SELECT DISTINCT `p`.`id`, `p`.`creator_id` FROM `project` `p` WHERE (SELECT COUNT(*) FROM `project_board` `pb` WHERE `pb`.`project_id` = `p`.`id` AND `pb`.`default` = ?) != 1", true).
+		Find(&projects); err != nil {
+		return err
+	}
+
+	var boardsToCreate []Board
+	for _, p := range projects {
+		var boards []Board
+		if err := db.GetEngine(ctx).Where("project_id=? AND `default` = ?", p.ID, true).OrderBy("sorting").Find(&boards); err != nil {
+			return err
+		}
+
+		if len(boards) == 0 {
+			boardsToCreate = append(boardsToCreate, Board{
+				ProjectID: p.ID,
+				Default:   true,
+				Title:     "Uncategorized",
+				CreatorID: p.CreatorID,
+			})
+			continue
+		}
+
+		var boardsToUpdate []int64
+		for id, b := range boards {
+			if id > 0 {
+				boardsToUpdate = append(boardsToUpdate, b.ID)
+			}
+		}
+
+		if _, err := db.GetEngine(ctx).Where(builder.Eq{"project_id": p.ID}.And(builder.In("id", boardsToUpdate))).
+			Cols("`default`").Update(&Board{Default: false}); err != nil {
+			return err
+		}
+	}
+
+	if len(boardsToCreate) > 0 {
+		if _, err := db.GetEngine(ctx).Insert(boardsToCreate); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
+	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -171,6 +172,16 @@ func registerActionsCleanup() {
 	})
 }
 
+func registerCheckProjectsColumnsConsistency() {
+	RegisterTaskFatal("check_project_columns", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@midnight",
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		return project_model.CheckBoardsConsistency(ctx)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -190,4 +201,5 @@ func initBasicTasks() {
 	if setting.Actions.Enabled {
 		registerActionsCleanup()
 	}
+	registerCheckProjectsColumnsConsistency()
 }
