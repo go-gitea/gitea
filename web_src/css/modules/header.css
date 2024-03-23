@@ -86,7 +86,7 @@ h4.ui.header .sub.header {
   opacity: 1;
 }
 
-.ui.header:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+.ui.header:not(h1,h2,h3,h4,h5,h6) {
   font-size: 1.28571429em;
 }
 
