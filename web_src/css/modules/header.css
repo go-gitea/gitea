@@ -111,7 +111,7 @@ h4.ui.header .sub.header {
   border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
 
-.ui.attached.header:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+.ui.attached.header:not(h1,h2,h3,h4,h5,h6) {
   font-size: 1em;
 }
 
