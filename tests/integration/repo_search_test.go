@@ -33,6 +33,7 @@ func TestSearchRepo(t *testing.T) {
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
+	time.Sleep(1000)
 
 	testSearch(t, "/user2/repo1/search?q=Description&page=1", []string{"README.md"})
 
@@ -43,6 +44,7 @@ func TestSearchRepo(t *testing.T) {
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
+	time.Sleep(1000)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=loren&page=1&t=match", []string{"a.txt"})
