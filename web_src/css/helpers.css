@@ -142,14 +142,6 @@ Gitea's private styles use `g-` prefix.
 .gt-py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
 .gt-py-5 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
 
-.gt-font-12 { font-size: 12px !important }
-.gt-font-13 { font-size: 13px !important }
-.gt-font-14 { font-size: 14px !important }
-.gt-font-15 { font-size: 15px !important }
-.gt-font-16 { font-size: 16px !important }
-.gt-font-17 { font-size: 17px !important }
-.gt-font-18 { font-size: 18px !important }
-
 /*
 gt-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
 do not use:
