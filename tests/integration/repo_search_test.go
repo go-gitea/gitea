@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
