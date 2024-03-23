@@ -98,8 +98,10 @@ export function initImageDiff() {
         const text = await resp.text();
         const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
         if (bounds) {
-          info.$images.attr('width', bounds.width);
-          info.$images.attr('height', bounds.height);
+          info.$images.each(function() {
+            this.setAttribute('width', bounds.width);
+            this.setAttribute('height', bounds.height);
+          });
           hideElem(info.$boundsInfo);
         }
       }
