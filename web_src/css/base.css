@@ -215,7 +215,7 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
-  text-decoration: none;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
 }
 
@@ -237,6 +237,11 @@ a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
+}
+
+a.muted:hover,
+a.suppressed:hover {
+  text-decoration-line: underline;
 }
 
 a.silenced:hover,
