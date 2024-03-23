@@ -1499,8 +1499,8 @@ a.ui.active.label:hover {
   position: relative;
 }
 
-.file-view tr.active .lines-num:before {
-  content: '';
+.file-view tr.active .lines-num::before {
+  content: "";
   position: absolute;
   left: 0;
   width: 2px;
