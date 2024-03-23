@@ -1497,6 +1497,10 @@ a.ui.active.label:hover {
   background: var(--color-highlight-bg) !important;
 }
 
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
 .file-view tr.active .lines-num {
   position: relative;
 }
