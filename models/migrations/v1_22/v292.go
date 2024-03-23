@@ -11,7 +11,7 @@ import (
 
 func AddDefaultProjectColumn(x *xorm.Engine) error {
 	var projectsWithMissingDefault []project.Project
-	x.SQL("SELECT DISTINCT `p`.`id`, `p`.`creator_id` FROM `project` `p` WHERE NOT EXISTS (SELECT 1 FROM `project_board` `pb` WHERE `pb`.`project_id` = `p`.`id` AND `pb`.`default` != 0);").
+	x.SQL("SELECT DISTINCT `p`.`id`, `p`.`creator_id` FROM `project` `p` WHERE NOT EXISTS (SELECT 1 FROM `project_board` `pb` WHERE `pb`.`project_id` = `p`.`id` AND `pb`.`default` != 0)").
 		Find(&projectsWithMissingDefault)
 
 	var boards []project.Board
