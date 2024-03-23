@@ -247,10 +247,8 @@ export function initImageDiff() {
 
       const rangeInput = $container[0].querySelector('input[type="range"]');
       function updateOpacity() {
-        const image1 = sizes.$image1[0];
-        if (image1) {
-          const container = image1.parentNode;
-          container.style.opacity = `${rangeInput.value / 100}`;
+        if (sizes?.$image1?.[0]) {
+          sizes.$image1[0].parentNode.style.opacity = `${rangeInput.value / 100}`;
         }
       }
       rangeInput?.addEventListener('input', updateOpacity);
