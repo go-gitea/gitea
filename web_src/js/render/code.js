@@ -1,4 +1,4 @@
-import {getFileViewFilePath, getFileViewFileText, createExternalLink} from '../utils/misc.js';
+import {getFileViewFilePath, getFileViewFileText, createLink} from '../utils/misc.js';
 import {basename, isObject} from '../utils.js';
 
 export function initFileView() {
@@ -40,7 +40,8 @@ function processPackageJson() {
   for (const el of document.querySelectorAll('.code-inner .nt')) {
     const jsonKey = el.textContent.replace(/^"(.*)"$/, '$1');
     if (packages.has(jsonKey)) {
-      const link = createExternalLink({
+      const link = createLink({
+        external: true,
         className: 'suppressed',
         textContent: jsonKey,
         href: `https://www.npmjs.com/package/${jsonKey}`,
