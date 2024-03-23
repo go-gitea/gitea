@@ -1422,10 +1422,9 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  width: 2%;
+  padding: 1px 3px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
@@ -1536,7 +1535,7 @@ a.ui.active.label:hover {
   width: 350px;
   max-width: 350px;
   display: block;
-  padding: 0 0 0 10px;
+  padding: 1px 0 1px 10px;
   line-height: 20px;
   box-sizing: content-box;
 }
