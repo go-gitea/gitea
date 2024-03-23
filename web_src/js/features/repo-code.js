@@ -125,19 +125,24 @@ function showLineButton() {
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
-      const $select = $(this);
-      let $list;
-      if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code.blame-code');
+      let linesEls;
+      if (document.querySelector('div.blame')) {
+        linesEls = document.querySelectorAll('.code-view td.lines-code.blame-code');
       } else {
-        $list = $('.code-view td.lines-code');
+        linesEls = document.querySelectorAll('.code-view td.lines-code');
       }
-      const $sel = $list.filter(`[rel=${$select.attr('id')}]`);
-      let $from = null;
+
+      const selectedEls = Array.from(linesEls).filter((el) => {
+        return el.matches(`[rel=${this.getAttribute('id')}]`);
+      });
+
+      let from;
       if (e.shiftKey) {
-        $from = $list.closest('tr').filter('.active').children('.lines-code').eq(0);
+        from = Array.from(linesEls).filter((el) => {
+          return el.closest('tr').classList.contains('active');
+        });
       }
-      selectRange($list, $sel, $from);
+      selectRange($(linesEls), $(selectedEls), from ? $(from) : null);
 
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
