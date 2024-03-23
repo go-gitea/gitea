@@ -9,10 +9,9 @@
 			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 			<input type="hidden" name="poster" value="{{$.PosterID}}">
 		{{end}}
-		{{template "shared/search/input" dict "Value" .Keyword}}
+		{{template "shared/search/combo_fuzzy" dict "Value" .Keyword "IsFuzzy" .IsFuzzy "Placeholder" (ctx.Locale.Tr "explore.go_to")}}
 		{{if .PageIsIssueList}}
 			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
 		{{end}}
-		{{template "shared/search/button"}}
 	</div>
 </form>
