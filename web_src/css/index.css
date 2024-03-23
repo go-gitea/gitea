@@ -1,5 +1,6 @@
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
+@import "./modules/grid.css";
 @import "./modules/button.css";
 @import "./modules/select.css";
 @import "./modules/tippy.css";

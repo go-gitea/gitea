@@ -12,11 +12,11 @@
 				<p>
 					{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
-				<form class="gt-df" action="{{.Link}}" method="post">
+				<form class="tw-flex" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
 					{{if not .Repository.IsEmpty}}
-						<div class="ui dropdown selection search gt-f1 gt-mr-3 tw-max-w-96">
+						<div class="ui dropdown selection search tw-flex-1 gt-mr-3 tw-max-w-96">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 							<div class="default text">{{.Repository.DefaultBranch}}</div>
@@ -41,7 +41,7 @@
 			<div class="ui attached segment">
 				<div class="flex-list">
 					{{range .ProtectedBranches}}
-						<div class="flex-item gt-ac">
+						<div class="flex-item tw-items-center">
 							<div class="flex-item-main">
 								<div class="flex-item-title">
 									<div class="ui basic primary label">{{.RuleName}}</div>

@@ -8,8 +8,8 @@
 	{{$referenceUrl := printf "%s#%s" $.Issue.Link $comment.HashTag}}
 	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		{{if $resolved}}
-			<div class="ui attached header resolved-placeholder gt-df gt-ac gt-sb">
-				<div class="ui grey text gt-df gt-ac gt-fw gt-gap-2">
+			<div class="ui attached header resolved-placeholder tw-flex tw-items-center tw-justify-between">
+				<div class="ui grey text tw-flex tw-items-center tw-flex-wrap gt-gap-2">
 					{{svg "octicon-check" 16 "icon gt-mr-2"}}
 					<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 					{{if $invalid}}
@@ -22,12 +22,12 @@
 						</a>
 					{{end}}
 				</div>
-				<div class="gt-df gt-ac gt-gap-3">
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button show-outdated gt-df gt-ac">
+				<div class="tw-flex tw-items-center gt-gap-3">
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button show-outdated tw-flex tw-items-center">
 						{{svg "octicon-unfold" 16 "gt-mr-3"}}
 						{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated gt-df gt-ac gt-hidden">
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center gt-hidden">
 						{{svg "octicon-fold" 16 "gt-mr-3"}}
 						{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
@@ -40,7 +40,7 @@
 					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
 				</ui>
 			</div>
-			<div class="gt-df gt-je gt-ac gt-fw gt-mt-3">
+			<div class="tw-flex tw-justify-end tw-items-center tw-flex-wrap gt-mt-3">
 				<div class="ui buttons gt-mr-2">
 					<button class="ui icon tiny basic button previous-conversation">
 						{{svg "octicon-arrow-up" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.previous"}}

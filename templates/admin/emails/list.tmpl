@@ -4,8 +4,8 @@
 			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui secondary filter menu gt-ac gt-mx-0">
-				<form class="ui form ignore-dirty gt-f1">
+			<div class="ui secondary filter menu tw-items-center gt-mx-0">
+				<form class="ui form ignore-dirty tw-flex-1">
 					{{template "shared/search/combo" dict "Value" .Keyword}}
 				</form>
 				<!-- Sort -->
@@ -15,10 +15,10 @@
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
-						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
-						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
-						<a class="{{if eq .SortType "username"}}active {{end}}item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
-						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active {{end}}item" href="?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
 					</div>
 				</div>
 			</div>

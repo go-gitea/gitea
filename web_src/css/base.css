@@ -37,6 +37,23 @@
   border-color: currentcolor;
 }
 
+html, body {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  line-height: 1.4285rem;
+  font-family: var(--fonts-regular);
+  color: var(--color-text);
+  background-color: var(--color-body);
+  tab-size: var(--tab-size);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-wrap: break-word;
+}
+
 textarea {
   font-family: var(--fonts-regular);
 }
@@ -60,13 +77,65 @@ h6 {
   font-weight: var(--font-weight-semibold);
 }
 
-body {
-  color: var(--color-text);
-  background-color: var(--color-body);
-  tab-size: var(--tab-size);
-  display: flex;
-  flex-direction: column;
-  overflow-wrap: break-word;
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.28571429;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
+  padding: 0;
+}
+
+h1 {
+  min-height: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.71428571rem;
+}
+
+h3 {
+  font-size: 1.28571429rem;
+}
+
+h4 {
+  font-size: 1.07142857rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child {
+  margin-top: 0;
+}
+
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child {
+  margin-bottom: 0;
+}
+
+p {
+  margin: 0 0 1em;
+  line-height: 1.4285;
+}
+
+p:first-child {
+  margin-top: 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
 }
 
 table {
@@ -121,8 +190,8 @@ progress::-moz-progress-bar {
 }
 
 ::selection {
-  background: var(--color-primary-light-1) !important;
-  color: var(--color-white) !important;
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
 }
 
 ::placeholder,
@@ -146,6 +215,7 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
+  text-decoration: none;
   text-decoration-skip-ink: all;
 }
 
@@ -225,16 +295,6 @@ a.label,
 
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
-}
-
-.page-content {
-  margin-top: 15px;
-}
-
-.page-content .header-wrapper,
-.page-content overflow-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
@@ -678,6 +738,18 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+/* add margin below .secondary nav when it is the first child */
+.page-content > :first-child.secondary-nav {
+  margin-bottom: 14px;
+}
+
+/* add padding to all content when there is no .secondary.nav. this uses padding instead of
+   margin because with the negative margin on .ui.grid we would have to set margin-top: 0,
+   but that does not work universally for all pages */
+.page-content > :first-child:not(.secondary-nav) {
+  padding-top: 14px;
+}
+
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
@@ -712,16 +784,6 @@ img.ui.avatar,
 .ui.pagination.menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.loading.segment::before,
-.ui.loading.form::before {
-  background: none;
-}
-
-.ui.loading.form > *,
-.ui.loading.segment > * {
-  opacity: 0.35;
 }
 
 .ui.form .fields.error .field textarea,
@@ -813,10 +875,6 @@ input:-webkit-autofill:active,
 
 .ui.form .field.muted {
   opacity: var(--opacity-disabled);
-}
-
-.ui.loading.loading.input > i.icon svg {
-  visibility: hidden;
 }
 
 .text.primary {
@@ -1270,15 +1328,7 @@ strong.attention-caution, svg.attention-caution {
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
-}
-
 overflow-menu {
-  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
 }
@@ -1290,6 +1340,10 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .ui.label {
+  margin-left: 7px !important; /* save some space */
 }
 
 .activity-bar-graph {
@@ -1783,15 +1837,6 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
-.ui.tabular.menu .item {
-  padding: 11px 12px;
-  color: var(--color-text-light-2);
-}
-
-.ui.tabular.menu .item:hover {
-  color: var(--color-text);
-}
-
 .ui.tabular.menu .active.item,
 .ui.tabular.menu .active.item:hover {
   background: var(--color-body);
@@ -1808,15 +1853,34 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
+.ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
+.ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
+}
+
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .ui.header {

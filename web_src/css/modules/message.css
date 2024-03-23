@@ -1,3 +1,6 @@
+/* based on Fomantic UI message module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
 .ui.message {
   background: var(--color-box-body);
   color: var(--color-text);

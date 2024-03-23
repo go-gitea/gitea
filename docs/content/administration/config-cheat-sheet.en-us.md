@@ -590,7 +590,7 @@ And the following unique queues:
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**: Allow authentication in via OpenID.
+- `ENABLE_OPENID_SIGNIN`: **true**: Allow authentication in via OpenID.
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**: Allow registering via OpenID.
 - `WHITELISTED_URIS`: **_empty_**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to permit.

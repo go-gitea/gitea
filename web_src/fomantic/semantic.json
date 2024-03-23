@@ -28,7 +28,6 @@
     "dimmer",
     "dropdown",
     "form",
-    "grid",
     "header",
     "input",
     "label",
@@ -37,7 +36,6 @@
     "modal",
     "search",
     "segment",
-    "site",
     "tab",
     "table"
   ]

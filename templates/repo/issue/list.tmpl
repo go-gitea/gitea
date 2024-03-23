@@ -2,6 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
+	{{template "base/alert" .}}
 
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
