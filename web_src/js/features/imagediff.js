@@ -241,7 +241,6 @@ export function initImageDiff() {
         container.style.height = `${sizes.size2.height * factor + 2}px`;
 
         // some inner elements are `position: absolute`, so the container's height must be large enough
-        // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
         overlayFrame.style.width = `${sizes.max.width * factor + 2}px`;
         overlayFrame.style.height = `${sizes.max.height * factor + 2}px`;
       }
