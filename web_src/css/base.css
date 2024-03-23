@@ -1528,7 +1528,7 @@ a.ui.active.label:hover {
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   padding: 0 !important;
   width: 1%;
 }
