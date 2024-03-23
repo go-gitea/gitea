@@ -194,6 +194,10 @@
   margin: 0 0 0 3em;
 }
 
+.diff-file-body.binary {
+  padding: 5px 10px;
+}
+
 .file-comment {
   color: var(--color-text);
 }
