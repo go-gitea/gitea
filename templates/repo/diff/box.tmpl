@@ -178,7 +178,7 @@
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
 							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} gt-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="diff-file-body binary" style="padding: 5px 10px;">
+									<div class="diff-file-body binary">
 										{{if $file.IsIncomplete}}
 											{{if $file.IsIncompleteLineTooLong}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
