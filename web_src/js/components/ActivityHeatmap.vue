@@ -11,7 +11,7 @@ export default {
     locale: {
       type: Object,
       default: () => {},
-    }
+    },
   },
   data: () => ({
     colorRange: [
@@ -49,7 +49,7 @@ export default {
 
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
-    }
+    },
   },
 };
 </script>

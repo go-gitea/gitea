@@ -139,7 +139,7 @@ export function initRepoCommentForm() {
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
 
-      const $clickedItem = $(this);
+      const clickedItem = this; // eslint-disable-line unicorn/no-this-assignment
       const scope = $(this).attr('data-scope');
 
       $(this).parent().find('.item').each(function () {
@@ -148,10 +148,10 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if (!$(this).is($clickedItem) && !$(this).hasClass('checked')) {
+          if (this !== clickedItem && !$(this).hasClass('checked')) {
             return true;
           }
-        } else if (!$(this).is($clickedItem)) {
+        } else if (this !== clickedItem) {
           // Toggle for other labels
           return true;
         }
@@ -272,11 +272,11 @@ export function initRepoCommentForm() {
 
       let icon = '';
       if (input_id === '#milestone_id') {
-        icon = svg('octicon-milestone', 18, 'gt-mr-3');
+        icon = svg('octicon-milestone', 18, 'tw-mr-2');
       } else if (input_id === '#project_id') {
-        icon = svg('octicon-project', 18, 'gt-mr-3');
+        icon = svg('octicon-project', 18, 'tw-mr-2');
       } else if (input_id === '#assignee_id') {
-        icon = `<img class="ui avatar image gt-mr-3" alt="avatar" src=${$(this).data('avatar')}>`;
+        icon = `<img class="ui avatar image tw-mr-2" alt="avatar" src=${$(this).data('avatar')}>`;
       }
 
       $list.find('.selected').html(`

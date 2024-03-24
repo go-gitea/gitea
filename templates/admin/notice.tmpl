@@ -17,10 +17,10 @@
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td><div class="ui checkbox gt-df" data-id="{{.ID}}"><input type="checkbox"></div></td>
+						<td><div class="ui checkbox tw-flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
 						<td>{{ctx.Locale.Tr .TrStr}}</td>
-						<td class="view-detail auto-ellipsis" style="width: 80%;"><span class="notice-description">{{.Description}}</span></td>
+						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>

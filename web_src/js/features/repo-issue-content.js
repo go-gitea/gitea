@@ -16,9 +16,9 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header gt-df gt-ac gt-sb">
+  <div class="header tw-flex tw-items-center tw-justify-between">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options gt-mr-5 gt-hidden">
+    <div class="ui dropdown dialog-header-options tw-mr-8 gt-hidden">
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
@@ -60,7 +60,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
     },
     onHide() {
       $(this).dropdown('clear', true);
-    }
+    },
   });
   $dialog.modal({
     async onShow() {

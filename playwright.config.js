@@ -20,7 +20,7 @@ export default {
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 2000
+    timeout: 2000,
   },
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */

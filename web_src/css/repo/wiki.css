@@ -21,6 +21,7 @@
 
 .repository.wiki .wiki-content-parts .markup {
   border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
   padding: 1em;
   margin-top: 1em;
   font-size: 1em;

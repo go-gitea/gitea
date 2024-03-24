@@ -43,7 +43,7 @@ export default {
       for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
         toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
       }
-    }
+    },
   },
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
@@ -108,7 +108,7 @@ export default {
         <div class="field">
           <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
           <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-            <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
+            <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
               {{ mergeForm.textClearMergeMessage }}
             </button>
           </template>
@@ -130,13 +130,13 @@ export default {
         {{ mergeForm.textCancel }}
       </button>
 
-      <div class="ui checkbox gt-ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
+      <div class="ui checkbox tw-ml-1" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
         <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
         <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="gt-df">
+    <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
         <button class="ui button">
@@ -177,7 +177,7 @@ export default {
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="gt-ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-4">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}

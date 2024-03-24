@@ -47,7 +47,7 @@ export function initRepoTopicBar() {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
-            const $link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
+            const $link = $('<a class="ui repo-topic large label topic tw-m-0"></a>');
             $link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
             $link.text(topic);
             $link.insertBefore($mgrBtn); // insert all new topics before manage button
@@ -146,7 +146,7 @@ export function initRepoTopicBar() {
       addedValue = addedValue.toLowerCase().trim();
       $($addedChoice).attr('data-value', addedValue);
       $($addedChoice).attr('data-text', addedValue);
-    }
+    },
   });
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
@@ -168,14 +168,14 @@ export function initRepoTopicBar() {
           {
             type: 'validateTopic',
             value: /^\s*[a-z0-9][-.a-z0-9]{0,35}\s*$/,
-            prompt: topicPrompts.formatPrompt
+            prompt: topicPrompts.formatPrompt,
           },
           {
             type: 'maxCount[25]',
-            prompt: topicPrompts.countPrompt
-          }
-        ]
+            prompt: topicPrompts.countPrompt,
+          },
+        ],
       },
-    }
+    },
   });
 }
