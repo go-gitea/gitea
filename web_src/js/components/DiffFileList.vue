@@ -36,12 +36,12 @@ export default {
 };
 </script>
 <template>
-  <ol class="diff-stats gt-m-0" ref="root" v-if="store.fileListIsVisible">
+  <ol class="diff-stats tw-m-0" ref="root" v-if="store.fileListIsVisible">
     <li v-for="file in store.files" :key="file.NameHash">
       <div class="tw-font-semibold tw-flex tw-items-center pull-right">
-        <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ store.binaryFileMessage }}</span>
+        <span v-if="file.IsBin" class="tw-ml-0.5 tw-mr-2">{{ store.binaryFileMessage }}</span>
         {{ file.IsBin ? '' : file.Addition + file.Deletion }}
-        <span v-if="!file.IsBin" class="diff-stats-bar gt-mx-3" :data-tooltip-content="store.statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">
+        <span v-if="!file.IsBin" class="diff-stats-bar tw-mx-2" :data-tooltip-content="store.statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">
           <div class="diff-stats-add-bar" :style="{ 'width': diffStatsWidth(file.Addition, file.Deletion) }"/>
         </span>
       </div>
@@ -49,7 +49,7 @@ export default {
       <span :class="['status', diffTypeToString(file.Type)]" :data-tooltip-content="diffTypeToString(file.Type)">&nbsp;</span>
       <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
-    <li v-if="store.isIncomplete" class="gt-pt-2">
+    <li v-if="store.isIncomplete" class="tw-pt-1">
       <span class="file tw-flex tw-items-center tw-justify-between">{{ store.tooManyFilesMessage }}
         <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
       </span>

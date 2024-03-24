@@ -1,12 +1,12 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="tw-flex tw-justify-between gt-mb-4">
+	<div class="tw-flex tw-justify-between tw-mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
-				{{svg "octicon-project-symlink" 16 "gt-mr-3"}}
+				{{svg "octicon-project-symlink" 16 "tw-mr-2"}}
 				{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="?state=closed&q={{$.Keyword}}">
-				{{svg "octicon-check" 16 "gt-mr-3"}}
+				{{svg "octicon-check" 16 "tw-mr-2"}}
 				{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
@@ -41,7 +41,7 @@
 <div class="milestone-list">
 	{{range .Projects}}
 		<li class="milestone-card">
-			<h3 class="flex-text-block gt-m-0">
+			<h3 class="flex-text-block tw-m-0">
 				{{svg .IconName 16}}
 				<a class="muted" href="{{.Link ctx}}">{{.Title}}</a>
 			</h3>

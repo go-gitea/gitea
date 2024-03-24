@@ -10,9 +10,9 @@
 				</div>
 				{{range .Hooks}}
 					<div class="item truncated-item-container">
-						<span class="text {{if .IsActive}}green{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
-						<span class="text truncate tw-flex-1 gt-mr-3">{{.Name}}</span>
-						<a class="muted tw-float-right gt-p-3" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
+						<span class="text {{if .IsActive}}green{{else}}grey{{end}} tw-mr-2">{{svg "octicon-dot-fill" 22}}</span>
+						<span class="text truncate tw-flex-1 tw-mr-2">{{.Name}}</span>
+						<a class="muted tw-float-right tw-p-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
 							{{svg "octicon-pencil"}}
 						</a>
 					</div>
