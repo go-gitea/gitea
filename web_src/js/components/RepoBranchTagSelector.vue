@@ -83,7 +83,7 @@ const sfc = {
         this.isViewBranch = false;
         this.$refs.dropdownRefName.textContent = item.name;
         if (this.setAction) {
-          $(`#${this.branchForm}`).attr('action', url);
+          document.getElementById(this.branchForm)?.setAttribute('action', url);
         } else {
           $(`#${this.branchForm} input[name="refURL"]`).val(url);
         }
@@ -246,7 +246,7 @@ export default sfc; // activate IDE's Vue plugin
 <template>
   <div class="ui dropdown custom">
     <button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text tw-flex tw-content-center gt-mr-2">
+      <span class="text tw-flex tw-items-center gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>

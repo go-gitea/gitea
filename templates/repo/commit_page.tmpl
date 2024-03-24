@@ -139,8 +139,8 @@
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
-		<div class="ui attached segment tw-flex tw-content-center tw-justify-between gt-py-2 commit-header-row tw-flex-wrap {{$class}}">
-				<div class="tw-flex tw-content-center author">
+		<div class="ui attached segment tw-flex tw-items-center tw-justify-between gt-py-2 commit-header-row tw-flex-wrap {{$class}}">
+				<div class="tw-flex tw-items-center author">
 					{{if .Author}}
 						{{ctx.AvatarUtils.Avatar .Author 28 "gt-mr-3"}}
 						{{if .Author.FullName}}
@@ -164,7 +164,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="ui horizontal list tw-flex tw-content-center">
+				<div class="ui horizontal list tw-flex tw-items-center">
 					{{if .Parents}}
 						<div class="item">
 							<span>{{ctx.Locale.Tr "repo.diff.parent"}}</span>
@@ -184,8 +184,8 @@
 				</div>
 		</div>
 		{{if .Commit.Signature}}
-			<div class="ui bottom attached message tw-text-left tw-flex tw-content-center tw-justify-between commit-header-row tw-flex-wrap gt-mb-0 {{$class}}">
-				<div class="tw-flex tw-content-center">
+			<div class="ui bottom attached message tw-text-left tw-flex tw-items-center tw-justify-between commit-header-row tw-flex-wrap gt-mb-0 {{$class}}">
+				<div class="tw-flex tw-items-center">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "gitea-lock" 16 "gt-mr-3"}}
@@ -209,7 +209,7 @@
 						<span class="ui text">{{ctx.Locale.Tr .Verification.Reason}}</span>
 					{{end}}
 				</div>
-				<div class="tw-flex tw-content-center">
+				<div class="tw-flex tw-items-center">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "octicon-verified" 16 "gt-mr-3"}}

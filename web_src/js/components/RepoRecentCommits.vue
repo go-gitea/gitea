@@ -121,7 +121,7 @@ export default {
 </script>
 <template>
   <div>
-    <div class="ui header tw-flex tw-content-center tw-justify-between">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Number of commits in the past year" }}
     </div>
     <div class="tw-flex ui segment main-graph">
