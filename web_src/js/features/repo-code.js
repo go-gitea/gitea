@@ -102,8 +102,8 @@ function showLineButton() {
   }
 
   // find active row and add button
-  const tr = document.querySelector('.code-view tr.active .lines-code').closest('tr');
-  const td = tr.querySelector('td');
+  const tr = document.querySelector('.code-view tr.active');
+  const td = tr.querySelector('td.lines-num');
   const btn = document.createElement('button');
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
@@ -148,10 +148,7 @@ export function initRepoCodeView() {
         document.selection.empty();
       }
 
-      // show code view menu marker (don't show in blame page)
-      if (!isBlame()) {
-        showLineButton();
-      }
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
