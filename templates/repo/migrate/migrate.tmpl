@@ -7,11 +7,11 @@
 				{{range .Services}}
 					<a class="ui card migrate-entry tw-flex tw-items-center" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
-							{{svg "octicon-mark-github" 184 "gt-p-4"}}
+							{{svg "octicon-mark-github" 184 "tw-p-4"}}
 						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "gt-p-4"}}
+							{{svg "gitea-gitlab" 184 "tw-p-4"}}
 						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "gt-p-4"}}
+							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
 						{{end}}

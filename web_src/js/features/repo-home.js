@@ -47,7 +47,7 @@ export function initRepoTopicBar() {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
-            const $link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
+            const $link = $('<a class="ui repo-topic large label topic tw-m-0"></a>');
             $link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
             $link.text(topic);
             $link.insertBefore($mgrBtn); // insert all new topics before manage button

@@ -5,7 +5,7 @@
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
 			<div class="tw-flex tw-items-center">
-				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
+				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
 					{{svg "octicon-git-branch"}}
 					{{ctx.Locale.Tr "repo.commit_graph"}}

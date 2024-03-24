@@ -278,9 +278,9 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(avatarUtils.Avatar(commit.User, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.Avatar(commit.User, 18))
 				} else {
-					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "tw-mr-2"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

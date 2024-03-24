@@ -19,12 +19,12 @@
 			{{range .Milestones}}
 				<li class="milestone-card">
 					<div class="milestone-header">
-						<h3 class="flex-text-block gt-m-0">
+						<h3 class="flex-text-block tw-m-0">
 							{{svg "octicon-milestone" 16}}
 							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 						</h3>
 						<div class="tw-flex tw-items-center">
-							<span class="gt-mr-3">{{.Completeness}}%</span>
+							<span class="tw-mr-2">{{.Completeness}}%</span>
 							<progress value="{{.Completeness}}" max="100"></progress>
 						</div>
 					</div>
