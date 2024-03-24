@@ -7,9 +7,16 @@
 		<div class="ui error message">
 			<p>{{ctx.Locale.Tr "search.code_search_unavailable"}}</p>
 		</div>
-	{{else if .SearchResults}}
-		{{template "shared/search/code/results" .}}
-	{{else if .Keyword}}
-		<div>{{ctx.Locale.Tr "search.no_results"}}</div>
+	{{else}}
+		{{if not .CodeIndexerEnabled}}
+			<div class="ui message">
+				<p>{{ctx.Locale.Tr "search.code_search_by_git_grep"}}</p>
+			</div>
+		{{end}}
+		{{if .SearchResults}}
+			{{template "shared/search/code/results" .}}
+		{{else if .Keyword}}
+			<div>{{ctx.Locale.Tr "search.no_results"}}</div>
+		{{end}}
 	{{end}}
 </div>

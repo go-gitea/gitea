@@ -87,6 +87,9 @@ _Symbols used in table:_
 | Git Blame                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | Visual comparison of image changes          | ✓                                                   | ✘    | ✓         | ?         | ?         | ?         | ✘            | ✘            |
 
+- Gitea has builtin repository-level code search
+- Better code search support could be achieved by [using a repository indexer](administration/repo-indexer.md)
+
 ## Issue Tracker
 
 | Feature                       | Gitea                                               | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE | RhodeCode EE |

@@ -1602,7 +1602,6 @@
 
 .repository .diff-file-box .file-body.file-code .lines-num {
   text-align: right;
-  color: var(--color-text-light);
   width: 1%;
   min-width: 50px;
 }
