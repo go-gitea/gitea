@@ -66,6 +66,7 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: 1px solid var(--color-secondary-dark-2);
 }
 
+/* TODO: these "tw-hidden" selectors are only used by "blame.tmp" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */
 .ui.buttons .button:first-child,
 .ui.buttons .button.tw-hidden:first-child + .button {
   border-left: 1px solid var(--color-light-border);
