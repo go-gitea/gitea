@@ -212,8 +212,7 @@ function initRepoDiffShowMore() {
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  const $diffFileList = $('#diff-file-list');
-  if ($diffFileList.length === 0) return;
+  if (!$('#diff-file-list').length) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

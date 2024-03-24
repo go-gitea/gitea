@@ -362,7 +362,7 @@ export async function updateIssuesMeta(url, action, issue_ids, id) {
 }
 
 export function initRepoIssueComments() {
-  if ($('.repository.view.issue .timeline').length === 0) return;
+  if (!$('.repository.view.issue .timeline').length) return;
 
   $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
@@ -377,7 +377,7 @@ export function initRepoIssueComments() {
 
   $(document).on('click', (event) => {
     const $urlTarget = $(':target');
-    if ($urlTarget.length === 0) return;
+    if (!$urlTarget.length) return;
 
     const urlTargetId = $urlTarget.attr('id');
     if (!urlTargetId) return;
@@ -385,7 +385,7 @@ export function initRepoIssueComments() {
 
     const $target = $(event.target);
 
-    if ($target.closest(`#${urlTargetId}`).length === 0) {
+    if (!$target.closest(`#${urlTargetId}`).length) {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
@@ -478,9 +478,7 @@ export function initRepoPullRequestReview() {
   }
 
   // The following part is only for diff views
-  if ($('.repository.pull.diff').length === 0) {
-    return;
-  }
+  if (!$('.repository.pull.diff').length) return;
 
   const $reviewBtn = $('.js-btn-review');
   const $panel = $reviewBtn.parent().find('.review-box-panel');
@@ -529,7 +527,7 @@ export function initRepoPullRequestReview() {
 
     const $td = $ntr.find(`.add-comment-${side}`);
     const $commentCloud = $td.find('.comment-code-cloud');
-    if ($commentCloud.length === 0 && !$ntr.find('button[name="pending_review"]').length) {
+    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
       try {
         const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
         const html = await response.text();
@@ -626,7 +624,7 @@ export function initRepoIssueTitleEdit() {
     };
 
     const pullrequest_target_update_url = $(this).attr('data-target-update-url');
-    if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
+    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
       await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {

@@ -77,7 +77,7 @@ function filterRepoFiles(filter) {
 
   const filterResult = filterRepoFilesWeighted(files, filter);
 
-  toggleElem(repoFindFileNoResult, filterResult.length === 0);
+  toggleElem(repoFindFileNoResult, !filterResult.length);
   for (const r of filterResult) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');

@@ -6,9 +6,7 @@ import {POST} from '../../modules/fetch.js';
 const {appSubUrl} = window.config;
 
 export function initAdminCommon() {
-  if ($('.page-content.admin').length === 0) {
-    return;
-  }
+  if (!$('.page-content.admin').length) return;
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
   checkAppUrl();
