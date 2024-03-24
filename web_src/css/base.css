@@ -352,6 +352,10 @@ ol.ui.list li,
   border-right-color: var(--color-primary);
 }
 
+.ui.menu {
+  display: flex;
+}
+
 .ui.menu,
 .ui.vertical.menu {
   background: var(--color-menu);
@@ -736,37 +740,6 @@ img.ui.avatar,
    but that does not work universally for all pages */
 .page-content > :first-child:not(.secondary-nav) {
   padding-top: 14px;
-}
-
-/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - 64px);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
-}
-
-/* enable fluid page widths for medium size viewports */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 32px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 16px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 8px;
-  }
 }
 
 .ui.pagination.menu .active.item {
