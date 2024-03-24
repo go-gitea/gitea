@@ -1,7 +1,7 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
-		<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-3 gt-ml-1">
+		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 gt-ml-1">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
@@ -111,7 +111,7 @@
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between tw-flex-wrap">
-							<div class="diff-file-name tw-flex tw-items-center gt-gap-2 tw-flex-wrap">
+							<div class="diff-file-name tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
 								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
 										{{svg "octicon-chevron-right" 18}}
@@ -144,7 +144,7 @@
 									<span class="gt-ml-4 gt-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
 							</div>
-							<div class="diff-file-header-actions tw-flex tw-items-center gt-gap-2 tw-flex-wrap">
+							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
