@@ -11,7 +11,6 @@
 .ui.button:hover {
   background: var(--color-hover);
   color: var(--color-text);
-  border-color: var(--color-secondary-dark-2);
 }
 
 .page-content .ui.button {
@@ -60,6 +59,10 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button {
   border-right: none;
+}
+
+.ui.buttons .button:hover {
+  border-color: var(--color-secondary-dark-2);
 }
 
 .ui.buttons .button:hover + .button {
