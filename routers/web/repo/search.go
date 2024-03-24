@@ -86,6 +86,7 @@ func Search(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Repo"] = ctx.Repo.Repository
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
