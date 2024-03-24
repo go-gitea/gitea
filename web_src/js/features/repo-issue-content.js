@@ -18,7 +18,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   ${svg('octicon-x', 16, 'close icon inside')}
   <div class="header tw-flex tw-items-center tw-justify-between">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options tw-mr-8 gt-hidden">
+    <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
@@ -76,7 +76,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').removeClass('gt-hidden');
+          $dialog.find('.dialog-header-options').removeClass('tw-hidden');
         }
       } catch (error) {
         console.error('Error:', error);

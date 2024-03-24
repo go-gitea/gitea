@@ -41,6 +41,8 @@ export default {
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
     'backdrop-filter',
+    // we use double-class tw-hidden defined in web_src/css/helpers.css for increased specificity
+    'hidden',
     // unneeded classes
     '[-a-zA-Z:0-9_.]',
   ],

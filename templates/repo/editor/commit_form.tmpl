@@ -57,7 +57,7 @@
 					</label>
 				</div>
 			</div>
-			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}gt-hidden{{end}}">
+			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}tw-hidden{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
 					{{svg "octicon-git-branch"}}
 					<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast tw-mr-1 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">

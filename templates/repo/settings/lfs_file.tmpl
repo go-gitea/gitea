@@ -5,7 +5,7 @@
 				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui tiny basic button unescape-button gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui tiny basic button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui tiny basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					<a class="ui primary tiny button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
