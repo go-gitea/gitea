@@ -9,7 +9,7 @@ export function initRepoTopicBar() {
   const mgrBtn = document.getElementById('manage_topic');
   if (!mgrBtn) return;
   const editDiv = document.getElementById('topic_edit');
-  const $viewDiv = $('#repo-topics');
+  const viewDiv = document.getElementById('repo-topics');
   const saveBtn = document.getElementById('save_topic');
   const topicDropdown = editDiv.querySelector('.dropdown');
   const $topicDropdown = $(topicDropdown);
@@ -21,14 +21,14 @@ export function initRepoTopicBar() {
   };
 
   mgrBtn.addEventListener('click', () => {
-    hideElem($viewDiv);
+    hideElem(viewDiv);
     showElem(editDiv);
     $topicDropdownSearch.trigger('focus');
   });
 
   $('#cancel_topic_edit').on('click', () => {
     hideElem(editDiv);
-    showElem($viewDiv);
+    showElem(viewDiv);
     mgrBtn.focus();
   });
 
@@ -43,7 +43,7 @@ export function initRepoTopicBar() {
     if (response.ok) {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
-        $viewDiv.children('.topic').remove();
+        $(viewDiv).children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
@@ -56,7 +56,7 @@ export function initRepoTopicBar() {
           }
         }
         hideElem(editDiv);
-        showElem($viewDiv);
+        showElem(viewDiv);
       }
     } else if (response.status === 422) {
       const responseData = await response.json();
