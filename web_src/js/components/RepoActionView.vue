@@ -268,6 +268,10 @@ const sfc = {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
+    isExpandable(status) {
+      return ['success', 'running', 'failure', 'cancelled'].includes(status);
+    },
+
     closeDropdown() {
       if (this.menuVisible) this.menuVisible = false;
     },
@@ -459,12 +463,12 @@ export function initRepositoryActionView() {
         </div>
         <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
+            <div class="job-step-summary" @click.stop="jobStep.status !== 'skipped' && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
               <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
-              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
+              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['gt-mr-3', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
 
               <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
@@ -715,11 +719,19 @@ export function initRepositoryActionView() {
 }
 
 .job-step-container .job-step-summary {
-  cursor: pointer;
   padding: 5px 10px;
   display: flex;
   align-items: center;
   border-radius: var(--border-radius);
+}
+
+.job-step-container .job-step-summary.step-expandable {
+  cursor: pointer;
+}
+
+.job-step-container .job-step-summary.step-expandable:hover {
+  color: var(--color-console-fg);
+  background-color: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -728,12 +740,6 @@ export function initRepositoryActionView() {
 
 .job-step-container .job-step-summary .step-summary-duration {
   margin-left: 16px;
-}
-
-.job-step-container .job-step-summary:hover {
-  color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
-
 }
 
 .job-step-container .job-step-summary.selected {

@@ -15,6 +15,7 @@
 @import "./modules/flexcontainer.css";
 @import "./modules/message.css";
 @import "./modules/container.css";
+@import "./modules/header.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
