@@ -35,7 +35,7 @@
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
 						<div class="item-section-left">
-							<h3 class="gt-mb-3">
+							<h3 class="tw-mb-2">
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
@@ -50,7 +50,7 @@
 			{{else if .Issue.IsClosed}}
 				<div class="item item-section text tw-flex-1">
 					<div class="item-section-left">
-						<h3 class="gt-mb-3">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
+						<h3 class="tw-mb-2">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
 						<div class="merge-section-info">
 							{{if .IsPullRequestBroken}}
 								{{ctx.Locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}

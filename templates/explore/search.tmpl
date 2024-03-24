@@ -1,4 +1,4 @@
-<div class="ui small secondary filter menu tw-items-center gt-mx-0">
+<div class="ui small secondary filter menu tw-items-center tw-mx-0">
 	<form class="ui form ignore-dirty tw-flex-1">
 		{{if .PageIsExploreUsers}}
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
@@ -7,7 +7,7 @@
 		{{end}}
 	</form>
 	<!-- Sort -->
-	<div class="ui small dropdown type jump item gt-mr-0">
+	<div class="ui small dropdown type jump item tw-mr-0">
 		<span class="text">
 			{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 		</span>

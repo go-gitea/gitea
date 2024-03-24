@@ -12,7 +12,7 @@
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
-		<div class="file-header-left tw-flex tw-items-center gt-py-3 gt-pr-4">
+		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
 		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
@@ -69,7 +69,7 @@
 								</td>
 							{{end}}
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
-								<code class="code-inner gt-pl-3">{{$row.Code}}</code>
+								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>
 						</tr>
 					{{end}}

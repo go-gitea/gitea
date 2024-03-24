@@ -1,6 +1,6 @@
 <div class="divider"></div>
 <div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}} </div>
-<div class="instruct-content gt-mt-3 gt-hidden">
+<div class="instruct-content tw-mt-2 gt-hidden">
 	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}</div>
 	{{$localBranch := .PullRequest.HeadBranch}}
 	{{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}

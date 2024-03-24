@@ -121,7 +121,7 @@
 							<tbody>
 								<tr>
 									<td colspan="4">
-										<div class="text red gt-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+										<div class="text red tw-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 									</td>
 								</tr>
 							</tbody>
@@ -163,10 +163,10 @@
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
 										<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
-											<summary class="gt-p-2">
+											<summary class="tw-p-1">
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
-											<div class="gt-p-2">
+											<div class="tw-p-1">
 												<div class="inline field {{if .Err_Auth}}error{{end}}">
 													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
@@ -262,10 +262,10 @@
 												<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 											</div>
 											<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
-												<summary class="gt-p-2">
+												<summary class="tw-p-1">
 													{{ctx.Locale.Tr "repo.need_auth"}}
 												</summary>
-												<div class="gt-p-2">
+												<div class="tw-p-1">
 													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
 														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
@@ -335,7 +335,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
-					<div class="inline field gt-pl-4">
+					<div class="inline field tw-pl-4">
 						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
 					</div>
@@ -345,7 +345,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
 						<label for="external_wiki_url">{{ctx.Locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{ctx.Locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -372,7 +372,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+					<div class="field tw-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -404,7 +404,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{ctx.Locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -458,7 +458,7 @@
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
-				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} gt-pl-4" id="projects_box">
+				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} tw-pl-4" id="projects_box">
 					<p>
 						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
 					</p>
