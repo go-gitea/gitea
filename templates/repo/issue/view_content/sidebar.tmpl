@@ -58,7 +58,7 @@
 								<span class="text">{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 							{{end}}
 						</div>
-						<div class="tw-flex tw-items-center gt-gap-3">
+						<div class="tw-flex tw-items-center tw-gap-2">
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
 								<a href="#" class="ui muted icon tw-flex tw-items-center show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dismiss_review"}}" data-modal="#dismiss-review-modal-{{.Review.ID}}">
 									{{svg "octicon-x" 20}}
@@ -106,7 +106,7 @@
 								{{.OriginalAuthor}}
 							</a>
 						</div>
-						<div class="tw-flex tw-items-center gt-gap-3">
+						<div class="tw-flex tw-items-center tw-gap-2">
 							{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
 						</div>
 					</div>
@@ -310,7 +310,7 @@
 						<div class="ui mini modal issue-start-time-modal">
 							<div class="header">{{ctx.Locale.Tr "repo.issues.add_time"}}</div>
 							<div class="content">
-								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid gt-gap-3">
+								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid tw-gap-2">
 									{{$.CsrfTokenHtml}}
 									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">

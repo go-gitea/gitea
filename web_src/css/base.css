@@ -215,8 +215,12 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
-  text-decoration: none;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
+}
+
+a:hover {
+  text-decoration-line: underline;
 }
 
 /* a = always colored, underlined on hover */
@@ -245,7 +249,7 @@ a.suppressed:hover {
 }
 
 a.silenced:hover {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 a.label,
@@ -253,7 +257,7 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
@@ -291,10 +295,6 @@ a.label,
   padding: 2px 4px;
   border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
-}
-
-.ui.dividing.header {
-  border-bottom-color: var(--color-secondary);
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
@@ -350,6 +350,10 @@ ol.ui.list li,
 }
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
+}
+
+.ui.menu {
+  display: flex;
 }
 
 .ui.menu,
@@ -572,20 +576,8 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.header {
-  background: var(--color-error-bg) !important;
-  color: var(--color-error-text) !important;
-  border-color: var(--color-error-border) !important;
-}
-
 .ui.error.segment {
   border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.header {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border-color: var(--color-warning-border) !important;
 }
 
 .ui.warning.segment {
@@ -748,37 +740,6 @@ img.ui.avatar,
    but that does not work universally for all pages */
 .page-content > :first-child:not(.secondary-nav) {
   padding-top: 14px;
-}
-
-/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - 64px);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
-}
-
-/* enable fluid page widths for medium size viewports */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 32px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 16px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 8px;
-  }
 }
 
 .ui.pagination.menu .active.item {
@@ -1081,10 +1042,6 @@ input:-webkit-autofill:active,
   margin-bottom: 0;
 }
 
-.ui .normal.header {
-  font-weight: var(--font-weight-normal);
-}
-
 .ui .form .autofill-dummy {
   position: absolute;
   width: 1px;
@@ -1242,17 +1199,6 @@ input:-webkit-autofill:active,
   margin-right: 0;
 }
 
-.ui.icon.header svg {
-  width: 3em;
-  height: 3em;
-  float: none;
-  display: block;
-  line-height: var(--line-height-default);
-  padding: 0;
-  margin: 0 auto 0.5rem;
-  opacity: 1;
-}
-
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1278,11 +1224,6 @@ input:-webkit-autofill:active,
   height: 0.67em;
   width: 0.67em;
   border-radius: var(--border-radius);
-}
-
-.attention-header {
-  padding: 0.5em 0.75em !important;
-  color: var(--color-text) !important;
 }
 
 .attention-icon {
@@ -1418,18 +1359,15 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
-  width: 2%;
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 8px;
   text-align: right !important;
-  color: var(--color-text-light-1);
+  color: var(--color-text-light-2);
   width: 1%;
   font-family: var(--fonts-monospace);
 }
@@ -1483,22 +1421,34 @@ a.ui.active.label:hover {
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
 }
 
-.lines-code.active,
-.lines-code .active {
-  background: var(--color-active-line) !important;
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
 }
 
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg) !important;
 }
 
-.blame .lines-code {
-  padding: 0 !important;
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -1509,24 +1459,21 @@ a.ui.active.label:hover {
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: min(26vw, 300px);
   display: block;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 6px;
   line-height: 20px;
   box-sizing: content-box;
 }
@@ -1548,11 +1495,10 @@ a.ui.active.label:hover {
   flex-shrink: 0;
 }
 
-.lines-commit .ui.avatar {
-  height: 18px;
-  width: 18px;
-  display: block;
-  margin-top: 1px;
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
 }
 
 .top-line-blame {
@@ -1566,6 +1512,11 @@ a.ui.active.label:hover {
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .code-view table {
@@ -1744,35 +1695,6 @@ a.ui.basic.label:hover {
   color: var(--color-text-light);
 }
 
-.ui.attached.header {
-  position: relative;
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-}
-
-/* fix misaligned right buttons on box headers */
-.ui.attached.header > .ui.right {
-  position: absolute;
-  right: 0.78571429rem;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
-.ui.attached.header > .ui.right .ui.tiny.button {
-  padding: 6px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments + .ui.top.attached.header,
-.ui.attached.segment + .ui.top.attached.header {
-  margin-top: 1rem;
-}
-
 .rss-icon {
   display: inline-flex;
   color: var(--color-text-light-1);
@@ -1828,11 +1750,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-secondary-dark-1) !important;
 }
 
-/* https://github.com/go-gitea/gitea/pull/11486 */
-.ui.sub.header {
-  text-transform: none;
-}
-
 .ui.tabular.menu {
   border-color: var(--color-secondary);
 }
@@ -1881,22 +1798,6 @@ table th[data-sortt-desc] .svg {
   visibility: hidden;
   display: block;
   height: 0;
-}
-
-.ui.header {
-  color: var(--color-text);
-}
-
-.ui.header .ui.label {
-  margin-left: 0.25rem;
-}
-
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
-.ui.header .sub.header {
-  color: var(--color-text-light-1);
 }
 
 .flash-error details code,
