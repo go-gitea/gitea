@@ -163,14 +163,6 @@ Gitea's private styles use `g-` prefix.
 .gt-gap-y-4 { row-gap: 1rem !important; }
 .gt-gap-y-5 { row-gap: 2rem !important; }
 
-.gt-font-12 { font-size: 12px !important }
-.gt-font-13 { font-size: 13px !important }
-.gt-font-14 { font-size: 14px !important }
-.gt-font-15 { font-size: 15px !important }
-.gt-font-16 { font-size: 16px !important }
-.gt-font-17 { font-size: 17px !important }
-.gt-font-18 { font-size: 18px !important }
-
 /*
 gt-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
 do not use:
