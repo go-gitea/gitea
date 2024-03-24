@@ -5,7 +5,7 @@
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
-					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
+					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
 				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
 					{{ctx.Locale.Tr "notification.read"}}
@@ -14,7 +14,7 @@
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
-					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
+					<div class="{{if not $notificationUnreadCount}}tw-hidden{{end}}">
 						<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
 							{{svg "octicon-checklist"}}
 						</button>

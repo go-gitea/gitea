@@ -66,13 +66,14 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: 1px solid var(--color-secondary-dark-2);
 }
 
+/* TODO: these "tw-hidden" selectors are only used by "blame.tmpl" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */
 .ui.buttons .button:first-child,
-.ui.buttons .button.gt-hidden:first-child + .button {
+.ui.buttons .button.tw-hidden:first-child + .button {
   border-left: 1px solid var(--color-light-border);
 }
 
 .ui.buttons .button:last-child,
-.ui.buttons .button:nth-last-child(2):has(+ .button.gt-hidden) {
+.ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden) {
   border-right: 1px solid var(--color-light-border);
 }
 
