@@ -85,6 +85,7 @@ import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
+import {initColorPickers} from './features/colorpicker.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -186,4 +187,5 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
+  initColorPickers();
 });
