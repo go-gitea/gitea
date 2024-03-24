@@ -215,8 +215,12 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
-  text-decoration: none;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
+}
+
+a:hover {
+  text-decoration-line: underline;
 }
 
 /* a = always colored, underlined on hover */
@@ -245,7 +249,7 @@ a.suppressed:hover {
 }
 
 a.silenced:hover {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 a.label,
@@ -253,7 +257,7 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
@@ -1418,18 +1422,15 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
-  width: 2%;
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 8px;
   text-align: right !important;
-  color: var(--color-text-light-1);
+  color: var(--color-text-light-2);
   width: 1%;
   font-family: var(--fonts-monospace);
 }
@@ -1483,22 +1484,34 @@ a.ui.active.label:hover {
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
 }
 
-.lines-code.active,
-.lines-code .active {
-  background: var(--color-active-line) !important;
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
 }
 
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg) !important;
 }
 
-.blame .lines-code {
-  padding: 0 !important;
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -1509,24 +1522,21 @@ a.ui.active.label:hover {
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: min(26vw, 300px);
   display: block;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 6px;
   line-height: 20px;
   box-sizing: content-box;
 }
@@ -1548,11 +1558,10 @@ a.ui.active.label:hover {
   flex-shrink: 0;
 }
 
-.lines-commit .ui.avatar {
-  height: 18px;
-  width: 18px;
-  display: block;
-  margin-top: 1px;
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
 }
 
 .top-line-blame {
@@ -1566,6 +1575,11 @@ a.ui.active.label:hover {
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .code-view table {
