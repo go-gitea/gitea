@@ -67,7 +67,7 @@
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
 			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
-				<div class="project-column-header">
+				<div class="project-column-header{{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}} tw-cursor-grab{{end}}">
 					<div class="ui large label project-column-title gt-py-2">
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
@@ -165,7 +165,7 @@
 
 				<div class="divider"></div>
 
-				<div class="ui cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}tw-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
 						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
