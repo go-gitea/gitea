@@ -297,10 +297,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-.ui.dividing.header {
-  border-bottom-color: var(--color-secondary);
-}
-
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
   line-height: var(--line-height-default);
@@ -576,20 +572,8 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.header {
-  background: var(--color-error-bg) !important;
-  color: var(--color-error-text) !important;
-  border-color: var(--color-error-border) !important;
-}
-
 .ui.error.segment {
   border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.header {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border-color: var(--color-warning-border) !important;
 }
 
 .ui.warning.segment {
@@ -1085,10 +1069,6 @@ input:-webkit-autofill:active,
   margin-bottom: 0;
 }
 
-.ui .normal.header {
-  font-weight: var(--font-weight-normal);
-}
-
 .ui .form .autofill-dummy {
   position: absolute;
   width: 1px;
@@ -1246,17 +1226,6 @@ input:-webkit-autofill:active,
   margin-right: 0;
 }
 
-.ui.icon.header svg {
-  width: 3em;
-  height: 3em;
-  float: none;
-  display: block;
-  line-height: var(--line-height-default);
-  padding: 0;
-  margin: 0 auto 0.5rem;
-  opacity: 1;
-}
-
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1282,11 +1251,6 @@ input:-webkit-autofill:active,
   height: 0.67em;
   width: 0.67em;
   border-radius: var(--border-radius);
-}
-
-.attention-header {
-  padding: 0.5em 0.75em !important;
-  color: var(--color-text) !important;
 }
 
 .attention-icon {
@@ -1758,35 +1722,6 @@ a.ui.basic.label:hover {
   color: var(--color-text-light);
 }
 
-.ui.attached.header {
-  position: relative;
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-}
-
-/* fix misaligned right buttons on box headers */
-.ui.attached.header > .ui.right {
-  position: absolute;
-  right: 0.78571429rem;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
-.ui.attached.header > .ui.right .ui.tiny.button {
-  padding: 6px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments + .ui.top.attached.header,
-.ui.attached.segment + .ui.top.attached.header {
-  margin-top: 1rem;
-}
-
 .rss-icon {
   display: inline-flex;
   color: var(--color-text-light-1);
@@ -1842,11 +1777,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-secondary-dark-1) !important;
 }
 
-/* https://github.com/go-gitea/gitea/pull/11486 */
-.ui.sub.header {
-  text-transform: none;
-}
-
 .ui.tabular.menu {
   border-color: var(--color-secondary);
 }
@@ -1895,22 +1825,6 @@ table th[data-sortt-desc] .svg {
   visibility: hidden;
   display: block;
   height: 0;
-}
-
-.ui.header {
-  color: var(--color-text);
-}
-
-.ui.header .ui.label {
-  margin-left: 0.25rem;
-}
-
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
-.ui.header .sub.header {
-  color: var(--color-text-light-1);
 }
 
 .flash-error details code,
