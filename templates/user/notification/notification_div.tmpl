@@ -44,13 +44,13 @@
 								{{end}}
 							</div>
 							<a class="notifications-link tw-flex tw-flex-1 tw-flex-col silenced" href="{{.Link ctx}}">
-								<div class="notifications-top-row gt-font-13">
+								<div class="notifications-top-row tw-text-13">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
 									{{end}}
 								</div>
-								<div class="notifications-bottom-row gt-font-16 gt-py-1">
+								<div class="notifications-bottom-row tw-text-16 gt-py-1">
 									<span class="issue-title">
 										{{if .Issue}}
 											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
