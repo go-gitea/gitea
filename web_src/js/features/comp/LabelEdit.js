@@ -15,14 +15,14 @@ function updateExclusiveLabelEdit(form) {
     $exclusiveField.removeClass('muted');
     $exclusiveField.removeAttr('aria-disabled');
     if ($exclusiveCheckbox[0].checked && $exclusiveCheckbox.data('exclusive-warn')) {
-      $exclusiveWarning.removeClass('gt-hidden');
+      $exclusiveWarning.removeClass('tw-hidden');
     } else {
-      $exclusiveWarning.addClass('gt-hidden');
+      $exclusiveWarning.addClass('tw-hidden');
     }
   } else {
     $exclusiveField.addClass('muted');
     $exclusiveField.attr('aria-disabled', 'true');
-    $exclusiveWarning.addClass('gt-hidden');
+    $exclusiveWarning.addClass('tw-hidden');
   }
 }
 

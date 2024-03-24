@@ -1,5 +1,5 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}gt-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">

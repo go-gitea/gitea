@@ -16,7 +16,7 @@
 			<a id="mobile-notifications-icon" class="item tw-w-auto tw-p-2" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="tw-relative">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
+					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
 				</div>
 			</a>
 			{{end}}
@@ -75,7 +75,7 @@
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
 			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item tw-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}">
+			<a class="active-stopwatch-trigger item tw-mx-0{{if not .ActiveStopwatch}} tw-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
@@ -114,7 +114,7 @@
 			<a class="item not-mobile tw-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="tw-relative">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
+					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
 				</div>
 			</a>
 
