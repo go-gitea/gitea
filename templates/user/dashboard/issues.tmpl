@@ -38,11 +38,11 @@
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
+							{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
 						<a class="item{{if .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-							{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
+							{{svg "octicon-issue-closed" 16 "tw-mr-2"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>

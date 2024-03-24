@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects view-project">
 	{{template "repo/header" .}}
 	<div class="ui container padded">
-		<div class="tw-flex tw-justify-between tw-items-center gt-mb-4">
+		<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
 			{{template "repo/issue/navbar" .}}
 			<a class="ui small primary button" href="{{.RepoLink}}/issues/new/choose?project={{.Project.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 		</div>

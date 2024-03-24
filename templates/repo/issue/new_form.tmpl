@@ -7,7 +7,7 @@
 		<div class="ui comments">
 			<div class="comment">
 				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
-				<div class="ui segment content gt-my-0">
+				<div class="ui segment content tw-my-0">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
@@ -60,7 +60,7 @@
 			<span class="text flex-text-block">
 				<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -72,7 +72,7 @@
 			<div class="selected">
 				{{if .Milestone}}
 					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
-						{{svg "octicon-milestone" 18 "gt-mr-3"}}
+						{{svg "octicon-milestone" 18 "tw-mr-2"}}
 						{{.Milestone.Name}}
 					</a>
 				{{end}}
@@ -87,7 +87,7 @@
 			<span class="text flex-text-block">
 				<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -110,7 +110,7 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -121,7 +121,7 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -133,7 +133,7 @@
 			<div class="selected">
 				{{if .Project}}
 					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
-						{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
+						{{svg .Project.IconName 18 "tw-mr-2"}}{{.Project.Title}}
 					</a>
 				{{end}}
 			</div>
@@ -145,7 +145,7 @@
 				<span class="text flex-text-block">
 					<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear" 16 "gt-ml-2"}}
+						{{svg "octicon-gear" 16 "tw-ml-1"}}
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
@@ -158,7 +158,7 @@
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 							<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
-								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
+								{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}{{template "repo/search_name" .}}
 							</span>
 						</a>
 					{{end}}
@@ -170,8 +170,8 @@
 				</span>
 				<div class="selected">
 				{{range .Assignees}}
-					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 tw-align-middle"}}{{.GetDisplayName}}
+					<a class="item tw-p-1 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+						{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2 tw-align-middle"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
 				</div>

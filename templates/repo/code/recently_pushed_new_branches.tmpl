@@ -5,7 +5,7 @@
 			{{$branchLink := HTMLFormat `<a href="%s/src/branch/%s">%s</a>` $.RepoLink (PathEscapeSegments .Name) .Name}}
 			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" $branchLink $timeSince}}
 		</div>
-		<a role="button" class="ui compact positive button gt-m-0" href="{{$.Repository.ComposeBranchCompareURL $.Repository.BaseRepo .Name}}">
+		<a role="button" class="ui compact positive button tw-m-0" href="{{$.Repository.ComposeBranchCompareURL $.Repository.BaseRepo .Name}}">
 			{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
 		</a>
 	</div>
