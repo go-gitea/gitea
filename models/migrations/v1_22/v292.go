@@ -5,6 +5,7 @@ package v1_22 //nolint
 
 import (
 	"code.gitea.io/gitea/models/project"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
