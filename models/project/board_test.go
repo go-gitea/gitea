@@ -12,24 +12,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBoardConsistencyCheck(t *testing.T) {
+func TestGetDefaultBoard(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	assert.NoError(t, CheckBoardsConsistency(db.DefaultContext))
 
 	projectWithoutDefault, err := GetProjectByID(db.DefaultContext, 5)
 	assert.NoError(t, err)
 
 	// check if default board was added
-	_, err = projectWithoutDefault.getDefaultBoard(db.DefaultContext)
+	board, err := projectWithoutDefault.getDefaultBoard(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(5), board.ProjectID)
+	assert.Equal(t, "Uncategorized", board.Title)
+
+	projectWithMultipleDefaults, err := GetProjectByID(db.DefaultContext, 6)
 	assert.NoError(t, err)
 
 	// check if multiple defaults were removed
-	defaultBoard, err := GetBoard(db.DefaultContext, 8)
+	board, err = projectWithMultipleDefaults.getDefaultBoard(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.True(t, defaultBoard.Default)
+	assert.Equal(t, int64(6), board.ProjectID)
+	assert.Equal(t, int64(8), board.ID)
 
-	nonDefaultBoard, err := GetBoard(db.DefaultContext, 9)
+	board, err = GetBoard(db.DefaultContext, 9)
 	assert.NoError(t, err)
-	assert.False(t, nonDefaultBoard.Default)
+	assert.Equal(t, int64(6), board.ProjectID)
+	assert.False(t, board.Default)
 }
