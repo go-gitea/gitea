@@ -576,14 +576,6 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.segment {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -931,8 +923,7 @@ input:-webkit-autofill:active,
 }
 
 .ui.menu,
-.ui.vertical.menu,
-.ui.segment {
+.ui.vertical.menu {
   box-shadow: none;
 }
 
@@ -1027,19 +1018,6 @@ input:-webkit-autofill:active,
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
-}
-
-.ui .info.segment.top h3,
-.ui .info.segment.top h4 {
-  margin-top: 0;
-}
-
-.ui .info.segment.top h3:last-child {
-  margin-top: 4px;
-}
-
-.ui .info.segment.top > :last-child {
-  margin-bottom: 0;
 }
 
 .ui .form .autofill-dummy {
@@ -1676,23 +1654,6 @@ a.ui.basic.label:hover {
 
 .ui.label > .color-icon {
   margin-left: 0;
-}
-
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  border-color: var(--color-secondary);
-}
-
-.ui.segments > .segment {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.segment {
-  background: var(--color-secondary-bg);
-  color: var(--color-text-light);
 }
 
 .rss-icon {
