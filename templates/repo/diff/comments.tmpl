@@ -8,10 +8,10 @@
 		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
-		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
-			<div class="comment-header-left gt-df gt-ac">
+		<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+			<div class="comment-header-left tw-flex tw-items-center">
 				{{if .OriginalAuthor}}
-					<span class="text black gt-font-semibold gt-mr-2">
+					<span class="text black tw-font-semibold gt-mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -30,7 +30,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="comment-header-right actions gt-df gt-ac">
+			<div class="comment-header-right actions tw-flex tw-items-center">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
 					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">

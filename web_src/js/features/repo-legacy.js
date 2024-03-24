@@ -436,7 +436,7 @@ async function onEditContent(event) {
       const $content = $segment;
       if (!$content.find('.dropzone-attachments').length) {
         if (data.attachments !== '') {
-          $content[0].append(data.attachments);
+          $content[0].insertAdjacentHTML('beforeend', data.attachments);
         }
       } else if (data.attachments === '') {
         $content.find('.dropzone-attachments').remove();

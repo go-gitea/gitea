@@ -31,14 +31,14 @@ export default {
     },
     loadMoreData() {
       loadMoreFiles(this.store.linkLoadMore);
-    }
+    },
   },
 };
 </script>
 <template>
   <ol class="diff-stats gt-m-0" ref="root" v-if="store.fileListIsVisible">
     <li v-for="file in store.files" :key="file.NameHash">
-      <div class="gt-font-semibold gt-df gt-ac pull-right">
+      <div class="tw-font-semibold tw-flex tw-items-center pull-right">
         <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ store.binaryFileMessage }}</span>
         {{ file.IsBin ? '' : file.Addition + file.Deletion }}
         <span v-if="!file.IsBin" class="diff-stats-bar gt-mx-3" :data-tooltip-content="store.statisticsMessage.replace('%d', (file.Addition + file.Deletion)).replace('%d', file.Addition).replace('%d', file.Deletion)">
@@ -50,7 +50,7 @@ export default {
       <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
     <li v-if="store.isIncomplete" class="gt-pt-2">
-      <span class="file gt-df gt-ac gt-sb">{{ store.tooManyFilesMessage }}
+      <span class="file tw-flex tw-items-center tw-justify-between">{{ store.tooManyFilesMessage }}
         <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
       </span>
     </li>

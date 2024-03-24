@@ -20,10 +20,10 @@
 				</a>
 				{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
-						<div class="comment-header-left gt-df gt-ac">
+					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
+						<div class="comment-header-left tw-flex tw-items-center">
 							{{if .Issue.OriginalAuthor}}
-								<span class="text black gt-font-semibold">
+								<span class="text black tw-font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
@@ -43,7 +43,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions gt-df gt-ac">
+						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}

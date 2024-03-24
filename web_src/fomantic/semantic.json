@@ -24,11 +24,9 @@
     "api",
     "button",
     "checkbox",
-    "container",
     "dimmer",
     "dropdown",
     "form",
-    "header",
     "input",
     "label",
     "list",
@@ -36,7 +34,6 @@
     "modal",
     "search",
     "segment",
-    "site",
     "tab",
     "table"
   ]

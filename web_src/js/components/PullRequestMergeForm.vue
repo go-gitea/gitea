@@ -43,7 +43,7 @@ export default {
       for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
         toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
       }
-    }
+    },
   },
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
@@ -136,7 +136,7 @@ export default {
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="gt-df">
+    <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
         <button class="ui button">

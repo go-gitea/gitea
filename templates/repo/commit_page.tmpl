@@ -18,8 +18,8 @@
 			{{end}}
 		{{end}}
 		<div class="ui top attached header clearing segment tw-relative commit-header {{$class}}">
-			<div class="gt-df gt-mb-4 gt-fw">
-				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
+			<div class="tw-flex gt-mb-4 tw-flex-wrap">
+				<h3 class="gt-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
 					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -139,8 +139,8 @@
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
-		<div class="ui attached segment gt-df gt-ac gt-sb gt-py-2 commit-header-row gt-fw {{$class}}">
-				<div class="gt-df gt-ac author">
+		<div class="ui attached segment tw-flex tw-items-center tw-justify-between gt-py-2 commit-header-row tw-flex-wrap {{$class}}">
+				<div class="tw-flex tw-items-center author">
 					{{if .Author}}
 						{{ctx.AvatarUtils.Avatar .Author 28 "gt-mr-3"}}
 						{{if .Author.FullName}}
@@ -164,7 +164,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="ui horizontal list gt-df gt-ac">
+				<div class="ui horizontal list tw-flex tw-items-center">
 					{{if .Parents}}
 						<div class="item">
 							<span>{{ctx.Locale.Tr "repo.diff.parent"}}</span>
@@ -184,8 +184,8 @@
 				</div>
 		</div>
 		{{if .Commit.Signature}}
-			<div class="ui bottom attached message tw-text-left gt-df gt-ac gt-sb commit-header-row gt-fw gt-mb-0 {{$class}}">
-				<div class="gt-df gt-ac">
+			<div class="ui bottom attached message tw-text-left tw-flex tw-items-center tw-justify-between commit-header-row tw-flex-wrap gt-mb-0 {{$class}}">
+				<div class="tw-flex tw-items-center">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "gitea-lock" 16 "gt-mr-3"}}
@@ -209,7 +209,7 @@
 						<span class="ui text">{{ctx.Locale.Tr .Verification.Reason}}</span>
 					{{end}}
 				</div>
-				<div class="gt-df gt-ac">
+				<div class="tw-flex tw-items-center">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "octicon-verified" 16 "gt-mr-3"}}
