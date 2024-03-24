@@ -53,7 +53,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   };
 
   const updateCopyPermalinkUrl = function(anchor) {
-    if ($copyPermalink.length === 0) return;
+    if (!$copyPermalink.length) return;
     let link = $copyPermalink.attr('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     $copyPermalink.attr('data-url', link);
