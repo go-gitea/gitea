@@ -27,7 +27,6 @@
 }
 
 .ui.table > thead > tr > th {
-  cursor: auto;
   background: var(--color-box-header);
   color: var(--color-text);
   padding: 6px 5px;
@@ -51,7 +50,6 @@
 
 .ui.table > tfoot > tr > th,
 .ui.table > tfoot > tr > td {
-  cursor: auto;
   border-top: 1px solid var(--color-secondary);
   background: var(--color-box-body);
   color: var(--color-text);
