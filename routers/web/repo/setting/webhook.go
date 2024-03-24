@@ -425,15 +425,19 @@ func TelegramHooksEditPost(ctx *context.Context) {
 func telegramHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
 
+	if form.CustomHost == "" {
+		form.CustomHost = "https://api.telegram.org"
+	}
 	return webhookParams{
 		Type:        webhook_module.TELEGRAM,
-		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&message_thread_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID), url.QueryEscape(form.ThreadID)),
+		URL:         fmt.Sprintf("%s/bot%s/sendMessage?chat_id=%s&message_thread_id=%s", form.CustomHost, url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID), url.QueryEscape(form.ThreadID)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
 		Meta: &webhook_service.TelegramMeta{
-			BotToken: form.BotToken,
-			ChatID:   form.ChatID,
-			ThreadID: form.ThreadID,
+			BotToken:   form.BotToken,
+			ChatID:     form.ChatID,
+			CustomHost: form.CustomHost,
+			ThreadID:   form.ThreadID,
 		},
 	}
 }
