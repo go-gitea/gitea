@@ -1,21 +1,25 @@
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
-@import "./modules/grid.css";
+
+/* fomantic replacements */
 @import "./modules/button.css";
+@import "./modules/container.css";
+@import "./modules/divider.css";
+@import "./modules/header.css";
+@import "./modules/segment.css";
+@import "./modules/grid.css";
+@import "./modules/message.css";
+@import "./modules/card.css";
+@import "./modules/modal.css";
+
 @import "./modules/select.css";
 @import "./modules/tippy.css";
-@import "./modules/modal.css";
 @import "./modules/breadcrumb.css";
-@import "./modules/card.css";
 @import "./modules/comment.css";
 @import "./modules/navbar.css";
 @import "./modules/toast.css";
-@import "./modules/divider.css";
 @import "./modules/svg.css";
 @import "./modules/flexcontainer.css";
-@import "./modules/message.css";
-@import "./modules/container.css";
-@import "./modules/header.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
