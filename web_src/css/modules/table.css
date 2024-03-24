@@ -27,11 +27,6 @@
   vertical-align: inherit;
 }
 
-.ui.table th.rowspanned,
-.ui.table td.rowspanned {
-  display: none;
-}
-
 .ui.table > thead > tr > th {
   cursor: auto;
   background: var(--color-box-header);
@@ -117,13 +112,13 @@
   .ui.table:not(.unstackable) > tbody,
   .ui.table:not(.unstackable) > tr,
   .ui.table:not(.unstackable) > tbody > tr,
-  .ui.table:not(.unstackable) > tr > th:not(.rowspanned),
-  .ui.table:not(.unstackable) > thead > tr > th:not(.rowspanned),
-  .ui.table:not(.unstackable) > tbody > tr > th:not(.rowspanned),
-  .ui.table:not(.unstackable) > tfoot > tr > th:not(.rowspanned),
-  .ui.table:not(.unstackable) > tr > td:not(.rowspanned),
-  .ui.table:not(.unstackable) > tbody > tr > td:not(.rowspanned),
-  .ui.table:not(.unstackable) > tfoot > tr > td:not(.rowspanned) {
+  .ui.table:not(.unstackable) > tr > th,
+  .ui.table:not(.unstackable) > thead > tr > th,
+  .ui.table:not(.unstackable) > tbody > tr > th,
+  .ui.table:not(.unstackable) > tfoot > tr > th,
+  .ui.table:not(.unstackable) > tr > td,
+  .ui.table:not(.unstackable) > tbody > tr > td,
+  .ui.table:not(.unstackable) > tfoot > tr > td {
     display: block !important;
     width: auto !important;
   }
