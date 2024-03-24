@@ -41,11 +41,11 @@
 											{{$row.Avatar}}
 										</div>
 										<div class="blame-message">
-											<a href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
+											<a class="suppressed tw-text-text" href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
 												{{$row.CommitMessage}}
 											</a>
 										</div>
-										<div class="blame-time">
+										<div class="blame-time not-mobile">
 											{{$row.CommitSince}}
 										</div>
 									</div>
@@ -53,7 +53,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" data-tooltip-content='{{ctx.Locale.Tr "repo.blame_prior"}}'>
+									<a role="button" class="muted" href="{{$row.PreviousShaURL}}" data-tooltip-content='{{ctx.Locale.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}
@@ -75,6 +75,12 @@
 					{{end}}
 				</tbody>
 			</table>
+			<div class="code-line-menu tippy-target">
+				{{if $.Permission.CanRead $.UnitTypeIssues}}
+					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
+				{{end}}
+				<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
+			</div>
 		</div>
 	</div>
 </div>
