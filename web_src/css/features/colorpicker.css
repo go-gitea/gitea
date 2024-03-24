@@ -134,34 +134,6 @@ input.color-picker {
   background-color: currentColor;
 }
 
-.clr-format {
-  display: none;
-  order: 1;
-  width: calc(100% - 40px);
-  margin: 0 20px 20px;
-}
-
-input.clr-color {
-  order: 1;
-  width: calc(100% - 80px);
-  height: 32px;
-  margin: 15px 20px 20px auto;
-  padding: 0 10px;
-  border: 1px solid var(--color-secondary);
-  border-radius: 16px;
-  color: var(--color-text);
-  background-color: var(--color-input-background);
-  font-family: sans-serif;
-  font-size: 14px;
-  text-align: center;
-  box-shadow: none;
-}
-
-input.clr-color:focus {
-  outline: none;
-  border: 1px solid var(--color-primary);
-}
-
 .clr-field {
   flex: 1;
   position: relative;
@@ -224,6 +196,7 @@ input.clr-color:focus {
 .clr-picker .clr-preview,
 .clr-picker .clr-clear,
 .clr-picker .clr-swatches,
-.clr-picker #clr-color-value {
+.clr-picker .clr-format,
+.clr-picker .clr-color {
   display: none;
 }
