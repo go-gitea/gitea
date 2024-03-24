@@ -1,6 +1,7 @@
 plugins:
   - stylelint-declaration-strict-value
   - stylelint-declaration-block-no-ignored-properties
+  - stylelint-value-no-unknown-custom-properties
   - "@stylistic/stylelint-plugin"
 
 ignoreFiles:
@@ -114,6 +115,7 @@ rules:
   comment-pattern: null
   comment-whitespace-inside: null
   comment-word-disallowed-list: null
+  csstools/value-no-unknown-custom-properties: [true, importFrom: [web_src/css/base.css, web_src/css/themes/theme-gitea-light.css, web_src/css/themes/theme-gitea-dark.css]]
   custom-media-pattern: null
   custom-property-empty-line-before: null
   custom-property-no-missing-var-function: true
