@@ -54,8 +54,8 @@ export function initImageDiff() {
     };
 
     return {
-      image1: $(image1),
-      image2: $(image2),
+      $image1: $(image1),
+      $image2: $(image2),
       size1,
       size2,
       max,
@@ -124,18 +124,18 @@ export function initImageDiff() {
         factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
       }
 
-      const widthChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalWidth !== sizes.image2[0].naturalWidth;
-      const heightChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalHeight !== sizes.image2[0].naturalHeight;
-      if (sizes.image1.length !== 0) {
-        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
-        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
+      const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
+      const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
+      if (sizes.$image1.length !== 0) {
+        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.$image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
+        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.$image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
       }
-      if (sizes.image2.length !== 0) {
-        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
-        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
+      if (sizes.$image2.length !== 0) {
+        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.$image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
+        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.$image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
       }
 
-      const image1 = sizes.image1[0];
+      const image1 = sizes.$image1[0];
       if (image1) {
         const container = image1.parentNode;
         image1.style.width = `${sizes.size1.width * factor}px`;
@@ -145,7 +145,7 @@ export function initImageDiff() {
         container.style.height = `${sizes.size1.height * factor + 2}px`;
       }
 
-      const image2 = sizes.image2[0];
+      const image2 = sizes.$image2[0];
       if (image2) {
         const container = image2.parentNode;
         image2.style.width = `${sizes.size2.width * factor}px`;
@@ -162,7 +162,7 @@ export function initImageDiff() {
         factor = (diffContainerWidth - 12) / sizes.max.width;
       }
 
-      const image1 = sizes.image1[0];
+      const image1 = sizes.$image1[0];
       if (image1) {
         const container = image1.parentNode;
         const swipeFrame = container.parentNode;
@@ -175,7 +175,7 @@ export function initImageDiff() {
         swipeFrame.style.width = `${sizes.max.width * factor + 2}px`;
       }
 
-      const image2 = sizes.image2[0];
+      const image2 = sizes.$image2[0];
       if (image2) {
         const container = image2.parentNode;
         const swipeFrame = container.parentNode;
@@ -222,38 +222,39 @@ export function initImageDiff() {
         factor = (diffContainerWidth - 12) / sizes.max.width;
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor,
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor,
-      });
-      sizes.image1.parent().css({
-        margin: `${sizes.ratio[1] * factor}px ${sizes.ratio[0] * factor}px`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2,
-      });
-      sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2,
-      });
+      const image1 = sizes.$image1[0];
+      if (image1) {
+        const container = image1.parentNode;
+        image1.style.width = `${sizes.size1.width * factor}px`;
+        image1.style.height = `${sizes.size1.height * factor}px`;
+        container.style.margin = `${sizes.ratio[1] * factor}px ${sizes.ratio[0] * factor}px`;
+        container.style.width = `${sizes.size1.width * factor + 2}px`;
+        container.style.height = `${sizes.size1.height * factor + 2}px`;
+      }
 
-      // some inner elements are `position: absolute`, so the container's height must be large enough
-      // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
-      sizes.image2.parent().parent().css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2,
-      });
+      const image2 = sizes.$image2[0];
+      if (image2) {
+        const container = image2.parentNode;
+        const overlayFrame = container.parentNode;
+        image2.style.width = `${sizes.size2.width * factor}px`;
+        image2.style.height = `${sizes.size2.height * factor}px`;
+        container.style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
+        container.style.width = `${sizes.size2.width * factor + 2}px`;
+        container.style.height = `${sizes.size2.height * factor + 2}px`;
 
-      const $range = $container.find("input[type='range']");
-      const onInput = () => sizes.image1.parent().css({
-        opacity: $range.val() / 100,
-      });
-      $range.on('input', onInput);
-      onInput();
+        // some inner elements are `position: absolute`, so the container's height must be large enough
+        overlayFrame.style.width = `${sizes.max.width * factor + 2}px`;
+        overlayFrame.style.height = `${sizes.max.height * factor + 2}px`;
+      }
+
+      const rangeInput = $container[0].querySelector('input[type="range"]');
+      function updateOpacity() {
+        if (sizes?.$image1?.[0]) {
+          sizes.$image1[0].parentNode.style.opacity = `${rangeInput.value / 100}`;
+        }
+      }
+      rangeInput?.addEventListener('input', updateOpacity);
+      updateOpacity();
     }
   });
 }
