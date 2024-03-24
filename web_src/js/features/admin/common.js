@@ -84,7 +84,7 @@ export function initAdminCommon() {
     hideElem($('.oauth2_use_custom_url_field'));
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
-    if ($('#oauth2_use_custom_url')[0].checked) {
+    if (document.getElementById('oauth2_use_custom_url')?.checked) {
       for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
           $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
