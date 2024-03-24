@@ -1,3 +1,4 @@
+{{if or .result.Language (not .result.UpdatedUnix.IsZero)}}
 <div class="ui bottom attached table segment tw-flex tw-items-center tw-justify-between">
 		<div class="tw-flex tw-items-center gt-ml-4">
 			{{if .result.Language}}
@@ -10,3 +11,4 @@
 			{{end}}
 		</div>
 </div>
+{{end}}
