@@ -61,6 +61,10 @@ It needs some tricks to tweak the left/right borders with active state */
   border-right: none;
 }
 
+.ui.buttons .button:hover + .button {
+  border-left: 1px solid var(--color-secondary-dark-1); /* color is approximation */
+}
+
 .ui.buttons .button:first-child,
 .ui.buttons .button.gt-hidden:first-child + .button {
   border-left: 1px solid var(--color-light-border);
