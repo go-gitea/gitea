@@ -12,7 +12,7 @@
 	{{range $result := .SearchResults}}
 		{{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
 		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-			<h4 class="ui top attached normal header tw-flex tw-flex-wrap">
+			<h4 class="ui top attached header tw-font-normal tw-flex tw-flex-wrap">
 				{{if not $.Repo}}
 					<span class="file tw-flex-1">
 						<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
