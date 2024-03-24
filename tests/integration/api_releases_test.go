@@ -319,3 +319,39 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		assert.EqualValues(t, 104, attachment.Size)
 	})
 }
+
+func TestAPIGetReleaseArchiveDownloadCount(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	name := "ReleaseDownloadCount"
+
+	createNewReleaseUsingAPI(t, session, token, owner, repo, name, "", name, "test")
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, name)
+
+	req := NewRequest(t, "GET", urlStr)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var release *api.Release
+	DecodeJSON(t, resp, &release)
+
+	// Check if everything defaults to 0
+	assert.Equal(t, int64(0), release.ArchiveDownloadCount.TarGz)
+	assert.Equal(t, int64(0), release.ArchiveDownloadCount.Zip)
+
+	// Download the tarball to increase the count
+	MakeRequest(t, NewRequest(t, "GET", release.TarURL), http.StatusOK)
+
+	// Check if the count has increased
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &release)
+
+	assert.Equal(t, int64(1), release.ArchiveDownloadCount.TarGz)
+	assert.Equal(t, int64(0), release.ArchiveDownloadCount.Zip)
+}

@@ -24,9 +24,10 @@ type Release struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	PublishedAt time.Time     `json:"published_at"`
-	Publisher   *User         `json:"author"`
-	Attachments []*Attachment `json:"assets"`
+	PublishedAt          time.Time                `json:"published_at"`
+	Publisher            *User                    `json:"author"`
+	Attachments          []*Attachment            `json:"assets"`
+	ArchiveDownloadCount *TagArchiveDownloadCount `json:"archive_download_count"`
 }
 
 // CreateReleaseOption options when creating a release

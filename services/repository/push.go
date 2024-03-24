@@ -303,6 +303,7 @@ func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, g
 		if err := repo_model.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
+
 		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
 	})
 }

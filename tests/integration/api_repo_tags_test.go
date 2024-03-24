@@ -85,3 +85,39 @@ func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, 
 	DecodeJSON(t, resp, &respObj)
 	return &respObj
 }
+
+func TestAPIGetTagArchiveDownloadCount(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	// Login as User2.
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	repoName := "repo1"
+	tagName := "TagDownloadCount"
+
+	createNewTagUsingAPI(t, session, token, user.Name, repoName, tagName, "", "")
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, tagName, token)
+
+	req := NewRequest(t, "GET", urlStr)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var tagInfo *api.Tag
+	DecodeJSON(t, resp, &tagInfo)
+
+	// Check if everything defaults to 0
+	assert.Equal(t, int64(0), tagInfo.ArchiveDownloadCount.TarGz)
+	assert.Equal(t, int64(0), tagInfo.ArchiveDownloadCount.Zip)
+
+	// Download the tarball to increase the count
+	MakeRequest(t, NewRequest(t, "GET", tagInfo.TarballURL), http.StatusOK)
+
+	// Check if the count has increased
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &tagInfo)
+
+	assert.Equal(t, int64(1), tagInfo.ArchiveDownloadCount.TarGz)
+	assert.Equal(t, int64(0), tagInfo.ArchiveDownloadCount.Zip)
+}

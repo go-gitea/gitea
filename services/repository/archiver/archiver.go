@@ -30,10 +30,11 @@ import (
 // This is entirely opaque to external entities, though, and mostly used as a
 // handle elsewhere.
 type ArchiveRequest struct {
-	RepoID   int64
-	refName  string
-	Type     git.ArchiveType
-	CommitID string
+	RepoID    int64
+	refName   string
+	Type      git.ArchiveType
+	CommitID  string
+	ReleaseID int64
 }
 
 // ErrUnknownArchiveFormat request archive format is not supported
@@ -70,7 +71,7 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
+func NewRequest(ctx context.Context, repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
 		RepoID: repoID,
 	}
@@ -99,6 +100,17 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 	}
 
 	r.CommitID = commitID.String()
+
+	release, err := repo_model.GetRelease(ctx, repoID, r.refName)
+	if err != nil {
+		if !repo_model.IsErrReleaseNotExist(err) {
+			return nil, err
+		}
+	}
+	if release != nil {
+		r.ReleaseID = release.ID
+	}
+
 	return r, nil
 }
 
@@ -118,6 +130,10 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
+	}
+
+	if archiver != nil {
+		archiver.ReleaseID = aReq.ReleaseID
 	}
 
 	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
@@ -145,6 +161,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
 			}
 			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
+				archiver.ReleaseID = aReq.ReleaseID
 				return archiver, nil
 			}
 		}

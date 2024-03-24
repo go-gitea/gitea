@@ -125,6 +125,11 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			return nil, err
 		}
 
+		err = r.LoadArchiveDownloadCount(ctx)
+		if err != nil {
+			return nil, err
+		}
+
 		if !r.IsDraft {
 			if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
 				return nil, err
@@ -311,7 +316,13 @@ func SingleRelease(ctx *context.Context) {
 		ctx.Data["Title"] = release.Title
 	}
 
+	err = release.LoadArchiveDownloadCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadArchiveDownloadCount", err)
+	}
+
 	ctx.Data["Releases"] = releases
+
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 

@@ -17303,6 +17303,9 @@
       "description": "AnnotatedTag represents an annotated tag",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "message": {
           "type": "string",
           "x-go-name": "Message"
@@ -22390,6 +22393,9 @@
       "description": "Release represents a repository release",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "assets": {
           "type": "array",
           "items": {
@@ -22951,6 +22957,9 @@
       "description": "Tag represents a repository tag",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "commit": {
           "$ref": "#/definitions/CommitMeta"
         },
@@ -22973,6 +22982,23 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TagArchiveDownloadCount": {
+      "description": "TagArchiveDownloadCount counts how many times a archive was downloaded",
+      "type": "object",
+      "properties": {
+        "tar_gz": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TarGz"
+        },
+        "zip": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Zip"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

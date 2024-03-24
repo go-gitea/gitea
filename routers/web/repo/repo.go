@@ -460,7 +460,7 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -489,6 +489,14 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
+			if archiver.ReleaseID != 0 {
+				err = repo_model.CountArchiveDownload(ctx, ctx.Repo.Repository.ID, archiver.ReleaseID, archiver.Type)
+				if err != nil {
+					ctx.ServerError("CountArchiveDownload", err)
+					return
+				}
+			}
+
 			ctx.Redirect(u.String())
 			return
 		}
@@ -502,6 +510,14 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	}
 	defer fr.Close()
 
+	if archiver.ReleaseID != 0 {
+		err = repo_model.CountArchiveDownload(ctx, ctx.Repo.Repository.ID, archiver.ReleaseID, archiver.Type)
+		if err != nil {
+			ctx.ServerError("CountArchiveDownload", err)
+			return
+		}
+	}
+
 	ctx.ServeContent(fr, &context.ServeHeaderOptions{
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),
@@ -513,7 +529,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return

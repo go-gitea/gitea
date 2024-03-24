@@ -35,6 +35,7 @@ type RepoArchiver struct { //revive:disable-line:exported
 	Status      ArchiverStatus
 	CommitID    string             `xorm:"VARCHAR(64) unique(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
+	ReleaseID   int64              `xorm:"-"`
 }
 
 func init() {

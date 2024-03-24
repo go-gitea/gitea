@@ -65,28 +65,29 @@ func (err ErrReleaseNotExist) Unwrap() error {
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64            `xorm:"pk autoincr"`
-	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository      `xorm:"-"`
-	PublisherID      int64            `xorm:"INDEX"`
-	Publisher        *user_model.User `xorm:"-"`
-	TagName          string           `xorm:"INDEX UNIQUE(n)"`
-	OriginalAuthor   string
-	OriginalAuthorID int64 `xorm:"index"`
-	LowerTagName     string
-	Target           string
-	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
-	Title            string
-	Sha1             string `xorm:"VARCHAR(64)"`
-	NumCommits       int64
-	NumCommitsBehind int64              `xorm:"-"`
-	Note             string             `xorm:"TEXT"`
-	RenderedNote     template.HTML      `xorm:"-"`
-	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
-	Attachments      []*Attachment      `xorm:"-"`
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	ID                   int64            `xorm:"pk autoincr"`
+	RepoID               int64            `xorm:"INDEX UNIQUE(n)"`
+	Repo                 *Repository      `xorm:"-"`
+	PublisherID          int64            `xorm:"INDEX"`
+	Publisher            *user_model.User `xorm:"-"`
+	TagName              string           `xorm:"INDEX UNIQUE(n)"`
+	OriginalAuthor       string
+	OriginalAuthorID     int64 `xorm:"index"`
+	LowerTagName         string
+	Target               string
+	TargetBehind         string `xorm:"-"` // to handle non-existing or empty target
+	Title                string
+	Sha1                 string `xorm:"VARCHAR(64)"`
+	NumCommits           int64
+	NumCommitsBehind     int64                            `xorm:"-"`
+	Note                 string                           `xorm:"TEXT"`
+	RenderedNote         template.HTML                    `xorm:"-"`
+	IsDraft              bool                             `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease         bool                             `xorm:"NOT NULL DEFAULT false"`
+	IsTag                bool                             `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
+	Attachments          []*Attachment                    `xorm:"-"`
+	CreatedUnix          timeutil.TimeStamp               `xorm:"INDEX"`
+	ArchiveDownloadCount *structs.TagArchiveDownloadCount `xorm:"-"`
 }
 
 func init() {
@@ -112,7 +113,20 @@ func (r *Release) LoadAttributes(ctx context.Context) error {
 			}
 		}
 	}
+
+	err = r.LoadArchiveDownloadCount(ctx)
+	if err != nil {
+		return err
+	}
+
 	return GetReleaseAttachments(ctx, r)
+}
+
+// LoadArchiveDownloadCount loads the download count for the source archives
+func (r *Release) LoadArchiveDownloadCount(ctx context.Context) error {
+	var err error
+	r.ArchiveDownloadCount, err = GetArchiveDownloadCount(ctx, r.RepoID, r.ID)
+	return err
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -445,6 +459,18 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 	lowerTags := make([]string, 0, len(tags))
 	for _, tag := range tags {
 		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	for _, tag := range tags {
+		release, err := GetRelease(ctx, repo.ID, tag)
+		if err != nil {
+			return fmt.Errorf("GetRelease: %w", err)
+		}
+
+		err = DeleteArchiveDownloadCountForRelease(ctx, release.ID)
+		if err != nil {
+			return fmt.Errorf("DeleteTagArchiveDownloadCount: %w", err)
+		}
 	}
 
 	if _, err := db.GetEngine(ctx).

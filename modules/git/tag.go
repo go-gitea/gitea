@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,13 +19,14 @@ const (
 
 // Tag represents a Git tag.
 type Tag struct {
-	Name      string
-	ID        ObjectID
-	Object    ObjectID // The id of this commit object
-	Type      string
-	Tagger    *Signature
-	Message   string
-	Signature *CommitGPGSignature
+	Name                 string
+	ID                   ObjectID
+	Object               ObjectID // The id of this commit object
+	Type                 string
+	Tagger               *Signature
+	Message              string
+	Signature            *CommitGPGSignature
+	ArchiveDownloadCount *api.TagArchiveDownloadCount
 }
 
 // Commit return the commit of the tag reference
