@@ -233,7 +233,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-highlight-fg: #87651e;
-  --color-highlight-bg: #2c2517;
+  --color-highlight-bg: #352c1c;
   --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: dark;
