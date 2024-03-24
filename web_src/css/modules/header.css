@@ -1,0 +1,171 @@
+/* based on Fomantic UI header module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.header {
+  color: var(--color-text);
+  border: none;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  padding: 0;
+  font-family: var(--fonts-regular);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.28571429;
+  text-transform: none;
+}
+
+.ui.header:first-child {
+  margin-top: -0.14285714em;
+}
+
+.ui.header:last-child {
+  margin-bottom: 0;
+}
+
+.ui.header .ui.label {
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
+
+.ui.header > .ui.label.compact {
+  margin-top: inherit;
+}
+
+.ui.header .sub.header {
+  display: block;
+  font-weight: var(--font-weight-normal);
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: var(--color-text-light-1);
+}
+
+.ui.header > i.icon {
+  display: table-cell;
+  opacity: 1;
+  font-size: 1.5em;
+  padding-top: 0;
+  vertical-align: middle;
+}
+
+.ui.header > i.icon:only-child {
+  display: inline-block;
+  padding: 0;
+  margin-right: 0.75rem;
+}
+
+.ui.header + p {
+  margin-top: 0;
+}
+
+h2.ui.header {
+  font-size: 1.71428571rem;
+}
+h2.ui.header .sub.header {
+  font-size: 1.14285714rem;
+}
+
+h4.ui.header {
+  font-size: 1.07142857rem;
+}
+h4.ui.header .sub.header {
+  font-size: 1rem;
+}
+
+.ui.sub.header {
+  padding: 0;
+  margin-bottom: 0.14285714rem;
+  font-weight: var(--font-weight-normal);
+  font-size: 0.85714286em;
+}
+
+.ui.icon.header svg {
+  width: 3em;
+  height: 3em;
+  float: none;
+  display: block;
+  line-height: var(--line-height-default);
+  padding: 0;
+  margin: 0 auto 0.5rem;
+  opacity: 1;
+}
+
+.ui.header:not(h1,h2,h3,h4,h5,h6) {
+  font-size: 1.28571429em;
+}
+
+.ui.attached.header {
+  position: relative;
+  background: var(--color-box-header);
+  padding: 0.78571429rem 1rem;
+  margin: 0 -1px;
+  border-radius: 0;
+  border: 1px solid var(--color-secondary);
+}
+
+.ui.attached:not(.top).header {
+  border-top: none;
+}
+
+.ui.top.attached.header {
+  border-radius: 0.28571429rem 0.28571429rem 0 0;
+}
+
+.ui.bottom.attached.header {
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
+}
+
+.ui.attached.header:not(h1,h2,h3,h4,h5,h6) {
+  font-size: 1em;
+}
+
+/* fix misaligned right buttons on box headers */
+.ui.attached.header > .ui.right {
+  position: absolute;
+  right: 0.78571429rem;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
+.ui.attached.header > .ui.right .ui.tiny.button {
+  padding: 6px 10px;
+  font-weight: var(--font-weight-normal);
+}
+
+/* if a .top.attached.header is followed by a .segment, add some margin */
+.ui.segments + .ui.top.attached.header,
+.ui.attached.segment + .ui.top.attached.header {
+  margin-top: 1rem;
+}
+
+.ui.dividing.header {
+  border-bottom-color: var(--color-secondary);
+}
+
+.ui.dividing.header .sub.header {
+  padding-bottom: 0.21428571rem;
+}
+
+.ui.dividing.header i.icon {
+  margin-bottom: 0;
+}
+
+.ui.error.header {
+  background: var(--color-error-bg) !important;
+  color: var(--color-error-text) !important;
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.warning.header {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning-text) !important;
+  border-color: var(--color-warning-border) !important;
+}
+
+.attention-header {
+  padding: 0.5em 0.75em !important;
+  color: var(--color-text) !important;
+}

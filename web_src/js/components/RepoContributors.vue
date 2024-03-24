@@ -384,7 +384,7 @@ export default {
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>
-            <p class="tw-text-12 tw-flex gt-gap-2">
+            <p class="tw-text-12 tw-flex tw-gap-1">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
