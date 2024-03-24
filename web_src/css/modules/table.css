@@ -298,25 +298,25 @@
 .ui[class*="very basic"].table {
   border: none;
 }
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tr > th:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > thead > tr > th:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tbody > tr > th:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tfoot > tr > th:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tr > td:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tbody > tr > td:first-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tfoot > tr > td:first-child {
+.ui[class*="very basic"].table:not(.striped) > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > thead > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tr > td:first-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:first-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:first-child {
   padding-left: 0;
 }
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tr > th:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > thead > tr > th:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tbody > tr > th:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tfoot > tr > th:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tr > td:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tbody > tr > td:last-child,
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > tfoot > tr > td:last-child {
+.ui[class*="very basic"].table:not(.striped) > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > thead > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tr > td:last-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:last-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:last-child {
   padding-right: 0;
 }
-.ui[class*="very basic"].table:not(.sortable):not(.striped) > thead > tr:first-child > th {
+.ui[class*="very basic"].table:not(.striped) > thead > tr:first-child > th {
   padding-top: 0;
 }
 
