@@ -4,7 +4,7 @@
 .ui.segment {
   position: relative;
   margin: 1rem 0;
-  padding: 1em 1em;
+  padding: 1em;
   border-radius: 0.28571429rem;
   border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
@@ -75,7 +75,7 @@
 
 .ui.segments > .ui.segments {
   border-top: 1px solid var(--color-secondary);
-  margin: 1rem 1rem;
+  margin: 1rem;
 }
 .ui.segments > .segments:first-child {
   border-top: none;
@@ -116,7 +116,7 @@
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
 
-.ui.clearing.segment:after {
+.ui.clearing.segment::after {
   content: "";
   display: block;
   clear: both;

@@ -360,6 +360,7 @@ ol.ui.list li,
 .ui.vertical.menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
+  box-shadow: none;
 }
 
 .ui.menu .item {
@@ -920,11 +921,6 @@ input:-webkit-autofill:active,
 
 .ui.transparent.label {
   background-color: transparent;
-}
-
-.ui.menu,
-.ui.vertical.menu {
-  box-shadow: none;
 }
 
 /* replace fomantic popover box shadows */
