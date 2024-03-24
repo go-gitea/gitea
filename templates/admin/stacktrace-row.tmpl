@@ -1,5 +1,5 @@
 <div class="item">
-	<div class="gt-df gt-ac">
+	<div class="tw-flex tw-items-center">
 		<div class="icon gt-ml-3 gt-mr-3">
 			{{if eq .Process.Type "request"}}
 				{{svg "octicon-globe" 16}}
@@ -11,7 +11,7 @@
 				{{svg "octicon-code" 16}}
 			{{end}}
 		</div>
-		<div class="content gt-f1">
+		<div class="content tw-flex-1">
 			<div class="header">{{.Process.Description}}</div>
 			<div class="description">{{if ne .Process.Type "none"}}{{TimeSince .Process.Start ctx.Locale}}{{end}}</div>
 		</div>
@@ -40,9 +40,9 @@
 						</summary>
 						<div class="list">
 							{{range .Entry}}
-								<div class="item gt-df gt-ac">
+								<div class="item tw-flex tw-items-center">
 									<span class="icon gt-mr-4">{{svg "octicon-dot-fill" 16}}</span>
-									<div class="content gt-f1">
+									<div class="content tw-flex-1">
 										<div class="header"><code>{{.Function}}</code></div>
 										<div class="description"><code>{{.File}}:{{.Line}}</code></div>
 									</div>

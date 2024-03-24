@@ -21,7 +21,7 @@
 						{{end}}
 						<span class="labels-list gt-ml-2">
 							{{range .Labels}}
-								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context ctx.Locale .}}</a>
+								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context ctx.Locale .}}</a>
 							{{end}}
 						</span>
 					</div>

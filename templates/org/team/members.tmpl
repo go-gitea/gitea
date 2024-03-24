@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form ignore-dirty gt-df gt-fw gt-gap-3" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+						<form class="ui form ignore-dirty tw-flex tw-flex-wrap gt-gap-3" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div id="search-user-box" class="ui search gt-mr-3"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
@@ -24,7 +24,7 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Team.Members}}
-							<div class="flex-item gt-ac">
+							<div class="flex-item tw-items-center">
 								<div class="flex-item-leading">
 									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 								</div>
@@ -56,7 +56,7 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Invites}}
-							<div class="flex-item gt-ac">
+							<div class="flex-item tw-items-center">
 								<div class="flex-item-main">
 									{{.Email}}
 								</div>

@@ -189,7 +189,7 @@ export const SvgIcon = {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
-    symbolId: {type: String}
+    symbolId: {type: String},
   },
   render() {
     let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
@@ -205,7 +205,7 @@ export const SvgIcon = {
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
     const classes = [];
-    for (const cls of svgOuter.classList) {
+    for (const cls of svgOuter.classList.values()) {
       classes.push(cls);
     }
     // TODO: drop the `className/class-name` prop in the future, only use "class" prop

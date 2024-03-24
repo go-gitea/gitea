@@ -16,7 +16,7 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,9 +32,7 @@ func NewRunnerServiceHandler() (string, http.Handler) {
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
 
-type Service struct {
-	runnerv1connect.UnimplementedRunnerServiceHandler
-}
+type Service struct{}
 
 // Register for new runner.
 func (s *Service) Register(

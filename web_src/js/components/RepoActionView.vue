@@ -66,7 +66,7 @@ const sfc = {
             name: '',
             link: '',
           },
-        }
+        },
       },
       currentJob: {
         title: '',
@@ -311,7 +311,7 @@ const sfc = {
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector('.line-num').click();
-    }
+    },
   },
 };
 
@@ -352,7 +352,7 @@ export function initRepositoryActionView() {
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
-    }
+    },
   });
   view.mount(el);
 }

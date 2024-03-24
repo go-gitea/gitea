@@ -6,6 +6,7 @@ package markup
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"html"
 	"io"
 	"regexp"
@@ -122,6 +123,9 @@ func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err = scan.Err(); err != nil {
+		return fmt.Errorf("fallbackRender scan: %w", err)
 	}
 
 	_, err = tmpBlock.WriteString("</pre>")

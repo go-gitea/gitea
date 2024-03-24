@@ -1,7 +1,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		{{$notificationUnreadCount := call .NotificationUnreadCount}}
-		<div class="gt-df gt-ac gt-sb gt-mb-4">
+		<div class="tw-flex tw-items-center tw-justify-between gt-mb-4">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
@@ -25,7 +25,7 @@
 		<div class="gt-p-0">
 			<div id="notification_table">
 				{{if not .Notifications}}
-					<div class="gt-df gt-ac gt-fc gt-p-4">
+					<div class="tw-flex tw-items-center tw-flex-col gt-p-4">
 						{{svg "octicon-inbox" 56 "gt-mb-4"}}
 						{{if eq .Status 1}}
 							{{ctx.Locale.Tr "notification.no_unread"}}
@@ -35,7 +35,7 @@
 					</div>
 				{{else}}
 					{{range $notification := .Notifications}}
-						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
+						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
 							<div class="notifications-icon gt-ml-3 gt-mr-2 tw-self-start gt-mt-2">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
@@ -43,14 +43,14 @@
 									{{svg "octicon-repo" 16 "text grey"}}
 								{{end}}
 							</div>
-							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link ctx}}">
-								<div class="notifications-top-row gt-font-13">
+							<a class="notifications-link tw-flex tw-flex-1 tw-flex-col silenced" href="{{.Link ctx}}">
+								<div class="notifications-top-row tw-text-13">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
 									{{end}}
 								</div>
-								<div class="notifications-bottom-row gt-font-16 gt-py-1">
+								<div class="notifications-bottom-row tw-text-16 gt-py-1">
 									<span class="issue-title">
 										{{if .Issue}}
 											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
@@ -60,14 +60,14 @@
 									</span>
 								</div>
 							</a>
-							<div class="notifications-updated gt-ac gt-mr-3">
+							<div class="notifications-updated tw-items-center gt-mr-3">
 								{{if .Issue}}
 									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
 								{{else}}
 									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 								{{end}}
 							</div>
-							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
+							<div class="notifications-buttons tw-items-center tw-justify-end gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}

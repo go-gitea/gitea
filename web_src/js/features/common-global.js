@@ -301,8 +301,8 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
+    if (this.getAttribute('data-modal-id')) {
+      filter += `#${this.getAttribute('data-modal-id')}`;
     }
 
     const $dialog = $(`.delete.modal${filter}`);
@@ -335,7 +335,7 @@ export function initGlobalLinkActions() {
           const data = await response.json();
           window.location.href = data.redirect;
         }
-      }
+      },
     }).modal('show');
   }
 
@@ -352,8 +352,7 @@ function initGlobalShowModal() {
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
   $('.show-modal').on('click', function (e) {
     e.preventDefault();
-    const $el = $(this);
-    const modalSelector = $el.attr('data-modal');
+    const modalSelector = this.getAttribute('data-modal');
     const $modal = $(modalSelector);
     if (!$modal.length) {
       throw new Error('no modal for this action');
@@ -406,7 +405,7 @@ export function initGlobalButtons() {
     // a '.show-panel' element can show a panel, by `data-panel="selector"`
     // if it has "toggle" class, it toggles the panel
     e.preventDefault();
-    const sel = $(this).attr('data-panel');
+    const sel = this.getAttribute('data-panel');
     if (this.classList.contains('toggle')) {
       toggleElem(sel);
     } else {
@@ -417,12 +416,12 @@ export function initGlobalButtons() {
   $('.hide-panel').on('click', function (e) {
     // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
-    let sel = $(this).attr('data-panel');
+    let sel = this.getAttribute('data-panel');
     if (sel) {
       hideElem($(sel));
       return;
     }
-    sel = $(this).attr('data-panel-closest');
+    sel = this.getAttribute('data-panel-closest');
     if (sel) {
       hideElem($(this).closest(sel));
       return;

@@ -42,10 +42,6 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
-  - files: ["build/generate-images.js"]
-    rules:
-      i/no-unresolved: [0]
-      i/no-extraneous-dependencies: [0]
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
@@ -123,7 +119,7 @@ rules:
   "@stylistic/js/arrow-spacing": [2, {before: true, after: true}]
   "@stylistic/js/block-spacing": [0]
   "@stylistic/js/brace-style": [2, 1tbs, {allowSingleLine: true}]
-  "@stylistic/js/comma-dangle": [2, only-multiline]
+  "@stylistic/js/comma-dangle": [2, always-multiline]
   "@stylistic/js/comma-spacing": [2, {before: false, after: true}]
   "@stylistic/js/comma-style": [2, last]
   "@stylistic/js/computed-property-spacing": [2, never]
@@ -290,7 +286,7 @@ rules:
   jquery/no-class: [0]
   jquery/no-clone: [2]
   jquery/no-closest: [0]
-  jquery/no-css: [0]
+  jquery/no-css: [2]
   jquery/no-data: [0]
   jquery/no-deferred: [2]
   jquery/no-delegate: [2]
@@ -413,7 +409,7 @@ rules:
   no-jquery/no-constructor-attributes: [2]
   no-jquery/no-contains: [2]
   no-jquery/no-context-prop: [2]
-  no-jquery/no-css: [0]
+  no-jquery/no-css: [2]
   no-jquery/no-data: [0]
   no-jquery/no-deferred: [2]
   no-jquery/no-delegate: [2]

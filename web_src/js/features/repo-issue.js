@@ -43,14 +43,14 @@ export function initRepoIssueTimeTracking() {
 
 async function updateDeadline(deadlineString) {
   hideElem($('#deadline-err-invalid-date'));
-  $('#deadline-loader').addClass('loading');
+  $('#deadline-loader').addClass('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      $('#deadline-loader').removeClass('loading');
+      $('#deadline-loader').removeClass('is-loading');
       showElem($('#deadline-err-invalid-date'));
       return false;
     }
@@ -59,7 +59,7 @@ async function updateDeadline(deadlineString) {
 
   try {
     const response = await POST($('#update-issue-deadline-form').attr('action'), {
-      data: {due_date: realDeadline}
+      data: {due_date: realDeadline},
     });
 
     if (response.ok) {
@@ -69,7 +69,7 @@ async function updateDeadline(deadlineString) {
     }
   } catch (error) {
     console.error(error);
-    $('#deadline-loader').removeClass('loading');
+    $('#deadline-loader').removeClass('is-loading');
     showElem($('#deadline-err-invalid-date'));
   }
 }
@@ -162,7 +162,8 @@ export function initRepoIssueCommentDelete() {
         const response = await POST($this.data('url'));
         if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
-
+        const $parentTimelineItem = $this.closest('.timeline-item');
+        const $parentTimelineGroup = $this.closest('.timeline-item-group');
         // Check if this was a pending comment.
         if ($conversationHolder.find('.pending-label').length) {
           const $counter = $('#review-box .review-comments-counter');
@@ -184,6 +185,11 @@ export function initRepoIssueCommentDelete() {
             $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
           }
           $conversationHolder.remove();
+        }
+        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
+        if (!$parentTimelineGroup.find('.timeline-item.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
+          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
+          $timelineAvatar.removeClass('timeline-avatar-offset');
         }
       } catch (error) {
         console.error(error);
@@ -231,14 +237,14 @@ export function initRepoPullRequestUpdate() {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
-    $this.addClass('loading');
+    $this.addClass('is-loading');
     let response;
     try {
       response = await POST($this.data('do'));
     } catch (error) {
       console.error(error);
     } finally {
-      $this.removeClass('loading');
+      $this.removeClass('is-loading');
     }
     let data;
     try {
@@ -262,7 +268,7 @@ export function initRepoPullRequestUpdate() {
         $pullUpdateButton.find('.button-text').text($choice.text());
         $pullUpdateButton.data('do', $url);
       }
-    }
+    },
   });
 }
 
@@ -310,7 +316,7 @@ export function initRepoIssueReferenceRepositorySearch() {
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name
+              value: repo.repository.full_name,
             });
           });
           return filteredResponse;
@@ -321,7 +327,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         const $form = $choice.closest('form');
         $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
       },
-      fullTextSearch: true
+      fullTextSearch: true,
     });
 }
 
@@ -437,7 +443,7 @@ export function initRepoPullRequestReview() {
         }
         window.scrollTo({
           top: $commentDiv.offset().top - offset,
-          behavior: 'instant'
+          behavior: 'instant',
         });
       }
     }
@@ -655,7 +661,7 @@ export function initRepoIssueBranchSelect() {
     // Replace branch name to keep translation from HTML template
     $selectionTextField.html($selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`
+      `${baseName}:${branchNameNew}`,
     ));
     $selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
@@ -689,7 +695,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
     const editor = await initComboMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
-      }
+      },
     });
 
     $formField.on('focus', async () => {

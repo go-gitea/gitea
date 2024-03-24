@@ -6,7 +6,7 @@
 	</div>
 	{{end}}
 	{{range .Runs}}
-		<div class="flex-item gt-ac">
+		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>

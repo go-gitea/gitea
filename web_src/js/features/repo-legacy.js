@@ -389,7 +389,7 @@ async function onEditContent(event) {
               dz.emit('complete', attachment);
               dz.files.push(attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
-              $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
+              $dropzone.find(`img[src='${imgSrc}']`)[0].style.maxWidth = '100%';
               const $input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
               $dropzone.find('.files').append($input);
             }
@@ -436,7 +436,7 @@ async function onEditContent(event) {
       const $content = $segment;
       if (!$content.find('.dropzone-attachments').length) {
         if (data.attachments !== '') {
-          $content[0].append(data.attachments);
+          $content[0].insertAdjacentHTML('beforeend', data.attachments);
         }
       } else if (data.attachments === '') {
         $content.find('.dropzone-attachments').remove();

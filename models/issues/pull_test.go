@@ -66,7 +66,6 @@ func TestPullRequestsNewest(t *testing.T) {
 		},
 		State:    "open",
 		SortType: "newest",
-		Labels:   []string{},
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
@@ -113,7 +112,6 @@ func TestPullRequestsOldest(t *testing.T) {
 		},
 		State:    "open",
 		SortType: "oldest",
-		Labels:   []string{},
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)

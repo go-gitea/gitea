@@ -34,7 +34,7 @@ const customEventListener = {
       chart.resetZoom();
       opts.instance.updateOtherCharts(args.event, true);
     }
-  }
+  },
 };
 
 Chart.defaults.color = chartJsColors.text;
@@ -82,7 +82,7 @@ export default {
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
         this.sortContributors();
-      }
+      },
     });
   },
   methods: {
@@ -175,7 +175,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type])
+        ...this.totalStats.weeks.map((o) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -187,7 +187,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type)
+        ...this.sortedContributors.map((c) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -303,7 +303,7 @@ export default {
 </script>
 <template>
   <div>
-    <div class="ui header gt-df gt-ac gt-sb">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
           v-if="xAxisMin > 0"
@@ -352,8 +352,8 @@ export default {
         </div>
       </div>
     </div>
-    <div class="gt-df ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+    <div class="tw-flex ui segment main-graph">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
           {{ locale.loadingInfo }}
@@ -374,17 +374,17 @@ export default {
         :key="index"
         v-memo="[sortedContributors, type]"
       >
-        <div class="ui top attached header gt-df gt-f1">
+        <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar gt-vm" height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>
-            <p class="gt-font-12 gt-df gt-gap-2">
+            <p class="tw-text-12 tw-flex gt-gap-2">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">

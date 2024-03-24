@@ -171,7 +171,7 @@
 				<div class="selected">
 				{{range .Assignees}}
 					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 tw-align-middle"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
 				</div>

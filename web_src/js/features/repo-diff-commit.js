@@ -39,7 +39,7 @@ function addLink(parent, href, text, tooltip) {
   link.href = href;
   link.textContent = text;
   if (tooltip) {
-    link.classList.add('gt-border-secondary', 'gt-rounded');
+    link.classList.add('tw-border', 'tw-border-secondary', 'tw-rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   parent.append(link);

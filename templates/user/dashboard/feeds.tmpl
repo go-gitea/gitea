@@ -84,7 +84,7 @@
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := (.GetRepoLink ctx)}}
 					{{$repo := .Repo}}
-					<div class="gt-df gt-fc gt-gap-2">
+					<div class="tw-flex tw-flex-col gt-gap-2">
 						{{range $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
@@ -107,7 +107,7 @@
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | RenderEmoji $.Context | RenderCodeBlock}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
-						<div class="markup gt-font-14">{{RenderMarkdownToHtml ctx $comment}}</div>
+						<div class="markup tw-text-14">{{RenderMarkdownToHtml ctx $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>

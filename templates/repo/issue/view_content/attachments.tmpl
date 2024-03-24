@@ -4,8 +4,8 @@
 	{{end}}
 	{{$hasThumbnails := false}}
 	{{- range .Attachments -}}
-		<div class="gt-df">
-			<div class="gt-f1 gt-p-3">
+		<div class="tw-flex">
+			<div class="tw-flex-1 gt-p-3">
 				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					{{if FilenameIsImage .Name}}
 						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
@@ -18,7 +18,7 @@
 					<span><strong>{{.Name}}</strong></span>
 				</a>
 			</div>
-			<div class="gt-p-3 gt-df gt-ac">
+			<div class="gt-p-3 tw-flex tw-items-center">
 				<span class="ui text grey">{{.Size | FileSize}}</span>
 			</div>
 		</div>
