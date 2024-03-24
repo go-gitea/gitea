@@ -139,7 +139,7 @@ export function initRepoCommentForm() {
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
 
-      const $clickedItem = $(this);
+      const clickedItem = this; // eslint-disable-line unicorn/no-this-assignment
       const scope = $(this).attr('data-scope');
 
       $(this).parent().find('.item').each(function () {
@@ -148,10 +148,10 @@ export function initRepoCommentForm() {
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
-          if (!$(this).is($clickedItem) && !$(this).hasClass('checked')) {
+          if (this !== clickedItem && !$(this).hasClass('checked')) {
             return true;
           }
-        } else if (!$(this).is($clickedItem)) {
+        } else if (this !== clickedItem) {
           // Toggle for other labels
           return true;
         }
