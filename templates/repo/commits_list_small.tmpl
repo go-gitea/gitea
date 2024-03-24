@@ -30,7 +30,7 @@
 					{{$class = (print $class " isWarning")}}
 				{{end}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="gt-ml-3 {{$class}}">
+			<a href="{{$commitLink}}" rel="nofollow" class="tw-ml-2 {{$class}}">
 				<span class="shortsha">{{ShortSha .ID.String}}</span>
 				{{if .Signature}}
 					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}

@@ -18,10 +18,10 @@
 						{{svg "octicon-gear" 18}}
 					</a>
 				{{end}}</span>
-		<div class="gt-mt-3">
-			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
+		<div class="tw-mt-2">
+			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "tw-mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
 			{{if .EnableFeed}}
-				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 			{{end}}
 		</div>
 	</div>

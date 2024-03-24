@@ -1,8 +1,8 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 <div class="ui container">
-	<div class="tw-flex tw-justify-between tw-items-center gt-mb-4">
-		<h2 class="gt-mb-0">{{.Project.Title}}</h2>
+	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
+		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
 				<a class="item" href="{{.Link}}/edit?redirect=project">
@@ -68,7 +68,7 @@
 		{{range .Columns}}
 			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header">
-					<div class="ui large label project-column-title gt-py-2">
+					<div class="ui large label project-column-title tw-py-1">
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
 						</div>
@@ -76,7 +76,7 @@
 					</div>
 					{{if and $canWriteProject (ne .ID 0)}}
 						<div class="ui dropdown jump item">
-							<div class="gt-px-3">
+							<div class="tw-px-2">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu">
