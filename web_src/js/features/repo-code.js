@@ -33,9 +33,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   const viewGitBlame = document.querySelector('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if (!refInNewIssue) {
-      return;
-    }
+    if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
     const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
     const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
