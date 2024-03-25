@@ -269,28 +269,28 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = &ctxUserID
+			searchOpt.PosterID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = &ctxUserID
+			searchOpt.AssigneeID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("mentioned") {
-			searchOpt.MentionID = &ctxUserID
+			searchOpt.MentionID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("review_requested") {
-			searchOpt.ReviewRequestedID = &ctxUserID
+			searchOpt.ReviewRequestedID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("reviewed") {
-			searchOpt.ReviewedID = &ctxUserID
+			searchOpt.ReviewedID = optional.Some(ctxUserID)
 		}
 	}
 
@@ -368,7 +368,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: Only show items which were created by the the given user
+	//   description: Only show items which were created by the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
@@ -502,10 +502,10 @@ func ListIssues(ctx *context.APIContext) {
 		SortBy:    issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 	if len(labelIDs) == 1 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
@@ -526,13 +526,13 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = &createdByID
+		searchOpt.PosterID = optional.Some(createdByID)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = &assignedByID
+		searchOpt.AssigneeID = optional.Some(assignedByID)
 	}
 	if mentionedByID > 0 {
-		searchOpt.MentionID = &mentionedByID
+		searchOpt.MentionID = optional.Some(mentionedByID)
 	}
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
@@ -872,10 +872,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 	if form.State != nil {
 		if issue.IsPull {
-			if pr, err := issue.GetPullRequest(ctx); err != nil {
+			if err := issue.LoadPullRequest(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 				return
-			} else if pr.HasMerged {
+			}
+			if issue.PullRequest.HasMerged {
 				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
 				return
 			}

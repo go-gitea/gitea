@@ -118,7 +118,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)

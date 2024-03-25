@@ -134,63 +134,60 @@ func searchIssueInRepo(t *testing.T) {
 }
 
 func searchIssueByID(t *testing.T) {
-	int64Pointer := func(x int64) *int64 {
-		return &x
-	}
 	tests := []struct {
 		opts        SearchOptions
 		expectedIDs []int64
 	}{
 		{
-			SearchOptions{
-				PosterID: int64Pointer(1),
+			opts: SearchOptions{
+				PosterID: optional.Some(int64(1)),
 			},
-			[]int64{11, 6, 3, 2, 1},
+			expectedIDs: []int64{11, 6, 3, 2, 1},
 		},
 		{
-			SearchOptions{
-				AssigneeID: int64Pointer(1),
+			opts: SearchOptions{
+				AssigneeID: optional.Some(int64(1)),
 			},
-			[]int64{6, 1},
+			expectedIDs: []int64{6, 1},
 		},
 		{
-			SearchOptions{
-				MentionID: int64Pointer(4),
+			opts: SearchOptions{
+				MentionID: optional.Some(int64(4)),
 			},
-			[]int64{1},
+			expectedIDs: []int64{1},
 		},
 		{
-			SearchOptions{
-				ReviewedID: int64Pointer(1),
+			opts: SearchOptions{
+				ReviewedID: optional.Some(int64(1)),
 			},
-			[]int64{},
+			expectedIDs: []int64{},
 		},
 		{
-			SearchOptions{
-				ReviewRequestedID: int64Pointer(1),
+			opts: SearchOptions{
+				ReviewRequestedID: optional.Some(int64(1)),
 			},
-			[]int64{12},
+			expectedIDs: []int64{12},
 		},
 		{
-			SearchOptions{
-				SubscriberID: int64Pointer(1),
+			opts: SearchOptions{
+				SubscriberID: optional.Some(int64(1)),
 			},
-			[]int64{11, 6, 5, 3, 2, 1},
+			expectedIDs: []int64{11, 6, 5, 3, 2, 1},
 		},
 		{
 			// issue 20 request user 15 and team 5 which user 15 belongs to
 			// the review request number of issue 20 should be 1
-			SearchOptions{
-				ReviewRequestedID: int64Pointer(15),
+			opts: SearchOptions{
+				ReviewRequestedID: optional.Some(int64(15)),
 			},
-			[]int64{12, 20},
+			expectedIDs: []int64{12, 20},
 		},
 		{
 			// user 20 approved the issue 20, so return nothing
-			SearchOptions{
-				ReviewRequestedID: int64Pointer(20),
+			opts: SearchOptions{
+				ReviewRequestedID: optional.Some(int64(20)),
 			},
-			[]int64{},
+			expectedIDs: []int64{},
 		},
 	}
 
@@ -318,16 +315,13 @@ func searchIssueByLabelID(t *testing.T) {
 }
 
 func searchIssueByTime(t *testing.T) {
-	int64Pointer := func(i int64) *int64 {
-		return &i
-	}
 	tests := []struct {
 		opts        SearchOptions
 		expectedIDs []int64
 	}{
 		{
 			SearchOptions{
-				UpdatedAfterUnix: int64Pointer(0),
+				UpdatedAfterUnix: optional.Some(int64(0)),
 			},
 			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
@@ -363,28 +357,25 @@ func searchIssueWithOrder(t *testing.T) {
 }
 
 func searchIssueInProject(t *testing.T) {
-	int64Pointer := func(i int64) *int64 {
-		return &i
-	}
 	tests := []struct {
 		opts        SearchOptions
 		expectedIDs []int64
 	}{
 		{
 			SearchOptions{
-				ProjectID: int64Pointer(1),
+				ProjectID: optional.Some(int64(1)),
 			},
 			[]int64{5, 3, 2, 1},
 		},
 		{
 			SearchOptions{
-				ProjectBoardID: int64Pointer(1),
+				ProjectBoardID: optional.Some(int64(1)),
 			},
 			[]int64{1},
 		},
 		{
 			SearchOptions{
-				ProjectBoardID: int64Pointer(0), // issue with in default board
+				ProjectBoardID: optional.Some(int64(0)), // issue with in default board
 			},
 			[]int64{2},
 		},

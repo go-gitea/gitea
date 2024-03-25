@@ -32,6 +32,8 @@ type ResultLine struct {
 
 type SearchResultLanguages = internal.SearchResultLanguages
 
+type SearchOptions = internal.SearchOptions
+
 func indices(content string, selectionStartIndex, selectionEndIndex int) (int, int) {
 	startIndex := selectionStartIndex
 	numLinesBefore := 0
@@ -68,13 +70,27 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 	return nil
 }
 
+func HighlightSearchResultCode(filename string, lineNums []int, code string) []ResultLine {
+	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
+	hl, _ := highlight.Code(filename, "", code)
+	highlightedLines := strings.Split(string(hl), "\n")
+
+	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
+	lines := make([]ResultLine, min(len(highlightedLines), len(lineNums)))
+	for i := 0; i < len(lines); i++ {
+		lines[i].Num = lineNums[i]
+		lines[i].FormattedContent = template.HTML(highlightedLines[i])
+	}
+	return lines
+}
+
 func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
 
 	contentLines := strings.SplitAfter(result.Content[startIndex:endIndex], "\n")
-	lines := make([]ResultLine, 0, len(contentLines))
+	lineNums := make([]int, 0, len(contentLines))
 	index := startIndex
 	for i, line := range contentLines {
 		var err error
@@ -89,27 +105,14 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 				line[closeActiveIndex:],
 			)
 		} else {
-			err = writeStrings(&formattedLinesBuffer,
-				line,
-			)
+			err = writeStrings(&formattedLinesBuffer, line)
 		}
 		if err != nil {
 			return nil, err
 		}
 
-		lines = append(lines, ResultLine{Num: startLineNum + i})
+		lineNums = append(lineNums, startLineNum+i)
 		index += len(line)
-	}
-
-	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	hl, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
-	highlightedLines := strings.Split(string(hl), "\n")
-
-	// The lines outputted by highlight.Code might not match the original lines, because "highlight" removes the last `\n`
-	lines = lines[:min(len(highlightedLines), len(lines))]
-	highlightedLines = highlightedLines[:len(lines)]
-	for i := 0; i < len(lines); i++ {
-		lines[i].FormattedContent = template.HTML(highlightedLines[i])
 	}
 
 	return &Result{
@@ -119,17 +122,18 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		UpdatedUnix: result.UpdatedUnix,
 		Language:    result.Language,
 		Color:       result.Color,
-		Lines:       lines,
+		Lines:       HighlightSearchResultCode(result.Filename, lineNums, formattedLinesBuffer.String()),
 	}, nil
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*internal.SearchResultLanguages, error) {
-	if len(keyword) == 0 {
+// if isFuzzy is true set the Damerau-Levenshtein distance from 0 to 2
+func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []*SearchResultLanguages, error) {
+	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
+	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, opts)
 	if err != nil {
 		return 0, nil, nil, err
 	}

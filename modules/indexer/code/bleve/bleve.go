@@ -39,6 +39,8 @@ import (
 const (
 	unicodeNormalizeName = "unicodeNormalize"
 	maxBatchSize         = 16
+	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
+	fuzzyDenominator = 4
 )
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
@@ -142,7 +144,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			return err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return fmt.Errorf("Misformatted git cat-file output: %w", err)
+			return fmt.Errorf("misformatted git cat-file output: %w", err)
 		}
 	}
 
@@ -233,26 +235,23 @@ func (b *Indexer) Delete(_ context.Context, repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
 	)
 
-	if isMatch {
-		prefixQuery := bleve.NewPrefixQuery(keyword)
-		prefixQuery.FieldVal = "Content"
-		keywordQuery = prefixQuery
-	} else {
-		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
-		phraseQuery.FieldVal = "Content"
-		phraseQuery.Analyzer = repoIndexerAnalyzer
-		keywordQuery = phraseQuery
+	phraseQuery := bleve.NewMatchPhraseQuery(opts.Keyword)
+	phraseQuery.FieldVal = "Content"
+	phraseQuery.Analyzer = repoIndexerAnalyzer
+	keywordQuery = phraseQuery
+	if opts.IsKeywordFuzzy {
+		phraseQuery.Fuzziness = len(opts.Keyword) / fuzzyDenominator
 	}
 
-	if len(repoIDs) > 0 {
-		repoQueries := make([]query.Query, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(opts.RepoIDs) > 0 {
+		repoQueries := make([]query.Query, 0, len(opts.RepoIDs))
+		for _, repoID := range opts.RepoIDs {
 			repoQueries = append(repoQueries, inner_bleve.NumericEqualityQuery(repoID, "RepoID"))
 		}
 
@@ -266,8 +265,8 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 
 	// Save for reuse without language filter
 	facetQuery := indexerQuery
-	if len(language) > 0 {
-		languageQuery := bleve.NewMatchQuery(language)
+	if len(opts.Language) > 0 {
+		languageQuery := bleve.NewMatchQuery(opts.Language)
 		languageQuery.FieldVal = "Language"
 		languageQuery.Analyzer = analyzer_keyword.Name
 
@@ -277,12 +276,12 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		)
 	}
 
-	from := (page - 1) * pageSize
+	from, pageSize := opts.GetSkipTake()
 	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
 	searchRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
 	searchRequest.IncludeLocations = true
 
-	if len(language) == 0 {
+	if len(opts.Language) == 0 {
 		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 	}
 
@@ -326,7 +325,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	}
 
 	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
-	if len(language) > 0 {
+	if len(opts.Language) > 0 {
 		// Use separate query to go get all language counts
 		facetRequest := bleve.NewSearchRequestOptions(facetQuery, 1, 0, false)
 		facetRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}

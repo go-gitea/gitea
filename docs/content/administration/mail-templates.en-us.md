@@ -163,7 +163,7 @@ clients don't even support HTML, so they show the text version included in the g
 
 If the template fails to render, it will be noticed only at the moment the mail is sent.
 A default subject is used if the subject template fails, and whatever was rendered successfully
-from the the _mail body_ is used, disregarding the rest.
+from the _mail body_ is used, disregarding the rest.
 
 Please check [Gitea's logs](administration/logging-config.md) for error messages in case of trouble.
 

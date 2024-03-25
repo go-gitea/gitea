@@ -147,6 +147,11 @@ func CreateUser(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	if !user_model.IsEmailDomainAllowed(u.Email) {
+		ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", u.Email))
+	}
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -219,6 +224,10 @@ func EditUser(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "AddOrSetPrimaryEmailAddress", err)
 			}
 			return
+		}
+
+		if !user_model.IsEmailDomainAllowed(*form.Email) {
+			ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email))
 		}
 	}
 

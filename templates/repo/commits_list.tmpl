@@ -13,16 +13,16 @@
 				{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 				{{range .Commits}}
 					<tr>
-						<td class="author">
+						<td class="author tw-flex">
 							{{$userName := .Author.Name}}
 							{{if .User}}
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
+								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "gt-mr-2"}}
-								{{$userName}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
+								<span class="author-wrapper">{{$userName}}</span>
 							{{end}}
 						</td>
 						<td class="sha">
@@ -68,7 +68,7 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
+							<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
 							{{end}}
 						</td>
 						{{if .Committer}}
@@ -76,10 +76,10 @@
 						{{else}}
 							<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
 						{{end}}
-						<td class="text right aligned gt-py-0">
-							<button class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+						<td class="text right aligned tw-py-0">
+							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
 							<a
-								class="btn interact-bg gt-p-3"
+								class="btn interact-bg tw-p-2"
 								data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}"
 								href="{{if $.FileName}}{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) (PathEscapeSegments $.FileName)}}{{else}}{{printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}{{end}}">
 								{{svg "octicon-file-code"}}

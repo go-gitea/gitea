@@ -75,6 +75,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			updates = append(updates, option)
 			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {
 				// put the master/main branch first
+				// FIXME: It doesn't always work, since the master/main branch may not be the first batch of updates.
+				//        If the user pushes many branches at once, the Git hook will call the internal API in batches, rather than all at once.
+				//        See https://github.com/go-gitea/gitea/blob/cb52b17f92e2d2293f7c003649743464492bca48/cmd/hook.go#L27
+				//        If the user executes `git push origin --all` and pushes more than 30 branches, the master/main may not be the default branch.
 				copy(updates[1:], updates)
 				updates[0] = option
 			}
@@ -82,19 +86,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if repo != nil && len(updates) > 0 {
-		if err := repo_service.PushUpdates(updates); err != nil {
-			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
-			for i, update := range updates {
-				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
-			}
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-			})
-			return
-		}
-
 		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
 		for _, update := range updates {
 			if !update.RefFullName.IsBranch() {
@@ -142,14 +133,25 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				commitIDs = append(commitIDs, update.NewCommitID)
 			}
 
-			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, func(commitID string) (*git.Commit, error) {
-				return gitRepo.GetCommit(commitID)
-			}); err != nil {
+			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
 				})
 				return
 			}
+		}
+
+		if err := repo_service.PushUpdates(updates); err != nil {
+			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
+			for i, update := range updates {
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
+			}
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
 		}
 	}
 

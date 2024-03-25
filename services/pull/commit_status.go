@@ -59,7 +59,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		}
 	}
 
-	if matchedCount == 0 {
+	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
@@ -152,7 +152,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
+	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

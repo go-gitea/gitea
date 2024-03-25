@@ -38,7 +38,7 @@ function updateMenuItem(dropdown, item) {
   if (!item.id) item.id = generateAriaId();
   item.setAttribute('role', dropdown[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
-  for (const a of item.querySelectorAll('a')) a.setAttribute('tabindex', '-1');
+  for (const el of item.querySelectorAll('a, input, button')) el.setAttribute('tabindex', '-1');
 }
 
 // make the label item and its "delete icon" has correct aria attributes
@@ -72,7 +72,9 @@ function delegateOne($dropdown) {
   dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
     const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
-    const $wrapper = $('<div>').append(menuItems);
+    const div = document.createElement('div');
+    div.innerHTML = menuItems;
+    const $wrapper = $(div);
     const $items = $wrapper.find('> .item');
     $items.each((_, item) => updateMenuItem($dropdown[0], item));
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
@@ -197,7 +199,7 @@ function attachDomEvents($dropdown, $focusable, $menu) {
       if (!$item) $item = $menu.find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if ($item && ($item.is('a') || $item.hasClass('js-aria-clickable'))) $item[0].click();
+      if ($item && ($item[0].matches('a') || $item.hasClass('js-aria-clickable'))) $item[0].click();
     }
   });
 
