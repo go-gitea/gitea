@@ -200,7 +200,7 @@ const sfc = {
       }
 
       // scrolls to the bottom if job is running and the bottom of the logs container is visible
-      if (!this.run.done && logLines.length > 0 && clientHeight >= logsContainerHeight) {
+      if (!this.run.done && logLines.length && clientHeight >= logsContainerHeight) {
         const newLogsContainerHeight = this.$refs.stepsContainer.getBoundingClientRect().bottom + window.scrollY;
         window.scrollTo({top: clientHeight + (newLogsContainerHeight - logsContainerHeight), behavior: 'smooth'});
       }
