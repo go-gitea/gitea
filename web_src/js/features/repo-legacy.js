@@ -31,7 +31,7 @@ const {csrfToken} = window.config;
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function reloadConfirmDraftComment() {
   const commentTextareas = [
-    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit-content-zone:not(.tw-hidden) textarea'),
     document.querySelector('#comment-form textarea'),
   ];
   for (const textarea of commentTextareas) {
@@ -197,15 +197,15 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('gt-hidden');
+          $($(this).data('id-selector')).removeClass('tw-hidden');
         } else {
-          $($(this).data('id-selector')).addClass('gt-hidden');
+          $($(this).data('id-selector')).addClass('tw-hidden');
         }
       });
       if (listIds.length === 0) {
-        $noSelect.removeClass('gt-hidden');
+        $noSelect.removeClass('tw-hidden');
       } else {
-        $noSelect.addClass('gt-hidden');
+        $noSelect.addClass('tw-hidden');
       }
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
@@ -234,9 +234,9 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.item').each(function () {
-        $(this).addClass('gt-hidden');
+        $(this).addClass('tw-hidden');
       });
-      $noSelect.removeClass('gt-hidden');
+      $noSelect.removeClass('tw-hidden');
       $($(this).parent().data('id')).val('');
     });
   }
@@ -286,7 +286,7 @@ export function initRepoCommentForm() {
         </a>
       `);
 
-      $(`.ui${select_id}.list .no-select`).addClass('gt-hidden');
+      $(`.ui${select_id}.list .no-select`).addClass('tw-hidden');
       $(input_id).val($(this).data('id'));
     });
     $menu.find('.no-select.item').on('click', function () {
@@ -307,7 +307,7 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.selected').html('');
-      $list.find('.no-select').removeClass('gt-hidden');
+      $list.find('.no-select').removeClass('tw-hidden');
       $(input_id).val('');
     });
   }

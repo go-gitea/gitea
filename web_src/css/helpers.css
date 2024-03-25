@@ -45,17 +45,17 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:active { background: var(--color-active) !important; }
 
 /*
-gt-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
+tw-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
 do not use:
 * "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
 * ".hidden" class: it has been polluted by Fomantic UI in many cases
 * inline style="display: none": it's difficult to tweak
 * jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
 only use:
-* this ".gt-hidden" class
+* this ".tw-hidden" class
 * showElem/hideElem/toggleElem functions in "utils/dom.js"
 */
-.gt-hidden.gt-hidden { display: none !important; }
+.tw-hidden.tw-hidden { display: none !important; }
 
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */

@@ -47,7 +47,7 @@
 		</div>
 
 		<div class="ui assignees list">
-			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}</span>
+			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}</span>
 			<div class="selected">
 				{{range .PullReviewers}}
 					<div class="item tw-flex tw-items-center tw-py-2">
@@ -140,7 +140,7 @@
 		</div>
 	</div>
 	<div class="ui select-milestone list">
-		<span class="no-select item {{if .Issue.Milestone}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
+		<span class="no-select item {{if .Issue.Milestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 		<div class="selected">
 			{{if .Issue.Milestone}}
 				<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
@@ -194,7 +194,7 @@
 			</div>
 		</div>
 		<div class="ui select-project list">
-			<span class="no-select item {{if .Issue.Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
+			<span class="no-select item {{if .Issue.Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.Project}}
 					<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link ctx}}">
@@ -240,7 +240,7 @@
 		</div>
 	</div>
 	<div class="ui assignees list">
-		<span class="no-select item {{if .Issue.Assignees}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
+		<span class="no-select item {{if .Issue.Assignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		<div class="selected">
 			{{range .Issue.Assignees}}
 				<div class="item">
@@ -355,7 +355,7 @@
 	<div class="divider"></div>
 	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.due_date"}}</strong></span>
 	<div class="ui form" id="deadline-loader">
-		<div class="ui negative message gt-hidden" id="deadline-err-invalid-date">
+		<div class="ui negative message tw-hidden" id="deadline-err-invalid-date">
 			{{svg "octicon-x" 16 "close icon"}}
 			{{ctx.Locale.Tr "repo.issues.due_date_invalid"}}
 		</div>
@@ -379,7 +379,7 @@
 		{{end}}
 
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-			<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
+			<div {{if ne .Issue.DeadlineUnix 0}} class="tw-hidden"{{end}} id="deadlineForm">
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
 					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">

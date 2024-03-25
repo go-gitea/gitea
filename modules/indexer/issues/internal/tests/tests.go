@@ -77,6 +77,13 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				assert.Equal(t, c.ExpectedIDs, ids)
 				assert.Equal(t, c.ExpectedTotal, result.Total)
 			}
+
+			// test counting
+			c.SearchOptions.Paginator = &db.ListOptions{PageSize: 0}
+			countResult, err := indexer.Search(context.Background(), c.SearchOptions)
+			require.NoError(t, err)
+			assert.Empty(t, countResult.Hits)
+			assert.Equal(t, result.Total, countResult.Total)
 		})
 	}
 }
