@@ -1024,6 +1024,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
+// SignOutOAuthError shows any sign out errors occurring before SignOutOAuth
+func SignOutOAuthError(ctx *context.Context) {
+	HandleSignOut(ctx)
+	ctx.Flash.Error(ctx.Tr("Failed to handle OAuth2 or OpenID Connect sign out"), true)
+	ctx.ServerError("SignOutOAuthError", fmt.Errorf("error generating the internal OAuth2 logout URL"))
+}
+
 // SignOutOAuth handles OAuth2 and OIDC RP-initiated logout requests
 func SignOutOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
