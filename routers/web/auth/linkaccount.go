@@ -174,6 +174,19 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 			return
 		}
 
+		source, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
+		if err != nil {
+			ctx.ServerError("UserLinkAccount", err)
+			return
+		}
+
+		if err := ctx.Session.Set("login_source_id", source.ID); err != nil {
+			log.Error("UserLinkAccount: %v", err)
+		}
+		if err := ctx.Session.Set("login_type", source.Type); err != nil {
+			log.Error("UserLinkAccount: %v", err)
+		}
+
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -299,6 +312,13 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return
+	}
+
+	if err := ctx.Session.Set("login_source_id", authSource.ID); err != nil {
+		log.Error("UserSignUp: %v", err)
+	}
+	if err := ctx.Session.Set("login_type", authSource.Type); err != nil {
+		log.Error("UserSignUp: %v", err)
 	}
 
 	handleSignIn(ctx, u, false)

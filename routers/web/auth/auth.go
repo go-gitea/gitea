@@ -314,6 +314,8 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 }
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
+	loginType, _ := ctx.Session.Get("login_type").(auth.Type)
+
 	if remember {
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
@@ -404,6 +406,8 @@ func HandleSignOut(ctx *context.Context) {
 
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
+	loginType, _ := ctx.Session.Get("login_type").(auth.Type)
+
 	if ctx.Doer != nil {
 		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
 			Name: "logout",
