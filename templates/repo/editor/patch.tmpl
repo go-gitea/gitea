@@ -20,10 +20,10 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-patch"
+					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>

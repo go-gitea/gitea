@@ -12,7 +12,7 @@
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
-		<div class="file-header-left tw-flex tw-items-center gt-py-3 gt-pr-4">
+		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
 		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
@@ -24,7 +24,7 @@
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui tiny button escape-button gt-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+				<button class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
 		</div>
 	</h4>
@@ -41,11 +41,11 @@
 											{{$row.Avatar}}
 										</div>
 										<div class="blame-message">
-											<a href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
+											<a class="suppressed tw-text-text" href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
 												{{$row.CommitMessage}}
 											</a>
 										</div>
-										<div class="blame-time">
+										<div class="blame-time not-mobile">
 											{{$row.CommitSince}}
 										</div>
 									</div>
@@ -53,7 +53,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" data-tooltip-content='{{ctx.Locale.Tr "repo.blame_prior"}}'>
+									<a role="button" class="muted" href="{{$row.PreviousShaURL}}" data-tooltip-content='{{ctx.Locale.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}
@@ -69,12 +69,18 @@
 								</td>
 							{{end}}
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
-								<code class="code-inner gt-pl-3">{{$row.Code}}</code>
+								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>
 						</tr>
 					{{end}}
 				</tbody>
 			</table>
+			<div class="code-line-menu tippy-target">
+				{{if $.Permission.CanRead $.UnitTypeIssues}}
+					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
+				{{end}}
+				<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
+			</div>
 		</div>
 	</div>
 </div>

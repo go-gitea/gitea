@@ -9,39 +9,39 @@
 	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		{{if $resolved}}
 			<div class="ui attached header resolved-placeholder tw-flex tw-items-center tw-justify-between">
-				<div class="ui grey text tw-flex tw-items-center tw-flex-wrap gt-gap-2">
-					{{svg "octicon-check" 16 "icon gt-mr-2"}}
+				<div class="ui grey text tw-flex tw-items-center tw-flex-wrap tw-gap-1">
+					{{svg "octicon-check" 16 "icon tw-mr-1"}}
 					<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 					{{if $invalid}}
 						<!--
 						We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
 						The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
 						-->
-						<a href="{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+						<a href="{{$referenceUrl}}" class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 							{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 						</a>
 					{{end}}
 				</div>
-				<div class="tw-flex tw-items-center gt-gap-3">
+				<div class="tw-flex tw-items-center tw-gap-2">
 					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button show-outdated tw-flex tw-items-center">
-						{{svg "octicon-unfold" 16 "gt-mr-3"}}
+						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center gt-hidden">
-						{{svg "octicon-fold" 16 "gt-mr-3"}}
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center tw-hidden">
+						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}gt-hidden{{end}}">
+		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
 			<div class="comment-list">
 				<ui class="ui comments">
 					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
 				</ui>
 			</div>
-			<div class="tw-flex tw-justify-end tw-items-center tw-flex-wrap gt-mt-3">
-				<div class="ui buttons gt-mr-2">
+			<div class="tw-flex tw-justify-end tw-items-center tw-flex-wrap tw-mt-2">
+				<div class="ui buttons tw-mr-1">
 					<button class="ui icon tiny basic button previous-conversation">
 						{{svg "octicon-arrow-up" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.previous"}}
 					</button>
@@ -59,8 +59,8 @@
 					</button>
 				{{end}}
 				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-					<button class="comment-form-reply ui primary tiny labeled icon button gt-ml-2 gt-mr-0">
-						{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					<button class="comment-form-reply ui primary tiny labeled icon button tw-ml-1 tw-mr-0">
+						{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}
 			</div>

@@ -14,12 +14,12 @@
 		</div>
 		{{range .Webhooks}}
 			<div class="item truncated-item-container">
-				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
-				<div class="text truncate tw-flex-1 gt-mr-3">
+				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}} tw-mr-2">{{svg "octicon-dot-fill" 22}}</span>
+				<div class="text truncate tw-flex-1 tw-mr-2">
 					<a title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
 				</div>
-				<a class="muted gt-p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-				<a class="delete-button gt-p-3" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
+				<a class="muted tw-p-2" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+				<a class="delete-button tw-p-2" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
 			</div>
 		{{end}}
 	</div>

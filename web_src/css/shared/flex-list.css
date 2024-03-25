@@ -86,7 +86,7 @@
   border-top: 1px solid var(--color-secondary);
 }
 
-/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly (there might also be some `gt-hidden` siblings).
+/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly (there might also be some `tw-hidden` siblings).
 Developers could also use "flex-space-fitted" class to remove the first item's padding-top and the last item's padding-bottom */
 .flex-list.flex-space-fitted > .flex-item:first-child,
 .ui.segment > .flex-list > .flex-item:first-child {

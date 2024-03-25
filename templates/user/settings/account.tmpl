@@ -42,11 +42,11 @@
 			<div class="ui list">
 				{{if $.EnableNotifyMail}}
 				<div class="item">
-					<div class="gt-mb-3">{{ctx.Locale.Tr "settings.email_desc"}}</div>
+					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_desc"}}</div>
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="_method" type="hidden" value="NOTIFICATION">
-						<div class="tw-flex tw-flex-wrap gt-gap-3">
+						<div class="tw-flex tw-flex-wrap tw-gap-2">
 							<div class="ui selection dropdown">
 								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -96,7 +96,7 @@
 								</form>
 							</div>
 						{{end}}
-						<div class="content gt-py-3">
+						<div class="content tw-py-2">
 							<strong>{{.Email}}</strong>
 							{{if .IsPrimary}}
 								<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>

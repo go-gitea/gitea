@@ -66,7 +66,7 @@
 					</div>
 
 					{{if .AllowDisableOrEnableWorkflow}}
-						<button class="ui jump dropdown btn interact-bg gt-p-3">
+						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">

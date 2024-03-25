@@ -100,3 +100,15 @@
   color: var(--color-warning-text);
   border-color: var(--color-warning-border);
 }
+
+.ui.message > .close.icon {
+  cursor: pointer;
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  opacity: .7;
+}
+
+.ui.message > .close.icon:hover {
+  opacity: 1;
+}

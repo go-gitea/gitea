@@ -6,7 +6,7 @@
 			<a class="text tw-flex tw-items-center muted">
 				<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong>
 				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
@@ -22,7 +22,7 @@
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
+									{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}{{template "repo/search_name" .User}}
 								</span>
 							</a>
 						{{end}}
@@ -37,7 +37,7 @@
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check" 16}}</span>
 								<span class="text">
-									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+									{{svg "octicon-people" 16 "tw-ml-4 tw-mr-1"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 								</span>
 							</a>
 						{{end}}
@@ -47,18 +47,18 @@
 		</div>
 
 		<div class="ui assignees list">
-			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}</span>
+			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}</span>
 			<div class="selected">
 				{{range .PullReviewers}}
-					<div class="item tw-flex tw-items-center gt-py-3">
+					<div class="item tw-flex tw-items-center tw-py-2">
 						<div class="tw-flex tw-items-center tw-flex-1">
 							{{if .User}}
-								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
+								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20 "tw-mr-2"}}{{.User.GetDisplayName}}</a>
 							{{else if .Team}}
-								<span class="text">{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+								<span class="text">{{svg "octicon-people" 20 "tw-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 							{{end}}
 						</div>
-						<div class="tw-flex tw-items-center gt-gap-3">
+						<div class="tw-flex tw-items-center tw-gap-2">
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
 								<a href="#" class="ui muted icon tw-flex tw-items-center show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dismiss_review"}}" data-modal="#dismiss-review-modal-{{.Review.ID}}">
 									{{svg "octicon-x" 20}}
@@ -99,14 +99,14 @@
 					</div>
 				{{end}}
 				{{range .OriginalReviews}}
-					<div class="item tw-flex tw-items-center gt-py-3">
+					<div class="item tw-flex tw-items-center tw-py-2">
 						<div class="tw-flex tw-items-center tw-flex-1">
 							<a class="muted" href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname}}">
-								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname) 20 "gt-mr-3"}}
+								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname) 20 "tw-mr-2"}}
 								{{.OriginalAuthor}}
 							</a>
 						</div>
-						<div class="tw-flex tw-items-center gt-gap-3">
+						<div class="tw-flex tw-items-center tw-gap-2">
 							{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
 						</div>
 					</div>
@@ -132,7 +132,7 @@
 		<a class="text muted flex-text-block">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-				{{svg "octicon-gear" 16 "gt-ml-2"}}
+				{{svg "octicon-gear" 16 "tw-ml-1"}}
 			{{end}}
 		</a>
 		<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
@@ -140,11 +140,11 @@
 		</div>
 	</div>
 	<div class="ui select-milestone list">
-		<span class="no-select item {{if .Issue.Milestone}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
+		<span class="no-select item {{if .Issue.Milestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 		<div class="selected">
 			{{if .Issue.Milestone}}
 				<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
-					{{svg "octicon-milestone" 18 "gt-mr-3"}}
+					{{svg "octicon-milestone" 18 "tw-mr-2"}}
 					{{.Issue.Milestone.Name}}
 				</a>
 			{{end}}
@@ -158,7 +158,7 @@
 			<a class="text muted flex-text-block">
 				<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</a>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
@@ -176,7 +176,7 @@
 					</div>
 					{{range .OpenProjects}}
 						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+							{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 						</a>
 					{{end}}
 				{{end}}
@@ -187,18 +187,18 @@
 					</div>
 					{{range .ClosedProjects}}
 						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+							{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 						</a>
 					{{end}}
 				{{end}}
 			</div>
 		</div>
 		<div class="ui select-project list">
-			<span class="no-select item {{if .Issue.Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
+			<span class="no-select item {{if .Issue.Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.Project}}
 					<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link ctx}}">
-						{{svg .Issue.Project.IconName 18 "gt-mr-3"}}{{.Issue.Project.Title}}
+						{{svg .Issue.Project.IconName 18 "tw-mr-2"}}{{.Issue.Project.Title}}
 					</a>
 				{{end}}
 			</div>
@@ -212,7 +212,7 @@
 		<a class="text muted flex-text-block">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-				{{svg "octicon-gear" 16 "gt-ml-2"}}
+				{{svg "octicon-gear" 16 "tw-ml-1"}}
 			{{end}}
 		</a>
 		<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
@@ -233,19 +233,19 @@
 					{{end}}
 					<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 					<span class="text">
-						{{ctx.AvatarUtils.Avatar . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
+						{{ctx.AvatarUtils.Avatar . 20 "tw-mr-2"}}{{template "repo/search_name" .}}
 					</span>
 				</a>
 			{{end}}
 		</div>
 	</div>
 	<div class="ui assignees list">
-		<span class="no-select item {{if .Issue.Assignees}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
+		<span class="no-select item {{if .Issue.Assignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		<div class="selected">
 			{{range .Issue.Assignees}}
 				<div class="item">
 					<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}
+						{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}
 						{{.GetDisplayName}}
 					</a>
 				</div>
@@ -260,7 +260,7 @@
 		<div class="ui list tw-flex tw-flex-wrap">
 			{{range .Participants}}
 				<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-tooltip-content="{{.GetDisplayName}}">
-					{{ctx.AvatarUtils.Avatar . 28 "gt-my-1 gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar . 28 "tw-my-0.5 tw-mr-1"}}
 				</a>
 			{{end}}
 		</div>
@@ -271,7 +271,7 @@
 
 		<div class="ui watching">
 			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
-			<div class="gt-mt-3">
+			<div class="tw-mt-2">
 				{{template "repo/issue/view_content/watching" .}}
 			</div>
 		</div>
@@ -281,7 +281,7 @@
 			<div class="divider"></div>
 			<div class="ui timetrack">
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong></span>
-				<div class="gt-mt-3">
+				<div class="tw-mt-2">
 					<form method="post" action="{{.Issue.Link}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 						{{$.CsrfTokenHtml}}
 					</form>
@@ -290,11 +290,11 @@
 					</form>
 					{{if $.IsStopwatchRunning}}
 						<button class="ui fluid button issue-stop-time">
-							{{svg "octicon-stopwatch" 16 "gt-mr-3"}}
+							{{svg "octicon-stopwatch" 16 "tw-mr-2"}}
 							{{ctx.Locale.Tr "repo.issues.stop_tracking"}}
 						</button>
-						<button class="ui fluid button issue-cancel-time gt-mt-3">
-							{{svg "octicon-trash" 16 "gt-mr-3"}}
+						<button class="ui fluid button issue-cancel-time tw-mt-2">
+							{{svg "octicon-trash" 16 "tw-mr-2"}}
 							{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}
 						</button>
 					{{else}}
@@ -304,13 +304,13 @@
 							</div>
 						{{end}}
 						<button class="ui fluid button issue-start-time" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.start_tracking"}}'>
-							{{svg "octicon-stopwatch" 16 "gt-mr-3"}}
+							{{svg "octicon-stopwatch" 16 "tw-mr-2"}}
 							{{ctx.Locale.Tr "repo.issues.start_tracking_short"}}
 						</button>
 						<div class="ui mini modal issue-start-time-modal">
 							<div class="header">{{ctx.Locale.Tr "repo.issues.add_time"}}</div>
 							<div class="content">
-								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid gt-gap-3">
+								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid tw-gap-2">
 									{{$.CsrfTokenHtml}}
 									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
@@ -321,8 +321,8 @@
 								<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.add_time_cancel"}}</button>
 							</div>
 						</div>
-						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.add_time"}}'>
-							{{svg "octicon-plus" 16 "gt-mr-3"}}
+						<button class="ui fluid button issue-add-time tw-mt-2" data-tooltip-content='{{ctx.Locale.Tr "repo.issues.add_time"}}'>
+							{{svg "octicon-plus" 16 "tw-mr-2"}}
 							{{ctx.Locale.Tr "repo.issues.add_time_short"}}
 						</button>
 					{{end}}
@@ -335,7 +335,7 @@
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
-						<div class="comment gt-mt-3">
+						<div class="comment tw-mt-2">
 							<a class="avatar">
 								{{ctx.AvatarUtils.Avatar $user}}
 							</a>
@@ -355,7 +355,7 @@
 	<div class="divider"></div>
 	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.due_date"}}</strong></span>
 	<div class="ui form" id="deadline-loader">
-		<div class="ui negative message gt-hidden" id="deadline-err-invalid-date">
+		<div class="ui negative message tw-hidden" id="deadline-err-invalid-date">
 			{{svg "octicon-x" 16 "close icon"}}
 			{{ctx.Locale.Tr "repo.issues.due_date_invalid"}}
 		</div>
@@ -363,12 +363,12 @@
 			<p>
 				<div class="tw-flex tw-justify-between tw-items-center">
 					<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
-						{{svg "octicon-calendar" 16 "gt-mr-3"}}
+						{{svg "octicon-calendar" 16 "tw-mr-2"}}
 						{{DateTime "long" .Issue.DeadlineUnix.FormatDate}}
 					</div>
 					<div>
 						{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-							<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "gt-mr-2"}}</a>
+							<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "tw-mr-1"}}</a>
 							<a class="issue-due-remove muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
 						{{end}}
 					</div>
@@ -379,7 +379,7 @@
 		{{end}}
 
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-			<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
+			<div {{if ne .Issue.DeadlineUnix 0}} class="tw-hidden"{{end}} id="deadlineForm">
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
 					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
@@ -426,7 +426,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right tw-flex tw-items-center gt-m-2">
+							<div class="item-right tw-flex tw-items-center tw-m-1">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -458,7 +458,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right tw-flex tw-items-center gt-m-2">
+							<div class="item-right tw-flex tw-items-center tw-m-1">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -481,7 +481,7 @@
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
 									</div>
 								</div>
-								<div class="item-right tw-flex tw-items-center gt-m-2">
+								<div class="item-right tw-flex tw-items-center tw-m-1">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 											{{svg "octicon-trash" 16}}
@@ -550,7 +550,7 @@
 		{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
 		<div class="row tw-items-center" data-tooltip-content="{{$issueReferenceLink}}">
 			<span class="text column truncate">{{ctx.Locale.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
-			<button class="ui two wide button column gt-p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+			<button class="ui two wide button column tw-p-2" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
 		</div>
 	</div>
 
@@ -558,21 +558,21 @@
 		<div class="divider"></div>
 
 		{{if or .PinEnabled .Issue.IsPinned}}
-			<form class="gt-mt-2 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.max_pinned"}}"{{end}}>
+			<form class="tw-mt-1 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 				{{$.CsrfTokenHtml}}
 				<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 					{{if not .Issue.IsPinned}}
-						{{svg "octicon-pin" 16 "gt-mr-3"}}
+						{{svg "octicon-pin" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "pin"}}
 					{{else}}
-						{{svg "octicon-pin-slash" 16 "gt-mr-3"}}
+						{{svg "octicon-pin-slash" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "unpin"}}
 					{{end}}
 				</button>
 			</form>
 		{{end}}
 
-		<button class="gt-mt-2 fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
+		<button class="tw-mt-1 fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
 			{{if .Issue.IsLocked}}
 				{{svg "octicon-key"}}
 				{{ctx.Locale.Tr "repo.issues.unlock"}}
@@ -645,7 +645,7 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
+		<button class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "repo.issues.delete"}}
 		</button>

@@ -1,8 +1,8 @@
 <div class="flex-text-block tw-flex-wrap">
 	{{range $term := .SearchResultLanguages}}
-	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0"
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0"
 		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
-		<i class="color-icon gt-mr-3" style="background-color: {{$term.Color}}"></i>
+		<i class="color-icon tw-mr-2" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail">{{$term.Count}}</div>
 	</a>
@@ -12,7 +12,7 @@
 	{{range $result := .SearchResults}}
 		{{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
 		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-			<h4 class="ui top attached normal header tw-flex tw-flex-wrap">
+			<h4 class="ui top attached header tw-font-normal tw-flex tw-flex-wrap">
 				{{if not $.Repo}}
 					<span class="file tw-flex-1">
 						<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
