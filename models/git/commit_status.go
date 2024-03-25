@@ -388,22 +388,33 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
 func FindRepoRecentCommitStatusContexts(ctx context.Context, repoID int64, before time.Duration) ([]string, error) {
+	type result struct {
+		Index int64
+		SHA   string
+	}
 	start := timeutil.TimeStampNow().AddDuration(-before)
-	ids := make([]int64, 0, 10)
-	if err := db.GetEngine(ctx).Table("commit_status").
-		Where("repo_id = ?", repoID).
-		And("updated_unix >= ?", start).
-		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc").
-		Find(&ids); err != nil {
+	base := db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
+	results := make([]result, 0, 10)
+
+	sess := base.And("updated_unix >= ?", start).
+		Select("max( `index` ) as `index`, sha").
+		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
+
+	err := sess.Find(&results)
+	if err != nil {
 		return nil, err
 	}
 
-	contexts := make([]string, 0, len(ids))
-	if len(ids) == 0 {
+	contexts := make([]string, 0, len(results))
+	if len(results) == 0 {
 		return contexts, nil
 	}
-	return contexts, db.GetEngine(ctx).Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+
+	conds := make([]builder.Cond, 0, len(results))
+	for _, result := range results {
+		conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
+	}
+	return contexts, base.And(builder.Or(conds...)).Select("context").Find(&contexts)
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
