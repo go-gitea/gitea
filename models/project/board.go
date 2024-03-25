@@ -279,7 +279,7 @@ func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 		return &board, nil
 	}
 
-	// unser boards as default if multiple are found
+	// unset default boards where too many default boards exist
 	if len(boards) > 1 {
 		var boardsToUpdate []int64
 		for id, b := range boards {
