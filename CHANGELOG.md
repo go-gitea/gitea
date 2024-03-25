@@ -4,6 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.10](https://github.com/go-gitea/gitea/releases/tag/1.21.10) - 2024-03-25
+
+* BUGFIXES
+  * Fix Add/Remove WIP on pull request title failure (#29999) (#30066)
+  * Fix misuse of `TxContext` (#30061) (#30062)
+  * Respect DEFAULT_ORG_MEMBER_VISIBLE setting when adding creator to org (#30013) (#30035)
+  * Escape paths for find file correctly (#30026) (#30031)
+  * Remove duplicate option in admin screen and now-unused translation keys (#28492) (#30024)
+  * Fix manual merge form and 404 page templates (#30000)
+
 ## [1.21.9](https://github.com/go-gitea/gitea/releases/tag/1.21.9) - 2024-03-21
 
 * PERFORMANCE
