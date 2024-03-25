@@ -34,6 +34,14 @@ func InsertAuthToken(ctx context.Context, t *AuthToken) error {
 	return err
 }
 
+func ExistAuthToken(ctx context.Context, id string) bool {
+	exist, err := db.Exist[AuthToken](ctx, builder.Eq{"`id`": id})
+	if err != nil {
+		return false
+	}
+	return exist
+}
+
 func GetAuthTokenByID(ctx context.Context, id string) (*AuthToken, error) {
 	at := &AuthToken{}
 
