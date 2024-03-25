@@ -431,12 +431,19 @@ func HandleSignOut(ctx *context.Context) {
 func SignOut(ctx *context.Context) {
 	loginType, _ := ctx.Session.Get("login_type").(auth.Type)
 
+	if loginType == auth.OAuth2 {
+		// Handle sign out in SignOutOAuth
+		redirectToSignOutOAuth(ctx)
+		return
+	}
+
 	if ctx.Doer != nil {
 		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
 			Name: "logout",
 			Data: ctx.Session.ID(),
 		})
 	}
+
 	HandleSignOut(ctx)
 	ctx.JSONRedirect(setting.AppSubURL + "/")
 }

@@ -1024,6 +1024,25 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
+func redirectToSignOutOAuth(ctx *context.Context) {
+	errURL := "/user/oauth2/-/logout/error"
+
+	loginSourceID, ok := ctx.Session.Get("login_source_id").(int64)
+	if !ok {
+		log.Error("redirectToSignOutOAuth: Failed to get login_source_id from session data")
+		ctx.JSONRedirect(errURL)
+		return
+	}
+	source, err := auth.GetSourceByID(ctx, loginSourceID)
+	if err != nil {
+		log.Error("redirectToSignOutOAuth: %w", err)
+		ctx.JSONRedirect(errURL)
+		return
+	}
+
+	ctx.JSONRedirect("/user/oauth2/" + source.Name + "/logout")
+}
+
 // SignOutOAuthError shows any sign out errors occurring before SignOutOAuth
 func SignOutOAuthError(ctx *context.Context) {
 	HandleSignOut(ctx)
