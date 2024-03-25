@@ -291,22 +291,22 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
 func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHAs map[int64]string, listOptions db.ListOptions) (map[int64][]*CommitStatus, error) {
 	type result struct {
-		ID     int64
+		Index  int64
 		RepoID int64
 	}
 
 	results := make([]result, 0, len(repoIDsToLatestCommitSHAs))
 
-	sess := db.GetEngine(ctx).Table(&CommitStatus{})
+	base := db.GetEngine(ctx).Table(&CommitStatus{})
 
 	// Create a disjunction of conditions for each repoID and SHA pair
 	conds := make([]builder.Cond, 0, len(repoIDsToLatestCommitSHAs))
 	for repoID, sha := range repoIDsToLatestCommitSHAs {
 		conds = append(conds, builder.Eq{"repo_id": repoID, "sha": sha})
 	}
-	sess = sess.Where(builder.Or(conds...)).
-		Select("max( id ) as id, repo_id").
-		GroupBy("context_hash, repo_id").OrderBy("max( id ) desc")
+	sess := base.Where(builder.Or(conds...)).
+		Select("max( `index` ) as `index`, repo_id").
+		GroupBy("context_hash, repo_id").OrderBy("max( `index` ) desc")
 
 	if !listOptions.IsListAll() {
 		sess = db.SetSessionPagination(sess, &listOptions)
@@ -317,15 +317,21 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 		return nil, err
 	}
 
-	ids := make([]int64, 0, len(results))
 	repoStatuses := make(map[int64][]*CommitStatus)
-	for _, result := range results {
-		ids = append(ids, result.ID)
-	}
 
-	statuses := make([]*CommitStatus, 0, len(ids))
-	if len(ids) > 0 {
-		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+	if len(results) > 0 {
+		statuses := make([]*CommitStatus, 0, len(results))
+
+		conds = make([]builder.Cond, 0, len(results))
+		for _, result := range results {
+			cond := builder.Eq{
+				"`index`": result.Index,
+				"repo_id": result.RepoID,
+				"sha":     repoIDsToLatestCommitSHAs[result.RepoID],
+			}
+			conds = append(conds, cond)
+		}
+		err = base.Where(builder.Or(conds...)).Find(&statuses)
 		if err != nil {
 			return nil, err
 		}
