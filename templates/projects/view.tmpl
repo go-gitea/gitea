@@ -93,8 +93,6 @@
 										{{svg "octicon-pin"}}
 										{{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
-								{{end}}
-								{{if not .Default}}
 									<a class="item show-modal button show-delete-project-column-modal"
 										data-modal="#delete-project-column-modal-{{.ID}}"
 										data-url="{{$.Link}}/{{.ID}}">
