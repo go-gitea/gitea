@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
@@ -57,23 +56,18 @@ func (err ErrExternalLoginUserNotExist) Unwrap() error {
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID        string         `xorm:"pk NOT NULL"`
-	UserID            int64          `xorm:"INDEX NOT NULL"`
-	LoginSourceID     int64          `xorm:"pk NOT NULL"`
-	RawData           map[string]any `xorm:"TEXT JSON"`
-	Provider          string         `xorm:"index VARCHAR(25)"`
-	Email             string
-	Name              string
-	FirstName         string
-	LastName          string
-	NickName          string
-	Description       string
-	AvatarURL         string `xorm:"TEXT"`
-	Location          string
-	AccessToken       string `xorm:"TEXT"`
-	AccessTokenSecret string `xorm:"TEXT"`
-	RefreshToken      string `xorm:"TEXT"`
-	ExpiresAt         time.Time
+	ExternalID    string `xorm:"pk NOT NULL"`
+	UserID        int64  `xorm:"INDEX NOT NULL"`
+	LoginSourceID int64  `xorm:"pk NOT NULL"`
+	Provider      string `xorm:"index VARCHAR(25)"`
+	Email         string
+	Name          string
+	FirstName     string
+	LastName      string
+	NickName      string
+	Description   string
+	AvatarURL     string `xorm:"TEXT"`
+	Location      string
 }
 
 type ExternalUserMigrated interface {

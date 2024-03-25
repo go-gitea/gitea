@@ -22,23 +22,18 @@ func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser go
 		return nil, err
 	}
 	return &user_model.ExternalLoginUser{
-		ExternalID:        gothUser.UserID,
-		UserID:            user.ID,
-		LoginSourceID:     authSource.ID,
-		RawData:           gothUser.RawData,
-		Provider:          gothUser.Provider,
-		Email:             gothUser.Email,
-		Name:              gothUser.Name,
-		FirstName:         gothUser.FirstName,
-		LastName:          gothUser.LastName,
-		NickName:          gothUser.NickName,
-		Description:       gothUser.Description,
-		AvatarURL:         gothUser.AvatarURL,
-		Location:          gothUser.Location,
-		AccessToken:       gothUser.AccessToken,
-		AccessTokenSecret: gothUser.AccessTokenSecret,
-		RefreshToken:      gothUser.RefreshToken,
-		ExpiresAt:         gothUser.ExpiresAt,
+		ExternalID:    gothUser.UserID,
+		UserID:        user.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      gothUser.Provider,
+		Email:         gothUser.Email,
+		Name:          gothUser.Name,
+		FirstName:     gothUser.FirstName,
+		LastName:      gothUser.LastName,
+		NickName:      gothUser.NickName,
+		Description:   gothUser.Description,
+		AvatarURL:     gothUser.AvatarURL,
+		Location:      gothUser.Location,
 	}, nil
 }
 
