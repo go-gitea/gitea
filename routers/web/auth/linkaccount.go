@@ -187,6 +187,11 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 			log.Error("UserLinkAccount: %v", err)
 		}
 
+		if err := auth_service.SetExternalAuthToken(ctx, ctx.Session.ID(), u, &gothUser); err != nil {
+			ctx.ServerError("SetExternalAuthToken", err)
+			return
+		}
+
 		handleSignIn(ctx, u, remember)
 		return
 	}

@@ -1152,6 +1152,14 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			}
 		}
 
+		if err := auth_service.CleanExternalAuthTokensByUser(ctx, u.ID); err != nil {
+			log.Error("CleanUserExternalAuthTokens failed: %v", err)
+		}
+
+		if err := auth_service.SetExternalAuthToken(ctx, ctx.Session.ID(), u, &gothUser); err != nil {
+			log.Error("SetExternalAuthToken failed: %v", err)
+		}
+
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
 			return

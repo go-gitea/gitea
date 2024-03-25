@@ -96,6 +96,12 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
 
+	if nt.LoginType == auth.OAuth2 {
+		if err := auth_service.UpdateExternalAuthTokenSessionIDByAuthTokenID(ctx, nt.ID, ctx.Session.ID()); err != nil {
+			log.Error("UpdateExternalAuthTokenSessionIDByAuthTokenID: %v", err)
+		}
+	}
+
 	if err := resetLocale(ctx, u); err != nil {
 		return false, err
 	}
@@ -327,9 +333,16 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			return setting.AppSubURL + "/"
 		}
 
+		if loginType == auth.OAuth2 {
+			if err := auth_service.UpdateExternalAuthTokenAuthTokenID(ctx, ctx.Session.ID(), nt.ID); err != nil {
+				log.Error("UpdateExternalAuthTokenAuthTokenID: %v", err)
+			}
+		}
+
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
+	oldSessionID := ctx.Session.ID()
 	if err := updateSession(ctx, []string{
 		// Delete the openid, 2fa and linkaccount data
 		"openid_verified_uri",
@@ -345,6 +358,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return setting.AppSubURL + "/"
+	}
+
+	if loginType == auth.OAuth2 {
+		if err := auth_service.UpdateExternalAuthTokenSessionID(ctx, oldSessionID, ctx.Session.ID()); err != nil {
+			log.Error("UpdateExternalAuthTokenSessionID: %v", err)
+		}
 	}
 
 	// Language setting of the user overwrites the one previously set
@@ -627,6 +646,9 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
+		}
+		if err := auth_service.SetExternalAuthToken(ctx, ctx.Session.ID(), u, gothUser); err != nil {
+			log.Error("SetExternalAuthToken failed: %v", err)
 		}
 	}
 
