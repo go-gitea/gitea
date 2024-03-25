@@ -50,9 +50,7 @@ function reloadConfirmDraftComment() {
 
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
-  if ($commentForm.length === 0) {
-    return;
-  }
+  if (!$commentForm.length) return;
 
   if ($commentForm.find('.field.combo-editor-dropzone').length) {
     // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
@@ -202,7 +200,7 @@ export function initRepoCommentForm() {
           $($(this).data('id-selector')).addClass('tw-hidden');
         }
       });
-      if (listIds.length === 0) {
+      if (!listIds.length) {
         $noSelect.removeClass('tw-hidden');
       } else {
         $noSelect.addClass('tw-hidden');
@@ -329,7 +327,7 @@ async function onEditContent(event) {
   let comboMarkdownEditor;
 
   const setupDropzone = async ($dropzone) => {
-    if ($dropzone.length === 0) return null;
+    if (!$dropzone.length) return null;
 
     let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
     let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
@@ -482,9 +480,7 @@ async function onEditContent(event) {
 }
 
 export function initRepository() {
-  if ($('.page-content.repository').length === 0) {
-    return;
-  }
+  if (!$('.page-content.repository').length) return;
 
   initRepoBranchTagSelector('.js-branch-tag-selector');
 
