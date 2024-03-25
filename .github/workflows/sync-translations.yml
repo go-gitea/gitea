@@ -1,0 +1,76 @@
+name: sync-translations
+on:
+  schedule:
+    - cron: "7 0 * * *" # every day at 00:07 UTC
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  crowdin-pull:
+    runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea' || github.repository == 'denyskon/gitea'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crowdin/github-action@v1
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_sources: false
+          download_translations: true
+          skip_untranslated_strings: true
+          export_only_approved: true
+          localization_branch_name: l10n_crowdin_translations
+          push_translations: true
+          create_pull_request: true
+          pull_request_title: 'New Crowdin Translations'
+          pull_request_body: 'New Crowdin translations by [Crowdin GH Action](https://github.com/crowdin/github-action)'
+          pull_request_base_branch_name: 'main'
+          config: crowdin.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_KEY }}
+  #crowdin-pull:
+  #  runs-on: ubuntu-latest
+  #  if: github.repository == 'go-gitea/gitea'
+  #  steps:
+  #    - uses: actions/checkout@v4
+  #    - name: download from crowdin
+  #      uses: docker://jonasfranz/crowdin
+  #      env:
+  #        CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
+  #        PLUGIN_DOWNLOAD: true
+  #        PLUGIN_EXPORT_DIR: options/locale/
+  #        PLUGIN_IGNORE_BRANCH: true
+  #        PLUGIN_PROJECT_IDENTIFIER: gitea
+  #    - name: update locales
+  #      run: ./build/update-locales.sh
+  #    - name: push translations to repo
+  #      uses: appleboy/git-push-action@v0.0.3
+  #      with:
+  #        author_email: "teabot@gitea.io"
+  #        author_name: GiteaBot
+  #        branch: main
+  #        commit: true
+  #        commit_message: "[skip ci] Updated translations via Crowdin"
+  #        remote: "git@github.com:go-gitea/gitea.git"
+  #        ssh_key: ${{ secrets.DEPLOY_KEY }}
+  #crowdin-push:
+  #  runs-on: ubuntu-latest
+  #  if: github.repository == 'go-gitea/gitea'
+  #  steps:
+  #    - uses: actions/checkout@v4
+  #    - name: push translations to crowdin
+  #      uses: docker://jonasfranz/crowdin
+  #      env:
+  #        CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
+  #        PLUGIN_UPLOAD: true
+  #        PLUGIN_EXPORT_DIR: options/locale/
+  #        PLUGIN_IGNORE_BRANCH: true
+  #        PLUGIN_PROJECT_IDENTIFIER: gitea
+  #        PLUGIN_FILES: |
+  #          locale_en-US.ini: options/locale/locale_en-US.ini
+  #        PLUGIN_BRANCH: main
