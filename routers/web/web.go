@@ -671,6 +671,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
 			m.Get("/{provider}/logout", auth.SignOutOAuth)
+			m.Get("/{provider}/logout/callback", auth.SignOutOAuthCallback)
 		})
 	})
 	// ***** END: User *****

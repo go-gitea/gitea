@@ -1086,6 +1086,22 @@ func SignOutOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect)
 }
 
+// SignOutOAuthCallback handles OIDC RP-initiated logout callback requests
+func SignOutOAuthCallback(ctx *context.Context) {
+	provider := ctx.Params(":provider")
+	oidcState, _ := ctx.Session.Get("oidc_state").(string)
+	state := ctx.Req.URL.Query().Get("state")
+
+	// Cleanup and destroy the remains of the old session
+	HandleSignOut(ctx)
+	if len(oidcState) == 0 || state != oidcState {
+		ctx.Flash.Error(ctx.Tr("Invalid state parameter, please check the %s sign out URL", provider), true)
+		ctx.ServerError(fmt.Sprintf("SignOutOAuthCallback[%s]", provider), fmt.Errorf("oidc_state: \"%s\", IdP state: \"%s\"", oidcState, state))
+		return
+	}
+	ctx.Redirect(setting.AppSubURL + "/")
+}
+
 func claimValueToStringSet(claimValue any) container.Set[string] {
 	var groups []string
 
