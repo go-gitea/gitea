@@ -44,7 +44,9 @@ func DeleteAccountLink(ctx *context.Context) {
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {
-		if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
+		if err := auth_model.DeleteExternalAuthTokensByUserLoginSourceID(ctx, ctx.Doer.ID, id); err != nil {
+			ctx.Flash.Error("DeleteExternalAuthTokens: " + err.Error())
+		} else if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
