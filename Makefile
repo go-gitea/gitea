@@ -434,7 +434,8 @@ lint-actions:
 	$(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: lint-templates
-lint-templates: .venv
+lint-templates: .venv node_modules
+	@node tools/lint-templates-svg.js
 	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
