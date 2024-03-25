@@ -58,12 +58,11 @@ type FindVariablesOpts struct {
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+	// Since we now support instance-level variables,
+	// there is no need to check for null values for `owner_id` and `repo_id`
+	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
