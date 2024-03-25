@@ -275,9 +275,7 @@ func ViewUser(ctx *context.Context) {
 	}
 
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
@@ -300,9 +298,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:    db.ListOptionsAll,
 		UserID:         u.ID,
 		IncludePrivate: true,
 	})

@@ -1,29 +1,30 @@
 import {svg} from '../svg.js';
 
+const addPrefix = (str) => `user-content-${str}`;
+const removePrefix = (str) => str.replace(/^user-content-/, '');
+const hasPrefix = (str) => str.startsWith('user-content-');
+
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
-function scrollToAnchor(encodedId, initial) {
-  // abort if the browser has already scrolled to another anchor during page load
-  if (!encodedId || (initial && document.querySelector(':target'))) return;
+function scrollToAnchor(encodedId) {
+  if (!encodedId) return;
   const id = decodeURIComponent(encodedId);
-  let el = document.getElementById(`user-content-${id}`);
+  const prefixedId = addPrefix(id);
+  let el = document.getElementById(prefixedId);
 
   // check for matching user-generated `a[name]`
   if (!el) {
-    const nameAnchors = document.getElementsByName(`user-content-${id}`);
+    const nameAnchors = document.getElementsByName(prefixedId);
     if (nameAnchors.length) {
       el = nameAnchors[0];
     }
   }
 
   // compat for links with old 'user-content-' prefixed hashes
-  if (!el && id.startsWith('user-content-')) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView();
+  if (!el && hasPrefix(id)) {
+    return document.getElementById(id)?.scrollIntoView();
   }
 
-  if (el) {
-    el.scrollIntoView();
-  }
+  el?.scrollIntoView();
 }
 
 export function initMarkupAnchors() {
@@ -32,11 +33,10 @@ export function initMarkupAnchors() {
 
   for (const markupEl of markupEls) {
     // create link icons for markup headings, the resulting link href will remove `user-content-`
-    for (const heading of markupEl.querySelectorAll(`:is(h1, h2, h3, h4, h5, h6`)) {
-      const originalId = heading.id.replace(/^user-content-/, '');
+    for (const heading of markupEl.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
       const a = document.createElement('a');
       a.classList.add('anchor');
-      a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
+      a.setAttribute('href', `#${encodeURIComponent(removePrefix(heading.id))}`);
       a.innerHTML = svg('octicon-link');
       heading.prepend(a);
     }
@@ -45,8 +45,7 @@ export function initMarkupAnchors() {
     for (const a of markupEl.querySelectorAll('a[href^="#"]')) {
       const href = a.getAttribute('href');
       if (!href.startsWith('#user-content-')) continue;
-      const originalId = href.replace(/^#user-content-/, '');
-      a.setAttribute('href', `#${originalId}`);
+      a.setAttribute('href', `#${removePrefix(href.substring(1))}`);
     }
 
     // add `user-content-` prefix to user-generated `a[name]` link targets
@@ -54,15 +53,18 @@ export function initMarkupAnchors() {
     for (const a of markupEl.querySelectorAll('a[name]')) {
       const name = a.getAttribute('name');
       if (!name) continue;
-      a.setAttribute('name', `user-content-${a.name}`);
+      a.setAttribute('name', addPrefix(a.name));
     }
 
     for (const a of markupEl.querySelectorAll('a[href^="#"]')) {
       a.addEventListener('click', (e) => {
-        scrollToAnchor(e.currentTarget.getAttribute('href')?.substring(1), false);
+        scrollToAnchor(e.currentTarget.getAttribute('href')?.substring(1));
       });
     }
   }
 
-  scrollToAnchor(window.location.hash.substring(1), true);
+  // scroll to anchor unless the browser has already scrolled somewhere during page load
+  if (!document.querySelector(':target')) {
+    scrollToAnchor(window.location.hash?.substring(1));
+  }
 }

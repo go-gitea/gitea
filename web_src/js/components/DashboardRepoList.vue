@@ -253,7 +253,7 @@ const sfc = {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status.State,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
@@ -325,7 +325,7 @@ const sfc = {
       if (this.activeIndex === -1 || this.activeIndex > this.repos.length - 1) {
         this.activeIndex = 0;
       }
-    }
+    },
   },
 };
 
@@ -345,12 +345,12 @@ export default sfc; // activate the IDE's Vue plugin
       <a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{ textOrganization }}</a>
     </div>
     <div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
-      <h4 class="ui top attached header gt-df gt-ac">
-        <div class="gt-f1 gt-df gt-ac">
+      <h4 class="ui top attached header tw-flex tw-items-center">
+        <div class="tw-flex-1 tw-flex tw-items-center">
           {{ textMyRepos }}
-          <span class="ui grey label gt-ml-3">{{ reposTotalCount }}</span>
+          <span class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
         </div>
-        <a class="gt-df gt-ac muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
+        <a class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
@@ -367,7 +367,7 @@ export default sfc; // activate the IDE's Vue plugin
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
-                    <svg-icon name="octicon-archive" :size="16" class-name="gt-mr-2"/>
+                    <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
                     {{ textShowArchived }}
                   </label>
                 </div>
@@ -376,7 +376,7 @@ export default sfc; // activate the IDE's Vue plugin
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-lock" :size="16" class-name="gt-mr-2"/>
+                    <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>
@@ -411,7 +411,7 @@ export default sfc; // activate the IDE's Vue plugin
       </div>
       <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+          <li class="tw-flex tw-items-center tw-py-2" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
@@ -419,57 +419,57 @@ export default sfc; // activate the IDE's Vue plugin
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="gt-df gt-ac" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="tw-text-center">
-          <div class="divider gt-my-0"/>
-          <div class="ui borderless pagination menu narrow gt-my-3">
+          <div class="divider tw-my-0"/>
+          <div class="ui borderless pagination menu narrow tw-my-2">
             <a
-              class="item navigation gt-py-2" :class="{'disabled': page === 1}"
+              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
             >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class-name="gt-mr-2"/>
+              <svg-icon name="gitea-double-chevron-left" :size="16" class-name="tw-mr-1"/>
             </a>
             <a
-              class="item navigation gt-py-2" :class="{'disabled': page === 1}"
+              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" clsas-name="gt-mr-2"/>
+              <svg-icon name="octicon-chevron-left" :size="16" clsas-name="tw-mr-1"/>
             </a>
-            <a class="active item gt-py-2">{{ page }}</a>
+            <a class="active item tw-py-1">{{ page }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
-              <svg-icon name="octicon-chevron-right" :size="16" class-name="gt-ml-2"/>
+              <svg-icon name="octicon-chevron-right" :size="16" class-name="tw-ml-1"/>
             </a>
             <a
-              class="item navigation gt-py-2" :class="{'disabled': page === finalPage}"
+              class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
               @click="changePage(finalPage)" :title="textLastPage"
             >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class-name="gt-ml-2"/>
+              <svg-icon name="gitea-double-chevron-right" :size="16" class-name="tw-ml-1"/>
             </a>
           </div>
         </div>
       </div>
     </div>
     <div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
-      <h4 class="ui top attached header gt-df gt-ac">
-        <div class="gt-f1 gt-df gt-ac">
+      <h4 class="ui top attached header tw-flex tw-items-center">
+        <div class="tw-flex-1 tw-flex tw-items-center">
           {{ textMyOrgs }}
-          <span class="ui grey label gt-ml-3">{{ organizationsTotalCount }}</span>
+          <span class="ui grey label tw-ml-2">{{ organizationsTotalCount }}</span>
         </div>
-        <a class="gt-df gt-ac muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
+        <a class="tw-flex tw-items-center muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
+          <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
@@ -479,9 +479,9 @@ export default sfc; // activate the IDE's Vue plugin
                 </span>
               </div>
             </a>
-            <div class="text light grey gt-df gt-ac gt-ml-3">
+            <div class="text light grey tw-flex tw-items-center tw-ml-2">
               {{ org.num_repos }}
-              <svg-icon name="octicon-repo" :size="16" class-name="gt-ml-2 gt-mt-1"/>
+              <svg-icon name="octicon-repo" :size="16" class-name="tw-ml-1 tw-mt-0.5"/>
             </div>
           </li>
         </ul>
