@@ -33,13 +33,13 @@
 				{{template "admin/auth/source/smtp" .}}
 
 				<!-- PAM -->
-				<div class="pam required field {{if not (eq .type 4)}}gt-hidden{{end}}">
+				<div class="pam required field {{if not (eq .type 4)}}tw-hidden{{end}}">
 					<label for="pam_service_name">{{ctx.Locale.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
 					<label for="pam_email_domain">{{ctx.Locale.Tr "admin.auths.pam_email_domain"}}</label>
 					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
-				<div class="pam optional field {{if not (eq .type 4)}}gt-hidden{{end}}">
+				<div class="pam optional field {{if not (eq .type 4)}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
@@ -59,7 +59,7 @@
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
+				<div class="ldap inline field {{if not (eq .type 2)}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>

@@ -17,7 +17,7 @@
 			</div>
 			<div>
 				{{if or $invalid $resolved}}
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
@@ -25,7 +25,7 @@
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
@@ -39,7 +39,7 @@
 		{{$diff := (CommentMustAsDiff ctx $comment)}}
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
-			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
+			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>
@@ -51,7 +51,7 @@
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} gt-hidden{{end}}">
+		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
 			<div class="ui comments tw-mb-0">
 				{{range .comments}}
 					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
@@ -95,8 +95,8 @@
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 								</div>
-								<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-								<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+								<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 								{{if .Attachments}}
 									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 								{{end}}
