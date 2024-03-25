@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
+	issue_service "code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -88,31 +88,21 @@ func TestPullView_CodeOwner(t *testing.T) {
 			session := loginUser(t, "user2")
 			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-basebranch", "Test Pull Request")
 
-			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
+			assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
-			prURL := fmt.Sprintf("/user2/test_codeowner/pulls/%d", pr.Index)
-			req := NewRequest(t, "GET", prURL)
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-
-			req = NewRequestWithValues(t, "POST", prURL+"/title", map[string]string{
-				"_csrf": htmlDoc.GetCSRF(),
-				"title": "[WIP] Test Pull Request",
-			})
-			session.MakeRequest(t, req, http.StatusOK)
-			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			err := issue_service.ChangeTitle(db.DefaultContext, pr.Issue, user2, "[WIP] Test Pull Request")
+			assert.NoError(t, err)
+			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 			assert.NoError(t, prUpdated1.LoadIssue(db.DefaultContext))
 			assert.EqualValues(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
 
-			req = NewRequestWithValues(t, "POST", prURL+"/title", map[string]string{
-				"_csrf": htmlDoc.GetCSRF(),
-				"title": "Test Pull Request",
-			})
-			session.MakeRequest(t, req, http.StatusOK)
-			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			err = issue_service.ChangeTitle(db.DefaultContext, prUpdated1.Issue, user2, "Test Pull Request2")
+			assert.NoError(t, err)
+			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 			assert.NoError(t, prUpdated2.LoadIssue(db.DefaultContext))
-			assert.EqualValues(t, "Test Pull Request", prUpdated2.Issue.Title)
+			assert.EqualValues(t, "Test Pull Request2", prUpdated2.Issue.Title)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
