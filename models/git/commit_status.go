@@ -269,23 +269,23 @@ type CommitStatusIndex struct {
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	ids := make([]int64, 0, 10)
-	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
-		Where("repo_id = ?", repoID).And("sha = ?", sha).
-		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc")
+	base := db.GetEngine(ctx).Table(&CommitStatus{}).
+		Where("repo_id = ?", repoID).And("sha = ?", sha)
+	indices := make([]int64, 0, 10)
+	sess := base.Select("max( `index` ) as `index`").
+		GroupBy("context_hash").OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
-	count, err := sess.FindAndCount(&ids)
+	count, err := sess.FindAndCount(&indices)
 	if err != nil {
 		return nil, count, err
 	}
-	statuses := make([]*CommitStatus, 0, len(ids))
-	if len(ids) == 0 {
+	statuses := make([]*CommitStatus, 0, len(indices))
+	if len(indices) == 0 {
 		return statuses, count, nil
 	}
-	return statuses, count, db.GetEngine(ctx).In("id", ids).Find(&statuses)
+	return statuses, count, base.And(builder.In("`index`", indices)).Find(&statuses)
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
