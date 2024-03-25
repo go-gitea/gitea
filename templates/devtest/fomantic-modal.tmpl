@@ -73,7 +73,7 @@
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
 
-	<div class="modal-buttons flex-text-block gt-fw"></div>
+	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
 	<script type="module">
 		for (const el of $('.ui.modal')) {
 			const $btn = $('<button>').text(`${el.id}`).on('click', () => {
