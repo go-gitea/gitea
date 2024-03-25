@@ -10,6 +10,7 @@ import (
 	"xorm.io/xorm"
 )
 
+// CheckProjectColumnsConsistency ensures there is exactly one default board per project present
 func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 	var projects []project.Project
 	if err := x.SQL("SELECT DISTINCT `p`.`id`, `p`.`creator_id` FROM `project` `p` WHERE (SELECT COUNT(*) FROM `project_board` `pb` WHERE `pb`.`project_id` = `p`.`id` AND `pb`.`default` = ?) != 1", true).
