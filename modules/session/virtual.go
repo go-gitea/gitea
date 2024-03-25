@@ -69,7 +69,9 @@ func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 
 // Exist returns true if session with given ID exists.
 func (o *VirtualSessionProvider) Exist(sid string) bool {
-	return true
+	o.lock.RLock()
+	defer o.lock.RUnlock()
+	return o.provider.Exist(sid)
 }
 
 // Destroy deletes a session by session ID.
