@@ -299,20 +299,18 @@ func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 
 // SetDefaultBoard represents a board for issues not assigned to one
 func SetDefaultBoard(ctx context.Context, projectID, boardID int64) error {
-	_, err := db.GetEngine(ctx).Where(builder.Eq{
+	if _, err := GetBoard(ctx, boardID); err != nil {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{
 		"project_id": projectID,
 		"`default`":  true,
-	}).Cols("`default`").Update(&Board{Default: false})
-	if err != nil {
+	}).Cols("`default`").Update(&Board{Default: false}); err != nil {
 		return err
 	}
 
-	_, err = GetBoard(ctx, boardID)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.GetEngine(ctx).ID(boardID).Where(builder.Eq{"project_id": projectID}).
+	_, err := db.GetEngine(ctx).ID(boardID).Where(builder.Eq{"project_id": projectID}).
 		Cols("`default`").Update(&Board{Default: true})
 
 	return err
