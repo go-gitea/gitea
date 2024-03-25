@@ -34,7 +34,7 @@ export function initCompSearchUserBox() {
           }
         });
 
-        if (allowEmailInput && items.length === 0 && looksLikeEmailAddressCheck.test(searchQuery)) {
+        if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
             description: allowEmailDescription,
