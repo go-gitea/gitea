@@ -88,8 +88,10 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	if err := updateSession(ctx, nil, map[string]any{
 		// Set session IDs
-		"uid":   u.ID,
-		"uname": u.Name,
+		"uid":             u.ID,
+		"uname":           u.Name,
+		"login_source_id": nt.LoginSourceID,
+		"login_type":      nt.LoginType,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
@@ -317,7 +319,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	loginType, _ := ctx.Session.Get("login_type").(auth.Type)
 
 	if remember {
-		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
+		loginSourceID, _ := ctx.Session.Get("login_source_id").(int64)
+
+		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID, loginSourceID, loginType)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
 			return setting.AppSubURL + "/"
