@@ -307,6 +307,11 @@ func SetDefaultBoard(ctx context.Context, projectID, boardID int64) error {
 		return err
 	}
 
+	_, err = GetBoard(ctx, boardID)
+	if err != nil {
+		return err
+	}
+
 	_, err = db.GetEngine(ctx).ID(boardID).Where(builder.Eq{"project_id": projectID}).
 		Cols("`default`").Update(&Board{Default: true})
 
