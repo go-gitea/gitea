@@ -22,7 +22,7 @@ export function initCompSearchUserBox() {
         $.each(response.data, (_i, item) => {
           const resultItem = {
             title: item.login,
-            image: item.avatar_url
+            image: item.avatar_url,
           };
           if (item.full_name) {
             resultItem.description = htmlEscape(item.full_name);
@@ -37,15 +37,15 @@ export function initCompSearchUserBox() {
         if (allowEmailInput && items.length === 0 && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
-            description: allowEmailDescription
+            description: allowEmailDescription,
           };
           items.push(resultItem);
         }
 
         return {results: items};
-      }
+      },
     },
     searchFields: ['login', 'full_name'],
-    showNoResults: false
+    showNoResults: false,
   });
 }

@@ -48,7 +48,7 @@ class Source {
     this.eventSource.addEventListener(eventType, (event) => {
       this.notifyClients({
         type: eventType,
-        data: event.data
+        data: event.data,
       });
     });
   }

@@ -6,23 +6,23 @@ function isExclusiveScopeName(name) {
 }
 
 function updateExclusiveLabelEdit(form) {
-  const $nameInput = $(`${form} .label-name-input`);
-  const $exclusiveField = $(`${form} .label-exclusive-input-field`);
-  const $exclusiveCheckbox = $(`${form} .label-exclusive-input`);
-  const $exclusiveWarning = $(`${form} .label-exclusive-warning`);
+  const nameInput = document.querySelector(`${form} .label-name-input`);
+  const exclusiveField = document.querySelector(`${form} .label-exclusive-input-field`);
+  const exclusiveCheckbox = document.querySelector(`${form} .label-exclusive-input`);
+  const exclusiveWarning = document.querySelector(`${form} .label-exclusive-warning`);
 
-  if (isExclusiveScopeName($nameInput.val())) {
-    $exclusiveField.removeClass('muted');
-    $exclusiveField.removeAttr('aria-disabled');
-    if ($exclusiveCheckbox[0].checked && $exclusiveCheckbox.data('exclusive-warn')) {
-      $exclusiveWarning.removeClass('gt-hidden');
+  if (isExclusiveScopeName(nameInput.value)) {
+    exclusiveField?.classList.remove('muted');
+    exclusiveField?.removeAttribute('aria-disabled');
+    if (exclusiveCheckbox.checked && exclusiveCheckbox.getAttribute('data-exclusive-warn')) {
+      exclusiveWarning?.classList.remove('tw-hidden');
     } else {
-      $exclusiveWarning.addClass('gt-hidden');
+      exclusiveWarning?.classList.add('tw-hidden');
     }
   } else {
-    $exclusiveField.addClass('muted');
-    $exclusiveField.attr('aria-disabled', 'true');
-    $exclusiveWarning.addClass('gt-hidden');
+    exclusiveField?.classList.add('muted');
+    exclusiveField?.setAttribute('aria-disabled', 'true');
+    exclusiveWarning?.classList.add('tw-hidden');
   }
 }
 

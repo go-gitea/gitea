@@ -14,7 +14,7 @@ export default {
       },
       commits: [],
       hoverActivated: false,
-      lastReviewCommitSha: null
+      lastReviewCommitSha: null,
     };
   },
   computed: {
@@ -29,7 +29,7 @@ export default {
     },
     issueLink() {
       return this.$el.parentNode.getAttribute('data-issuelink');
-    }
+    },
   },
   mounted() {
     document.body.addEventListener('click', this.onBodyClick);
@@ -185,7 +185,7 @@ export default {
         }
       }
     },
-  }
+  },
 };
 </script>
 <template>
@@ -208,7 +208,7 @@ export default {
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis text light-2 gt-mb-0">
+        <div class="gt-ellipsis text light-2 tw-mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -240,7 +240,7 @@ export default {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="gt-f1 gt-df gt-fc gt-gap-2">
+          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>

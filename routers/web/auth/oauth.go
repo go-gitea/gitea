@@ -1157,7 +1157,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 			middleware.DeleteRedirectToCookie(ctx.Resp)
-			ctx.RedirectToFirst(redirectTo)
+			ctx.RedirectToCurrentSite(redirectTo)
 			return
 		}
 
