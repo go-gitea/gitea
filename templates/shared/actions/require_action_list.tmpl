@@ -1,0 +1,120 @@
+<div class="require-actions-container">
+
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.require_actions.require_actions_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+		<div class="ui right">
+			<div class="ui top right">
+				<button class="ui primary tiny button show-modal"
+				  data-modal="#add-require-actions-modal"
+					data-modal-form.action="{{.Link}}"
+					data-modal-header="{{ctx.Locale.Tr "actions.require_actions.add"}}"
+				>
+					{{ctx.Locale.Tr "actions.require_actions.add"}}
+				</button>
+			</div>
+
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form ignore-dirty" id="require-action-list-search-form" action="{{$.Link}}">
+			<!-- Search Text -->
+			<div class="ui fluid action input">
+				{{template "shared/searchinput" dict "Value" .Keyword}}
+				<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
+			</div>
+		</form>
+	</div>
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th data-sortt-asc="online" data-sortt-desc="offline">
+						{{ctx.Locale.Tr "actions.require_actions.status"}}
+					</th>
+					<th data-sortt-asc="newest" data-sortt-desc="oldest">
+						{{ctx.Locale.Tr "actions.require_actions.id"}}
+					</th>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.require_actions.name"}}
+					</th>
+					<th>{{ctx.Locale.Tr "actions.require_actions.version"}}</th>
+					<th>{{ctx.Locale.Tr "actions.require_actions.repo"}}</th>
+					<th>{{ctx.Locale.Tr "actions.require_actions.link"}}</th>
+					<th>{{ctx.Locale.Tr "edit"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .RequireActionList}}
+					{{range .RequireActionList}}
+					<tr>
+						<td>
+							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
+						</td>
+						<td>{{.ID}}</td>
+						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
+						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
+						<td class="require_action-tags">
+							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
+						</td>
+						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+						<td class="require_action-ops">
+							{{if .Editable $.RequireActionOwnerID $.RequireApoID}}
+							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							{{end}}"
+						</td>
+					</tr>
+					{{end}}
+				{{else}}
+					<tr>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.require_actions.none"}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{template "base/paginate" .}}
+</div>
+
+
+
+{{/* Add RequireAction dialog */}}
+<div class="ui small modal" id="add-require-actions-modal">
+	<div class="header">
+		<span id="actions-modal-header">Availble Enable Workflows</span>
+	</div>
+	<form class="ui form form-fetch-action" method="post">
+		<div class="content">
+			<div class="item">
+				<a href="https://docs.gitea.com/usage/actions/require-action">{{ctx.Locale.Tr "actions.require_actions.enable_global_workflow"}}</a>
+			</div>
+			<div class="divider"></div>
+			<div class="ui input">
+				{{if .ListAvailableWorkflows}}
+				{{range .ListAvailableWorkflows}}
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input class="select-org-radio" name="enable_global_workflow" type="radio" value="{{.Data}}">
+						<label>{{.Data}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<input class="" name="RepoID" type="hidden" value="{{.RepoID}}">
+					<a href="{{.Link}}">
+						<label>{{.Repo.Name}}</label>
+					</a>
+				</div>
+				<div class="field">
+					<input class="" name="OrgID" type="hidden" value="{{.OrgID}}">
+				</div>
+				{{ end }}
+				{{ end }}
+			</div>
+			<div class="divider"></div>
+			<div class="item">
+				<a href="{{$.Link}}/add">{{ctx.Locale.Tr "actions.require_actions.add_require_actions"}}</a>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
