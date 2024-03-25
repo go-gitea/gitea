@@ -195,14 +195,17 @@ func TestAPIEditUser(t *testing.T) {
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s", "user2")
 
+	fullNameToChange := "Full Name User 2"
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		// required
 		"login_name": "user2",
 		"source_id":  "0",
 		// to change
-		"full_name": "Full Name User 2",
+		"full_name": fullNameToChange,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	assert.Equal(t, fullNameToChange, user2.FullName)
 
 	empty := ""
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
@@ -216,7 +219,7 @@ func TestAPIEditUser(t *testing.T) {
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "e-mail invalid [email: ]", errMap["message"].(string))
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
