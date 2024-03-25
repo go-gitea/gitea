@@ -451,11 +451,14 @@ func registerRoutes(m *web.Route) {
 	// WIP RequireAction
 	addSettingsRequireActionsRoutes := func() {
 		m.Group("/require_actions", func() {
-			m.Get("", repo_setting.RequireActions)
-			m.Combo("/{require_action_id}").Get(repo_setting.RequireActionsUpdate).
-				Post(web.Bind(forms.EditRequireActionForm{}), repo_setting.RequireActionsUpdatePost)
-			m.Post("/require_action_id}/delete", repo_setting.RequireActionsDeletePost)
-
+			m.Get("", repo_setting.RequireActionsList)
+			m.Post("", web.Bind(forms.EditRequireActionForm{}), repo_setting.RequireActionsCreate)
+			m.Post("/add", web.Bind(forms.EditRequireActionForm{}), repo_setting.RequireActionsCreate)
+			/*
+				m.Combo("/{require_action_id}").Get(repo_setting.RequireActionsUpdate).
+					Post(web.Bind(forms.EditRequireActionForm{}), repo_setting.RequireActionsUpdatePost)
+				m.Post("/require_action_id}/delete", repo_setting.RequireActionsDeletePost)
+			*/
 		})
 	}
 

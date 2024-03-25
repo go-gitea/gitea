@@ -156,7 +156,6 @@ func List(ctx *context.Context) {
 		ctx.Data["AllowDisableOrEnableWorkflow"] = true
 		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
 		ctx.Data["CurGlobalWorkflowEnable"] = actionsConfig.IsGlobalWorkflowEnabled(workflow)
-		
 		isGlobal = actionsConfig.IsGlobalWorkflowEnabled(workflow)
 	}
 

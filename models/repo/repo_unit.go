@@ -205,6 +205,10 @@ func (cfg *ActionsConfig) EnableGlobalWorkflow(file string) {
 	cfg.EnabledGlobalWorkflows = append(cfg.EnabledGlobalWorkflows, file)
 }
 
+func (cfg *ActionsConfig) GetGlobalWorkflow() []string {
+	return cfg.EnabledGlobalWorkflows
+}
+
 // FromDB fills up a ActionsConfig from serialized format.
 func (cfg *ActionsConfig) FromDB(bs []byte) error {
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
@@ -213,6 +217,10 @@ func (cfg *ActionsConfig) FromDB(bs []byte) error {
 // ToDB exports a ActionsConfig to a serialized format.
 func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
+}
+
+type FindEnabledGlobalWorkflowsOptions struct {
+	db.ListOptions
 }
 
 // ProjectsMode represents the projects enabled for a repository
