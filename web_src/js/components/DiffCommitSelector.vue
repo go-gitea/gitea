@@ -208,7 +208,7 @@ export default {
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis text light-2 gt-mb-0">
+        <div class="gt-ellipsis text light-2 tw-mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>

@@ -23,7 +23,7 @@
 							<div class="item tw-flex tw-items-center">
 								<span class="tw-flex-1"> {{svg "octicon-file-directory-fill"}} {{$dir}}</span>
 								<div>
-									<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</button>
+									<button class="ui button primary show-modal tw-p-2" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</button>
 									<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 										<div class="header">
 											<span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting"}}</span>
@@ -40,7 +40,7 @@
 											{{template "base/modal_actions_confirm"}}
 										</form>
 									</div>
-									<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.delete_preexisting_label"}}</button>
+									<button class="ui button red show-modal tw-p-2" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.delete_preexisting_label"}}</button>
 									<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 										<div class="header">
 											<span class="label">{{ctx.Locale.Tr "repo.delete_preexisting"}}</span>

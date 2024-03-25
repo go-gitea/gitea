@@ -118,7 +118,7 @@ However, there are still some special cases, so the current guideline is:
 ### Show/Hide Elements
 
 * Vue components are recommended to use `v-if` and `v-show` to show/hide elements.
-* Go template code should use Gitea's `.gt-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.gt-hidden`'s comment.
+* Go template code should use `.tw-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.tw-hidden`'s comment.
 
 ### Styles and Attributes in Go HTML Template
 

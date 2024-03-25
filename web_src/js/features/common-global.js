@@ -373,7 +373,7 @@ function initGlobalShowModal() {
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+      } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p

@@ -1,5 +1,5 @@
 {{$useMarkdownEditor := not .item.Attributes.render}}
-<div class="field {{if not .item.VisibleOnForm}}gt-hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
 
 	{{/* the real form element to provide the value */}}
@@ -7,7 +7,7 @@
 
 	{{if $useMarkdownEditor}}
 		{{template "shared/combomarkdowneditor" (dict
-			"ContainerClasses" "gt-hidden"
+			"ContainerClasses" "tw-hidden"
 			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
 			"MarkdownPreviewContext" .root.RepoLink
 			"TextareaContent" .item.Attributes.value
@@ -16,7 +16,7 @@
 		)}}
 
 		{{if .root.IsAttachmentEnabled}}
-		<div class="gt-mt-4 form-field-dropzone gt-hidden">
+		<div class="tw-mt-4 form-field-dropzone tw-hidden">
 			{{template "repo/upload" .root}}
 		</div>
 		{{end}}

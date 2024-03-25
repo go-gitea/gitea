@@ -39,12 +39,12 @@
 							</div>
 						</div>
 						<div>
-							<span id="tag-helper" class="help gt-mt-3 gt-pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
+							<span id="tag-helper" class="help tw-mt-2 tw-pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
 						</div>
 					{{end}}
 				</div>
 			</div>
-			<div class="eleven wide gt-pt-0">
+			<div class="eleven wide tw-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
@@ -100,7 +100,7 @@
 						</div>
 					</div>
 					<span class="help">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</span>
-					<div class="divider gt-mt-0"></div>
+					<div class="divider tw-mt-0"></div>
 					<div class="tw-flex tw-justify-end">
 						{{if .PageIsEditRelease}}
 							<a class="ui small button" href="{{.RepoLink}}/releases">

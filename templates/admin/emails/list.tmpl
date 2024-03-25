@@ -4,12 +4,12 @@
 			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui secondary filter menu tw-items-center gt-mx-0">
+			<div class="ui secondary filter menu tw-items-center tw-mx-0">
 				<form class="ui form ignore-dirty tw-flex-1">
 					{{template "shared/search/combo" dict "Value" .Keyword}}
 				</form>
 				<!-- Sort -->
-				<div class="ui dropdown type jump item gt-mr-0">
+				<div class="ui dropdown type jump item tw-mr-0">
 					<span class="text">
 						{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 					</span>

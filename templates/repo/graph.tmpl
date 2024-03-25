@@ -12,7 +12,7 @@
 						<div class="menu">
 							<div class="item" data-value="...flow-hide-pr-refs">
 								<span class="truncate">
-									{{svg "octicon-eye-closed" 16 "gt-mr-2"}}<span title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
+									{{svg "octicon-eye-closed" 16 "tw-mr-1"}}<span title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
 								</span>
 							</div>
 							{{range .AllRefs}}
@@ -20,37 +20,37 @@
 								{{if eq $refGroup "pull"}}
 									<div class="item" data-value="{{.Name}}">
 										<span class="truncate">
-											{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}<span title="{{.ShortName}}">#{{.ShortName}}</span>
+											{{svg "octicon-git-pull-request" 16 "tw-mr-1"}}<span title="{{.ShortName}}">#{{.ShortName}}</span>
 										</span>
 									</div>
 								{{else if eq $refGroup "tags"}}
 									<div class="item" data-value="{{.Name}}">
 										<span class="truncate">
-											{{svg "octicon-tag" 16 "gt-mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+											{{svg "octicon-tag" 16 "tw-mr-1"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 										</span>
 									</div>
 								{{else if eq $refGroup "remotes"}}
 									<div class="item" data-value="{{.Name}}">
 										<span class="truncate">
-											{{svg "octicon-cross-reference" 16 "gt-mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+											{{svg "octicon-cross-reference" 16 "tw-mr-1"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 										</span>
 									</div>
 								{{else if eq $refGroup "heads"}}
 									<div class="item" data-value="{{.Name}}">
 										<span class="truncate">
-											{{svg "octicon-git-branch" 16 "gt-mr-2"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
+											{{svg "octicon-git-branch" 16 "tw-mr-1"}}<span title="{{.ShortName}}">{{.ShortName}}</span>
 										</span>
 									</div>
 								{{end}}
 							{{end}}
 						</div>
 					</div>
-					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}</button>
-					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.commit_graph.color"}}</button>
+					<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}">{{svg "material-invert-colors" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.commit_graph.monochrome"}}</button>
+					<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{ctx.Locale.Tr "repo.commit_graph.color"}}">{{svg "material-palette" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.commit_graph.color"}}</button>
 				</div>
 			</h2>
 			<div class="ui dividing"></div>
-			<div class="is-loading tw-py-32 gt-hidden" id="loading-indicator"></div>
+			<div class="is-loading tw-py-32 tw-hidden" id="loading-indicator"></div>
 			{{template "repo/graph/svgcontainer" .}}
 			{{template "repo/graph/commits" .}}
 		</div>

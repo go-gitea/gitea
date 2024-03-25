@@ -21,12 +21,12 @@
 						<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "settings.oauth2_application_locked"}}">{{ctx.Locale.Tr "locked"}}</span>
 					{{else}}
 						<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
-							{{svg "octicon-pencil" 16 "gt-mr-2"}}
+							{{svg "octicon-pencil" 16 "tw-mr-1"}}
 							{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
 						</a>
 						<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
 								data-url="{{$.Link}}/oauth2/{{.ID}}/delete">
-							{{svg "octicon-trash" 16 "gt-mr-2"}}
+							{{svg "octicon-trash" 16 "tw-mr-1"}}
 							{{ctx.Locale.Tr "settings.delete_key"}}
 						</button>
 					{{end}}

@@ -22,11 +22,11 @@ function elementsCall(el, func, ...args) {
  */
 function toggleShown(el, force) {
   if (force === true) {
-    el.classList.remove('gt-hidden');
+    el.classList.remove('tw-hidden');
   } else if (force === false) {
-    el.classList.add('gt-hidden');
+    el.classList.add('tw-hidden');
   } else if (force === undefined) {
-    el.classList.toggle('gt-hidden');
+    el.classList.toggle('tw-hidden');
   } else {
     throw new Error('invalid force argument');
   }
@@ -46,7 +46,7 @@ export function toggleElem(el, force) {
 
 export function isElemHidden(el) {
   const res = [];
-  elementsCall(el, (e) => res.push(e.classList.contains('gt-hidden')));
+  elementsCall(el, (e) => res.push(e.classList.contains('tw-hidden')));
   if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
   return res[0];
 }

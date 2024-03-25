@@ -222,7 +222,7 @@ export function initRepoIssueCodeCommentCancel() {
   $(document).on('click', '.cancel-code-comment', (e) => {
     const $form = $(e.currentTarget).closest('form');
     if ($form.length > 0 && $form.hasClass('comment-form')) {
-      $form.addClass('gt-hidden');
+      $form.addClass('tw-hidden');
       showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
       $form.closest('.comment-code-cloud').remove();
@@ -397,7 +397,7 @@ export function initRepoIssueComments() {
 export async function handleReply($el) {
   hideElem($el);
   const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  $form.removeClass('gt-hidden');
+  $form.removeClass('tw-hidden');
 
   const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
@@ -433,10 +433,10 @@ export function initRepoPullRequestReview() {
         if ($diffHeader[0]) {
           offset += $('.diff-detail-box').outerHeight() + $diffHeader.outerHeight();
         }
-        $(`#show-outdated-${id}`).addClass('gt-hidden');
-        $(`#code-comments-${id}`).removeClass('gt-hidden');
-        $(`#code-preview-${id}`).removeClass('gt-hidden');
-        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+        $(`#show-outdated-${id}`).addClass('tw-hidden');
+        $(`#code-comments-${id}`).removeClass('tw-hidden');
+        $(`#code-preview-${id}`).removeClass('tw-hidden');
+        $(`#hide-outdated-${id}`).removeClass('tw-hidden');
         // if the comment box is folded, expand it
         if ($ancestorDiffBox.attr('data-folded') && $ancestorDiffBox.attr('data-folded') === 'true') {
           setFileFolding($ancestorDiffBox[0], $ancestorDiffBox.find('.fold-file')[0], false);
@@ -452,19 +452,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).removeClass('gt-hidden');
-    $(`#code-preview-${id}`).removeClass('gt-hidden');
-    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).removeClass('tw-hidden');
+    $(`#code-preview-${id}`).removeClass('tw-hidden');
+    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).addClass('gt-hidden');
-    $(`#code-preview-${id}`).addClass('gt-hidden');
-    $(`#show-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).addClass('tw-hidden');
+    $(`#code-preview-${id}`).addClass('tw-hidden');
+    $(`#show-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {

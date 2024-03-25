@@ -59,8 +59,8 @@
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="issue-{{.Issue.ID}}-raw" class="raw-content gt-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div id="issue-{{.Issue.ID}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
+						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
@@ -172,7 +172,7 @@
 {{template "repo/issue/view_content/reference_issue_dialog" .}}
 {{template "shared/user/block_user_dialog" .}}
 
-<div class="gt-hidden" id="no-content">
+<div class="tw-hidden" id="no-content">
 	<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 </div>
 
