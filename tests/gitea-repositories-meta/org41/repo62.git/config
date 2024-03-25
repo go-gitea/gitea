@@ -1,0 +1,10 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = /Users/lunny/data/Projects/gitea/gitea/tests/gitea-repositories-meta/org41/../user2/repo1.git
+	fetch = +refs/*:refs/*
+	mirror = true
