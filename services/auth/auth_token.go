@@ -70,10 +70,12 @@ func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_mo
 	}
 
 	newToken := &auth_model.AuthToken{
-		ID:          t.ID,
-		TokenHash:   hash,
-		UserID:      t.UserID,
-		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
+		ID:            t.ID,
+		TokenHash:     hash,
+		UserID:        t.UserID,
+		LoginSourceID: t.LoginSourceID,
+		LoginType:     t.LoginType,
+		ExpiresUnix:   timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
 	}
 
 	if err := auth_model.UpdateAuthTokenByID(ctx, newToken); err != nil {
@@ -83,10 +85,12 @@ func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_mo
 	return newToken, token, nil
 }
 
-func CreateAuthTokenForUserID(ctx context.Context, userID int64) (*auth_model.AuthToken, string, error) {
+func CreateAuthTokenForUserID(ctx context.Context, userID, loginSourceID int64, loginType auth_model.Type) (*auth_model.AuthToken, string, error) {
 	t := &auth_model.AuthToken{
-		UserID:      userID,
-		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
+		UserID:        userID,
+		LoginSourceID: loginSourceID,
+		LoginType:     loginType,
+		ExpiresUnix:   timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
 	}
 
 	var err error
