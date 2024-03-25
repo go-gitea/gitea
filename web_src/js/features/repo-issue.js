@@ -729,5 +729,7 @@ export function initArchivedLabelHandler() {
   if (!document.querySelector('.archived-label-hint')) return;
   for (const label of document.querySelectorAll('[data-is-archived]')) {
     toggleElem(label, label.classList.contains('checked'));
+    // also toggle the divider
+    toggleElem($(label).next('.exclusive-scope'), label.classList.contains('checked'));
   }
 }
