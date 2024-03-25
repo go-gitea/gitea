@@ -70,7 +70,6 @@ func userProfile(ctx *context.Context) {
 		}
 		ctx.Data["HeatmapData"] = data
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
-
 		showHeatmap := len(data) > 0 || !ctx.ContextUser.KeepActivityPrivate
 		ctx.Data["ShowHeatmap"] = showHeatmap
 	}
