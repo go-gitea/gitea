@@ -117,7 +117,7 @@ Gitea 使用一些补丁使 Fomantic UI 更具可访问性（参见 `aria.md`）
 ### 显示/隐藏元素
 
 * 推荐在Vue组件中使用`v-if`和`v-show`来显示/隐藏元素。
-* Go 模板代码应使用 Gitea 的 `.gt-hidden` 和 `showElem()/hideElem()/toggleElem()` 来显示/隐藏元素，请参阅`.gt-hidden`的注释以获取更多详细信息。
+* Go 模板代码应使用 `.tw-hidden` 和 `showElem()/hideElem()/toggleElem()` 来显示/隐藏元素，请参阅`.tw-hidden`的注释以获取更多详细信息。
 
 ### Go HTML 模板中的样式和属性
 

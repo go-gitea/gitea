@@ -5,15 +5,15 @@
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
-					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
+					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
 				</button>
 				<script>
 					// Default to true if unset
 					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') !== 'false';
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
-					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
+					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 			{{end}}
@@ -89,9 +89,9 @@
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
-			<div id="diff-file-tree" class="gt-hidden not-mobile"></div>
+			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
 			<script>
-				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
+				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
 		{{end}}
 		{{if .DiffNotAvailable}}
@@ -159,7 +159,7 @@
 								{{end}}
 								{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
 									<button class="ui basic tiny button unescape-button not-mobile">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-									<button class="ui basic tiny button escape-button gt-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+									<button class="ui basic tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 								{{end}}
 								{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 									{{if $file.IsDeleted}}
@@ -176,7 +176,7 @@
 							</div>
 						</h4>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} gt-hidden{{end}}">
+							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="diff-file-body binary">
 										{{if $file.IsIncomplete}}

@@ -24,7 +24,7 @@
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form gt-hidden tw-flex tw-flex-col tw-mt-4" id="topic_edit">
+		<div class="ui form tw-hidden tw-flex tw-flex-col tw-mt-4" id="topic_edit">
 			<div class="field tw-flex-1 tw-mb-1">
 				<div class="ui fluid multiple search selection dropdown tw-flex-wrap" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
