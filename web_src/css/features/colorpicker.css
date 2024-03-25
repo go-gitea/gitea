@@ -34,7 +34,7 @@ input.color-picker {
   width: 100%;
   height: 100px;
   border-radius: 3px 3px 0 0;
-  background-image: linear-gradient(rgba(0,0,0,0), #000), linear-gradient(90deg, #fff, currentColor);
+  background-image: linear-gradient(rgba(0,0,0,0), #000), linear-gradient(90deg, #fff, currentcolor);
   cursor: pointer;
 }
 
@@ -45,7 +45,7 @@ input.color-picker {
   margin: -6px 0 0 -6px;
   border: 1px solid var(--color-white);
   border-radius: 50%;
-  background-color: currentColor;
+  background-color: currentcolor;
   cursor: pointer;
 }
 
@@ -90,7 +90,7 @@ input.color-picker {
   height: 100%;
   width: 100%;
   border-radius: inherit;
-  background-image: linear-gradient(90deg, rgba(0,0,0,0), currentColor);
+  background-image: linear-gradient(90deg, rgba(0,0,0,0), currentcolor);
 }
 
 .clr-hue input[type="range"],
@@ -119,7 +119,7 @@ input.color-picker {
   transform: translateY(-50%);
   border: 2px solid var(--color-white);
   border-radius: 50%;
-  background-color: currentColor;
+  background-color: currentcolor;
   box-shadow: 0 0 1px var(--color-shadow);
   pointer-events: none;
 }
@@ -132,7 +132,7 @@ input.color-picker {
   left: 0;
   top: 0;
   border-radius: 50%;
-  background-color: currentColor;
+  background-color: currentcolor;
 }
 
 .clr-field {
@@ -168,7 +168,7 @@ input.color-picker {
   left: 0;
   top: 0;
   border-radius: inherit;
-  background-color: currentColor;
+  background-color: currentcolor;
 }
 
 .clr-alpha,
