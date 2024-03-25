@@ -303,12 +303,25 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndexStr != "" {
-		jobs = []*actions_model.ActionRunJob{job}
+	if jobIndexStr == "" { // rerun all jobs
+		for _, j := range jobs {
+			// if the job has needs, it should be set to "blocked" status to wait for other jobs
+			shouldBlock := len(j.Needs) > 0
+			if err := rerunJob(ctx, j, shouldBlock); err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+		ctx.JSON(http.StatusOK, struct{}{})
+		return
 	}
 
-	for _, j := range jobs {
-		if err := rerunJob(ctx, j); err != nil {
+	rerunJobs := actions_service.GetAllRerunJobs(job, jobs)
+
+	for _, j := range rerunJobs {
+		// jobs other than the specified one should be set to "blocked" status
+		shouldBlock := j.JobID != job.JobID
+		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -317,7 +330,7 @@ func Rerun(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
+func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
 	if !status.IsDone() {
 		return nil
@@ -325,6 +338,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) erro
 
 	job.TaskID = 0
 	job.Status = actions_model.StatusWaiting
+	if shouldBlock {
+		job.Status = actions_model.StatusBlocked
+	}
 	job.Started = 0
 	job.Stopped = 0
 

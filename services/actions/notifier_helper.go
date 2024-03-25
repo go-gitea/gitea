@@ -317,17 +317,17 @@ func handleWorkflows(
 			continue
 		}
 
-		// cancel running jobs if the event is push
-		if run.Event == webhook_module.HookEventPush {
-			// cancel running jobs of the same workflow
-			if err := actions_model.CancelRunningJobs(
+		// cancel running jobs if the event is push or pull_request_sync
+		if run.Event == webhook_module.HookEventPush ||
+			run.Event == webhook_module.HookEventPullRequestSync {
+			if err := actions_model.CancelPreviousJobs(
 				ctx,
 				run.RepoID,
 				run.Ref,
 				run.WorkflowID,
 				run.Event,
 			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
+				log.Error("CancelPreviousJobs: %v", err)
 			}
 		}
 
