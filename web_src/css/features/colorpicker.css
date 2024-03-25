@@ -11,7 +11,7 @@ input.color-picker {
   flex-wrap: wrap;
   position: absolute;
   width: 200px;
-  z-index: 1002;
+  z-index: 1002; /* above .ui.modal which has 1001 */
   border-radius: var(--border-radius);
   background-color: var(--color-menu);
   justify-content: flex-end;
