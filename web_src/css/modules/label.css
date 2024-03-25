@@ -125,8 +125,8 @@ a.ui.active.label:hover {
   padding-bottom: calc(0.5833em - 1px);
   padding-right: calc(0.833em - 1px);
 }
-.ui.basic.labels:not(.tag):not(.image):not(.ribbon) .label,
-.ui.basic.label:not(.tag):not(.image):not(.ribbon) {
+.ui.basic.labels:not(.tag,.image,.ribbon) .label,
+.ui.basic.label:not(.tag,.image,.ribbon) {
   padding-left: calc(0.833em - 1px);
 }
 
