@@ -941,6 +941,22 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 
+			// update from local sign in to OAuth2 sign in
+			loginType, _ := ctx.Session.Get("login_type").(auth.Type)
+			if loginType <= auth.Plain {
+				if err := updateSession(ctx, nil, map[string]any{
+					"login_source_id": authSource.ID,
+					"login_type":      authSource.Type,
+				}); err != nil {
+					ctx.ServerError("updateSession", err)
+					return
+				}
+			}
+
+			if err := auth_service.SetExternalAuthToken(ctx, ctx.Session.ID(), ctx.Doer, &gothUser); err != nil {
+				log.Error("SetExternalAuthToken failed: %v", err)
+			}
+
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 			return
 		} else if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
