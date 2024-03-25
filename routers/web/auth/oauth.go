@@ -22,6 +22,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -1021,6 +1022,68 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
+}
+
+// SignOutOAuth handles OAuth2 and OIDC RP-initiated logout requests
+func SignOutOAuth(ctx *context.Context) {
+	provider := ctx.Params(":provider")
+	signOutErrMsg := ctx.Tr("Failed to sign out of %s, please sign out at your ID provider", provider)
+
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
+	if err != nil {
+		HandleSignOut(ctx)
+		ctx.Flash.Error(ctx.Tr("Failed to handle OAuth2 or OpenID Connect sign out"), true)
+		ctx.ServerError(fmt.Sprintf("SignOutOAuth[%s]", provider), err)
+		return
+	}
+	oauth2Source := authSource.Cfg.(*oauth2.Source)
+	redirect, state, err := oauth2Source.EndSessionEndpoint(ctx)
+	if err != nil {
+		HandleSignOut(ctx)
+		ctx.Flash.Error(signOutErrMsg, true)
+		ctx.ServerError(fmt.Sprintf("SignOutOAuth[%s]", provider), err)
+		return
+	}
+
+	if ctx.Doer != nil {
+		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
+			Name: "logout",
+			Data: ctx.Session.ID(),
+		})
+	}
+
+	if err := auth.DeleteExternalAuthTokenBySessionID(ctx, ctx.Session.ID()); err != nil {
+		log.Error("DeleteExternalAuthTokenBySessionID: %v", err)
+	}
+
+	// Sign out and redirect to landing page, if oidc end_session_endpoint was not found
+	if len(redirect) == 0 {
+		HandleSignOut(ctx)
+		ctx.Redirect(setting.AppSubURL + "/")
+		return
+	}
+
+	// The user might not return via oidc callback
+	// Sign out, but keep the session alive for tracking oidc state
+	if err := ctx.Session.Flush(); err != nil {
+		HandleSignOut(ctx)
+		ctx.Flash.Error(signOutErrMsg, true)
+		ctx.ServerError(fmt.Sprintf("SignOutOAuth[%s]", provider), err)
+		return
+	}
+	if err := ctx.Session.Set("oidc_state", state); err != nil {
+		log.Error("SignOutOAuth[%s]: %v", provider, err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		HandleSignOut(ctx)
+		ctx.Flash.Error(signOutErrMsg, true)
+		ctx.ServerError(fmt.Sprintf("SignOutOAuth[%s]", provider), err)
+		return
+	}
+	ctx.DeleteSiteCookie(setting.CookieRememberName)
+
+	// Redirect to oidc end_session_endpoint
+	ctx.Redirect(redirect)
 }
 
 func claimValueToStringSet(claimValue any) container.Set[string] {
