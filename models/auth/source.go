@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"reflect"
 
@@ -129,6 +130,7 @@ func (Source) TableName() string {
 
 func init() {
 	db.RegisterModel(new(Source))
+	gob.Register(Type(0))
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
