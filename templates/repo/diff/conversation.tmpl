@@ -27,14 +27,14 @@
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center gt-hidden">
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center tw-hidden">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}gt-hidden{{end}}">
+		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
 			<div class="comment-list">
 				<ui class="ui comments">
 					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
