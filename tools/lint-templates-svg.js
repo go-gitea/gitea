@@ -15,7 +15,7 @@ let hadErrors = false;
 
 for (const file of fastGlob.sync(fileURLToPath(new URL('../templates/**/*.tmpl', import.meta.url)))) {
   const content = readFileSync(file, 'utf8');
-  for (const [_, name] of content.matchAll(/svg ["'`]([a-z0-9-]+)["'`]/g)) {
+  for (const [_, name] of content.matchAll(/svg ["'`]([a-z0-9-]+)["'`]/gi)) {
     if (!knownSvgs.has(name)) {
       console.info(`SVG "${name}" not found, used in ${relative(rootPath, file)}`);
       hadErrors = true;
