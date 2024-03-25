@@ -16,6 +16,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -70,23 +71,17 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return err
 	}
 
-	var reviewNotifers []*ReviewRequestNotifier
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
-			return err
-		}
-
-		if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-			var err error
-			reviewNotifers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
+	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
 		return err
+	}
+
+	var reviewNotifers []*ReviewRequestNotifier
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+		var err error
+		reviewNotifers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		if err != nil {
+			log.Error("PullRequestCodeOwnersReview: %v", err)
+		}
 	}
 
 	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
