@@ -74,7 +74,7 @@
 		<div class="tw-flex tw-flex-col tw-justify-center">
 			<div id="saml-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
 				{{range $provider := .SAMLProviders}}
-					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 saml-login-link" href="{{AppSubUrl}}/user/saml/{{$provider.Name}}">
+					<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 saml-login-link" href="{{AppSubUrl}}/user/saml/{{$provider.Name}}">
 						{{.IconHTML 28}}
 						{{ctx.Locale.Tr "sign_in_with_provider" $provider.Name}}
 					</a>
