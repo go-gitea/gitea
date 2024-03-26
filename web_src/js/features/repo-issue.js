@@ -331,6 +331,14 @@ export function initRepoIssueReferenceRepositorySearch() {
     });
 }
 
+export function initRepoIssueTitleFocus() {
+  const issueTtitle = document.getElementById('issue_title');
+  if (issueTtitle) {
+    issueTtitle.focus();
+    issueTtitle.setSelectionRange(issueTtitle.value.length, issueTtitle.value.length);
+  }
+}
+
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();

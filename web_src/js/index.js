@@ -28,6 +28,7 @@ import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
+  initRepoIssueTitleFocus,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
@@ -154,6 +155,7 @@ onDomReady(() => {
   initArchivedLabelHandler();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();
+  initRepoIssueTitleFocus();
   initRepoIssueWipTitle();
   initRepoMigration();
   initRepoMigrationStatusChecker();
