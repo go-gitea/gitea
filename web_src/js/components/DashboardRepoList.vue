@@ -489,7 +489,7 @@ export default sfc; // activate the IDE's Vue plugin
           </li>
         </ul>
       </div>
-      <div v-if="!organizations.length" class="ui attached table segment gt-rounded-bottom tw-py-[80px] empty-placeholder">
+      <div v-if="!organizations.length" class="ui attached table segment tw-rounded-b tw-py-[80px] empty-placeholder">
         {{ noOrgs }}
       </div>
     </div>
