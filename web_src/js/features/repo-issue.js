@@ -147,9 +147,9 @@ export function initRepoIssueSidebarList() {
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
-      const selectedItems = document.querySelectorAll('.menu .ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItems.length > 0) {
-        excludeLabel(selectedItems[0]);
+      const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
+      if (selectedItem) {
+        excludeLabel(selectedItem);
       }
     }
   });
@@ -382,7 +382,7 @@ export function initRepoIssueComments() {
     window.location.reload();
   });
 
-  document.addEventListener('click', (event) => {
+  document.addEventListener('click', (e) => {
     const urlTarget = document.querySelector(':target');
     if (!urlTarget) return;
 
@@ -391,8 +391,7 @@ export function initRepoIssueComments() {
 
     if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
 
-    const target = event.target;
-    if (!target.closest(`#${urlTargetId}`)) {
+    if (!e.target.closest(`#${urlTargetId}`)) {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
@@ -684,7 +683,7 @@ export function initSingleCommentEditor($commentForm) {
   const statusButton = document.getElementById('status-button');
   if (statusButton) {
     opts.onContentChanged = (editor) => {
-      const statusText = editor.value().trim() ? statusButton.getAttribute('data-status-and-comment') : statusButton.getAttribute('data-status');
+      const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');
       statusButton.textContent = statusText;
     };
   }
