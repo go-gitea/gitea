@@ -17,8 +17,8 @@ export function initAdminCommon() {
       if ($(this).val().substring(0, 1) === '0') {
         $('#user_name').removeAttr('disabled');
         $('#login_name').removeAttr('required');
-        hideElem($('.non-local'));
-        showElem($('.local'));
+        hideElem('.non-local');
+        showElem('.local');
         $('#user_name').trigger('focus');
 
         if ($(this).data('password') === 'required') {
@@ -29,8 +29,8 @@ export function initAdminCommon() {
           $('#user_name').attr('disabled', 'disabled');
         }
         $('#login_name').attr('required', 'required');
-        showElem($('.non-local'));
-        hideElem($('.local'));
+        showElem('.non-local');
+        hideElem('.local');
         $('#login_name').trigger('focus');
 
         $('#password').removeAttr('required');
@@ -40,9 +40,9 @@ export function initAdminCommon() {
 
   function onSecurityProtocolChange() {
     if ($('#security_protocol').val() > 0) {
-      showElem($('.has-tls'));
+      showElem('.has-tls');
     } else {
-      hideElem($('.has-tls'));
+      hideElem('.has-tls');
     }
   }
 
@@ -57,21 +57,21 @@ export function initAdminCommon() {
   }
 
   function onOAuth2Change(applyDefaultValues) {
-    hideElem($('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url'));
+    hideElem('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url');
     $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
-        showElem($('.open_id_connect_auto_discovery_url'));
+        showElem('.open_id_connect_auto_discovery_url');
         break;
       default:
         if ($(`#${provider}_customURLSettings`).data('required')) {
           $('#oauth2_use_custom_url').attr('checked', 'checked');
         }
         if ($(`#${provider}_customURLSettings`).data('available')) {
-          showElem($('.oauth2_use_custom_url'));
+          showElem('.oauth2_use_custom_url');
         }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
@@ -79,7 +79,7 @@ export function initAdminCommon() {
 
   function onOAuth2UseCustomURLChange(applyDefaultValues) {
     const provider = $('#oauth2_provider').val();
-    hideElem($('.oauth2_use_custom_url_field'));
+    hideElem('.oauth2_use_custom_url_field');
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if (document.getElementById('oauth2_use_custom_url')?.checked) {
@@ -102,7 +102,7 @@ export function initAdminCommon() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
-      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi'));
+      hideElem('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi');
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -110,30 +110,30 @@ export function initAdminCommon() {
       const authType = $(this).val();
       switch (authType) {
         case '2': // LDAP
-          showElem($('.ldap'));
+          showElem('.ldap');
           $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
           $('.binddnrequired').addClass('required');
           break;
         case '3': // SMTP
-          showElem($('.smtp'));
-          showElem($('.has-tls'));
+          showElem('.smtp');
+          showElem('.has-tls');
           $('.smtp div.required input, .has-tls').attr('required', 'required');
           break;
         case '4': // PAM
-          showElem($('.pam'));
+          showElem('.pam');
           $('.pam input').attr('required', 'required');
           break;
         case '5': // LDAP
-          showElem($('.dldap'));
+          showElem('.dldap');
           $('.dldap div.required:not(.ldap) input').attr('required', 'required');
           break;
         case '6': // OAuth2
-          showElem($('.oauth2'));
+          showElem('.oauth2');
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change(true);
           break;
         case '7': // SSPI
-          showElem($('.sspi'));
+          showElem('.sspi');
           $('.sspi div.required input').attr('required', 'required');
           break;
       }
