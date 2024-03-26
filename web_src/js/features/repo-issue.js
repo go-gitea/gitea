@@ -173,7 +173,7 @@ export function initRepoIssueCommentDelete() {
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
           counter.setAttribute('data-pending-comment-number', num);
-          counter.textContent = num;
+          counter.textContent = String(num);
         }
 
         $(`#${$this.data('comment-id')}`).remove();
