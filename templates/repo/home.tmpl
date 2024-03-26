@@ -5,36 +5,27 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="ui repo-description gt-word-break">
-			<div id="repo-desc" class="tw-text-16">
+		<div class="repo-description">
+			<div id="repo-desc" class="gt-word-break tw-text-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
 				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
-			{{if .RepoSearchEnabled}}
-				<div class="ui repo-search">
-					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
-						<div class="field">
-							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "search.code_search_unavailable"}}"{{end}}>
-								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
-								{{if .CodeIndexerUnavailable}}
-									<i class="icon">{{svg "octicon-alert"}}</i>
-								{{end}}
-								{{template "shared/search/button" dict "Disabled" .CodeIndexerUnavailable}}
-							</div>
-						</div>
-					</form>
+			<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
+				<div class="ui small action input">
+					<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+					{{template "shared/search/button"}}
 				</div>
-			{{end}}
+			</form>
 		</div>
-		<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-2" id="repo-topics">
-			{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-1" id="repo-topics">
+			{{range .Topics}}<a class="ui repo-topic large label topic tw-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form gt-hidden tw-flex tw-flex-col gt-mt-4" id="topic_edit">
-			<div class="field tw-flex-1 gt-mb-2">
+		<div class="ui form tw-hidden tw-flex tw-flex-col tw-mt-4" id="topic_edit">
+			<div class="field tw-flex-1 tw-mb-1">
 				<div class="ui fluid multiple search selection dropdown tw-flex-wrap" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
@@ -61,8 +52,8 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center tw-flex-wrap gt-gap-y-3">
-				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
+			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
+				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
 					{{if ne .Repository.ID .BaseRepo.ID}}
@@ -83,7 +74,7 @@
 				{{end}}
 
 				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+					<button class="ui dropdown basic compact jump button tw-mr-1"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						{{ctx.Locale.Tr "repo.editor.add_file"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
@@ -108,7 +99,7 @@
 					</a>
 				{{end}}
 				{{if ne $n 0}}
-					<span class="breadcrumb repo-path gt-ml-2">
+					<span class="breadcrumb repo-path tw-ml-1">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
 							<span class="breadcrumb-divider">/</span>
@@ -130,12 +121,12 @@
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if not $.DisableDownloadSourceArchives}}
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
 								{{end}}
 								{{if .CitiationExist}}
-									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
 								{{end}}
 								{{range .OpenWithEditorApps}}
 									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
@@ -148,7 +139,7 @@
 				{{end}}
 				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-						{{svg "octicon-history" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.file_history"}}
+						{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 					</a>
 				{{end}}
 			</div>

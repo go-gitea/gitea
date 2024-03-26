@@ -1602,7 +1602,6 @@
 
 .repository .diff-file-box .file-body.file-code .lines-num {
   text-align: right;
-  color: var(--color-text-light);
   width: 1%;
   min-width: 50px;
 }
@@ -2439,6 +2438,7 @@ tbody.commit-list {
 
 .author-wrapper {
   max-width: 180px;
+  align-self: center;
 }
 
 /* in the commit list, messages can wrap so we can use inline */

@@ -355,7 +355,7 @@ export default {
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
@@ -379,12 +379,12 @@ export default {
           <a :href="contributor.home_link">
             <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
           </a>
-          <div class="gt-ml-3">
+          <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>
-            <p class="tw-text-12 tw-flex gt-gap-2">
+            <p class="tw-text-12 tw-flex tw-gap-1">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">

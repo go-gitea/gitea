@@ -37,11 +37,11 @@
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-							{{svg "octicon-milestone" 16 "gt-mr-3"}}
+							{{svg "octicon-milestone" 16 "tw-mr-2"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
 						<a class="item{{if .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-							{{svg "octicon-check" 16 "gt-mr-3"}}
+							{{svg "octicon-check" 16 "tw-mr-2"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>
@@ -72,7 +72,7 @@
 					{{range .Milestones}}
 						<li class="milestone-card">
 							<div class="milestone-header">
-								<h3 class="flex-text-block gt-m-0">
+								<h3 class="flex-text-block tw-m-0">
 									<span class="ui large label">
 										{{.Repo.FullName}}
 									</span>
@@ -80,7 +80,7 @@
 									<a class="muted" href="{{.Repo.Link}}/milestone/{{.ID}}">{{.Name}}</a>
 								</h3>
 								<div class="tw-flex tw-items-center">
-									<span class="gt-mr-3">{{.Completeness}}%</span>
+									<span class="tw-mr-2">{{.Completeness}}%</span>
 									<progress value="{{.Completeness}}" max="100"></progress>
 								</div>
 							</div>

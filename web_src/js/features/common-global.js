@@ -19,7 +19,7 @@ const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if ($('.user.signin').length === 0) {
+  if (!$('.user.signin').length) {
     $('form:not(.ignore-dirty)').areYouSure();
   }
 }
@@ -373,7 +373,7 @@ function initGlobalShowModal() {
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+      } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p

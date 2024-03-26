@@ -44,137 +44,18 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:hover { background: var(--color-hover) !important; }
 .interact-bg:active { background: var(--color-active) !important; }
 
-.gt-m-0 { margin: 0 !important; }
-.gt-m-1 { margin: .125rem !important; }
-.gt-m-2 { margin: .25rem !important; }
-.gt-m-3 { margin: .5rem !important; }
-.gt-m-4 { margin: 1rem !important; }
-.gt-m-5 { margin: 2rem !important; }
-
-.gt-ml-0 { margin-left: 0 !important; }
-.gt-ml-1 { margin-left: .125rem !important; }
-.gt-ml-2 { margin-left: .25rem !important; }
-.gt-ml-3 { margin-left: .5rem !important; }
-.gt-ml-4 { margin-left: 1rem !important; }
-.gt-ml-5 { margin-left: 2rem !important; }
-
-.gt-mr-0 { margin-right: 0 !important; }
-.gt-mr-1 { margin-right: .125rem !important; }
-.gt-mr-2 { margin-right: .25rem !important; }
-.gt-mr-3 { margin-right: .5rem !important; }
-.gt-mr-4 { margin-right: 1rem !important; }
-.gt-mr-5 { margin-right: 2rem !important; }
-
-.gt-mt-0 { margin-top: 0 !important; }
-.gt-mt-1 { margin-top: .125rem !important; }
-.gt-mt-2 { margin-top: .25rem !important; }
-.gt-mt-3 { margin-top: .5rem !important; }
-.gt-mt-4 { margin-top: 1rem !important; }
-.gt-mt-5 { margin-top: 2rem !important; }
-
-.gt-mb-0 { margin-bottom: 0 !important; }
-.gt-mb-1 { margin-bottom: .125rem !important; }
-.gt-mb-2 { margin-bottom: .25rem !important; }
-.gt-mb-3 { margin-bottom: .5rem !important; }
-.gt-mb-4 { margin-bottom: 1rem !important; }
-.gt-mb-5 { margin-bottom: 2rem !important; }
-
-.gt-mx-0 { margin-left: 0 !important; margin-right: 0 !important; }
-.gt-mx-1 { margin-left: .125rem !important; margin-right: .125rem !important; }
-.gt-mx-2 { margin-left: .25rem !important; margin-right: .25rem !important; }
-.gt-mx-3 { margin-left: .5rem !important; margin-right: .5rem !important; }
-.gt-mx-4 { margin-left: 1rem !important; margin-right: 1rem !important; }
-.gt-mx-5 { margin-left: 2rem !important; margin-right: 2rem !important; }
-
-.gt-my-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
-.gt-my-1 { margin-top: .125rem !important; margin-bottom: .125rem !important; }
-.gt-my-2 { margin-top: .25rem !important; margin-bottom: .25rem !important; }
-.gt-my-3 { margin-top: .5rem !important; margin-bottom: .5rem !important; }
-.gt-my-4 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
-.gt-my-5 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
-
-.gt-p-0 { padding: 0 !important; }
-.gt-p-1 { padding: .125rem !important; }
-.gt-p-2 { padding: .25rem !important; }
-.gt-p-3 { padding: .5rem !important; }
-.gt-p-4 { padding: 1rem !important; }
-.gt-p-5 { padding: 2rem !important; }
-
-.gt-pl-0 { padding-left: 0 !important; }
-.gt-pl-1 { padding-left: .125rem !important; }
-.gt-pl-2 { padding-left: .25rem !important; }
-.gt-pl-3 { padding-left: .5rem !important; }
-.gt-pl-4 { padding-left: 1rem !important; }
-.gt-pl-5 { padding-left: 2rem !important; }
-
-.gt-pr-0 { padding-right: 0 !important; }
-.gt-pr-1 { padding-right: .125rem !important; }
-.gt-pr-2 { padding-right: .25rem !important; }
-.gt-pr-3 { padding-right: .5rem !important; }
-.gt-pr-4 { padding-right: 1rem !important; }
-.gt-pr-5 { padding-right: 2rem !important; }
-
-.gt-pt-0 { padding-top: 0 !important; }
-.gt-pt-1 { padding-top: .125rem !important; }
-.gt-pt-2 { padding-top: .25rem !important; }
-.gt-pt-3 { padding-top: .5rem !important; }
-.gt-pt-4 { padding-top: 1rem !important; }
-.gt-pt-5 { padding-top: 2rem !important; }
-
-.gt-pb-0 { padding-bottom: 0 !important; }
-.gt-pb-1 { padding-bottom: .125rem !important; }
-.gt-pb-2 { padding-bottom: .25rem !important; }
-.gt-pb-3 { padding-bottom: .5rem !important; }
-.gt-pb-4 { padding-bottom: 1rem !important; }
-.gt-pb-5 { padding-bottom: 2rem !important; }
-
-.gt-px-0 { padding-left: 0 !important; padding-right: 0 !important; }
-.gt-px-1 { padding-left: .125rem !important; padding-right: .125rem !important; }
-.gt-px-2 { padding-left: .25rem !important; padding-right: .25rem !important; }
-.gt-px-3 { padding-left: .5rem !important; padding-right: .5rem !important; }
-.gt-px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-.gt-px-5 { padding-left: 2rem !important; padding-right: 2rem !important; }
-
-.gt-py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
-.gt-py-1 { padding-top: .125rem !important; padding-bottom: .125rem !important; }
-.gt-py-2 { padding-top: .25rem !important; padding-bottom: .25rem !important; }
-.gt-py-3 { padding-top: .5rem !important; padding-bottom: .5rem !important; }
-.gt-py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-.gt-py-5 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
-
-.gt-gap-0 { gap: 0 !important; }
-.gt-gap-1 { gap: .125rem !important; }
-.gt-gap-2 { gap: .25rem !important; }
-.gt-gap-3 { gap: .5rem !important; }
-.gt-gap-4 { gap: 1rem !important; }
-.gt-gap-5 { gap: 2rem !important; }
-
-.gt-gap-x-0 { column-gap: 0 !important; }
-.gt-gap-x-1 { column-gap: .125rem !important; }
-.gt-gap-x-2 { column-gap: .25rem !important; }
-.gt-gap-x-3 { column-gap: .5rem !important; }
-.gt-gap-x-4 { column-gap: 1rem !important; }
-.gt-gap-x-5 { column-gap: 2rem !important; }
-
-.gt-gap-y-0 { row-gap: 0 !important; }
-.gt-gap-y-1 { row-gap: .125rem !important; }
-.gt-gap-y-2 { row-gap: .25rem !important; }
-.gt-gap-y-3 { row-gap: .5rem !important; }
-.gt-gap-y-4 { row-gap: 1rem !important; }
-.gt-gap-y-5 { row-gap: 2rem !important; }
-
 /*
-gt-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
+tw-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
 do not use:
 * "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
 * ".hidden" class: it has been polluted by Fomantic UI in many cases
 * inline style="display: none": it's difficult to tweak
 * jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
 only use:
-* this ".gt-hidden" class
+* this ".tw-hidden" class
 * showElem/hideElem/toggleElem functions in "utils/dom.js"
 */
-.gt-hidden.gt-hidden { display: none !important; }
+.tw-hidden.tw-hidden { display: none !important; }
 
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */

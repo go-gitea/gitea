@@ -183,7 +183,7 @@
   --color-body: #1c1f25;
   --color-box-header: #1a1d1f;
   --color-box-body: #14171a;
-  --color-box-body-highlight: #121517;
+  --color-box-body-highlight: #1c2227;
   --color-text-dark: #f8f8f9;
   --color-text: #d1d5d8;
   --color-text-light: #bdc3c7;
@@ -207,11 +207,10 @@
   --color-markup-table-row: #e8e8ff06;
   --color-markup-code-block: #e8e8ff16;
   --color-button: #151a1e;
-  --color-code-bg: #191d20;
-  --color-code-sidebar-bg: #1b1f22;
+  --color-code-bg: #14171a;
   --color-shadow: #00001758;
-  --color-secondary-bg: #2f3135;
-  --color-expand-button: #414348;
+  --color-secondary-bg: #2f3138;
+  --color-expand-button: #2b353e;
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
@@ -233,7 +232,8 @@
   --color-label-active-bg: #73828eff;
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
-  --color-active-line: #534d1b;
+  --color-highlight-fg: #87651e;
+  --color-highlight-bg: #352c1c;
   --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: dark;

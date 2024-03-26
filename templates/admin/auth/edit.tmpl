@@ -42,7 +42,7 @@
 						<label for="port">{{ctx.Locale.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="636" required>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -113,7 +113,7 @@
 							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
 						</div>
 					</div>
-					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}gt-hidden{{end}}">
+					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}tw-hidden{{end}}">
 						<div class="field">
 							<label>{{ctx.Locale.Tr "admin.auths.group_search_base"}}</label>
 							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="ou=group,dc=mydomain,dc=com">
@@ -148,7 +148,7 @@
 								<input id="use_paged_search" name="use_paged_search" type="checkbox" {{if $cfg.UsePagedSearch}}checked{{end}}>
 							</div>
 						</div>
-						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} gt-hidden{{end}}">
+						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} tw-hidden{{end}}">
 							<label for="search_page_size">{{ctx.Locale.Tr "admin.auths.search_page_size"}}</label>
 							<input id="search_page_size" name="search_page_size" value="{{if $cfg.UsePagedSearch}}{{$cfg.SearchPageSize}}{{end}}">
 						</div>
@@ -205,7 +205,7 @@
 						</div>
 						<p class="help">{{ctx.Locale.Tr "admin.auths.force_smtps_helper"}}</p>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if $cfg.SkipVerify}}checked{{end}}>

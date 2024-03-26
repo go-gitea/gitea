@@ -1,11 +1,11 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		{{$notificationUnreadCount := call .NotificationUnreadCount}}
-		<div class="tw-flex tw-items-center tw-justify-between gt-mb-4">
+		<div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
-					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
+					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
 				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
 					{{ctx.Locale.Tr "notification.read"}}
@@ -14,19 +14,19 @@
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
-					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
-						<button class="ui mini button primary gt-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
+					<div class="{{if not $notificationUnreadCount}}tw-hidden{{end}}">
+						<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
 							{{svg "octicon-checklist"}}
 						</button>
 					</div>
 				</form>
 			{{end}}
 		</div>
-		<div class="gt-p-0">
+		<div class="tw-p-0">
 			<div id="notification_table">
 				{{if not .Notifications}}
-					<div class="tw-flex tw-items-center tw-flex-col gt-p-4">
-						{{svg "octicon-inbox" 56 "gt-mb-4"}}
+					<div class="tw-flex tw-items-center tw-flex-col tw-p-4">
+						{{svg "octicon-inbox" 56 "tw-mb-4"}}
 						{{if eq .Status 1}}
 							{{ctx.Locale.Tr "notification.no_unread"}}
 						{{else}}
@@ -35,8 +35,8 @@
 					</div>
 				{{else}}
 					{{range $notification := .Notifications}}
-						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
-							<div class="notifications-icon gt-ml-3 gt-mr-2 tw-self-start gt-mt-2">
+						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-p-2" id="notification_{{.ID}}" data-status="{{.Status}}">
+							<div class="notifications-icon tw-ml-2 tw-mr-1 tw-self-start tw-mt-1">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
 								{{else}}
@@ -47,10 +47,10 @@
 								<div class="notifications-top-row tw-text-13">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
-										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
+										{{svg "octicon-pin" 13 "text blue tw-mt-0.5 tw-ml-1"}}
 									{{end}}
 								</div>
-								<div class="notifications-bottom-row tw-text-16 gt-py-1">
+								<div class="notifications-bottom-row tw-text-16 tw-py-0.5">
 									<span class="issue-title">
 										{{if .Issue}}
 											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
@@ -60,20 +60,20 @@
 									</span>
 								</div>
 							</a>
-							<div class="notifications-updated tw-items-center gt-mr-3">
+							<div class="notifications-updated tw-items-center tw-mr-2">
 								{{if .Issue}}
 									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
 								{{else}}
 									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 								{{end}}
 							</div>
-							<div class="notifications-buttons tw-items-center tw-justify-end gt-gap-2 gt-px-2">
+							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="pinned">
-										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.pin"}}"
+										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="pinned"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -89,7 +89,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="read">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
+										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="read"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -104,7 +104,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="unread">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
+										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="unread"
 											data-page="{{$.Page.Paginater.Current}}"

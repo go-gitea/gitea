@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="tw-flex tw-items-center">
 			<a href="{{$.RepoLink}}">{{.RepoName}}</a>
-			<span class="gt-mx-3">/</span>
+			<span class="tw-mx-2">/</span>
 			<div class="ui input tw-flex-1">
 				<input id="repo-file-find-input" type="text" autofocus data-url-data-link="{{.DataLink}}" data-url-tree-link="{{.TreeLink}}">
 			</div>
@@ -13,7 +13,7 @@
 			<tbody>
 			</tbody>
 		</table>
-		<div id="repo-find-file-no-result" class="ui row center gt-mt-5 gt-hidden">
+		<div id="repo-find-file-no-result" class="ui row center tw-mt-8 tw-hidden">
 			<h3>{{ctx.Locale.Tr "repo.find_file.no_matching"}}</h3>
 		</div>
 	</div>

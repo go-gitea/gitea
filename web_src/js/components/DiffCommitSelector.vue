@@ -103,7 +103,7 @@ export default {
       this.menuVisible = !this.menuVisible;
       // load our commits when the menu is not yet visible (it'll be toggled after loading)
       // and we got no commits
-      if (this.commits.length === 0 && this.menuVisible && !this.isLoading) {
+      if (!this.commits.length && this.menuVisible && !this.isLoading) {
         this.isLoading = true;
         try {
           await this.fetchCommits();
@@ -208,7 +208,7 @@ export default {
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis text light-2 gt-mb-0">
+        <div class="gt-ellipsis text light-2 tw-mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -216,7 +216,7 @@ export default {
       <div
         v-if="lastReviewCommitSha != null" role="menuitem"
         class="vertical item"
-        :class="{disabled: commitsSinceLastReview === 0}"
+        :class="{disabled: !commitsSinceLastReview}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
       >
@@ -240,7 +240,7 @@ export default {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="tw-flex-1 tw-flex tw-flex-col gt-gap-2">
+          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>

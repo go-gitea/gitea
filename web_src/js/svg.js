@@ -205,7 +205,7 @@ export const SvgIcon = {
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
     const classes = [];
-    for (const cls of svgOuter.classList.values()) {
+    for (const cls of svgOuter.classList) {
       classes.push(cls);
     }
     // TODO: drop the `className/class-name` prop in the future, only use "class" prop
@@ -213,7 +213,7 @@ export const SvgIcon = {
       classes.push(...this.className.split(/\s+/).filter(Boolean));
     }
     if (this.symbolId) {
-      classes.push('gt-hidden', 'svg-symbol-container');
+      classes.push('tw-hidden', 'svg-symbol-container');
       svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
     }
     // create VNode

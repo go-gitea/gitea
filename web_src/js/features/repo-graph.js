@@ -57,9 +57,9 @@ export function initRepoGraphGit() {
     ajaxUrl.searchParams.set('div-only', 'true');
     window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
     $('#pagination').empty();
-    $('#rel-container').addClass('gt-hidden');
-    $('#rev-container').addClass('gt-hidden');
-    $('#loading-indicator').removeClass('gt-hidden');
+    $('#rel-container').addClass('tw-hidden');
+    $('#rev-container').addClass('tw-hidden');
+    $('#loading-indicator').removeClass('tw-hidden');
     (async () => {
       const response = await GET(String(ajaxUrl));
       const html = await response.text();
@@ -67,9 +67,9 @@ export function initRepoGraphGit() {
       $('#pagination').html($div.find('#pagination').html());
       $('#rel-container').html($div.find('#rel-container').html());
       $('#rev-container').html($div.find('#rev-container').html());
-      $('#loading-indicator').addClass('gt-hidden');
-      $('#rel-container').removeClass('gt-hidden');
-      $('#rev-container').removeClass('gt-hidden');
+      $('#loading-indicator').addClass('tw-hidden');
+      $('#rel-container').removeClass('tw-hidden');
+      $('#rev-container').removeClass('tw-hidden');
     })();
   };
   const dropdownSelected = params.getAll('branch');

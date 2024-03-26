@@ -4,7 +4,7 @@
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>
-			<div class="flex-item-main gt-gap-3">
+			<div class="flex-item-main tw-gap-2">
 				<div>
 					{{if gt .ActUser.ID 0}}
 						<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetActDisplayNameTitle ctx}}">{{.GetActDisplayName ctx}}</a>
@@ -84,7 +84,7 @@
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := (.GetRepoLink ctx)}}
 					{{$repo := .Repo}}
-					<div class="tw-flex tw-flex-col gt-gap-2">
+					<div class="tw-flex tw-flex-col tw-gap-1">
 						{{range $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
@@ -119,7 +119,7 @@
 				{{end}}
 			</div>
 			<div class="flex-item-trailing">
-				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey gt-mr-2"}}
+				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey tw-mr-1"}}
 			</div>
 		</div>
 	{{end}}

@@ -1,5 +1,5 @@
 <div id="review-box">
-	<button class="ui tiny primary button gt-pr-2 tw-flex js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
+	<button class="ui tiny primary button tw-pr-1 tw-flex js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
 		{{ctx.Locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}

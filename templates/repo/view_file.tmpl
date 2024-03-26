@@ -11,7 +11,7 @@
 	{{end}}
 
 	{{if not .ReadmeInList}}
-		<div id="repo-file-commit-box" class="ui top attached header list-header gt-mb-4">
+		<div id="repo-file-commit-box" class="ui top attached header list-header tw-mb-4">
 			<div>
 				{{template "repo/latest_commit" .}}
 			</div>
@@ -26,9 +26,9 @@
 	{{end}}
 
 	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
-		<div class="file-header-left tw-flex tw-items-center gt-py-3 gt-pr-4">
+		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
-				{{svg "octicon-book" 16 "gt-mr-3"}}
+				{{svg "octicon-book" 16 "tw-mr-2"}}
 				<strong><a class="default-link muted" href="#readme">{{.FileName}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
@@ -42,7 +42,7 @@
 				</div>
 			{{end}}
 			{{if not .ReadmeInList}}
-				<div class="ui buttons gt-mr-2">
+				<div class="ui buttons tw-mr-1">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 					{{if not .IsViewCommit}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
@@ -52,7 +52,7 @@
 					{{end}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}
-						<button class="ui mini basic button unescape-button gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+						<button class="ui mini basic button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 						<button class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
@@ -76,8 +76,8 @@
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
-				<button class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui mini basic button escape-button gt-mr-2">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+				<button class="ui mini basic button unescape-button tw-mr-1 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+				<button class="ui mini basic button escape-button tw-mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
 			{{if and .ReadmeInList .CanEditReadmeFile}}
 				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}/{{PathEscapeSegments .FileName}}">{{svg "octicon-pencil"}}</a>

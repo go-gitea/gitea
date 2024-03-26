@@ -18,7 +18,7 @@
 						<div class="flex-item-main">
 							<details>
 								<summary><span class="flex-item-title">{{.Name}}</span></summary>
-								<p class="gt-my-2">
+								<p class="tw-my-1">
 									{{ctx.Locale.Tr "settings.repo_and_org_access"}}:
 									{{if .DisplayPublicOnly}}
 										{{ctx.Locale.Tr "settings.permissions_public_only"}}
@@ -26,8 +26,8 @@
 										{{ctx.Locale.Tr "settings.permissions_access_all"}}
 									{{end}}
 								</p>
-								<p class="gt-my-2">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
-								<ul class="gt-my-2">
+								<p class="tw-my-1">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
+								<ul class="tw-my-1">
 								{{range .Scope.StringSlice}}
 									{{if (ne . $.AccessTokenScopePublicOnly)}}
 										<li>{{.}}</li>
@@ -41,7 +41,7 @@
 						</div>
 						<div class="flex-item-trailing">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{svg "octicon-trash" 16 "gt-mr-2"}}
+									{{svg "octicon-trash" 16 "tw-mr-1"}}
 									{{ctx.Locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
@@ -62,16 +62,16 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "settings.repo_and_org_access"}}</label>
 					<label class="tw-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
+						<input class="enable-system tw-mt-1 tw-mr-1" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
 						{{ctx.Locale.Tr "settings.permissions_public_only"}}
 					</label>
 					<label class="tw-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
+						<input class="enable-system tw-mt-1 tw-mr-1" type="radio" name="scope" value="" checked>
 						{{ctx.Locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>
 				<details class="ui optional field">
-					<summary class="gt-pb-4 gt-pl-2">
+					<summary class="tw-pb-4 tw-pl-1">
 						{{ctx.Locale.Tr "settings.select_permissions"}}
 					</summary>
 					<p class="activity meta">
@@ -90,7 +90,7 @@
 					{{ctx.Locale.Tr "settings.generate_token"}}
 				</button>
 			</form>{{/* Fomantic ".ui.form .warning.message" is hidden by default, so put the warning message out of the form*/}}
-			<div id="scoped-access-warning" class="ui warning message center gt-hidden">
+			<div id="scoped-access-warning" class="ui warning message center tw-hidden">
 				{{ctx.Locale.Tr "settings.at_least_one_permission"}}
 			</div>
 		</div>

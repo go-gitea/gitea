@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment tw-flex tw-flex-wrap gt-gap-3">
+					<div class="ui attached segment tw-flex tw-flex-wrap tw-gap-2">
 						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
@@ -17,7 +17,7 @@
 									<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui primary button gt-ml-3">{{ctx.Locale.Tr "add"}}</button>
+							<button class="ui primary button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
 						</form>
 						<div class="tw-inline-block">
 							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>

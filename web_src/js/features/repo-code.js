@@ -16,48 +16,50 @@ function changeHash(hash) {
   }
 }
 
-function selectRange($list, $select, $from) {
-  $list.removeClass('active');
+function isBlame() {
+  return Boolean(document.querySelector('div.blame'));
+}
+
+function getLineEls() {
+  return document.querySelectorAll(`.code-view td.lines-code${isBlame() ? '.blame-code' : ''}`);
+}
+
+function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
+  $linesEls.closest('tr').removeClass('active');
 
   // add hashchange to permalink
-  const $refInNewIssue = $('a.ref-in-new-issue');
-  const $copyPermalink = $('a.copy-line-permalink');
-  const $viewGitBlame = $('a.view_git_blame');
+  const refInNewIssue = document.querySelector('a.ref-in-new-issue');
+  const copyPermalink = document.querySelector('a.copy-line-permalink');
+  const viewGitBlame = document.querySelector('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($refInNewIssue.length === 0) {
-      return;
-    }
-    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
-    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
+    if (!refInNewIssue) return;
+    const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
+    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
     const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
-    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
+    refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
-    if ($viewGitBlame.length === 0) {
-      return;
-    }
-    let href = $viewGitBlame.attr('href');
+    if (!viewGitBlame) return;
+    let href = viewGitBlame.getAttribute('href');
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
       href = `${href}#${anchor}`;
     }
-    $viewGitBlame.attr('href', href);
+    viewGitBlame.setAttribute('href', href);
   };
 
-  const updateCopyPermalinkUrl = function(anchor) {
-    if ($copyPermalink.length === 0) {
-      return;
-    }
-    let link = $copyPermalink.attr('data-url');
+  const updateCopyPermalinkUrl = function (anchor) {
+    if (!copyPermalink) return;
+    let link = copyPermalink.getAttribute('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    $copyPermalink.attr('data-url', link);
+    copyPermalink.setAttribute('data-url', link);
   };
 
-  if ($from) {
-    let a = parseInt($select.attr('rel').slice(1));
-    let b = parseInt($from.attr('rel').slice(1));
+  if ($selectionStartEls) {
+    let a = parseInt($selectionEndEl[0].getAttribute('rel').slice(1));
+    let b = parseInt($selectionStartEls[0].getAttribute('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {
@@ -69,7 +71,9 @@ function selectRange($list, $select, $from) {
       for (let i = a; i <= b; i++) {
         classes.push(`[rel=L${i}]`);
       }
-      $list.filter(classes.join(',')).addClass('active');
+      $linesEls.filter(classes.join(',')).each(function () {
+        $(this).closest('tr').addClass('active');
+      });
       changeHash(`#L${a}-L${b}`);
 
       updateIssueHref(`L${a}-L${b}`);
@@ -78,12 +82,12 @@ function selectRange($list, $select, $from) {
       return;
     }
   }
-  $select.addClass('active');
-  changeHash(`#${$select.attr('rel')}`);
+  $selectionEndEl.closest('tr').addClass('active');
+  changeHash(`#${$selectionEndEl[0].getAttribute('rel')}`);
 
-  updateIssueHref($select.attr('rel'));
-  updateViewGitBlameFragment($select.attr('rel'));
-  updateCopyPermalinkUrl($select.attr('rel'));
+  updateIssueHref($selectionEndEl[0].getAttribute('rel'));
+  updateViewGitBlameFragment($selectionEndEl[0].getAttribute('rel'));
+  updateCopyPermalinkUrl($selectionEndEl[0].getAttribute('rel'));
 }
 
 function showLineButton() {
@@ -96,10 +100,10 @@ function showLineButton() {
   }
 
   // find active row and add button
-  const tr = document.querySelector('.code-view td.lines-code.active').closest('tr');
-  const td = tr.querySelector('td');
+  const tr = document.querySelector('.code-view tr.active');
+  const td = tr.querySelector('td.lines-num');
   const btn = document.createElement('button');
-  btn.classList.add('code-line-button');
+  btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
   td.prepend(btn);
 
@@ -123,14 +127,18 @@ function showLineButton() {
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
-      const $select = $(this);
-      let $list;
-      if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code.blame-code');
-      } else {
-        $list = $('.code-view td.lines-code');
+      const linesEls = getLineEls();
+      const selectedEls = Array.from(linesEls).filter((el) => {
+        return el.matches(`[rel=${this.getAttribute('id')}]`);
+      });
+
+      let from;
+      if (e.shiftKey) {
+        from = Array.from(linesEls).filter((el) => {
+          return el.closest('tr').classList.contains('active');
+        });
       }
-      selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
+      selectRange($(linesEls), $(selectedEls), from ? $(from) : null);
 
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
@@ -138,28 +146,20 @@ export function initRepoCodeView() {
         document.selection.empty();
       }
 
-      // show code view menu marker (don't show in blame page)
-      if ($('div.blame').length === 0) {
-        showLineButton();
-      }
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(rangeAnchorRegex);
-      let $list;
-      if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code.blame-code');
-      } else {
-        $list = $('.code-view td.lines-code');
-      }
+      const $linesEls = $(getLineEls());
       let $first;
       if (m) {
-        $first = $list.filter(`[rel=${m[1]}]`);
+        $first = $linesEls.filter(`[rel=${m[1]}]`);
         if ($first.length) {
-          selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+          selectRange($linesEls, $first, $linesEls.filter(`[rel=${m[2]}]`));
 
           // show code view menu marker (don't show in blame page)
-          if ($('div.blame').length === 0) {
+          if (!isBlame()) {
             showLineButton();
           }
 
@@ -169,12 +169,12 @@ export function initRepoCodeView() {
       }
       m = window.location.hash.match(singleAnchorRegex);
       if (m) {
-        $first = $list.filter(`[rel=L${m[2]}]`);
+        $first = $linesEls.filter(`[rel=L${m[2]}]`);
         if ($first.length) {
-          selectRange($list, $first);
+          selectRange($linesEls, $first);
 
           // show code view menu marker (don't show in blame page)
-          if ($('div.blame').length === 0) {
+          if (!isBlame()) {
             showLineButton();
           }
 

@@ -268,6 +268,10 @@ const sfc = {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
+    isExpandable(status) {
+      return ['success', 'running', 'failure', 'cancelled'].includes(status);
+    },
+
     closeDropdown() {
       if (this.menuVisible) this.menuVisible = false;
     },
@@ -373,7 +377,7 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button gt-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button tw-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -394,10 +398,10 @@ export function initRepositoryActionView() {
             <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-                <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
+                <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -432,7 +436,7 @@ export function initRepositoryActionView() {
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg gt-p-3">
+              <button class="btn gt-interact-bg tw-p-2">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -449,7 +453,7 @@ export function initRepositoryActionView() {
                   {{ locale.showFullScreen }}
                 </a>
                 <div class="divider"/>
-                <a :class="['item', currentJob.steps.length === 0 ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
                   {{ locale.downloadLogs }}
                 </a>
@@ -459,13 +463,13 @@ export function initRepositoryActionView() {
         </div>
         <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
+            <div class="job-step-summary" @click.stop="jobStep.status !== 'skipped' && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
-              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
-              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
+              <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
               <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
@@ -624,6 +628,8 @@ export function initRepositoryActionView() {
   flex-direction: column;
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
+  background: var(--color-console-bg);
+  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */
@@ -683,10 +689,8 @@ export function initRepositoryActionView() {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius);
   height: 60px;
   z-index: 1;
 }
@@ -707,7 +711,6 @@ export function initRepositoryActionView() {
 }
 
 .job-step-container {
-  background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
   border-top: 1px solid var(--color-console-border);
@@ -715,11 +718,19 @@ export function initRepositoryActionView() {
 }
 
 .job-step-container .job-step-summary {
-  cursor: pointer;
   padding: 5px 10px;
   display: flex;
   align-items: center;
   border-radius: var(--border-radius);
+}
+
+.job-step-container .job-step-summary.step-expandable {
+  cursor: pointer;
+}
+
+.job-step-container .job-step-summary.step-expandable:hover {
+  color: var(--color-console-fg);
+  background-color: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -728,12 +739,6 @@ export function initRepositoryActionView() {
 
 .job-step-container .job-step-summary .step-summary-duration {
   margin-left: 16px;
-}
-
-.job-step-container .job-step-summary:hover {
-  color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
-
 }
 
 .job-step-container .job-step-summary.selected {
