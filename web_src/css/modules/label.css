@@ -93,18 +93,6 @@ a.ui.label:hover {
   color: var(--color-label-text);
 }
 
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
-a.ui.active.label:hover {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
 .ui.label.visible:not(.dropdown) {
   display: inline-block !important;
 }
