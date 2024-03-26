@@ -36,7 +36,7 @@ export function initUserAuthSAML() {
         // recover previous content to let user try again
         // usually redirection will be performed before this action
         outer.classList.remove('is-loading');
-        inner.classList.remove('gt-invisible');
+        inner.classList.remove('tw-invisible');
       }, 5000);
     });
   }
