@@ -32,6 +32,6 @@ type ActionVariable struct {
 	RepoID int64 `json:"repo_id"`
 	// the name of the variable
 	Name string `json:"name"`
-	// the value of the varibale
+	// the value of the variable
 	Data string `json:"data"`
 }
