@@ -28,40 +28,38 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   $linesEls.closest('tr').removeClass('active');
 
   // add hashchange to permalink
-  const $refInNewIssue = $('a.ref-in-new-issue');
-  const $copyPermalink = $('a.copy-line-permalink');
-  const $viewGitBlame = $('a.view_git_blame');
+  const refInNewIssue = document.querySelector('a.ref-in-new-issue');
+  const copyPermalink = document.querySelector('a.copy-line-permalink');
+  const viewGitBlame = document.querySelector('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if (!$refInNewIssue.length) {
-      return;
-    }
-    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
-    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
+    if (!refInNewIssue) return;
+    const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
+    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
     const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
-    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
+    refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
-    if (!$viewGitBlame.length) return;
-    let href = $viewGitBlame.attr('href');
+    if (!viewGitBlame) return;
+    let href = viewGitBlame.getAttribute('href');
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
       href = `${href}#${anchor}`;
     }
-    $viewGitBlame.attr('href', href);
+    viewGitBlame.setAttribute('href', href);
   };
 
-  const updateCopyPermalinkUrl = function(anchor) {
-    if (!$copyPermalink.length) return;
-    let link = $copyPermalink.attr('data-url');
+  const updateCopyPermalinkUrl = function (anchor) {
+    if (!copyPermalink) return;
+    let link = copyPermalink.getAttribute('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    $copyPermalink.attr('data-url', link);
+    copyPermalink.setAttribute('data-url', link);
   };
 
   if ($selectionStartEls) {
-    let a = parseInt($selectionEndEl.attr('rel').slice(1));
-    let b = parseInt($selectionStartEls.attr('rel').slice(1));
+    let a = parseInt($selectionEndEl[0].getAttribute('rel').slice(1));
+    let b = parseInt($selectionStartEls[0].getAttribute('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {
@@ -85,11 +83,11 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
     }
   }
   $selectionEndEl.closest('tr').addClass('active');
-  changeHash(`#${$selectionEndEl.attr('rel')}`);
+  changeHash(`#${$selectionEndEl[0].getAttribute('rel')}`);
 
-  updateIssueHref($selectionEndEl.attr('rel'));
-  updateViewGitBlameFragment($selectionEndEl.attr('rel'));
-  updateCopyPermalinkUrl($selectionEndEl.attr('rel'));
+  updateIssueHref($selectionEndEl[0].getAttribute('rel'));
+  updateViewGitBlameFragment($selectionEndEl[0].getAttribute('rel'));
+  updateCopyPermalinkUrl($selectionEndEl[0].getAttribute('rel'));
 }
 
 function showLineButton() {

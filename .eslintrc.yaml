@@ -167,7 +167,7 @@ rules:
   "@stylistic/js/semi-spacing": [2, {before: false, after: true}]
   "@stylistic/js/semi-style": [2, last]
   "@stylistic/js/space-before-blocks": [2, always]
-  "@stylistic/js/space-before-function-paren": [0]
+  "@stylistic/js/space-before-function-paren": [2, {anonymous: ignore, named: never, asyncArrow: always}]
   "@stylistic/js/space-in-parens": [2, never]
   "@stylistic/js/space-infix-ops": [2]
   "@stylistic/js/space-unary-ops": [2]
