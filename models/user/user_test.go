@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -530,11 +531,15 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 func TestDisabledUserFeatures(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	oldSetting := setting.Admin.ExternalUserDisableAllFeatures
+	testValues := container.SetOf(setting.UserFeatureDeletion,
+		setting.UserFeatureManageSSHKeys,
+		setting.UserFeatureManageGPGKeys)
+
+	oldSetting := setting.Admin.ExternalUserDisableFeatures
 	defer func() {
-		setting.Admin.ExternalUserDisableAllFeatures = oldSetting
+		setting.Admin.ExternalUserDisableFeatures = oldSetting
 	}()
-	setting.Admin.ExternalUserDisableAllFeatures = true
+	setting.Admin.ExternalUserDisableFeatures = testValues
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
@@ -543,7 +548,7 @@ func TestDisabledUserFeatures(t *testing.T) {
 	// no features should be disabled with a plain login type
 	assert.LessOrEqual(t, user.LoginType, auth.Plain)
 	assert.Len(t, user_model.DisabledFeaturesWithLoginType(user).Values(), 0)
-	for _, f := range setting.DefaultUserFeatureSet.Values() {
+	for _, f := range testValues.Values() {
 		assert.False(t, user_model.FeatureDisabledWithLoginType(user, f))
 	}
 
@@ -552,7 +557,7 @@ func TestDisabledUserFeatures(t *testing.T) {
 
 	// all features should be disabled
 	assert.NotEmpty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
-	for _, f := range setting.DefaultUserFeatureSet.Values() {
+	for _, f := range testValues.Values() {
 		assert.True(t, user_model.FeatureDisabledWithLoginType(user, f))
 	}
 }

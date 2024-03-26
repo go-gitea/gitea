@@ -9,10 +9,10 @@ import (
 
 // Admin settings
 var Admin struct {
-	DisableRegularOrgCreation      bool
-	DefaultEmailNotification       string
-	UserDisabledFeatures           container.Set[string]
-	ExternalUserDisableAllFeatures bool
+	DisableRegularOrgCreation   bool
+	DefaultEmailNotification    string
+	UserDisabledFeatures        container.Set[string]
+	ExternalUserDisableFeatures container.Set[string]
 }
 
 func loadAdminFrom(rootCfg ConfigProvider) {
@@ -20,7 +20,7 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	Admin.DisableRegularOrgCreation = sec.Key("DISABLE_REGULAR_ORG_CREATION").MustBool(false)
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
-	Admin.ExternalUserDisableAllFeatures = sec.Key("EXTERNAL_USER_DISABLE_ALL_FEATURES").MustBool(false)
+	Admin.ExternalUserDisableFeatures = container.SetOf(sec.Key("EXTERNAL_USER_DISABLE_FEATURES").Strings(",")...)
 }
 
 const (
@@ -28,8 +28,3 @@ const (
 	UserFeatureManageSSHKeys = "manage_ssh_keys"
 	UserFeatureManageGPGKeys = "manage_gpg_keys"
 )
-
-var DefaultUserFeatureSet = container.SetOf(
-	UserFeatureDeletion,
-	UserFeatureManageSSHKeys,
-	UserFeatureManageGPGKeys)

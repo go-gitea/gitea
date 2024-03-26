@@ -522,8 +522,10 @@ And the following unique queues:
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
-- `EXTERNAL_USER_DISABLE_ALL_FEATURES`: **false**: Disable all the default `USER_DISABLED_FEATURES` settings for users with external login sources (this will include future features as well). Note: does not use the value of `USER_DISABLED_FEATURES`.
-
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Disabled features for users with auth sources other than `Plain`, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys` and more features can be added in future. Note: this setting uses the same features as `USER_DISABLED_FEATURES`.
+  - `deletion`: User cannot delete their own account.
+  - `manage_ssh_keys`: User cannot configure ssh keys.
+  - `manage_gpg_keys`: User cannot configure gpg keys.
 ## Security (`security`)
 
 - `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
