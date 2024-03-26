@@ -19,7 +19,7 @@ export async function initColorPickers(selector = 'input.color-picker', opts = {
   for (const inputEl of inputEls) {
     const parent = inputEl.closest('.color.picker');
     // prevent tabbing on color "button"
-    parent.querySelector('button').tabIndex = '-1';
+    parent.querySelector('button').tabIndex = -1;
     // init precolors
     for (const el of parent.querySelectorAll('.precolors .color')) {
       el.addEventListener('click', (e) => {
