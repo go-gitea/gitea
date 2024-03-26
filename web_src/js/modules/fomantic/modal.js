@@ -19,7 +19,8 @@ function ariaModalFn(...args) {
       // In such case, the "Enter" key will trigger the "cancel" button instead of "ok" button, then the dialog will be closed.
       // It breaks the user experience - the "Enter" key should confirm the dialog and submit the form.
       // So, all "cancel" buttons without "[type]" must be marked as "type=button".
-      $(el).find('form button.cancel:not([type])').attr('type', 'button');
+      const buttons = el.querySelectorAll('form button.cancel:not([type])');
+      for (const button of buttons) button.setAttribute('type', 'button');
     }
   }
   return ret;
