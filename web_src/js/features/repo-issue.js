@@ -87,6 +87,19 @@ export function initRepoIssueDue() {
   });
 }
 
+/**
+ * @param {HTMLElement} item
+ */
+function excludeLabel(item) {
+  const href = item.getAttribute('href');
+  const id = item.getAttribute('data-label-id');
+
+  const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
+  const newStr = 'labels=$1-$2$3&';
+
+  window.location = href.replace(new RegExp(regStr), newStr);
+}
+
 export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
@@ -122,19 +135,6 @@ export function initRepoIssueSidebarList() {
 
       fullTextSearch: true,
     });
-
-  /**
-   * @param {HTMLElement} item
-   */
-  function excludeLabel(item) { // eslint-disable-line unicorn/consistent-function-scoping
-    const href = item.getAttribute('href');
-    const id = item.getAttribute('data-label-id');
-
-    const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
-    const newStr = 'labels=$1-$2$3&';
-
-    window.location = href.replace(new RegExp(regStr), newStr);
-  }
 
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
@@ -594,6 +594,22 @@ export function initRepoIssueWipToggle() {
   });
 }
 
+async function pullrequest_targetbranch_change(update_url) {
+  const targetBranch = $('#pull-target-branch').data('branch');
+  const $branchTarget = $('#branch_target');
+  if (targetBranch === $branchTarget.text()) {
+    window.location.reload();
+    return false;
+  }
+  try {
+    await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
+  } catch (error) {
+    console.error(error);
+  } finally {
+    window.location.reload();
+  }
+}
+
 export function initRepoIssueTitleEdit() {
   // Edit issue title
   const $issueTitle = $('#issue-title');
@@ -616,22 +632,6 @@ export function initRepoIssueTitleEdit() {
   $('#edit-title').on('click', editTitleToggle);
   $('#cancel-edit-title').on('click', editTitleToggle);
   $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
-    const pullrequest_targetbranch_change = async function (update_url) {// eslint-disable-line unicorn/consistent-function-scoping
-      const targetBranch = $('#pull-target-branch').data('branch');
-      const $branchTarget = $('#branch_target');
-      if (targetBranch === $branchTarget.text()) {
-        window.location.reload();
-        return false;
-      }
-      try {
-        await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
-      } catch (error) {
-        console.error(error);
-      } finally {
-        window.location.reload();
-      }
-    };
-
     const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
     if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
