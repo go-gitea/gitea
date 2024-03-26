@@ -332,10 +332,10 @@ export function initRepoIssueReferenceRepositorySearch() {
 }
 
 export function initRepoIssueTitleFocus() {
-  const issueTtitle = document.getElementById('issue_title');
-  if (issueTtitle) {
-    issueTtitle.focus();
-    issueTtitle.setSelectionRange(issueTtitle.value.length, issueTtitle.value.length);
+  const issueTitle = document.getElementById('issue_title');
+  if (issueTitle) {
+    issueTitle.focus();
+    issueTitle.setSelectionRange(issueTitle.value.length, issueTitle.value.length);
   }
 }
 
