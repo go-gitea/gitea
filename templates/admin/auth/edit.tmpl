@@ -367,6 +367,69 @@
 					</div>
 				{{end}}
 
+				<!-- SAML -->
+				{{if .Source.IsSAML}}
+					{{$cfg:=.Source.Cfg}}
+					<div class="inline required field">
+						<label>{{ctx.Locale.Tr "admin.auths.saml_nameidformat"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="name_id_format" name="name_id_format" value="{{$cfg.NameIDFormat}}">
+							<div class="text">{{.CurrentNameIDFormat}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								{{range .NameIDFormats}}
+									<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+
+					<div class="optional field">
+						<label for="saml_icon_url">{{ctx.Locale.Tr "admin.auths.saml_icon_url"}}</label>
+						<input id="saml_icon_url" name="saml_icon_url" value="{{$cfg.IconURL}}">
+					</div>
+
+					<div class="field">
+						<label for="identity_provider_metadata_url">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_metadata_url"}}</label>
+						<input id="identity_provider_metadata_url" name="identity_provider_metadata_url" value="{{$cfg.IdentityProviderMetadataURL}}">
+					</div>
+					<div class="field">
+						<label for="identity_provider_metadata">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_metadata"}}</label>
+						<textarea rows=2 id="identity_provider_metadata" name="identity_provider_metadata">{{$cfg.IdentityProviderMetadata}}</textarea>
+					</div>
+
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{ctx.Locale.Tr "admin.auths.saml_insecure_skip_assertion_signature_validation"}}</strong></label>
+							<input name="insecure_skip_assertion_signature_validation" type="checkbox" {{if $cfg.InsecureSkipAssertionSignatureValidation}}checked{{end}}>
+						</div>
+					</div>
+
+					<div class=" field">
+						<label for="service_provider_certificate">{{ctx.Locale.Tr "admin.auths.saml_service_provider_certificate"}}</label>
+						<textarea rows=2 id="service_provider_certificate" name="service_provider_certificate">{{$cfg.ServiceProviderCertificate}}</textarea>
+					</div>
+					<div class=" field">
+						<label for="service_provider_private_key">{{ctx.Locale.Tr "admin.auths.saml_service_provider_private_key"}}</label>
+						<textarea rows=2 id="service_provider_private_key" name="service_provider_private_key">{{$cfg.ServiceProviderPrivateKey}}</textarea>
+					</div>
+
+					<div class="field">
+						<label for="email_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_email_assertion_key"}}</label>
+						<input id="email_assertion_key" name="email_assertion_key" value="{{if not $cfg.EmailAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress{{else}}{{$cfg.EmailAssertionKey}}{{end}}">
+					</div>
+
+					<div class="field">
+						<label for="name_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_name_assertion_key"}}</label>
+						<input id="name_assertion_key" name="name_assertion_key" value="{{if not $cfg.NameAssertionKey}}http://schemas.xmlsoap.org/claims/CommonName{{else}}{{$cfg.NameAssertionKey}}{{end}}">
+					</div>
+
+					<div class="field">
+						<label for="username_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_username_assertion_key"}}</label>
+						<input id="username_assertion_key" name="username_assertion_key" value="{{if not $cfg.UsernameAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name{{else}}{{$cfg.UsernameAssertionKey}}{{end}}">
+					</div>
+				{{end}}
+
 				<!-- SSPI -->
 				{{if .Source.IsSSPI}}
 					{{$cfg:=.Source.Cfg}}
@@ -440,6 +503,9 @@
 		<div class="ui attached segment">
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
+
+			<h5>SAML Settings:</h5>
+			<p>{{ctx.Locale.Tr "admin.auths.tips.saml"}}</p>
 
 			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
 			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>

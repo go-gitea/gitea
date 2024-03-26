@@ -66,5 +66,22 @@
 		</div>
 	</div>
 	{{end}}
+	{{if .SAMLProviders}}
+	<div class="divider divider-text">
+		{{.locale.Tr "sign_in_or"}}
+	</div>
+	<div id="saml-login-navigator" class="tw-py-1">
+		<div class="tw-flex tw-flex-col tw-justify-center">
+			<div id="saml-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
+				{{range $provider := .SAMLProviders}}
+					<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 saml-login-link" href="{{AppSubUrl}}/user/saml/{{$provider.Name}}">
+						{{.IconHTML 28}}
+						{{ctx.Locale.Tr "sign_in_with_provider" $provider.Name}}
+					</a>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	{{end}}
 	</form>
 </div>

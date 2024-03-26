@@ -16,8 +16,8 @@ import (
 	"github.com/markbates/goth"
 )
 
-func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
-	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
+func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) (*user_model.ExternalLoginUser, error) {
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, gothUser.Provider, authType)
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser go
 }
 
 // LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
+func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser, authType)
 	if err != nil {
 		return err
 	}
@@ -71,8 +71,8 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
+func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser, authType)
 	if err != nil {
 		return err
 	}
