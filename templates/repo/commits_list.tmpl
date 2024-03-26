@@ -16,7 +16,7 @@
 						<td class="author">
 							{{$userName := .Author.Name}}
 							{{if .User}}
-								{{if .User.FullName}}
+								{{if and .User.FullName DefaultShowFullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
 								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-1"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
