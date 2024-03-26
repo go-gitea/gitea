@@ -19,17 +19,19 @@ const sfc = {
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
-      this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1);
+      this.active = !items.length && this.showCreateNewBranch ? 0 : -1;
       return items;
     },
     showNoResults() {
-      return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+      return !this.filteredItems.length && !this.showCreateNewBranch;
     },
     showCreateNewBranch() {
       if (this.disableCreateBranch || !this.searchTerm) {
         return false;
       }
-      return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+      return !this.items.filter((item) => {
+        return item.name.toLowerCase() === this.searchTerm.toLowerCase();
+      }).length;
     },
     formActionUrl() {
       return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;

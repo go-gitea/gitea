@@ -39,11 +39,9 @@ function initEditPreviewTab($form) {
 }
 
 function initEditorForm() {
-  if ($('.repository .edit.form').length === 0) {
-    return;
-  }
-
-  initEditPreviewTab($('.repository .edit.form'));
+  const $form = $('.repository .edit.form');
+  if (!$form) return;
+  initEditPreviewTab($form);
 }
 
 function getCursorPosition($e) {
@@ -165,7 +163,7 @@ export function initRepoEditor() {
 
     commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
-      if ($editArea.val().length === 0) {
+      if (!$editArea.val()) {
         $('#edit-empty-content-modal').modal({
           onApprove() {
             $('.edit.form').trigger('submit');
