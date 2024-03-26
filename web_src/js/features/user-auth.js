@@ -30,7 +30,7 @@ export function initUserAuthSAML() {
 
   for (const link of outer.querySelectorAll('.saml-login-link')) {
     link.addEventListener('click', () => {
-      inner.classList.add('gt-invisible');
+      inner.classList.add('tw-invisible');
       outer.classList.add('is-loading');
       setTimeout(() => {
         // recover previous content to let user try again
