@@ -103,7 +103,6 @@ a.ui.label:hover {
   color: var(--color-text-light);
   padding: calc(0.5833em - 1px) calc(0.833em - 1px);
 }
-
 a.ui.basic.label:hover {
   text-decoration: none;
   color: var(--color-text);
@@ -116,19 +115,16 @@ a.ui.basic.label:hover {
   border-color: var(--color-primary-dark-2);
   color: var(--color-primary-contrast);
 }
-
 a.ui.ui.ui.primary.label:hover {
   background: var(--color-primary-dark-3);
   border-color: var(--color-primary-dark-3);
   color: var(--color-primary-contrast);
 }
-
 .ui.ui.ui.basic.primary.label {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-
 a.ui.ui.ui.basic.primary.label:hover {
   background: var(--color-hover);
   border-color: var(--color-primary-dark-1);
