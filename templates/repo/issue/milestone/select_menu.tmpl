@@ -18,7 +18,7 @@
 		</div>
 		{{range .OpenMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-				{{svg "octicon-milestone" 16 "gt-mr-2"}}
+				{{svg "octicon-milestone" 16 "tw-mr-1"}}
 				{{.Name}}
 			</a>
 		{{end}}
@@ -30,7 +30,7 @@
 		</div>
 		{{range .ClosedMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-				{{svg "octicon-milestone" 16 "gt-mr-2"}}
+				{{svg "octicon-milestone" 16 "tw-mr-1"}}
 				{{.Name}}
 			</a>
 		{{end}}

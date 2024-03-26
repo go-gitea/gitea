@@ -37,6 +37,23 @@
   border-color: currentcolor;
 }
 
+html, body {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  line-height: 1.4285rem;
+  font-family: var(--fonts-regular);
+  color: var(--color-text);
+  background-color: var(--color-body);
+  tab-size: var(--tab-size);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-wrap: break-word;
+}
+
 textarea {
   font-family: var(--fonts-regular);
 }
@@ -60,13 +77,65 @@ h6 {
   font-weight: var(--font-weight-semibold);
 }
 
-body {
-  color: var(--color-text);
-  background-color: var(--color-body);
-  tab-size: var(--tab-size);
-  display: flex;
-  flex-direction: column;
-  overflow-wrap: break-word;
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.28571429;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
+  padding: 0;
+}
+
+h1 {
+  min-height: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.71428571rem;
+}
+
+h3 {
+  font-size: 1.28571429rem;
+}
+
+h4 {
+  font-size: 1.07142857rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child {
+  margin-top: 0;
+}
+
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child {
+  margin-bottom: 0;
+}
+
+p {
+  margin: 0 0 1em;
+  line-height: 1.4285;
+}
+
+p:first-child {
+  margin-top: 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
 }
 
 table {
@@ -121,8 +190,8 @@ progress::-moz-progress-bar {
 }
 
 ::selection {
-  background: var(--color-primary-light-1) !important;
-  color: var(--color-white) !important;
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
 }
 
 ::placeholder,
@@ -146,7 +215,12 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
+}
+
+a:hover {
+  text-decoration-line: underline;
 }
 
 /* a = always colored, underlined on hover */
@@ -175,7 +249,7 @@ a.suppressed:hover {
 }
 
 a.silenced:hover {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 a.label,
@@ -183,7 +257,7 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
@@ -221,10 +295,6 @@ a.label,
   padding: 2px 4px;
   border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
-}
-
-.ui.dividing.header {
-  border-bottom-color: var(--color-secondary);
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
@@ -282,10 +352,15 @@ ol.ui.list li,
   border-right-color: var(--color-primary);
 }
 
+.ui.menu {
+  display: flex;
+}
+
 .ui.menu,
 .ui.vertical.menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
+  box-shadow: none;
 }
 
 .ui.menu .item {
@@ -502,26 +577,6 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.header {
-  background: var(--color-error-bg) !important;
-  color: var(--color-error-text) !important;
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.error.segment {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.header {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border-color: var(--color-warning-border) !important;
-}
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -565,86 +620,6 @@ ol.ui.list li,
   color: var(--color-primary);
 }
 
-.ui.attached.table {
-  border-color: var(--color-secondary);
-}
-
-.ui.table {
-  color: var(--color-text);
-  background: var(--color-box-body);
-  border-color: var(--color-secondary);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-.ui.table th,
-.ui.table td {
-  transition: none;
-}
-
-.ui.table > tr > td,
-.ui.table > tbody > tr > td {
-  border-top-color: var(--color-secondary-alpha-50);
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n),
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
-
-.ui.ui.ui.ui.table tr.active,
-.ui.ui.table td.active {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.ui.selectable.table > tbody > tr:hover,
-.ui.table tbody tr td.selectable:hover {
-  color: var(--color-text);
-  background-color: var(--color-secondary-alpha-40);
-}
-
-.ui.ui.ui.ui.table tr.grey:not(.marked),
-.ui.ui.table td.grey:not(.marked) {
-  background: var(--color-body);
-  color: var(--color-text);
-}
-
-.ui.table > thead > tr > th {
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.ui.basic.table > tbody > tr {
-  border-color: var(--color-secondary);
-}
-
-.ui.table > tfoot > tr > th,
-.ui.table > tfoot > tr > td {
-  border-color: var(--color-secondary);
-  background: var(--color-box-body);
-  color: var(--color-text);
-}
-
-/* reduce table padding, needed especially for dense admin tables */
-.ui.table > thead > tr > th,
-.ui.table > tbody > tr > td,
-.ui.table > tr > td {
-  padding: 6px 5px;
-}
-/* use more horizontal padding on first and last items for visuals */
-.ui.table > thead > tr > th:first-of-type,
-.ui.table > tbody > tr > td:first-of-type,
-.ui.table > tr > td:first-of-type {
-  padding-left: 10px;
-}
-.ui.table > thead > tr > th:last-of-type,
-.ui.table > tbody > tr > td:last-of-type,
-.ui.table > tr > td:last-of-type {
-  padding-right: 10px;
-}
-
 img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
@@ -668,56 +643,21 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-.page-content.new:is(.repo,.migrate,.org),
-.page-content.profile:is(.user,.organization),
-.page-content.user:is(.settings,.notification) {
-  padding-top: 15px;
+/* add margin below .secondary nav when it is the first child */
+.page-content > :first-child.secondary-nav {
+  margin-bottom: 14px;
 }
 
-/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - 64px);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
-}
-
-/* enable fluid page widths for medium size viewports */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 32px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 16px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 8px;
-  }
+/* add padding to all content when there is no .secondary.nav. this uses padding instead of
+   margin because with the negative margin on .ui.grid we would have to set margin-top: 0,
+   but that does not work universally for all pages */
+.page-content > :first-child:not(.secondary-nav) {
+  padding-top: 14px;
 }
 
 .ui.pagination.menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.loading.segment::before,
-.ui.loading.form::before {
-  background: none;
-}
-
-.ui.loading.form > *,
-.ui.loading.segment > * {
-  opacity: 0.35;
 }
 
 .ui.form .fields.error .field textarea,
@@ -809,10 +749,6 @@ input:-webkit-autofill:active,
 
 .ui.form .field.muted {
   opacity: var(--opacity-disabled);
-}
-
-.ui.loading.loading.input > i.icon svg {
-  visibility: hidden;
 }
 
 .text.primary {
@@ -907,12 +843,6 @@ input:-webkit-autofill:active,
   background-color: transparent;
 }
 
-.ui.menu,
-.ui.vertical.menu,
-.ui.segment {
-  box-shadow: none;
-}
-
 /* replace fomantic popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -1004,23 +934,6 @@ input:-webkit-autofill:active,
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
-}
-
-.ui .info.segment.top h3,
-.ui .info.segment.top h4 {
-  margin-top: 0;
-}
-
-.ui .info.segment.top h3:last-child {
-  margin-top: 4px;
-}
-
-.ui .info.segment.top > :last-child {
-  margin-bottom: 0;
-}
-
-.ui .normal.header {
-  font-weight: var(--font-weight-normal);
 }
 
 .ui .form .autofill-dummy {
@@ -1180,17 +1093,6 @@ input:-webkit-autofill:active,
   margin-right: 0;
 }
 
-.ui.icon.header svg {
-  width: 3em;
-  height: 3em;
-  float: none;
-  display: block;
-  line-height: var(--line-height-default);
-  padding: 0;
-  margin: 0 auto 0.5rem;
-  opacity: 1;
-}
-
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1216,11 +1118,6 @@ input:-webkit-autofill:active,
   height: 0.67em;
   width: 0.67em;
   border-radius: var(--border-radius);
-}
-
-.attention-header {
-  padding: 0.5em 0.75em !important;
-  color: var(--color-text) !important;
 }
 
 .attention-icon {
@@ -1266,15 +1163,7 @@ strong.attention-caution, svg.attention-caution {
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
-}
-
 overflow-menu {
-  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
 }
@@ -1286,6 +1175,10 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .ui.label {
+  margin-left: 7px !important; /* save some space */
 }
 
 .activity-bar-graph {
@@ -1360,18 +1253,15 @@ a.ui.active.label:hover {
 }
 
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
-  width: 2%;
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 8px;
   text-align: right !important;
-  color: var(--color-text-light-1);
+  color: var(--color-text-light-2);
   width: 1%;
   font-family: var(--fonts-monospace);
 }
@@ -1425,22 +1315,34 @@ a.ui.active.label:hover {
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
 }
 
-.lines-code.active,
-.lines-code .active {
-  background: var(--color-active-line) !important;
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
 }
 
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg) !important;
 }
 
-.blame .lines-code {
-  padding: 0 !important;
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -1451,24 +1353,21 @@ a.ui.active.label:hover {
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: min(26vw, 300px);
   display: block;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 6px;
   line-height: 20px;
   box-sizing: content-box;
 }
@@ -1490,11 +1389,10 @@ a.ui.active.label:hover {
   flex-shrink: 0;
 }
 
-.lines-commit .ui.avatar {
-  height: 18px;
-  width: 18px;
-  display: block;
-  margin-top: 1px;
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
 }
 
 .top-line-blame {
@@ -1508,6 +1406,11 @@ a.ui.active.label:hover {
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .code-view table {
@@ -1669,52 +1572,6 @@ a.ui.basic.label:hover {
   margin-left: 0;
 }
 
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  border-color: var(--color-secondary);
-}
-
-.ui.segments > .segment {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.segment {
-  background: var(--color-secondary-bg);
-  color: var(--color-text-light);
-}
-
-.ui.attached.header {
-  position: relative;
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-}
-
-/* fix misaligned right buttons on box headers */
-.ui.attached.header > .ui.right {
-  position: absolute;
-  right: 0.78571429rem;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
-.ui.attached.header > .ui.right .ui.tiny.button {
-  padding: 6px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments + .ui.top.attached.header,
-.ui.attached.segment + .ui.top.attached.header {
-  margin-top: 1rem;
-}
-
 .rss-icon {
   display: inline-flex;
   color: var(--color-text-light-1);
@@ -1770,11 +1627,6 @@ table th[data-sortt-desc] .svg {
   background: var(--color-secondary-dark-1) !important;
 }
 
-/* https://github.com/go-gitea/gitea/pull/11486 */
-.ui.sub.header {
-  text-transform: none;
-}
-
 .ui.tabular.menu {
   border-color: var(--color-secondary);
 }
@@ -1823,22 +1675,6 @@ table th[data-sortt-desc] .svg {
   visibility: hidden;
   display: block;
   height: 0;
-}
-
-.ui.header {
-  color: var(--color-text);
-}
-
-.ui.header .ui.label {
-  margin-left: 0.25rem;
-}
-
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
-.ui.header .sub.header {
-  color: var(--color-text-light-1);
 }
 
 .flash-error details code,

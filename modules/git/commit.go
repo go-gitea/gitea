@@ -397,9 +397,8 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 			}
 		}
 	}
-	err = scanner.Err()
-	if err != nil {
-		return nil, fmt.Errorf("scan: %w", err)
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
 	return c.submoduleCache, nil

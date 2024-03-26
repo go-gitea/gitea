@@ -40,7 +40,7 @@ type ReviewRequestNotifier struct {
 	ReviewTeam *org_model.Team
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
 	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
 	if pr.IsWorkInProgress(ctx) {
@@ -90,7 +90,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.HeadCommitID)
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +112,13 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 
 	notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
 
+	if err := issue.LoadPoster(ctx); err != nil {
+		return nil, err
+	}
+
 	for _, u := range uniqUsers {
-		if u.ID != pull.Poster.ID {
-			comment, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster)
+		if u.ID != issue.Poster.ID {
+			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
 			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
@@ -122,12 +126,12 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 			notifiers = append(notifiers, &ReviewRequestNotifier{
 				Comment: comment,
 				IsAdd:   true,
-				Reviwer: pull.Poster,
+				Reviwer: u,
 			})
 		}
 	}
 	for _, t := range uniqTeams {
-		comment, err := issues_model.AddTeamReviewRequest(ctx, pull, t, pull.Poster)
+		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
 		if err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err

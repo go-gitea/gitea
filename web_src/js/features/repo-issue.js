@@ -43,14 +43,14 @@ export function initRepoIssueTimeTracking() {
 
 async function updateDeadline(deadlineString) {
   hideElem($('#deadline-err-invalid-date'));
-  $('#deadline-loader').addClass('loading');
+  $('#deadline-loader').addClass('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      $('#deadline-loader').removeClass('loading');
+      $('#deadline-loader').removeClass('is-loading');
       showElem($('#deadline-err-invalid-date'));
       return false;
     }
@@ -59,7 +59,7 @@ async function updateDeadline(deadlineString) {
 
   try {
     const response = await POST($('#update-issue-deadline-form').attr('action'), {
-      data: {due_date: realDeadline}
+      data: {due_date: realDeadline},
     });
 
     if (response.ok) {
@@ -69,7 +69,7 @@ async function updateDeadline(deadlineString) {
     }
   } catch (error) {
     console.error(error);
-    $('#deadline-loader').removeClass('loading');
+    $('#deadline-loader').removeClass('is-loading');
     showElem($('#deadline-err-invalid-date'));
   }
 }
@@ -162,7 +162,8 @@ export function initRepoIssueCommentDelete() {
         const response = await POST($this.data('url'));
         if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
-
+        const $parentTimelineItem = $this.closest('.timeline-item');
+        const $parentTimelineGroup = $this.closest('.timeline-item-group');
         // Check if this was a pending comment.
         if ($conversationHolder.find('.pending-label').length) {
           const $counter = $('#review-box .review-comments-counter');
@@ -184,6 +185,11 @@ export function initRepoIssueCommentDelete() {
             $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
           }
           $conversationHolder.remove();
+        }
+        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
+        if (!$parentTimelineGroup.find('.timeline-item.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
+          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
+          $timelineAvatar.removeClass('timeline-avatar-offset');
         }
       } catch (error) {
         console.error(error);
@@ -216,7 +222,7 @@ export function initRepoIssueCodeCommentCancel() {
   $(document).on('click', '.cancel-code-comment', (e) => {
     const $form = $(e.currentTarget).closest('form');
     if ($form.length > 0 && $form.hasClass('comment-form')) {
-      $form.addClass('gt-hidden');
+      $form.addClass('tw-hidden');
       showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
       $form.closest('.comment-code-cloud').remove();
@@ -231,14 +237,14 @@ export function initRepoPullRequestUpdate() {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
-    $this.addClass('loading');
+    $this.addClass('is-loading');
     let response;
     try {
       response = await POST($this.data('do'));
     } catch (error) {
       console.error(error);
     } finally {
-      $this.removeClass('loading');
+      $this.removeClass('is-loading');
     }
     let data;
     try {
@@ -262,7 +268,7 @@ export function initRepoPullRequestUpdate() {
         $pullUpdateButton.find('.button-text').text($choice.text());
         $pullUpdateButton.data('do', $url);
       }
-    }
+    },
   });
 }
 
@@ -310,7 +316,7 @@ export function initRepoIssueReferenceRepositorySearch() {
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name
+              value: repo.repository.full_name,
             });
           });
           return filteredResponse;
@@ -321,7 +327,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         const $form = $choice.closest('form');
         $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
       },
-      fullTextSearch: true
+      fullTextSearch: true,
     });
 }
 
@@ -356,7 +362,7 @@ export async function updateIssuesMeta(url, action, issue_ids, id) {
 }
 
 export function initRepoIssueComments() {
-  if ($('.repository.view.issue .timeline').length === 0) return;
+  if (!$('.repository.view.issue .timeline').length) return;
 
   $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
@@ -371,7 +377,7 @@ export function initRepoIssueComments() {
 
   $(document).on('click', (event) => {
     const $urlTarget = $(':target');
-    if ($urlTarget.length === 0) return;
+    if (!$urlTarget.length) return;
 
     const urlTargetId = $urlTarget.attr('id');
     if (!urlTargetId) return;
@@ -379,7 +385,7 @@ export function initRepoIssueComments() {
 
     const $target = $(event.target);
 
-    if ($target.closest(`#${urlTargetId}`).length === 0) {
+    if (!$target.closest(`#${urlTargetId}`).length) {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
@@ -391,7 +397,7 @@ export function initRepoIssueComments() {
 export async function handleReply($el) {
   hideElem($el);
   const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  $form.removeClass('gt-hidden');
+  $form.removeClass('tw-hidden');
 
   const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
@@ -427,17 +433,17 @@ export function initRepoPullRequestReview() {
         if ($diffHeader[0]) {
           offset += $('.diff-detail-box').outerHeight() + $diffHeader.outerHeight();
         }
-        $(`#show-outdated-${id}`).addClass('gt-hidden');
-        $(`#code-comments-${id}`).removeClass('gt-hidden');
-        $(`#code-preview-${id}`).removeClass('gt-hidden');
-        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+        $(`#show-outdated-${id}`).addClass('tw-hidden');
+        $(`#code-comments-${id}`).removeClass('tw-hidden');
+        $(`#code-preview-${id}`).removeClass('tw-hidden');
+        $(`#hide-outdated-${id}`).removeClass('tw-hidden');
         // if the comment box is folded, expand it
         if ($ancestorDiffBox.attr('data-folded') && $ancestorDiffBox.attr('data-folded') === 'true') {
           setFileFolding($ancestorDiffBox[0], $ancestorDiffBox.find('.fold-file')[0], false);
         }
         window.scrollTo({
           top: $commentDiv.offset().top - offset,
-          behavior: 'instant'
+          behavior: 'instant',
         });
       }
     }
@@ -446,19 +452,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).removeClass('gt-hidden');
-    $(`#code-preview-${id}`).removeClass('gt-hidden');
-    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).removeClass('tw-hidden');
+    $(`#code-preview-${id}`).removeClass('tw-hidden');
+    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).addClass('gt-hidden');
-    $(`#code-preview-${id}`).addClass('gt-hidden');
-    $(`#show-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).addClass('tw-hidden');
+    $(`#code-preview-${id}`).addClass('tw-hidden');
+    $(`#show-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -472,9 +478,7 @@ export function initRepoPullRequestReview() {
   }
 
   // The following part is only for diff views
-  if ($('.repository.pull.diff').length === 0) {
-    return;
-  }
+  if (!$('.repository.pull.diff').length) return;
 
   const $reviewBtn = $('.js-btn-review');
   const $panel = $reviewBtn.parent().find('.review-box-panel');
@@ -523,7 +527,7 @@ export function initRepoPullRequestReview() {
 
     const $td = $ntr.find(`.add-comment-${side}`);
     const $commentCloud = $td.find('.comment-code-cloud');
-    if ($commentCloud.length === 0 && !$ntr.find('button[name="pending_review"]').length) {
+    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
       try {
         const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
         const html = await response.text();
@@ -620,7 +624,7 @@ export function initRepoIssueTitleEdit() {
     };
 
     const pullrequest_target_update_url = $(this).attr('data-target-update-url');
-    if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
+    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
       await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
@@ -655,7 +659,7 @@ export function initRepoIssueBranchSelect() {
     // Replace branch name to keep translation from HTML template
     $selectionTextField.html($selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`
+      `${baseName}:${branchNameNew}`,
     ));
     $selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
@@ -689,7 +693,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
     const editor = await initComboMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
-      }
+      },
     });
 
     $formField.on('focus', async () => {

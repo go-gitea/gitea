@@ -77,13 +77,13 @@ function filterRepoFiles(filter) {
 
   const filterResult = filterRepoFilesWeighted(files, filter);
 
-  toggleElem(repoFindFileNoResult, filterResult.length === 0);
+  toggleElem(repoFindFileNoResult, !filterResult.length);
   for (const r of filterResult) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     const a = document.createElement('a');
     a.setAttribute('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
-    a.innerHTML = svg('octicon-file', 16, 'gt-mr-3');
+    a.innerHTML = svg('octicon-file', 16, 'tw-mr-2');
     row.append(cell);
     cell.append(a);
     for (const [index, part] of r.matchResult.entries()) {

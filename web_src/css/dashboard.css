@@ -77,15 +77,14 @@
   margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
 }
 
-.dashboard .dashboard-navbar {
+.dashboard .secondary-nav {
   padding: 1px 12px; /* match .overflow-menu-items in height */
-  background: var(--color-header-wrapper);
 }
 
-.dashboard .dashboard-navbar .org-visibility .label {
+.dashboard .secondary-nav .org-visibility .label {
   margin-left: 5px;
 }
 
-.dashboard .dashboard-navbar .ui.dropdown {
+.dashboard .secondary-nav .ui.dropdown {
   max-width: 100%;
 }
