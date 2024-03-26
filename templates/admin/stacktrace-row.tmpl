@@ -1,6 +1,6 @@
 <div class="item">
 	<div class="tw-flex tw-items-center">
-		<div class="icon gt-ml-3 gt-mr-3">
+		<div class="icon tw-ml-2 tw-mr-2">
 			{{if eq .Process.Type "request"}}
 				{{svg "octicon-globe" 16}}
 			{{else if eq .Process.Type "system"}}
@@ -22,14 +22,14 @@
 		</div>
 	</div>
 	{{if .Process.Stacks}}
-		<div class="divided list gt-ml-3">
+		<div class="divided list tw-ml-2">
 			{{range .Process.Stacks}}
 				<div class="item">
 					<details>
 						<summary>
 							<div class="flex-text-inline">
-								<div class="header gt-ml-3">
-									<span class="icon gt-mr-3">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
+								<div class="header tw-ml-2">
+									<span class="icon tw-mr-2">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
 								</div>
 								<div class="description">
 									{{range .Labels}}
@@ -41,7 +41,7 @@
 						<div class="list">
 							{{range .Entry}}
 								<div class="item tw-flex tw-items-center">
-									<span class="icon gt-mr-4">{{svg "octicon-dot-fill" 16}}</span>
+									<span class="icon tw-mr-4">{{svg "octicon-dot-fill" 16}}</span>
 									<div class="content tw-flex-1">
 										<div class="header"><code>{{.Function}}</code></div>
 										<div class="description"><code>{{.File}}:{{.Line}}</code></div>

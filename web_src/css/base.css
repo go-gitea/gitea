@@ -360,6 +360,7 @@ ol.ui.list li,
 .ui.vertical.menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
+  box-shadow: none;
 }
 
 .ui.menu .item {
@@ -576,14 +577,6 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.segment {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -625,86 +618,6 @@ ol.ui.list li,
 .ui.comments .comment .actions a.active,
 .ui.comments .comment .actions a:hover {
   color: var(--color-primary);
-}
-
-.ui.attached.table {
-  border-color: var(--color-secondary);
-}
-
-.ui.table {
-  color: var(--color-text);
-  background: var(--color-box-body);
-  border-color: var(--color-secondary);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-.ui.table th,
-.ui.table td {
-  transition: none;
-}
-
-.ui.table > tr > td,
-.ui.table > tbody > tr > td {
-  border-top-color: var(--color-secondary-alpha-50);
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n),
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
-
-.ui.ui.ui.ui.table tr.active,
-.ui.ui.table td.active {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.ui.selectable.table > tbody > tr:hover,
-.ui.table tbody tr td.selectable:hover {
-  color: var(--color-text);
-  background-color: var(--color-secondary-alpha-40);
-}
-
-.ui.ui.ui.ui.table tr.grey:not(.marked),
-.ui.ui.table td.grey:not(.marked) {
-  background: var(--color-body);
-  color: var(--color-text);
-}
-
-.ui.table > thead > tr > th {
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.ui.basic.table > tbody > tr {
-  border-color: var(--color-secondary);
-}
-
-.ui.table > tfoot > tr > th,
-.ui.table > tfoot > tr > td {
-  border-color: var(--color-secondary);
-  background: var(--color-box-body);
-  color: var(--color-text);
-}
-
-/* reduce table padding, needed especially for dense admin tables */
-.ui.table > thead > tr > th,
-.ui.table > tbody > tr > td,
-.ui.table > tr > td {
-  padding: 6px 5px;
-}
-/* use more horizontal padding on first and last items for visuals */
-.ui.table > thead > tr > th:first-of-type,
-.ui.table > tbody > tr > td:first-of-type,
-.ui.table > tr > td:first-of-type {
-  padding-left: 10px;
-}
-.ui.table > thead > tr > th:last-of-type,
-.ui.table > tbody > tr > td:last-of-type,
-.ui.table > tr > td:last-of-type {
-  padding-right: 10px;
 }
 
 img.ui.avatar,
@@ -930,12 +843,6 @@ input:-webkit-autofill:active,
   background-color: transparent;
 }
 
-.ui.menu,
-.ui.vertical.menu,
-.ui.segment {
-  box-shadow: none;
-}
-
 /* replace fomantic popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -1027,19 +934,6 @@ input:-webkit-autofill:active,
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
-}
-
-.ui .info.segment.top h3,
-.ui .info.segment.top h4 {
-  margin-top: 0;
-}
-
-.ui .info.segment.top h3:last-child {
-  margin-top: 4px;
-}
-
-.ui .info.segment.top > :last-child {
-  margin-bottom: 0;
 }
 
 .ui .form .autofill-dummy {
@@ -1676,23 +1570,6 @@ a.ui.basic.label:hover {
 
 .ui.label > .color-icon {
   margin-left: 0;
-}
-
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  border-color: var(--color-secondary);
-}
-
-.ui.segments > .segment {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.segment {
-  background: var(--color-secondary-bg);
-  color: var(--color-text-light);
 }
 
 .rss-icon {

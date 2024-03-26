@@ -919,9 +919,9 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "gt-mr-3")
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "tw-mr-2")
 		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
+			iconHTML = svg.RenderHTML("gitea-git", 16, "tw-mr-2") // TODO: it could support user's customized icon in the future
 		}
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,

@@ -222,7 +222,7 @@ export function initRepoIssueCodeCommentCancel() {
   $(document).on('click', '.cancel-code-comment', (e) => {
     const $form = $(e.currentTarget).closest('form');
     if ($form.length > 0 && $form.hasClass('comment-form')) {
-      $form.addClass('gt-hidden');
+      $form.addClass('tw-hidden');
       showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
       $form.closest('.comment-code-cloud').remove();
@@ -362,7 +362,7 @@ export async function updateIssuesMeta(url, action, issue_ids, id) {
 }
 
 export function initRepoIssueComments() {
-  if ($('.repository.view.issue .timeline').length === 0) return;
+  if (!$('.repository.view.issue .timeline').length) return;
 
   $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
@@ -377,7 +377,7 @@ export function initRepoIssueComments() {
 
   $(document).on('click', (event) => {
     const $urlTarget = $(':target');
-    if ($urlTarget.length === 0) return;
+    if (!$urlTarget.length) return;
 
     const urlTargetId = $urlTarget.attr('id');
     if (!urlTargetId) return;
@@ -385,7 +385,7 @@ export function initRepoIssueComments() {
 
     const $target = $(event.target);
 
-    if ($target.closest(`#${urlTargetId}`).length === 0) {
+    if (!$target.closest(`#${urlTargetId}`).length) {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
@@ -397,7 +397,7 @@ export function initRepoIssueComments() {
 export async function handleReply($el) {
   hideElem($el);
   const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  $form.removeClass('gt-hidden');
+  $form.removeClass('tw-hidden');
 
   const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
@@ -433,10 +433,10 @@ export function initRepoPullRequestReview() {
         if ($diffHeader[0]) {
           offset += $('.diff-detail-box').outerHeight() + $diffHeader.outerHeight();
         }
-        $(`#show-outdated-${id}`).addClass('gt-hidden');
-        $(`#code-comments-${id}`).removeClass('gt-hidden');
-        $(`#code-preview-${id}`).removeClass('gt-hidden');
-        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+        $(`#show-outdated-${id}`).addClass('tw-hidden');
+        $(`#code-comments-${id}`).removeClass('tw-hidden');
+        $(`#code-preview-${id}`).removeClass('tw-hidden');
+        $(`#hide-outdated-${id}`).removeClass('tw-hidden');
         // if the comment box is folded, expand it
         if ($ancestorDiffBox.attr('data-folded') && $ancestorDiffBox.attr('data-folded') === 'true') {
           setFileFolding($ancestorDiffBox[0], $ancestorDiffBox.find('.fold-file')[0], false);
@@ -452,19 +452,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).removeClass('gt-hidden');
-    $(`#code-preview-${id}`).removeClass('gt-hidden');
-    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).removeClass('tw-hidden');
+    $(`#code-preview-${id}`).removeClass('tw-hidden');
+    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).addClass('gt-hidden');
-    $(`#code-preview-${id}`).addClass('gt-hidden');
-    $(`#show-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).addClass('tw-hidden');
+    $(`#code-preview-${id}`).addClass('tw-hidden');
+    $(`#show-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -478,9 +478,7 @@ export function initRepoPullRequestReview() {
   }
 
   // The following part is only for diff views
-  if ($('.repository.pull.diff').length === 0) {
-    return;
-  }
+  if (!$('.repository.pull.diff').length) return;
 
   const $reviewBtn = $('.js-btn-review');
   const $panel = $reviewBtn.parent().find('.review-box-panel');
@@ -529,7 +527,7 @@ export function initRepoPullRequestReview() {
 
     const $td = $ntr.find(`.add-comment-${side}`);
     const $commentCloud = $td.find('.comment-code-cloud');
-    if ($commentCloud.length === 0 && !$ntr.find('button[name="pending_review"]').length) {
+    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
       try {
         const response = await GET($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
         const html = await response.text();
@@ -626,7 +624,7 @@ export function initRepoIssueTitleEdit() {
     };
 
     const pullrequest_target_update_url = $(this).attr('data-target-update-url');
-    if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
+    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
       await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {

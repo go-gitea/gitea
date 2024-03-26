@@ -30,7 +30,7 @@
 					{{$class = (print $class " isWarning")}}
 				{{end}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="gt-ml-3 {{$class}}">
+			<a href="{{$commitLink}}" rel="nofollow" class="tw-ml-2 {{$class}}">
 				<span class="shortsha">{{ShortSha .ID.String}}</span>
 				{{if .Signature}}
 					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
@@ -43,7 +43,7 @@
 			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 		{{end}}
 		{{if IsMultilineCommitMessage .Message}}
-			<pre class="commit-body gt-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</pre>
+			<pre class="commit-body tw-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</pre>
 		{{end}}
 	</div>
 {{end}}

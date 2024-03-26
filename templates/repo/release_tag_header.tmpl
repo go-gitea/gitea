@@ -4,7 +4,7 @@
 {{if $canReadReleases}}
 	<div class="tw-flex">
 		<div class="tw-flex-1 tw-flex tw-items-center">
-			<h2 class="ui compact small menu header small-menu-items">
+			<h2 class="ui compact small menu small-menu-items">
 				<a class="{{if and .PageIsReleaseList (not .PageIsSingleTag)}}active {{end}}item" href="{{.RepoLink}}/releases">{{ctx.Locale.PrettyNumber .NumReleases}} {{ctx.Locale.TrN .NumReleases "repo.release" "repo.releases"}}</a>
 				{{if $canReadCode}}
 					<a class="{{if or .PageIsTagList .PageIsSingleTag}}active {{end}}item" href="{{.RepoLink}}/tags">{{ctx.Locale.PrettyNumber .NumTags}} {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>

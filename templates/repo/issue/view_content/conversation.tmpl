@@ -6,27 +6,27 @@
 	{{$hasReview := and $comment.Review}}
 	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
 	<div class="ui segments conversation-holder">
-		<div class="ui segment collapsible-comment-box gt-py-3 tw-flex tw-items-center tw-justify-between">
+		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between">
 			<div class="tw-flex tw-items-center">
-				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment gt-ml-3 gt-word-break">{{$comment.TreePath}}</a>
+				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 gt-word-break">{{$comment.TreePath}}</a>
 				{{if $invalid}}
-					<span class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<span class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</span>
 				{{end}}
 			</div>
 			<div>
 				{{if or $invalid $resolved}}
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
-						{{svg "octicon-unfold" 16 "gt-mr-3"}}
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
+						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 						{{else}}
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
-						{{svg "octicon-fold" 16 "gt-mr-3"}}
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
+						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 						{{else}}
@@ -39,7 +39,7 @@
 		{{$diff := (CommentMustAsDiff ctx $comment)}}
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
-			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
+			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>
@@ -51,11 +51,11 @@
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} gt-hidden{{end}}">
-			<div class="ui comments gt-mb-0">
+		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
+			<div class="ui comments tw-mb-0">
 				{{range .comments}}
 					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
-					<div class="comment code-comment gt-pb-4" id="{{.HashTag}}">
+					<div class="comment code-comment tw-pb-4" id="{{.HashTag}}">
 						<div class="content">
 							<div class="header comment-header">
 								<div class="comment-header-left tw-flex tw-items-center">
@@ -95,8 +95,8 @@
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 								</div>
-								<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-								<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+								<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 								{{if .Attachments}}
 									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 								{{end}}
@@ -109,11 +109,11 @@
 					</div>
 				{{end}}
 			</div>
-			<div class="code-comment-buttons tw-flex tw-items-center tw-flex-wrap gt-mt-3 gt-mb-2 gt-mx-3">
+			<div class="code-comment-buttons tw-flex tw-items-center tw-flex-wrap tw-mt-2 tw-mb-1 tw-mx-2">
 				<div class="tw-flex-1">
 					{{if $resolved}}
 						<div class="ui grey text">
-							{{svg "octicon-check" 16 "gt-mr-2"}}
+							{{svg "octicon-check" 16 "tw-mr-1"}}
 							<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 						</div>
 					{{end}}
@@ -129,8 +129,8 @@
 						</button>
 					{{end}}
 					{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-						<button class="comment-form-reply ui primary tiny labeled icon button gt-ml-2 gt-mr-0">
-							{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+						<button class="comment-form-reply ui primary tiny labeled icon button tw-ml-1 tw-mr-0">
+							{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 						</button>
 					{{end}}
 				</div>

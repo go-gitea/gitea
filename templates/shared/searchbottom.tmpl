@@ -1,12 +1,14 @@
+{{if or .result.Language (not .result.UpdatedUnix.IsZero)}}
 <div class="ui bottom attached table segment tw-flex tw-items-center tw-justify-between">
-		<div class="tw-flex tw-items-center gt-ml-4">
+		<div class="tw-flex tw-items-center tw-ml-4">
 			{{if .result.Language}}
-					<i class="color-icon gt-mr-3" style="background-color: {{.result.Color}}"></i>{{.result.Language}}
+					<i class="color-icon tw-mr-2" style="background-color: {{.result.Color}}"></i>{{.result.Language}}
 			{{end}}
 		</div>
-		<div class="gt-mr-4">
+		<div class="tw-mr-4">
 			{{if not .result.UpdatedUnix.IsZero}}
 					<span class="ui grey text">{{ctx.Locale.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix ctx.Locale)}}</span>
 			{{end}}
 		</div>
 </div>
+{{end}}
