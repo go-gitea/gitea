@@ -32,12 +32,12 @@
 					{{range .Pointers}}
 						<tr>
 							<td>
-								<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" title="{{.SHA}}" class="ui button gt-mono">
+								<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" title="{{.SHA}}" class="ui button tw-font-mono">
 									{{ShortSha .SHA}}
 								</a>
 							</td>
 							<td>
-								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui brown button gt-mono">
+								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui brown button tw-font-mono">
 									{{ShortSha .Oid}}
 								</a>
 							</td>
