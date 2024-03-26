@@ -1,5 +1,5 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
-<div class="ui segments repository-summary gt-mt-2 gt-mb-0">
+<div class="ui segments repository-summary tw-mt-1 tw-mb-0">
 	<div class="ui segment sub-menu repository-menu">
 		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">

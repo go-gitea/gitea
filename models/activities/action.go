@@ -148,6 +148,7 @@ type Action struct {
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
 	Comment     *issues_model.Comment  `xorm:"-"`
+	Issue       *issues_model.Issue    `xorm:"-"` // get the issue id from content
 	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
@@ -290,11 +291,6 @@ func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + url.PathEscape(a.GetRepoName(ctx))
 }
 
-// GetCommentHTMLURL returns link to action comment.
-func (a *Action) GetCommentHTMLURL(ctx context.Context) string {
-	return a.getCommentHTMLURL(ctx)
-}
-
 func (a *Action) loadComment(ctx context.Context) (err error) {
 	if a.CommentID == 0 || a.Comment != nil {
 		return nil
@@ -303,7 +299,8 @@ func (a *Action) loadComment(ctx context.Context) (err error) {
 	return err
 }
 
-func (a *Action) getCommentHTMLURL(ctx context.Context) string {
+// GetCommentHTMLURL returns link to action comment.
+func (a *Action) GetCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
@@ -311,34 +308,19 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a.Comment != nil {
 		return a.Comment.HTMLURL(ctx)
 	}
-	if len(a.GetIssueInfos()) == 0 {
+
+	if err := a.LoadIssue(ctx); err != nil || a.Issue == nil {
 		return "#"
 	}
-	// Return link to issue
-	issueIDString := a.GetIssueInfos()[0]
-	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-	if err != nil {
+	if err := a.Issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
-	if err != nil {
-		return "#"
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return "#"
-	}
-
-	return issue.HTMLURL()
+	return a.Issue.HTMLURL()
 }
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink(ctx context.Context) string {
-	return a.getCommentLink(ctx)
-}
-
-func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
@@ -346,26 +328,15 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a.Comment != nil {
 		return a.Comment.Link(ctx)
 	}
-	if len(a.GetIssueInfos()) == 0 {
+
+	if err := a.LoadIssue(ctx); err != nil || a.Issue == nil {
 		return "#"
 	}
-	// Return link to issue
-	issueIDString := a.GetIssueInfos()[0]
-	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-	if err != nil {
+	if err := a.Issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
-	if err != nil {
-		return "#"
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return "#"
-	}
-
-	return issue.Link()
+	return a.Issue.Link()
 }
 
 // GetBranch returns the action's repository branch.
@@ -393,6 +364,10 @@ func (a *Action) GetCreate() time.Time {
 	return a.CreatedUnix.AsTime()
 }
 
+func (a *Action) IsIssueEvent() bool {
+	return a.OpType.InActions("comment_issue", "approve_pull_request", "reject_pull_request", "comment_pull", "merge_pull_request")
+}
+
 // GetIssueInfos returns a list of associated information with the action.
 func (a *Action) GetIssueInfos() []string {
 	// make sure it always returns 3 elements, because there are some access to the a[1] and a[2] without checking the length
@@ -403,27 +378,52 @@ func (a *Action) GetIssueInfos() []string {
 	return ret
 }
 
-// GetIssueTitle returns the title of first issue associated with the action.
-func (a *Action) GetIssueTitle(ctx context.Context) string {
-	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
-	if err != nil {
-		log.Error("GetIssueByIndex: %v", err)
-		return "500 when get issue"
+func (a *Action) getIssueIndex() int64 {
+	infos := a.GetIssueInfos()
+	if len(infos) == 0 {
+		return 0
 	}
-	return issue.Title
+	index, _ := strconv.ParseInt(infos[0], 10, 64)
+	return index
 }
 
-// GetIssueContent returns the content of first issue associated with
-// this action.
-func (a *Action) GetIssueContent(ctx context.Context) string {
-	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
-	if err != nil {
-		log.Error("GetIssueByIndex: %v", err)
-		return "500 when get issue"
+func (a *Action) LoadIssue(ctx context.Context) error {
+	if a.Issue != nil {
+		return nil
 	}
-	return issue.Content
+	if index := a.getIssueIndex(); index > 0 {
+		issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
+		if err != nil {
+			return err
+		}
+		a.Issue = issue
+		a.Issue.Repo = a.Repo
+	}
+	return nil
+}
+
+// GetIssueTitle returns the title of first issue associated with the action.
+func (a *Action) GetIssueTitle(ctx context.Context) string {
+	if err := a.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return "<500 when get issue>"
+	}
+	if a.Issue == nil {
+		return "<Issue not found>"
+	}
+	return a.Issue.Title
+}
+
+// GetIssueContent returns the content of first issue associated with this action.
+func (a *Action) GetIssueContent(ctx context.Context) string {
+	if err := a.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return "<500 when get issue>"
+	}
+	if a.Issue == nil {
+		return "<Content not found>"
+	}
+	return a.Issue.Content
 }
 
 // GetFeedsOptions options for retrieving feeds
@@ -463,7 +463,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
-	if err := ActionList(actions).loadAttributes(ctx); err != nil {
+	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 

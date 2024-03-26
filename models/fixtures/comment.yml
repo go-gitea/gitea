@@ -75,3 +75,11 @@
   content: "comment in private pository"
   created_unix: 946684811
   updated_unix: 946684811
+
+-
+  id: 9
+  type: 22 # review
+  poster_id: 2
+  issue_id: 2 # in repo_id 1
+  review_id: 20
+  created_unix: 946684810

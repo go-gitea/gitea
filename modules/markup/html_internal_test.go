@@ -287,6 +287,7 @@ func TestRender_IssueIndexPattern_Document(t *testing.T) {
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
+	ctx.Links.AbsolutePrefix = true
 	if ctx.Links.Base == "" {
 		ctx.Links.Base = TestRepoURL
 	}

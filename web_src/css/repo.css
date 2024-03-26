@@ -4,16 +4,6 @@
   user-select: none;
 }
 
-.repository .navbar {
-  display: flex;
-  justify-content: space-between;
-}
-
-.repository .navbar .ui.label {
-  margin-left: 7px;
-  padding: 3px 5px;
-}
-
 .repository .owner.dropdown {
   min-width: 40% !important;
 }
@@ -203,41 +193,31 @@
   margin-bottom: 12px;
 }
 
-.repository #clone-panel #repo-clone-url {
+.repository .clone-panel #repo-clone-url {
   width: 320px;
   border-radius: 0;
 }
 
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .repository #clone-panel #repo-clone-url {
+@media (max-width: 991.98px) {
+  .repository .clone-panel #repo-clone-url {
     width: 200px;
   }
 }
 
-@media (max-width: 767.98px) {
-  .repository #clone-panel #repo-clone-url {
-    width: 200px;
-  }
+.repository .ui.action.input.clone-panel > button + button,
+.repository .ui.action.input.clone-panel > button + input {
+  margin-left: -1px; /* make the borders overlap to avoid double borders */
 }
 
-.repository #clone-panel #repo-clone-https,
-.repository #clone-panel #repo-clone-ssh {
-  border-right: none;
-}
-
-.repository #clone-panel #more-btn {
-  border-left: none;
-}
-
-.repository #clone-panel button:first-of-type {
+.repository .clone-panel > button:first-of-type {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-.repository #clone-panel button:last-of-type {
+.repository .clone-panel > button:last-of-type {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-.repository #clone-panel .dropdown .menu {
+.repository .clone-panel .dropdown .menu {
   right: 0 !important;
   left: auto !important;
 }
@@ -1124,11 +1104,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
@@ -1685,7 +1661,6 @@
 
 .repository .diff-file-box .file-body.file-code .lines-num {
   text-align: right;
-  color: var(--color-text-light);
   width: 1%;
   min-width: 50px;
 }
@@ -1820,10 +1795,6 @@
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.repository.quickstart .guide .clone.button:first-child {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
 .repository.quickstart .guide #repo-clone-url {
@@ -2124,13 +2095,8 @@
 }
 
 #cite-repo-modal #citation-panel {
-  width: 500px;
-}
-
-@media (max-width: 767.98px) {
-  #cite-repo-modal #citation-panel {
-    width: 100%;
-  }
+  display: flex;
+  width: 100%;
 }
 
 #cite-repo-modal #citation-panel input {
@@ -2150,6 +2116,7 @@
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1;
 }
 
 #cite-repo-modal #citation-panel #citation-copy-apa,
@@ -2502,6 +2469,11 @@
   gap: 0 !important;
 }
 
+.archived-label {
+  filter: grayscale(0.5);
+  opacity: 0.5;
+}
+
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
@@ -2551,6 +2523,7 @@ tbody.commit-list {
 
 .author-wrapper {
   max-width: 180px;
+  align-self: center;
 }
 
 /* in the commit list, messages can wrap so we can use inline */
@@ -2872,16 +2845,6 @@ tbody.commit-list {
   border-left: 1px solid var(--color-secondary);
 }
 
-.repository .ui.menu.new-menu {
-  background: none !important;
-}
-
-@media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
-    background: none !important;
-  }
-}
-
 .migrate-entries {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr);
@@ -3107,6 +3070,36 @@ tbody.commit-list {
 
 #cherry-pick-modal .scrolling.menu {
   max-height: 200px;
+}
+
+/* Branch tag selector - TODO: Merge this into the same selector on repo page */
+.repository .issue-content .issue-content-right  .ui.grid .column.row {
+  padding: 10px;
+  padding-bottom: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted {
+  padding: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted .text {
+  display: inline-block;
+  padding: 10px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
+  border-color: var(--color-secondary);
+  background: var(--color-menu);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
+  border-top: none;
+}
+.repository .issue-content .issue-content-right .branch-tag-divider {
+  margin-top: -1px;
+  border-top: 1px solid var(--color-secondary);
 }
 
 #repo-desc-mobile .description,

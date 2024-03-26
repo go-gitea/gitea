@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.swift.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>swift package-registry set <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/swift"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>swift package-registry set <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/swift"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.swift.install"}}</label>

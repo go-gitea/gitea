@@ -27,7 +27,21 @@ import (
 )
 
 // ASTTransformer is a default transformer of the goldmark tree.
-type ASTTransformer struct{}
+type ASTTransformer struct {
+	AttentionTypes container.Set[string]
+}
+
+func NewASTTransformer() *ASTTransformer {
+	return &ASTTransformer{
+		AttentionTypes: container.SetOf("note", "tip", "important", "warning", "caution"),
+	}
+}
+
+func (g *ASTTransformer) applyElementDir(n ast.Node) {
+	if markup.DefaultProcessorHelper.ElementDir != "" {
+		n.SetAttributeString("dir", []byte(markup.DefaultProcessorHelper.ElementDir))
+	}
+}
 
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
@@ -43,12 +57,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			node.InsertBefore(node, firstChild, metaNode)
 		}
 		tocMode = rc.TOC
-	}
-
-	applyElementDir := func(n ast.Node) {
-		if markup.DefaultProcessorHelper.ElementDir != "" {
-			n.SetAttributeString("dir", []byte(markup.DefaultProcessorHelper.ElementDir))
-		}
 	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -72,9 +80,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				header.ID = util.BytesToReadOnlyString(id.([]byte))
 			}
 			tocList = append(tocList, header)
-			applyElementDir(v)
+			g.applyElementDir(v)
 		case *ast.Paragraph:
-			applyElementDir(v)
+			g.applyElementDir(v)
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -174,7 +182,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.AppendChild(v, newChild)
 				}
 			}
-			applyElementDir(v)
+			g.applyElementDir(v)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
 				if ctx.Metas["mode"] != "document" {
@@ -189,51 +197,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				v.AppendChild(v, NewColorPreview(colorContent))
 			}
 		case *ast.Blockquote:
-			// We only want attention blockquotes when the AST looks like:
-			// Text: "["
-			// Text: "!TYPE"
-			// Text(SoftLineBreak): "]"
-
-			// grab these nodes and make sure we adhere to the attention blockquote structure
-			firstParagraph := v.FirstChild()
-			if firstParagraph.ChildCount() < 3 {
-				return ast.WalkContinue, nil
-			}
-			firstTextNode, ok := firstParagraph.FirstChild().(*ast.Text)
-			if !ok || string(firstTextNode.Segment.Value(reader.Source())) != "[" {
-				return ast.WalkContinue, nil
-			}
-			secondTextNode, ok := firstTextNode.NextSibling().(*ast.Text)
-			if !ok || !attentionTypeRE.MatchString(string(secondTextNode.Segment.Value(reader.Source()))) {
-				return ast.WalkContinue, nil
-			}
-			thirdTextNode, ok := secondTextNode.NextSibling().(*ast.Text)
-			if !ok || string(thirdTextNode.Segment.Value(reader.Source())) != "]" {
-				return ast.WalkContinue, nil
-			}
-
-			// grab attention type from markdown source
-			attentionType := strings.ToLower(strings.TrimPrefix(string(secondTextNode.Segment.Value(reader.Source())), "!"))
-
-			// color the blockquote
-			v.SetAttributeString("class", []byte("gt-py-3 attention attention-"+attentionType))
-
-			// create an emphasis to make it bold
-			attentionParagraph := ast.NewParagraph()
-			emphasis := ast.NewEmphasis(2)
-			emphasis.SetAttributeString("class", []byte("attention-"+attentionType))
-
-			// capitalize first letter
-			attentionText := ast.NewString([]byte(strings.ToUpper(string(attentionType[0])) + attentionType[1:]))
-
-			// replace the ![TYPE] with a dedicated paragraph of icon+Type
-			emphasis.AppendChild(emphasis, attentionText)
-			attentionParagraph.AppendChild(attentionParagraph, NewAttention(attentionType))
-			attentionParagraph.AppendChild(attentionParagraph, emphasis)
-			firstParagraph.Parent().InsertBefore(firstParagraph.Parent(), firstParagraph, attentionParagraph)
-			firstParagraph.RemoveChild(firstParagraph, firstTextNode)
-			firstParagraph.RemoveChild(firstParagraph, secondTextNode)
-			firstParagraph.RemoveChild(firstParagraph, thirdTextNode)
+			return g.transformBlockquote(v, reader)
 		}
 		return ast.WalkContinue, nil
 	})
@@ -268,7 +232,7 @@ func (p *prefixedIDs) Generate(value []byte, kind ast.NodeKind) []byte {
 	return p.GenerateWithDefault(value, dft)
 }
 
-// Generate generates a new element id.
+// GenerateWithDefault generates a new element id.
 func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	result := common.CleanValue(value)
 	if len(result) == 0 {
@@ -303,7 +267,8 @@ func newPrefixedIDs() *prefixedIDs {
 // in the gitea form.
 func NewHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
-		Config: html.NewConfig(),
+		Config:      html.NewConfig(),
+		reValidName: regexp.MustCompile("^[a-z ]+$"),
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -315,6 +280,7 @@ func NewHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
 // renders gitea specific features.
 type HTMLRenderer struct {
 	html.Config
+	reValidName *regexp.Regexp
 }
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
@@ -364,27 +330,21 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<span class="gt-mr-2 gt-vm attention-`)
 		n := node.(*Attention)
-		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
-		_, _ = w.WriteString(`">`)
-
-		var octiconType string
+		var octiconName string
 		switch n.AttentionType {
-		case "note":
-			octiconType = "info"
 		case "tip":
-			octiconType = "light-bulb"
+			octiconName = "light-bulb"
 		case "important":
-			octiconType = "report"
+			octiconName = "report"
 		case "warning":
-			octiconType = "alert"
+			octiconName = "alert"
 		case "caution":
-			octiconType = "stop"
+			octiconName = "stop"
+		default: // including "note"
+			octiconName = "info"
 		}
-		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
-	} else {
-		_, _ = w.WriteString("</span>\n")
+		_, _ = w.WriteString(string(svg.RenderHTML("octicon-"+octiconName, 16, "attention-icon attention-"+n.AttentionType)))
 	}
 	return ast.WalkContinue, nil
 }
@@ -448,11 +408,6 @@ func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.N
 	return ast.WalkContinue, nil
 }
 
-var (
-	validNameRE     = regexp.MustCompile("^[a-z ]+$")
-	attentionTypeRE = regexp.MustCompile("^!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)$")
-)
-
 func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
@@ -467,7 +422,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 		return ast.WalkContinue, nil
 	}
 
-	if !validNameRE.MatchString(name) {
+	if !r.reValidName.MatchString(name) {
 		// skip this
 		return ast.WalkContinue, nil
 	}

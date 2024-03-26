@@ -179,11 +179,9 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	for _, c := range comments {
-		if err := c.LoadAttachments(ctx); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
 	}
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled

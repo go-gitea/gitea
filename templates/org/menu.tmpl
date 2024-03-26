@@ -1,50 +1,49 @@
 <div class="ui container">
-	<div class="ui secondary stackable pointing menu">
-		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
-			{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
-			{{if .RepoCount}}
-				<div class="ui small label">{{.RepoCount}}</div>
+	<overflow-menu class="ui secondary pointing tabular borderless menu">
+		<div class="overflow-menu-items">
+			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
+				{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+				{{if .RepoCount}}
+					<div class="ui small label">{{.RepoCount}}</div>
+				{{end}}
+			</a>
+			{{if .CanReadProjects}}
+			<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
+				{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+				{{if .ProjectCount}}
+					<div class="ui small label">{{.ProjectCount}}</div>
+				{{end}}
+			</a>
 			{{end}}
-		</a>
-		{{if .CanReadProjects}}
-		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
-			{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
-			{{if .ProjectCount}}
-				<div class="ui small label">{{.ProjectCount}}</div>
+			{{if and .IsPackageEnabled .CanReadPackages}}
+			<a class="{{if .IsPackagesPage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/packages">
+				{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
+			</a>
 			{{end}}
-		</a>
-		{{end}}
-		{{if and .IsPackageEnabled .CanReadPackages}}
-		<a class="{{if .IsPackagesPage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/packages">
-			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
-		</a>
-		{{end}}
-		{{if and .IsRepoIndexerEnabled .CanReadCode}}
-		<a class="{{if .IsCodePage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/code">
-			{{svg "octicon-code"}} {{ctx.Locale.Tr "org.code"}}
-		</a>
-		{{end}}
-		{{if .NumMembers}}
+			{{if and .IsRepoIndexerEnabled .CanReadCode}}
+			<a class="{{if .IsCodePage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/code">
+				{{svg "octicon-code"}} {{ctx.Locale.Tr "org.code"}}
+			</a>
+			{{end}}
+			{{if .NumMembers}}
 			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
 				{{svg "octicon-person"}} {{ctx.Locale.Tr "org.members"}}
 				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
-		{{end}}
-		{{if .IsOrganizationMember}}
+			{{end}}
+			{{if .IsOrganizationMember}}
 			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
 				{{svg "octicon-people"}} {{ctx.Locale.Tr "org.teams"}}
 				{{if .NumTeams}}
 					<div class="ui small label">{{.NumTeams}}</div>
 				{{end}}
 			</a>
-		{{end}}
-
-		{{if .IsOrganizationOwner}}
-			<div class="right menu">
-				<a class="{{if .PageIsOrgSettings}}active {{end}}item" href="{{.OrgLink}}/settings">
-				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
-				</a>
-			</div>
-		{{end}}
-	</div>
+			{{end}}
+			{{if .IsOrganizationOwner}}
+			<a class="{{if .PageIsOrgSettings}}active {{end}}item" href="{{.OrgLink}}/settings">
+			{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
+			</a>
+			{{end}}
+		</div>
+	</overflow-menu>
 </div>
