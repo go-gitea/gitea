@@ -208,13 +208,11 @@ a.ui.ui.ui.basic.yellow.label:hover {
   border-color: var(--color-green);
   color: var(--color-white);
 }
-
 a.ui.ui.ui.green.label:hover {
   background: var(--color-green-dark-1);
   border-color: var(--color-green-dark-1);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.green.label {
   background: transparent;
   border-color: var(--color-green);
@@ -225,28 +223,7 @@ a.ui.ui.ui.basic.green.label:hover {
   border-color: var(--color-green-dark-1);
   color: var(--color-green-dark-1);
 }
-.ui.ui.ui.teal.label {
-  background: var(--color-teal);
-  border-color: var(--color-teal);
-  color: var(--color-white);
-}
 
-a.ui.ui.ui.teal.label:hover {
-  background: var(--color-teal-dark-1);
-  border-color: var(--color-teal-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.teal.label {
-  background: transparent;
-  border-color: var(--color-teal);
-  color: var(--color-teal);
-}
-a.ui.ui.ui.basic.teal.label:hover {
-  background: transparent;
-  border-color: var(--color-teal-dark-1);
-  color: var(--color-teal-dark-1);
-}
 .ui.ui.ui.blue.label {
   background: var(--color-blue);
   border-color: var(--color-blue);
