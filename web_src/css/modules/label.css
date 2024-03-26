@@ -135,18 +135,6 @@ a.ui.ui.ui.basic.primary.label:hover {
   color: var(--color-primary-dark-1);
 }
 
-.ui.ui.ui.secondary.label {
-  background: var(--color-button);
-  border-color: var(--color-light-border);
-  color: var(--color-text-light);
-}
-
-.ui.ui.ui.basic.secondary.label {
-  background: transparent;
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
-}
-
 .ui.ui.ui.red.label {
   background: var(--color-red);
   border-color: var(--color-red);
