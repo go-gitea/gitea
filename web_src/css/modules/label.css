@@ -224,40 +224,16 @@ a.ui.ui.ui.basic.green.label:hover {
   color: var(--color-green-dark-1);
 }
 
-.ui.ui.ui.violet.label {
-  background: var(--color-blue-violet);
-  border-color: var(--color-blue-violet);
-  color: var(--color-white);
-}
-
-a.ui.ui.ui.violet.label:hover {
-  background: var(--color-blue-violet-dark-1);
-  border-color: var(--color-blue-violet-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.violet.label {
-  background: transparent;
-  border-color: var(--color-blue-violet);
-  color: var(--color-blue-violet);
-}
-a.ui.ui.ui.basic.violet.label:hover {
-  background: transparent;
-  border-color: var(--color-blue-violet-dark-1);
-  color: var(--color-blue-violet-dark-1);
-}
 .ui.ui.ui.purple.label {
   background: var(--color-purple);
   border-color: var(--color-purple);
   color: var(--color-white);
 }
-
 a.ui.ui.ui.purple.label:hover {
   background: var(--color-purple-dark-1);
   border-color: var(--color-purple-dark-1);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.purple.label {
   background: transparent;
   border-color: var(--color-purple);
@@ -268,62 +244,17 @@ a.ui.ui.ui.basic.purple.label:hover {
   border-color: var(--color-purple-dark-1);
   color: var(--color-purple-dark-1);
 }
-.ui.ui.ui.pink.label {
-  background: var(--color-pink);
-  border-color: var(--color-pink);
-  color: var(--color-white);
-}
 
-a.ui.ui.ui.pink.label:hover {
-  background: var(--color-pink-dark-1);
-  border-color: var(--color-pink-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.pink.label {
-  background: transparent;
-  border-color: var(--color-pink);
-  color: var(--color-pink);
-}
-a.ui.ui.ui.basic.pink.label:hover {
-  background: transparent;
-  border-color: var(--color-pink-dark-1);
-  color: var(--color-pink-dark-1);
-}
-.ui.ui.ui.brown.label {
-  background: var(--color-brown);
-  border-color: var(--color-brown);
-  color: var(--color-white);
-}
-
-a.ui.ui.ui.brown.label:hover {
-  background: var(--color-brown-dark-1);
-  border-color: var(--color-brown-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.brown.label {
-  background: transparent;
-  border-color: var(--color-brown);
-  color: var(--color-brown);
-}
-a.ui.ui.ui.basic.brown.label:hover {
-  background: transparent;
-  border-color: var(--color-brown-dark-1);
-  color: var(--color-brown-dark-1);
-}
 .ui.ui.ui.grey.label {
   background: var(--color-label-bg);
   border-color: var(--color-label-bg);
   color: var(--color-label-text);
 }
-
 a.ui.ui.ui.grey.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.grey.label {
   background: transparent;
   border-color: var(--color-label-bg);
@@ -333,28 +264,6 @@ a.ui.ui.ui.basic.grey.label:hover {
   background: transparent;
   border-color: var(--color-label-hover-bg);
   color: var(--color-label-hover-bg);
-}
-.ui.ui.ui.black.label {
-  background: var(--color-black);
-  border-color: var(--color-black);
-  color: var(--color-white);
-}
-
-a.ui.ui.ui.black.label:hover {
-  background: var(--color-black-dark-1);
-  border-color: var(--color-black-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.black.label {
-  background: transparent;
-  border-color: var(--color-black);
-  color: var(--color-black);
-}
-a.ui.ui.ui.basic.black.label:hover {
-  background: transparent;
-  border-color: var(--color-black-dark-1);
-  color: var(--color-black-dark-1);
 }
 
 .ui.horizontal.label {
