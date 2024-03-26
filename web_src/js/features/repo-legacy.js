@@ -362,7 +362,7 @@ async function onEditContent(event) {
         });
         this.on('removedfile', async (file) => {
           if (disableRemovedfileEvent) return;
-          document.getElementById(file.uuid).remove();
+          document.getElementById(file.uuid)?.remove();
           if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
             try {
               await POST(dropzone.getAttribute('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
