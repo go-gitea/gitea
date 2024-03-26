@@ -41,6 +41,11 @@ textarea,
   color: var(--color-input-text);
 }
 
+/* fix fomantic small dropdown having inconsistent padding with input */
+.ui.small.selection.dropdown {
+  padding: .67857143em 3.2em .67857143em 1em;
+}
+
 input:hover,
 textarea:hover,
 .ui.input input:hover,

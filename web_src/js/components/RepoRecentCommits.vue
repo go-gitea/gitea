@@ -35,7 +35,7 @@ export default {
   props: {
     locale: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -105,12 +105,12 @@ export default {
             },
             ticks: {
               maxRotation: 0,
-              maxTicksLimit: 52
+              maxTicksLimit: 52,
             },
           },
           y: {
             ticks: {
-              maxTicksLimit: 6
+              maxTicksLimit: 6,
             },
           },
         },
@@ -121,13 +121,13 @@ export default {
 </script>
 <template>
   <div>
-    <div class="ui header gt-df gt-ac gt-sb">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Number of commits in the past year" }}
     </div>
-    <div class="gt-df ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+    <div class="tw-flex ui segment main-graph">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

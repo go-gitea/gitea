@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {isElemHidden, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.js';
 import {GET} from '../modules/fetch.js';
 
@@ -30,42 +29,40 @@ export function parseIssueListQuickGotoLink(repoLink, searchText) {
 }
 
 export function initCommonIssueListQuickGoto() {
-  const $goto = $('#issue-list-quick-goto');
-  if (!$goto.length) return;
+  const goto = document.getElementById('issue-list-quick-goto');
+  if (!goto) return;
 
-  const $form = $goto.closest('form');
-  const $input = $form.find('input[name=q]');
-  const repoLink = $goto.attr('data-repo-link');
+  const form = goto.closest('form');
+  const input = form.querySelector('input[name=q]');
+  const repoLink = goto.getAttribute('data-repo-link');
 
-  $form.on('submit', (e) => {
+  form.addEventListener('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
-    let doQuickGoto = !isElemHidden($goto);
+    let doQuickGoto = !isElemHidden(goto);
     const submitter = submitEventSubmitter(e);
-    if (submitter !== $form[0] && submitter !== $input[0] && submitter !== $goto[0]) doQuickGoto = false;
+    if (submitter !== form && submitter !== input && submitter !== goto) doQuickGoto = false;
     if (!doQuickGoto) return;
 
     // if there is a goto button, use its link
     e.preventDefault();
-    window.location.href = $goto.attr('data-issue-goto-link');
+    window.location.href = goto.getAttribute('data-issue-goto-link');
   });
 
   const onInput = async () => {
-    const searchText = $input.val();
-
+    const searchText = input.value;
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
     if (targetUrl) {
       const res = await GET(`${targetUrl}/info`);
       if (res.status !== 200) targetUrl = '';
     }
-
     // if the input value has changed, then ignore the result
-    if ($input.val() !== searchText) return;
+    if (input.value !== searchText) return;
 
-    toggleElem($goto, Boolean(targetUrl));
-    $goto.attr('data-issue-goto-link', targetUrl);
+    toggleElem(goto, Boolean(targetUrl));
+    goto.setAttribute('data-issue-goto-link', targetUrl);
   };
 
-  $input.on('input', onInputDebounce(onInput));
+  input.addEventListener('input', onInputDebounce(onInput));
   onInput();
 }

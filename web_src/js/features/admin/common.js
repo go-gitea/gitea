@@ -6,9 +6,7 @@ import {POST} from '../../modules/fetch.js';
 const {appSubUrl} = window.config;
 
 export function initAdminCommon() {
-  if ($('.page-content.admin').length === 0) {
-    return;
-  }
+  if (!$('.page-content.admin').length) return;
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
   checkAppUrl();
@@ -49,7 +47,7 @@ export function initAdminCommon() {
   }
 
   function onUsePagedSearchChange() {
-    if ($('#use_paged_search').prop('checked')) {
+    if (document.getElementById('use_paged_search').checked) {
       showElem('.search-page-size');
       $('.search-page-size').find('input').attr('required', 'required');
     } else {
@@ -84,7 +82,7 @@ export function initAdminCommon() {
     hideElem($('.oauth2_use_custom_url_field'));
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
-    if ($('#oauth2_use_custom_url').is(':checked')) {
+    if (document.getElementById('oauth2_use_custom_url')?.checked) {
       for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
           $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
@@ -98,7 +96,7 @@ export function initAdminCommon() {
   }
 
   function onEnableLdapGroupsChange() {
-    toggleElem($('#ldap-group-options'), $('.js-ldap-group-toggle').is(':checked'));
+    toggleElem($('#ldap-group-options'), $('.js-ldap-group-toggle')[0].checked);
   }
 
   // New authentication
@@ -208,7 +206,7 @@ export function initAdminCommon() {
     $('#delete-selection').on('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
-      $this.addClass('loading disabled');
+      $this.addClass('is-loading disabled');
       const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {

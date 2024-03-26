@@ -5,6 +5,11 @@
   display: none !important;
 }
 
+/* show target element once it's been moved by tippy.js */
+.tippy-content .tippy-target {
+  display: unset !important;
+}
+
 [data-tippy-root] {
   max-width: calc(100vw - 32px);
 }
@@ -46,17 +51,39 @@
 .tippy-box[data-theme="menu"] {
   background-color: var(--color-menu);
   color: var(--color-text);
+  box-shadow: 0 6px 18px var(--color-shadow);
 }
 
 .tippy-box[data-theme="menu"] .tippy-content {
-  padding: 0;
+  padding: 4px 0;
 }
 
 .tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
   fill: var(--color-menu);
 }
 
+.tippy-box[data-theme="menu"] .item {
+  display: flex;
+  align-items: center;
+  padding: 9px 18px;
+  color: inherit;
+  text-decoration: none;
+  gap: 10px;
+}
+
+.tippy-box[data-theme="menu"] .item:hover {
+  background: var(--color-hover);
+}
+
+.tippy-box[data-theme="menu"] .item:focus {
+  background: var(--color-active);
+}
+
 /* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
+
+.tippy-box[data-theme="box-with-header"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
   background: var(--color-box-body);

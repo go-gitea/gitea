@@ -67,11 +67,10 @@ modifies/dependencies:
       - any-glob-to-any-file:
           - "package.json"
           - "package-lock.json"
-          - "poetry.toml"
+          - "pyproject.toml"
           - "poetry.lock"
           - "go.mod"
           - "go.sum"
-          - "pyproject.toml"
 
 modifies/go:
   - changed-files:
@@ -82,3 +81,4 @@ modifies/js:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
+          - "**/*.vue"

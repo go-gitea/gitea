@@ -281,18 +281,18 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	searchType := esMultiMatchTypePhrasePrefix
-	if isFuzzy {
+	if opts.IsKeywordFuzzy {
 		searchType = esMultiMatchTypeBestFields
 	}
 
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
+	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(repoIDs) > 0 {
-		repoStrs := make([]any, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(opts.RepoIDs) > 0 {
+		repoStrs := make([]any, 0, len(opts.RepoIDs))
+		for _, repoID := range opts.RepoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
@@ -300,16 +300,12 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	}
 
 	var (
-		start       int
-		kw          = "<em>" + keyword + "</em>"
-		aggregation = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
+		start, pageSize = opts.GetSkipTake()
+		kw              = "<em>" + opts.Keyword + "</em>"
+		aggregation     = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
 	)
 
-	if page > 0 {
-		start = (page - 1) * pageSize
-	}
-
-	if len(language) == 0 {
+	if len(opts.Language) == 0 {
 		searchResult, err := b.inner.Client.Search().
 			Index(b.inner.VersionedIndexName()).
 			Aggregation("language", aggregation).
@@ -330,7 +326,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		return convertResult(searchResult, kw, pageSize)
 	}
 
-	langQuery := elastic.NewMatchQuery("language", language)
+	langQuery := elastic.NewMatchQuery("language", opts.Language)
 	countResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Aggregation("language", aggregation).

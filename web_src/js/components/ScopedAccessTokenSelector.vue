@@ -39,7 +39,7 @@ const sfc = {
         'repository',
         'user');
       return categories;
-    }
+    },
   },
 
   mounted() {
@@ -68,7 +68,7 @@ const sfc = {
       }
       // no scopes selected, show validation error
       showElem(warningEl);
-    }
+    },
   },
 };
 
@@ -87,7 +87,7 @@ export function initScopedAccessTokenCategories() {
 
 </script>
 <template>
-  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2 access-token-category">
+  <div v-for="category in categories" :key="category" class="field tw-pl-1 tw-pb-1 access-token-category">
     <label class="category-label" :for="'access-token-scope-' + category">
       {{ category }}
     </label>

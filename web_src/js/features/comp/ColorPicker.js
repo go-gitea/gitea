@@ -2,11 +2,15 @@ import $ from 'jquery';
 import {createColorPicker} from '../colorpicker.js';
 
 export function initCompColorPicker() {
-  createColorPicker($('.color-picker'));
+  (async () => {
+    await createColorPicker(document.querySelectorAll('.color-picker'));
 
-  $('.precolors .color').on('click', function () {
-    const color_hex = $(this).data('color-hex');
-    $('.color-picker').val(color_hex);
-    $('.minicolors-swatch-color').css('background-color', color_hex);
-  });
+    for (const el of document.querySelectorAll('.precolors .color')) {
+      el.addEventListener('click', (e) => {
+        const color = e.target.getAttribute('data-color-hex');
+        const parent = e.target.closest('.color.picker');
+        $(parent.querySelector('.color-picker')).minicolors('value', color);
+      });
+    }
+  })();
 }

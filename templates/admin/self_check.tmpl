@@ -7,9 +7,9 @@
 	<div class="ui attached segment">
 		{{if .DatabaseCheckHasProblems}}
 			{{if .DatabaseType.IsMySQL}}
-				<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
+				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
 			{{else if .DatabaseType.IsMSSQL}}
-				<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
+				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
 			{{end}}
 			{{if .DatabaseCheckCollationMismatch}}
 				<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
@@ -28,7 +28,7 @@
 				</div>
 			{{end}}
 		{{else}}
-			<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}</div>
+			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}</div>
 		{{end}}
 	</div>
 </div>
