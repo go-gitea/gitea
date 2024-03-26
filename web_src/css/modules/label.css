@@ -140,13 +140,11 @@ a.ui.ui.ui.basic.primary.label:hover {
   border-color: var(--color-red);
   color: var(--color-white);
 }
-
 a.ui.ui.ui.red.label:hover {
   background: var(--color-red-dark-1);
   border-color: var(--color-red-dark-1);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.red.label {
   background: transparent;
   border-color: var(--color-red);
@@ -157,18 +155,17 @@ a.ui.ui.ui.basic.red.label:hover {
   border-color: var(--color-red-dark-1);
   color: var(--color-red-dark-1);
 }
+
 .ui.ui.ui.orange.label {
   background: var(--color-orange);
   border-color: var(--color-orange);
   color: var(--color-white);
 }
-
 a.ui.ui.ui.orange.label:hover {
   background: var(--color-orange-dark-1);
   border-color: var(--color-orange-dark-1);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.orange.label {
   background: transparent;
   border-color: var(--color-orange);
@@ -179,18 +176,17 @@ a.ui.ui.ui.basic.orange.label:hover {
   border-color: var(--color-orange-dark-1);
   color: var(--color-orange-dark-1);
 }
+
 .ui.ui.ui.yellow.label {
   background: var(--color-yellow);
   border-color: var(--color-yellow);
   color: var(--color-white);
 }
-
 a.ui.ui.ui.yellow.label:hover {
   background: var(--color-yellow-dark-1);
   border-color: var(--color-yellow-dark-1);
   color: var(--color-white);
 }
-
 .ui.ui.ui.basic.yellow.label {
   background: transparent;
   border-color: var(--color-yellow);
@@ -207,22 +203,6 @@ a.ui.ui.ui.basic.yellow.label:hover {
   color: var(--color-white);
 }
 
-a.ui.ui.ui.olive.label:hover {
-  background: var(--color-olive-dark-1);
-  border-color: var(--color-olive-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.olive.label {
-  background: transparent;
-  border-color: var(--color-olive);
-  color: var(--color-olive);
-}
-a.ui.ui.ui.basic.olive.label:hover {
-  background: transparent;
-  border-color: var(--color-olive-dark-1);
-  color: var(--color-olive-dark-1);
-}
 .ui.ui.ui.green.label {
   background: var(--color-green);
   border-color: var(--color-green);
