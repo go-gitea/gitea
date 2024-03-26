@@ -10,18 +10,12 @@ function initRepoCreateBranchButton() {
   // 2 pages share this code, one is the branch list page, the other is the commit view page: create branch/tag from current commit (dirty code)
   for (const el of document.querySelectorAll('.show-create-branch-modal')) {
     el.addEventListener('click', () => {
-      let modalFormName = el.getAttribute('data-modal-form');
-      if (!modalFormName) {
-        modalFormName = '#create-branch-form';
-      }
+      let modalFormName = el.getAttribute('data-modal-form') || '#create-branch-form';
       const modalForm = document.querySelector(modalFormName);
       if (!modalForm) return;
       modalForm.action = `${modalForm.getAttribute('data-base-action')}${el.getAttribute('data-branch-from-urlcomponent')}`;
 
-      let fromSpanName = el.getAttribute('data-modal-from-span');
-      if (!fromSpanName) {
-        fromSpanName = '#modal-create-branch-from-span';
-      }
+      let fromSpanName = el.getAttribute('data-modal-from-span') || '#modal-create-branch-from-span';
       document.querySelector(fromSpanName).textContent = el.getAttribute('data-branch-from');
 
       $(el.getAttribute('data-modal')).modal('show');
