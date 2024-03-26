@@ -470,6 +470,15 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+// IsSameUser checks if both user are the same
+func (u *User) IsSameUser(user *User) bool {
+	if user == nil {
+		return false
+	}
+
+	return u.ID == user.ID
+}
+
 // IsUserExist checks if given user name exist,
 // the user name should be noncased unique.
 // If uid is presented, then check will rule out that one,

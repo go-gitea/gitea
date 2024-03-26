@@ -46,6 +46,8 @@ func TestAPIExposedSettings(t *testing.T) {
 		MirrorsDisabled:      !setting.Mirror.Enabled,
 		HTTPGitDisabled:      setting.Repository.DisableHTTPGit,
 		MigrationsDisabled:   setting.Repository.DisableMigrations,
+		StarsDisabled:        setting.Repository.DisableStars,
+		StarListsDisabled:    setting.Repository.DisableStarLists,
 		TimeTrackingDisabled: false,
 		LFSDisabled:          !setting.LFS.StartServer,
 	}, repo)

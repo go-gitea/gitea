@@ -446,6 +446,16 @@ func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// EditStarListForm form forediting/creating star lists
+type EditStarListForm struct {
+	CurrentURL  string
+	Action      string
+	ID          int64
+	Name        string
+	Description string
+	Private     bool
+}
+
 type BlockUserForm struct {
 	Action  string `binding:"Required;In(block,unblock,note)"`
 	Blockee string `binding:"Required"`

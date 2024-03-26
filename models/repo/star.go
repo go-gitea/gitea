@@ -64,6 +64,10 @@ func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star
 		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", doer.ID); err != nil {
 			return err
 		}
+		// Delete the repo from all star lists of this user
+		if _, err := db.Exec(ctx, "DELETE FROM star_list_repos WHERE repo_id = ? AND star_list_id IN (SELECT id FROM star_list WHERE user_id = ?)", repo.ID, doer.ID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()
