@@ -70,5 +70,5 @@
 	<button id="commit-button" type="submit" class="ui primary button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
-	<a class="ui button red" href="{{if .IsEditingFileOnly}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
+	<a class="ui button red" href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
 </div>
