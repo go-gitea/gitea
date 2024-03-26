@@ -71,7 +71,7 @@
 		{{.locale.Tr "sign_in_or"}}
 	</div>
 	<div id="saml-login-navigator" class="tw-py-1">
-		<div class="gt-df gt-fc gt-jc">
+		<div class="tw-flex tw-flex-col tw-justify-center">
 			<div id="saml-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $provider := .SAMLProviders}}
 					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 saml-login-link" href="{{AppSubUrl}}/user/saml/{{$provider.Name}}">
