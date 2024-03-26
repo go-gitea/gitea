@@ -73,9 +73,6 @@ input.color-picker {
 
 .clr-hue {
   background-image: linear-gradient(to right, #f00 0%, #ff0 16.66%, #0f0 33.33%, #0ff 50%, #00f 66.66%, #f0f 83.33%, #f00 100%);
-}
-
-.clr-hue {
   position: relative;
   width: calc(100% - 40px);
   height: 10px;
@@ -134,6 +131,9 @@ input.color-picker {
   overflow: hidden;
   pointer-events: none;
   border-radius: 2px;
+  background-image: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);
+  background-position: 0 0, 4px 4px;
+  background-size: 8px 8px;
 }
 
 .clr-field button::after {
@@ -146,12 +146,6 @@ input.color-picker {
   top: 0;
   border-radius: inherit;
   background-color: currentcolor;
-}
-
-.clr-field button {
-  background-image: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);
-  background-position: 0 0, 4px 4px;
-  background-size: 8px 8px;
 }
 
 .clr-marker:focus {
