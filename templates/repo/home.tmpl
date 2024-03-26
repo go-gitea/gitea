@@ -16,7 +16,7 @@
 		<div class="repo-content">
 			<div class="repo-content-main" data-home={{.IsHomePage}}>
 				{{if .RepoSearchEnabled}}
-					<div class="ui repo-search gt-hidden-in-desktop">
+					<div class="ui repo-search only-mobile">
 						<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 							<div class="field">
 								<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
@@ -35,8 +35,8 @@
 				{{template "repo/sidebar/repo_info" dict "ctxData" . "HiddenInMobileView" false}}
 				{{template "repo/sub_menu" .}}
 				<div class="repo-button-row">
-					<div class="gt-df gt-ac gt-fw gt-gap-y-3">
-						{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
+					<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
+						{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 							{{$cmpBranch := ""}}
 							{{if ne .Repository.ID .BaseRepo.ID}}
@@ -57,7 +57,7 @@
 						{{end}}
 
 						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-							<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+							<button class="ui dropdown basic compact jump button tw-mr-1"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 								{{ctx.Locale.Tr "repo.editor.add_file"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
@@ -82,7 +82,7 @@
 							</a>
 						{{end}}
 						{{if ne $n 0}}
-							<span class="breadcrumb repo-path gt-ml-2">
+							<span class="breadcrumb repo-path tw-ml-1">
 								<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 								{{- range $i, $v := .TreeNames -}}
 									<span class="breadcrumb-divider">/</span>
@@ -95,7 +95,7 @@
 							</span>
 						{{end}}
 					</div>
-					<div class="gt-df gt-ac">
+					<div class="tw-flex tw-items-center">
 						<!-- Only show clone panel in repository home page -->
 						{{if eq $n 0}}
 							<div class="ui action tiny input" id="clone-panel">
@@ -104,9 +104,9 @@
 									{{svg "octicon-kebab-horizontal"}}
 									<div class="menu">
 										{{if not $.DisableDownloadSourceArchives}}
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
 										{{end}}
 										{{range .OpenWithEditorApps}}
 											<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
@@ -119,7 +119,7 @@
 						{{end}}
 						{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
 							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-								{{svg "octicon-history" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.file_history"}}
+								{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 							</a>
 						{{end}}
 					</div>
@@ -164,12 +164,12 @@
 							</div>
 							<div class="flex-item-body">
 								<div class="latest-release">
-									<div class="gt-df gt-gap-3 gt-ac">
+									<div class="tw-flex tw-gap-2 tw-items-center">
 										<a class="latest-release-tag gt-word-break" href="{{.LatestRelease.Link}}">
 											{{svg "octicon-tag" 16}}
 											{{.LatestRelease.TagName}}
 										</a>
-										<span class="ui basic green label gt-h-100">{{ctx.Locale.Tr "latest"}}</span>
+										<span class="ui basic green label tw-h-100">{{ctx.Locale.Tr "latest"}}</span>
 									</div>
 									<span class="time">{{TimeSinceUnix .LatestRelease.CreatedUnix ctx.Locale}}</span>
 								</div>
@@ -191,7 +191,7 @@
 							<div class="flex-item-body">
 								<div class="contributors-stats">
 									{{range .TopContributorStats}}
-										<a href="{{.HomeLink}}"><img class="ui avatar gt-vm" src="{{.AvatarLink}}" title="{{.Name}}" width="40" height="40"/></a>
+										<a href="{{.HomeLink}}"><img class="ui avatar tw-align-middle" src="{{.AvatarLink}}" title="{{.Name}}" width="40" height="40"/></a>
 									{{end}}
 								</div>
 							</div>
@@ -216,7 +216,7 @@
 									{{range .LanguageStats}}
 									<div class="item">
 										<i class="color-icon" style="background-color: {{.Color}}"></i>
-										<span class="gt-font-semibold gt-dib">
+										<span class="tw-font-semibold">
 											{{if eq .Language "other"}}
 												{{ctx.Locale.Tr "repo.language_other"}}
 											{{else}}

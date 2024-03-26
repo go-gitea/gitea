@@ -68,13 +68,3 @@ only use:
     display: none !important;
   }
 }
-
-.gt-hidden.gt-hidden { display: none !important; }
-
-@media (max-width: 767.98px) {
-  .gt-hidden-in-mobile { display: none !important; }
-}
-
-@media (min-width: 767.98px) {
-  .gt-hidden-in-desktop { display: none !important; }
-}

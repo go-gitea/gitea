@@ -7,18 +7,19 @@ const {appSubUrl} = window.config;
 
 export function initRepoTopicBars() {
   for (const mgrBtn of document.querySelectorAll('.manage-topic')) {
-    const viewType = $(mgrBtn).getAttribute('data-view-type');
+    const viewType = mgrBtn.getAttribute('data-view-type');
     if (!viewType.length) {
       throw new Error('no view type defined in attributes for manage topic button');
     }
-    initRepoTopicBar($(mgrBtn), viewType);
+    initRepoTopicBar(mgrBtn, viewType);
   }
 }
 
-export function initRepoTopicBar() {
-  const editDiv = document.getElementById('topic_edit');
-  const viewDiv = document.getElementById('repo-topics');
-  const saveBtn = document.getElementById('save_topic');
+function initRepoTopicBar(mgrBtn, viewType) {
+  const editDiv = document.getElementById(`topic_edit_${viewType}`);
+  const viewDiv = document.getElementById(`repo-topics-${viewType}`);
+  const saveBtn = document.getElementById(`save_topic_${viewType}`);
+  const cancelBtn = document.getElementById(`cancel_topic_edit_${viewType}`);
   const topicDropdown = editDiv.querySelector('.dropdown');
   const $topicDropdown = $(topicDropdown);
   const $topicForm = $(editDiv);
@@ -34,14 +35,14 @@ export function initRepoTopicBar() {
     $topicDropdownSearch.trigger('focus');
   });
 
-  cancelBtn.on('click', () => {
+  $(cancelBtn).on('click', () => {
     hideElem(editDiv);
     showElem(viewDiv);
-    mgrBtn.trigger('focus');
+    mgrBtn.focus();
   });
 
   saveBtn.addEventListener('click', async () => {
-    const topics = $('input[name=topics-${viewType}]').val();
+    const topics = $(`input[name=topics-${viewType}]`).val();
 
     const data = new FormData();
     data.append('topics', topics);
