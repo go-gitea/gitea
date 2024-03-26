@@ -186,7 +186,7 @@ export function initAdminCommon() {
     const authType = document.getElementById('auth_type')?.value;
     if (authType === '2' || authType === '5') {
       document.getElementById('security_protocol')?.addEventListener('change', onSecurityProtocolChange);
-      $('.js-ldap-group-toggle')?.addEventListener('change', onEnableLdapGroupsChange);
+      $('.js-ldap-group-toggle')?.on('change', onEnableLdapGroupsChange);
       onEnableLdapGroupsChange();
       if (authType === '2') {
         document.getElementById('use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
