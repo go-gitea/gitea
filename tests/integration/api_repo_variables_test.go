@@ -54,7 +54,7 @@ func TestAPIRepoVariables(t *testing.T) {
 				ExpectedStatus: http.StatusBadRequest,
 			},
 			{
-				Name:           "var#test",
+				Name:           "var@test",
 				ExpectedStatus: http.StatusBadRequest,
 			},
 			{
