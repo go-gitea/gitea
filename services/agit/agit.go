@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -149,6 +150,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      objectFormat.EmptyObjectID().String(),
 				NewOID:      opts.NewCommitIDs[i],
+				CreatePR:    true,
+				URL:         fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+				Message:     setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
+				HeadBranch:  headBranch,
 			})
 			continue
 		}
@@ -213,6 +218,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			Ref:         pr.GetGitRefName(),
 			OriginalRef: opts.RefFullNames[i],
 			IsForcePush: isForcePush,
+			CreatePR:    false,
+			URL:         fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			Message:     setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 		})
 	}
 
