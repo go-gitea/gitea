@@ -294,12 +294,3 @@ a.ui.ui.ui.basic.grey.label:hover {
 .ui.large.label {
   font-size: 1rem;
 }
-.ui.big.label {
-  font-size: 1.28571429rem;
-}
-.ui.huge.label {
-  font-size: 1.42857143rem;
-}
-.ui.massive.label {
-  font-size: 1.71428571rem;
-}
