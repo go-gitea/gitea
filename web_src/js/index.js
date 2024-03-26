@@ -22,7 +22,6 @@ import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
-
 import {initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoIssueDue,
@@ -85,6 +84,7 @@ import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
+import {initFileView} from './render/code.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -186,4 +186,5 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
+  initFileView();
 });
