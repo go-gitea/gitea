@@ -8,20 +8,25 @@ import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndC
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';
 import {submitEventSubmitter} from '../utils/dom.js';
+import {POST, GET} from '../modules/fetch.js';
 
-const {csrfToken, pageData, i18n} = window.config;
+const {pageData, i18n} = window.config;
 
 function initRepoDiffReviewButton() {
-  const $reviewBox = $('#review-box');
-  const $counter = $reviewBox.find('.review-comments-counter');
+  const reviewBox = document.getElementById('review-box');
+  if (!reviewBox) return;
+
+  const $reviewBox = $(reviewBox);
+  const counter = reviewBox.querySelector('.review-comments-counter');
+  if (!counter) return;
 
   $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
     // Watch for the form's submit event.
     $form.on('submit', () => {
-      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
-      $counter.attr('data-pending-comment-number', num);
-      $counter.text(num);
+      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+      counter.setAttribute('data-pending-comment-number', num);
+      counter.textContent = num;
       // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
       $reviewBox.removeClass('pulse');
       $reviewBox.width();
@@ -37,8 +42,8 @@ function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('gt-hidden');
-    $target.removeClass('gt-hidden');
+    $target.parent().children().addClass('tw-hidden');
+    $target.removeClass('tw-hidden');
   });
 }
 
@@ -63,8 +68,9 @@ function initRepoDiffConversationForm() {
       if (isSubmittedByButton && submitter.name) {
         formData.append(submitter.name, submitter.value);
       }
-      const formDataString = String(new URLSearchParams(formData));
-      const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
+
+      const response = await POST(e.target.getAttribute('action'), {data: formData});
+      const $newConversationHolder = $(await response.text());
       const {path, side, idx} = $newConversationHolder.data();
 
       $form.closest('.conversation-holder').replaceWith($newConversationHolder);
@@ -75,7 +81,8 @@ function initRepoDiffConversationForm() {
       }
       $newConversationHolder.find('.dropdown').dropdown();
       initCompReactionSelector($newConversationHolder);
-    } catch { // here the caught error might be a jQuery AJAX error (thrown by await $.post), which is not good to use for error message handling
+    } catch (error) {
+      console.error('Error:', error);
       showErrorToast(i18n.network_error);
     } finally {
       $form.removeClass('is-loading');
@@ -89,15 +96,20 @@ function initRepoDiffConversationForm() {
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    const data = await $.post(url, {_csrf: csrfToken, origin, action, comment_id});
+    try {
+      const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
+      const data = await response.text();
 
-    if ($(this).closest('.conversation-holder').length) {
-      const conversation = $(data);
-      $(this).closest('.conversation-holder').replaceWith(conversation);
-      conversation.find('.dropdown').dropdown();
-      initCompReactionSelector(conversation);
-    } else {
-      window.location.reload();
+      if ($(this).closest('.conversation-holder').length) {
+        const $conversation = $(data);
+        $(this).closest('.conversation-holder').replaceWith($conversation);
+        $conversation.find('.dropdown').dropdown();
+        initCompReactionSelector($conversation);
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   });
 }
@@ -106,20 +118,20 @@ export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
+    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
     const index = $conversations.index($conversation);
     const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
     const $previousConversation = $conversations.eq(previousIndex);
-    const anchor = $previousConversation.find('.comment').first().attr('id');
+    const anchor = $previousConversation.find('.comment').first()[0].getAttribute('id');
     window.location.href = `#${anchor}`;
   });
   $(document).on('click', '.next-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
+    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
     const index = $conversations.index($conversation);
     const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
     const $nextConversation = $conversations.eq(nextIndex);
-    const anchor = $nextConversation.find('.comment').first().attr('id');
+    const anchor = $nextConversation.find('.comment').first()[0].getAttribute('id');
     window.location.href = `#${anchor}`;
   });
 }
@@ -132,7 +144,7 @@ function onShowMoreFiles() {
   initImageDiff();
 }
 
-export function loadMoreFiles(url) {
+export async function loadMoreFiles(url) {
   const $target = $('a#diff-show-more-files');
   if ($target.hasClass('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
@@ -140,10 +152,10 @@ export function loadMoreFiles(url) {
 
   pageData.diffFileInfo.isLoadingNewData = true;
   $target.addClass('disabled');
-  $.ajax({
-    type: 'GET',
-    url,
-  }).done((resp) => {
+
+  try {
+    const response = await GET(url);
+    const resp = await response.text();
     const $resp = $(resp);
     // the response is a full HTML page, we need to extract the relevant contents:
     // 1. append the newly loaded file list items to the existing list
@@ -152,22 +164,24 @@ export function loadMoreFiles(url) {
     $('body').append($resp.find('script#diff-data-script'));
 
     onShowMoreFiles();
-  }).always(() => {
+  } catch (error) {
+    console.error('Error:', error);
+    showErrorToast('An error occurred while loading more files.');
+  } finally {
     $target.removeClass('disabled');
     pageData.diffFileInfo.isLoadingNewData = false;
-  });
+  }
 }
 
 function initRepoDiffShowMore() {
   $(document).on('click', 'a#diff-show-more-files', (e) => {
     e.preventDefault();
 
-    const $target = $(e.target);
-    const linkLoadMore = $target.attr('data-href');
+    const linkLoadMore = e.target.getAttribute('data-href');
     loadMoreFiles(linkLoadMore);
   });
 
-  $(document).on('click', 'a.diff-load-button', (e) => {
+  $(document).on('click', 'a.diff-load-button', async (e) => {
     e.preventDefault();
     const $target = $(e.target);
 
@@ -178,26 +192,27 @@ function initRepoDiffShowMore() {
     $target.addClass('disabled');
 
     const url = $target.data('href');
-    $.ajax({
-      type: 'GET',
-      url,
-    }).done((resp) => {
+
+    try {
+      const response = await GET(url);
+      const resp = await response.text();
+
       if (!resp) {
-        $target.removeClass('disabled');
         return;
       }
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
       onShowMoreFiles();
-    }).fail(() => {
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
       $target.removeClass('disabled');
-    });
+    }
   });
 }
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  const diffFileList = $('#diff-file-list');
-  if (diffFileList.length === 0) return;
+  if (!$('#diff-file-list').length) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

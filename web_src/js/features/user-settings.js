@@ -1,7 +1,7 @@
 import {hideElem, showElem} from '../utils/dom.js';
 
 export function initUserSettings() {
-  if (document.querySelectorAll('.user.settings.profile').length === 0) return;
+  if (!document.querySelectorAll('.user.settings.profile').length) return;
 
   const usernameInput = document.getElementById('username');
   if (!usernameInput) return;

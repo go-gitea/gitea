@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
@@ -70,7 +71,15 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
-				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, true)
+				total, res, langs, err := indexer.Search(context.TODO(), &internal.SearchOptions{
+					RepoIDs: kw.RepoIDs,
+					Keyword: kw.Keyword,
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 10,
+					},
+					IsKeywordFuzzy: true,
+				})
 				assert.NoError(t, err)
 				assert.Len(t, kw.IDs, int(total))
 				assert.Len(t, langs, kw.Langs)

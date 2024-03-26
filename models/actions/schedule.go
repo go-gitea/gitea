@@ -127,14 +127,14 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) er
 		return fmt.Errorf("DeleteCronTaskByRepo: %v", err)
 	}
 	// cancel running cron jobs of this repository and delete old schedules
-	if err := CancelRunningJobs(
+	if err := CancelPreviousJobs(
 		ctx,
 		repo.ID,
 		repo.DefaultBranch,
 		"",
 		webhook_module.HookEventSchedule,
 	); err != nil {
-		return fmt.Errorf("CancelRunningJobs: %v", err)
+		return fmt.Errorf("CancelPreviousJobs: %v", err)
 	}
 	return nil
 }

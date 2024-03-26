@@ -70,8 +70,8 @@ func Packages(ctx *context.Context) {
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Query")
-	pager.AddParam(ctx, "type", "PackageType")
+	pager.AddParamString("q", query)
+	pager.AddParamString("type", packageType)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
