@@ -250,14 +250,13 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			}
 			log.Warn("migrating milestones is not supported, ignored")
 		}
-
 		msBatchSize := uploader.MaxBatchInsertSize("milestone")
 		for len(milestones) > 0 {
 			if len(milestones) < msBatchSize {
 				msBatchSize = len(milestones)
 			}
 
-			if err := uploader.CreateMilestones(milestones...); err != nil {
+			if err := uploader.CreateMilestones(milestones[:msBatchSize]...); err != nil {
 				return err
 			}
 			milestones = milestones[msBatchSize:]
