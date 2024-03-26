@@ -153,11 +153,11 @@ export function initRepoTopicBar() {
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
     const $topics = $topicDropdown.children('a.ui.label');
-    const status = $topics.length === 0 || $topics.last()[0].getAttribute('data-value').match(regExp);
+    const status = !$topics.length || $topics.last()[0].getAttribute('data-value').match(regExp);
     if (!status) {
       $topics.last().removeClass('green').addClass('red');
     }
-    return status && $topicDropdown.children('a.ui.label.red').length === 0;
+    return status && !$topicDropdown.children('a.ui.label.red').length;
   };
 
   $topicForm.form({
