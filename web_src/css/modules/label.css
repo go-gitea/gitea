@@ -83,15 +83,10 @@ a.ui.label {
   margin: 0 0 0 0.5em;
 }
 
-.ui.labels > .label {
-  margin: 0 0.5em 0.5em 0;
-}
-
 .ui.header > .ui.label {
   margin-top: -0.29165em;
 }
 
-.ui.labels a.label:hover,
 a.ui.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
@@ -104,19 +99,16 @@ a.ui.label:hover {
   color: var(--color-label-text);
 }
 
-.ui.labels a.active.label:hover,
 a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
 }
 
-.ui.labels.visible .label,
 .ui.label.visible:not(.dropdown) {
   display: inline-block !important;
 }
 
-.ui.basic.labels .label,
 .ui.basic.label {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
@@ -125,12 +117,11 @@ a.ui.active.label:hover {
   padding-bottom: calc(0.5833em - 1px);
   padding-right: calc(0.833em - 1px);
 }
-.ui.basic.labels:not(.tag,.image,.ribbon) .label,
+
 .ui.basic.label:not(.tag,.image,.ribbon) {
   padding-left: calc(0.833em - 1px);
 }
 
-.ui.basic.labels a.label:hover,
 a.ui.basic.label:hover {
   text-decoration: none;
   color: var(--color-text);
@@ -138,387 +129,329 @@ a.ui.basic.label:hover {
   background: var(--color-hover);
 }
 
-.ui.primary.labels .label,
 .ui.ui.ui.primary.label {
   background: var(--color-primary);
   border-color: var(--color-primary-dark-2);
   color: var(--color-primary-contrast);
 }
 
-.ui.primary.labels a.label:hover,
 a.ui.ui.ui.primary.label:hover {
   background: var(--color-primary-dark-3);
   border-color: var(--color-primary-dark-3);
   color: var(--color-primary-contrast);
 }
 
-.ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-.ui.basic.labels a.primary.label:hover,
+
 a.ui.ui.ui.basic.primary.label:hover {
   background: var(--color-hover);
   border-color: var(--color-primary-dark-1);
   color: var(--color-primary-dark-1);
 }
 
-.ui.secondary.labels .label,
 .ui.ui.ui.secondary.label {
   background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
 }
 
-.ui.basic.labels .secondary.label,
 .ui.ui.ui.basic.secondary.label {
   background: transparent;
   border-color: var(--color-secondary);
   color: var(--color-secondary);
 }
 
-.ui.red.labels .label,
 .ui.ui.ui.red.label {
   background: var(--color-red);
   border-color: var(--color-red);
   color: var(--color-white);
 }
 
-.ui.red.labels a.label:hover,
 a.ui.ui.ui.red.label:hover {
   background: var(--color-red-dark-1);
   border-color: var(--color-red-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .red.label,
 .ui.ui.ui.basic.red.label {
   background: transparent;
   border-color: var(--color-red);
   color: var(--color-red);
 }
-.ui.basic.labels a.red.label:hover,
 a.ui.ui.ui.basic.red.label:hover {
   background: transparent;
   border-color: var(--color-red-dark-1);
   color: var(--color-red-dark-1);
 }
-.ui.orange.labels .label,
 .ui.ui.ui.orange.label {
   background: var(--color-orange);
   border-color: var(--color-orange);
   color: var(--color-white);
 }
 
-.ui.orange.labels a.label:hover,
 a.ui.ui.ui.orange.label:hover {
   background: var(--color-orange-dark-1);
   border-color: var(--color-orange-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .orange.label,
 .ui.ui.ui.basic.orange.label {
   background: transparent;
   border-color: var(--color-orange);
   color: var(--color-orange);
 }
-.ui.basic.labels a.orange.label:hover,
 a.ui.ui.ui.basic.orange.label:hover {
   background: transparent;
   border-color: var(--color-orange-dark-1);
   color: var(--color-orange-dark-1);
 }
-.ui.yellow.labels .label,
 .ui.ui.ui.yellow.label {
   background: var(--color-yellow);
   border-color: var(--color-yellow);
   color: var(--color-white);
 }
 
-.ui.yellow.labels a.label:hover,
 a.ui.ui.ui.yellow.label:hover {
   background: var(--color-yellow-dark-1);
   border-color: var(--color-yellow-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .yellow.label,
 .ui.ui.ui.basic.yellow.label {
   background: transparent;
   border-color: var(--color-yellow);
   color: var(--color-yellow);
 }
-.ui.basic.labels a.yellow.label:hover,
 a.ui.ui.ui.basic.yellow.label:hover {
   background: transparent;
   border-color: var(--color-yellow-dark-1);
   color: var(--color-yellow-dark-1);
 }
-.ui.olive.labels .label,
 .ui.ui.ui.olive.label {
   background: var(--color-olive);
   border-color: var(--color-olive);
   color: var(--color-white);
 }
 
-.ui.olive.labels a.label:hover,
 a.ui.ui.ui.olive.label:hover {
   background: var(--color-olive-dark-1);
   border-color: var(--color-olive-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .olive.label,
 .ui.ui.ui.basic.olive.label {
   background: transparent;
   border-color: var(--color-olive);
   color: var(--color-olive);
 }
-.ui.basic.labels a.olive.label:hover,
 a.ui.ui.ui.basic.olive.label:hover {
   background: transparent;
   border-color: var(--color-olive-dark-1);
   color: var(--color-olive-dark-1);
 }
-.ui.green.labels .label,
 .ui.ui.ui.green.label {
   background: var(--color-green);
   border-color: var(--color-green);
   color: var(--color-white);
 }
 
-.ui.green.labels a.label:hover,
 a.ui.ui.ui.green.label:hover {
   background: var(--color-green-dark-1);
   border-color: var(--color-green-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .green.label,
 .ui.ui.ui.basic.green.label {
   background: transparent;
   border-color: var(--color-green);
   color: var(--color-green);
 }
-.ui.basic.labels a.green.label:hover,
 a.ui.ui.ui.basic.green.label:hover {
   background: transparent;
   border-color: var(--color-green-dark-1);
   color: var(--color-green-dark-1);
 }
-.ui.teal.labels .label,
 .ui.ui.ui.teal.label {
   background: var(--color-teal);
   border-color: var(--color-teal);
   color: var(--color-white);
 }
 
-.ui.teal.labels a.label:hover,
 a.ui.ui.ui.teal.label:hover {
   background: var(--color-teal-dark-1);
   border-color: var(--color-teal-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .teal.label,
 .ui.ui.ui.basic.teal.label {
   background: transparent;
   border-color: var(--color-teal);
   color: var(--color-teal);
 }
-.ui.basic.labels a.teal.label:hover,
 a.ui.ui.ui.basic.teal.label:hover {
   background: transparent;
   border-color: var(--color-teal-dark-1);
   color: var(--color-teal-dark-1);
 }
-.ui.blue.labels .label,
 .ui.ui.ui.blue.label {
   background: var(--color-blue);
   border-color: var(--color-blue);
   color: var(--color-white);
 }
 
-.ui.blue.labels a.label:hover,
 a.ui.ui.ui.blue.label:hover {
   background: var(--color-blue-dark-1);
   border-color: var(--color-blue-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .blue.label,
 .ui.ui.ui.basic.blue.label {
   background: transparent;
   border-color: var(--color-blue);
   color: var(--color-blue);
 }
-.ui.basic.labels a.blue.label:hover,
 a.ui.ui.ui.basic.blue.label:hover {
   background: transparent;
   border-color: var(--color-blue-dark-1);
   color: var(--color-blue-dark-1);
 }
-.ui.violet.labels .label,
 .ui.ui.ui.violet.label {
   background: var(--color-blue-violet);
   border-color: var(--color-blue-violet);
   color: var(--color-white);
 }
 
-.ui.violet.labels a.label:hover,
 a.ui.ui.ui.violet.label:hover {
   background: var(--color-blue-violet-dark-1);
   border-color: var(--color-blue-violet-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .violet.label,
 .ui.ui.ui.basic.violet.label {
   background: transparent;
   border-color: var(--color-blue-violet);
   color: var(--color-blue-violet);
 }
-.ui.basic.labels a.violet.label:hover,
 a.ui.ui.ui.basic.violet.label:hover {
   background: transparent;
   border-color: var(--color-blue-violet-dark-1);
   color: var(--color-blue-violet-dark-1);
 }
-.ui.purple.labels .label,
 .ui.ui.ui.purple.label {
   background: var(--color-purple);
   border-color: var(--color-purple);
   color: var(--color-white);
 }
 
-.ui.purple.labels a.label:hover,
 a.ui.ui.ui.purple.label:hover {
   background: var(--color-purple-dark-1);
   border-color: var(--color-purple-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .purple.label,
 .ui.ui.ui.basic.purple.label {
   background: transparent;
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
-.ui.basic.labels a.purple.label:hover,
 a.ui.ui.ui.basic.purple.label:hover {
   background: transparent;
   border-color: var(--color-purple-dark-1);
   color: var(--color-purple-dark-1);
 }
-.ui.pink.labels .label,
 .ui.ui.ui.pink.label {
   background: var(--color-pink);
   border-color: var(--color-pink);
   color: var(--color-white);
 }
 
-.ui.pink.labels a.label:hover,
 a.ui.ui.ui.pink.label:hover {
   background: var(--color-pink-dark-1);
   border-color: var(--color-pink-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .pink.label,
 .ui.ui.ui.basic.pink.label {
   background: transparent;
   border-color: var(--color-pink);
   color: var(--color-pink);
 }
-.ui.basic.labels a.pink.label:hover,
 a.ui.ui.ui.basic.pink.label:hover {
   background: transparent;
   border-color: var(--color-pink-dark-1);
   color: var(--color-pink-dark-1);
 }
-.ui.brown.labels .label,
 .ui.ui.ui.brown.label {
   background: var(--color-brown);
   border-color: var(--color-brown);
   color: var(--color-white);
 }
 
-.ui.brown.labels a.label:hover,
 a.ui.ui.ui.brown.label:hover {
   background: var(--color-brown-dark-1);
   border-color: var(--color-brown-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .brown.label,
 .ui.ui.ui.basic.brown.label {
   background: transparent;
   border-color: var(--color-brown);
   color: var(--color-brown);
 }
-.ui.basic.labels a.brown.label:hover,
 a.ui.ui.ui.basic.brown.label:hover {
   background: transparent;
   border-color: var(--color-brown-dark-1);
   color: var(--color-brown-dark-1);
 }
-.ui.grey.labels .label,
 .ui.ui.ui.grey.label {
   background: var(--color-label-bg);
   border-color: var(--color-label-bg);
   color: var(--color-label-text);
 }
 
-.ui.grey.labels a.label:hover,
 a.ui.ui.ui.grey.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
   color: var(--color-white);
 }
 
-.ui.basic.labels .grey.label,
 .ui.ui.ui.basic.grey.label {
   background: transparent;
   border-color: var(--color-label-bg);
   color: var(--color-label-text);
 }
-.ui.basic.labels a.grey.label:hover,
 a.ui.ui.ui.basic.grey.label:hover {
   background: transparent;
   border-color: var(--color-label-hover-bg);
   color: var(--color-label-hover-bg);
 }
-.ui.black.labels .label,
 .ui.ui.ui.black.label {
   background: var(--color-black);
   border-color: var(--color-black);
   color: var(--color-white);
 }
 
-.ui.black.labels a.label:hover,
 a.ui.ui.ui.black.label:hover {
   background: var(--color-black-dark-1);
   border-color: var(--color-black-dark-1);
   color: var(--color-white);
 }
 
-.ui.basic.labels .black.label,
 .ui.ui.ui.basic.black.label {
   background: transparent;
   border-color: var(--color-black);
   color: var(--color-black);
 }
-.ui.basic.labels a.black.label:hover,
 a.ui.ui.ui.basic.black.label:hover {
   background: transparent;
   border-color: var(--color-black-dark-1);
   color: var(--color-black-dark-1);
 }
 
-.ui.horizontal.labels .label,
 .ui.horizontal.label {
   margin: 0 0.5em 0 0;
   padding: 0.4em 0.833em;
@@ -526,7 +459,6 @@ a.ui.ui.ui.basic.black.label:hover {
   text-align: center;
 }
 
-.ui.circular.labels .label,
 .ui.circular.label {
   min-width: 2em;
   min-height: 2em;
@@ -537,35 +469,27 @@ a.ui.ui.ui.basic.black.label:hover {
   justify-content: center;
 }
 
-.ui.labels .label,
 .ui.label {
   font-size: 0.85714286rem;
 }
-.ui.mini.labels .label,
 .ui.mini.label {
   font-size: 0.64285714rem;
 }
-.ui.tiny.labels .label,
 .ui.tiny.label {
   font-size: 0.71428571rem;
 }
-.ui.small.labels .label,
 .ui.small.label {
   font-size: 0.78571429rem;
 }
-.ui.large.labels .label,
 .ui.large.label {
   font-size: 1rem;
 }
-.ui.big.labels .label,
 .ui.big.label {
   font-size: 1.28571429rem;
 }
-.ui.huge.labels .label,
 .ui.huge.label {
   font-size: 1.42857143rem;
 }
-.ui.massive.labels .label,
 .ui.massive.label {
   font-size: 1.71428571rem;
 }
