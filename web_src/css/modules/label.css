@@ -101,13 +101,7 @@ a.ui.label:hover {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
   color: var(--color-text-light);
-  padding-top: calc(0.5833em - 1px);
-  padding-bottom: calc(0.5833em - 1px);
-  padding-right: calc(0.833em - 1px);
-}
-
-.ui.basic.label:not(.tag,.image,.ribbon) {
-  padding-left: calc(0.833em - 1px);
+  padding: calc(0.5833em - 1px) calc(0.833em - 1px);
 }
 
 a.ui.basic.label:hover {
