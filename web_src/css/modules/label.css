@@ -224,28 +224,6 @@ a.ui.ui.ui.basic.green.label:hover {
   color: var(--color-green-dark-1);
 }
 
-.ui.ui.ui.blue.label {
-  background: var(--color-blue);
-  border-color: var(--color-blue);
-  color: var(--color-white);
-}
-
-a.ui.ui.ui.blue.label:hover {
-  background: var(--color-blue-dark-1);
-  border-color: var(--color-blue-dark-1);
-  color: var(--color-white);
-}
-
-.ui.ui.ui.basic.blue.label {
-  background: transparent;
-  border-color: var(--color-blue);
-  color: var(--color-blue);
-}
-a.ui.ui.ui.basic.blue.label:hover {
-  background: transparent;
-  border-color: var(--color-blue-dark-1);
-  color: var(--color-blue-dark-1);
-}
 .ui.ui.ui.violet.label {
   background: var(--color-blue-violet);
   border-color: var(--color-blue-violet);
