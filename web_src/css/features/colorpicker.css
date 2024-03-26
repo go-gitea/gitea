@@ -1,3 +1,7 @@
+/* This is a stripped-down version of coloris's CSS tailored to our needs. It does only include
+   opaqua colors, and if more features like opacity are needed, the CSS needs to be extended
+   based on upstream: https://github.com/mdbassit/Coloris/blob/main/src/coloris.css.
+
 /* stylelint-disable scale-unlimited/declaration-strict-value */
 
 input.color-picker {
@@ -20,13 +24,8 @@ input.color-picker {
   user-select: none;
 }
 
-.clr-picker.clr-open,
-.clr-picker[data-inline="true"] {
+.clr-picker.clr-open {
   display: flex;
-}
-
-.clr-picker[data-inline="true"] {
-  position: relative;
 }
 
 .clr-gradient {
@@ -76,8 +75,7 @@ input.color-picker {
   background-image: linear-gradient(to right, #f00 0%, #ff0 16.66%, #0f0 33.33%, #0ff 50%, #00f 66.66%, #f0f 83.33%, #f00 100%);
 }
 
-.clr-hue,
-.clr-alpha {
+.clr-hue {
   position: relative;
   width: calc(100% - 40px);
   height: 10px;
@@ -85,16 +83,7 @@ input.color-picker {
   border-radius: 4px;
 }
 
-.clr-alpha span {
-  display: block;
-  height: 100%;
-  width: 100%;
-  border-radius: inherit;
-  background-image: linear-gradient(90deg, rgba(0,0,0,0), currentcolor);
-}
-
-.clr-hue input[type="range"],
-.clr-alpha input[type="range"] {
+.clr-hue input[type="range"] {
   position: absolute;
   width: calc(100% + 32px);
   height: 16px;
@@ -108,8 +97,7 @@ input.color-picker {
   -webkit-appearance: none;
 }
 
-.clr-hue div,
-.clr-alpha div {
+.clr-hue div {
   position: absolute;
   width: 16px;
   height: 16px;
@@ -122,17 +110,6 @@ input.color-picker {
   background-color: currentcolor;
   box-shadow: 0 0 1px var(--color-shadow);
   pointer-events: none;
-}
-
-.clr-alpha div::before {
-  content: "";
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  left: 0;
-  top: 0;
-  border-radius: 50%;
-  background-color: currentcolor;
 }
 
 .clr-field {
@@ -171,8 +148,6 @@ input.color-picker {
   background-color: currentcolor;
 }
 
-.clr-alpha,
-.clr-alpha div,
 .clr-field button {
   background-image: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);
   background-position: 0 0, 4px 4px;
@@ -190,14 +165,11 @@ input.color-picker {
   box-shadow: 0 0 2px 2px var(--color-white);
 }
 
-.clr-picker[data-alpha="false"] .clr-alpha {
-  display: none;
-}
-
 .clr-picker .clr-preview,
 .clr-picker .clr-clear,
 .clr-picker .clr-swatches,
 .clr-picker .clr-format,
+.clr-picker .clr-alpha,
 .clr-picker .clr-color {
   display: none;
 }
