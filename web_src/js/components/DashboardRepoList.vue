@@ -456,7 +456,7 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </div>
       </div>
-      <div v-if="!repos.length && !isLoading" class="ui attached table segment gt-rounded-bottom tw-py-[80px] empty-placeholder">
+      <div v-if="!repos.length && !isLoading" class="ui attached table segment tw-rounded-b tw-py-[80px] empty-placeholder">
         {{ noRepos }}
       </div>
     </div>
