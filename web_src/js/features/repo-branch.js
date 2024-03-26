@@ -16,7 +16,7 @@ function initRepoCreateBranchButton() {
       }
       const modalForm = document.querySelector(modalFormName);
       if (!modalForm) return;
-      modalForm.action = modalForm.getAttribute('data-base-action') + element.getAttribute('data-branch-from-urlcomponent');
+      modalForm.action = `${modalForm.getAttribute('data-base-action')}${element.getAttribute('data-branch-from-urlcomponent')}`;
 
       let fromSpanName = element.getAttribute('data-modal-from-span');
       if (!fromSpanName) {
