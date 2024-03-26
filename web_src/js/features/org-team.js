@@ -8,9 +8,9 @@ export function initOrgTeamSettings() {
   $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
     if (val === 'admin') {
-      hideElem($('.organization.new.team .team-units'));
+      hideElem('.organization.new.team .team-units');
     } else {
-      showElem($('.organization.new.team .team-units'));
+      showElem('.organization.new.team .team-units');
     }
   });
 }
