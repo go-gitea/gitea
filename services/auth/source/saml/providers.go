@@ -48,7 +48,7 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 			html.EscapeString(p.iconURL), html.EscapeString(p.Name()),
 		))
 	}
-	return svg.RenderHTML("gitea-lock-cog", size, "gt-mr-3")
+	return svg.RenderHTML("gitea-lock-cog", size, "tw-mr-2")
 }
 
 func readIdentityProviderMetadata(ctx context.Context, source *Source) ([]byte, error) {
