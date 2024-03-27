@@ -59,7 +59,6 @@ async function initRepoProjectSortable() {
     group: 'project-column',
     draggable: '.project-column',
     handle: '.project-column-header',
-    filter: '[data-id="0"]',
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => {
