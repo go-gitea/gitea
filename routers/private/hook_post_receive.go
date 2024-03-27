@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -109,6 +110,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			} else {
 				branchesToSync = append(branchesToSync, update)
+
+				// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
+				pull_service.UpdatePullsRefs(ctx, repo, update)
 			}
 		}
 		if len(branchesToSync) > 0 {
