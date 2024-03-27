@@ -19,6 +19,7 @@
 		<div class="issue-content">
 			<div class="issue-content-left">
 				{{template "package/content/alpine" .}}
+				{{template "package/content/arch" .}}
 				{{template "package/content/cargo" .}}
 				{{template "package/content/chef" .}}
 				{{template "package/content/composer" .}}
@@ -50,6 +51,7 @@
 					<div class="item">{{svg "octicon-calendar" 16 "tw-mr-2"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}</div>
 					<div class="item">{{svg "octicon-download" 16 "tw-mr-2"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 					{{template "package/metadata/alpine" .}}
+					{{template "package/metadata/arch" .}}
 					{{template "package/metadata/cargo" .}}
 					{{template "package/metadata/chef" .}}
 					{{template "package/metadata/composer" .}}
