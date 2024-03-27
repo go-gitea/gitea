@@ -41,36 +41,37 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  document.getElementById('cite-repo-button')?.addEventListener('click', async (e) => {
-    const dropdownBtn = e.target.closest('.ui.dropdown.button');
-    dropdownBtn.classList.add('is-loading');
+  for (const button of document.getElementsByClassName('cite-repo-button')) {
+    button.addEventListener('click', async () => {
+      const $modal = $('#cite-repo-modal');
+      $modal.modal('show');
+      $modal.addClass('is-loading');
 
-    try {
       try {
-        await initInputCitationValue(citationCopyApa, citationCopyBibtex);
-      } catch (e) {
-        console.error(`initCitationFileCopyContent error: ${e}`, e);
-        return;
+        try {
+          await initInputCitationValue(citationCopyApa, citationCopyBibtex);
+        } catch (e) {
+          console.error(`initCitationFileCopyContent error: ${e}`, e);
+          return;
+        }
+        updateUi();
+
+        citationCopyApa.addEventListener('click', () => {
+          localStorage.setItem('citation-copy-format', 'apa');
+          updateUi();
+        });
+
+        citationCopyBibtex.addEventListener('click', () => {
+          localStorage.setItem('citation-copy-format', 'bibtex');
+          updateUi();
+        });
+
+        inputContent.addEventListener('click', () => {
+          inputContent.select();
+        });
+      } finally {
+        $modal.removeClass('is-loading');
       }
-      updateUi();
-
-      citationCopyApa.addEventListener('click', () => {
-        localStorage.setItem('citation-copy-format', 'apa');
-        updateUi();
-      });
-
-      citationCopyBibtex.addEventListener('click', () => {
-        localStorage.setItem('citation-copy-format', 'bibtex');
-        updateUi();
-      });
-
-      inputContent.addEventListener('click', () => {
-        inputContent.select();
-      });
-    } finally {
-      dropdownBtn.classList.remove('is-loading');
-    }
-
-    $('#cite-repo-modal').modal('show');
-  });
+    });
+  }
 }
