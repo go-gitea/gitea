@@ -2361,14 +2361,29 @@
 .stats-table {
   display: table;
   width: 100%;
+  margin: 6px 0;
+  border-spacing: 2px;
 }
 
 .stats-table .table-cell {
   display: table-cell;
+  border-radius: 4px;
 }
 
 .stats-table .table-cell.tiny {
-  height: 0.5em;
+  height: 8px;
+}
+
+.stats-table .table-cell:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.stats-table .table-cell:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.stats-table .table-cell:only-child {
+  border-radius: 4px;
 }
 
 .labels-list .label {
