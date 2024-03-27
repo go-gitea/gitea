@@ -26,6 +26,7 @@ type Mailer struct {
 	FromEmail            string `ini:"-"`
 	SendAsPlainText      bool   `ini:"SEND_AS_PLAIN_TEXT"`
 	SubjectPrefix        string `ini:"SUBJECT_PREFIX"`
+	ReturnPath           string `ini:"RETURN_PATH"`
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
