@@ -3,13 +3,16 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/container"
+import (
+	"code.gitea.io/gitea/modules/container"
+)
 
 // Admin settings
 var Admin struct {
-	DisableRegularOrgCreation bool
-	DefaultEmailNotification  string
-	UserDisabledFeatures      container.Set[string]
+	DisableRegularOrgCreation   bool
+	DefaultEmailNotification    string
+	UserDisabledFeatures        container.Set[string]
+	ExternalUserDisableFeatures container.Set[string]
 }
 
 func loadAdminFrom(rootCfg ConfigProvider) {
@@ -17,6 +20,7 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	Admin.DisableRegularOrgCreation = sec.Key("DISABLE_REGULAR_ORG_CREATION").MustBool(false)
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
+	Admin.ExternalUserDisableFeatures = container.SetOf(sec.Key("EXTERNAL_USER_DISABLE_FEATURES").Strings(",")...)
 }
 
 const (

@@ -522,6 +522,10 @@ And the following unique queues:
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Disabled features for users with auth sources other than `Plain`, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys` and more features can be added in future. Note: this setting uses the same features as `USER_DISABLED_FEATURES`.
+  - `deletion`: User cannot delete their own account.
+  - `manage_ssh_keys`: User cannot configure ssh keys.
+  - `manage_gpg_keys`: User cannot configure gpg keys.
 
 ## Security (`security`)
 
