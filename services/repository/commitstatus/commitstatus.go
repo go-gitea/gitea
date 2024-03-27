@@ -13,11 +13,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/notify"
 )
 
 func getCacheKey(repoID int64, brancheName string) string {
@@ -48,15 +49,9 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 	defer closer.Close()
 
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-
 	commit, err := gitRepo.GetCommit(sha)
 	if err != nil {
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
-	}
-	if len(sha) != objectFormat.FullLength() {
-		// use complete commit sha
-		sha = commit.ID.String()
 	}
 
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
@@ -67,6 +62,10 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 	}
+
+	pushCommit := repository.CommitToPushCommit(commit)
+
+	notify.CreateCommitStatus(ctx, repo, pushCommit, creator, status)
 
 	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
