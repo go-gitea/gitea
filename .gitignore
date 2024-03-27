@@ -77,7 +77,6 @@ cpu.out
 /public/assets/css
 /public/assets/fonts
 /public/assets/licenses.txt
-/public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*

@@ -192,13 +192,6 @@ export default {
           filename: 'fonts/[name].[contenthash:8][ext]',
         },
       },
-      {
-        test: /\.png$/i,
-        type: 'asset/resource',
-        generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
-        },
-      },
     ],
   },
   plugins: [
