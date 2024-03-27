@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
-	filenameRegex    = packageNameRegex
+	packageNameRegex = regexp.MustCompile(`\A[-_+.A-Za-z0-9]+\z`)
+	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& A-Za-z0-9]+\z`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
