@@ -8,6 +8,7 @@ import (
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"image"
@@ -894,6 +895,11 @@ func renderContributorStats(ctx *context.Context) {
 	contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID)
 	// TODO use httpx?
 	if err != nil {
+		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
+			ctx.Data["ContributorStatsWaitingGeneration"] = true
+			return
+		}
+
 		ctx.ServerError("contributors_service.GetContributorStats", err)
 		return
 	}
