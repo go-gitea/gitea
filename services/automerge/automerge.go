@@ -95,8 +95,8 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	})
 }
 
-// MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
-func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
+// MergeScheduledPullRequestsBySha merges a previously scheduled pull request(s) when all checks succeeded
+func MergeScheduledPullRequestsBySha(ctx context.Context, sha string, repo *repo_model.Repository) error {
 	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *issues_model.PullRequest) bool {
 		return !pr.HasMerged && pr.CanAutoMerge()
 	})
@@ -109,6 +109,15 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 	}
 
 	return nil
+}
+
+// MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
+func MergeScheduledPullRequest(pull *issues_model.PullRequest) {
+	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
+		return
+	}
+
+	addToQueue(pull, pull.HeadCommitID)
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {

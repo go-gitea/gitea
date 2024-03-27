@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
@@ -269,6 +270,17 @@ func SubmitReview(ctx *context.Context) {
 		}
 		return
 	}
+
+	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
+	if reviewType == issues_model.ReviewTypeApprove {
+		pr, err := issue.GetPullRequest(ctx)
+		if err != nil {
+			ctx.ServerError("GetPullRequest", err)
+			return
+		}
+		automerge.MergeScheduledPullRequest(pr)
+	}
+
 	ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
 
@@ -280,6 +292,9 @@ func DismissReview(ctx *context.Context) {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return
 	}
+
+	// as reviews could have blocked a pending automerge let's recheck
+	automerge.MergeScheduledPullRequest(comm.Issue.PullRequest)
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }

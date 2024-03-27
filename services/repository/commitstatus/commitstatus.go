@@ -80,8 +80,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 
 	if status.State.IsSuccess() {
-		if err := automerge.MergeScheduledPullRequest(ctx, sha, repo); err != nil {
-			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
+		if err := automerge.MergeScheduledPullRequestsBySha(ctx, sha, repo); err != nil {
+			return fmt.Errorf("MergeScheduledPullRequestsBySha[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 		}
 	}
 
