@@ -5,7 +5,7 @@ export async function createSortable(el, opts = {}) {
     animation: 150,
     ghostClass: 'card-ghost',
     onChoose: (e) => {
-      const handle = opts?.handle ? e.item.querySelector(opts.handle) : e.item;
+      const handle = opts.handle ? e.item.querySelector(opts.handle) : e.item;
       handle.classList.add('tw-cursor-grabbing');
       opts.onChoose?.(e);
     },
