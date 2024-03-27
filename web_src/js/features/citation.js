@@ -30,6 +30,7 @@ export async function initCitationFileCopyContent() {
   const citationCopyApa = document.getElementById('citation-copy-apa');
   const citationCopyBibtex = document.getElementById('citation-copy-bibtex');
   const inputContent = document.getElementById('citation-copy-content');
+  const modal = document.getElementById('cite-repo-modal');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
@@ -43,9 +44,8 @@ export async function initCitationFileCopyContent() {
 
   for (const button of document.getElementsByClassName('cite-repo-button')) {
     button.addEventListener('click', async () => {
-      const $modal = $('#cite-repo-modal');
-      $modal.modal('show');
-      $modal.addClass('is-loading');
+      $(modal).modal('show');
+      $(modal).addClass('is-loading');
 
       try {
         try {
@@ -70,7 +70,7 @@ export async function initCitationFileCopyContent() {
           inputContent.select();
         });
       } finally {
-        $modal.removeClass('is-loading');
+        $(modal).removeClass('is-loading');
       }
     });
   }
