@@ -70,6 +70,8 @@ func userProfile(ctx *context.Context) {
 		}
 		ctx.Data["HeatmapData"] = data
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		showHeatmap := len(data) > 0 || !ctx.ContextUser.KeepActivityPrivate
+		ctx.Data["ShowHeatmap"] = showHeatmap
 	}
 
 	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
@@ -205,6 +207,9 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
+
+		showFeeds := len(items) > 0 || ctx.ContextUser.KeepActivityPrivate
+		ctx.Data["ShowFeeds"] = showFeeds
 
 		total = int(count)
 	case "stars":

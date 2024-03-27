@@ -456,6 +456,9 @@ export default sfc; // activate the IDE's Vue plugin
           </div>
         </div>
       </div>
+      <div v-if="!repos.length && !isLoading" class="ui attached table segment tw-rounded-b tw-py-[80px] empty-placeholder">
+        {{ noRepos }}
+      </div>
     </div>
     <div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
       <h4 class="ui top attached header tw-flex tw-items-center">
@@ -485,6 +488,9 @@ export default sfc; // activate the IDE's Vue plugin
             </div>
           </li>
         </ul>
+      </div>
+      <div v-if="!organizations.length" class="ui attached table segment tw-rounded-b tw-py-[80px] empty-placeholder">
+        {{ noOrgs }}
       </div>
     </div>
   </div>
