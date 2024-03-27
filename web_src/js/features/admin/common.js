@@ -5,72 +5,81 @@ import {POST} from '../../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 
+function onSecurityProtocolChange() {
+  if (Number(document.getElementById('security_protocol')?.value) > 0) {
+    showElem('.has-tls');
+  } else {
+    hideElem('.has-tls');
+  }
+}
+
 export function initAdminCommon() {
-  if (!$('.page-content.admin').length) return;
+  if (!document.querySelector('.page-content.admin')) return;
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
   checkAppUrl();
 
   // New user
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
-    $('#login_type').on('change', function () {
-      if ($(this).val().substring(0, 1) === '0') {
-        $('#user_name').removeAttr('disabled');
-        $('#login_name').removeAttr('required');
+    document.getElementById('login_type')?.addEventListener('change', function () {
+      if (this.value?.substring(0, 1) === '0') {
+        document.getElementById('user_name')?.removeAttribute('disabled');
+        document.getElementById('login_name')?.removeAttribute('required');
         hideElem('.non-local');
         showElem('.local');
-        $('#user_name').trigger('focus');
+        document.getElementById('user_name')?.focus();
 
-        if ($(this).data('password') === 'required') {
-          $('#password').attr('required', 'required');
+        if (this.getAttribute('data-password') === 'required') {
+          document.getElementById('password')?.setAttribute('required', 'required');
         }
       } else {
-        if ($('.admin.edit.user').length > 0) {
-          $('#user_name').attr('disabled', 'disabled');
+        if (document.querySelector('.admin.edit.user')) {
+          document.getElementById('user_name')?.setAttribute('disabled', 'disabled');
         }
-        $('#login_name').attr('required', 'required');
+        document.getElementById('login_name')?.setAttribute('required', 'required');
         showElem('.non-local');
         hideElem('.local');
-        $('#login_name').trigger('focus');
+        document.getElementById('login_name')?.focus();
 
-        $('#password').removeAttr('required');
+        document.getElementById('password')?.removeAttribute('required');
       }
     });
   }
 
-  function onSecurityProtocolChange() {
-    if ($('#security_protocol').val() > 0) {
-      showElem('.has-tls');
-    } else {
-      hideElem('.has-tls');
-    }
-  }
-
   function onUsePagedSearchChange() {
+    const searchPageSizeElements = document.querySelectorAll('.search-page-size');
     if (document.getElementById('use_paged_search').checked) {
       showElem('.search-page-size');
-      $('.search-page-size').find('input').attr('required', 'required');
+      for (const el of searchPageSizeElements) {
+        el.querySelector('input')?.setAttribute('required', 'required');
+      }
     } else {
       hideElem('.search-page-size');
-      $('.search-page-size').find('input').removeAttr('required');
+      for (const el of searchPageSizeElements) {
+        el.querySelector('input')?.removeAttribute('required');
+      }
     }
   }
 
   function onOAuth2Change(applyDefaultValues) {
     hideElem('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url');
-    $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
+    for (const input of document.querySelectorAll('.open_id_connect_auto_discovery_url input[required]')) {
+      input.removeAttribute('required');
+    }
 
-    const provider = $('#oauth2_provider').val();
+    const provider = document.getElementById('oauth2_provider')?.value;
     switch (provider) {
       case 'openidConnect':
-        $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
+        for (const input of document.querySelectorAll('.open_id_connect_auto_discovery_url input')) {
+          input.setAttribute('required', 'required');
+        }
         showElem('.open_id_connect_auto_discovery_url');
         break;
       default:
-        if ($(`#${provider}_customURLSettings`).data('required')) {
-          $('#oauth2_use_custom_url').attr('checked', 'checked');
+        if (document.getElementById(`#${provider}_customURLSettings`)?.getAttribute('data-required')) {
+          document.getElementById('oauth2_use_custom_url')?.setAttribute('checked', 'checked');
         }
-        if ($(`#${provider}_customURLSettings`).data('available')) {
+        if (document.getElementById(`#${provider}_customURLSettings`)?.getAttribute('data-available')) {
           showElem('.oauth2_use_custom_url');
         }
     }
@@ -78,63 +87,83 @@ export function initAdminCommon() {
   }
 
   function onOAuth2UseCustomURLChange(applyDefaultValues) {
-    const provider = $('#oauth2_provider').val();
+    const provider = document.getElementById('oauth2_provider')?.value;
     hideElem('.oauth2_use_custom_url_field');
-    $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
+    for (const input of document.querySelectorAll('.oauth2_use_custom_url_field input[required]')) {
+      input.removeAttribute('required');
+    }
 
     if (document.getElementById('oauth2_use_custom_url')?.checked) {
       for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
-          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
+          document.getElementById(`oauth2_${custom}`).value = document.getElementById(`${provider}_${custom}`).value;
         }
-        if ($(`#${provider}_${custom}`).data('available')) {
-          $(`.oauth2_${custom} input`).attr('required', 'required');
-          showElem($(`.oauth2_${custom}`));
+        const customInput = document.getElementById(`${provider}_${custom}`);
+        if (customInput && customInput.getAttribute('data-available')) {
+          for (const input of document.querySelectorAll(`.oauth2_${custom} input`)) {
+            input.setAttribute('required', 'required');
+          }
+          showElem(`.oauth2_${custom}`);
         }
       }
     }
   }
 
   function onEnableLdapGroupsChange() {
-    toggleElem($('#ldap-group-options'), $('.js-ldap-group-toggle')[0].checked);
+    toggleElem(document.getElementById('ldap-group-options'), $('.js-ldap-group-toggle')[0].checked);
   }
 
   // New authentication
-  if ($('.admin.new.authentication').length > 0) {
-    $('#auth_type').on('change', function () {
+  if (document.querySelector('.admin.new.authentication')) {
+    document.getElementById('auth_type')?.addEventListener('change', function () {
       hideElem('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi');
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
+      for (const input of document.querySelectorAll('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]')) {
+        input.removeAttribute('required');
+      }
+
       $('.binddnrequired').removeClass('required');
 
-      const authType = $(this).val();
+      const authType = this.value;
       switch (authType) {
         case '2': // LDAP
           showElem('.ldap');
-          $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+          for (const input of document.querySelectorAll('.binddnrequired input, .ldap div.required:not(.dldap) input')) {
+            input.setAttribute('required', 'required');
+          }
           $('.binddnrequired').addClass('required');
           break;
         case '3': // SMTP
           showElem('.smtp');
           showElem('.has-tls');
-          $('.smtp div.required input, .has-tls').attr('required', 'required');
+          for (const input of document.querySelectorAll('.smtp div.required input, .has-tls')) {
+            input.setAttribute('required', 'required');
+          }
           break;
         case '4': // PAM
           showElem('.pam');
-          $('.pam input').attr('required', 'required');
+          for (const input of document.querySelectorAll('.pam input')) {
+            input.setAttribute('required', 'required');
+          }
           break;
         case '5': // LDAP
           showElem('.dldap');
-          $('.dldap div.required:not(.ldap) input').attr('required', 'required');
+          for (const input of document.querySelectorAll('.dldap div.required:not(.ldap) input')) {
+            input.setAttribute('required', 'required');
+          }
           break;
         case '6': // OAuth2
           showElem('.oauth2');
-          $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
+          for (const input of document.querySelectorAll('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input')) {
+            input.setAttribute('required', 'required');
+          }
           onOAuth2Change(true);
           break;
         case '7': // SSPI
           showElem('.sspi');
-          $('.sspi div.required input').attr('required', 'required');
+          for (const input of document.querySelectorAll('.sspi div.required input')) {
+            input.setAttribute('required', 'required');
+          }
           break;
       }
       if (authType === '2' || authType === '5') {
@@ -146,44 +175,44 @@ export function initAdminCommon() {
       }
     });
     $('#auth_type').trigger('change');
-    $('#security_protocol').on('change', onSecurityProtocolChange);
-    $('#use_paged_search').on('change', onUsePagedSearchChange);
-    $('#oauth2_provider').on('change', () => onOAuth2Change(true));
-    $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
+    document.getElementById('security_protocol')?.addEventListener('change', onSecurityProtocolChange);
+    document.getElementById('use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
+    document.getElementById('oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
+    document.getElementById('oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
     $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
   }
   // Edit authentication
-  if ($('.admin.edit.authentication').length > 0) {
-    const authType = $('#auth_type').val();
+  if (document.querySelector('.admin.edit.authentication')) {
+    const authType = document.getElementById('auth_type')?.value;
     if (authType === '2' || authType === '5') {
-      $('#security_protocol').on('change', onSecurityProtocolChange);
+      document.getElementById('security_protocol')?.addEventListener('change', onSecurityProtocolChange);
       $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
       onEnableLdapGroupsChange();
       if (authType === '2') {
-        $('#use_paged_search').on('change', onUsePagedSearchChange);
+        document.getElementById('use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').on('change', () => onOAuth2Change(true));
-      $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(false));
+      document.getElementById('oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
+      document.getElementById('oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(false));
       onOAuth2Change(false);
     }
   }
 
-  if ($('.admin.authentication').length > 0) {
+  if (document.querySelector('.admin.authentication')) {
     $('#auth_name').on('input', function () {
       // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-      $('#oauth2-callback-url').text(`${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
+      document.getElementById('oauth2-callback-url').textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(this.value)}/callback`;
     }).trigger('input');
   }
 
   // Notice
-  if ($('.admin.notice')) {
-    const $detailModal = $('#detail-modal');
+  if (document.querySelector('.admin.notice')) {
+    const $detailModal = document.getElementById('detail-modal');
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
       $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
-      $detailModal.find('.sub.header').text($(this).parents('tr').find('relative-time').attr('title'));
+      $detailModal.find('.sub.header').text(this.closest('tr')?.querySelector('relative-time')?.getAttribute('title'));
       $detailModal.modal('show');
       return false;
     });
@@ -203,7 +232,7 @@ export function initAdminCommon() {
           break;
       }
     });
-    $('#delete-selection').on('click', async function (e) {
+    document.getElementById('delete-selection')?.addEventListener('click', async function (e) {
       e.preventDefault();
       const $this = $(this);
       $this.addClass('is-loading disabled');
