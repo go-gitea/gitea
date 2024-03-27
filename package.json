@@ -90,6 +90,7 @@
     "stylelint": "16.3.0",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
     "stylelint-declaration-strict-value": "1.10.4",
+    "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "3.2.0",
     "updates": "16.0.0",
     "vite-string-plugin": "1.1.5",

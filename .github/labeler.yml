@@ -53,7 +53,7 @@ modifies/internal:
           - ".gitpod.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
-          - ".stylelintrc.yaml"
+          - "stylelint.config.js"
           - ".yamllint.yaml"
           - ".github/**"
           - ".gitea/"
