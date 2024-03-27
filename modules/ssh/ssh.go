@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -280,10 +279,10 @@ func sshConnectionFailed(conn net.Conn, err error) {
 	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
 
-// Listen starts a SSH server listens on given port.
-func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
+// Listen starts a SSH server listens on given addr (host, port combination).
+func Listen(addr string, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
-		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
+		Addr:             addr,
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
