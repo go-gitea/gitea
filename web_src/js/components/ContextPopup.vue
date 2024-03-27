@@ -103,7 +103,7 @@ export default {
 </script>
 <template>
   <div ref="root">
-    <div v-if="loading" class="ui active centered inline loader"/>
+    <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
