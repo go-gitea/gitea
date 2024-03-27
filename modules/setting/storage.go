@@ -47,6 +47,8 @@ type MinioStorageConfig struct {
 	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
 	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
+  DisableSignature   bool   `ini:"MINIO_DISABLE_SIGNATURE"`
+	DisableMultipart   bool   `ini:"MINIO_DISABLE_MULTIPART"`
 }
 
 // Storage represents configuration of storages
@@ -73,6 +75,7 @@ const storageSectionName = "storage"
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
 	// Global Defaults
+
 	storageSec.Key("STORAGE_TYPE").MustString("local")
 	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
 	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
@@ -82,6 +85,8 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec.Key("MINIO_USE_SSL").MustBool(false)
 	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
 	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
+  storageSec.Key("MINIO_DISABLE_SIGNATURE").MustBool(false)
+	storageSec.Key("MINIO_DISABLE_MULTIPART").MustBool(false)
 	return storageSec
 }
 

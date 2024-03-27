@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -164,6 +165,30 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 
 // Save saves a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+	disableSignature, disableMultipart := false, false
+	if m.cfg != nil {
+		disableSignature, disableMultipart = m.cfg.DisableSignature, m.cfg.DisableMultipart
+	}
+
+	if disableMultipart && size < 0 {
+		// Attempts to read everything from the source into memory. This can take a big toll on memory, and it can become a potential DoS source
+		// but since we have disabled multipart upload this mean we can't really stream write anymore...
+		// well, unless we have a better way to estimate the stream size, this would be a workaround
+
+		// another alternative: we can use mmap instead, but this would be very dangerous as it is platform-specific
+
+		buf := &bytes.Buffer{}
+		n, err := io.Copy(buf, r)
+		if err != nil {
+			// I guess this would likely be EOF or OOM...?
+			return -1, err
+		}
+
+		// Since we read all the data from the source, it might not be usable again,
+		// so we should swap the reader location to our memory buffer
+		r, size = buf, n
+	}
+
 	uploadInfo, err := m.client.PutObject(
 		m.ctx,
 		m.bucket,
@@ -177,6 +202,8 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+      DisableContentSha256: disableSignature, 
+      DisableMultipart: disableMultipart
 		},
 	)
 	if err != nil {
