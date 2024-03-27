@@ -835,14 +835,6 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
 }
 
-.ui.floating.label {
-  z-index: 10;
-}
-
-.ui.transparent.label {
-  background-color: transparent;
-}
-
 /* replace fomantic popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -875,14 +867,6 @@ input:-webkit-autofill:active,
 
 .ui.menu .ui.dropdown.item .menu .item {
   width: 100%;
-}
-
-.ui.dropdown .menu > .item > .floating.label {
-  z-index: 11;
-}
-
-.ui.dropdown .menu .menu > .item > .floating.label {
-  z-index: 21;
 }
 
 .ui.dropdown .menu > .header {
@@ -1214,41 +1198,8 @@ overflow-menu .ui.label {
   margin-top: 1px;
 }
 
-.ui.label {
-  padding: 0.3em 0.5em;
-  transition: none;
-  white-space: nowrap;
-}
-
-.ui.label,
-.ui.menu .item > .label,
-.ui.grey.labels .label,
-.ui.ui.ui.grey.label {
+.ui.menu .item > .label {
   background: var(--color-label-bg);
-  color: var(--color-label-text);
-}
-
-.ui.label > a {
-  opacity: .75; /* increase contrast over default fomantic .5 */
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.label:hover,
-a.ui.label:hover {
-  background: var(--color-label-hover-bg);
-  border-color: var(--color-label-hover-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.active.label:hover,
-a.ui.active.label:hover {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
 }
 
@@ -1417,146 +1368,6 @@ a.ui.active.label:hover {
   width: 100%;
 }
 
-.ui.primary.label,
-.ui.primary.labels .label,
-.ui.ui.ui.primary.label {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary-dark-2);
-}
-
-.ui.basic.labels .primary.label,
-.ui.ui.ui.basic.primary.label {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.ui.basic.labels a.primary.label:hover,
-a.ui.ui.ui.basic.primary.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-primary-dark-1);
-  color: var(--color-primary-dark-1);
-}
-
-.ui.basic.labels .secondary.label,
-.ui.ui.ui.basic.secondary.label {
-  background: transparent;
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
-}
-
-.ui.basic.labels .orange.label,
-.ui.ui.ui.basic.orange.label {
-  background: transparent;
-  border-color: var(--color-orange);
-  color: var(--color-orange);
-}
-
-.ui.basic.labels .green.label,
-.ui.ui.ui.basic.green.label {
-  background: transparent;
-  border-color: var(--color-green);
-  color: var(--color-green);
-}
-
-.ui.basic.labels .olive.label,
-.ui.ui.ui.basic.olive.label {
-  background: transparent;
-  border-color: var(--color-olive);
-  color: var(--color-olive);
-}
-
-.ui.basic.labels .teal.label,
-.ui.ui.ui.basic.teal.label {
-  background: transparent;
-  border-color: var(--color-teal);
-  color: var(--color-teal);
-}
-
-.ui.basic.labels .blue.label,
-.ui.ui.ui.basic.blue.label {
-  background: transparent;
-  border-color: var(--color-blue);
-  color: var(--color-blue);
-}
-
-.ui.basic.labels .violet.label,
-.ui.ui.ui.basic.violet.label {
-  background: transparent;
-  border-color: var(--color-violet);
-  color: var(--color-violet);
-}
-
-.ui.basic.labels .purple.label,
-.ui.ui.ui.basic.purple.label {
-  background: transparent;
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-
-.ui.basic.labels .pink.label,
-.ui.ui.ui.basic.pink.label {
-  background: transparent;
-  border-color: var(--color-pink);
-  color: var(--color-pink);
-}
-
-.ui.basic.labels .red.label,
-.ui.ui.ui.basic.red.label {
-  background: transparent;
-  border-color: var(--color-red);
-  color: var(--color-red);
-}
-
-.ui.basic.labels .brown.label,
-.ui.ui.ui.basic.brown.label {
-  background: transparent;
-  border-color: var(--color-brown);
-  color: var(--color-brown);
-}
-
-.ui.basic.labels .yellow.label,
-.ui.ui.ui.basic.yellow.label {
-  background: transparent;
-  border-color: var(--color-yellow);
-  color: var(--color-yellow);
-}
-
-.ui.basic.labels .grey.label,
-.ui.ui.ui.basic.grey.label {
-  background: transparent;
-  border-color: var(--color-grey);
-  color: var(--color-grey);
-}
-
-.ui.basic.labels .black.label,
-.ui.ui.ui.basic.black.label {
-  background: transparent;
-  border-color: var(--color-black);
-  color: var(--color-black);
-}
-
-.ui.basic.labels .label,
-.ui.basic.label,
-.ui.secondary.labels .ui.basic.label {
-  background: var(--color-button);
-  border-color: var(--color-light-border);
-  color: var(--color-text-light);
-}
-
-.ui.basic.labels a.label:hover,
-a.ui.basic.label:hover {
-  color: var(--color-text);
-  border-color: var(--color-light-border);
-  background: var(--color-hover);
-}
-
-.ui.label > img {
-  width: auto !important;
-  vertical-align: middle;
-  height: 2.1666em !important;
-}
-
 .migrate .svg.gitea-git {
   color: var(--color-git);
 }
@@ -1566,10 +1377,6 @@ a.ui.basic.label:hover {
   border-radius: var(--border-radius-circle);
   height: 14px;
   width: 14px;
-}
-
-.ui.label > .color-icon {
-  margin-left: 0;
 }
 
 .rss-icon {
@@ -1769,7 +1576,6 @@ table th[data-sortt-desc] .svg {
 .btn,
 .ui.ui.button,
 .ui.ui.dropdown,
-.ui.ui.label,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -1783,10 +1589,6 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .ui.label .svg {
   vertical-align: middle;
-}
-
-.ui.ui.circular.label {
-  justify-content: center;
 }
 
 .ui.ui.labeled.button {
