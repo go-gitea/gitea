@@ -23,9 +23,15 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 		return ast.WalkContinue, nil
 	}
 	node1, ok1 := firstParagraph.FirstChild().(*ast.Text)
+	if !ok1 {
+		return ast.WalkContinue, nil
+	}
 	node2, ok2 := node1.NextSibling().(*ast.Text)
+	if !ok2 {
+		return ast.WalkContinue, nil
+	}
 	node3, ok3 := node2.NextSibling().(*ast.Text)
-	if !ok1 || !ok2 || !ok3 {
+	if !ok3 {
 		return ast.WalkContinue, nil
 	}
 	val1 := string(node1.Segment.Value(reader.Source()))
