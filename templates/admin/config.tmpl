@@ -229,7 +229,7 @@
 					<dt>{{ctx.Locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
 					<div class="divider"></div>
-					<dt class="gt-py-2">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dt class="tw-py-1">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd>
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
 							{{.CsrfTokenHtml}}
@@ -332,7 +332,7 @@
 				{{range $loggerName, $loggerDetail := .Loggers}}
 					<dt>{{ctx.Locale.Tr "admin.config.logger_name_fmt" $loggerName}}</dt>
 					{{if $loggerDetail.IsEnabled}}
-						<dd><pre class="gt-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
+						<dd><pre class="tw-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
 					{{else}}
 						<dd>{{ctx.Locale.Tr "admin.config.disabled_logger"}}</dd>
 					{{end}}

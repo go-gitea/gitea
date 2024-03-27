@@ -52,9 +52,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	issueIDs := prs.GetIssueIDs()
 
 	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: optional.Some(false),
 		IssueIDs:    issueIDs,
@@ -268,11 +266,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
-	pr, err := issue.GetPullRequest(ctx)
-	if err != nil {
+	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, nil, err
 	}
 
+	pr := issue.PullRequest
 	var stale bool
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
@@ -322,12 +320,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 // DismissApprovalReviews dismiss all approval reviews because of new commits
 func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IssueID:   pull.IssueID,
-		Type:      issues_model.ReviewTypeApprove,
-		Dismissed: optional.Some(false),
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pull.IssueID,
+		Type:        issues_model.ReviewTypeApprove,
+		Dismissed:   optional.Some(false),
 	})
 	if err != nil {
 		return err

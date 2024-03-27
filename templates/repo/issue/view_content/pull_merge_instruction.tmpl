@@ -1,6 +1,6 @@
 <div class="divider"></div>
 <div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}} </div>
-<div class="instruct-content gt-mt-3 gt-hidden">
+<div class="instruct-content tw-mt-2 tw-hidden">
 	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}</div>
 	{{$localBranch := .PullRequest.HeadBranch}}
 	{{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}
@@ -21,25 +21,25 @@
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --no-ff {{$localBranch}}</div>
 		</div>
-		<div class="gt-hidden" data-pull-merge-style="rebase">
+		<div class="tw-hidden" data-pull-merge-style="rebase">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --ff-only {{$localBranch}}</div>
 		</div>
-		<div class="gt-hidden" data-pull-merge-style="rebase-merge">
+		<div class="tw-hidden" data-pull-merge-style="rebase-merge">
 			<div>git checkout {{$localBranch}}</div>
 			<div>git rebase {{.PullRequest.BaseBranch}}</div>
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --no-ff {{$localBranch}}</div>
 		</div>
-		<div class="gt-hidden" data-pull-merge-style="squash">
+		<div class="tw-hidden" data-pull-merge-style="squash">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --squash {{$localBranch}}</div>
 		</div>
-		<div class="gt-hidden" data-pull-merge-style="fast-forward-only">
+		<div class="tw-hidden" data-pull-merge-style="fast-forward-only">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --ff-only {{$localBranch}}</div>
 		</div>
-		<div class="gt-hidden" data-pull-merge-style="manually-merged">
+		<div class="tw-hidden" data-pull-merge-style="manually-merged">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge {{$localBranch}}</div>
 		</div>

@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     include: ['web_src/**/*.test.js'],
     setupFiles: ['web_src/js/vitest.setup.js'],
-    environment: 'jsdom',
+    environment: 'happy-dom',
     testTimeout: 20000,
     open: false,
     allowOnly: true,

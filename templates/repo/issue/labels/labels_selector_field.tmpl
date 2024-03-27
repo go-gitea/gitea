@@ -2,7 +2,7 @@
 	<span class="text muted flex-text-block">
 		<strong>{{ctx.Locale.Tr "repo.issues.new.labels"}}</strong>
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-			{{svg "octicon-gear" 16 "gt-ml-2"}}
+			{{svg "octicon-gear" 16 "tw-ml-1"}}
 		{{end}}
 	</span>
 	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
