@@ -75,6 +75,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	if authed {
 		result.IsAdmin = user.IsAdmin
 		result.LoginName = user.LoginName
+		result.SourceID = user.LoginSource
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
