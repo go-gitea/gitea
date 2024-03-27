@@ -293,7 +293,7 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
+  border-radius: .24em;
   background-color: var(--color-label-bg);
 }
 
