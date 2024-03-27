@@ -10,5 +10,9 @@ func AddIgnoreStaleApprovalsColumnToProtectedBranchTable(x *xorm.Engine) error {
 	type ProtectedBranch struct {
 		IgnoreStaleApprovals bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, new(ProtectedBranch))
+	return err
 }
