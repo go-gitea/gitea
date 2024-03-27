@@ -203,7 +203,7 @@ func GetAll(ctx *context.APIContext) {
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
-		Type:        user_model.UserTypeOrganization,
+		Type:        optional.Some(user_model.UserTypeOrganization),
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	})

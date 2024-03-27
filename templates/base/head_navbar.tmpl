@@ -39,8 +39,8 @@
 				{{end}}
 			{{end}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
-		{{else if .IsLandingPageOrganizations}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore"}}</a>
+		{{else if .IsLandingPageExploreUsers}}
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/users">{{ctx.Locale.Tr "explore"}}</a>
 		{{else}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
 		{{end}}

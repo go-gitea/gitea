@@ -423,7 +423,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Type:        optional.Some(user_model.UserTypeIndividual),
 		LoginName:   ctx.FormTrim("login_name"),
 		SourceID:    ctx.FormInt64("source_id"),
 		OrderBy:     db.SearchOrderByAlphabetically,
