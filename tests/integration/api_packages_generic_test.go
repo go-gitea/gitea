@@ -84,7 +84,7 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("InvalidParameter", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content)).
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid|package name", packageVersion, filename), bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
