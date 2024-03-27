@@ -5,7 +5,7 @@ export function initCompReactionSelector($parent) {
   $parent.find(`.select-reaction .item.reaction, .comment-reaction-button`).on('click', async function (e) {
     e.preventDefault();
 
-    if ($(this).hasClass('disabled')) return;
+    if (this.classList.contains('disabled')) return;
 
     const actionUrl = this.closest('[data-action-url]')?.getAttribute('data-action-url');
     const reactionContent = this.getAttribute('data-reaction-content');
