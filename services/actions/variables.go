@@ -23,7 +23,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, ReserveLineBreakForTextarea(data))
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data))
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func UpdateVariable(ctx context.Context, variableID int64, name, data string) (b
 	return actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
 		ID:   variableID,
 		Name: strings.ToUpper(name),
-		Data: ReserveLineBreakForTextarea(data),
+		Data: util.ReserveLineBreakForTextarea(data),
 	})
 }
 
@@ -97,13 +97,4 @@ func envNameCIRegexMatch(name string) error {
 		return util.NewInvalidArgumentErrorf("env name cannot be ci")
 	}
 	return nil
-}
-
-func ReserveLineBreakForTextarea(input string) string {
-	// Since the content is from a form which is a textarea, the line endings are \r\n.
-	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
-	// Other than this, we should respect the original content, even leading or trailing spaces.
-	return strings.ReplaceAll(input, "\r\n", "\n")
 }
