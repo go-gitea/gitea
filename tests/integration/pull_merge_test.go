@@ -516,8 +516,8 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
-		conflictingPR, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
-		assert.NoError(t, err)
+		assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
+		conflictingPR := issue.PullRequest
 
 		// Ensure conflictedFiles is populated.
 		assert.Len(t, conflictingPR.ConflictedFiles, 1)

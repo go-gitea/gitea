@@ -41,6 +41,8 @@ export default {
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
     'backdrop-filter',
+    // we use double-class tw-hidden defined in web_src/css/helpers.css for increased specificity
+    'hidden',
     // unneeded classes
     '[-a-zA-Z:0-9_.]',
   ],
@@ -65,6 +67,31 @@ export default {
       '2xl': '16px',
       '3xl': '24px',
       'full': 'var(--border-radius-circle)', // 50%
+    },
+    fontWeight: {
+      light: 'var(--font-weight-light)',
+      normal: 'var(--font-weight-normal)',
+      medium: 'var(--font-weight-medium)',
+      semibold: 'var(--font-weight-semibold)',
+      bold: 'var(--font-weight-bold)',
+    },
+    fontSize: { // not using `rem` units because our root is currently 14px
+      'xs': '12px',
+      'sm': '14px',
+      'base': '16px',
+      'lg': '18px',
+      'xl': '20px',
+      '2xl': '24px',
+      '3xl': '30px',
+      '4xl': '36px',
+      '5xl': '48px',
+      '6xl': '60px',
+      '7xl': '72px',
+      '8xl': '96px',
+      '9xl': '128px',
+      ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
+        return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
+      })),
     },
   },
 };

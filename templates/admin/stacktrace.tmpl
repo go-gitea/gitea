@@ -1,8 +1,8 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
 <div class="admin-setting-content">
 
-	<div class="gt-df gt-ac">
-		<div class="gt-f1">
+	<div class="tw-flex tw-items-center">
+		<div class="tw-flex-1">
 			<div class="ui compact small menu">
 				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
 				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>

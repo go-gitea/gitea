@@ -33,7 +33,7 @@ async function moveIssue({item, from, to, oldIndex}) {
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt($(card).attr('data-issue')),
+      issueID: parseInt(card.getAttribute('data-issue')),
       sorting: i,
     })),
   };
@@ -131,7 +131,7 @@ export function initRepoProject() {
         if ($projectColorInput.val()) {
           setLabelColor($projectHeader, $projectColorInput.val());
         }
-        $boardColumn.attr('style', `background: ${$projectColorInput.val()}!important`);
+        $boardColumn[0].style = `background: ${$projectColorInput.val()} !important`;
         $('.ui.modal').modal('hide');
       }
     });
@@ -156,9 +156,9 @@ export function initRepoProject() {
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const $deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const $deleteColumnModal = $(`${this.getAttribute('data-modal')}`);
     const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = $(this).attr('data-url');
+    const deleteUrl = this.getAttribute('data-url');
 
     $deleteColumnButton.on('click', async (e) => {
       e.preventDefault();
