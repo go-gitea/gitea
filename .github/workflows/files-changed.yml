@@ -73,6 +73,7 @@ jobs:
               - "Makefile"
 
             templates:
+              - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "poetry.lock"

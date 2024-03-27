@@ -64,10 +64,10 @@ export function initRepoEditor() {
 
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
-      showElem($('.quick-pull-branch-name'));
+      showElem('.quick-pull-branch-name');
       document.querySelector('.quick-pull-branch-name input').required = true;
     } else {
-      hideElem($('.quick-pull-branch-name'));
+      hideElem('.quick-pull-branch-name');
       document.querySelector('.quick-pull-branch-name input').required = false;
     }
     $('#commit-button').text(this.getAttribute('button_text'));
