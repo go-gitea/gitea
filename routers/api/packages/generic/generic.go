@@ -74,8 +74,13 @@ func UploadPackage(ctx *context.Context) {
 	packageName := ctx.Params("packagename")
 	filename := ctx.Params("filename")
 
-	if !isValidPackageName(packageName) || isValidFileName(filename) {
-		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name or filename"))
+	if !isValidPackageName(packageName) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
+		return
+	}
+
+	if !isValidFileName(filename) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid filename"))
 		return
 	}
 
