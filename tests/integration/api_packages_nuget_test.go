@@ -353,6 +353,21 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.nuspec", url, packageName, packageVersion, packageName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		nuspec := `<?xml version="1.0" encoding="UTF-8"?>` + "\n" +
+			`<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd"><metadata>` +
+			`<id>` + packageName + `</id><version>` + packageVersion + `</version><authors>` + packageAuthors + `</authors><description>` + packageDescription + `</description>` +
+			`<dependencies><group targetFramework=".NETStandard2.0">` +
+			// https://github.com/golang/go/issues/21399 go can't generate self-closing tags
+			`<dependency id="Microsoft.CSharp" version="4.5.0"></dependency>` +
+			`</group></dependencies>` +
+			`</metadata></package>`
+
+		assert.Equal(t, nuspec, resp.Body.String())
+
 		checkDownloadCount(1)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion)).
