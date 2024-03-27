@@ -80,8 +80,12 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		}
 	}
 
-	// Redirect to viewing file or folder
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(newBranchName) + "/" + util.PathEscapeSegments(treePath))
+	returnURI := ctx.FormString("return_uri")
+
+	ctx.RedirectToCurrentSite(
+		returnURI,
+		ctx.Repo.RepoLink+"/src/branch/"+util.PathEscapeSegments(newBranchName)+"/"+util.PathEscapeSegments(treePath),
+	)
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
@@ -100,6 +104,7 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 }
 
 func editFile(ctx *context.Context, isNewFile bool) {
+	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	canCommit := renderCommitRights(ctx)
@@ -189,6 +194,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
+
+	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
+	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
