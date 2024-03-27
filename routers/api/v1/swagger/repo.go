@@ -414,3 +414,10 @@ type swaggerRepoNewIssuePinsAllowed struct {
 	// in:body
 	Body api.NewIssuePinsAllowed `json:"body"`
 }
+
+// TasksList
+// swagger:response TasksList
+type swaggerRepoTasksList struct {
+	// in:body
+	Body api.ActionTaskResponse `json:"body"`
+}
