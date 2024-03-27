@@ -10,7 +10,7 @@ export async function createSortable(el, opts = {}) {
       opts.onChoose?.(e);
     },
     onUnchoose: (e) => {
-      const handle = opts?.handle ? e.item.querySelector(opts.handle) : e.item;
+      const handle = opts.handle ? e.item.querySelector(opts.handle) : e.item;
       handle.classList.remove('tw-cursor-grabbing');
       opts.onUnchoose?.(e);
     },
