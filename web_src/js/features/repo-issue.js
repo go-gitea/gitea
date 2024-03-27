@@ -331,14 +331,6 @@ export function initRepoIssueReferenceRepositorySearch() {
     });
 }
 
-export function initRepoIssueTitleFocus() {
-  const issueTitle = document.getElementById('issue_title');
-  if (issueTitle) {
-    issueTitle.focus();
-    issueTitle.setSelectionRange(issueTitle.value.length, issueTitle.value.length);
-  }
-}
-
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
