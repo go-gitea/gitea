@@ -691,6 +691,25 @@ Gitea or set your environment appropriately.`, "")
 	}
 	err = writeFlushPktLine(ctx, os.Stdout)
 
+	if err == nil {
+		for _, res := range resp.Results {
+			if !res.Message {
+				continue
+			}
+
+			fmt.Fprintln(os.Stderr, "")
+			if res.CreatePR {
+				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.HeadBranch)
+				fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
+			} else {
+				fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
+				fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
+			}
+			fmt.Fprintln(os.Stderr, "")
+			os.Stderr.Sync()
+		}
+	}
+
 	return err
 }
 
