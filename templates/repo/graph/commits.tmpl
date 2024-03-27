@@ -61,7 +61,7 @@
 					<span class="author tw-flex tw-items-center tw-mr-2">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
-							{{if $commit.User.FullName}}
+							{{if and $commit.User.FullName DefaultShowFullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
 							<span class="tw-mr-1">{{ctx.AvatarUtils.Avatar $commit.User}}</span>
