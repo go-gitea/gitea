@@ -207,11 +207,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	id := ctx.ParamsInt64(":id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", err)
-		} else {
-			ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
-		}
+		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
@@ -221,11 +217,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 func DeleteProject(ctx *context.Context) {
 	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
@@ -254,11 +246,7 @@ func RenderEditProject(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
@@ -303,11 +291,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
@@ -335,11 +319,7 @@ func EditProjectPost(ctx *context.Context) {
 func ViewProject(ctx *context.Context) {
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
@@ -489,11 +469,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
@@ -530,11 +506,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
@@ -562,11 +534,7 @@ func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return nil, nil
 	}
 
@@ -643,11 +611,7 @@ func MoveIssues(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("ProjectNotExist", nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
@@ -657,11 +621,7 @@ func MoveIssues(ctx *context.Context) {
 
 	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		if project_model.IsErrProjectBoardNotExist(err) {
-			ctx.NotFound("ProjectBoardNotExist", nil)
-		} else {
-			ctx.ServerError("GetProjectBoard", err)
-		}
+		ctx.NotFoundOrServerError("GetProjectBoard", project_model.IsErrProjectBoardNotExist, err)
 		return
 	}
 
@@ -690,11 +650,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IssueNotExisting", nil)
-		} else {
-			ctx.ServerError("GetIssueByID", err)
-		}
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
 		return
 	}
 
