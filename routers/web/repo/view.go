@@ -1054,6 +1054,7 @@ func renderHomeCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Paths"] = paths
+	ctx.Data["IsHomePage"] = len(paths) == 0
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink

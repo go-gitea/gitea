@@ -1,0 +1,64 @@
+{{$viewType := "desktop"}}
+{{if .HiddenInMobileView}}
+{{$viewType = "mobile"}}
+{{end}}
+{{if and (not .ctxData.HideRepoInfo) (not .ctxData.IsBlame)}}
+	<div class="flex-item {{if .HiddenInMobileView}}not-mobile{{else}}only-mobile{{end}}">
+		<div class="flex-item-main">
+			{{if .HiddenInMobileView}}
+				<div class="flex-item-title">
+					{{ctx.Locale.Tr "repo.repo_desc"}}
+				</div>
+			{{end}}
+
+			<div class="flex-item-body {{if .HiddenInMobileView}}tw-mt-4{{end}}">
+				<div class="ui repo-description gt-word-break">
+					<div id="repo-desc-{{$viewType}}" class="tw-text-16">
+						{{$description := .ctxData.Repository.DescriptionHTML $.ctxData.Context}}
+						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .ctxData.IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
+						<a class="link" href="{{.ctxData.Repository.Website}}">{{.ctxData.Repository.Website}}</a>
+					</div>
+				</div>
+			</div>
+
+			<div class="flex-item-body tw-mt-4 tw-mb-4">
+				<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-1" id="repo-topics-{{$viewType}}">
+					{{range .ctxData.Topics}}<a class="ui repo-topic large label topic tw-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+					{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}<button class="btn interact-fg tw-text-12 manage-topic" data-view-type="{{$viewType}}">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+				</div>
+				{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}
+				<div class="ui form tw-hidden tw-flex tw-flex-col tw-mt-4" id="topic_edit_{{$viewType}}">
+					<div class="field tw-flex-1 tw-mb-2">
+						<div class="ui fluid multiple search selection dropdown tw-flex-wrap" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
+							<input type="hidden" name="topics-{{$viewType}}" value="{{range $i, $v := .ctxData.Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.ctxData.Topics)}},{{end}}{{end}}">
+							{{range .ctxData.Topics}}
+								{{/* keey the same layout as Fomantic UI generated labels */}}
+								<a class="ui label transition visible tw-cursor-default tw-inline-block" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+							{{end}}
+							<div class="text"></div>
+						</div>
+					</div>
+					<div>
+						<button class="ui basic button" id="cancel_topic_edit_{{$viewType}}">{{ctx.Locale.Tr "cancel"}}</button>
+						<button class="ui primary button" id="save_topic_{{$viewType}}" data-link="{{.ctxData.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+					</div>
+				</div>
+				{{end}}
+			</div>
+
+			{{if and .ctxData.ReadmeExist .HiddenInMobileView}}
+			<div class="flex-item-body">
+				<a class="tw-flex tw-items-center tw-gap-2 muted" href="{{.ctxData.TreeLink}}/{{.ctxData.FileName}}">
+					{{svg "octicon-book"}}{{ctx.Locale.Tr "readme"}}
+				</a>
+			</div>
+			{{end}}
+
+			{{if .ctxData.CitiationExist}}
+			<div class="flex-item-body">
+				<a class="item cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+			</div>
+			{{end}}
+		</div>
+	</div>
+{{end}}

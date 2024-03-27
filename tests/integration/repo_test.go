@@ -28,13 +28,18 @@ func TestViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
-	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
-	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
-	assert.True(t, noDescription.HasClass("no-description"))
-	assert.True(t, repoTopics.HasClass("repo-topic"))
-	assert.True(t, repoSummary.HasClass("repository-menu"))
+	components := map[string]*goquery.Selection{
+		"no-description":  htmlDoc.doc.Find("#repo-desc").Children(),
+		"repo-topic":      htmlDoc.doc.Find("#repo-topics").Children(),
+		"repository-menu": htmlDoc.doc.Find(".repository-summary").Children(),
+	}
+
+	for className, selection := range components {
+		selection.Each(func(_ int, s *goquery.Selection) {
+			assert.True(t, s.HasClass(className))
+		})
+	}
 
 	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
@@ -191,12 +196,16 @@ func TestViewAsRepoAdmin(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
-		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
+		noDescriptionMobile := htmlDoc.doc.Find("#repo-desc-mobile").Children()
+		repoTopicsMobile := htmlDoc.doc.Find("#repo-topics-mobile").Children()
+		noDescriptionDesktop := htmlDoc.doc.Find("#repo-desc-desktop").Children()
+		repoTopicsDesktop := htmlDoc.doc.Find("#repo-topics-desktop").Children()
 		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
-		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
-		assert.True(t, repoTopics.HasClass("repo-topic"))
+		assert.Equal(t, expectedNoDescription, noDescriptionMobile.HasClass("no-description"))
+		assert.True(t, repoTopicsMobile.HasClass("repo-topic"))
+		assert.Equal(t, expectedNoDescription, noDescriptionDesktop.HasClass("no-description"))
+		assert.True(t, repoTopicsDesktop.HasClass("repo-topic"))
 		assert.True(t, repoSummary.HasClass("repository-menu"))
 	}
 }

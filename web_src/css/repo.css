@@ -79,6 +79,66 @@
   white-space: nowrap;
 }
 
+.repo-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content {
+    flex-direction: column;
+  }
+}
+
+.repo-content-main[data-home="true"] {
+  margin: 0 !important;
+  width: calc(100% - 316px);
+}
+
+.repo-content-main[data-home="false"] {
+  margin: 0 !important;
+  width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content-main[data-home="true"] {
+    margin: 0 !important;
+    width: 100%;
+  }
+}
+
+.repo-content-sidebar[data-home="true"] {
+  margin: 0 !important;
+  width: 300px;
+}
+
+.repo-content-sidebar[data-home="false"] {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content-sidebar[data-home="true"] {
+    margin: 0 !important;
+    width: 100%;
+  }
+}
+
+.latest-release {
+  text-decoration-line: none;
+  margin: 1rem;
+}
+
+.latest-release-tag {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.latest-release .time {
+  margin-left: 1.6rem;
+}
+
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
   padding: 0.5rem 0;
@@ -167,7 +227,6 @@
   justify-content: space-between;
   align-items: center;
   gap: 5px;
-  margin-bottom: 5px;
 }
 
 @media (max-width: 767.98px) {
@@ -1999,7 +2058,14 @@
   background: var(--color-secondary);
 }
 
-.repository .repository-summary .segment.language-stats {
+.contributors-stats {
+  display: flex;
+  flex-flow: row wrap;
+  padding: 10px;
+  gap: 5px;
+}
+
+.language-stats {
   display: flex;
   gap: 2px;
   padding: 0;
@@ -2007,6 +2073,25 @@
   white-space: nowrap;
   border-radius: 0 0 3px 3px !important;
   overflow: hidden;
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 5px;
+}
+
+.language-stats-details {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.language-stats-details .item {
+  height: 30px;
+  line-height: var(--line-height-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
 }
 
 #cite-repo-modal #citation-panel {
@@ -3015,4 +3100,9 @@ tbody.commit-list {
 .repository .issue-content .issue-content-right .branch-tag-divider {
   margin-top: -1px;
   border-top: 1px solid var(--color-secondary);
+}
+
+#repo-desc-mobile .description,
+#repo-desc-desktop .description {
+  max-height: 150px;
 }

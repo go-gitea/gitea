@@ -44,7 +44,6 @@
 		{{else}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
 		{{end}}
-
 		{{template "custom/extra_links" .}}
 
 		{{if not .IsSigned}}
