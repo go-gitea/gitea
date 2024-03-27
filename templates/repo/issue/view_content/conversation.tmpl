@@ -6,7 +6,7 @@
 	{{$hasReview := and $comment.Review}}
 	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
 	<div class="ui segments conversation-holder">
-		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between">
+		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between tw-rounded-b">
 			<div class="tw-flex tw-items-center">
 				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 gt-word-break">{{$comment.TreePath}}</a>
 				{{if $invalid}}
