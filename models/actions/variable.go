@@ -6,13 +6,11 @@ package actions
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -55,24 +53,24 @@ type FindVariablesOpts struct {
 	db.ListOptions
 	OwnerID int64
 	RepoID  int64
+	Name    string
 }
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
+	// Since we now support instance-level variables,
+	// there is no need to check for null values for `owner_id` and `repo_id`
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
 	return cond
 }
 
-func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, error) {
-	var variable ActionVariable
-	has, err := db.GetEngine(ctx).Where("id=?", variableID).Get(&variable)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, fmt.Errorf("variable with id %d: %w", variableID, util.ErrNotExist)
-	}
-	return &variable, nil
+func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {
+	return db.Find[ActionVariable](ctx, opts)
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
@@ -82,6 +80,13 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 			Data: variable.Data,
 		})
 	return count != 0, err
+}
+
+func DeleteVariable(ctx context.Context, id int64) error {
+	if _, err := db.DeleteByID[ActionVariable](ctx, id); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
