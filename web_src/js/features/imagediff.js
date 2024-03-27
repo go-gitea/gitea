@@ -128,7 +128,7 @@ export function initImageDiff() {
 
       const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
       const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
-      if (sizes.$image1 && sizes.$image1.length !== 0) {
+      if (sizes.$image1?.length) {
         const boundsInfoAfterWidth = this.querySelector('.bounds-info-after .bounds-info-width');
         boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
         if (widthChanged) boundsInfoAfterWidth.classList.add('green');
@@ -138,7 +138,7 @@ export function initImageDiff() {
         if (heightChanged) boundsInfoAfterHeight.classList.add('green');
       }
 
-      if (sizes.$image2 && sizes.$image2.length !== 0) {
+      if (sizes.$image2?.length) {
         const boundsInfoBeforeWidth = this.querySelector('.bounds-info-before .bounds-info-width');
         boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
         if (widthChanged) boundsInfoBeforeWidth.classList.add('red');
