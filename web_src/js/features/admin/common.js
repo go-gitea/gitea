@@ -122,7 +122,7 @@ export function initAdminCommon() {
         input.removeAttribute('required');
       }
 
-      $('.binddnrequired').removeClass('required');
+      document.querySelector('.binddnrequired')?.classList.remove('required');
 
       const authType = this.value;
       switch (authType) {
@@ -131,7 +131,7 @@ export function initAdminCommon() {
           for (const input of document.querySelectorAll('.binddnrequired input, .ldap div.required:not(.dldap) input')) {
             input.setAttribute('required', 'required');
           }
-          $('.binddnrequired').addClass('required');
+          document.querySelector('.binddnrequired')?.classList.add('required');
           break;
         case '3': // SMTP
           showElem('.smtp');
@@ -234,16 +234,15 @@ export function initAdminCommon() {
     });
     document.getElementById('delete-selection')?.addEventListener('click', async function (e) {
       e.preventDefault();
-      const $this = $(this);
-      $this.addClass('is-loading disabled');
+      this.classList.add('is-loading', 'disabled');
       const data = new FormData();
       $checkboxes.each(function () {
         if ($(this).checkbox('is checked')) {
-          data.append('ids[]', $(this).data('id'));
+          data.append('ids[]', this.getAttribute('data-id'));
         }
       });
-      await POST($this.data('link'), {data});
-      window.location.href = $this.data('redirect');
+      await POST(this.getAttribute('data-link'), {data});
+      window.location.href = this.getAttribute('data-redirect');
     });
   }
 }
