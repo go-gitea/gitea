@@ -22,6 +22,7 @@ func TestValidatePackageName(t *testing.T) {
 
 	good := []string{
 		"a",
+		"1",
 		"a-",
 		"a_b",
 		"c.d+",
@@ -48,6 +49,7 @@ func TestValidateFileName(t *testing.T) {
 	good := []string{
 		"-",
 		"a",
+		"1",
 		"a-",
 		"a_b",
 		"a b",

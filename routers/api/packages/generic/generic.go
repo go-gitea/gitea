@@ -56,7 +56,7 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func isValidPackageName(packageName string) bool {
-	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) {
+	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
 		return false
 	}
 	return packageNameRegex.MatchString(packageName) && packageName != ".."
