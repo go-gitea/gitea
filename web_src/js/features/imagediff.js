@@ -131,21 +131,21 @@ export function initImageDiff() {
       if (sizes.$image1 && sizes.$image1.length !== 0) {
         const boundsInfoAfterWidth = this.querySelector('.bounds-info-after .bounds-info-width');
         boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
-        boundsInfoAfterWidth.classList.add(widthChanged ? 'green' : '');
+        if (widthChanged) boundsInfoAfterWidth.classList.add('green');
 
         const boundsInfoAfterHeight = this.querySelector('.bounds-info-after .bounds-info-height');
         boundsInfoAfterHeight.textContent = `${sizes.$image1[0].naturalHeight}px`;
-        boundsInfoAfterHeight.classList.add(heightChanged ? 'green' : '');
+        if (heightChanged) boundsInfoAfterHeight.classList.add('green');
       }
 
       if (sizes.$image2 && sizes.$image2.length !== 0) {
         const boundsInfoBeforeWidth = this.querySelector('.bounds-info-before .bounds-info-width');
         boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
-        boundsInfoBeforeWidth.classList.add(widthChanged ? 'red' : '');
+        if (widthChanged) boundsInfoBeforeWidth.classList.add('red');
 
         const boundsInfoBeforeHeight = this.querySelector('.bounds-info-before .bounds-info-height');
         boundsInfoBeforeHeight.textContent = `${sizes.$image2[0].naturalHeight}px`;
-        boundsInfoBeforeHeight.classList.add(heightChanged ? 'red' : '');
+        if (heightChanged) boundsInfoBeforeHeight.classList.add('red');
       }
 
       const image1 = sizes.$image1[0];
