@@ -119,7 +119,7 @@
 										{{svg "octicon-chevron-down" 18}}
 									{{end}}
 								</button>
-								<div class="tw-font-semibold tw-flex tw-items-center gt-mono">
+								<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
 									{{if $file.IsBin}}
 										<span class="tw-ml-0.5 tw-mr-2">
 											{{ctx.Locale.Tr "repo.diff.bin"}}
@@ -128,7 +128,7 @@
 										{{template "repo/diff/stats" dict "file" . "root" $}}
 									{{end}}
 								</div>
-								<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}</span>
+								<span class="file tw-font-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}</span>
 								<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
 								{{if $file.IsGenerated}}
 									<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
@@ -139,9 +139,9 @@
 								{{if and $file.Mode $file.OldMode}}
 									{{$old := ctx.Locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
 									{{$new := ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}
-									<span class="tw-ml-4 gt-mono">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
+									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
 								{{else if $file.Mode}}
-									<span class="tw-ml-4 gt-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
+									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
 							</div>
 							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">

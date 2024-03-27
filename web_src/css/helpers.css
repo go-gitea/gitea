@@ -3,11 +3,6 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
-.gt-mono {
-  font-family: var(--fonts-monospace) !important;
-  font-size: .95em !important; /* compensate for monospace fonts being usually slightly larger */
-}
-
 .gt-word-break {
   word-wrap: break-word !important;
   word-break: break-word; /* compat: Safari */

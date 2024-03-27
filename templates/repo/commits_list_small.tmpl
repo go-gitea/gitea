@@ -38,7 +38,7 @@
 			</a>
 		</span>
 
-		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</span>
+		<span class="tw-font-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</span>
 		{{if IsMultilineCommitMessage .Message}}
 			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 		{{end}}

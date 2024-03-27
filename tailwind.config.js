@@ -68,6 +68,10 @@ export default {
       '3xl': '24px',
       'full': 'var(--border-radius-circle)', // 50%
     },
+    fontFamily: {
+      sans: 'var(--fonts-regular)',
+      mono: 'var(--fonts-monospace)',
+    },
     fontWeight: {
       light: 'var(--font-weight-light)',
       normal: 'var(--font-weight-normal)',

@@ -29,7 +29,7 @@
 											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
 										{{end}}
 
-										<a class="tw-mr-2 gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
+										<a class="tw-mr-2 tw-font-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
 
 										{{if not $.DisableDownloadSourceArchives}}
 											<a class="archive-link tw-mr-2 muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-1"}}ZIP</a>

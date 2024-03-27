@@ -44,7 +44,7 @@
 					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>
 				{{- end -}}
 			</td>
-			<td class="lines-type-marker"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
+			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 			{{if eq .GetType 4}}
 				<td class="chroma lines-code blob-hunk">{{/*
 					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
