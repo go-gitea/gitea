@@ -167,7 +167,8 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 }
 
 type ActionsConfig struct {
-	DisabledWorkflows []string
+	DisabledWorkflows      []string
+	EnabledGlobalWorkflows []string
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -192,6 +193,22 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
 }
 
+func (cfg *ActionsConfig) DisableGlobalWorkflow(file string) {
+	cfg.EnabledGlobalWorkflows = util.SliceRemoveAll(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) IsGlobalWorkflowEnabled(file string) bool {
+	return slices.Contains(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) EnableGlobalWorkflow(file string) {
+	cfg.EnabledGlobalWorkflows = append(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) GetGlobalWorkflow() []string {
+	return cfg.EnabledGlobalWorkflows
+}
+
 // FromDB fills up a ActionsConfig from serialized format.
 func (cfg *ActionsConfig) FromDB(bs []byte) error {
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
@@ -200,6 +217,10 @@ func (cfg *ActionsConfig) FromDB(bs []byte) error {
 // ToDB exports a ActionsConfig to a serialized format.
 func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
+}
+
+type FindEnabledGlobalWorkflowsOptions struct {
+	db.ListOptions
 }
 
 // ProjectsMode represents the projects enabled for a repository
