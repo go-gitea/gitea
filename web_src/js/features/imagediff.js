@@ -116,7 +116,9 @@ export function initImageDiff() {
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    $container.find('> .image-diff-tabs').removeClass('is-loading');
+    for (const el of Array.from(this.children).filter((child) => child.classList.contains('image-diff-tabs'))) {
+      el.classList.remove('is-loading');
+    }
 
     function initSideBySide(sizes) {
       let factor = 1;
@@ -126,13 +128,24 @@ export function initImageDiff() {
 
       const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
       const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
-      if (sizes.$image1.length !== 0) {
-        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.$image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
-        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.$image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
+      if (sizes.$image1 && sizes.$image1.length !== 0) {
+        const boundsInfoAfterWidth = this.querySelector('.bounds-info-after .bounds-info-width');
+        boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
+        boundsInfoAfterWidth.classList.add(widthChanged ? 'green' : '');
+
+        const boundsInfoAfterHeight = this.querySelector('.bounds-info-after .bounds-info-height');
+        boundsInfoAfterHeight.textContent = `${sizes.$image1[0].naturalHeight}px`;
+        boundsInfoAfterHeight.classList.add(heightChanged ? 'green' : '');
       }
-      if (sizes.$image2.length !== 0) {
-        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.$image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
-        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.$image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
+
+      if (sizes.$image2 && sizes.$image2.length !== 0) {
+        const boundsInfoBeforeWidth = this.querySelector('.bounds-info-before .bounds-info-width');
+        boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
+        boundsInfoBeforeWidth.classList.add(widthChanged ? 'red' : '');
+
+        const boundsInfoBeforeHeight = this.querySelector('.bounds-info-before .bounds-info-height');
+        boundsInfoBeforeHeight.textContent = `${sizes.$image2[0].naturalHeight}px`;
+        boundsInfoBeforeHeight.classList.add(heightChanged ? 'red' : '');
       }
 
       const image1 = sizes.$image1[0];
