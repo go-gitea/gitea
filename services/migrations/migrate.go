@@ -11,11 +11,13 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -469,6 +471,304 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			}
 
 			if err := uploader.CreateComments(comments...); err != nil {
+				return err
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	return uploader.Finish()
+}
+
+// SyncRepository syncs a repository according MigrateOptions
+func SyncRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, opts base.MigrateOptions, messenger base.Messenger, lastSynced time.Time) (*repo_model.Repository, error) {
+	ownerName := repo.OwnerName
+	downloader, err := newDownloader(ctx, ownerName, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if !downloader.SupportSyncing() {
+		log.Info("repository syncing is not supported, ignored")
+		return nil, nil
+	}
+
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+	uploader.gitServiceType = opts.GitServiceType
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		log.Error("open repository failed: %v", err)
+		return nil, err
+	}
+
+	if err := syncRepository(downloader, uploader, opts, messenger, lastSynced); err != nil {
+		// It's different from migration that we shouldn't rollback here,
+		// because the only thing rollback does is to delete the repository
+
+		if err := system_model.CreateRepositoryNotice(fmt.Sprintf("Syncing repository from %s failed: %v", opts.OriginalURL, err)); err != nil {
+			log.Error("create repository notice failed: ", err)
+		}
+		return nil, err
+	}
+	return uploader.repo, nil
+}
+
+// syncRepository will download new information and then upload it to Uploader.
+func syncRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger, lastSynced time.Time) error {
+	if messenger == nil {
+		messenger = base.NilMessenger
+	}
+
+	log.Trace("syncing topics")
+	messenger("repo.migrate.syncing_topics")
+	topics, err := downloader.GetTopics()
+	if err != nil {
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("syncing topics is not supported, ignored")
+	}
+	if len(topics) != 0 {
+		if err = uploader.UpdateTopics(topics...); err != nil {
+			return err
+		}
+	}
+
+	if opts.Milestones {
+		log.Trace("syncing milestones")
+		messenger("repo.migrate.syncing_milestones")
+		milestones, err := downloader.GetMilestones()
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("syncing milestones is not supported, ignored")
+		}
+
+		msBatchSize := uploader.MaxBatchInsertSize("milestone")
+		for len(milestones) > 0 {
+			if len(milestones) < msBatchSize {
+				msBatchSize = len(milestones)
+			}
+
+			if err := uploader.UpdateMilestones(milestones...); err != nil {
+				return err
+			}
+			milestones = milestones[msBatchSize:]
+		}
+	}
+
+	if opts.Labels {
+		log.Trace("syncing labels")
+		messenger("repo.migrate.syncing_labels")
+		labels, err := downloader.GetLabels()
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("syncing labels is not supported, ignored")
+		}
+
+		lbBatchSize := uploader.MaxBatchInsertSize("label")
+		for len(labels) > 0 {
+			if len(labels) < lbBatchSize {
+				lbBatchSize = len(labels)
+			}
+
+			if err := uploader.UpdateLabels(labels...); err != nil {
+				return err
+			}
+			labels = labels[lbBatchSize:]
+		}
+	}
+
+	if opts.Releases {
+		log.Trace("syncing releases")
+		messenger("repo.migrate.syncing_releases")
+		releases, err := downloader.GetReleases()
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("syncing releases is not supported, ignored")
+		}
+
+		relBatchSize := uploader.MaxBatchInsertSize("release")
+		for len(releases) > 0 {
+			if len(releases) < relBatchSize {
+				relBatchSize = len(releases)
+			}
+
+			if err = uploader.PatchReleases(releases[:relBatchSize]...); err != nil {
+				return err
+			}
+			releases = releases[relBatchSize:]
+		}
+
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		if err = uploader.SyncTags(); err != nil {
+			return err
+		}
+	}
+
+	var (
+		commentBatchSize = uploader.MaxBatchInsertSize("comment")
+		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
+	)
+
+	supportAllComments := downloader.SupportGetRepoComments()
+
+	if opts.Issues {
+		log.Trace("syncing issues and comments")
+		messenger("repo.migrate.syncing_issues")
+		issueBatchSize := uploader.MaxBatchInsertSize("issue")
+
+		for i := 1; ; i++ {
+			issues, isEnd, err := downloader.GetNewIssues(i, issueBatchSize, lastSynced)
+			if err != nil {
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("syncing issues is not supported, ignored")
+				break
+			}
+
+			if err := uploader.PatchIssues(issues...); err != nil {
+				return err
+			}
+
+			if opts.Comments && !supportAllComments {
+				allComments := make([]*base.Comment, 0, commentBatchSize)
+				for _, issue := range issues {
+					log.Trace("syncing issue %d's comments", issue.Number)
+					comments, _, err := downloader.GetNewComments(issue, lastSynced)
+					if err != nil {
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("syncing comments is not supported, ignored")
+					}
+
+					allComments = append(allComments, comments...)
+
+					if len(allComments) >= commentBatchSize {
+						if err = uploader.PatchComments(allComments[:commentBatchSize]...); err != nil {
+							return err
+						}
+
+						allComments = allComments[commentBatchSize:]
+					}
+				}
+
+				if len(allComments) > 0 {
+					if err = uploader.PatchComments(allComments...); err != nil {
+						return err
+					}
+				}
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if opts.PullRequests {
+		log.Trace("syncing pull requests and comments")
+		messenger("repo.migrate.syncing_pulls")
+		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
+
+		for i := 1; ; i++ {
+			prs, isEnd, err := downloader.GetNewPullRequests(i, prBatchSize, lastSynced)
+			if err != nil {
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("syncing pull requests is not supported, ignored")
+				break
+			}
+
+			if err := uploader.PatchPullRequests(prs...); err != nil {
+				return err
+			}
+
+			if opts.Comments {
+				if !supportAllComments {
+					// plain comments
+					allComments := make([]*base.Comment, 0, commentBatchSize)
+					for _, pr := range prs {
+						log.Trace("syncing pull request %d's comments", pr.Number)
+						comments, _, err := downloader.GetNewComments(pr, lastSynced)
+						if err != nil {
+							if !base.IsErrNotSupported(err) {
+								return err
+							}
+							log.Warn("syncing comments is not supported, ignored")
+						}
+
+						allComments = append(allComments, comments...)
+
+						if len(allComments) >= commentBatchSize {
+							if err = uploader.PatchComments(allComments[:commentBatchSize]...); err != nil {
+								return err
+							}
+							allComments = allComments[commentBatchSize:]
+						}
+					}
+					if len(allComments) > 0 {
+						if err = uploader.PatchComments(allComments...); err != nil {
+							return err
+						}
+					}
+				}
+
+				// sync reviews
+				allReviews := make([]*base.Review, 0, reviewBatchSize)
+				for _, pr := range prs {
+					reviews, err := downloader.GetNewReviews(pr, lastSynced)
+					if err != nil {
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("syncing reviews is not supported, ignored")
+						break
+					}
+
+					allReviews = append(allReviews, reviews...)
+
+					if len(allReviews) >= reviewBatchSize {
+						if err = uploader.PatchReviews(allReviews[:reviewBatchSize]...); err != nil {
+							return err
+						}
+						allReviews = allReviews[reviewBatchSize:]
+					}
+				}
+				if len(allReviews) > 0 {
+					if err = uploader.PatchReviews(allReviews...); err != nil {
+						return err
+					}
+				}
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if opts.Comments && supportAllComments {
+		log.Trace("syncing comments")
+		for i := 1; ; i++ {
+			comments, isEnd, err := downloader.GetAllNewComments(i, commentBatchSize, lastSynced)
+			if err != nil {
+				return err
+			}
+
+			if err := uploader.PatchComments(comments...); err != nil {
 				return err
 			}
 

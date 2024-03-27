@@ -6,6 +6,7 @@ package migration
 import (
 	"context"
 	"net/url"
+	"time"
 )
 
 // NullDownloader implements a blank downloader
@@ -85,4 +86,34 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 // SupportGetRepoComments return true if it supports get repo comments
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
+}
+
+// SupportSyncing returns true if it supports syncing issues/PRs/etc from pull mirror
+func (n NullDownloader) SupportSyncing() bool {
+	return false
+}
+
+// GetNewIssues returns new issues updated after the given time according start and limit
+func (n NullDownloader) GetNewIssues(page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewIssues"}
+}
+
+// GetNewComments returns comments of an issue or PR after the given time
+func (n NullDownloader) GetNewComments(commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewComments"}
+}
+
+// GetAllNewComments returns paginated comments after the given time
+func (n NullDownloader) GetAllNewComments(page, perPage int, updatedAfter time.Time) ([]*Comment, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "AllNewComments"}
+}
+
+// GetNewPullRequests returns pull requests after the given time according page and perPage
+func (n NullDownloader) GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewPullRequests"}
+}
+
+// GetNewReviews returns new pull requests review after the given time
+func (n NullDownloader) GetNewReviews(reviewable Reviewable, updatedAfter time.Time) ([]*Review, error) {
+	return nil, ErrNotSupported{Entity: "NewReviews"}
 }

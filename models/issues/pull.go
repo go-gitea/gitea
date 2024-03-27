@@ -1046,6 +1046,35 @@ func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 	return committer.Commit()
 }
 
+// UpsertPullRequests inserts new pull requests and updates existing pull requests in database
+func UpsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
+	if len(prs) == 0 {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		for _, pr := range prs {
+			isInsert, err := upsertIssue(ctx, pr.Issue)
+			if err != nil {
+				return err
+			}
+			pr.IssueID = pr.Issue.ID
+
+			if isInsert {
+				if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.NoAutoTime().ID(pr.ID).AllCols().Update(pr); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
 // GetPullRequestByMergedCommit returns a merged pull request by the given commit
 func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
 	pr := new(PullRequest)

@@ -25,6 +25,14 @@ type Mirror struct {
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
+	SyncWiki         bool `xorm:"NOT NULL DEFAULT false"`
+	SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
+	SyncMilestones   bool `xorm:"NOT NULL DEFAULT false"`
+	SyncLabels       bool `xorm:"NOT NULL DEFAULT false"`
+	SyncReleases     bool `xorm:"NOT NULL DEFAULT false"`
+	SyncComments     bool `xorm:"NOT NULL DEFAULT false"`
+	SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
+
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
 

@@ -161,14 +161,6 @@ func Migrate(ctx *context.APIContext) {
 		GitServiceType: gitServiceType,
 		MirrorInterval: form.MirrorInterval,
 	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
 
 	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,

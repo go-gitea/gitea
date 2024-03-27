@@ -19,7 +19,7 @@
 			{{template "repo/issue/search" .}}
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
-					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+					<a class="ui small primary button issue-list-new{{if not .AllowsIssues}} disabled{{end}}" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				{{else}}
 					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				{{end}}

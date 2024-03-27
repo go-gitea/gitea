@@ -223,14 +223,6 @@ func MigratePost(ctx *context.Context) {
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
 
 	err = repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {

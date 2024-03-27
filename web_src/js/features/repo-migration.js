@@ -10,6 +10,9 @@ const lfsSettings = document.getElementById('lfs_settings');
 const lfsEndpoint = document.getElementById('lfs_endpoint');
 const items = document.querySelectorAll('#migrate_items input[type=checkbox]');
 
+// services that supports migration items with mirroring
+const allowedServiceTypes = [2]; // 2 = GitHub service type
+
 export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
@@ -48,7 +51,7 @@ function checkItems(tokenAuth) {
   } else {
     enableItems = user?.value !== '' || pass?.value !== '';
   }
-  if (enableItems && Number(service?.value) > 1) {
+  if (enableItems && Number(service?.value) > 1 && !allowedServiceTypes.includes(Number(service?.value))) {
     if (mirror?.checked) {
       for (const item of items) {
         item.disabled = item.name !== 'wiki';
