@@ -20,10 +20,28 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
+// ErrDismissRequestOnClosedPR represents an error when an user tries to dismiss a review associated to a closed or merged PR.
+type ErrDismissRequestOnClosedPR struct{}
+
+// IsErrDismissRequestOnClosedPR checks if an error is an ErrDismissRequestOnClosedPR.
+func IsErrDismissRequestOnClosedPR(err error) bool {
+	_, ok := err.(ErrDismissRequestOnClosedPR)
+	return ok
+}
+
+func (err ErrDismissRequestOnClosedPR) Error() string {
+	return "can't dismiss a review associated to a closed or merged PR"
+}
+
+func (err ErrDismissRequestOnClosedPR) Unwrap() error {
+	return util.ErrPermissionDenied
+}
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
@@ -380,6 +398,21 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	// Check if the review's repoID is the one we're currently expecting.
 	if review.Issue.RepoID != repoID {
 		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
+	}
+
+	issue := review.Issue
+
+	if issue.IsClosed {
+		return nil, ErrDismissRequestOnClosedPR{}
+	}
+
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return nil, err
+		}
+		if issue.PullRequest.HasMerged {
+			return nil, ErrDismissRequestOnClosedPR{}
+		}
 	}
 
 	if err := issues_model.DismissReview(ctx, review, isDismiss); err != nil {

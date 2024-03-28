@@ -14,7 +14,7 @@ _test
 
 # MS VSCode
 .vscode
-__debug_bin
+__debug_bin*
 
 # Architecture specific extensions/prefixes
 *.[568vq]

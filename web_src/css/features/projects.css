@@ -19,6 +19,7 @@
   overflow: visible;
   display: flex;
   flex-direction: column;
+  cursor: default;
 }
 
 .project-column-header {
@@ -46,6 +47,7 @@
 .project-column-title {
   background: none !important;
   line-height: 1.25 !important;
+  cursor: inherit;
 }
 
 .project-column > .cards {
@@ -92,6 +94,7 @@
 }
 
 .card-ghost {
+  border-color: var(--color-secondary-dark-4) !important;
   border-style: dashed !important;
   background: none !important;
 }
