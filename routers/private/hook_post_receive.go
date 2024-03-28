@@ -160,8 +160,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
+	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
-	if len(opts.GitPushOptions) > 0 {
+	if isPrivate.Has() || isTemplate.Has() {
 		// load the repository
 		if repo == nil {
 			repo = loadRepository(ctx, ownerName, repoName)
@@ -196,13 +198,12 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		cols := make([]string, 0, len(opts.GitPushOptions))
-		isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
+
 		if isPrivate.Has() {
 			repo.IsPrivate = isPrivate.Value()
 			cols = append(cols, "is_private")
 		}
 
-		isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 		if isTemplate.Has() {
 			repo.IsTemplate = isTemplate.Value()
 			cols = append(cols, "is_template")
