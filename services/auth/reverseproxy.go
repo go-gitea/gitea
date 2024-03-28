@@ -65,11 +65,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 		return nil
 	}
 
-	// Just return user if session is estabilshed already.
-	user := SessionUser(sess)
-	if user != nil {
-		return user
-	}
+	var user *user_model.User = nil
 
 	username := r.getUserName(req)
 	if len(username) == 0 {
