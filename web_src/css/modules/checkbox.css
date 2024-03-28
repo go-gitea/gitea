@@ -62,7 +62,7 @@ input[type="checkbox"] {
   padding-left: 1.85714em;
 }
 
-/* slider checkbox */
+/* "switch" styled checkbox */
 
 .ui.toggle.checkbox {
   min-height: 1.5rem;
