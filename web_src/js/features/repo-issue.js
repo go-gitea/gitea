@@ -282,17 +282,15 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  const checkbox = document.getElementById('allow-edits-from-maintainers');
-  if (!checkbox) return;
+  const wrapper = document.getElementById('allow-edits-from-maintainers');
+  if (!wrapper) return;
 
-  const checkboxEl = checkbox.querySelector('input[type="checkbox"]');
-
-  checkboxEl?.addEventListener('change', async () => {
-    const checked = checkboxEl.checked;
-    let url = checkbox.getAttribute('data-url');
+  wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
+    const checked = e.target.checked;
+    let url = wrapper.getAttribute('data-url');
     url += '/set_allow_maintainer_edit';
-    checkbox.classList.add('is-loading');
-    checkboxEl.disabled = true;
+    wrapper.classList.add('is-loading');
+    e.target.disabled = true;
     try {
       const response = await POST(url, {data: {allow_maintainer_edit: checked}});
       if (!response.ok) {
@@ -300,10 +298,10 @@ export function initRepoPullRequestAllowMaintainerEdit() {
       }
     } catch (error) {
       console.error(error);
-      showTemporaryTooltip(checkbox, checkbox.getAttribute('data-prompt-error'));
+      showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error'));
     } finally {
-      checkbox.classList.remove('is-loading');
-      checkboxEl.disabled = false;
+      wrapper.classList.remove('is-loading');
+      e.target.disabled = false;
     }
   });
 }
