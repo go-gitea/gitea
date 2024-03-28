@@ -102,8 +102,3 @@
 .card-ghost * {
   opacity: 0;
 }
-
-.edit-project-column-modal .color.picker.column,
-.new-project-column-modal .color.picker.column {
-  display: flex;
-}

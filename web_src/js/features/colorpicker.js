@@ -1,4 +1,4 @@
-export async function initColorPickers(selector = 'input.color-picker', opts = {}) {
+export async function initColorPickers(selector = '.js-color-picker-input input', opts = {}) {
   const inputEls = document.querySelectorAll(selector);
   if (!inputEls.length) return;
 
@@ -17,7 +17,7 @@ export async function initColorPickers(selector = 'input.color-picker', opts = {
   });
 
   for (const inputEl of inputEls) {
-    const parent = inputEl.closest('.color.picker');
+    const parent = inputEl.closest('.js-color-picker-input');
     // prevent tabbing on the color preview `button` inside the input
     parent.querySelector('button').tabIndex = -1;
     // init precolors

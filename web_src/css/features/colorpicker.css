@@ -2,7 +2,12 @@
    opaqua colors, and if more features like opacity are needed, the CSS needs to be extended
    based on upstream: https://github.com/mdbassit/Coloris/blob/main/src/coloris.css. */
 
-input.color-picker {
+.js-color-picker-input {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.js-color-picker-input input {
   padding-top: 8px !important;
   padding-bottom: 8px !important;
   padding-left: 32px !important;

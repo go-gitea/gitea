@@ -64,8 +64,9 @@ export function initCompLabelEdit(selector) {
 
     $('.edit-label .label-desc-input').val(this.getAttribute('data-description'));
 
-    $('.edit-label .color-picker')[0].value = this.getAttribute('data-color');
-    $('.edit-label .color-picker')[0].dispatchEvent(new Event('input', {bubbles: true}));
+    const colorInput = document.querySelector('.edit-label .js-color-picker-input input');
+    colorInput.value = this.getAttribute('data-color');
+    colorInput.dispatchEvent(new Event('input', {bubbles: true}));
 
     $('.edit-label.modal').modal({
       onApprove() {

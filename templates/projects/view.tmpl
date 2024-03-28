@@ -42,8 +42,8 @@
 
 						<div class="field color-field">
 							<label for="new_project_column_color_picker">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-							<div class="color picker column">
-								<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
+							<div class="js-color-picker-input column">
+								<input maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
 								{{template "repo/issue/label_precolors"}}
 							</div>
 						</div>
@@ -114,8 +114,8 @@
 
 											<div class="field color-field">
 												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-												<div class="color picker column">
-													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
+												<div class="js-color-picker-input column">
+													<input maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
 													{{template "repo/issue/label_precolors"}}
 												</div>
 											</div>
