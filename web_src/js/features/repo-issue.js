@@ -287,8 +287,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
 
   wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
     const checked = e.target.checked;
-    let url = wrapper.getAttribute('data-url');
-    url += '/set_allow_maintainer_edit';
+    let url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
     e.target.disabled = true;
     try {
