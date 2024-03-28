@@ -1338,7 +1338,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
 			return
 		}
-		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID, "attach"); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}

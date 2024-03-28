@@ -76,7 +76,7 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 }
 
 // MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
+func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64, projectID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
@@ -93,7 +93,7 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?", board.ID, sorting, issueID, projectID)
 			if err != nil {
 				return err
 			}

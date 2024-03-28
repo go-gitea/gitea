@@ -174,6 +174,8 @@ func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.S
 	// do not need to apply any condition
 	if opts.ProjectBoardID > 0 {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+	} else if opts.ProjectID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0, "project_id": opts.ProjectID}))
 	} else if opts.ProjectBoardID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}

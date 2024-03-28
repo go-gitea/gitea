@@ -241,6 +241,7 @@ export function initRepoCommentForm() {
 
   // Init labels and assignees
   initListSubmits('select-label', 'labels');
+  initListSubmits('select-projects', 'projects');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
   initListSubmits('select-reviewers-modify', 'assignees');

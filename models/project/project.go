@@ -237,6 +237,8 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 		return db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		return db.SearchOrderByLeastUpdated
+	case "title":
+		return db.SearchOrderByTitle
 	default:
 		return db.SearchOrderByNewest
 	}
