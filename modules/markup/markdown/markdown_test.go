@@ -509,7 +509,7 @@ func TestMathBlock(t *testing.T) {
 		},
 		{
 			`$a a$b b$`,
-			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p><code class="language-math is-loading">a a</code>b b$</p>` + nl,
 		},
 		{
 			`a a$b b`,
@@ -517,7 +517,7 @@ func TestMathBlock(t *testing.T) {
 		},
 		{
 			`a$b $a a$b b$`,
-			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p>a<code class="language-math is-loading">b </code>a a<code class="language-math is-loading">b b</code></p>` + nl,
 		},
 		{
 			"$$a$$",

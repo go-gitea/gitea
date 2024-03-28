@@ -41,23 +41,12 @@ func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
 
-func isAlphanumeric(b byte) bool {
-	// Github only cares about 0-9A-Za-z
-	return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
-}
-
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
 
 	if !bytes.HasPrefix(line, parser.start) {
 		// We'll catch this one on the next time round
-		return nil
-	}
-
-	precedingCharacter := block.PrecendingCharacter()
-	if precedingCharacter < 256 && isAlphanumeric(byte(precedingCharacter)) {
-		// need to exclude things like `a$` from being considered a start
 		return nil
 	}
 
@@ -75,14 +64,15 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		ender += pos
 
 		// Now we want to check the character at the end of our parser section
-		// that is ender + len(parser.end)
+		// that is ender + len(parser.end) and check if char before ender is '\'
 		pos = ender + len(parser.end)
 		if len(line) <= pos {
 			break
 		}
-		if !isAlphanumeric(line[pos]) {
+		if line[ender-1] != '\\' {
 			break
 		}
+
 		// move the pointer onwards
 		ender += len(parser.end)
 	}
