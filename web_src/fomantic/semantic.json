@@ -23,7 +23,6 @@
   "components": [
     "api",
     "button",
-    "checkbox",
     "dimmer",
     "dropdown",
     "form",
