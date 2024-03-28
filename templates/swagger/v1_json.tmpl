@@ -11276,6 +11276,9 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -17409,21 +17412,6 @@
         "slug": {
           "type": "string",
           "x-go-name": "Slug"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "BadgeList": {
-      "description": "BadgeList",
-      "type": "object",
-      "properties": {
-        "body": {
-          "description": "in:body",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Badge"
-          },
-          "x-go-name": "Body"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24722,7 +24710,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/BadgeList"
+        "$ref": "#/definitions/UserBadgeOption"
       }
     },
     "redirect": {

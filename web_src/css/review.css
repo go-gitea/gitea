@@ -96,9 +96,6 @@
 }
 
 @media (max-width: 767.98px) {
-  .comment-code-cloud .comments .comment {
-    display: flex;
-  }
   .comment-code-cloud .comments .comment .comment-header-right.actions .ui.basic.label {
     display: none;
   }
@@ -192,6 +189,10 @@
 
 .diff-file-body .comment-form {
   margin: 0 0 0 3em;
+}
+
+.diff-file-body.binary {
+  padding: 5px 10px;
 }
 
 .file-comment {
