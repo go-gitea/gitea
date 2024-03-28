@@ -1,15 +1,21 @@
 /* based on Fomantic UI checkbox module, with just the parts extracted that we use. If you find any
    unused rules here after refactoring, please remove them. */
 
+input[type="checkbox"] {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
 .ui.checkbox {
   position: relative;
   display: inline-block;
   vertical-align: baseline;
   font-style: normal;
-  min-height: 17px;
+  min-height: var(--checkbox-size);
   font-size: 1em;
-  line-height: 17px;
-  min-width: 17px;
+  line-height: var(--checkbox-size);
+  min-width: var(--checkbox-size);
+  padding: 1px;
 }
 
 .ui.checkbox input[type="checkbox"],
@@ -17,9 +23,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  outline: none;
-  width: 17px;
-  height: 17px;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
 }
 
 .ui.checkbox input[type="checkbox"]:enabled,
@@ -33,7 +38,6 @@
   position: relative;
   display: block;
   padding-left: 1.85714em;
-  outline: none;
   font-size: 1em;
   user-select: none;
 }
@@ -54,7 +58,7 @@
 }
 
 .ui.radio.checkbox {
-  min-height: 15px;
+  min-height: var(--checkbox-size);
 }
 .ui.radio.checkbox label {
   padding-left: 1.85714em;
