@@ -74,8 +74,6 @@
 .ui.toggle.checkbox label {
   min-height: 1.5rem;
   padding-left: 4.5rem;
-}
-.ui.toggle.checkbox label {
   padding-top: 0.15em;
 }
 .ui.toggle.checkbox label::before {
@@ -83,10 +81,7 @@
   position: absolute;
   content: "";
   z-index: 1;
-  transform: none;
   top: 0;
-  background: red;
-  box-shadow: none;
   width: 3.5rem;
   height: 1.5rem;
   border-radius: 500rem;
