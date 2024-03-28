@@ -31,8 +31,12 @@ func TestGetDefaultBoard(t *testing.T) {
 	board, err = projectWithMultipleDefaults.getDefaultBoard(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(6), board.ProjectID)
-	assert.Equal(t, int64(8), board.ID)
+	assert.Equal(t, int64(9), board.ID)
 
+	// set 8 as default board
+	assert.NoError(t, SetDefaultBoard(db.DefaultContext, board.ProjectID, 8))
+
+	// then 9 will become a non-default board
 	board, err = GetBoard(db.DefaultContext, 9)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(6), board.ProjectID)
