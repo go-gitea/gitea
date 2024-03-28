@@ -96,9 +96,6 @@
 }
 
 @media (max-width: 767.98px) {
-  .comment-code-cloud .comments .comment {
-    display: flex;
-  }
   .comment-code-cloud .comments .comment .comment-header-right.actions .ui.basic.label {
     display: none;
   }

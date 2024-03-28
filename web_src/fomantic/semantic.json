@@ -28,12 +28,10 @@
     "dropdown",
     "form",
     "input",
-    "label",
     "list",
     "menu",
     "modal",
     "search",
-    "tab",
-    "table"
+    "tab"
   ]
 }

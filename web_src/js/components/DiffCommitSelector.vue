@@ -103,7 +103,7 @@ export default {
       this.menuVisible = !this.menuVisible;
       // load our commits when the menu is not yet visible (it'll be toggled after loading)
       // and we got no commits
-      if (this.commits.length === 0 && this.menuVisible && !this.isLoading) {
+      if (!this.commits.length && this.menuVisible && !this.isLoading) {
         this.isLoading = true;
         try {
           await this.fetchCommits();
@@ -216,7 +216,7 @@ export default {
       <div
         v-if="lastReviewCommitSha != null" role="menuitem"
         class="vertical item"
-        :class="{disabled: commitsSinceLastReview === 0}"
+        :class="{disabled: !commitsSinceLastReview}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
       >
@@ -252,7 +252,7 @@ export default {
               </span>
             </div>
           </div>
-          <div class="gt-mono">
+          <div class="tw-font-mono">
             {{ commit.short_sha }}
           </div>
         </div>
