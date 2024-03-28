@@ -15,10 +15,6 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
 	limit := setting.Database.IterateBufferSize
 	if limit <= 0 {
 		limit = 50
