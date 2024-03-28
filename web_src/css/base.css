@@ -300,8 +300,8 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--color-markup-code-block);
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
