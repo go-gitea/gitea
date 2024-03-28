@@ -92,7 +92,7 @@ func removeDuplicatedBoardDefault(x *xorm.Engine) error {
 		Table("project_board").
 		Where("`default` = ?", true).
 		GroupBy("project_id").
-		Having("default_num > 1").
+		Having("count(*) > 1").
 		Find(&projects); err != nil {
 		return err
 	}
