@@ -13,6 +13,7 @@
   opacity: 0.3;
 }
 
+.btn.is-loading > *,
 .button.is-loading > * {
   opacity: 0;
 }
