@@ -219,6 +219,7 @@ export function initAdminCommon() {
 
     // Select actions
     const checkboxes = document.querySelectorAll('.select.table .ui.checkbox input');
+
     $('.select.action').on('click', function () {
       switch ($(this).data('action')) {
         case 'select-all':
@@ -242,11 +243,11 @@ export function initAdminCommon() {
       e.preventDefault();
       this.classList.add('is-loading', 'disabled');
       const data = new FormData();
-      $checkboxes.each(function () {
-        if ($(this).checkbox('is checked')) {
-          data.append('ids[]', this.getAttribute('data-id'));
+      for (const checkbox of checkboxes) {
+        if (checkbox.checked) {
+          data.append('ids[]', checkbox.closest('.ui.checkbox').getAttribute('data-id'));
         }
-      });
+      }
       await POST(this.getAttribute('data-link'), {data});
       window.location.href = this.getAttribute('data-redirect');
     });
