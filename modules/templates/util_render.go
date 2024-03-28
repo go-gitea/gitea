@@ -41,7 +41,7 @@ func RenderCommitMessage(ctx context.Context, msg string, metas map[string]strin
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
-	return template.HTML(msgLines[0])
+	return RenderCodeBlock(template.HTML(msgLines[0]))
 }
 
 // RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
@@ -68,7 +68,7 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string,
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
 	}
-	return template.HTML(renderedMessage)
+	return RenderCodeBlock(template.HTML(renderedMessage))
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.

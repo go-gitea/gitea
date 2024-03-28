@@ -171,7 +171,6 @@ export default {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                map: false, // https://github.com/postcss/postcss/issues/1914
                 plugins: [
                   tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
