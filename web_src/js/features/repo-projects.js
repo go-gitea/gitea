@@ -58,9 +58,7 @@ async function initRepoProjectSortable() {
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
-    filter: '[data-id="0"]',
-    animation: 150,
-    ghostClass: 'card-ghost',
+    handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => {
@@ -87,8 +85,6 @@ async function initRepoProjectSortable() {
     const boardCardList = boardColumn.getElementsByClassName('cards')[0];
     createSortable(boardCardList, {
       group: 'shared',
-      animation: 150,
-      ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
       delayOnTouchOnly: true,
