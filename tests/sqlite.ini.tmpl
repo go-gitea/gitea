@@ -4,7 +4,6 @@ RUN_MODE = prod
 [database]
 DB_TYPE = sqlite3
 PATH    = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/gitea.db
-LOG_SQL = true
 
 [indexer]
 REPO_INDEXER_ENABLED = true
@@ -84,7 +83,7 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/sessions
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}sqlite-log
 ENABLE_SSH_LOG       = true
-logger.xorm.MODE     = file, console
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info
