@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/test"
+	issue_service "code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -26,10 +28,19 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 
 	req = NewRequest(t, "GET", "/user2/repo1/pulls/3")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
+	// if some reviews are missing, the page shouldn't fail
+	err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user2/repo1/pulls/2")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
 
 func TestPullView_CodeOwner(t *testing.T) {
@@ -77,8 +88,21 @@ func TestPullView_CodeOwner(t *testing.T) {
 			session := loginUser(t, "user2")
 			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-basebranch", "Test Pull Request")
 
-			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
+			assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+
+			err := issue_service.ChangeTitle(db.DefaultContext, pr.Issue, user2, "[WIP] Test Pull Request")
+			assert.NoError(t, err)
+			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			assert.NoError(t, prUpdated1.LoadIssue(db.DefaultContext))
+			assert.EqualValues(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
+
+			err = issue_service.ChangeTitle(db.DefaultContext, prUpdated1.Issue, user2, "Test Pull Request2")
+			assert.NoError(t, err)
+			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			assert.NoError(t, prUpdated2.LoadIssue(db.DefaultContext))
+			assert.EqualValues(t, "Test Pull Request2", prUpdated2.Issue.Title)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner

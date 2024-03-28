@@ -341,7 +341,7 @@ func checkGitVersionCompatibility(gitVer *version.Version) error {
 
 func configSet(key, value string) error {
 	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
-	if err != nil && !err.IsExitCode(1) {
+	if err != nil && !IsErrorExitCode(err, 1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
 
@@ -364,7 +364,7 @@ func configSetNonExist(key, value string) error {
 		// already exist
 		return nil
 	}
-	if err.IsExitCode(1) {
+	if IsErrorExitCode(err, 1) {
 		// not exist, set new config
 		_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
 		if err != nil {
@@ -382,7 +382,7 @@ func configAddNonExist(key, value string) error {
 		// already exist
 		return nil
 	}
-	if err.IsExitCode(1) {
+	if IsErrorExitCode(err, 1) {
 		// not exist, add new config
 		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(nil)
 		if err != nil {
@@ -403,7 +403,7 @@ func configUnsetAll(key, value string) error {
 		}
 		return nil
 	}
-	if err.IsExitCode(1) {
+	if IsErrorExitCode(err, 1) {
 		// not exist
 		return nil
 	}

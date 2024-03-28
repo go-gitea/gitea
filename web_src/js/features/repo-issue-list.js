@@ -93,9 +93,9 @@ function initRepoIssueListAuthorDropdown() {
   const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) return;
 
-  let searchUrl = $searchDropdown.attr('data-search-url');
-  const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+  let searchUrl = $searchDropdown[0].getAttribute('data-search-url');
+  const actionJumpUrl = $searchDropdown[0].getAttribute('data-action-jump-url');
+  const selectedUserId = $searchDropdown[0].getAttribute('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
@@ -108,8 +108,8 @@ function initRepoIssueListAuthorDropdown() {
         // the content is provided by backend IssuePosters handler
         const processedResults = []; // to be used by dropdown to generate menu items
         for (const item of resp.results) {
-          let html = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
-          if (item.full_name) html += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
+          let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
+          if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
           processedResults.push({value: item.user_id, name: html});
         }
         resp.results = processedResults;
@@ -188,8 +188,6 @@ async function initIssuePinSort() {
 
   createSortable(pinDiv, {
     group: 'shared',
-    animation: 150,
-    ghostClass: 'card-ghost',
     onEnd: pinMoveEnd,
   });
 }

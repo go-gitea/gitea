@@ -188,8 +188,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	if len(selectLabels) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
-			ctx.ServerError("StringsToInt64s", err)
-			return
+			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
 		}
 	}
 
@@ -447,13 +446,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
 	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
-		mentionedID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -1603,7 +1602,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	marked[issue.PosterID] = issue.ShowRole
 
-	// Render comments and and fetch participants.
+	// Render comments and fetch participants.
 	participants[0] = issue.Poster
 
 	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {

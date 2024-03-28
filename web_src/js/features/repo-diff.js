@@ -13,16 +13,20 @@ import {POST, GET} from '../modules/fetch.js';
 const {pageData, i18n} = window.config;
 
 function initRepoDiffReviewButton() {
-  const $reviewBox = $('#review-box');
-  const $counter = $reviewBox.find('.review-comments-counter');
+  const reviewBox = document.getElementById('review-box');
+  if (!reviewBox) return;
+
+  const $reviewBox = $(reviewBox);
+  const counter = reviewBox.querySelector('.review-comments-counter');
+  if (!counter) return;
 
   $(document).on('click', 'button[name="pending_review"]', (e) => {
     const $form = $(e.target).closest('form');
     // Watch for the form's submit event.
     $form.on('submit', () => {
-      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
-      $counter.attr('data-pending-comment-number', num);
-      $counter.text(num);
+      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+      counter.setAttribute('data-pending-comment-number', num);
+      counter.textContent = num;
       // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
       $reviewBox.removeClass('pulse');
       $reviewBox.width();
@@ -38,8 +42,8 @@ function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('gt-hidden');
-    $target.removeClass('gt-hidden');
+    $target.parent().children().addClass('tw-hidden');
+    $target.removeClass('tw-hidden');
   });
 }
 
@@ -65,7 +69,7 @@ function initRepoDiffConversationForm() {
         formData.append(submitter.name, submitter.value);
       }
 
-      const response = await POST($form.attr('action'), {data: formData});
+      const response = await POST(e.target.getAttribute('action'), {data: formData});
       const $newConversationHolder = $(await response.text());
       const {path, side, idx} = $newConversationHolder.data();
 
@@ -114,20 +118,20 @@ export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
+    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
     const index = $conversations.index($conversation);
     const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
     const $previousConversation = $conversations.eq(previousIndex);
-    const anchor = $previousConversation.find('.comment').first().attr('id');
+    const anchor = $previousConversation.find('.comment').first()[0].getAttribute('id');
     window.location.href = `#${anchor}`;
   });
   $(document).on('click', '.next-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
+    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
     const index = $conversations.index($conversation);
     const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
     const $nextConversation = $conversations.eq(nextIndex);
-    const anchor = $nextConversation.find('.comment').first().attr('id');
+    const anchor = $nextConversation.find('.comment').first()[0].getAttribute('id');
     window.location.href = `#${anchor}`;
   });
 }
@@ -173,8 +177,7 @@ function initRepoDiffShowMore() {
   $(document).on('click', 'a#diff-show-more-files', (e) => {
     e.preventDefault();
 
-    const $target = $(e.target);
-    const linkLoadMore = $target.attr('data-href');
+    const linkLoadMore = e.target.getAttribute('data-href');
     loadMoreFiles(linkLoadMore);
   });
 
@@ -209,8 +212,7 @@ function initRepoDiffShowMore() {
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  const $diffFileList = $('#diff-file-list');
-  if ($diffFileList.length === 0) return;
+  if (!$('#diff-file-list').length) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

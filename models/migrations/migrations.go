@@ -568,7 +568,9 @@ var migrations = []Migration{
 	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 	// v291 -> v292
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
-	// v282 -> v293
+	// v292 -> v293
+	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+	// v283 -> v294
 	NewMigration("Add TimeEstimate to issue table", v1_22.AddTimeEstimateColumnToIssueTable),
 }
 
