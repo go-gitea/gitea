@@ -6,11 +6,36 @@ package markdown
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/svg"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/util"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
+
+// renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
+func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		n := node.(*Attention)
+		var octiconName string
+		switch n.AttentionType {
+		case "tip":
+			octiconName = "light-bulb"
+		case "important":
+			octiconName = "report"
+		case "warning":
+			octiconName = "alert"
+		case "caution":
+			octiconName = "stop"
+		default: // including "note"
+			octiconName = "info"
+		}
+		_, _ = w.WriteString(string(svg.RenderHTML("octicon-"+octiconName, 16, "attention-icon attention-"+n.AttentionType)))
+	}
+	return ast.WalkContinue, nil
+}
 
 func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Reader) (ast.WalkStatus, error) {
 	// We only want attention blockquotes when the AST looks like:
@@ -22,10 +47,16 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 	if firstParagraph.ChildCount() < 3 {
 		return ast.WalkContinue, nil
 	}
-	node1, ok1 := firstParagraph.FirstChild().(*ast.Text)
-	node2, ok2 := node1.NextSibling().(*ast.Text)
-	node3, ok3 := node2.NextSibling().(*ast.Text)
-	if !ok1 || !ok2 || !ok3 {
+	node1, ok := firstParagraph.FirstChild().(*ast.Text)
+	if !ok {
+		return ast.WalkContinue, nil
+	}
+	node2, ok := node1.NextSibling().(*ast.Text)
+	if !ok {
+		return ast.WalkContinue, nil
+	}
+	node3, ok := node2.NextSibling().(*ast.Text)
+	if !ok {
 		return ast.WalkContinue, nil
 	}
 	val1 := string(node1.Segment.Value(reader.Source()))
@@ -37,7 +68,7 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 
 	// grab attention type from markdown source
 	attentionType := strings.ToLower(val2[1:])
-	if !g.AttentionTypes.Contains(attentionType) {
+	if !g.attentionTypes.Contains(attentionType) {
 		return ast.WalkContinue, nil
 	}
 
