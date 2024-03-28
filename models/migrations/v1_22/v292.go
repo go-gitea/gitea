@@ -7,7 +7,6 @@ import (
 	"code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -27,57 +26,48 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 
 	start := 0
 
+	type Project struct {
+		ID        int64
+		CreatorID int64
+		BoardID   int64
+	}
+
 	for {
-		var projects []project.Project
-		if err := sess.SQL("SELECT DISTINCT `p`.`id`, `p`.`creator_id` FROM `project` `p` WHERE (SELECT COUNT(*) FROM `project_board` `pb` WHERE `pb`.`project_id` = `p`.`id` AND `pb`.`default` = ?) != 1", true).
+		if start%200 == 0 {
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
+
+		var projects []*Project
+		if err := sess.Select("project.id as id, project.creator_id, project_board.id as board_id").
+			Join("LEFT", "project_board", "project_board.project_id = project.id AND project_board.default=?", true).
+			Where("project_board.id is NULL OR project_board.id = 0").
 			Limit(limit, start).
 			Find(&projects); err != nil {
 			return err
 		}
 
-		if len(projects) == 0 {
-			break
-		}
-		start += len(projects)
-
 		for _, p := range projects {
-			var boards []project.Board
-			if err := sess.Where("project_id=? AND `default` = ?", p.ID, true).OrderBy("sorting").Find(&boards); err != nil {
-				return err
-			}
-
-			if len(boards) == 0 {
-				if _, err := sess.Insert(project.Board{
-					ProjectID: p.ID,
-					Default:   true,
-					Title:     "Uncategorized",
-					CreatorID: p.CreatorID,
-				}); err != nil {
-					return err
-				}
-				continue
-			}
-
-			var boardsToUpdate []int64
-			for id, b := range boards {
-				if id > 0 {
-					boardsToUpdate = append(boardsToUpdate, b.ID)
-				}
-			}
-
-			if _, err := sess.Where(builder.Eq{"project_id": p.ID}.And(builder.In("id", boardsToUpdate))).
-				Cols("`default`").Update(&project.Board{Default: false}); err != nil {
+			if _, err := sess.Insert(project.Board{
+				ProjectID: p.ID,
+				Default:   true,
+				Title:     "Uncategorized",
+				CreatorID: p.CreatorID,
+			}); err != nil {
 				return err
 			}
 		}
 
-		if start%1000 == 0 {
+		start += len(projects)
+		if (start > 0 && start%200 == 0) || len(projects) == 0 {
 			if err := sess.Commit(); err != nil {
 				return err
 			}
-			if err := sess.Begin(); err != nil {
-				return err
-			}
+		}
+
+		if len(projects) == 0 {
+			break
 		}
 	}
 
