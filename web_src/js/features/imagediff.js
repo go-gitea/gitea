@@ -116,7 +116,7 @@ export function initImageDiff() {
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    for (const el of Array.from(this.children).filter((child) => child.classList.contains('image-diff-tabs'))) {
+    for (const el of this.querySelectorAll(':scope > .image-diff-tabs')) {
       el.classList.remove('is-loading');
     }
 
