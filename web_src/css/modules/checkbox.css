@@ -60,21 +60,22 @@ input[type="checkbox"] {
 .ui.radio.checkbox {
   min-height: var(--checkbox-size);
 }
+
 .ui.radio.checkbox label {
   padding-left: 1.85714em;
 }
 
+/* slider checkbox */
+
 .ui.toggle.checkbox {
   min-height: 1.5rem;
 }
-
 .ui.toggle.checkbox input {
   width: 3.5rem;
   height: 1.5rem;
   opacity: 0;
   z-index: 3;
 }
-
 .ui.toggle.checkbox label {
   min-height: 1.5rem;
   padding-left: 4.5rem;
