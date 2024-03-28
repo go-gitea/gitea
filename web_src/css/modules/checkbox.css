@@ -10,9 +10,7 @@ input[type="checkbox"] {
   position: relative;
   display: inline-block;
   vertical-align: baseline;
-  font-style: normal;
   min-height: var(--checkbox-size);
-  font-size: 1em;
   line-height: var(--checkbox-size);
   min-width: var(--checkbox-size);
   padding: 1px;
@@ -38,7 +36,6 @@ input[type="checkbox"] {
   position: relative;
   display: block;
   padding-left: 1.85714em;
-  font-size: 1em;
   user-select: none;
 }
 
@@ -54,7 +51,7 @@ input[type="checkbox"] {
 }
 
 .ui.checkbox input.hidden {
-  z-index: -1;
+  visibility: hidden;
 }
 
 .ui.radio.checkbox {
