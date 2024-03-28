@@ -79,7 +79,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
 			return
 		}
@@ -160,7 +160,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
-		if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}
@@ -204,7 +204,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
-		if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}
@@ -241,7 +241,7 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
-		if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
 			return
 		}
@@ -251,7 +251,7 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 			ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 			return
 		}

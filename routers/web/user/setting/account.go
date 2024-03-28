@@ -235,7 +235,7 @@ func DeleteEmail(ctx *context.Context) {
 
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
-	if user_model.FeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureDeletion) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureDeletion) {
 		ctx.Error(http.StatusNotFound)
 		return
 	}

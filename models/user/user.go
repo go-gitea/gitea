@@ -1233,9 +1233,9 @@ func GetOrderByName() string {
 	return "name"
 }
 
-// FeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
+// IsFeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
 // user if applicable
-func FeatureDisabledWithLoginType(user *User, feature string) bool {
+func IsFeatureDisabledWithLoginType(user *User, feature string) bool {
 	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
 	return (user != nil && user.LoginType > auth.Plain && setting.Admin.ExternalUserDisableFeatures.Contains(feature)) ||
 		setting.Admin.UserDisabledFeatures.Contains(feature)
