@@ -55,9 +55,6 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 			Find(&projects); err != nil {
 			return err
 		}
-		if len(projects) == 0 {
-			break
-		}
 
 		for _, p := range projects {
 			if _, err := sess.Insert(ProjectBoard{
@@ -69,11 +66,15 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 				return err
 			}
 		}
-
 		if err := sess.Commit(); err != nil {
 			return err
 		}
+
+		if len(projects) == 0 {
+			break
+		}
 	}
+	sess.Close()
 
 	return removeDuplicatedBoardDefault(x)
 }
@@ -97,6 +98,7 @@ func removeDuplicatedBoardDefault(x *xorm.Engine) error {
 		if _, err := x.Where("project_id=?", project.ProjectID).
 			Table("project_board").
 			Limit(project.DefaultNum - 1).
+			Desc("id").
 			Update(map[string]bool{
 				"`default`": false,
 			}); err != nil {
