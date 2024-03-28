@@ -7,7 +7,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}gt-hidden{{end}} gt-mb-4" id="add-ssh-key-panel">
+	<div class="{{if not .HasSSHError}}tw-hidden{{end}} tw-mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
@@ -61,7 +61,7 @@
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
-						<a class="ui primary tiny button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{ctx.Locale.Tr "settings.ssh_key_verify"}}</a>
+						<a class="ui primary tiny button" href="?verify_ssh={{.Fingerprint}}">{{ctx.Locale.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
 				</div>
 			</div>

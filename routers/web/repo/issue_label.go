@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -112,12 +111,11 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		RepoID:       ctx.Repo.Repository.ID,
-		Name:         form.Title,
-		Exclusive:    form.Exclusive,
-		Description:  form.Description,
-		Color:        form.Color,
-		ArchivedUnix: timeutil.TimeStamp(0),
+		RepoID:      ctx.Repo.Repository.ID,
+		Name:        form.Title,
+		Exclusive:   form.Exclusive,
+		Description: form.Description,
+		Color:       form.Color,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)

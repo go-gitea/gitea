@@ -1,31 +1,31 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
-		<div class="gt-df gt-ac gt-fw gt-gap-3 gt-ml-1">
+		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-ml-0.5">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
-					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
+					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
 				</button>
 				<script>
 					// Default to true if unset
 					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') !== 'false';
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
-					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
+					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 			{{end}}
 			{{if not .DiffNotAvailable}}
-				<div class="diff-detail-stats gt-df gt-ac gt-fw">
-					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion}}
+				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
+					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
-				<div class="not-mobile gt-df gt-ac gt-fc tw-whitespace-nowrap gt-mr-2">
+				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
@@ -68,7 +68,7 @@
 				binaryFileMessage: "{{ctx.Locale.Tr "repo.diff.bin"}}",
 				showMoreMessage: "{{ctx.Locale.Tr "repo.diff.show_more"}}",
 				statisticsMessage: "{{ctx.Locale.Tr "repo.diff.stats_desc_file"}}",
-				linkLoadMore: "{{$.Link}}?skip-to={{.Diff.End}}&file-only=true",
+				linkLoadMore: "?skip-to={{.Diff.End}}&file-only=true",
 			};
 
 			// for first time loading, the diffFileInfo is a plain object
@@ -89,9 +89,9 @@
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
-			<div id="diff-file-tree" class="gt-hidden not-mobile"></div>
+			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
 			<script>
-				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
+				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
 		{{end}}
 		{{if .DiffNotAvailable}}
@@ -109,27 +109,27 @@
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
-					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
-						<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb gt-fw">
-							<div class="diff-file-name gt-df gt-ac gt-gap-2 gt-fw">
-								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} tw-invisible{{end}}">
+					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
+						<h4 class="diff-file-header sticky-2nd-row ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+							<div class="diff-file-name tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
+								<button class="fold-file btn interact-bg tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
 										{{svg "octicon-chevron-right" 18}}
 									{{else}}
 										{{svg "octicon-chevron-down" 18}}
 									{{end}}
 								</button>
-								<div class="gt-font-semibold gt-df gt-ac gt-mono">
+								<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
 									{{if $file.IsBin}}
-										<span class="gt-ml-1 gt-mr-3">
+										<span class="tw-ml-0.5 tw-mr-2">
 											{{ctx.Locale.Tr "repo.diff.bin"}}
 										</span>
 									{{else}}
 										{{template "repo/diff/stats" dict "file" . "root" $}}
 									{{end}}
 								</div>
-								<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}</span>
-								<button class="btn interact-fg gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
+								<span class="file tw-font-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}</span>
+								<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
 								{{if $file.IsGenerated}}
 									<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
 								{{end}}
@@ -139,12 +139,12 @@
 								{{if and $file.Mode $file.OldMode}}
 									{{$old := ctx.Locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
 									{{$new := ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}
-									<span class="gt-ml-4 gt-mono">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
+									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
 								{{else if $file.Mode}}
-									<span class="gt-ml-4 gt-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
+									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
 							</div>
-							<div class="diff-file-header-actions gt-df gt-ac gt-gap-2 gt-fw">
+							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
@@ -159,13 +159,16 @@
 								{{end}}
 								{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
 									<button class="ui basic tiny button unescape-button not-mobile">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-									<button class="ui basic tiny button escape-button gt-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+									<button class="ui basic tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 								{{end}}
 								{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 									{{if $file.IsDeleted}}
 										<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 									{{else}}
 										<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+										{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
+											<a class="ui basic tiny button" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+										{{end}}
 									{{end}}
 								{{end}}
 								{{if $isReviewFile}}
@@ -176,15 +179,15 @@
 							</div>
 						</h4>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} gt-hidden{{end}}">
+							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="diff-file-body binary" style="padding: 5px 10px;">
+									<div class="diff-file-body binary">
 										{{if $file.IsIncomplete}}
 											{{if $file.IsIncompleteLineTooLong}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 											{{else}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button diff-load-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												<a class="ui basic tiny button diff-load-button" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
@@ -217,10 +220,10 @@
 				{{end}}
 
 				{{if .Diff.IsIncomplete}}
-					<div class="diff-file-box diff-box file-content gt-mt-3" id="diff-incomplete">
-						<h4 class="ui top attached normal header gt-df gt-ac gt-sb">
+					<div class="diff-file-box diff-box file-content tw-mt-2" id="diff-incomplete">
+						<h4 class="ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
 					</div>
 				{{end}}
