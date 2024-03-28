@@ -194,10 +194,7 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 	if err := status.loadRepository(ctx); err != nil {
 		return err
 	}
-	if err := status.loadCreator(ctx); err != nil {
-		return err
-	}
-	return nil
+	return status.loadCreator(ctx)
 }
 
 // APIURL returns the absolute APIURL to this commit-status.
