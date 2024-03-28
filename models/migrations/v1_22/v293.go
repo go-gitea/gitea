@@ -98,7 +98,6 @@ func removeDuplicatedBoardDefault(x *xorm.Engine) error {
 		if _, err := x.Where("project_id=?", project.ProjectID).
 			Table("project_board").
 			Limit(project.DefaultNum - 1).
-			Desc("id").
 			Update(map[string]bool{
 				"`default`": false,
 			}); err != nil {
