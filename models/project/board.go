@@ -209,7 +209,6 @@ func deleteBoardByProjectID(ctx context.Context, projectID int64) error {
 // GetBoard fetches the current board of a project
 func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 	board := new(Board)
-
 	has, err := db.GetEngine(ctx).ID(boardID).Get(board)
 	if err != nil {
 		return nil, err
@@ -279,7 +278,7 @@ func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 		Title:     "Uncategorized",
 		CreatorID: p.CreatorID,
 	}
-	if _, err := db.GetEngine(ctx).Insert(); err != nil {
+	if _, err := db.GetEngine(ctx).Insert(&board); err != nil {
 		return nil, err
 	}
 	return &board, nil
