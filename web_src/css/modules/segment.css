@@ -70,7 +70,7 @@
 }
 
 .ui.segments:not(.horizontal) > .segment:only-child,
-.ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) {
+.ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) { /* workaround css issue with :last-child ignoring hidden elements */
   border-radius: 0.28571429rem;
 }
 
