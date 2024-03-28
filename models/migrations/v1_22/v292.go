@@ -4,8 +4,8 @@
 package v1_22 //nolint
 
 import (
-	"code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
@@ -32,6 +32,20 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 		BoardID   int64
 	}
 
+	type ProjectBoard struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Title   string
+		Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+		Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
+		Color   string `xorm:"VARCHAR(7)"`
+
+		ProjectID int64 `xorm:"INDEX NOT NULL"`
+		CreatorID int64 `xorm:"NOT NULL"`
+
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	}
+
 	for {
 		if start%200 == 0 {
 			if err := sess.Begin(); err != nil {
@@ -49,7 +63,7 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 		}
 
 		for _, p := range projects {
-			if _, err := sess.Insert(project.Board{
+			if _, err := sess.Insert(ProjectBoard{
 				ProjectID: p.ID,
 				Default:   true,
 				Title:     "Uncategorized",
