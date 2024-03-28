@@ -110,7 +110,7 @@ export function initImageDiff() {
     const $imagesAfter = imageInfos[0].$images;
     const $imagesBefore = imageInfos[1].$images;
 
-    initSideBySide(createContext($imagesAfter[0], $imagesBefore[0]));
+    initSideBySide(this, createContext($imagesAfter[0], $imagesBefore[0]));
     if ($imagesAfter.length > 0 && $imagesBefore.length > 0) {
       initSwipe(createContext($imagesAfter[1], $imagesBefore[1]));
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
@@ -120,7 +120,7 @@ export function initImageDiff() {
       el.classList.remove('is-loading');
     }
 
-    function initSideBySide(sizes) {
+    function initSideBySide(el, sizes) {
       let factor = 1;
       if (sizes.max.width > (diffContainerWidth - 24) / 2) {
         factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
@@ -129,21 +129,21 @@ export function initImageDiff() {
       const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
       const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
       if (sizes.$image1?.length) {
-        const boundsInfoAfterWidth = this.querySelector('.bounds-info-after .bounds-info-width');
+        const boundsInfoAfterWidth = el.querySelector('.bounds-info-after .bounds-info-width');
         boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
         if (widthChanged) boundsInfoAfterWidth.classList.add('green');
 
-        const boundsInfoAfterHeight = this.querySelector('.bounds-info-after .bounds-info-height');
+        const boundsInfoAfterHeight = el.querySelector('.bounds-info-after .bounds-info-height');
         boundsInfoAfterHeight.textContent = `${sizes.$image1[0].naturalHeight}px`;
         if (heightChanged) boundsInfoAfterHeight.classList.add('green');
       }
 
       if (sizes.$image2?.length) {
-        const boundsInfoBeforeWidth = this.querySelector('.bounds-info-before .bounds-info-width');
+        const boundsInfoBeforeWidth = el.querySelector('.bounds-info-before .bounds-info-width');
         boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
         if (widthChanged) boundsInfoBeforeWidth.classList.add('red');
 
-        const boundsInfoBeforeHeight = this.querySelector('.bounds-info-before .bounds-info-height');
+        const boundsInfoBeforeHeight = el.querySelector('.bounds-info-before .bounds-info-height');
         boundsInfoBeforeHeight.textContent = `${sizes.$image2[0].naturalHeight}px`;
         if (heightChanged) boundsInfoBeforeHeight.classList.add('red');
       }
