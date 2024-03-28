@@ -24,8 +24,6 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 		limit = 50
 	}
 
-	start := 0
-
 	type Project struct {
 		ID        int64
 		CreatorID int64
@@ -47,19 +45,22 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 	}
 
 	for {
-		if start%200 == 0 {
-			if err := sess.Begin(); err != nil {
-				return err
-			}
+		if err := sess.Begin(); err != nil {
+			return err
 		}
 
+		// all these projects without defaults will be fixed in the same loop, so
+		// we just need to always get projects without defaults until no such project
 		var projects []*Project
 		if err := sess.Select("project.id as id, project.creator_id, project_board.id as board_id").
 			Join("LEFT", "project_board", "project_board.project_id = project.id AND project_board.`default`=?", true).
 			Where("project_board.id is NULL OR project_board.id = 0").
-			Limit(limit, start).
+			Limit(limit).
 			Find(&projects); err != nil {
 			return err
+		}
+		if len(projects) == 0 {
+			break
 		}
 
 		for _, p := range projects {
@@ -73,15 +74,8 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 			}
 		}
 
-		start += len(projects)
-		if (start > 0 && start%200 == 0) || len(projects) == 0 {
-			if err := sess.Commit(); err != nil {
-				return err
-			}
-		}
-
-		if len(projects) == 0 {
-			break
+		if err := sess.Commit(); err != nil {
+			return err
 		}
 	}
 
