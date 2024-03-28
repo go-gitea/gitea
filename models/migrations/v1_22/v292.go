@@ -55,7 +55,7 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 
 		var projects []*Project
 		if err := sess.Select("project.id as id, project.creator_id, project_board.id as board_id").
-			Join("LEFT", "project_board", "project_board.project_id = project.id AND project_board.default=?", true).
+			Join("LEFT", "project_board", "project_board.project_id = project.id AND project_board.`default`=?", true).
 			Where("project_board.id is NULL OR project_board.id = 0").
 			Limit(limit, start).
 			Find(&projects); err != nil {
@@ -85,5 +85,33 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 		}
 	}
 
-	return sess.Commit()
+	return removeDuplicatedBoardDefault(x)
+}
+
+func removeDuplicatedBoardDefault(x *xorm.Engine) error {
+	type ProjectInfo struct {
+		ProjectID  int64
+		DefaultNum int
+	}
+	var projects []ProjectInfo
+	if err := x.Select("project_id, count(*) AS default_num").
+		Table("project_board").
+		Where("`default` = ?", true).
+		GroupBy("project_id").
+		Having("default_num > 1").
+		Find(&projects); err != nil {
+		return err
+	}
+
+	for _, project := range projects {
+		if _, err := x.Where("project_id=?", project.ProjectID).
+			Table("project_board").
+			Limit(project.DefaultNum - 1).
+			Update(map[string]bool{
+				"`default`": false,
+			}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
