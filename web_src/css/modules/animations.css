@@ -6,7 +6,6 @@
 .is-loading {
   pointer-events: none !important;
   position: relative !important;
-  overflow: hidden !important;
 }
 
 .is-loading > * {

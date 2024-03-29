@@ -195,8 +195,6 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
 
-  $('.ui.checkbox').checkbox();
-
   $('.tabular.menu .item').tab();
 
   initSubmitEventPolyfill();
