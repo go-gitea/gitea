@@ -26,7 +26,7 @@ function initRepoDiffReviewButton() {
       const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
-      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
+
       reviewBox.classList.remove('pulse');
       requestAnimationFrame(() => {
         reviewBox.classList.add('pulse');
