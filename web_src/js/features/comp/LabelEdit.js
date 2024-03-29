@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {initCompColorPicker} from './ColorPicker.js';
 
 function isExclusiveScopeName(name) {
   return /.*[^/]\/[^/].*/.test(name);
@@ -28,13 +27,17 @@ function updateExclusiveLabelEdit(form) {
 
 export function initCompLabelEdit(selector) {
   if (!$(selector).length) return;
-  initCompColorPicker();
 
   // Create label
   $('.new-label.button').on('click', () => {
     updateExclusiveLabelEdit('.new-label');
     $('.new-label.modal').modal({
       onApprove() {
+        const form = document.querySelector('.new-label.form');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return false;
+        }
         $('.new-label.form').trigger('submit');
       },
     }).modal('show');
@@ -60,10 +63,18 @@ export function initCompLabelEdit(selector) {
     updateExclusiveLabelEdit('.edit-label');
 
     $('.edit-label .label-desc-input').val(this.getAttribute('data-description'));
-    $('.edit-label .color-picker').minicolors('value', this.getAttribute('data-color'));
+
+    const colorInput = document.querySelector('.edit-label .js-color-picker-input input');
+    colorInput.value = this.getAttribute('data-color');
+    colorInput.dispatchEvent(new Event('input', {bubbles: true}));
 
     $('.edit-label.modal').modal({
       onApprove() {
+        const form = document.querySelector('.edit-label.form');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return false;
+        }
         $('.edit-label.form').trigger('submit');
       },
     }).modal('show');
