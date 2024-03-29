@@ -31,14 +31,14 @@ func Test_CheckProjectColumnsConsistency(t *testing.T) {
 	assert.Equal(t, int64(1), defaultBoard.ProjectID)
 	assert.True(t, defaultBoard.Default)
 
-	// check if multiple defaults were removed
+	// check if multiple defaults, previous were removed and last will be kept
 	expectDefaultBoard, err := project.GetBoard(db.DefaultContext, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), expectDefaultBoard.ProjectID)
-	assert.True(t, expectDefaultBoard.Default)
+	assert.False(t, expectDefaultBoard.Default)
 
 	expectNonDefaultBoard, err := project.GetBoard(db.DefaultContext, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), expectNonDefaultBoard.ProjectID)
-	assert.False(t, expectNonDefaultBoard.Default)
+	assert.True(t, expectNonDefaultBoard.Default)
 }

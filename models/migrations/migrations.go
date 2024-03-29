@@ -569,8 +569,10 @@ var migrations = []Migration{
 	// v291 -> v292
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
 	// v292 -> v293
+	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
+	// v293 -> v294
 	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
-	// v283 -> v294
+	// v284 -> v295
 	NewMigration("Add TimeEstimate to issue table", v1_22.AddTimeEstimateColumnToIssueTable),
 }
 

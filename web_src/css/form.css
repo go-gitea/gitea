@@ -32,10 +32,7 @@ textarea,
 .ui.form input[type="text"],
 .ui.form input[type="time"],
 .ui.form input[type="url"],
-.ui.selection.dropdown,
-.ui.checkbox label::before,
-.ui.checkbox input:checked ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::before {
+.ui.selection.dropdown {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
   color: var(--color-input-text);
@@ -63,12 +60,7 @@ textarea:hover,
 .ui.form input[type="text"]:hover,
 .ui.form input[type="time"]:hover,
 .ui.form input[type="url"]:hover,
-.ui.selection.dropdown:hover,
-.ui.checkbox label:hover::before,
-.ui.checkbox label:active::before,
-.ui.radio.checkbox label::after,
-.ui.radio.checkbox input:focus ~ label::before,
-.ui.radio.checkbox input:checked ~ label::before {
+.ui.selection.dropdown:hover {
   background: var(--color-input-background);
   border-color: var(--color-input-border-hover);
   color: var(--color-input-text);
@@ -91,11 +83,7 @@ textarea:focus,
 .ui.form input[type="text"]:focus,
 .ui.form input[type="time"]:focus,
 .ui.form input[type="url"]:focus,
-.ui.selection.dropdown:focus,
-.ui.checkbox input:focus ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::before,
-.ui.checkbox input:checked:focus ~ label::before,
-.ui.radio.checkbox input:focus:checked ~ label::before {
+.ui.selection.dropdown:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
   color: var(--color-input-text);
@@ -106,56 +94,19 @@ textarea:focus,
 .ui.form .inline.fields .field > label,
 .ui.form .inline.fields .field > p,
 .ui.form .inline.field > label,
-.ui.form .inline.field > p,
-.ui.checkbox label,
-.ui.checkbox + label,
-.ui.checkbox label:hover,
-.ui.checkbox + label:hover,
-.ui.checkbox input:focus ~ label,
-.ui.checkbox input:active ~ label {
+.ui.form .inline.field > p {
   color: var(--color-text);
 }
 
 .ui.form .required.fields:not(.grouped) > .field > label::after,
 .ui.form .required.fields.grouped > label::after,
 .ui.form .required.field > label::after,
-.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
-.ui.form .required.field > .checkbox::after,
 .ui.form label.required::after {
   color: var(--color-red);
 }
 
-.ui.input,
-.ui.checkbox input:focus ~ label::after,
-.ui.checkbox input:checked ~ label::after,
-.ui.checkbox label:active::after,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::after,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::after,
-.ui.checkbox input:checked:focus ~ label::after,
-.ui.disabled.checkbox label,
-.ui.checkbox input[disabled] ~ label {
+.ui.input {
   color: var(--color-input-text);
-}
-
-.ui.radio.checkbox input:focus ~ label::after,
-.ui.radio.checkbox input:checked ~ label::after,
-.ui.radio.checkbox input:focus:checked ~ label::after {
-  background: var(--color-input-text);
-}
-
-.ui.toggle.checkbox label::before {
-  background: var(--color-input-toggle-background);
-}
-
-.ui.toggle.checkbox label,
-.ui.toggle.checkbox input:checked ~ label,
-.ui.toggle.checkbox input:focus:checked ~ label {
-  color: var(--color-text) !important;
-}
-
-.ui.toggle.checkbox input:checked ~ label::before,
-.ui.toggle.checkbox input:focus:checked ~ label::before {
-  background: var(--color-primary) !important;
 }
 
 /* match <select> padding to <input> */

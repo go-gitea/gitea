@@ -2553,6 +2553,10 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
 		if err != nil {
+			if issues_model.IsErrReviewRequestOnClosedPR(err) {
+				ctx.Status(http.StatusForbidden)
+				return
+			}
 			ctx.ServerError("ReviewRequest", err)
 			return
 		}
