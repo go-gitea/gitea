@@ -1436,11 +1436,6 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
-/* for the jquery.minicolors plugin */
-.minicolors-panel {
-  background: var(--color-secondary-dark-1) !important;
-}
-
 .ui.tabular.menu {
   border-color: var(--color-secondary);
 }
