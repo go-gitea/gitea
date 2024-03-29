@@ -520,6 +520,14 @@ func TestMathBlock(t *testing.T) {
 			`<p>a<code class="language-math is-loading">b </code>a a<code class="language-math is-loading">b b</code></p>` + nl,
 		},
 		{
+			"a$x$",
+			`<p>a<code class="language-math is-loading">x</code></p>` + nl,
+		},
+		{
+			"$x$a",
+			`<p><code class="language-math is-loading">x</code>a</p>` + nl,
+		},
+		{
 			"$$a$$",
 			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
 		},
