@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
@@ -177,14 +178,15 @@ async function updateNotificationCount() {
 
     const data = await response.json();
 
-    const $notificationCount = $('.notification_count');
     if (data.new === 0) {
-      $notificationCount.addClass('tw-hidden');
+      hideElem('.notification_count');
     } else {
-      $notificationCount.removeClass('tw-hidden');
+      showElem('.notification_count');
     }
 
-    $notificationCount.text(`${data.new}`);
+    for (const el of document.getElementsByClassName('notification_count')) {
+      el.textContent = `${data.new}`;
+    }
 
     return `${data.new}`;
   } catch (error) {
