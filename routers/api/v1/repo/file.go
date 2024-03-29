@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/merlin"
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -469,6 +470,14 @@ func ChangeFiles(ctx *context.APIContext) {
 			ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
 			return
 		}
+
+		if file.Path == "README.md" {
+			if err = merlin.CheckLicense(file.ContentBase64); err != nil {
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid license", err)
+				return
+			}
+		}
+
 		changeRepoFile := &files_service.ChangeRepoFile{
 			Operation:     file.Operation,
 			TreePath:      file.Path,

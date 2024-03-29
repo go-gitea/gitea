@@ -86,6 +86,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
 	}
+
+	res = initReadmeWithLicense(opts.License) + "\n" + res
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(res), 0o644); err != nil {
 		return fmt.Errorf("write README.md: %w", err)
@@ -112,23 +114,6 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		}
 	}
 
-	// LICENSE
-	if len(opts.License) > 0 {
-		data, err = repo_module.GetLicense(opts.License, &repo_module.LicenseValues{
-			Owner: repo.OwnerName,
-			Email: authorSig.Email,
-			Repo:  repo.Name,
-			Year:  time.Now().Format("2006"),
-		})
-		if err != nil {
-			return fmt.Errorf("getLicense[%s]: %w", opts.License, err)
-		}
-
-		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
-			return fmt.Errorf("write LICENSE: %w", err)
-		}
-	}
-
 	// default to set Gitattributes
 	defaultGitAttributes := "default"
 	data, err = repo_module.GetGitAttributes(defaultGitAttributes)
@@ -142,6 +127,14 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		}
 	}
 	return nil
+}
+
+func initReadmeWithLicense(license string) string {
+	return fmt.Sprintf(
+		`---
+license: %s
+---
+`, license)
 }
 
 // InitRepository initializes README and .gitignore if needed.
