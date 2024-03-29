@@ -21,12 +21,6 @@ import (
 )
 
 type (
-	// BoardConfig is used to identify the type of board that is being created
-	BoardConfig struct {
-		BoardType   BoardType
-		Translation string
-	}
-
 	// CardConfig is used to identify the type of board card that is being used
 	CardConfig struct {
 		CardType    CardType
@@ -68,39 +62,39 @@ func (err ErrProjectNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
-type ErrProjectBoardNotExist struct {
-	BoardID int64
+// ErrProjectColumnNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrProjectColumnNotExist struct {
+	ColumnID int64
 }
 
-// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
-func IsErrProjectBoardNotExist(err error) bool {
-	_, ok := err.(ErrProjectBoardNotExist)
+// IsErrProjectColumnNotExist checks if an error is a ErrProjectBoardNotExist
+func IsErrProjectColumnNotExist(err error) bool {
+	_, ok := err.(ErrProjectColumnNotExist)
 	return ok
 }
 
-func (err ErrProjectBoardNotExist) Error() string {
-	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+func (err ErrProjectColumnNotExist) Error() string {
+	return fmt.Sprintf("project column does not exist [id: %d]", err.ColumnID)
 }
 
-func (err ErrProjectBoardNotExist) Unwrap() error {
+func (err ErrProjectColumnNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
 // Project represents a project board
 type Project struct {
-	ID          int64                  `xorm:"pk autoincr"`
-	Title       string                 `xorm:"INDEX NOT NULL"`
-	Description string                 `xorm:"TEXT"`
-	OwnerID     int64                  `xorm:"INDEX"`
-	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"INDEX"`
-	Repo        *repo_model.Repository `xorm:"-"`
-	CreatorID   int64                  `xorm:"NOT NULL"`
-	IsClosed    bool                   `xorm:"INDEX"`
-	BoardType   BoardType
-	CardType    CardType
-	Type        Type
+	ID            int64                  `xorm:"pk autoincr"`
+	Title         string                 `xorm:"INDEX NOT NULL"`
+	Description   string                 `xorm:"TEXT"`
+	OwnerID       int64                  `xorm:"INDEX"`
+	Owner         *user_model.User       `xorm:"-"`
+	RepoID        int64                  `xorm:"INDEX"`
+	Repo          *repo_model.Repository `xorm:"-"`
+	CreatorID     int64                  `xorm:"NOT NULL"`
+	IsClosed      bool                   `xorm:"INDEX"`
+	BoardViewType BoardViewType          `xorm:"'board_type'"`
+	CardType      CardType
+	Type          Type
 
 	RenderedContent template.HTML `xorm:"-"`
 
@@ -163,15 +157,6 @@ func (p *Project) IsRepositoryProject() bool {
 
 func init() {
 	db.RegisterModel(new(Project))
-}
-
-// GetBoardConfig retrieves the types of configurations project boards could have
-func GetBoardConfig() []BoardConfig {
-	return []BoardConfig{
-		{BoardTypeNone, "repo.projects.type.none"},
-		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
-		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
-	}
 }
 
 // GetCardConfig retrieves the types of configurations project board cards could have
@@ -244,8 +229,8 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 
 // NewProject creates a new Project
 func NewProject(ctx context.Context, p *Project) error {
-	if !IsBoardTypeValid(p.BoardType) {
-		p.BoardType = BoardTypeNone
+	if !IsBoardViewTypeValid(p.BoardViewType) {
+		p.BoardViewType = BoardViewTypeNone
 	}
 
 	if !IsCardTypeValid(p.CardType) {
@@ -256,27 +241,19 @@ func NewProject(ctx context.Context, p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := db.Insert(ctx, p); err != nil {
-		return err
-	}
-
-	if p.RepoID > 0 {
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+	return db.WithTx(ctx, func(tx context.Context) error {
+		if err := db.Insert(ctx, p); err != nil {
 			return err
 		}
-	}
 
-	if err := createBoardsForProjectsType(ctx, p); err != nil {
-		return err
-	}
+		if p.RepoID > 0 {
+			if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+				return err
+			}
+		}
 
-	return committer.Commit()
+		return createColumnsForProjectsBoradViewType(ctx, p)
+	})
 }
 
 // GetProjectByID returns the projects in a repository
@@ -410,7 +387,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
-		if err := deleteBoardByProjectID(ctx, id); err != nil {
+		if err := deleteColumnByProjectID(ctx, id); err != nil {
 			return err
 		}
 

@@ -89,8 +89,8 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID      optional.Option[int64] // project the issues belong to
-	ProjectBoardID optional.Option[int64] // project board the issues belong to
+	ProjectID       optional.Option[int64] // project the issues belong to
+	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
 	PosterID optional.Option[int64] // poster of the issues
 

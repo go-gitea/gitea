@@ -37,22 +37,22 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 	return ip.ProjectID
 }
 
-// ProjectBoardID return project board id if issue was assigned to one
-func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
+// ProjectColumnID return project column id if issue was assigned to one
+func (issue *Issue) ProjectColumnID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
-	return ip.ProjectBoardID
+	return ip.ProjectColumnID
 }
 
-// LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
+// LoadIssuesFromColumn load issues assigned to this board
+func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column) (IssueList, error) {
 	issueList, err := Issues(ctx, &IssuesOptions{
-		ProjectBoardID: b.ID,
-		ProjectID:      b.ProjectID,
-		SortType:       "project-column-sorting",
+		ProjectColumnID: b.ID,
+		ProjectID:       b.ProjectID,
+		SortType:        "project-column-sorting",
 	})
 	if err != nil {
 		return nil, err
@@ -60,9 +60,9 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 
 	if b.Default {
 		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: db.NoConditionID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
+			ProjectColumnID: db.NoConditionID,
+			ProjectID:       b.ProjectID,
+			SortType:        "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -77,11 +77,11 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 	return issueList, nil
 }
 
-// LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
+// LoadIssuesFromColumnList load issues assigned to the boards
+func LoadIssuesFromColumnList(ctx context.Context, bs project_model.ColumnList) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i])
+		il, err := LoadIssuesFromColumn(ctx, bs[i])
 		if err != nil {
 			return nil, err
 		}

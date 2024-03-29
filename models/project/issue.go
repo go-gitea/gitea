@@ -17,10 +17,10 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// If 0, then it has not been added to a specific board in the project
-	ProjectBoardID int64 `xorm:"INDEX"`
+	// If 0, then it has not been added to a specific column in the project
+	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
 
-	// the sorting order on the board
+	// the sorting order on the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -75,8 +75,8 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 	return int(c)
 }
 
-// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
+// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectColumn(ctx context.Context, board *Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
@@ -102,7 +102,7 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 	})
 }
 
-func (b *Board) removeIssues(ctx context.Context) error {
+func (b *Column) removeIssues(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
 	return err
 }

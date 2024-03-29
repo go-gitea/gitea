@@ -141,7 +141,7 @@ func canWriteProjects(ctx *context.Context) bool {
 // RenderNewProject render creating a project page
 func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
+	ctx.Data["BoardTypes"] = project_model.GetBoardViewConfig()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["PageIsViewProjects"] = true
@@ -170,12 +170,12 @@ func NewProjectPost(ctx *context.Context) {
 	}
 
 	newProject := project_model.Project{
-		OwnerID:     ctx.ContextUser.ID,
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   ctx.Doer.ID,
-		BoardType:   form.BoardType,
-		CardType:    form.CardType,
+		OwnerID:       ctx.ContextUser.ID,
+		Title:         form.Title,
+		Description:   form.Content,
+		CreatorID:     ctx.Doer.ID,
+		BoardViewType: form.BoardType,
+		CardType:      form.CardType,
 	}
 
 	if ctx.ContextUser.IsOrganization() {
@@ -327,13 +327,13 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project.GetBoards(ctx)
+	boards, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -458,8 +458,8 @@ func UpdateIssueProject(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-// DeleteProjectBoard allows for the deletion of a project board
-func DeleteProjectBoard(ctx *context.Context) {
+// DeleteProjectColumn allows for the deletion of a project board
+func DeleteProjectColumn(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -473,7 +473,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	pb, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return
@@ -492,7 +492,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteColumnByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -500,9 +500,9 @@ func DeleteProjectBoard(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-// AddBoardToProjectPost allows a new board to be added to a project.
-func AddBoardToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
+// AddColumnToProjectPost allows a new board to be added to a project.
+func AddColumnToProjectPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -510,7 +510,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewBoard(ctx, &project_model.Board{
+	if err := project_model.NewColumn(ctx, &project_model.Column{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
@@ -524,7 +524,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 }
 
 // CheckProjectBoardChangePermissions check permission
-func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
+func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Column) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -538,7 +538,7 @@ func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		return nil, nil
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	board, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return nil, nil
@@ -559,9 +559,9 @@ func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 	return project, board
 }
 
-// EditProjectBoard allows a project board's to be updated
-func EditProjectBoard(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
+// EditProjectColumn allows a project board's to be updated
+func EditProjectColumn(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
 	_, board := CheckProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
@@ -577,7 +577,7 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Sorting = form.Sorting
 	}
 
-	if err := project_model.UpdateBoard(ctx, board); err != nil {
+	if err := project_model.UpdateColumn(ctx, board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
 		return
 	}
@@ -592,7 +592,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultColumn(ctx, project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -619,9 +619,9 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	board, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectBoard", project_model.IsErrProjectBoardNotExist, err)
+		ctx.NotFoundOrServerError("GetProjectBoard", project_model.IsErrProjectColumnNotExist, err)
 		return
 	}
 
@@ -671,7 +671,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectColumn(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
