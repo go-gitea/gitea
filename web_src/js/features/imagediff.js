@@ -116,9 +116,7 @@ export function initImageDiff() {
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    for (const el of this.querySelectorAll(':scope > .image-diff-tabs')) {
-      el.classList.remove('is-loading');
-    }
+    this.querySelector(':scope > .image-diff-tabs')?.classList.remove('is-loading');
 
     function initSideBySide(el, sizes) {
       let factor = 1;
