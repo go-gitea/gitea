@@ -118,7 +118,7 @@ export function initImageDiff() {
 
     this.querySelector(':scope > .image-diff-tabs')?.classList.remove('is-loading');
 
-    function initSideBySide(el, sizes) {
+    function initSideBySide(container, sizes) {
       let factor = 1;
       if (sizes.max.width > (diffContainerWidth - 24) / 2) {
         factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
@@ -127,21 +127,21 @@ export function initImageDiff() {
       const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
       const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
       if (sizes.$image1?.length) {
-        const boundsInfoAfterWidth = el.querySelector('.bounds-info-after .bounds-info-width');
+        const boundsInfoAfterWidth = container.querySelector('.bounds-info-after .bounds-info-width');
         boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
         if (widthChanged) boundsInfoAfterWidth.classList.add('green');
 
-        const boundsInfoAfterHeight = el.querySelector('.bounds-info-after .bounds-info-height');
+        const boundsInfoAfterHeight = container.querySelector('.bounds-info-after .bounds-info-height');
         boundsInfoAfterHeight.textContent = `${sizes.$image1[0].naturalHeight}px`;
         if (heightChanged) boundsInfoAfterHeight.classList.add('green');
       }
 
       if (sizes.$image2?.length) {
-        const boundsInfoBeforeWidth = el.querySelector('.bounds-info-before .bounds-info-width');
+        const boundsInfoBeforeWidth = container.querySelector('.bounds-info-before .bounds-info-width');
         boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
         if (widthChanged) boundsInfoBeforeWidth.classList.add('red');
 
-        const boundsInfoBeforeHeight = el.querySelector('.bounds-info-before .bounds-info-height');
+        const boundsInfoBeforeHeight = container.querySelector('.bounds-info-before .bounds-info-height');
         boundsInfoBeforeHeight.textContent = `${sizes.$image2[0].naturalHeight}px`;
         if (heightChanged) boundsInfoBeforeHeight.classList.add('red');
       }
