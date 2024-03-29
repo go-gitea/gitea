@@ -37,7 +37,7 @@ function initRepoDiffReviewButton() {
 
 function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
-    for (const el of queryElemSiblings(this, '*')) {
+    for (const el of queryElemSiblings(this)) {
       el.classList.remove('active');
     }
     this.classList.add('active');
@@ -45,7 +45,7 @@ function initRepoDiffFileViewToggle() {
     const target = document.querySelector(this.getAttribute('data-toggle-selector'));
     if (!target) return;
 
-    hideElem(queryElemSiblings(target, '*'));
+    hideElem(queryElemSiblings(target));
     showElem(target);
   });
 }
