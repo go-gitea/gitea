@@ -858,7 +858,7 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// cancel running jobs of the same workflow
-	if err := actions_model.CancelRunningJobs(
+	if err := actions_model.CancelPreviousJobs(
 		ctx,
 		run.RepoID,
 		run.Ref,
