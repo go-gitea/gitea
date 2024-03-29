@@ -899,7 +899,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := repo_model.FindTopics(ctx, &repo_model.FindTopicOptions{
+	topics, err := db.Find[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
