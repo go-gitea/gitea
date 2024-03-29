@@ -2260,24 +2260,6 @@
   padding-top: 15px;
 }
 
-.edit-label.modal .form .color.picker.column,
-.new-label.modal .form .color.picker.column {
-  display: flex;
-}
-
-.edit-label.modal .form .color.picker.column .minicolors,
-.new-label.modal .form .color.picker.column .minicolors {
-  flex: 1;
-}
-
-.edit-label.modal .form .minicolors-swatch.minicolors-sprite,
-.new-label.modal .form .minicolors-swatch.minicolors-sprite {
-  top: 10px;
-  left: 10px;
-  width: 15px;
-  height: 15px;
-}
-
 .tab-size-1 {
   tab-size: 1 !important;
   -moz-tab-size: 1 !important;

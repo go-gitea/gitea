@@ -1844,6 +1844,232 @@
         }
       }
     },
+    "/orgs/{org}/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get an org-level variables list",
+        "operationId": "getOrgVariablesList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/variables/{variablename}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get an org-level variable",
+        "operationId": "getOrgVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update an org-level variable",
+        "operationId": "updateOrgVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when updating an org-level variable"
+          },
+          "204": {
+            "description": "response when updating an org-level variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create an org-level variable",
+        "operationId": "createOrgVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating an org-level variable"
+          },
+          "204": {
+            "description": "response when creating an org-level variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete an org-level variable",
+        "operationId": "deleteOrgVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "201": {
+            "description": "response when deleting a variable"
+          },
+          "204": {
+            "description": "response when deleting a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/orgs/{org}/activities/feeds": {
       "get": {
         "produces": [
@@ -3713,6 +3939,261 @@
         "responses": {
           "204": {
             "description": "delete one secret of the organization"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get repo-level variables list",
+        "operationId": "getRepoVariablesList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/variables/{variablename}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repo-level variable",
+        "operationId": "getRepoVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a repo-level variable",
+        "operationId": "updateRepoVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when updating a repo-level variable"
+          },
+          "204": {
+            "description": "response when updating a repo-level variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a repo-level variable",
+        "operationId": "createRepoVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating a repo-level variable"
+          },
+          "204": {
+            "description": "response when creating a repo-level variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a repo-level variable",
+        "operationId": "deleteRepoVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "201": {
+            "description": "response when deleting a variable"
+          },
+          "204": {
+            "description": "response when deleting a variable"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -11276,6 +11757,9 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -15047,6 +15531,194 @@
         }
       }
     },
+    "/user/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the user-level list of variables which is created by current doer",
+        "operationId": "getUserVariablesList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/actions/variables/{variablename}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user-level variable which is created by current doer",
+        "operationId": "getUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update a user-level variable which is created by current doer",
+        "operationId": "updateUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when updating a variable"
+          },
+          "204": {
+            "description": "response when updating a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create a user-level variable",
+        "operationId": "createUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating a variable"
+          },
+          "204": {
+            "description": "response when creating a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete a user-level variable which is created by current doer",
+        "operationId": "deleteUserVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when deleting a variable"
+          },
+          "204": {
+            "description": "response when deleting a variable"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/user/applications/oauth2": {
       "get": {
         "produces": [
@@ -17190,6 +17862,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionVariable": {
+      "description": "ActionVariable return value of the query API",
+      "type": "object",
+      "properties": {
+        "data": {
+          "description": "the value of the variable",
+          "type": "string",
+          "x-go-name": "Data"
+        },
+        "name": {
+          "description": "the name of the variable",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "owner_id": {
+          "description": "the owner to which the variable belongs",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OwnerID"
+        },
+        "repo_id": {
+          "description": "the repository to which the variable belongs",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Activity": {
       "type": "object",
       "properties": {
@@ -19072,6 +19773,21 @@
         "visibility": {
           "type": "string",
           "x-go-name": "Visibility"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateVariableOption": {
+      "description": "CreateVariableOption the option when creating variable",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "description": "Value of the variable to create",
+          "type": "string",
+          "x-go-name": "Value"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23368,6 +24084,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpdateVariableOption": {
+      "description": "UpdateVariableOption the option when updating variable",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "description": "New name for the variable. If the field is empty, the variable name won't be updated.",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "value": {
+          "description": "Value of the variable to update",
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "User": {
       "description": "User represents a user",
       "type": "object",
@@ -23747,6 +24483,12 @@
         "items": {
           "$ref": "#/definitions/AccessToken"
         }
+      }
+    },
+    "ActionVariable": {
+      "description": "ActionVariable",
+      "schema": {
+        "$ref": "#/definitions/ActionVariable"
       }
     },
     "ActivityFeedsList": {
@@ -24632,6 +25374,15 @@
         }
       }
     },
+    "VariableList": {
+      "description": "VariableList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ActionVariable"
+        }
+      }
+    },
     "WatchInfo": {
       "description": "WatchInfo",
       "schema": {
@@ -24707,7 +25458,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UserBadgeOption"
+        "$ref": "#/definitions/UpdateVariableOption"
       }
     },
     "redirect": {

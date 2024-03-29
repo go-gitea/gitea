@@ -28,23 +28,6 @@
   width: 75%;
 }
 
-.dashboard.feeds .filter.menu .item .floating.label,
-.dashboard.issues .filter.menu .item .floating.label {
-  top: 7px;
-  left: 90%;
-  width: 15%;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard.feeds .filter.menu .item .floating.label,
-  .dashboard.issues .filter.menu .item .floating.label {
-    top: 10px;
-    left: auto;
-    width: auto;
-    right: 13px;
-  }
-}
-
 /* Sort */
 .dashboard.feeds .filter.menu .jump.item,
 .dashboard.issues .filter.menu .jump.item {

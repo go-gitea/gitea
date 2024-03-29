@@ -1601,7 +1601,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	marked[issue.PosterID] = issue.ShowRole
 
-	// Render comments and and fetch participants.
+	// Render comments and fetch participants.
 	participants[0] = issue.Poster
 
 	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {
@@ -2498,6 +2498,10 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
 		if err != nil {
+			if issues_model.IsErrReviewRequestOnClosedPR(err) {
+				ctx.Status(http.StatusForbidden)
+				return
+			}
 			ctx.ServerError("ReviewRequest", err)
 			return
 		}
