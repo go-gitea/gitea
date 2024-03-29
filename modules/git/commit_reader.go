@@ -84,6 +84,8 @@ readLoop:
 				commit.Committer = &Signature{}
 				commit.Committer.Decode(data)
 				_, _ = payloadSB.Write(line)
+			case "encoding":
+				_, _ = payloadSB.Write(line)
 			case "gpgsig":
 				_, _ = signatureSB.Write(data)
 				_ = signatureSB.WriteByte('\n')
