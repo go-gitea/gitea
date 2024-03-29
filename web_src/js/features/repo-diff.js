@@ -28,8 +28,9 @@ function initRepoDiffReviewButton() {
       counter.textContent = num;
       // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
       reviewBox.classList.remove('pulse');
-      const _ = reviewBox.getBoundingClientRect().width;
-      reviewBox.classList.add('pulse');
+      requestAnimationFrame(() => {
+        reviewBox.classList.add('pulse');
+      });
     });
   });
 }
