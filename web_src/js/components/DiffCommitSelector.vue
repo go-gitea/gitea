@@ -252,7 +252,7 @@ export default {
               </span>
             </div>
           </div>
-          <div class="gt-mono">
+          <div class="tw-font-mono">
             {{ commit.short_sha }}
           </div>
         </div>

@@ -59,7 +59,7 @@
 							{{end}}
 						</div>
 						<div class="tw-flex tw-items-center tw-gap-2">
-							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
+							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed) (not $.Issue.PullRequest.HasMerged))}}
 								<a href="#" class="ui muted icon tw-flex tw-items-center show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dismiss_review"}}" data-modal="#dismiss-review-modal-{{.Review.ID}}">
 									{{svg "octicon-x" 20}}
 								</a>
@@ -91,7 +91,7 @@
 									{{svg "octicon-hourglass" 16}}
 								</span>
 							{{end}}
-							{{if .CanChange}}
+							{{if and .CanChange (or .Checked (and (not $.Issue.IsClosed) (not $.Issue.PullRequest.HasMerged)))}}
 								<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{ctx.Locale.Tr "repo.issues.remove_request_review"}}{{else}}{{ctx.Locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
 							{{end}}
 							{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
@@ -677,7 +677,7 @@
 		{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
 			<div class="inline field">
-				<div class="ui checkbox" id="allow-edits-from-maintainers"
+				<div class="ui checkbox small-loading-icon" id="allow-edits-from-maintainers"
 						data-url="{{.Issue.Link}}"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 						data-prompt-error="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"

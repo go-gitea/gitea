@@ -23,6 +23,7 @@
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
+  --checkbox-size: 16px; /* height and width of checkbox and radio inputs */
 }
 
 :root * {
@@ -62,8 +63,15 @@ pre,
 code,
 kbd,
 samp {
-  font-size: 0.9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
+}
+
+pre,
+code,
+kbd,
+samp,
+.tw-font-mono {
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
 b,
@@ -293,8 +301,8 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--color-markup-code-block);
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
@@ -1427,11 +1435,6 @@ table th[data-sortt-desc] .svg {
   width: 1em !important;
   height: 1em !important;
   vertical-align: -0.15em;
-}
-
-/* for the jquery.minicolors plugin */
-.minicolors-panel {
-  background: var(--color-secondary-dark-1) !important;
 }
 
 .ui.tabular.menu {
