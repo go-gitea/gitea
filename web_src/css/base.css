@@ -62,8 +62,15 @@ pre,
 code,
 kbd,
 samp {
-  font-size: 0.9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
+}
+
+pre,
+code,
+kbd,
+samp,
+.tw-font-mono {
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
 b,
@@ -293,8 +300,8 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--color-markup-code-block);
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
 }
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
