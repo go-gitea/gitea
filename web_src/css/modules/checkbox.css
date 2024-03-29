@@ -1,0 +1,120 @@
+/* based on Fomantic UI checkbox module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
+.ui.checkbox {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  min-height: var(--checkbox-size);
+  line-height: var(--checkbox-size);
+  min-width: var(--checkbox-size);
+  padding: 1px;
+}
+
+.ui.checkbox input[type="checkbox"],
+.ui.checkbox input[type="radio"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
+.ui.checkbox input[type="checkbox"]:enabled,
+.ui.checkbox input[type="radio"]:enabled,
+.ui.checkbox label:enabled {
+  cursor: pointer;
+}
+
+.ui.checkbox label {
+  cursor: auto;
+  position: relative;
+  display: block;
+  user-select: none;
+}
+
+.ui.checkbox label,
+.ui.radio.checkbox label {
+  padding-left: 1.85714em;
+}
+
+.ui.checkbox + label {
+  vertical-align: middle;
+}
+
+.ui.disabled.checkbox label,
+.ui.checkbox input[disabled] ~ label {
+  cursor: default !important;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ui.radio.checkbox {
+  min-height: var(--checkbox-size);
+}
+
+/* "switch" styled checkbox */
+
+.ui.toggle.checkbox {
+  min-height: 1.5rem;
+}
+.ui.toggle.checkbox input {
+  width: 3.5rem;
+  height: 1.5rem;
+  opacity: 0;
+  z-index: 3;
+}
+.ui.toggle.checkbox label {
+  min-height: 1.5rem;
+  padding-left: 4.5rem;
+  padding-top: 0.15em;
+}
+.ui.toggle.checkbox label::before {
+  display: block;
+  position: absolute;
+  content: "";
+  z-index: 1;
+  top: 0;
+  width: 3.5rem;
+  height: 1.5rem;
+  border-radius: 500rem;
+  left: 0;
+}
+.ui.toggle.checkbox label::after {
+  background: var(--color-white);
+  position: absolute;
+  content: "";
+  opacity: 1;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  top: 0;
+  left: 0;
+  border-radius: 500rem;
+  transition: background 0.3s ease, left 0.3s ease;
+}
+.ui.toggle.checkbox input ~ label::after {
+  left: -0.05rem;
+}
+.ui.toggle.checkbox input:checked ~ label::after {
+  left: 2.15rem;
+}
+.ui.toggle.checkbox input:focus ~ label::before,
+.ui.toggle.checkbox label::before {
+  background: var(--color-input-toggle-background);
+}
+.ui.toggle.checkbox label,
+.ui.toggle.checkbox input:checked ~ label,
+.ui.toggle.checkbox input:focus:checked ~ label {
+  color: var(--color-text) !important;
+}
+.ui.toggle.checkbox input:checked ~ label::before,
+.ui.toggle.checkbox input:focus:checked ~ label::before {
+  background: var(--color-primary) !important;
+}

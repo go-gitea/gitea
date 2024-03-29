@@ -19,18 +19,18 @@ func TestAddTopic(t *testing.T) {
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	topics, _, err := repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{})
+	topics, err := db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, total, err := repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{
+	topics, total, err := db.FindAndCount[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, topics, 2)
 	assert.EqualValues(t, 6, total)
 
-	topics, _, err = repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{
+	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
@@ -38,11 +38,11 @@ func TestAddTopic(t *testing.T) {
 
 	assert.NoError(t, repo_model.SaveTopics(db.DefaultContext, 2, "golang"))
 	repo2NrOfTopics := 1
-	topics, _, err = repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{})
+	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, _, err = repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{
+	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
@@ -55,11 +55,11 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)
 
-	topics, _, err = repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{})
+	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, _, err = repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{
+	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)

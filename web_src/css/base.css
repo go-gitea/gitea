@@ -23,6 +23,7 @@
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
+  --checkbox-size: 16px; /* height and width of checkbox and radio inputs */
 }
 
 :root * {
@@ -1434,11 +1435,6 @@ table th[data-sortt-desc] .svg {
   width: 1em !important;
   height: 1em !important;
   vertical-align: -0.15em;
-}
-
-/* for the jquery.minicolors plugin */
-.minicolors-panel {
-  background: var(--color-secondary-dark-1) !important;
 }
 
 .ui.tabular.menu {
