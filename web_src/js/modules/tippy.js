@@ -1,12 +1,14 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
+import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
 
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, ...other} = opts;
+
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -34,17 +36,14 @@ export function createTippy(target, opts = {}) {
       return onShow?.(instance);
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: other.role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
+    role: role || 'menu', // HTML role attribute
+    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
     plugins: [followCursor],
     ...other,
   });
 
-  // for popups where content refers to a DOM element, we use the 'tippy-target' class
-  // to initially hide the content, now we can remove it as the content has been removed
-  // from the DOM by tippy
-  if (other.content instanceof Element) {
-    other.content.classList.remove('tippy-target');
+  if (role === 'menu') {
+    target.setAttribute('aria-haspopup', 'true');
   }
 
   return instance;
@@ -93,8 +92,15 @@ function attachTooltip(target, content = null) {
 }
 
 function switchTitleToTooltip(target) {
-  const title = target.getAttribute('title');
+  let title = target.getAttribute('title');
   if (title) {
+    // apply custom formatting to relative-time's tooltips
+    if (target.tagName.toLowerCase() === 'relative-time') {
+      const datetime = target.getAttribute('datetime');
+      if (datetime) {
+        title = formatDatetime(new Date(datetime));
+      }
+    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
     // keep the attribute, in case there are some other "[title]" selectors
@@ -142,7 +148,7 @@ export function initGlobalTooltips() {
   const observerConnect = (observer) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title']
+    attributeFilter: ['data-tooltip-content', 'title'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();

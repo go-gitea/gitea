@@ -101,7 +101,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	if !IsValidObjectFormat(objectFormatName) {
 		return fmt.Errorf("invalid object format: %s", objectFormatName)
 	}
-	if SupportHashSha256 {
+	if DefaultFeatures.SupportHashSha256 {
 		cmd.AddOptionValues("--object-format", objectFormatName)
 	}
 
@@ -283,7 +283,7 @@ type DivergeObject struct {
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
 func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
 	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
-		AddDynamicArguments(baseBranch + "..." + targetBranch)
+		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return do, err

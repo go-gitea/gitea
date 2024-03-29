@@ -121,8 +121,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 		return commit, nil
 	default:
 		log.Debug("Unknown typ: %s", typ)
-		_, err = rd.Discard(int(size) + 1)
-		if err != nil {
+		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -133,8 +132,11 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 
 // ConvertToGitID returns a GitHash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	IDType := repo.objectFormat
-	if len(commitID) == IDType.FullLength() && IDType.IsValid(commitID) {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil
@@ -143,7 +145,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 
 	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
-	_, err := wr.Write([]byte(commitID + "\n"))
+	_, err = wr.Write([]byte(commitID + "\n"))
 	if err != nil {
 		return nil, err
 	}

@@ -217,3 +217,25 @@
   num_members: 1
   includes_all_repositories: false
   can_create_org_repo: true
+
+-
+  id: 21
+  org_id: 41
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 1
+  num_members: 1
+  includes_all_repositories: true
+  can_create_org_repo: true
+
+-
+  id: 22
+  org_id: 41
+  lower_name: team1
+  name: Team1
+  authorize: 1 # read
+  num_repos: 1
+  num_members: 2
+  includes_all_repositories: false
+  can_create_org_repo: false

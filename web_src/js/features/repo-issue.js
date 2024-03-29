@@ -5,8 +5,10 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
+import {initDropzone} from './common-global.js';
+import {POST, GET} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
@@ -39,39 +41,37 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-function updateDeadline(deadlineString) {
-  hideElem($('#deadline-err-invalid-date'));
-  $('#deadline-loader').addClass('loading');
+async function updateDeadline(deadlineString) {
+  hideElem('#deadline-err-invalid-date');
+  document.getElementById('deadline-loader')?.classList.add('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      $('#deadline-loader').removeClass('loading');
-      showElem($('#deadline-err-invalid-date'));
+      document.getElementById('deadline-loader')?.classList.remove('is-loading');
+      showElem('#deadline-err-invalid-date');
       return false;
     }
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
-    data: JSON.stringify({
-      due_date: realDeadline,
-    }),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    type: 'POST',
-    success() {
+  try {
+    const response = await POST(document.getElementById('update-issue-deadline-form').getAttribute('action'), {
+      data: {due_date: realDeadline},
+    });
+
+    if (response.ok) {
       window.location.reload();
-    },
-    error() {
-      $('#deadline-loader').removeClass('loading');
-      showElem($('#deadline-err-invalid-date'));
-    },
-  });
+    } else {
+      throw new Error('Invalid response');
+    }
+  } catch (error) {
+    console.error(error);
+    document.getElementById('deadline-loader').classList.remove('is-loading');
+    showElem('#deadline-err-invalid-date');
+  }
 }
 
 export function initRepoIssueDue() {
@@ -85,6 +85,19 @@ export function initRepoIssueDue() {
     updateDeadline($('#deadlineDate').val());
     return false;
   });
+}
+
+/**
+ * @param {HTMLElement} item
+ */
+function excludeLabel(item) {
+  const href = item.getAttribute('href');
+  const id = item.getAttribute('data-label-id');
+
+  const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
+  const newStr = 'labels=$1-$2$3&';
+
+  window.location = href.replace(new RegExp(regStr), newStr);
 }
 
 export function initRepoIssueSidebarList() {
@@ -123,16 +136,6 @@ export function initRepoIssueSidebarList() {
       fullTextSearch: true,
     });
 
-  function excludeLabel(item) {
-    const href = $(item).attr('href');
-    const id = $(item).data('label-id');
-
-    const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
-    const newStr = 'labels=$1-$2$3&';
-
-    window.location = href.replace(new RegExp(regStr), newStr);
-  }
-
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
       if (e.altKey) {
@@ -144,9 +147,9 @@ export function initRepoIssueSidebarList() {
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
-      const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItems.length > 0) {
-        excludeLabel($(selectedItems[0]));
+      const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
+      if (selectedItem) {
+        excludeLabel(selectedItem);
       }
     }
   });
@@ -155,21 +158,22 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  $(document).on('click', '.delete-comment', function () {
+  $(document).on('click', '.delete-comment', async function () {
     const $this = $(this);
     if (window.confirm($this.data('locale'))) {
-      $.post($this.data('url'), {
-        _csrf: csrfToken,
-      }).done(() => {
+      try {
+        const response = await POST($this.data('url'));
+        if (!response.ok) throw new Error('Failed to delete comment');
         const $conversationHolder = $this.closest('.conversation-holder');
-
+        const $parentTimelineItem = $this.closest('.timeline-item');
+        const $parentTimelineGroup = $this.closest('.timeline-item-group');
         // Check if this was a pending comment.
         if ($conversationHolder.find('.pending-label').length) {
-          const $counter = $('#review-box .review-comments-counter');
-          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          const counter = document.querySelector('#review-box .review-comments-counter');
+          let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
-          $counter.attr('data-pending-comment-number', num);
-          $counter.text(num);
+          counter.setAttribute('data-pending-comment-number', num);
+          counter.textContent = String(num);
         }
 
         $(`#${$this.data('comment-id')}`).remove();
@@ -179,13 +183,20 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('tw-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
           }
           $conversationHolder.remove();
         }
-      });
+        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
+        if (!$parentTimelineGroup.find('.timeline-item.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
+          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
+          $timelineAvatar.removeClass('timeline-avatar-offset');
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
     return false;
   });
@@ -212,12 +223,12 @@ export function initRepoIssueDependencyDelete() {
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
   $(document).on('click', '.cancel-code-comment', (e) => {
-    const form = $(e.currentTarget).closest('form');
-    if (form.length > 0 && form.hasClass('comment-form')) {
-      form.addClass('gt-hidden');
-      showElem(form.closest('.comment-code-cloud').find('button.comment-form-reply'));
+    const $form = $(e.currentTarget).closest('form');
+    if ($form.length > 0 && $form.hasClass('comment-form')) {
+      $form.addClass('tw-hidden');
+      showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
-      form.closest('.comment-code-cloud').remove();
+      $form.closest('.comment-code-cloud').remove();
     }
   });
 }
@@ -225,22 +236,32 @@ export function initRepoIssueCodeCommentCancel() {
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
-  $pullUpdateButton.on('click', function (e) {
+  $pullUpdateButton.on('click', async function (e) {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
-    $this.addClass('loading');
-    $.post($this.data('do'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    });
+    $this.addClass('is-loading');
+    let response;
+    try {
+      response = await POST($this.data('do'));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      $this.removeClass('is-loading');
+    }
+    let data;
+    try {
+      data = await response?.json(); // the response is probably not a JSON
+    } catch (error) {
+      console.error(error);
+    }
+    if (data?.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
   });
 
   $('.update-button > .dropdown').dropdown({
@@ -250,7 +271,7 @@ export function initRepoPullRequestUpdate() {
         $pullUpdateButton.find('.button-text').text($choice.text());
         $pullUpdateButton.data('do', $url);
       }
-    }
+    },
   });
 }
 
@@ -261,25 +282,31 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  const $checkbox = $('#allow-edits-from-maintainers');
-  if (!$checkbox.length) return;
+  const checkbox = document.getElementById('allow-edits-from-maintainers');
+  if (!checkbox) return;
 
-  const promptError = $checkbox.attr('data-prompt-error');
+  const $checkbox = $(checkbox);
+
+  const promptError = checkbox.getAttribute('data-prompt-error');
   $checkbox.checkbox({
-    'onChange': () => {
+    'onChange': async () => {
       const checked = $checkbox.checkbox('is checked');
-      let url = $checkbox.attr('data-url');
+      let url = checkbox.getAttribute('data-url');
       url += '/set_allow_maintainer_edit';
       $checkbox.checkbox('set disabled');
-      $.ajax({url, type: 'POST',
-        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
-        error: () => {
-          showTemporaryTooltip($checkbox[0], promptError);
-        },
-        complete: () => {
-          $checkbox.checkbox('set enabled');
-        },
-      });
+      try {
+        const response = await POST(url, {
+          data: {allow_maintainer_edit: checked},
+        });
+        if (!response.ok) {
+          throw new Error('Failed to update maintainer edit permission');
+        }
+      } catch (error) {
+        console.error(error);
+        showTemporaryTooltip(checkbox, promptError);
+      } finally {
+        $checkbox.checkbox('set enabled');
+      }
     },
   });
 }
@@ -294,7 +321,7 @@ export function initRepoIssueReferenceRepositorySearch() {
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name
+              value: repo.repository.full_name,
             });
           });
           return filteredResponse;
@@ -303,9 +330,11 @@ export function initRepoIssueReferenceRepositorySearch() {
       },
       onChange(_value, _text, $choice) {
         const $form = $choice.closest('form');
-        $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
+        if (!$form.length) return;
+
+        $form[0].setAttribute('action', `${appSubUrl}/${_text}/issues/new`);
       },
-      fullTextSearch: true
+      fullTextSearch: true,
     });
 }
 
@@ -328,48 +357,41 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export async function updateIssuesMeta(url, action, issueIds, elementId) {
-  return $.ajax({
-    type: 'POST',
-    url,
-    data: {
-      _csrf: csrfToken,
-      action,
-      issue_ids: issueIds,
-      id: elementId,
-    },
-  });
+export async function updateIssuesMeta(url, action, issue_ids, id) {
+  try {
+    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+    if (!response.ok) {
+      throw new Error('Failed to update issues meta');
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export function initRepoIssueComments() {
-  if ($('.repository.view.issue .timeline').length === 0) return;
+  if (!$('.repository.view.issue .timeline').length) return;
 
-  $('.re-request-review').on('click', function (e) {
+  $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    updateIssuesMeta(
-      url,
-      isChecked ? 'detach' : 'attach',
-      issueId,
-      id,
-    ).then(() => window.location.reload());
+    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
+    window.location.reload();
   });
 
-  $(document).on('click', (event) => {
-    const urlTarget = $(':target');
-    if (urlTarget.length === 0) return;
+  document.addEventListener('click', (e) => {
+    const urlTarget = document.querySelector(':target');
+    if (!urlTarget) return;
 
-    const urlTargetId = urlTarget.attr('id');
+    const urlTargetId = urlTarget.id;
     if (!urlTargetId) return;
+
     if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
 
-    const $target = $(event.target);
-
-    if ($target.closest(`#${urlTargetId}`).length === 0) {
+    if (!e.target.closest(`#${urlTargetId}`)) {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
@@ -380,13 +402,18 @@ export function initRepoIssueComments() {
 
 export async function handleReply($el) {
   hideElem($el);
-  const form = $el.closest('.comment-code-cloud').find('.comment-form');
-  form.removeClass('gt-hidden');
+  const $form = $el.closest('.comment-code-cloud').find('.comment-form');
+  $form.removeClass('tw-hidden');
 
-  const $textarea = form.find('textarea');
+  const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
   if (!editor) {
-    editor = await initComboMarkdownEditor(form.find('.combo-markdown-editor'));
+    // FIXME: the initialization of the dropzone is not consistent.
+    // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
+    // When the form is submitted and partially reload, none of them is initialized.
+    const dropzone = $form.find('.dropzone')[0];
+    if (!dropzone.dropzone) initDropzone(dropzone);
+    editor = await initComboMarkdownEditor($form.find('.combo-markdown-editor'));
   }
   editor.focus();
   return editor;
@@ -398,31 +425,34 @@ export function initRepoPullRequestReview() {
     if (window.history.scrollRestoration !== 'manual') {
       window.history.scrollRestoration = 'manual';
     }
-    const commentDiv = $(window.location.hash);
+    const commentDiv = document.querySelector(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
-      const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
+      const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest('.diff-file-box');
         // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox.find('.diff-file-header');
+        const diffHeader = ancestorDiffBox?.querySelector('.diff-file-header');
+
         // offset is for scrolling
         let offset = 30;
-        if (diffHeader[0]) {
-          offset += $('.diff-detail-box').outerHeight() + diffHeader.outerHeight();
+        if (diffHeader) {
+          offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
         }
-        $(`#show-outdated-${id}`).addClass('gt-hidden');
-        $(`#code-comments-${id}`).removeClass('gt-hidden');
-        $(`#code-preview-${id}`).removeClass('gt-hidden');
-        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+
+        document.getElementById(`show-outdated-${id}`).classList.add('tw-hidden');
+        document.getElementById(`code-comments-${id}`).classList.remove('tw-hidden');
+        document.getElementById(`code-preview-${id}`).classList.remove('tw-hidden');
+        document.getElementById(`hide-outdated-${id}`).classList.remove('tw-hidden');
         // if the comment box is folded, expand it
-        if (ancestorDiffBox.attr('data-folded') && ancestorDiffBox.attr('data-folded') === 'true') {
-          setFileFolding(ancestorDiffBox[0], ancestorDiffBox.find('.fold-file')[0], false);
+        if (ancestorDiffBox.getAttribute('data-folded') === 'true') {
+          setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
+
         window.scrollTo({
-          top: commentDiv.offset().top - offset,
-          behavior: 'instant'
+          top: $(commentDiv).offset().top - offset,
+          behavior: 'instant',
         });
       }
     }
@@ -431,19 +461,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).removeClass('gt-hidden');
-    $(`#code-preview-${id}`).removeClass('gt-hidden');
-    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).removeClass('tw-hidden');
+    $(`#code-preview-${id}`).removeClass('tw-hidden');
+    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('gt-hidden');
-    $(`#code-comments-${id}`).addClass('gt-hidden');
-    $(`#code-preview-${id}`).addClass('gt-hidden');
-    $(`#show-outdated-${id}`).removeClass('gt-hidden');
+    $(this).addClass('tw-hidden');
+    $(`#code-comments-${id}`).addClass('tw-hidden');
+    $(`#code-preview-${id}`).addClass('tw-hidden');
+    $(`#show-outdated-${id}`).removeClass('tw-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -457,9 +487,7 @@ export function initRepoPullRequestReview() {
   }
 
   // The following part is only for diff views
-  if ($('.repository.pull.diff').length === 0) {
-    return;
-  }
+  if (!$('.repository.pull.diff').length) return;
 
   const $reviewBtn = $('.js-btn-review');
   const $panel = $reviewBtn.parent().find('.review-box-panel');
@@ -489,12 +517,12 @@ export function initRepoPullRequestReview() {
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).closest('[data-path]').data('path');
-    const tr = $(this).closest('tr');
-    const lineType = tr.data('line-type');
+    const $tr = $(this).closest('tr');
+    const lineType = $tr.data('line-type');
 
-    let ntr = tr.next();
-    if (!ntr.hasClass('add-comment')) {
-      ntr = $(`
+    let $ntr = $tr.next();
+    if (!$ntr.hasClass('add-comment')) {
+      $ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
@@ -503,20 +531,26 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      tr.after(ntr);
+      $tr.after($ntr);
     }
 
-    const td = ntr.find(`.add-comment-${side}`);
-    const commentCloud = td.find('.comment-code-cloud');
-    if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
-      const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
-      td.html(html);
-      td.find("input[name='line']").val(idx);
-      td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-      td.find("input[name='path']").val(path);
+    const $td = $ntr.find(`.add-comment-${side}`);
+    const $commentCloud = $td.find('.comment-code-cloud');
+    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
+      try {
+        const response = await GET(this.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
+        const html = await response.text();
+        $td.html(html);
+        $td.find("input[name='line']").val(idx);
+        $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
+        $td.find("input[name='path']").val(path);
 
-      const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
-      editor.focus();
+        initDropzone($td.find('.dropzone')[0]);
+        const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
+        editor.focus();
+      } catch (error) {
+        console.error(error);
+      }
     }
   });
 }
@@ -544,12 +578,36 @@ export function initRepoIssueWipToggle() {
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
-    await $.post(updateUrl, {
-      _csrf: csrfToken,
-      title: title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
-    });
-    window.location.reload();
+
+    try {
+      const params = new URLSearchParams();
+      params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+
+      const response = await POST(updateUrl, {data: params});
+      if (!response.ok) {
+        throw new Error('Failed to toggle WIP status');
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+    }
   });
+}
+
+async function pullrequest_targetbranch_change(update_url) {
+  const targetBranch = $('#pull-target-branch').data('branch');
+  const $branchTarget = $('#branch_target');
+  if (targetBranch === $branchTarget.text()) {
+    window.location.reload();
+    return false;
+  }
+  try {
+    await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
+  } catch (error) {
+    console.error(error);
+  } finally {
+    window.location.reload();
+  }
 }
 
 export function initRepoIssueTitleEdit() {
@@ -573,39 +631,27 @@ export function initRepoIssueTitleEdit() {
 
   $('#edit-title').on('click', editTitleToggle);
   $('#cancel-edit-title').on('click', editTitleToggle);
-  $('#save-edit-title').on('click', editTitleToggle).on('click', function () {
-    const pullrequest_targetbranch_change = function (update_url) {
-      const targetBranch = $('#pull-target-branch').data('branch');
-      const $branchTarget = $('#branch_target');
-      if (targetBranch === $branchTarget.text()) {
-        window.location.reload();
-        return false;
-      }
-      $.post(update_url, {
-        _csrf: csrfToken,
-        target_branch: targetBranch
-      }).always(() => {
-        window.location.reload();
-      });
-    };
-
-    const pullrequest_target_update_url = $(this).attr('data-target-update-url');
-    if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
+  $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
+    const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
+    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
-      pullrequest_targetbranch_change(pullrequest_target_update_url);
+      await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
-      $.post($(this).attr('data-update-url'), {
-        _csrf: csrfToken,
-        title: $editInput.val()
-      }, (data) => {
+      try {
+        const params = new URLSearchParams();
+        params.append('title', $editInput.val());
+        const response = await POST(this.getAttribute('data-update-url'), {data: params});
+        const data = await response.json();
         $editInput.val(data.title);
         $issueTitle.text(data.title);
         if (pullrequest_target_update_url) {
-          pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
+          await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
         } else {
           window.location.reload();
         }
-      });
+      } catch (error) {
+        console.error(error);
+      }
     }
     return false;
   });
@@ -613,18 +659,18 @@ export function initRepoIssueTitleEdit() {
 
 export function initRepoIssueBranchSelect() {
   const changeBranchSelect = function () {
-    const selectionTextField = $('#pull-target-branch');
+    const $selectionTextField = $('#pull-target-branch');
 
-    const baseName = selectionTextField.data('basename');
+    const baseName = $selectionTextField.data('basename');
     const branchNameNew = $(this).data('branch');
-    const branchNameOld = selectionTextField.data('branch');
+    const branchNameOld = $selectionTextField.data('branch');
 
     // Replace branch name to keep translation from HTML template
-    selectionTextField.html(selectionTextField.html().replace(
+    $selectionTextField.html($selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`
+      `${baseName}:${branchNameNew}`,
     ));
-    selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    $selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
@@ -634,10 +680,11 @@ export function initSingleCommentEditor($commentForm) {
   // * normal new issue/pr page, no status-button
   // * issue/pr view page, with comment form, has status-button
   const opts = {};
-  const $statusButton = $('#status-button');
-  if ($statusButton.length) {
+  const statusButton = document.getElementById('status-button');
+  if (statusButton) {
     opts.onContentChanged = (editor) => {
-      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+      const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');
+      statusButton.textContent = statusText;
     };
   }
   initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
@@ -656,7 +703,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
     const editor = await initComboMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
-      }
+      },
     });
 
     $formField.on('focus', async () => {

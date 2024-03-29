@@ -35,7 +35,11 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-const maxBatchSize = 16
+const (
+	maxBatchSize = 16
+	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
+	fuzzyDenominator = 4
+)
 
 // IndexerData an update to the issue indexer
 type IndexerData internal.IndexerData
@@ -156,12 +160,16 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	var queries []query.Query
 
 	if options.Keyword != "" {
-		keywordQueries := []query.Query{
-			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer),
-			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer),
-			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer),
+		fuzziness := 0
+		if options.IsFuzzyKeyword {
+			fuzziness = len(options.Keyword) / fuzzyDenominator
 		}
-		queries = append(queries, bleve.NewDisjunctionQuery(keywordQueries...))
+
+		queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
+			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer, fuzziness),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer, fuzziness),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer, fuzziness),
+		}...))
 	}
 
 	if len(options.RepoIDs) > 0 || options.AllPublic {
@@ -175,11 +183,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(repoQueries...))
 	}
 
-	if !options.IsPull.IsNone() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.IsTrue(), "is_pull"))
+	if options.IsPull.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.Value(), "is_pull"))
 	}
-	if !options.IsClosed.IsNone() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.IsTrue(), "is_closed"))
+	if options.IsClosed.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
 	}
 
 	if options.NoLabelOnly {
@@ -217,38 +225,41 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(milestoneQueries...))
 	}
 
-	if options.ProjectID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ProjectID, "project_id"))
+	if options.ProjectID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
 	}
-	if options.ProjectBoardID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ProjectBoardID, "project_board_id"))
-	}
-
-	if options.PosterID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.PosterID, "poster_id"))
+	if options.ProjectBoardID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectBoardID.Value(), "project_board_id"))
 	}
 
-	if options.AssigneeID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.AssigneeID, "assignee_id"))
+	if options.PosterID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.PosterID.Value(), "poster_id"))
 	}
 
-	if options.MentionID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.MentionID, "mention_ids"))
+	if options.AssigneeID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.AssigneeID.Value(), "assignee_id"))
 	}
 
-	if options.ReviewedID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ReviewedID, "reviewed_ids"))
-	}
-	if options.ReviewRequestedID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.ReviewRequestedID, "review_requested_ids"))
+	if options.MentionID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.MentionID.Value(), "mention_ids"))
 	}
 
-	if options.SubscriberID != nil {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(*options.SubscriberID, "subscriber_ids"))
+	if options.ReviewedID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ReviewedID.Value(), "reviewed_ids"))
+	}
+	if options.ReviewRequestedID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ReviewRequestedID.Value(), "review_requested_ids"))
 	}
 
-	if options.UpdatedAfterUnix != nil || options.UpdatedBeforeUnix != nil {
-		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(options.UpdatedAfterUnix, options.UpdatedBeforeUnix, "updated_unix"))
+	if options.SubscriberID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.SubscriberID.Value(), "subscriber_ids"))
+	}
+
+	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
+		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(
+			options.UpdatedAfterUnix,
+			options.UpdatedBeforeUnix,
+			"updated_unix"))
 	}
 
 	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)

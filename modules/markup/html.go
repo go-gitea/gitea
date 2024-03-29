@@ -53,38 +53,38 @@ var (
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anySHA1Pattern splits url containing SHA into parts
+	// anyHashPattern splits url containing SHA into parts
 	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
 	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
-	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
+	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
+	fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
 
-	// While this email regex is definitely not perfect and I'm sure you can come up
-	// with edge cases, it is still accepted by the CommonMark specification, as
-	// well as the HTML5 spec:
+	// emailRegex is definitely not perfect with edge cases,
+	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
 
-	// blackfriday extensions create IDs like fn:user-content-footnote
+	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
-	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
+	// emojiShortCodeRegex find emoji by alias like :smile:
+	emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
 
-// IsLink reports whether link fits valid format.
-func IsLink(link []byte) bool {
-	return validLinksPattern.Match(link)
+// IsFullURLBytes reports whether link fits valid format.
+func IsFullURLBytes(link []byte) bool {
+	return fullURLPattern.Match(link)
 }
 
-func IsLinkStr(link string) bool {
-	return validLinksPattern.MatchString(link)
+func IsFullURLString(link string) bool {
+	return fullURLPattern.MatchString(link)
 }
 
 // regexp for full links to issues/pulls
@@ -399,7 +399,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 				if attr.Key != "src" {
 					continue
 				}
-				if len(attr.Val) > 0 && !IsLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
+				if len(attr.Val) > 0 && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
 					attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
 				}
 				attr.Val = camoHandleLink(attr.Val)
@@ -609,7 +609,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
 			if mentionOrgAndTeam[0][1:] == ctx.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -620,7 +620,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		mentionedUsername := mention[1:]
 
 		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
-			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "mention"))
 			node = node.NextSibling.NextSibling
 		} else {
 			node = node.NextSibling
@@ -650,7 +650,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
-					if IsLinkStr(v) {
+					if IsFullURLString(v) {
 						// If we clearly see it is a link, we save it so
 
 						// But first we need to ensure, that if both mandatory args provided
@@ -725,7 +725,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			DataAtom:   atom.A,
 		}
 		childNode.Parent = linkNode
-		absoluteLink := IsLinkStr(link)
+		absoluteLink := IsFullURLString(link)
 		if !absoluteLink {
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
@@ -898,9 +898,9 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 				path = "pulls"
 			}
 			if ref.Owner == "" {
-				link = createLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
 			} else {
-				link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
 			}
 		}
 
@@ -939,7 +939,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		link := createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
@@ -1059,7 +1059,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
 	for node != nil && node != next && start < len(node.Data) {
-		m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
+		m := emojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
@@ -1166,7 +1166,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		link := util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		link := util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling

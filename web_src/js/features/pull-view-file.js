@@ -43,9 +43,11 @@ export function initViewedCheckboxListenerFor() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
+        checkbox.setAttribute('checked', '');
         prReview.numberOfViewedFiles++;
       } else {
         form.classList.remove(viewedStyleClass);
+        checkbox.removeAttribute('checked');
         prReview.numberOfViewedFiles--;
       }
 

@@ -10,8 +10,8 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	pwd "code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli/v2"
 )
@@ -123,10 +123,10 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	restricted := util.OptionalBoolNone
+	restricted := optional.None[bool]()
 
 	if c.IsSet("restricted") {
-		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+		restricted = optional.Some(c.Bool("restricted"))
 	}
 
 	// default user visibility in app.ini
@@ -142,7 +142,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive:     util.OptionalBoolTrue,
+		IsActive:     optional.Some(true),
 		IsRestricted: restricted,
 	}
 

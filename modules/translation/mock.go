@@ -9,7 +9,9 @@ import (
 )
 
 // MockLocale provides a mocked locale without any translations
-type MockLocale struct{}
+type MockLocale struct {
+	Lang, LangName string // these fields are used directly in templates: ctx.Locale.Lang
+}
 
 var _ Locale = (*MockLocale)(nil)
 

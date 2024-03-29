@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -344,6 +345,17 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
 	}
 
+	// We need to check if the context is canceled by the program on Windows.
+	// This is because Windows does not have signal checking when terminating the process.
+	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	if runtime.GOOS == "windows" &&
+		err != nil &&
+		err.Error() == "" &&
+		cmd.ProcessState.ExitCode() == 1 &&
+		ctx.Err() == context.Canceled {
+		return ctx.Err()
+	}
+
 	if err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
@@ -355,7 +367,6 @@ type RunStdError interface {
 	error
 	Unwrap() error
 	Stderr() string
-	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -380,9 +391,9 @@ func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
-func (r *runStdError) IsExitCode(code int) bool {
+func IsErrorExitCode(err error, code int) bool {
 	var exitError *exec.ExitError
-	if errors.As(r.err, &exitError) {
+	if errors.As(err, &exitError) {
 		return exitError.ExitCode() == code
 	}
 	return false

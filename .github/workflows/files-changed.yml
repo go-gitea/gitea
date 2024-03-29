@@ -48,6 +48,7 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
+              - "options/locale/locale_en-US.ini"
 
             frontend:
               - "**/*.js"
@@ -72,6 +73,7 @@ jobs:
               - "Makefile"
 
             templates:
+              - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "poetry.lock"

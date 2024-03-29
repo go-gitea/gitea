@@ -40,7 +40,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.Reader
+	ContentReader io.ReadSeeker
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -448,6 +448,10 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
+			_, err := file.ContentReader.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
 			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)

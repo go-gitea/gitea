@@ -14,15 +14,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
 )
-
-// ErrEmailNotActivated e-mail address has not been activated error
-var ErrEmailNotActivated = util.NewInvalidArgumentErrorf("e-mail address has not been activated")
 
 // ErrEmailCharIsNotSupported e-mail address contains unsupported character
 type ErrEmailCharIsNotSupported struct {
@@ -156,37 +154,18 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-// ValidateEmail check if email is a allowed address
+// ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
-	if len(email) == 0 {
-		return ErrEmailInvalid{email}
+	if err := validateEmailBasic(email); err != nil {
+		return err
 	}
+	return validateEmailDomain(email)
+}
 
-	if !emailRegexp.MatchString(email) {
-		return ErrEmailCharIsNotSupported{email}
-	}
-
-	if email[0] == '-' {
-		return ErrEmailInvalid{email}
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is no allow list, then check email against block list
-	if len(setting.Service.EmailDomainAllowList) == 0 &&
-		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	// if there is an allow list, then check email against allow list
-	if len(setting.Service.EmailDomainAllowList) > 0 &&
-		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
-		return ErrEmailInvalid{email}
-	}
-
-	return nil
+// ValidateEmailForAdmin check if email is a valid address when admins manually add or edit users
+func ValidateEmailForAdmin(email string) error {
+	return validateEmailBasic(email)
+	// In this case we do not need to check the email domain
 }
 
 func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
@@ -313,27 +292,27 @@ func updateActivation(ctx context.Context, email *EmailAddress, activate bool) e
 	return UpdateUserCols(ctx, user, "rands")
 }
 
-// MakeEmailPrimary sets primary email address of given user.
-func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
-	has, err := db.GetEngine(ctx).Get(email)
-	if err != nil {
+func MakeActiveEmailPrimary(ctx context.Context, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, emailID, true)
+}
+
+func MakeInactiveEmailPrimary(ctx context.Context, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, emailID, false)
+}
+
+func makeEmailPrimaryInternal(ctx context.Context, emailID int64, isActive bool) error {
+	email := &EmailAddress{}
+	if has, err := db.GetEngine(ctx).ID(emailID).Where(builder.Eq{"is_activated": isActive}).Get(email); err != nil {
 		return err
 	} else if !has {
-		return ErrEmailAddressNotExist{Email: email.Email}
-	}
-
-	if !email.IsActivated {
-		return ErrEmailNotActivated
+		return ErrEmailAddressNotExist{}
 	}
 
 	user := &User{}
-	has, err = db.GetEngine(ctx).ID(email.UID).Get(user)
-	if err != nil {
+	if has, err := db.GetEngine(ctx).ID(email.UID).Get(user); err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{
-			UID: email.UID,
-		}
+		return ErrUserNotExist{UID: email.UID}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -363,6 +342,21 @@ func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
 	}
 
 	return committer.Commit()
+}
+
+// ChangeInactivePrimaryEmail replaces the inactive primary email of a given user
+func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, newEmailAddr string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": strings.ToLower(oldEmailAddr)}).Delete(&EmailAddress{})
+		if err != nil {
+			return err
+		}
+		newEmail, err := InsertEmailAddress(ctx, &EmailAddress{UID: uid, Email: newEmailAddr})
+		if err != nil {
+			return err
+		}
+		return MakeInactiveEmailPrimary(ctx, newEmail.ID)
+	})
 }
 
 // VerifyActiveEmailCode verifies active email code when active account
@@ -404,8 +398,8 @@ type SearchEmailOptions struct {
 	db.ListOptions
 	Keyword     string
 	SortType    SearchEmailOrderBy
-	IsPrimary   util.OptionalBool
-	IsActivated util.OptionalBool
+	IsPrimary   optional.Option[bool]
+	IsActivated optional.Option[bool]
 }
 
 // SearchEmailResult is an e-mail address found in the user or email_address table
@@ -432,21 +426,15 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 		))
 	}
 
-	switch {
-	case opts.IsPrimary.IsTrue():
-		cond = cond.And(builder.Eq{"email_address.is_primary": true})
-	case opts.IsPrimary.IsFalse():
-		cond = cond.And(builder.Eq{"email_address.is_primary": false})
+	if opts.IsPrimary.Has() {
+		cond = cond.And(builder.Eq{"email_address.is_primary": opts.IsPrimary.Value()})
 	}
 
-	switch {
-	case opts.IsActivated.IsTrue():
-		cond = cond.And(builder.Eq{"email_address.is_activated": true})
-	case opts.IsActivated.IsFalse():
-		cond = cond.And(builder.Eq{"email_address.is_activated": false})
+	if opts.IsActivated.Has() {
+		cond = cond.And(builder.Eq{"email_address.is_activated": opts.IsActivated.Value()})
 	}
 
-	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %w", err)
@@ -462,7 +450,7 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
 	err = db.GetEngine(ctx).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
-		Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).
 		OrderBy(orderby).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
@@ -526,4 +514,42 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 	}
 
 	return committer.Commit()
+}
+
+// validateEmailBasic checks whether the email complies with the rules
+func validateEmailBasic(email string) error {
+	if len(email) == 0 {
+		return ErrEmailInvalid{email}
+	}
+
+	if !emailRegexp.MatchString(email) {
+		return ErrEmailCharIsNotSupported{email}
+	}
+
+	if email[0] == '-' {
+		return ErrEmailInvalid{email}
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrEmailInvalid{email}
+	}
+
+	return nil
+}
+
+// validateEmailDomain checks whether the email domain is allowed or blocked
+func validateEmailDomain(email string) error {
+	if !IsEmailDomainAllowed(email) {
+		return ErrEmailInvalid{email}
+	}
+
+	return nil
+}
+
+func IsEmailDomainAllowed(email string) bool {
+	if len(setting.Service.EmailDomainAllowList) == 0 {
+		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email)
+	}
+
+	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
 }

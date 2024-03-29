@@ -75,9 +75,17 @@
 			</div>
 		</details>
 		{{end}}
-		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
-			{{ctx.Locale.Tr "admin.config"}}
-		</a>
+		<details class="item toggleable-item" {{if or .PageIsAdminConfig}}open{{end}}>
+			<summary>{{ctx.Locale.Tr "admin.config"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminConfigSummary}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
+					{{ctx.Locale.Tr "admin.config_summary"}}
+				</a>
+				<a class="{{if .PageIsAdminConfigSettings}}active {{end}}item" href="{{AppSubUrl}}/admin/config/settings">
+					{{ctx.Locale.Tr "admin.config_settings"}}
+				</a>
+			</div>
+		</details>
 		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/admin/notices">
 			{{ctx.Locale.Tr "admin.notices"}}
 		</a>

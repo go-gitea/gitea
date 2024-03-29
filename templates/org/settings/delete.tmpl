@@ -6,7 +6,7 @@
 				</h4>
 				<div class="ui attached error segment">
 					<div class="ui red message">
-						<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "org.settings.delete_prompt" | Str2html}}</p>
+						<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "org.settings.delete_prompt"}}</p>
 					</div>
 					<form class="ui form ignore-dirty" id="delete-form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // settings
@@ -158,9 +159,11 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 func loadRunModeFrom(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
+
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
+	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || util.OptionalBoolParse(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value()
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")

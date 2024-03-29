@@ -24,6 +24,7 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
+			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
 			"is_context_required" .is_context_required
 		)}}
@@ -32,13 +33,13 @@
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
-					<div class="item item-section text gt-f1">
+					<div class="item item-section text tw-flex-1">
 						<div class="item-section-left">
-							<h3 class="gt-mb-3">
+							<h3 class="tw-mb-2">
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
+								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (HTMLFormat "<code>%s</code>" .HeadTarget)}}
 							</div>
 						</div>
 						<div class="item-section-right">
@@ -47,9 +48,9 @@
 					</div>
 				{{end}}
 			{{else if .Issue.IsClosed}}
-				<div class="item item-section text gt-f1">
+				<div class="item item-section text tw-flex-1">
 					<div class="item-section-left">
-						<h3 class="gt-mb-3">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
+						<h3 class="tw-mb-2">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
 						<div class="merge-section-info">
 							{{if .IsPullRequestBroken}}
 								{{ctx.Locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
@@ -80,14 +81,14 @@
 					{{ctx.Locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
-					<div class="item-section-left flex-text-inline gt-f1">
+				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+					<div class="item-section-left flex-text-inline tw-flex-1">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 						<button class="ui compact button">
-							{{ctx.Locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}
 				</div>
@@ -126,7 +127,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}
@@ -333,7 +334,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
+						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
 					<ul>
 						{{range .ChangedProtectedFiles}}
@@ -373,17 +374,15 @@
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="divider"></div>
-				<div class="ui form">
-					<form action="{{.Link}}/merge" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="field">
-							<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
-						</div>
-						<button class="ui red button" type="submit" name="do" value="manually-merged">
-							{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
-						</button>
-					</form>
-				</div>
+				<form class="ui form form-fetch-action" action="{{.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
+					</div>
+					<button class="ui red button" type="submit" name="do" value="manually-merged">
+						{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
+					</button>
+				</form>
 			{{end}}
 
 			{{if and .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}

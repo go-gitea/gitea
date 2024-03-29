@@ -246,7 +246,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 	}()
 
-	len := repo.objectFormat.FullLength()
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	len := objectFormat.FullLength()
 	commits := []*Commit{}
 	shaline := make([]byte, len+1)
 	for {

@@ -1,6 +1,9 @@
 import * as htmx from 'htmx.org';
 import {showErrorToast} from './modules/toast.js';
 
+// https://github.com/bigskysoftware/idiomorph#htmx
+import 'idiomorph/dist/idiomorph-ext.js';
+
 // https://htmx.org/reference/#config
 htmx.config.requestClass = 'is-loading';
 htmx.config.scrollIntoViewOnBoost = false;

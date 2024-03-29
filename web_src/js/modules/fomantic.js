@@ -17,7 +17,7 @@ export function initGiteaFomantic() {
   // By default, use "exact match" for full text search
   $.fn.dropdown.settings.fullTextSearch = 'exact';
   // Do not use "cursor: pointer" for dropdown labels
-  $.fn.dropdown.settings.className.label += ' gt-cursor-default';
+  $.fn.dropdown.settings.className.label += ' tw-cursor-default';
   // Always use Gitea's SVG icons
   $.fn.dropdown.settings.templates.label = function(_value, text, preserveHTML, className) {
     const escape = $.fn.dropdown.settings.templates.escape;

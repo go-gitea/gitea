@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/markbates/goth"
 )
@@ -59,7 +59,7 @@ func (p *AuthSourceProvider) DisplayName() string {
 
 func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="gt-object-contain gt-mr-3" width="%d" height="%d" src="%s" alt="%s">`,
+		img := fmt.Sprintf(`<img class="tw-object-contain tw-mr-2" width="%d" height="%d" src="%s" alt="%s">`,
 			size,
 			size,
 			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
@@ -107,7 +107,7 @@ func CreateProviderFromSource(source *auth.Source) (Provider, error) {
 }
 
 // GetOAuth2Providers returns the list of configured OAuth2 providers
-func GetOAuth2Providers(ctx context.Context, isActive util.OptionalBool) ([]Provider, error) {
+func GetOAuth2Providers(ctx context.Context, isActive optional.Option[bool]) ([]Provider, error) {
 	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive:  isActive,
 		LoginType: auth.OAuth2,
