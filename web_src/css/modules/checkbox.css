@@ -1,7 +1,8 @@
 /* based on Fomantic UI checkbox module, with just the parts extracted that we use. If you find any
    unused rules here after refactoring, please remove them. */
 
-input[type="checkbox"] {
+input[type="checkbox"],
+input[type="radio"] {
   width: var(--checkbox-size);
   height: var(--checkbox-size);
 }
