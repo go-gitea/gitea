@@ -857,6 +857,32 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
+	if !willShowSpecifiedCommit && !willShowSpecifiedCommitRange && pull.Flow == issues_model.PullRequestFlowGithub {
+		if err := pull.LoadHeadRepo(ctx); err != nil {
+			ctx.ServerError("LoadHeadRepo", err)
+			return
+		}
+
+		if pull.HeadRepo != nil {
+			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pull.HeadBranch)
+		}
+
+		if !pull.HasMerged && ctx.Doer != nil {
+			perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+
+			if perm.CanWrite(unit.TypeCode) || issues_model.CanMaintainerWriteToBranch(ctx, perm, pull.HeadBranch, ctx.Doer) {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+				ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
+				ctx.Data["HeadBranchName"] = pull.HeadBranch
+				ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
+			}
+		}
+	}
 
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
