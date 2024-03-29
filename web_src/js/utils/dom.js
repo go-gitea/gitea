@@ -1,6 +1,6 @@
 import {debounce} from 'throttle-debounce';
 
-export function elementsCall(el, func, ...args) {
+function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
   }
