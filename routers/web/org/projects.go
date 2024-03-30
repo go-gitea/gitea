@@ -141,7 +141,7 @@ func canWriteProjects(ctx *context.Context) bool {
 // RenderNewProject render creating a project page
 func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["BoardTypes"] = project_model.GetBoardViewConfig()
+	ctx.Data["TemplateConfigs"] = project_model.GetTemplateConfigs()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["PageIsViewProjects"] = true
@@ -170,12 +170,12 @@ func NewProjectPost(ctx *context.Context) {
 	}
 
 	newProject := project_model.Project{
-		OwnerID:       ctx.ContextUser.ID,
-		Title:         form.Title,
-		Description:   form.Content,
-		CreatorID:     ctx.Doer.ID,
-		BoardViewType: form.BoardType,
-		CardType:      form.CardType,
+		OwnerID:      ctx.ContextUser.ID,
+		Title:        form.Title,
+		Description:  form.Content,
+		CreatorID:    ctx.Doer.ID,
+		TemplateType: form.BoardType,
+		CardType:     form.CardType,
 	}
 
 	if ctx.ContextUser.IsOrganization() {

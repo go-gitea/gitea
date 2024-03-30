@@ -51,13 +51,13 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project := &Project{
-		Type:          TypeRepository,
-		BoardViewType: BoardViewTypeBasicKanban,
-		CardType:      CardTypeTextOnly,
-		Title:         "New Project",
-		RepoID:        1,
-		CreatedUnix:   timeutil.TimeStampNow(),
-		CreatorID:     2,
+		Type:         TypeRepository,
+		TemplateType: TemplateTypeBasicKanban,
+		CardType:     CardTypeTextOnly,
+		Title:        "New Project",
+		RepoID:       1,
+		CreatedUnix:  timeutil.TimeStampNow(),
+		CreatorID:    2,
 	}
 
 	assert.NoError(t, NewProject(db.DefaultContext, project))

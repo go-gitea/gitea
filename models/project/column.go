@@ -83,15 +83,15 @@ func IsCardTypeValid(p CardType) bool {
 	}
 }
 
-func createColumnsForProjectsBoradViewType(ctx context.Context, project *Project) error {
+func createDefaultColumnsForProject(ctx context.Context, project *Project) error {
 	var items []string
 
-	switch project.BoardViewType {
-	case BoardViewTypeBugTriage:
+	switch project.TemplateType {
+	case TemplateTypeBugTriage:
 		items = setting.Project.ProjectBoardBugTriageType
-	case BoardViewTypeBasicKanban:
+	case TemplateTypeBasicKanban:
 		items = setting.Project.ProjectBoardBasicKanbanType
-	case BoardViewTypeNone:
+	case TemplateTypeNone:
 		fallthrough
 	default:
 		return nil

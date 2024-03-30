@@ -508,7 +508,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType project_model.BoardViewType
+	BoardType project_model.TemplateType // NOTE: don't change the name except you know what you are doing
 	CardType  project_model.CardType
 }
 
@@ -517,7 +517,7 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType project_model.BoardViewType
+	BoardType project_model.TemplateType
 	CardType  project_model.CardType
 	UID       int64 `binding:"Required"`
 }

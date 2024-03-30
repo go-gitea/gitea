@@ -28,7 +28,7 @@
 					<input type="hidden" name="board_type" value="{{.type}}">
 					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
-						{{range $element := .BoardTypes}}
+						{{range $element := .TemplateConfigs}}
 							<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
 						{{end}}
 					</div>

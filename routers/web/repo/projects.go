@@ -132,7 +132,7 @@ func Projects(ctx *context.Context) {
 // RenderNewProject render creating a project page
 func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["BoardTypes"] = project_model.GetBoardViewConfig()
+	ctx.Data["TemplateConfigs"] = project_model.GetTemplateConfigs()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["CancelLink"] = ctx.Repo.Repository.Link() + "/projects"
@@ -150,13 +150,13 @@ func NewProjectPost(ctx *context.Context) {
 	}
 
 	if err := project_model.NewProject(ctx, &project_model.Project{
-		RepoID:        ctx.Repo.Repository.ID,
-		Title:         form.Title,
-		Description:   form.Content,
-		CreatorID:     ctx.Doer.ID,
-		BoardViewType: form.BoardType,
-		CardType:      form.CardType,
-		Type:          project_model.TypeRepository,
+		RepoID:       ctx.Repo.Repository.ID,
+		Title:        form.Title,
+		Description:  form.Content,
+		CreatorID:    ctx.Doer.ID,
+		TemplateType: form.BoardType,
+		CardType:     form.CardType,
+		Type:         project_model.TypeRepository,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return

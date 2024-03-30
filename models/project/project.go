@@ -83,18 +83,18 @@ func (err ErrProjectColumnNotExist) Unwrap() error {
 
 // Project represents a project
 type Project struct {
-	ID            int64                  `xorm:"pk autoincr"`
-	Title         string                 `xorm:"INDEX NOT NULL"`
-	Description   string                 `xorm:"TEXT"`
-	OwnerID       int64                  `xorm:"INDEX"`
-	Owner         *user_model.User       `xorm:"-"`
-	RepoID        int64                  `xorm:"INDEX"`
-	Repo          *repo_model.Repository `xorm:"-"`
-	CreatorID     int64                  `xorm:"NOT NULL"`
-	IsClosed      bool                   `xorm:"INDEX"`
-	BoardViewType BoardViewType          `xorm:"'board_type'"`
-	CardType      CardType
-	Type          Type
+	ID           int64                  `xorm:"pk autoincr"`
+	Title        string                 `xorm:"INDEX NOT NULL"`
+	Description  string                 `xorm:"TEXT"`
+	OwnerID      int64                  `xorm:"INDEX"`
+	Owner        *user_model.User       `xorm:"-"`
+	RepoID       int64                  `xorm:"INDEX"`
+	Repo         *repo_model.Repository `xorm:"-"`
+	CreatorID    int64                  `xorm:"NOT NULL"`
+	IsClosed     bool                   `xorm:"INDEX"`
+	TemplateType TemplateType           `xorm:"'board_type'"`
+	CardType     CardType
+	Type         Type
 
 	RenderedContent template.HTML `xorm:"-"`
 
@@ -229,8 +229,8 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 
 // NewProject creates a new Project
 func NewProject(ctx context.Context, p *Project) error {
-	if !IsBoardViewTypeValid(p.BoardViewType) {
-		p.BoardViewType = BoardViewTypeNone
+	if !IsTemplateTypeValid(p.TemplateType) {
+		p.TemplateType = TemplateTypeNone
 	}
 
 	if !IsCardTypeValid(p.CardType) {
@@ -252,7 +252,7 @@ func NewProject(ctx context.Context, p *Project) error {
 			}
 		}
 
-		return createColumnsForProjectsBoradViewType(ctx, p)
+		return createDefaultColumnsForProject(ctx, p)
 	})
 }
 
