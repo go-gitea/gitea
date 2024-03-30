@@ -10,9 +10,12 @@ import (
 	"runtime"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository/configHooks"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
+
+var registry *HookRegistry
 
 func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {
 	hookNames = []string{"pre-receive", "update", "post-receive"}
@@ -145,6 +148,15 @@ func CreateDelegateHooks(repoPath string) (err error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
 	hookDir := filepath.Join(repoPath, "hooks")
 
+	checkLicenseHook := &configHooks.CheckLicense{
+		Name:"checkLicense",
+	}
+	registry, err = NewHookRegistry()
+	if err != nil {
+		return err
+	}
+	registry.RegisterHook("pre-receive", checkLicenseHook)
+
 	for i, hookName := range hookNames {
 		oldHookPath := filepath.Join(hookDir, hookName)
 		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
@@ -175,6 +187,9 @@ func CreateDelegateHooks(repoPath string) (err error) {
 		if err = ensureExecutable(newHookPath); err != nil {
 			return fmt.Errorf("Unable to set %s executable. Error %w", oldHookPath, err)
 		}
+
+		registry.RunCreateConfigHooks(hookDir, hookName)
+
 	}
 
 	return nil
@@ -240,6 +255,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 			results = append(results, fmt.Sprintf("new hook file %s does not exist", newHookPath))
 			cont = true
 		}
+		registry.RunCheckConfigPathHooks(results, hookDir, hookName)
 		if cont {
 			continue
 		}
@@ -263,6 +279,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if !checkExecutable(newHookPath) {
 			results = append(results, fmt.Sprintf("new hook file %s is not executable", newHookPath))
 		}
+		registry.RunCheckConfigHooks(results, hookDir, hookName)
 	}
 	return results, nil
 }
