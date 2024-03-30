@@ -12,9 +12,11 @@ export function initRepoTopicBar() {
   const viewDiv = document.getElementById('repo-topics');
   const saveBtn = document.getElementById('save_topic');
   const topicDropdown = editDiv.querySelector('.dropdown');
-  const $topicDropdown = $(topicDropdown);
   const $topicForm = $(editDiv);
-  const $topicDropdownSearch = $topicDropdown.find('input.search');
+  /**
+   * @type {HTMLInputElement}
+   */
+  const topicDropdownSearch = topicDropdown.querySelector('input.search');
   const topicPrompts = {
     countPrompt: topicDropdown.getAttribute('data-text-count-prompt') ?? undefined,
     formatPrompt: topicDropdown.getAttribute('data-text-format-prompt') ?? undefined,
@@ -23,7 +25,7 @@ export function initRepoTopicBar() {
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    $topicDropdownSearch.trigger('focus');
+    topicDropdownSearch?.focus();
   });
 
   $('#cancel_topic_edit').on('click', () => {
@@ -64,10 +66,11 @@ export function initRepoTopicBar() {
         topicPrompts.formatPrompt = responseData.message;
 
         const {invalidTopics} = responseData;
-        const $topicLabels = $topicDropdown.children('a.ui.label');
+        const topicLabels = topicDropdown.querySelectorAll(':scope > a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
-            $topicLabels.eq(index).removeClass('green').addClass('red');
+            topicLabels[index].classList.remove('green');
+            topicLabels[index].classList.add('red');
           }
         }
       } else {
@@ -79,7 +82,7 @@ export function initRepoTopicBar() {
     $topicForm.form('validate form');
   });
 
-  $topicDropdown.dropdown({
+  $(topicDropdown).dropdown({
     allowAdditions: true,
     forceSelection: false,
     fullTextSearch: 'exact',
@@ -102,9 +105,9 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        $topicDropdown.find('a.label.visible').each((_, el) => {
+        for (const el of topicDropdown.querySelectorAll(':scope > a.label.visible')) {
           current_topics.push(el.getAttribute('data-value'));
-        });
+        }
 
         if (res.topics) {
           let found = false;
@@ -152,12 +155,14 @@ export function initRepoTopicBar() {
   });
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
-    const $topics = $topicDropdown.children('a.ui.label');
-    const status = !$topics.length || $topics.last()[0].getAttribute('data-value').match(regExp);
+    const topics = topicDropdown.querySelectorAll(':scope > a.ui.label');
+    const lastTopic = topics[topics.length - 1];
+    const status = !topics.length || lastTopic.getAttribute('data-value').match(regExp);
     if (!status) {
-      $topics.last().removeClass('green').addClass('red');
+      lastTopic.classList.remove('green');
+      lastTopic.classList.add('red');
     }
-    return status && !$topicDropdown.children('a.ui.label.red').length;
+    return status && !topicDropdown.querySelectorAll(':scope > a.ui.label.red').length;
   };
 
   $topicForm.form({
