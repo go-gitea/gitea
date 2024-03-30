@@ -84,6 +84,8 @@ readLoop:
 				commit.Committer = &Signature{}
 				commit.Committer.Decode(data)
 				_, _ = payloadSB.Write(line)
+			case "encoding":
+				_, _ = payloadSB.Write(line)
 			case "gpgsig":
 				fallthrough
 			case "gpgsig-sha256": // FIXME: no intertop, so only 1 exists at present.
