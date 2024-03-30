@@ -241,7 +241,7 @@ func NewProject(ctx context.Context, p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	return db.WithTx(ctx, func(tx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, p); err != nil {
 			return err
 		}
