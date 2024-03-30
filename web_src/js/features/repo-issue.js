@@ -282,32 +282,26 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  const checkbox = document.getElementById('allow-edits-from-maintainers');
-  if (!checkbox) return;
+  const wrapper = document.getElementById('allow-edits-from-maintainers');
+  if (!wrapper) return;
 
-  const $checkbox = $(checkbox);
-
-  const promptError = checkbox.getAttribute('data-prompt-error');
-  $checkbox.checkbox({
-    'onChange': async () => {
-      const checked = $checkbox.checkbox('is checked');
-      let url = checkbox.getAttribute('data-url');
-      url += '/set_allow_maintainer_edit';
-      $checkbox.checkbox('set disabled');
-      try {
-        const response = await POST(url, {
-          data: {allow_maintainer_edit: checked},
-        });
-        if (!response.ok) {
-          throw new Error('Failed to update maintainer edit permission');
-        }
-      } catch (error) {
-        console.error(error);
-        showTemporaryTooltip(checkbox, promptError);
-      } finally {
-        $checkbox.checkbox('set enabled');
+  wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
+    const checked = e.target.checked;
+    const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
+    wrapper.classList.add('is-loading');
+    e.target.disabled = true;
+    try {
+      const response = await POST(url, {data: {allow_maintainer_edit: checked}});
+      if (!response.ok) {
+        throw new Error('Failed to update maintainer edit permission');
       }
-    },
+    } catch (error) {
+      console.error(error);
+      showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error'));
+    } finally {
+      wrapper.classList.remove('is-loading');
+      e.target.disabled = false;
+    }
   });
 }
 
