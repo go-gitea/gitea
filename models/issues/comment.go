@@ -100,8 +100,8 @@ const (
 	CommentTypeMergePull       // 28 merge pull request
 	CommentTypePullRequestPush // 29 push to PR head branch
 
-	CommentTypeProject      // 30 Project changed
-	CommentTypeProjectBoard // 31 Project board changed
+	CommentTypeProject       // 30 Project changed
+	CommentTypeProjectColumn // 31 Project column changed
 
 	CommentTypeDismissReview // 32 Dismiss Review
 

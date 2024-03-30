@@ -15,13 +15,13 @@ type (
 )
 
 const (
-	// BoardViewTypeNone is a project board type that has no predefined columns
+	// BoardViewTypeNone is a project board view type that has no predefined columns
 	BoardViewTypeNone BoardViewType = iota
 
-	// BoardViewTypeBasicKanban is a project board type that has basic predefined columns
+	// BoardViewTypeBasicKanban is a project board view type that has basic predefined columns
 	BoardViewTypeBasicKanban
 
-	// BoardViewTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
+	// BoardViewTypeBugTriage is a project board view type that has predefined columns suited to hunting down bugs
 	BoardViewTypeBugTriage
 )
 

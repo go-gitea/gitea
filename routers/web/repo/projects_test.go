@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckProjectBoardChangePermissions(t *testing.T) {
+func TestCheckProjectColumnChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/projects/1/2")
 	contexttest.LoadUser(t, ctx, 2)
@@ -20,8 +20,8 @@ func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":boardID", "2")
 
-	project, board := checkProjectBoardChangePermissions(ctx)
+	project, column := checkProjectColumnChangePermissions(ctx)
 	assert.NotNil(t, project)
-	assert.NotNil(t, board)
+	assert.NotNil(t, column)
 	assert.False(t, ctx.Written())
 }

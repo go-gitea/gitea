@@ -76,7 +76,7 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 }
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, board *Column, sortedIssueIDs map[int64]int64) error {
+func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
@@ -84,7 +84,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, board *Column, sortedIssueID
 		for _, issueID := range sortedIssueIDs {
 			issueIDs = append(issueIDs, issueID)
 		}
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", column.ProjectID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, board *Column, sortedIssueID
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}

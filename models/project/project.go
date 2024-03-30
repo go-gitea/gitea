@@ -21,7 +21,7 @@ import (
 )
 
 type (
-	// CardConfig is used to identify the type of board card that is being used
+	// CardConfig is used to identify the type of column card that is being used
 	CardConfig struct {
 		CardType    CardType
 		Translation string
@@ -32,7 +32,7 @@ type (
 )
 
 const (
-	// TypeIndividual is a type of project board that is owned by an individual
+	// TypeIndividual is a type of project column that is owned by an individual
 	TypeIndividual Type = iota + 1
 
 	// TypeRepository is a project that is tied to a repository
@@ -62,12 +62,12 @@ func (err ErrProjectNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrProjectColumnNotExist represents a "ProjectBoardNotExist" kind of error.
+// ErrProjectColumnNotExist represents a "ErrProjectColumnNotExist" kind of error.
 type ErrProjectColumnNotExist struct {
 	ColumnID int64
 }
 
-// IsErrProjectColumnNotExist checks if an error is a ErrProjectBoardNotExist
+// IsErrProjectColumnNotExist checks if an error is a ErrProjectColumnNotExist
 func IsErrProjectColumnNotExist(err error) bool {
 	_, ok := err.(ErrProjectColumnNotExist)
 	return ok
@@ -81,7 +81,7 @@ func (err ErrProjectColumnNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// Project represents a project board
+// Project represents a project
 type Project struct {
 	ID            int64                  `xorm:"pk autoincr"`
 	Title         string                 `xorm:"INDEX NOT NULL"`
@@ -159,7 +159,7 @@ func init() {
 	db.RegisterModel(new(Project))
 }
 
-// GetCardConfig retrieves the types of configurations project board cards could have
+// GetCardConfig retrieves the types of configurations project column cards could have
 func GetCardConfig() []CardConfig {
 	return []CardConfig{
 		{CardTypeTextOnly, "repo.projects.card_type.text_only"},

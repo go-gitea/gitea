@@ -522,7 +522,7 @@ type UserCreateProjectForm struct {
 	UID       int64 `binding:"Required"`
 }
 
-// EditProjectColumnForm is a form for editing a project board
+// EditProjectColumnForm is a form for editing a project column
 type EditProjectColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8

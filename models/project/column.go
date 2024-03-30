@@ -137,7 +137,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 	return err
 }
 
-// DeleteColumnByID removes all issues references to the project board.
+// DeleteColumnByID removes all issues references to the project column.
 func DeleteColumnByID(ctx context.Context, columnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		return deleteColumnByID(ctx, columnID)
@@ -155,7 +155,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return fmt.Errorf("deleteBoardByID: cannot delete default board")
+		return fmt.Errorf("deleteBoardByID: cannot delete default column")
 	}
 
 	if err = column.removeIssues(ctx); err != nil {
@@ -173,17 +173,17 @@ func deleteColumnByProjectID(ctx context.Context, projectID int64) error {
 	return err
 }
 
-// GetColumn fetches the current board of a project
+// GetColumn fetches the current column of a project
 func GetColumn(ctx context.Context, columnID int64) (*Column, error) {
-	board := new(Column)
-	has, err := db.GetEngine(ctx).ID(columnID).Get(board)
+	column := new(Column)
+	has, err := db.GetEngine(ctx).ID(columnID).Get(column)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrProjectColumnNotExist{ColumnID: columnID}
 	}
 
-	return board, nil
+	return column, nil
 }
 
 // UpdateColumn updates a project column

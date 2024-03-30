@@ -47,7 +47,7 @@ func (issue *Issue) ProjectColumnID(ctx context.Context) int64 {
 	return ip.ProjectColumnID
 }
 
-// LoadIssuesFromColumn load issues assigned to this board
+// LoadIssuesFromColumn load issues assigned to this column
 func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column) (IssueList, error) {
 	issueList, err := Issues(ctx, &IssuesOptions{
 		ProjectColumnID: b.ID,
@@ -77,7 +77,7 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column) (IssueLi
 	return issueList, nil
 }
 
-// LoadIssuesFromColumnList load issues assigned to the boards
+// LoadIssuesFromColumnList load issues assigned to the columns
 func LoadIssuesFromColumnList(ctx context.Context, bs project_model.ColumnList) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {

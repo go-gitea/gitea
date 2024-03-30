@@ -27,7 +27,7 @@ type IndexerData struct {
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectID          int64              `json:"project_id"`
-	ProjectBoardID     int64              `json:"project_board_id"`
+	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`

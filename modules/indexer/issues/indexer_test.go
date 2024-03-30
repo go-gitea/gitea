@@ -375,7 +375,7 @@ func searchIssueInProject(t *testing.T) {
 		},
 		{
 			SearchOptions{
-				ProjectColumnID: optional.Some(int64(0)), // issue with in default board
+				ProjectColumnID: optional.Some(int64(0)), // issue with in default column
 			},
 			[]int64{2},
 		},
