@@ -66,13 +66,13 @@
 <div id="project-board">
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
-			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
+			<div class="ui segment project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
 					<div class="ui large label project-column-title tw-py-1">
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
 						</div>
-						{{.Title}}
+						<span class="project-column-title-label">{{.Title}}</span>
 					</div>
 					{{if $canWriteProject}}
 						<div class="ui dropdown jump item">
@@ -153,9 +153,7 @@
 						</div>
 					{{end}}
 				</div>
-
-				<div class="divider"></div>
-
+				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
 						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">

@@ -22,32 +22,25 @@
   cursor: default;
 }
 
+.project-column .issue-card {
+  color: var(--color-text);
+}
+
 .project-column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.project-column-header.dark-label {
-  color: var(--color-project-board-dark-label) !important;
-}
-
-.project-column-header.dark-label .project-column-title {
-  color: var(--color-project-board-dark-label) !important;
-}
-
-.project-column-header.light-label {
-  color: var(--color-project-board-light-label) !important;
-}
-
-.project-column-header.light-label .project-column-title {
-  color: var(--color-project-board-light-label) !important;
-}
-
 .project-column-title {
   background: none !important;
   line-height: 1.25 !important;
   cursor: inherit;
+}
+
+.project-column-title,
+.project-column-issue-count {
+  color: inherit !important;
 }
 
 .project-column > .cards {
@@ -64,6 +57,8 @@
 
 .project-column > .divider {
   margin: 5px 0;
+  border-color: currentcolor;
+  opacity: .5;
 }
 
 .project-column:first-child {

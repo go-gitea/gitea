@@ -215,8 +215,6 @@
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #0e1114;
-  --color-project-board-light-label: #eaeef2;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000170a;
   --color-reaction-hover-bg: var(--color-primary-light-5);
