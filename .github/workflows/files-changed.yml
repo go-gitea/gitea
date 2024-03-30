@@ -58,7 +58,7 @@ jobs:
               - "package-lock.json"
               - "Makefile"
               - ".eslintrc.yaml"
-              - ".stylelintrc.yaml"
+              - "stylelint.config.js"
               - ".npmrc"
 
             docs:
