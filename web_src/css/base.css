@@ -305,59 +305,12 @@ a.label,
   background-color: var(--color-label-bg);
 }
 
-/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
-.ui.input > input {
-  line-height: var(--line-height-default);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
 /* fix Fomantic's line-height causing vertical scrollbars to appear */
 ul.ui.list li,
 ol.ui.list li,
 .ui.list > .item,
 .ui.list .list > .item {
   line-height: var(--line-height-default);
-}
-
-.ui.input.focus > input,
-.ui.input > input:focus {
-  border-color: var(--color-primary);
-}
-
-.ui.action.input .ui.ui.button {
-  border-color: var(--color-input-border);
-  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
-  padding-bottom: 0;
-}
-
-/* currently used for search bar dropdowns in repo search and explore code */
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
-  min-width: 10em;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
-  border-right: none;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
-  border-color: var(--color-input-border);
-}
-.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-}
-.ui.action.input:not([class*="left action"]) > input,
-.ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: none;
-}
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
-  border-left-color: var(--color-primary);
-}
-.ui.action.input:not([class*="left action"]) > input:focus {
-  border-right-color: var(--color-primary);
 }
 
 .ui.menu {
@@ -1597,16 +1550,6 @@ table th[data-sortt-desc] .svg {
 .ui.ui.labeled.button {
   gap: 0;
   align-items: stretch;
-}
-
-.ui.ui.icon.input .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ui.icon.input > i.icon {
-  transition: none;
 }
 
 .flex-items-block > .item,
