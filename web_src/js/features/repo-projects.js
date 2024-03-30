@@ -94,47 +94,46 @@ async function initRepoProjectSortable() {
 }
 
 export function initRepoProject() {
-  if (!$('.repository.projects').length) {
+  if (!document.querySelector('.repository.projects')) {
     return;
   }
 
   const _promise = initRepoProjectSortable();
 
-  $('.edit-project-column-modal').each(function () {
-    const $projectHeader = $(this).closest('.project-column-header');
-    const $projectTitleLabel = $projectHeader.find('.project-column-title');
-    const $projectTitleInput = $(this).find('.project-column-title-input');
-    const $projectColorInput = $(this).find('#new_project_column_color');
-    const $boardColumn = $(this).closest('.project-column');
+  for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
+    const projectHeader = modal.closest('.project-column-header');
+    const projectTitleLabel = projectHeader?.querySelector('.project-column-title');
+    const projectTitleInput = modal.querySelector('.project-column-title-input');
+    const projectColorInput = modal.querySelector('#new_project_column_color');
+    const boardColumn = modal.closest('.project-column');
+    const bgColor = boardColumn?.style.backgroundColor;
 
-    const bgColor = $boardColumn[0].style.backgroundColor;
     if (bgColor) {
-      setLabelColor($projectHeader, rgbToHex(bgColor));
+      setLabelColor(projectHeader, rgbToHex(bgColor));
     }
 
-    $(this).find('.edit-project-column-button').on('click', async function (e) {
+    modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
-
       try {
-        await PUT($(this).data('url'), {
+        await PUT(this.getAttribute('data-url'), {
           data: {
-            title: $projectTitleInput.val(),
-            color: $projectColorInput.val(),
+            title: projectTitleInput?.value,
+            color: projectColorInput?.value,
           },
         });
       } catch (error) {
         console.error(error);
       } finally {
-        $projectTitleLabel.text($projectTitleInput.val());
-        $projectTitleInput.closest('form').removeClass('dirty');
-        if ($projectColorInput.val()) {
-          setLabelColor($projectHeader, $projectColorInput.val());
+        projectTitleLabel.textContent = projectTitleInput?.value;
+        projectTitleInput.closest('form')?.classList.remove('dirty');
+        if (projectColorInput?.value) {
+          setLabelColor(projectHeader, projectColorInput.value);
         }
-        $boardColumn[0].style = `background: ${$projectColorInput.val()} !important`;
+        boardColumn.style = `background: ${projectColorInput.value} !important`;
         $('.ui.modal').modal('hide');
       }
     });
-  });
+  }
 
   $('.default-project-column-modal').each(function () {
     const $boardColumn = $(this).closest('.project-column');
@@ -187,9 +186,11 @@ export function initRepoProject() {
 function setLabelColor(label, color) {
   const {r, g, b} = tinycolor(color).toRgb();
   if (useLightTextOnBackground(r, g, b)) {
-    label.removeClass('dark-label').addClass('light-label');
+    label.classList.remove('dark-label');
+    label.classList.add('light-label');
   } else {
-    label.removeClass('light-label').addClass('dark-label');
+    label.classList.remove('light-label');
+    label.classList.add('dark-label');
   }
 }
 
