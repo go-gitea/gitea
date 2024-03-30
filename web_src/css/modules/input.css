@@ -42,33 +42,31 @@
 }
 
 .ui.icon.input > i.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: default;
-  position: absolute;
-  line-height: 1;
-  text-align: center;
-  top: 0;
-  right: 0;
-  margin: 0;
-  height: 100%;
-  width: 2.67142857em;
-  opacity: 0.5;
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
-}
-.ui.icon.input > i.icon:not(.link) {
-  pointer-events: none;
-}
-.ui.ui.ui.ui.icon.input > textarea,
-.ui.ui.ui.ui.icon.input > input {
-  padding-right: 2.67142857em;
-}
-.ui.icon.input > i.icon::before,
-.ui.icon.input > i.icon::after {
-  left: 0;
   position: absolute;
   text-align: center;
   top: 50%;
-  width: 100%;
-  margin-top: -0.5em;
+  transform: translateY(-50%);
+  opacity: 0.5;
+  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  pointer-events: none;
+  padding: 4px;
+}
+
+.ui.icon.input > i.icon.is-loading {
+  position: absolute !important;
+}
+
+.ui.icon.input > i.icon.is-loading > * {
+  visibility: hidden;
+}
+
+.ui.ui.ui.ui.icon.input > textarea,
+.ui.ui.ui.ui.icon.input > input {
+  padding-right: 2.67142857em;
 }
 .ui.icon.input > i.link.icon {
   cursor: pointer;
@@ -80,7 +78,7 @@
 
 .ui[class*="left icon"].input > i.icon {
   right: auto;
-  left: 1px;
+  left: 8px;
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
 .ui[class*="left icon"].input > i.circular.icon {
@@ -191,10 +189,4 @@
 }
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
-}
-
-.ui.ui.icon.input .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
