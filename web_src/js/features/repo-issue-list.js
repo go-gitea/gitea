@@ -6,6 +6,7 @@ import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';
+import {parseDom} from '../utils.js';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector('.issue-checkbox-all');
@@ -129,22 +130,27 @@ function initRepoIssueListAuthorDropdown() {
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    const $menu = $searchDropdown.find('> .menu');
-    $menu.find('> .dynamic-item').remove(); // remove old dynamic items
+    const menu = $searchDropdown.find('> .menu')[0];
+    // remove old dynamic items
+    for (const el of menu.querySelectorAll(':scope > .dynamic-item')) {
+      el.remove();
+    }
 
     const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
     if (newMenuHtml) {
-      const $newMenuItems = $(newMenuHtml);
-      $newMenuItems.addClass('dynamic-item');
+      const newMenuItems = parseDom(newMenuHtml, 'text/html').querySelectorAll('body > div');
+      for (const newMenuItem of newMenuItems) {
+        newMenuItem.classList.add('dynamic-item');
+      }
       const div = document.createElement('div');
       div.classList.add('divider', 'dynamic-item');
-      $menu[0].append(div, ...$newMenuItems);
+      menu.append(div, ...newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
     setTimeout(() => {
-      $menu.find('.item.active, .item.selected').removeClass('active selected');
-      $menu.find(`.item[data-value="${selectedUserId}"]`).addClass('selected');
+      menu.querySelector('.item.active, .item.selected')?.classList.remove('active', 'selected');
+      menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
     }, 0);
   };
 }
