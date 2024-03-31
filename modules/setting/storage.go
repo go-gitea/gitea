@@ -240,7 +240,7 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		}
 	}
 
-	fatalDuplicatedPath("storage."+name, storage.Path)
+	checkOverlappedPath("storage."+name+".PATH", storage.Path)
 
 	return &storage, nil
 }
