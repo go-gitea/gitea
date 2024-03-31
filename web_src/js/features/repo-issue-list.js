@@ -149,7 +149,9 @@ function initRepoIssueListAuthorDropdown() {
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
     setTimeout(() => {
-      menu.querySelector('.item.active, .item.selected')?.classList.remove('active', 'selected');
+      for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
+        el.classList.remove('active', 'selected');
+      }
       menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
     }, 0);
   };
