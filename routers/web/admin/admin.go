@@ -190,6 +190,14 @@ func DashboardPost(ctx *context.Context) {
 
 func SelfCheck(ctx *context.Context) {
 	ctx.Data["PageIsAdminSelfCheck"] = true
+
+	ctx.Data["DeprecatedWarnings"] = setting.DeprecatedWarnings
+	if len(setting.DeprecatedWarnings) == 0 && !setting.IsProd {
+		if time.Now().Unix()%2 == 0 {
+			ctx.Data["DeprecatedWarnings"] = []string{"This is a test warning message in dev mode"}
+		}
+	}
+
 	r, err := db.CheckCollationsDefaultEngine()
 	if err != nil {
 		ctx.Flash.Error(fmt.Sprintf("CheckCollationsDefaultEngine: %v", err), true)
