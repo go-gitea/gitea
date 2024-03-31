@@ -324,7 +324,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
-	fatalDuplicatedPath("app_data_path", AppDataPath)
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -332,7 +331,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
-	fatalDuplicatedPath("pprof_data_path", PprofDataPath)
+	checkOverlappedPath("server.PPROF_DATA_PATH", PprofDataPath)
 
 	landingPage := sec.Key("LANDING_PAGE").MustString("home")
 	switch landingPage {
