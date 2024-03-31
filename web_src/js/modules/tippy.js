@@ -3,6 +3,7 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
+const arrow = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
@@ -35,9 +36,9 @@ export function createTippy(target, opts = {}) {
       visibleInstances.add(instance);
       return onShow?.(instance);
     },
-    arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
+    arrow: theme !== 'bare' ? arrow : null,
     role: role || 'menu', // HTML role attribute
-    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
+    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu", "box-with-header" or "bare"
     plugins: [followCursor],
     ...other,
   });

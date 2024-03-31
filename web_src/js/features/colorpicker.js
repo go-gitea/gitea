@@ -1,31 +1,58 @@
-export async function initColorPickers(selector = '.js-color-picker-input input', opts = {}) {
-  const inputEls = document.querySelectorAll(selector);
-  if (!inputEls.length) return;
+import {createTippy} from '../modules/tippy.js';
 
-  const [{coloris, init}] = await Promise.all([
-    import(/* webpackChunkName: "colorpicker" */'@melloware/coloris'),
+export async function initColorPickers() {
+  const els = document.querySelectorAll('.js-color-picker-input');
+  if (!els.length) return;
+
+  await Promise.all([
+    import(/* webpackChunkName: "colorpicker" */'vanilla-colorful'),
     import(/* webpackChunkName: "colorpicker" */'../../css/features/colorpicker.css'),
   ]);
 
-  init();
-  coloris({
-    el: selector,
-    alpha: false,
-    focusInput: true,
-    selectInput: false,
-    ...opts,
+  for (const el of els) {
+    initPicker(el);
+  }
+}
+
+function updateSquare(el, newValue) {
+  el.style.color = /#[0-9a-f]{6}/i.test(newValue) ? newValue : 'transparent';
+}
+
+function initPicker(el) {
+  const input = el.querySelector('input');
+  const previewSquare = document.createElement('div');
+  previewSquare.classList.add('preview-square');
+  updateSquare(previewSquare, input.value);
+  el.append(previewSquare);
+
+  const picker = document.createElement('hex-color-picker');
+  picker.setAttribute('data-color', input.value);
+
+  picker.addEventListener('color-changed', (e) => {
+    input.value = e.detail.value;
+    input.focus();
+    updateSquare(previewSquare, e.detail.value);
   });
 
-  for (const inputEl of inputEls) {
-    const parent = inputEl.closest('.js-color-picker-input');
-    // prevent tabbing on the color preview `button` inside the input
-    parent.querySelector('button').tabIndex = -1;
-    // init precolors
-    for (const el of parent.querySelectorAll('.precolors .color')) {
-      el.addEventListener('click', (e) => {
-        inputEl.value = e.target.getAttribute('data-color-hex');
-        inputEl.dispatchEvent(new Event('input', {bubbles: true}));
-      });
-    }
+  input.addEventListener('input', (e) => {
+    updateSquare(previewSquare, e.target.value);
+  });
+
+  createTippy(input, {
+    trigger: 'focus click',
+    theme: 'bare',
+    hideOnClick: true,
+    content: picker,
+    placement: 'bottom-start',
+    interactive: true,
+  });
+
+  // init precolors
+  for (const colorEl of el.querySelectorAll('.precolors .color')) {
+    colorEl.addEventListener('click', (e) => {
+      input.value = e.target.getAttribute('data-color-hex');
+      input.dispatchEvent(new Event('input', {bubbles: true}));
+      previewSquare.style.color = input.value;
+    });
   }
 }
