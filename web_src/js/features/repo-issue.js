@@ -234,7 +234,7 @@ export function initRepoIssueCodeCommentCancel() {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
-    if (form && form.classList.contains('comment-form')) {
+    if (form?.classList.contains('comment-form')) {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')?.querySelectorAll('button.comment-form-reply'));
     } else {
