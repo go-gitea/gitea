@@ -220,15 +220,8 @@
   border: none;
 }
 
-/* See the comment of createCommentEasyMDE() for the review editor */
-/* EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code */
-.review-box-panel .CodeMirror-scroll {
-  min-height: 80px;
-  max-height: calc(100vh - 360px);
-}
-
-.review-box-panel .combo-markdown-editor {
-  width: 730px; /* this width matches current EasyMDE's toolbar's width */
+.review-box-panel .markdown-editor {
+  width: 730px;
   max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
 }
 

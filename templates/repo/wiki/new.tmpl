@@ -22,7 +22,7 @@
 			{{if not .PageIsWikiEdit}}
 				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}
-			{{template "shared/combomarkdowneditor" (dict
+			{{template "shared/markdowneditor" (dict
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"

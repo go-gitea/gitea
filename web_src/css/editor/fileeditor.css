@@ -6,12 +6,6 @@
   border: 0 !important;
 }
 
-.repository.file.editor .tab[data-tab="write"] .CodeMirror {
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
-}
-
 .repo-editor-header {
   display: flex;
   margin: 1rem 0;

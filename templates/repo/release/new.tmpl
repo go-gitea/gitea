@@ -49,7 +49,7 @@
 					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field">
-					{{template "shared/combomarkdowneditor" (dict
+					{{template "shared/markdowneditor" (dict
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"

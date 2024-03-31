@@ -10,7 +10,7 @@
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
 
-		{{template "shared/combomarkdowneditor" (dict
+		{{template "shared/markdowneditor" (dict
 			"MarkdownPreviewUrl" (print $.root.Repository.Link "/markup")
 			"MarkdownPreviewContext" $.root.RepoLink
 			"TextareaName" "content"

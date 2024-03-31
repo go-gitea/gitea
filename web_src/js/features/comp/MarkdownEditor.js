@@ -1,14 +1,10 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import $ from 'jquery';
-import {attachTribute} from '../tribute.js';
-import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
-import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
+import {autosize} from '../../utils/dom.js';
+import {initTextareaPaste} from './Paste.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
-import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
-import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
 
 let elementIdCounter = 0;
@@ -19,37 +15,27 @@ let elementIdCounter = 0;
  * @returns {boolean} returns true if validation succeeded.
  */
 export function validateTextareaNonEmpty(textarea) {
-  // When using EasyMDE, the original edit area HTML element is hidden, breaking HTML5 input validation.
-  // The workaround (https://github.com/sparksuite/simplemde-markdown-editor/issues/324) doesn't work with contenteditable, so we just show an alert.
   if (!textarea.value) {
-    if (isElemVisible(textarea)) {
-      textarea.required = true;
-      const form = textarea.closest('form');
-      form?.reportValidity();
-    } else {
-      // The alert won't hurt users too much, because we are dropping the EasyMDE and the check only occurs in a few places.
-      showErrorToast('Require non-empty content');
-    }
+    textarea.required = true;
+    const form = textarea.closest('form');
+    form?.reportValidity();
     return false;
   }
   return true;
 }
 
-class ComboMarkdownEditor {
+class MarkdownEditor {
   constructor(container, options = {}) {
-    container._giteaComboMarkdownEditor = this;
+    container._giteaMarkdownEditor = this;
     this.options = options;
     this.container = container;
   }
 
   async init() {
-    this.prepareEasyMDEToolbarActions();
     this.setupContainer();
     this.setupTab();
     this.setupDropzone();
     this.setupTextarea();
-
-    await this.switchToUserPreference();
   }
 
   applyEditorHeights(el, heights) {
@@ -66,7 +52,7 @@ class ComboMarkdownEditor {
 
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
-    this.textarea._giteaComboMarkdownEditor = this;
+    this.textarea._giteaMarkdownEditor = this;
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
     this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
@@ -109,13 +95,6 @@ class ComboMarkdownEditor {
       const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text');
       monospaceButton.setAttribute('data-tooltip-content', text);
       monospaceButton.setAttribute('aria-checked', String(enabled));
-    });
-
-    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
-    easymdeButton?.addEventListener('click', async (e) => {
-      e.preventDefault();
-      this.userPreferredEditor = 'easymde';
-      await this.switchToEasyMDE();
     });
 
     if (this.dropzone) {
@@ -170,148 +149,41 @@ class ComboMarkdownEditor {
     });
   }
 
-  prepareEasyMDEToolbarActions() {
-    this.easyMDEToolbarDefault = [
-      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
-      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
-      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
-      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
-    ];
-  }
-
-  parseEasyMDEToolbar(EasyMDE, actions) {
-    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
-    const processed = [];
-    for (const action of actions) {
-      const actionButton = this.easyMDEToolbarActions[action];
-      if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
-      processed.push(actionButton);
-    }
-    return processed;
-  }
-
-  async switchToUserPreference() {
-    if (this.userPreferredEditor === 'easymde') {
-      await this.switchToEasyMDE();
-    } else {
-      this.switchToTextarea();
-    }
-  }
-
-  switchToTextarea() {
-    if (!this.easyMDE) return;
-    showElem(this.textareaMarkdownToolbar);
-    if (this.easyMDE) {
-      this.easyMDE.toTextArea();
-      this.easyMDE = null;
-    }
-  }
-
-  async switchToEasyMDE() {
-    if (this.easyMDE) return;
-    // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-    const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
-    const easyMDEOpt = {
-      autoDownloadFontAwesome: false,
-      element: this.textarea,
-      forceSync: true,
-      renderingConfig: {singleLineBreaks: false},
-      indentWithTabs: false,
-      tabSize: 4,
-      spellChecker: false,
-      inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
-      nativeSpellcheck: true,
-      ...this.options.easyMDEOptions,
-    };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
-
-    this.easyMDE = new EasyMDE(easyMDEOpt);
-    this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});
-    this.easyMDE.codemirror.setOption('extraKeys', {
-      'Cmd-Enter': (cm) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
-      'Ctrl-Enter': (cm) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
-      Enter: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
-        if (!tributeContainer || tributeContainer.style.display === 'none') {
-          cm.execCommand('newlineAndIndent');
-        }
-      },
-      Up: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
-        if (!tributeContainer || tributeContainer.style.display === 'none') {
-          return cm.execCommand('goLineUp');
-        }
-      },
-      Down: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
-        if (!tributeContainer || tributeContainer.style.display === 'none') {
-          return cm.execCommand('goLineDown');
-        }
-      },
-    });
-    this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
-    await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEPaste(this.easyMDE, this.dropzone);
-    hideElem(this.textareaMarkdownToolbar);
-  }
-
   value(v = undefined) {
     if (v === undefined) {
-      if (this.easyMDE) {
-        return this.easyMDE.value();
-      }
       return this.textarea.value;
     }
 
-    if (this.easyMDE) {
-      this.easyMDE.value(v);
-    } else {
-      this.textarea.value = v;
-    }
+    this.textarea.value = v;
     this.textareaAutosize?.resizeToFit();
   }
 
   focus() {
-    if (this.easyMDE) {
-      this.easyMDE.codemirror.focus();
-    } else {
-      this.textarea.focus();
-    }
+    this.textarea.focus();
   }
 
   moveCursorToEnd() {
     this.textarea.focus();
     this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
-    if (this.easyMDE) {
-      this.easyMDE.codemirror.focus();
-      this.easyMDE.codemirror.setCursor(this.easyMDE.codemirror.lineCount(), 0);
-    }
-  }
-
-  get userPreferredEditor() {
-    return window.localStorage.getItem(`markdown-editor-${this.options.useScene ?? 'default'}`);
-  }
-  set userPreferredEditor(s) {
-    window.localStorage.setItem(`markdown-editor-${this.options.useScene ?? 'default'}`, s);
   }
 }
 
-export function getComboMarkdownEditor(el) {
-  if (el instanceof $) el = el[0];
-  return el?._giteaComboMarkdownEditor;
-}
-
-export async function initComboMarkdownEditor(container, options = {}) {
+export async function initMarkdownEditor(container, options = {}) {
   if (container instanceof $) {
     if (container.length !== 1) {
-      throw new Error('initComboMarkdownEditor: container must be a single element');
+      throw new Error('initMarkdownEditor: container must be a single element');
     }
     container = container[0];
   }
   if (!container) {
-    throw new Error('initComboMarkdownEditor: container is null');
+    throw new Error('initMarkdownEditor: container is null');
   }
-  const editor = new ComboMarkdownEditor(container, options);
+  const editor = new MarkdownEditor(container, options);
   await editor.init();
   return editor;
+}
+
+export function getMarkdownEditor(el) {
+  if (el instanceof $) el = el[0];
+  return el?._giteaMarkdownEditor;
 }

@@ -146,7 +146,7 @@
 <template id="issue-comment-editor-template">
 	<div class="ui comment form">
 		<div class="field">
-			{{template "shared/combomarkdowneditor" (dict
+			{{template "shared/markdowneditor" (dict
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"

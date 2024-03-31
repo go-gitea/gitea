@@ -3,7 +3,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {getMarkdownEditor, initMarkdownEditor} from './comp/MarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
 import {POST, GET} from '../modules/fetch.js';
@@ -414,14 +414,14 @@ export async function handleReply($el) {
   showElem($form);
 
   const $textarea = $form.find('textarea');
-  let editor = getComboMarkdownEditor($textarea);
+  let editor = getMarkdownEditor($textarea);
   if (!editor) {
     // FIXME: the initialization of the dropzone is not consistent.
     // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
     // When the form is submitted and partially reload, none of them is initialized.
     const dropzone = $form.find('.dropzone')[0];
     if (!dropzone.dropzone) initDropzone(dropzone);
-    editor = await initComboMarkdownEditor($form.find('.combo-markdown-editor'));
+    editor = await initMarkdownEditor($form.find('.markdown-editor'));
   }
   editor.focus();
   return editor;
@@ -491,7 +491,7 @@ export function initRepoPullRequestReview() {
 
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
-    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
+    const _promise = initMarkdownEditor($reviewBox.find('.markdown-editor'));
   }
 
   // The following part is only for diff views
@@ -555,7 +555,7 @@ export function initRepoPullRequestReview() {
         $td.find("input[name='path']").val(path);
 
         initDropzone($td.find('.dropzone')[0]);
-        const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
+        const editor = await initMarkdownEditor($td.find('.markdown-editor'));
         editor.focus();
       } catch (error) {
         console.error(error);
@@ -696,20 +696,20 @@ export function initSingleCommentEditor($commentForm) {
       statusButton.textContent = statusText;
     };
   }
-  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  initMarkdownEditor($commentForm.find('.markdown-editor'), opts);
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
   // pages:
   // * new issue with issue template
-  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+  const $comboFields = $commentForm.find('.editor-dropzone');
 
   const initCombo = async ($combo) => {
     const $dropzoneContainer = $combo.find('.form-field-dropzone');
     const $formField = $combo.find('.form-field-real');
-    const $markdownEditor = $combo.find('.combo-markdown-editor');
+    const $markdownEditor = $combo.find('.markdown-editor');
 
-    const editor = await initComboMarkdownEditor($markdownEditor, {
+    const editor = await initMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
       },
@@ -717,9 +717,9 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
     $formField.on('focus', async () => {
       // deactivate all markdown editors
-      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
-      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
-      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+      showElem($commentForm.find('.editor-dropzone .form-field-real'));
+      hideElem($commentForm.find('.editor-dropzone .markdown-editor'));
+      hideElem($commentForm.find('.editor-dropzone .form-field-dropzone'));
 
       // activate this markdown editor
       hideElem($formField);

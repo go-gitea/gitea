@@ -50,38 +50,6 @@ class TextareaEditor {
   }
 }
 
-class CodeMirrorEditor {
-  constructor(editor) {
-    this.editor = editor;
-  }
-
-  insertPlaceholder(value) {
-    const editor = this.editor;
-    const startPoint = editor.getCursor('start');
-    const endPoint = editor.getCursor('end');
-    editor.replaceSelection(value);
-    endPoint.ch = startPoint.ch + value.length;
-    editor.setSelection(startPoint, endPoint);
-    editor.focus();
-    triggerEditorContentChanged(editor.getTextArea());
-  }
-
-  replacePlaceholder(oldVal, newVal) {
-    const editor = this.editor;
-    const endPoint = editor.getCursor('end');
-    if (editor.getSelection() === oldVal) {
-      editor.replaceSelection(newVal);
-    } else {
-      editor.setValue(editor.getValue().replace(oldVal, newVal));
-    }
-    endPoint.ch -= oldVal.length;
-    endPoint.ch += newVal.length;
-    editor.setSelection(endPoint, endPoint);
-    editor.focus();
-    triggerEditorContentChanged(editor.getTextArea());
-  }
-}
-
 async function handleClipboardImages(editor, dropzone, images, e) {
   const uploadUrl = dropzone.getAttribute('data-upload-url');
   const filesContainer = dropzone.querySelector('.files');
@@ -131,15 +99,6 @@ function handleClipboardText(textarea, text, e) {
     e.preventDefault();
     replaceTextareaSelection(textarea, `[${selectedText}](${trimmedText})`);
   }
-}
-
-export function initEasyMDEPaste(easyMDE, dropzone) {
-  easyMDE.codemirror.on('paste', (_, e) => {
-    const {images} = getPastedContent(e);
-    if (images.length) {
-      handleClipboardImages(new CodeMirrorEditor(easyMDE.codemirror), dropzone, images, e);
-    }
-  });
 }
 
 export function initTextareaPaste(textarea, dropzone) {

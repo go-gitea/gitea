@@ -1,5 +1,5 @@
 import {hideElem, showElem} from '../utils/dom.js';
-import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {initMarkdownEditor} from './comp/MarkdownEditor.js';
 
 export function initRepoRelease() {
   document.addEventListener('click', (e) => {
@@ -50,9 +50,9 @@ function initTagNameEditor() {
 }
 
 function initRepoReleaseEditor() {
-  const editor = document.querySelector('.repository.new.release .combo-markdown-editor');
+  const editor = document.querySelector('.repository.new.release .markdown-editor');
   if (!editor) {
     return;
   }
-  initComboMarkdownEditor(editor);
+  initMarkdownEditor(editor);
 }

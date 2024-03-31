@@ -20,13 +20,13 @@ export default {
   ],
   overrides: [
     {
-      files: ['**/chroma/*', '**/codemirror/*', '**/standalone/*', '**/console.css', 'font_i18n.css'],
+      files: ['**/chroma/*', '**/standalone/*', '**/console.css', 'font_i18n.css'],
       rules: {
         'scale-unlimited/declaration-strict-value': null,
       },
     },
     {
-      files: ['**/chroma/*', '**/codemirror/*'],
+      files: ['**/chroma/*'],
       rules: {
         'block-no-empty': null,
       },

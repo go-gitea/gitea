@@ -36,7 +36,6 @@
 @import "./features/imagediff.css";
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
-@import "./features/tribute.css";
 @import "./features/console.css";
 
 @import "./markup/content.css";
@@ -44,7 +43,6 @@
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./codemirror/base.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -62,7 +60,7 @@
 @import "./repo/header.css";
 
 @import "./editor/fileeditor.css";
-@import "./editor/combomarkdowneditor.css";
+@import "./editor/markdowneditor.css";
 
 @import "./org.css";
 @import "./user.css";

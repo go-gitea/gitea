@@ -11,7 +11,7 @@ Template Attributes:
 * DropzoneParentContainer: container for file upload (leave it empty if no upload)
 * DisableAutosize: whether to disable automatic height resizing
 */}}
-<div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
+<div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab-for="markdown-writer">{{ctx.Locale.Tr "write"}}</a>
@@ -41,7 +41,6 @@ Template Attributes:
 			</div>
 			<div class="markdown-toolbar-group">
 				<button class="markdown-toolbar-button markdown-switch-monospace" role="switch" data-enable-text="{{ctx.Locale.Tr "editor.buttons.enable_monospace_font"}}" data-disable-text="{{ctx.Locale.Tr "editor.buttons.disable_monospace_font"}}">{{svg "octicon-typography"}}</button>
-				<button class="markdown-toolbar-button markdown-switch-easymde" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.switch_to_legacy.tooltip"}}">{{svg "octicon-arrow-switch"}}</button>
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @" suffix="">

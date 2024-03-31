@@ -1,18 +1,18 @@
 {{$useMarkdownEditor := not .item.Attributes.render}}
-<div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}} {{if $useMarkdownEditor}}editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
 
 	{{/* the real form element to provide the value */}}
 	<textarea class="form-field-real" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required}}required{{end}}>{{.item.Attributes.value}}</textarea>
 
 	{{if $useMarkdownEditor}}
-		{{template "shared/combomarkdowneditor" (dict
+		{{template "shared/markdowneditor" (dict
 			"ContainerClasses" "tw-hidden"
 			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
 			"MarkdownPreviewContext" .root.RepoLink
 			"TextareaContent" .item.Attributes.value
 			"TextareaPlaceholder"  .item.Attributes.placeholder
-			"DropzoneParentContainer" ".combo-editor-dropzone"
+			"DropzoneParentContainer" ".editor-dropzone"
 		)}}
 
 		{{if .root.IsAttachmentEnabled}}

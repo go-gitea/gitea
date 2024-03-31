@@ -22,7 +22,7 @@ import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {getMarkdownEditor, initMarkdownEditor} from './comp/MarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST, GET} from '../modules/fetch.js';
 
@@ -52,10 +52,10 @@ export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
   if (!$commentForm.length) return;
 
-  if ($commentForm.find('.field.combo-editor-dropzone').length) {
-    // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
+  if ($commentForm.find('.field.editor-dropzone').length) {
+    // at the moment, if a form has multiple markdown-editors, it must be an issue template form
     initIssueTemplateCommentEditors($commentForm);
-  } else if ($commentForm.find('.combo-markdown-editor').length) {
+  } else if ($commentForm.find('.markdown-editor').length) {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor($commentForm);
   }
@@ -324,7 +324,7 @@ async function onEditContent(event) {
   const renderContent = segment.querySelector('.render-content');
   const rawContent = segment.querySelector('.raw-content');
 
-  let comboMarkdownEditor;
+  let markdownEditor;
 
   /**
    * @param {HTMLElement} dropzone
@@ -426,7 +426,7 @@ async function onEditContent(event) {
 
     try {
       const params = new URLSearchParams({
-        content: comboMarkdownEditor.value(),
+        content: markdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
       });
       for (const file of dz.files) params.append('files[]', file.uuid);
@@ -438,7 +438,7 @@ async function onEditContent(event) {
         rawContent.textContent = '';
       } else {
         renderContent.innerHTML = data.content;
-        rawContent.textContent = comboMarkdownEditor.value();
+        rawContent.textContent = markdownEditor.value();
         const refIssues = renderContent.querySelectorAll('p .ref-issue');
         attachRefIssueContextPopup(refIssues);
       }
@@ -465,7 +465,7 @@ async function onEditContent(event) {
 
   if (!editContentZone.innerHTML) {
     editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    markdownEditor = await initMarkdownEditor(editContentZone.querySelector('.markdown-editor'));
 
     const dropzone = editContentZone.querySelector('.dropzone');
     const dz = await setupDropzone(dropzone);
@@ -478,16 +478,16 @@ async function onEditContent(event) {
       saveAndRefresh(dz);
     });
   } else {
-    comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    markdownEditor = getMarkdownEditor(editContentZone.querySelector('.markdown-editor'));
   }
 
   // Show write/preview tab and copy raw content as needed
   showElem(editContentZone);
   hideElem(renderContent);
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
+  if (!markdownEditor.value()) {
+    markdownEditor.value(rawContent.textContent);
   }
-  comboMarkdownEditor.focus();
+  markdownEditor.focus();
 }
 
 export function initRepository() {
@@ -610,7 +610,7 @@ function initRepoIssueCommentEdit() {
       editor = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
-      editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
+      editor = getMarkdownEditor($('#comment-form .markdown-editor'));
     }
     if (editor) {
       if (editor.value()) {

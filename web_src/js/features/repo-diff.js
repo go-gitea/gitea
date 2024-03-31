@@ -3,7 +3,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {initDiffFileTree} from './repo-diff-filetree.js';
 import {initDiffCommitSelect} from './repo-diff-commitselect.js';
-import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
+import {validateTextareaNonEmpty} from './comp/MarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';

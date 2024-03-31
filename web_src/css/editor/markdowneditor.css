@@ -1,8 +1,8 @@
-.combo-markdown-editor {
+.markdown-editor {
   width: 100%;
 }
 
-.combo-markdown-editor markdown-toolbar {
+.markdown-editor markdown-toolbar {
   cursor: default;
   display: flex;
   align-items: center;
@@ -11,16 +11,16 @@
   flex-wrap: wrap;
 }
 
-.combo-markdown-editor .markdown-toolbar-group {
+.markdown-editor .markdown-toolbar-group {
   display: flex;
 }
 
-.combo-markdown-editor .markdown-toolbar-group:last-child {
+.markdown-editor .markdown-toolbar-group:last-child {
   flex: 1;
   justify-content: flex-end;
 }
 
-.combo-markdown-editor .markdown-toolbar-button {
+.markdown-editor .markdown-toolbar-button {
   border: none;
   background: none;
   user-select: none;
@@ -29,45 +29,16 @@
   color: var(--color-text);
 }
 
-.combo-markdown-editor .markdown-toolbar-button:hover {
+.markdown-editor .markdown-toolbar-button:hover {
   color: var(--color-primary);
 }
 
-.ui.form .combo-markdown-editor textarea.markdown-text-editor,
-.combo-markdown-editor textarea.markdown-text-editor {
+.ui.form .markdown-editor textarea.markdown-text-editor,
+.markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
   max-height: calc(100vh - var(--min-height-textarea));
   resize: vertical;
-}
-
-.combo-markdown-editor .CodeMirror-scroll {
-  max-height: calc(100vh - var(--min-height-textarea));
-}
-
-/* use the same styles as markup/content.css */
-.combo-markdown-editor .CodeMirror-scroll .cm-header-1 {
-  font-size: 2em;
-}
-
-.combo-markdown-editor .CodeMirror-scroll .cm-header-2 {
-  font-size: 1.5em;
-}
-
-.combo-markdown-editor .CodeMirror-scroll .cm-header-3 {
-  font-size: 1.25em;
-}
-
-.combo-markdown-editor .CodeMirror-scroll .cm-header-4 {
-  font-size: 1em;
-}
-
-.combo-markdown-editor .CodeMirror-scroll .cm-header-5 {
-  font-size: 0.875em;
-}
-
-.combo-markdown-editor .CodeMirror-scroll .cm-header-6 {
-  font-size: 0.85em;
 }
 
 text-expander {

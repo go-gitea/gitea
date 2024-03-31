@@ -79,7 +79,6 @@ export default {
       fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
-      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],

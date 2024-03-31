@@ -4,7 +4,7 @@
 {{if not $textareaContent}}{{$textareaContent = .content}}{{end}}
 
 <div class="field">
-	{{template "shared/combomarkdowneditor" (dict
+	{{template "shared/markdowneditor" (dict
 		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 		"MarkdownPreviewContext" .RepoLink
 		"TextareaName" "content"
