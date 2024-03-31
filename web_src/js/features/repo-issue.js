@@ -246,34 +246,34 @@ export function initRepoIssueCodeCommentCancel() {
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const pullUpdateButton = document.querySelector('.update-button > button');
-  if (pullUpdateButton) {
-    pullUpdateButton.addEventListener('click', async function (e) {
-      e.preventDefault();
-      const redirect = this.getAttribute('data-redirect');
-      this.classList.add('is-loading');
-      let response;
-      try {
-        response = await POST(this.getAttribute('data-do'));
-      } catch (error) {
-        console.error(error);
-      } finally {
-        this.classList.remove('is-loading');
-      }
-      let data;
-      try {
-        data = await response?.json(); // the response is probably not a JSON
-      } catch (error) {
-        console.error(error);
-      }
-      if (data?.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    });
-  }
+  if (!pullUpdateButton) return;
+
+  pullUpdateButton.addEventListener('click', async function (e) {
+    e.preventDefault();
+    const redirect = this.getAttribute('data-redirect');
+    this.classList.add('is-loading');
+    let response;
+    try {
+      response = await POST(this.getAttribute('data-do'));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.classList.remove('is-loading');
+    }
+    let data;
+    try {
+      data = await response?.json(); // the response is probably not a JSON
+    } catch (error) {
+      console.error(error);
+    }
+    if (data?.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
+  });
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
