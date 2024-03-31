@@ -41,6 +41,11 @@ func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
 
+func isAlphanumeric(b byte) bool {
+	// Github only cares about 0-9A-Za-z
+	return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
+}
+
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
@@ -68,6 +73,9 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		pos = ender + len(parser.end)
 		if len(line) <= pos {
 			break
+		}
+		if isAlphanumeric(line[pos]) {
+			return nil
 		}
 		if line[ender-1] != '\\' {
 			break
