@@ -26,8 +26,6 @@ function initPicker(el) {
   el.append(previewSquare);
 
   const picker = document.createElement('hex-color-picker');
-  picker.setAttribute('data-color', input.value);
-
   picker.addEventListener('color-changed', (e) => {
     input.value = e.detail.value;
     input.focus();
@@ -45,6 +43,9 @@ function initPicker(el) {
     content: picker,
     placement: 'bottom-start',
     interactive: true,
+    onShow() {
+      picker.setAttribute('color', input.value);
+    },
   });
 
   // init precolors
