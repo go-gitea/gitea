@@ -154,7 +154,7 @@ func NewProjectPost(ctx *context.Context) {
 		Title:        form.Title,
 		Description:  form.Content,
 		CreatorID:    ctx.Doer.ID,
-		TemplateType: form.BoardType,
+		TemplateType: form.TemplateType,
 		CardType:     form.CardType,
 		Type:         project_model.TypeRepository,
 	}); err != nil {

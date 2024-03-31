@@ -506,20 +506,10 @@ func (i IssueLockForm) HasValidReason() bool {
 
 // CreateProjectForm form for creating a project
 type CreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.TemplateType // NOTE: don't change the name except you know what you are doing
-	CardType  project_model.CardType
-}
-
-// UserCreateProjectForm is a from for creating an individual or organization
-// form.
-type UserCreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.TemplateType
-	CardType  project_model.CardType
-	UID       int64 `binding:"Required"`
+	Title        string `binding:"Required;MaxSize(100)"`
+	Content      string
+	TemplateType project_model.TemplateType // NOTE: don't change the name except you know what you are doing
+	CardType     project_model.CardType
 }
 
 // EditProjectColumnForm is a form for editing a project column
