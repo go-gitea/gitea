@@ -109,7 +109,7 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`${i18n.network_error} ${e}`);
     }
   }
-  actionElem.classList.remove('is-loading', 'is-loading-2px');
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -121,7 +121,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('is-loading-2px');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
