@@ -219,6 +219,18 @@ func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 	return board, nil
 }
 
+func GetBoardByProjectIDAndBoardName(ctx context.Context, projectID int64, boardName string) (*Board, error) {
+	board := new(Board)
+	has, err := db.GetEngine(ctx).Where("project_id=? AND title=?", projectID, boardName).Get(board)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectBoardNotExist{ProjectID: projectID, Name: boardName}
+	}
+
+	return board, nil
+}
+
 // UpdateBoard updates a project board
 func UpdateBoard(ctx context.Context, board *Board) error {
 	var fieldToUpdate []string

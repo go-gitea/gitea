@@ -52,6 +52,7 @@ const (
 type ErrProjectNotExist struct {
 	ID     int64
 	RepoID int64
+	Name   string
 }
 
 // IsErrProjectNotExist checks if an error is a ErrProjectNotExist
@@ -61,6 +62,9 @@ func IsErrProjectNotExist(err error) bool {
 }
 
 func (err ErrProjectNotExist) Error() string {
+	if err.RepoID > 0 && len(err.Name) > 0 {
+		return fmt.Sprintf("projects does not exist [repo_id: %d, name: %s]", err.RepoID, err.Name)
+	}
 	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
@@ -70,7 +74,9 @@ func (err ErrProjectNotExist) Unwrap() error {
 
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
-	BoardID int64
+	BoardID   int64
+	ProjectID int64
+	Name      string
 }
 
 // IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
@@ -80,6 +86,9 @@ func IsErrProjectBoardNotExist(err error) bool {
 }
 
 func (err ErrProjectBoardNotExist) Error() string {
+	if err.ProjectID > 0 && len(err.Name) > 0 {
+		return fmt.Sprintf("project board does not exist [project_id: %d, name: %s]", err.ProjectID, err.Name)
+	}
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
 }
 
@@ -288,6 +297,19 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrProjectNotExist{ID: id}
+	}
+
+	return p, nil
+}
+
+// GetProjectByName returns the projects in a repository
+func GetProjectByName(ctx context.Context, repoID int64, name string) (*Project, error) {
+	p := new(Project)
+	has, err := db.GetEngine(ctx).Where("repo_id=? AND title=?", repoID, name).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{RepoID: repoID, Name: name}
 	}
 
 	return p, nil
