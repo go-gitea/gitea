@@ -36,7 +36,8 @@ hex-color-picker {
   height: 120px;
 }
 
-hex-color-picker::part(hue-pointer) {
+hex-color-picker::part(hue-pointer),
+hex-color-picker::part(saturation-pointer) {
   width: 22px;
   height: 22px;
 }
