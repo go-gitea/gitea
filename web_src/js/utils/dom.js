@@ -65,7 +65,7 @@ export function queryElemSiblings(el, selector = '*', fn = null) {
 }
 
 // it works like jQuery.children: only the direct children are selected
-export function queryElemChildren(parent, selector, fn = null) {
+export function queryElemChildren(parent, selector = '*', fn = null) {
   return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
