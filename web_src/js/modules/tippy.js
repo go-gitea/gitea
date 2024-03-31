@@ -36,7 +36,7 @@ export function createTippy(target, opts = {}) {
       visibleInstances.add(instance);
       return onShow?.(instance);
     },
-    arrow: theme !== 'bare' ? arrow : null,
+    arrow: theme !== 'bare' ? arrow : false,
     role: role || 'menu', // HTML role attribute
     theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu", "box-with-header" or "bare"
     plugins: [followCursor],
