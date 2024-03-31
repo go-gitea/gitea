@@ -45,6 +45,10 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 		return "", ErrGPGKeyNotExist{}
 	}
 
+	if err := key.LoadSubKeys(ctx); err != nil {
+		return "", err
+	}
+
 	sig, err := extractSignature(signature)
 	if err != nil {
 		return "", ErrGPGInvalidTokenSignature{
