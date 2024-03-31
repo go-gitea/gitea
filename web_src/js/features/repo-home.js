@@ -25,7 +25,7 @@ export function initRepoTopicBar() {
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    topicDropdownSearch?.focus();
+    topicDropdownSearch.focus();
   });
 
   $('#cancel_topic_edit').on('click', () => {
@@ -105,7 +105,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        for (const el of topicDropdown.querySelectorAll(':scope > a.label.visible')) {
+        for (const el of topicDropdown.querySelectorAll('a.label.visible')) {
           current_topics.push(el.getAttribute('data-value'));
         }
 
@@ -156,12 +156,13 @@ export function initRepoTopicBar() {
 
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
     const topics = topicDropdown.querySelectorAll(':scope > a.ui.label');
-    const status = !topics.length || (topics[topics.length - 1]).getAttribute('data-value').match(regExp);
-    if (!status && topics[topics.length - 1]) {
-      (topics[topics.length - 1]).classList.remove('green');
-      (topics[topics.length - 1]).classList.add('red');
+    const lastTopic = topics[topics.length - 1];
+    const isLastTopicValid = lastTopic?.getAttribute('data-value').match(regExp);
+    if (lastTopic && !isLastTopicValid) {
+      lastTopic.classList.remove('green');
+      lastTopic.classList.add('red');
     }
-    return status && !topicDropdown.querySelectorAll(':scope > a.ui.label.red').length;
+    return topicDropdown.querySelectorAll('a.ui.label.red').length === 0;
   };
 
   $topicForm.form({
