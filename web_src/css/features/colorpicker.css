@@ -36,13 +36,11 @@ hex-color-picker {
   height: 120px;
 }
 
-hex-color-picker::part(hue-pointer),
-hex-color-picker::part(saturation-pointer) {
+hex-color-picker::part(hue-pointer) {
   width: 22px;
   height: 22px;
 }
 
-hex-color-picker::part(hue),
-hex-color-picker::part(saturation) {
+hex-color-picker::part(hue) {
   flex-basis: 16px;
 }
