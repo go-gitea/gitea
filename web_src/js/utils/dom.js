@@ -60,7 +60,7 @@ function applyElemsCallback(elems, fn) {
   return elems;
 }
 
-export function queryElemSiblings(el, selector = '*', fn = null) {
+export function queryElemSiblings(el, selector = '*', fn) {
   return applyElemsCallback(Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector)), fn);
 }
 
