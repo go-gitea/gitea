@@ -29,7 +29,7 @@
 			<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
 				<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 				{{range .Topics}}
-					{{/* keey the same layout as Fomantic UI generated labels */}}
+					{{/* keep the same layout as Fomantic UI generated labels */}}
 					<a class="ui label transition visible tw-cursor-default tw-inline-block" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 				{{end}}
 				<div class="text"></div>
