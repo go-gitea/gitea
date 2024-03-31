@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {stripTags} from '../utils.js';
 import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
 
@@ -11,12 +12,8 @@ export function initRepoTopicBar() {
 
   const editDiv = document.getElementById('topic_edit');
   const viewDiv = document.getElementById('repo-topics');
-  const saveBtn = document.getElementById('save_topic');
   const topicDropdown = editDiv.querySelector('.ui.dropdown');
-  const topicPrompts = {
-    countPrompt: topicDropdown.getAttribute('data-text-count-prompt'),
-    formatPrompt: topicDropdown.getAttribute('data-text-format-prompt'),
-  };
+  let lastErrorToast;
 
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
@@ -25,18 +22,20 @@ export function initRepoTopicBar() {
   });
 
   document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
+    lastErrorToast?.hideToast();
     hideElem(editDiv);
     showElem(viewDiv);
     mgrBtn.focus();
   });
 
-  saveBtn.addEventListener('click', async () => {
+  document.getElementById('save_topic').addEventListener('click', async (e) => {
+    lastErrorToast?.hideToast();
     const topics = editDiv.querySelector('input[name=topics]').value;
 
     const data = new FormData();
     data.append('topics', topics);
 
-    const response = await POST(saveBtn.getAttribute('data-link'), {data});
+    const response = await POST(e.target.getAttribute('data-link'), {data});
 
     if (response.ok) {
       const responseData = await response.json();
@@ -60,8 +59,8 @@ export function initRepoTopicBar() {
     } else if (response.status === 422) {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
       const responseData = await response.json();
+      lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
       if (responseData.invalidTopics.length > 0) {
-        topicPrompts.formatPrompt = responseData.message;
         const {invalidTopics} = responseData;
         const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
@@ -70,8 +69,6 @@ export function initRepoTopicBar() {
             topicLabels[index].classList.add('red');
           }
         }
-      } else {
-        topicPrompts.countPrompt = responseData.message;
       }
     }
   });
