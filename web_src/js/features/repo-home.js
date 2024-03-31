@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
@@ -8,34 +8,30 @@ const {appSubUrl} = window.config;
 export function initRepoTopicBar() {
   const mgrBtn = document.getElementById('manage_topic');
   if (!mgrBtn) return;
+
   const editDiv = document.getElementById('topic_edit');
   const viewDiv = document.getElementById('repo-topics');
   const saveBtn = document.getElementById('save_topic');
-  const topicDropdown = editDiv.querySelector('.dropdown');
-  const $topicForm = $(editDiv);
-  /**
-   * @type {HTMLInputElement}
-   */
-  const topicDropdownSearch = topicDropdown.querySelector('input.search');
+  const topicDropdown = editDiv.querySelector('.ui.dropdown');
   const topicPrompts = {
-    countPrompt: topicDropdown.getAttribute('data-text-count-prompt') ?? undefined,
-    formatPrompt: topicDropdown.getAttribute('data-text-format-prompt') ?? undefined,
+    countPrompt: topicDropdown.getAttribute('data-text-count-prompt'),
+    formatPrompt: topicDropdown.getAttribute('data-text-format-prompt'),
   };
 
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    topicDropdownSearch.focus();
+    topicDropdown.querySelector('input.search').focus();
   });
 
-  $('#cancel_topic_edit').on('click', () => {
+  document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
     hideElem(editDiv);
     showElem(viewDiv);
     mgrBtn.focus();
   });
 
   saveBtn.addEventListener('click', async () => {
-    const topics = $('input[name=topics]').val();
+    const topics = editDiv.querySelector('input[name=topics]').value;
 
     const data = new FormData();
     data.append('topics', topics);
@@ -45,13 +41,14 @@ export function initRepoTopicBar() {
     if (response.ok) {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
-        $(viewDiv).children('.topic').remove();
+        queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
+            // it should match the code in repo/home.tmpl
             const link = document.createElement('a');
-            link.classList.add('ui', 'repo-topic', 'large', 'label', 'topic', 'tw-m-0');
+            link.classList.add('repo-topic', 'ui', 'large', 'label');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
             link.textContent = topic;
             mgrBtn.parentNode.insertBefore(link, mgrBtn); // insert all new topics before manage button
@@ -66,7 +63,7 @@ export function initRepoTopicBar() {
         topicPrompts.formatPrompt = responseData.message;
 
         const {invalidTopics} = responseData;
-        const topicLabels = topicDropdown.querySelectorAll('a.ui.label');
+        const topicLabels = queryElemChildren(topicDropdown,'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
             topicLabels[index].classList.remove('green');
@@ -77,9 +74,6 @@ export function initRepoTopicBar() {
         topicPrompts.countPrompt = responseData.message;
       }
     }
-
-    // Always validate the form
-    $topicForm.form('validate form');
   });
 
   $(topicDropdown).dropdown({
@@ -105,7 +99,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        for (const el of topicDropdown.querySelectorAll('a.label.visible')) {
+        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
           current_topics.push(el.getAttribute('data-value'));
         }
 
@@ -149,40 +143,8 @@ export function initRepoTopicBar() {
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();
-      $($addedChoice)[0].setAttribute('data-value', addedValue);
-      $($addedChoice)[0].setAttribute('data-text', addedValue);
-    },
-  });
-
-  $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
-    const topics = topicDropdown.querySelectorAll(':scope > a.ui.label');
-    const lastTopic = topics[topics.length - 1];
-    const isLastTopicValid = lastTopic?.getAttribute('data-value').match(regExp);
-    if (lastTopic && !isLastTopicValid) {
-      lastTopic.classList.remove('green');
-      lastTopic.classList.add('red');
-    }
-    return topicDropdown.querySelectorAll('a.ui.label.red').length === 0;
-  };
-
-  $topicForm.form({
-    on: 'change',
-    inline: true,
-    fields: {
-      topics: {
-        identifier: 'topics',
-        rules: [
-          {
-            type: 'validateTopic',
-            value: /^\s*[a-z0-9][-.a-z0-9]{0,35}\s*$/,
-            prompt: topicPrompts.formatPrompt,
-          },
-          {
-            type: 'maxCount[25]',
-            prompt: topicPrompts.countPrompt,
-          },
-        ],
-      },
+      $addedChoice[0].setAttribute('data-value', addedValue);
+      $addedChoice[0].setAttribute('data-text', addedValue);
     },
   });
 }
