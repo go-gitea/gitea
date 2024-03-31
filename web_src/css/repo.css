@@ -2437,6 +2437,7 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
+  margin: 0;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {

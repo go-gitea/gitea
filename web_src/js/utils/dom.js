@@ -51,8 +51,22 @@ export function isElemHidden(el) {
   return res[0];
 }
 
-export function queryElemSiblings(el, selector = '*') {
-  return Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector));
+function applyElemsCallback(elems, fn) {
+  if (fn) {
+    for (const el of elems) {
+      fn(el);
+    }
+  }
+  return elems;
+}
+
+export function queryElemSiblings(el, selector = '*', fn) {
+  return applyElemsCallback(Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector)), fn);
+}
+
+// it works like jQuery.children: only the direct children are selected
+export function queryElemChildren(parent, selector = '*', fn) {
+  return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
 export function onDomReady(cb) {
