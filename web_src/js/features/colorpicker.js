@@ -57,9 +57,10 @@ function initPicker(el) {
   // init precolors
   for (const colorEl of el.querySelectorAll('.precolors .color')) {
     colorEl.addEventListener('click', (e) => {
-      input.value = e.target.getAttribute('data-color-hex');
+      const newValue = e.target.getAttribute('data-color-hex');
+      input.value = newValue;
       input.dispatchEvent(new Event('input', {bubbles: true}));
-      square.style.color = input.value;
+      updateSquare(square, newValue);
     });
   }
 }
