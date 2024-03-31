@@ -158,10 +158,11 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (event) => {
-    if (!event.target.matches('.delete-comment')) return;
+  document.addEventListener('click', async (e) => {
+    if (!e.target.matches('.delete-comment')) return;
+    e.preventDefault();
 
-    const deleteButton = event.target;
+    const deleteButton = e.target;
     if (window.confirm(deleteButton.getAttribute('data-locale'))) {
       try {
         const response = await POST(deleteButton.getAttribute('data-url'));
@@ -206,7 +207,6 @@ export function initRepoIssueCommentDelete() {
         console.error(error);
       }
     }
-    event.preventDefault();
   });
 }
 
