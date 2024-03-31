@@ -54,7 +54,7 @@ export function isElemHidden(el) {
 function applyElemsCallback(elems, fn) {
   if (fn) {
     for (const el of elems) {
-      fn.call(el, el); // call the function with the element as "this", and pass the element as the first argument
+      fn(el);
     }
   }
   return elems;
