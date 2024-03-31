@@ -171,10 +171,7 @@
 	{{if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) .PageIsComparePull}}
 			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
-			<div class="ui info message show-form-container {{if .Flash}}tw-hidden{{end}}">
-				<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
-			</div>
-			<div class="pullrequest-form {{if not .Flash}}tw-hidden{{end}}">
+			<div class="pullrequest-form">
 				{{template "repo/issue/new_form" .}}
 			</div>
 		{{else if and .HeadIsBranch .BaseIsBranch}}
@@ -203,11 +200,7 @@
 				</div>
 			</div>
 		{{else}}
-			{{if and $.IsSigned (not .Repository.IsArchived)}}
-				<div class="ui info message show-form-container {{if .Flash}}tw-hidden{{end}}">
-					<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
-				</div>
-			{{else if .Repository.IsArchived}}
+			{{if .Repository.IsArchived}}
 				<div class="ui warning message tw-text-center">
 					{{if .Repository.ArchivedUnix.IsZero}}
 						{{ctx.Locale.Tr "repo.archive.title"}}
@@ -216,8 +209,8 @@
 					{{end}}
 				</div>
 			{{end}}
-			{{if $.IsSigned}}
-				<div class="pullrequest-form {{if not .Flash}}tw-hidden{{end}}">
+			{{if and $.IsSigned (not .Repository.IsArchived)}}
+				<div class="pullrequest-form">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}

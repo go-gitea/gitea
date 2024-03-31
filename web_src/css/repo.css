@@ -1099,10 +1099,6 @@
   height: 10px;
 }
 
-.repository.compare.pull .show-form-container {
-  text-align: left;
-}
-
 .repository .choose.branch {
   display: flex;
   align-items: center;

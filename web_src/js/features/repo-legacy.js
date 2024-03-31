@@ -578,19 +578,6 @@ export function initRepository() {
     initRepoPullRequestCommitStatus();
   }
 
-  // Pull request
-  const $repoComparePull = $('.repository.compare.pull');
-  if ($repoComparePull.length > 0) {
-    // show pull request form
-    $repoComparePull.find('button.show-form').on('click', function (e) {
-      e.preventDefault();
-      hideElem($(this).parent());
-
-      const $form = $repoComparePull.find('.pullrequest-form');
-      showElem($form);
-    });
-  }
-
   initUnicodeEscapeButton();
 }
 
