@@ -18,22 +18,28 @@ function updateSquare(el, newValue) {
   el.style.color = /#[0-9a-f]{6}/i.test(newValue) ? newValue : 'transparent';
 }
 
+function updatePicker(el, newValue) {
+  el.setAttribute('color', newValue);
+}
+
 function initPicker(el) {
   const input = el.querySelector('input');
-  const previewSquare = document.createElement('div');
-  previewSquare.classList.add('preview-square');
-  updateSquare(previewSquare, input.value);
-  el.append(previewSquare);
+
+  const square = document.createElement('div');
+  square.classList.add('preview-square');
+  updateSquare(square, input.value);
+  el.append(square);
 
   const picker = document.createElement('hex-color-picker');
   picker.addEventListener('color-changed', (e) => {
     input.value = e.detail.value;
     input.focus();
-    updateSquare(previewSquare, e.detail.value);
+    updateSquare(square, e.detail.value);
   });
 
   input.addEventListener('input', (e) => {
-    updateSquare(previewSquare, e.target.value);
+    updateSquare(square, e.target.value);
+    updatePicker(picker, e.target.value);
   });
 
   createTippy(input, {
@@ -44,7 +50,7 @@ function initPicker(el) {
     placement: 'bottom-start',
     interactive: true,
     onShow() {
-      picker.setAttribute('color', input.value);
+      updatePicker(picker, input.value);
     },
   });
 
@@ -53,7 +59,7 @@ function initPicker(el) {
     colorEl.addEventListener('click', (e) => {
       input.value = e.target.getAttribute('data-color-hex');
       input.dispatchEvent(new Event('input', {bubbles: true}));
-      previewSquare.style.color = input.value;
+      square.style.color = input.value;
     });
   }
 }
