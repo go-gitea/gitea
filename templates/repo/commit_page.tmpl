@@ -2,22 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
-		{{$class := ""}}
-		{{if .Commit.Signature}}
-			{{$class = (print $class " isSigned")}}
-			{{if .Verification.Verified}}
-				{{if eq .Verification.TrustStatus "trusted"}}
-					{{$class = (print $class " isVerified")}}
-				{{else if eq .Verification.TrustStatus "untrusted"}}
-					{{$class = (print $class " isVerifiedUntrusted")}}
-				{{else}}
-					{{$class = (print $class " isVerifiedUnmatched")}}
-				{{end}}
-			{{else if .Verification.Warning}}
-				{{$class = (print $class " isWarning")}}
-			{{end}}
-		{{end}}
-		<div class="ui top attached header clearing segment tw-relative commit-header {{$class}}">
+		<div class="ui top attached header clearing segment tw-relative commit-header">
 			<div class="tw-flex tw-mb-4 tw-flex-wrap">
 				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
@@ -139,7 +124,7 @@
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
-		<div class="ui attached segment tw-flex tw-items-center tw-justify-between tw-py-1 commit-header-row tw-flex-wrap {{$class}}">
+		<div class="ui attached segment tw-flex tw-items-center tw-justify-between tw-py-1 commit-header-row tw-flex-wrap">
 				<div class="tw-flex tw-items-center author">
 					{{if .Author}}
 						{{ctx.AvatarUtils.Avatar .Author 28 "tw-mr-2"}}
@@ -163,6 +148,7 @@
 							<strong>{{.Commit.Committer.Name}}</strong>
 						{{end}}
 					{{end}}
+					{{template "shared/verifyicon" .}}
 				</div>
 				<div class="ui horizontal list tw-flex tw-items-center">
 					{{if .Parents}}
@@ -183,81 +169,6 @@
 					</div>
 				</div>
 		</div>
-		{{if .Commit.Signature}}
-			<div class="ui bottom attached message tw-text-left tw-flex tw-items-center tw-justify-between commit-header-row tw-flex-wrap tw-mb-0 {{$class}}">
-				<div class="tw-flex tw-items-center">
-					{{if .Verification.Verified}}
-						{{if ne .Verification.SigningUser.ID 0}}
-							{{svg "gitea-lock" 16 "tw-mr-2"}}
-							{{if eq .Verification.TrustStatus "trusted"}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-							{{else if eq .Verification.TrustStatus "untrusted"}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
-							{{else}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
-							{{end}}
-							{{ctx.AvatarUtils.Avatar .Verification.SigningUser 28 "tw-mr-2"}}
-							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
-						{{else}}
-							<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "tw-mr-2"}}</span>
-							<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28 "tw-mr-2"}}
-							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
-						{{end}}
-					{{else}}
-						{{svg "gitea-unlock" 16 "tw-mr-2"}}
-						<span class="ui text">{{ctx.Locale.Tr .Verification.Reason}}</span>
-					{{end}}
-				</div>
-				<div class="tw-flex tw-items-center">
-					{{if .Verification.Verified}}
-						{{if ne .Verification.SigningUser.ID 0}}
-							{{svg "octicon-verified" 16 "tw-mr-2"}}
-							{{if .Verification.SigningSSHKey}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-								{{.Verification.SigningSSHKey.Fingerprint}}
-							{{else}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.PaddedKeyID}}
-							{{end}}
-						{{else}}
-							{{svg "octicon-unverified" 16 "tw-mr-2"}}
-							{{if .Verification.SigningSSHKey}}
-								<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-								{{.Verification.SigningSSHKey.Fingerprint}}
-							{{else}}
-								<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.PaddedKeyID}}
-							{{end}}
-						{{end}}
-					{{else if .Verification.Warning}}
-						{{svg "octicon-unverified" 16 "tw-mr-2"}}
-						{{if .Verification.SigningSSHKey}}
-							<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-							{{.Verification.SigningSSHKey.Fingerprint}}
-						{{else}}
-							<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-							{{.Verification.SigningKey.PaddedKeyID}}
-						{{end}}
-					{{else}}
-						{{if .Verification.SigningKey}}
-							{{if ne .Verification.SigningKey.KeyID ""}}
-								{{svg "octicon-verified" 16 "tw-mr-2"}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.PaddedKeyID}}
-							{{end}}
-						{{end}}
-						{{if .Verification.SigningSSHKey}}
-							{{if ne .Verification.SigningSSHKey.Fingerprint ""}}
-								{{svg "octicon-verified" 16 "tw-mr-2"}}
-								<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-								{{.Verification.SigningSSHKey.Fingerprint}}
-							{{end}}
-						{{end}}
-					{{end}}
-				</div>
-			</div>
-		{{end}}
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
 				{{svg "octicon-note" 16 "tw-mr-2"}}

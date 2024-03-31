@@ -9,7 +9,7 @@ Template Attributes:
 
 {{if .CommitStatus}}
 <div class="commit-status-panel">
-	<div class="ui top attached header commit-status-header">
+	<div class="ui top attached header">
 		{{if or (eq .CommitStatus.State "pending") (.MissingRequiredChecks)}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{else if eq .CommitStatus.State "success"}}

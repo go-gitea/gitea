@@ -1,0 +1,115 @@
+{{/*
+Template Attributes:
+* Commit: Commit object
+* Verification: Verification struct
+*/}}
+{{if (and .Commit .Commit.Signature .Verification)}}
+	{{$icon := ""}}
+	{{$text := ""}}
+	{{$colorClass := ""}}
+	{{if .Verification.Verified}}
+		{{$icon = "octicon-verified"}}
+		{{if eq .Verification.TrustStatus "trusted"}}
+			{{$colorClass = "tw-text-green"}}
+			{{$text = (ctx.Locale.Tr "sig_verified")}}
+		{{else if eq .Verification.TrustStatus "untrusted"}}
+			{{$colorClass = "tw-text-orange"}}
+			{{$text = (ctx.Locale.Tr "repo.commits.signed_by_untrusted_user")}}
+		{{else}}
+			{{$colorClass = "tw-text-orange"}}
+			{{$text = (ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched")}}
+		{{end}}
+	{{else}}
+		{{$icon = "octicon-unverified"}}
+		{{if .Verification.Warning}}
+			{{$colorClass = "tw-text-red"}}
+		{{else}}
+			{{$colorClass = "tw-text-inherit"}}
+		{{end}}
+		{{if .Verification.Reason}}
+			{{$text = (ctx.Locale.Tr .Verification.Reason)}}
+		{{else}}
+			{{$text = (ctx.Locale.Tr "sig_failed")}}
+		{{end}}
+	{{end}}
+	<button
+		class="btn interact-bg tippy-trigger tw-ml-1 tw-p-2"
+		data-tippy-theme="box-with-header"
+		data-tippy-role="dialog"
+		data-tippy-trigger="click"
+		data-tippy-interactive="true"
+		data-tippy-hideOnClick="true"
+	>
+		{{svg $icon 16 $colorClass}}
+	</button>
+	<div class="tippy-target">
+		<div class="verification-status-panel">
+		  <div class="ui top attached header">{{svg $icon 16 (printf "%s tw-mr-2" $colorClass)}}{{$text}}</div>
+		  <div class="tw-flex tw-flex-col">
+		  	{{if .Verification.Verified}}
+			  	<div class="tw-flex tw-items-center tw-px-3 tw-py-2">
+		  			{{if ne .Verification.SigningUser.ID 0}}
+		  				{{if eq .Verification.TrustStatus "trusted"}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
+		  				{{else if eq .Verification.TrustStatus "untrusted"}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
+		  				{{else}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
+		  				{{end}}
+		  				{{ctx.AvatarUtils.Avatar .Verification.SigningUser 28 "tw-mr-2"}}
+		  				<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
+		  			{{else}}
+		  				<span title="{{ctx.Locale.Tr "gpg.default_key"}}">
+		  				{{svg "gitea-lock-cog" 16 "tw-mr-2"}}</span>
+		  				<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
+		  				{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28 "tw-mr-2"}}
+		  				<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
+		  			{{end}}
+		  		</div>
+		  	{{end}}
+		  	<div class="tw-flex tw-items-center tw-px-3 tw-py-2">
+		  		{{if .Verification.Verified}}
+		  			{{if ne .Verification.SigningUser.ID 0}}
+		  				{{if .Verification.SigningSSHKey}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningSSHKey.Fingerprint}}</span>
+		  				{{else}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningKey.PaddedKeyID}}</span>
+		  				{{end}}
+		  			{{else}}
+		  				{{if .Verification.SigningSSHKey}}
+		  					<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningSSHKey.Fingerprint}}</span>
+		  				{{else}}
+		  					<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningKey.PaddedKeyID}}</span>
+		  				{{end}}
+		  			{{end}}
+		  		{{else if .Verification.Warning}}
+		  			{{if .Verification.SigningSSHKey}}
+		  				<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+		  				<span class="tw-font-mono">{{.Verification.SigningSSHKey.Fingerprint}}</span>
+		  			{{else}}
+		  				<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+		  				<span class="tw-font-mono">{{.Verification.SigningKey.PaddedKeyID}}</span>
+		  			{{end}}
+		  		{{else}}
+		  			{{if .Verification.SigningKey}}
+		  				{{if ne .Verification.SigningKey.KeyID ""}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningKey.PaddedKeyID}}</span>
+		  				{{end}}
+		  			{{end}}
+		  			{{if .Verification.SigningSSHKey}}
+		  				{{if ne .Verification.SigningSSHKey.Fingerprint ""}}
+		  					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+		  					<span class="tw-font-mono">{{.Verification.SigningSSHKey.Fingerprint}}</span>
+		  				{{end}}
+		  			{{end}}
+		  		{{end}}
+		  	</div>
+		  </div>
+	  </div>
+	</div>
+{{end}}

@@ -83,6 +83,7 @@
 
 .tippy-box[data-theme="box-with-header"] {
   box-shadow: 0 6px 18px var(--color-shadow);
+  color: var(--color-text);
 }
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
@@ -97,6 +98,15 @@
 
 .tippy-box[data-theme="box-with-header"][data-placement^="bottom"] .tippy-svg-arrow-inner {
   fill: var(--color-box-header);
+}
+
+.tippy-box[data-theme="box-with-header"] .ui.top.attached.header {
+  /* reset the default ".ui.attached.header" styles, to use the outer border */
+  border: none !important;
+  /* add a bottom border to make sure the there is always a divider between the header and list when the list is scrolling */
+  border-bottom: 1px solid var(--color-secondary) !important;
+  /* use negative margin to avoid the newly added border conflict with the list's top border */
+  margin: 0 0 -1px !important;
 }
 
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow {

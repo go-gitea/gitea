@@ -172,6 +172,26 @@ export function initGlobalTooltips() {
   observerConnect(observer);
 
   attachChildrenLazyTooltip(document.documentElement);
+  attachTippyTriggers();
+}
+
+// generic tippy creation via sibling elements:
+// <button class="tippy-trigger" data-tippy-theme="menu"></button>
+// <div class="tippy-target"></div>
+function attachTippyTriggers() {
+  for (const el of document.getElementsByClassName('tippy-trigger')) {
+    const nextSibling = el.nextElementSibling;
+    if (nextSibling?.matches('.tippy-target')) {
+      createTippy(el, {
+        trigger: el.getAttribute('data-tippy-trigger'),
+        role: el.getAttribute('data-tippy-role'),
+        theme: el.getAttribute('data-tippy-theme'),
+        interactive: el.getAttribute('data-tippy-interactive') === 'true',
+        hideOnClick: el.getAttribute('data-tippy-hideOnClick') === 'true',
+        content: nextSibling,
+      });
+    }
+  }
 }
 
 export function showTemporaryTooltip(target, content) {

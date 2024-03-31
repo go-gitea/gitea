@@ -1789,92 +1789,6 @@
   padding-top: 0;
 }
 
-.repository .ui.attached.isSigned.isWarning {
-  border-left: 1px solid var(--color-error-border);
-  border-right: 1px solid var(--color-error-border);
-}
-
-.repository .ui.attached.isSigned.isWarning.top,
-.repository .ui.attached.isSigned.isWarning.message {
-  border-top: 1px solid var(--color-error-border);
-}
-
-.repository .ui.attached.isSigned.isWarning.message {
-  box-shadow: none;
-  background-color: var(--color-error-bg);
-  color: var(--color-error-text);
-}
-
-.repository .ui.attached.isSigned.isWarning.message .ui.text {
-  color: var(--color-error-text);
-}
-
-.repository .ui.attached.isSigned.isWarning:last-child,
-.repository .ui.attached.isSigned.isWarning.bottom {
-  border-bottom: 1px solid var(--color-error-border);
-}
-
-.repository .ui.attached.isSigned.isVerified {
-  border-left: 1px solid var(--color-success-border);
-  border-right: 1px solid var(--color-success-border);
-}
-
-.repository .ui.attached.isSigned.isVerified.top,
-.repository .ui.attached.isSigned.isVerified.message {
-  border-top: 1px solid var(--color-success-border);
-}
-
-.repository .ui.attached.isSigned.isVerified.message {
-  box-shadow: none;
-  background-color: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.repository .ui.attached.isSigned.isVerified.message .pull-right {
-  color: var(--color-text);
-}
-
-.repository .ui.attached.isSigned.isVerified.message .ui.text {
-  color: var(--color-success-text);
-}
-
-.repository .ui.attached.isSigned.isVerified:last-child,
-.repository .ui.attached.isSigned.isVerified.bottom {
-  border-bottom: 1px solid var(--color-success-border);
-}
-
-.repository .ui.attached.isSigned.isVerifiedUntrusted,
-.repository .ui.attached.isSigned.isVerifiedUnmatched {
-  border-left: 1px solid var(--color-warning-border);
-  border-right: 1px solid var(--color-warning-border);
-}
-
-.repository .ui.attached.isSigned.isVerifiedUntrusted.top,
-.repository .ui.attached.isSigned.isVerifiedUnmatched.top,
-.repository .ui.attached.isSigned.isVerifiedUntrusted.message,
-.repository .ui.attached.isSigned.isVerifiedUnmatched.message {
-  border-top: 1px solid var(--color-warning-border);
-}
-
-.repository .ui.attached.isSigned.isVerifiedUntrusted.message,
-.repository .ui.attached.isSigned.isVerifiedUnmatched.message {
-  box-shadow: none;
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.repository .ui.attached.isSigned.isVerifiedUntrusted.message .ui.text,
-.repository .ui.attached.isSigned.isVerifiedUnmatched.message .ui.text {
-  color: var(--color-warning-text);
-}
-
-.repository .ui.attached.isSigned.isVerifiedUntrusted:last-child,
-.repository .ui.attached.isSigned.isVerifiedUnmatched:last-child,
-.repository .ui.attached.isSigned.isVerifiedUntrusted.bottom,
-.repository .ui.attached.isSigned.isVerifiedUnmatched.bottom {
-  border-bottom: 1px solid var(--color-warning-border);
-}
-
 .repository .segment.reactions.dropdown .menu,
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
@@ -2813,15 +2727,6 @@ tbody.commit-list {
   .branch-dropdown-button {
     max-width: 165px;
   }
-}
-
-.commit-status-header {
-  /* reset the default ".ui.attached.header" styles, to use the outer border */
-  border: none !important;
-  /* add a bottom border to make sure the there is always a divider between the header and list when the list is scrolling */
-  border-bottom: 1px solid var(--color-secondary) !important;
-  /* use negative margin to avoid the newly added border conflict with the list's top border */
-  margin: 0 0 -1px !important;
 }
 
 .commit-status-list {
