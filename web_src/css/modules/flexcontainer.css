@@ -9,6 +9,10 @@
   width: 240px;
 }
 
+.flex-container-sidebar {
+  width: 35%;
+}
+
 .flex-container-main {
   flex: 1;
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
@@ -18,7 +22,9 @@
   .flex-container {
     flex-direction: column;
   }
-  .flex-container-nav {
+  .flex-container-nav,
+  .flex-container-sidebar {
+    order: -1;
     width: auto;
   }
 }
