@@ -157,9 +157,9 @@ export function initRepoTopicBar() {
   $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
     const topics = topicDropdown.querySelectorAll(':scope > a.ui.label');
     const status = !topics.length || (topics[topics.length - 1]).getAttribute('data-value').match(regExp);
-    if (!status) {
-      lastTopic.classList.remove('green');
-      lastTopic.classList.add('red');
+    if (!status && topics[topics.length - 1]) {
+      (topics[topics.length - 1]).classList.remove('green');
+      (topics[topics.length - 1]).classList.add('red');
     }
     return status && !topicDropdown.querySelectorAll(':scope > a.ui.label.red').length;
   };
