@@ -6,10 +6,19 @@ export function initAriaCheckboxPatch() {
     if (el.hasAttribute('data-checkbox-patched')) continue;
     const label = el.querySelector('label');
     const input = el.querySelector('input');
-    if (!label || !input || input.getAttribute('id') || label.getAttribute('for')) continue;
-    const id = generateAriaId();
-    input.setAttribute('id', id);
-    label.setAttribute('for', id);
+    if (!label || !input) continue;
+    const inputId = input.getAttribute('id');
+    const labelFor = label.getAttribute('for');
+
+    if (inputId && !labelFor) { // missing "for"
+      label.setAttribute('for', inputId);
+    } else if (!inputId && !labelFor) { // missing both "id" and "for"
+      const id = generateAriaId();
+      input.setAttribute('id', id);
+      label.setAttribute('for', id);
+    } else {
+      continue;
+    }
     el.setAttribute('data-checkbox-patched', 'true');
   }
 }
