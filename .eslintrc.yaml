@@ -3,6 +3,7 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
+  - /web_src/fomantic
 
 parserOptions:
   sourceType: module
