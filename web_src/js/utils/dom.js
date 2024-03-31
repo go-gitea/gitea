@@ -51,7 +51,7 @@ export function isElemHidden(el) {
   return res[0];
 }
 
-export function queryElemSiblings(el, selector) {
+export function queryElemSiblings(el, selector = '*') {
   return Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector));
 }
 
