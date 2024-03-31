@@ -66,12 +66,8 @@ func init() {
 		AppWorkPath = filepath.Dir(AppPath)
 	}
 
-	fatalDuplicatedPath("app_work_path", AppWorkPath)
-
 	appWorkPathBuiltin = AppWorkPath
 	customPathBuiltin = CustomPath
-
-	fatalDuplicatedPath("custom_path", CustomPath)
 	customConfBuiltin = CustomConf
 }
 
