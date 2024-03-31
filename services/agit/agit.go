@@ -146,14 +146,14 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
 			results = append(results, private.HookProcReceiveRefResult{
-				Ref:         pr.GetGitRefName(),
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      objectFormat.EmptyObjectID().String(),
-				NewOID:      opts.NewCommitIDs[i],
-				CreatePR:    true,
-				URL:         fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-				Message:     setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-				HeadBranch:  headBranch,
+				Ref:               pr.GetGitRefName(),
+				OriginalRef:       opts.RefFullNames[i],
+				OldOID:            objectFormat.EmptyObjectID().String(),
+				NewOID:            opts.NewCommitIDs[i],
+				IsCreatePR:        true,
+				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
+				HeadBranch:        headBranch,
 			})
 			continue
 		}
@@ -213,14 +213,14 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{
-			OldOID:      oldCommitID,
-			NewOID:      opts.NewCommitIDs[i],
-			Ref:         pr.GetGitRefName(),
-			OriginalRef: opts.RefFullNames[i],
-			IsForcePush: isForcePush,
-			CreatePR:    false,
-			URL:         fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-			Message:     setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
+			OldOID:            oldCommitID,
+			NewOID:            opts.NewCommitIDs[i],
+			Ref:               pr.GetGitRefName(),
+			OriginalRef:       opts.RefFullNames[i],
+			IsForcePush:       isForcePush,
+			IsCreatePR:        false,
+			URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 		})
 	}
 

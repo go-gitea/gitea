@@ -696,7 +696,7 @@ Gitea or set your environment appropriately.`, "")
 
 	if err == nil {
 		for _, res := range resp.Results {
-			hookPrintResult(res.Message, res.CreatePR, res.HeadBranch, res.URL)
+			hookPrintResult(res.ShouldShowMessage, res.IsCreatePR, res.HeadBranch, res.URL)
 		}
 	}
 

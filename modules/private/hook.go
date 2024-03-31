@@ -88,17 +88,17 @@ type HookProcReceiveResult struct {
 
 // HookProcReceiveRefResult represents an individual result from ProcReceive
 type HookProcReceiveRefResult struct {
-	OldOID       string
-	NewOID       string
-	Ref          string
-	OriginalRef  git.RefName
-	IsForcePush  bool
-	IsNotMatched bool
-	Err          string
-	CreatePR     bool
-	URL          string
-	Message      bool
-	HeadBranch   string
+	OldOID            string
+	NewOID            string
+	Ref               string
+	OriginalRef       git.RefName
+	IsForcePush       bool
+	IsNotMatched      bool
+	Err               string
+	IsCreatePR        bool
+	URL               string
+	ShouldShowMessage bool
+	HeadBranch        string
 }
 
 // HookPreReceive check whether the provided commits are allowed
