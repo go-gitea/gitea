@@ -63,7 +63,7 @@ export function initRepoTopicBar() {
         topicPrompts.formatPrompt = responseData.message;
 
         const {invalidTopics} = responseData;
-        const topicLabels = queryElemChildren(topicDropdown,'a.ui.label');
+        const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
             topicLabels[index].classList.remove('green');
