@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"xorm.io/xorm/schemas"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/xorm/schemas"
 )
 
 func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
