@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -64,7 +64,8 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"label_ids",
 			"no_label",
 			"milestone_id",
-			"project_id",
+			"project_ids",
+			"no_project",
 			"project_board_id",
 			"poster_id",
 			"assignee_id",
@@ -172,7 +173,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.ProjectID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
+		if v := options.ProjectID.Value(); v != 0 {
+			query.And(inner_meilisearch.NewFilterEq("project_ids", v))
+		} else {
+			query.And(inner_meilisearch.NewFilterEq("no_label", true))
+		}
 	}
 	if options.ProjectBoardID.Has() {
 		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectBoardID.Value()))

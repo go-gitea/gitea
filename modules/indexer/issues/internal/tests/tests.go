@@ -312,10 +312,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectIDs)
+				assert.Contains(t, data[v.ID].ProjectIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectIDs[0] == 1
+				return slices.Contains(v.ProjectIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -330,10 +330,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectIDs)
+				assert.Empty(t, data[v.ID].ProjectIDs)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectIDs[0] == 0
+				return len(v.ProjectIDs) == 0
 			}), result.Total)
 		},
 	},
@@ -694,7 +694,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			}
 			projectIDs := make([]int64, id%5)
 			for i := range projectIDs {
-				projectIDs[i] = int64(i) + 1
+				projectIDs[i] = int64(i) + 1 // ProjectID should not be 0
 			}
 
 			data = append(data, &internal.IndexerData{
@@ -710,6 +710,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
 				ProjectIDs:         projectIDs,
+				NoProject:          len(projectIDs) == 0,
 				ProjectBoardID:     issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,

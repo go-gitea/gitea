@@ -105,6 +105,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
 		ProjectIDs:         projectIDs,
+		NoProject:          len(projectIDs) == 0,
 		ProjectBoardID:     issue.ProjectBoardID(ctx),
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,

@@ -23,7 +23,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 5
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -82,7 +82,8 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("project_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("project_board_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
@@ -226,7 +227,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.ProjectID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
+		if v := options.ProjectID.Value(); v != 0 {
+			queries = append(queries, inner_bleve.NumericEqualityQuery(v, "project_ids"))
+		} else {
+			queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_project"))
+		}
 	}
 	if options.ProjectBoardID.Has() {
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectBoardID.Value(), "project_board_id"))
