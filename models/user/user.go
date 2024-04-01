@@ -600,6 +600,11 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		return err
 	}
 
+	// Check the number of users already in the system, and if there are too many forbid any new ones.
+	if HitCreationLimit(ctx) {
+		return fmt.Errorf("The system has exceeded the user creation limit")
+	}
+
 	// set system defaults
 	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 	u.Visibility = setting.Service.DefaultUserVisibilityMode
@@ -727,6 +732,15 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 	}
 
 	return committer.Commit()
+}
+
+func HitCreationLimit(ctx context.Context) bool {
+	// don't bother calling DB if limit not set
+	if setting.Service.MaxUserCreationLimit == -1 ||
+		int64(setting.Service.MaxUserCreationLimit) < CountUsers(ctx, &CountUserFilter{}) {
+		return false
+	}
+	return true
 }
 
 // IsLastAdminUser check whether user is the last admin

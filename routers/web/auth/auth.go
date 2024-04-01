@@ -717,6 +717,13 @@ func ActivatePost(ctx *context.Context) {
 		return
 	}
 
+	// Check the number of users already in the system, and if there are too many forbid any new ones.
+	if user_model.HitCreationLimit(ctx) {
+		ctx.Flash.Error("The system has exceeded the user creation limit", true)
+		renderActivationChangeEmail(ctx)
+		return
+	}
+
 	if code == "" {
 		newEmail := strings.TrimSpace(ctx.FormString("change_email"))
 		if ctx.Doer != nil && newEmail != "" && !strings.EqualFold(ctx.Doer.Email, newEmail) {

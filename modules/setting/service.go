@@ -81,6 +81,7 @@ var Service = struct {
 	DefaultOrgMemberVisible                 bool
 	UserDeleteWithCommentsMaxTime           time.Duration
 	ValidSiteURLSchemes                     []string
+	MaxUserCreationLimit                    int
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -233,6 +234,8 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		}
 	}
 	Service.ValidSiteURLSchemes = schemes
+
+	Service.MaxUserCreationLimit = sec.Key("MAX_USER_CREATE_LIMIT").MustInt(-1)
 
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
