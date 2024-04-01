@@ -25,7 +25,9 @@ function getLineEls() {
 }
 
 function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
-  $linesEls.closest('tr').removeClass('active');
+  for (const el of $linesEls) {
+    el.closest('tr').classList.remove('active');
+  }
 
   // add hashchange to permalink
   const refInNewIssue = document.querySelector('a.ref-in-new-issue');
@@ -72,7 +74,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
         classes.push(`[rel=L${i}]`);
       }
       $linesEls.filter(classes.join(',')).each(function () {
-        $(this).closest('tr').addClass('active');
+        this.closest('tr').classList.add('active');
       });
       changeHash(`#L${a}-L${b}`);
 
@@ -82,7 +84,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
       return;
     }
   }
-  $selectionEndEl.closest('tr').addClass('active');
+  $selectionEndEl[0].closest('tr').classList.add('active');
   changeHash(`#${$selectionEndEl[0].getAttribute('rel')}`);
 
   updateIssueHref($selectionEndEl[0].getAttribute('rel'));

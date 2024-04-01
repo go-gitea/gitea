@@ -23,7 +23,7 @@ func TopicSearch(ctx *context.Context) {
 		},
 	}
 
-	topics, total, err := repo_model.FindTopics(ctx, opts)
+	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError)
 		return

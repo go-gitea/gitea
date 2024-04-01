@@ -77,18 +77,24 @@ export function initRepoSettingGitHook() {
 }
 
 export function initRepoSettingBranches() {
-  if (!$('.repository.settings.branches').length) return;
-  $('.toggle-target-enabled').on('change', function () {
-    const $target = $(this.getAttribute('data-target'));
-    $target.toggleClass('disabled', !this.checked);
-  });
-  $('.toggle-target-disabled').on('change', function () {
-    const $target = $(this.getAttribute('data-target'));
-    if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
-  });
-  $('#dismiss_stale_approvals').on('change', function () {
-    const $target = $('#ignore_stale_approvals_box');
-    $target.toggleClass('disabled', this.checked);
+  if (!document.querySelector('.repository.settings.branches')) return;
+
+  for (const el of document.getElementsByClassName('toggle-target-enabled')) {
+    el.addEventListener('change', function () {
+      const target = document.querySelector(this.getAttribute('data-target'));
+      target?.classList.toggle('disabled', !this.checked);
+    });
+  }
+
+  for (const el of document.getElementsByClassName('toggle-target-disabled')) {
+    el.addEventListener('change', function () {
+      const target = document.querySelector(this.getAttribute('data-target'));
+      if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
+    });
+  }
+
+  document.getElementById('dismiss_stale_approvals')?.addEventListener('change', function () {
+    document.getElementById('ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
   });
 
   // show the `Matched` mark for the status checks that match the pattern
@@ -106,7 +112,6 @@ export function initRepoSettingBranches() {
           break;
         }
       }
-
       toggleElem(el, matched);
     }
   };

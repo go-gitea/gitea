@@ -9,6 +9,7 @@
 
 .issue-list-toolbar-left {
   display: flex;
+  align-items: center;
 }
 
 .issue-list-toolbar-right .filter.menu {
