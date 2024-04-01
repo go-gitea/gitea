@@ -324,7 +324,7 @@ async function onEditContent(event) {
   const renderContent = segment.querySelector('.render-content');
   const rawContent = segment.querySelector('.raw-content');
 
-  let comboMarkdownEditor, dropzoneInst;
+  let comboMarkdownEditor;
 
   /**
    * @param {HTMLElement} dropzone
@@ -419,14 +419,14 @@ async function onEditContent(event) {
     e.preventDefault();
     showElem(renderContent);
     hideElem(editContentZone);
-    dropzoneInst?.emit('reload');
+    comboMarkdownEditor.attachedDropzoneInst?.emit('reload');
   };
 
   const saveAndRefresh = async (e) => {
     e.preventDefault();
     showElem(renderContent);
     hideElem(editContentZone);
-
+    const dropzoneInst = comboMarkdownEditor.attachedDropzoneInst;
     try {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
@@ -468,7 +468,7 @@ async function onEditContent(event) {
   if (!comboMarkdownEditor) {
     editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-    dropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
+    comboMarkdownEditor.attachedDropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
     editContentZone.querySelector('.cancel.button').addEventListener('click', cancelAndReset);
     editContentZone.querySelector('.save.button').addEventListener('click', saveAndRefresh);
   }
