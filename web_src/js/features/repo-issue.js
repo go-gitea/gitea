@@ -158,17 +158,22 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  $(document).on('click', '.delete-comment', async function () {
-    const $this = $(this);
-    if (window.confirm($this.data('locale'))) {
+  document.addEventListener('click', async (e) => {
+    if (!e.target.matches('.delete-comment')) return;
+    e.preventDefault();
+
+    const deleteButton = e.target;
+    if (window.confirm(deleteButton.getAttribute('data-locale'))) {
       try {
-        const response = await POST($this.data('url'));
+        const response = await POST(deleteButton.getAttribute('data-url'));
         if (!response.ok) throw new Error('Failed to delete comment');
-        const $conversationHolder = $this.closest('.conversation-holder');
-        const $parentTimelineItem = $this.closest('.timeline-item');
-        const $parentTimelineGroup = $this.closest('.timeline-item-group');
+
+        const conversationHolder = deleteButton.closest('.conversation-holder');
+        const parentTimelineItem = deleteButton.closest('.timeline-item');
+        const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+
         // Check if this was a pending comment.
-        if ($conversationHolder.find('.pending-label').length) {
+        if (conversationHolder?.querySelector('.pending-label')) {
           const counter = document.querySelector('#review-box .review-comments-counter');
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
@@ -176,29 +181,32 @@ export function initRepoIssueCommentDelete() {
           counter.textContent = String(num);
         }
 
-        $(`#${$this.data('comment-id')}`).remove();
-        if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
-          const path = $conversationHolder.data('path');
-          const side = $conversationHolder.data('side');
-          const idx = $conversationHolder.data('idx');
-          const lineType = $conversationHolder.closest('tr').data('line-type');
+        document.getElementById(deleteButton.getAttribute('data-comment-id'))?.remove();
+
+        if (conversationHolder && !conversationHolder.querySelector('.comment')) {
+          const path = conversationHolder.getAttribute('data-path');
+          const side = conversationHolder.getAttribute('data-side');
+          const idx = conversationHolder.getAttribute('data-idx');
+          const lineType = conversationHolder.closest('tr').getAttribute('data-line-type');
+
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('tw-invisible');
+            document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
+            document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
           }
-          $conversationHolder.remove();
+
+          conversationHolder.remove();
         }
+
         // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
-        if (!$parentTimelineGroup.find('.timeline-item.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
-          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
-          $timelineAvatar.removeClass('timeline-avatar-offset');
+        if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
+          const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
+          timelineAvatar?.classList.remove('timeline-avatar-offset');
         }
       } catch (error) {
         console.error(error);
       }
     }
-    return false;
   });
 }
 
@@ -222,32 +230,35 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  $(document).on('click', '.cancel-code-comment', (e) => {
-    const $form = $(e.currentTarget).closest('form');
-    if ($form.length > 0 && $form.hasClass('comment-form')) {
-      $form.addClass('tw-hidden');
-      showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
+  document.addEventListener('click', (e) => {
+    if (!e.target.matches('.cancel-code-comment')) return;
+
+    const form = e.target.closest('form');
+    if (form?.classList.contains('comment-form')) {
+      hideElem(form);
+      showElem(form.closest('.comment-code-cloud')?.querySelectorAll('button.comment-form-reply'));
     } else {
-      $form.closest('.comment-code-cloud').remove();
+      form.closest('.comment-code-cloud')?.remove();
     }
   });
 }
 
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
-  const $pullUpdateButton = $('.update-button > button');
-  $pullUpdateButton.on('click', async function (e) {
+  const pullUpdateButton = document.querySelector('.update-button > button');
+  if (!pullUpdateButton) return;
+
+  pullUpdateButton.addEventListener('click', async function (e) {
     e.preventDefault();
-    const $this = $(this);
-    const redirect = $this.data('redirect');
-    $this.addClass('is-loading');
+    const redirect = this.getAttribute('data-redirect');
+    this.classList.add('is-loading');
     let response;
     try {
-      response = await POST($this.data('do'));
+      response = await POST(this.getAttribute('data-do'));
     } catch (error) {
       console.error(error);
     } finally {
-      $this.removeClass('is-loading');
+      this.classList.remove('is-loading');
     }
     let data;
     try {
@@ -266,10 +277,13 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const $url = $choice.data('do');
-      if ($url) {
-        $pullUpdateButton.find('.button-text').text($choice.text());
-        $pullUpdateButton.data('do', $url);
+      const url = $choice[0].getAttribute('data-do');
+      if (url) {
+        const buttonText = pullUpdateButton.querySelector('.button-text');
+        if (buttonText) {
+          buttonText.textContent = $choice.text();
+        }
+        pullUpdateButton.setAttribute('data-do', url);
       }
     },
   });
@@ -367,10 +381,10 @@ export function initRepoIssueComments() {
 
   $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
-    const url = $(this).data('update-url');
-    const issueId = $(this).data('issue-id');
-    const id = $(this).data('id');
-    const isChecked = $(this).hasClass('checked');
+    const url = this.getAttribute('data-update-url');
+    const issueId = this.getAttribute('data-issue-id');
+    const id = this.getAttribute('data-id');
+    const isChecked = this.classList.contains('checked');
 
     await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
     window.location.reload();
@@ -397,7 +411,7 @@ export function initRepoIssueComments() {
 export async function handleReply($el) {
   hideElem($el);
   const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  $form.removeClass('tw-hidden');
+  showElem($form);
 
   const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
@@ -454,20 +468,20 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
-    const id = $(this).data('comment');
-    $(this).addClass('tw-hidden');
-    $(`#code-comments-${id}`).removeClass('tw-hidden');
-    $(`#code-preview-${id}`).removeClass('tw-hidden');
-    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
+    const id = this.getAttribute('data-comment');
+    hideElem(this);
+    showElem(`#code-comments-${id}`);
+    showElem(`#code-preview-${id}`);
+    showElem(`#hide-outdated-${id}`);
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
-    const id = $(this).data('comment');
-    $(this).addClass('tw-hidden');
-    $(`#code-comments-${id}`).addClass('tw-hidden');
-    $(`#code-preview-${id}`).addClass('tw-hidden');
-    $(`#show-outdated-${id}`).removeClass('tw-hidden');
+    const id = this.getAttribute('data-comment');
+    hideElem(this);
+    hideElem(`#code-comments-${id}`);
+    hideElem(`#code-preview-${id}`);
+    showElem(`#show-outdated-${id}`);
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -504,18 +518,19 @@ export function initRepoPullRequestReview() {
   }
 
   $(document).on('click', '.add-code-comment', async function (e) {
-    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+    if (e.target.classList.contains('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
-    const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
-    const side = $(this).data('side');
-    const idx = $(this).data('idx');
-    const path = $(this).closest('[data-path]').data('path');
-    const $tr = $(this).closest('tr');
-    const lineType = $tr.data('line-type');
+    const isSplit = this.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = this.getAttribute('data-side');
+    const idx = this.getAttribute('data-idx');
+    const path = this.closest('[data-path]')?.getAttribute('data-path');
+    const tr = this.closest('tr');
+    const lineType = tr.getAttribute('data-line-type');
 
-    let $ntr = $tr.next();
-    if (!$ntr.hasClass('add-comment')) {
+    const ntr = tr.nextElementSibling;
+    let $ntr = $(ntr);
+    if (!ntr?.classList.contains('add-comment')) {
       $ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
@@ -525,7 +540,7 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      $tr.after($ntr);
+      $(tr).after($ntr);
     }
 
     const $td = $ntr.find(`.add-comment-${side}`);
@@ -611,13 +626,13 @@ export function initRepoIssueTitleEdit() {
 
   const editTitleToggle = function () {
     toggleElem($issueTitle);
-    toggleElem($('.not-in-edit'));
-    toggleElem($('#edit-title-input'));
-    toggleElem($('#pull-desc'));
-    toggleElem($('#pull-desc-edit'));
-    toggleElem($('.in-edit'));
-    toggleElem($('.new-issue-button'));
-    $('#issue-title-wrapper').toggleClass('edit-active');
+    toggleElem('.not-in-edit');
+    toggleElem('#edit-title-input');
+    toggleElem('#pull-desc');
+    toggleElem('#pull-desc-edit');
+    toggleElem('.in-edit');
+    toggleElem('.new-issue-button');
+    document.getElementById('issue-title-wrapper')?.classList.toggle('edit-active');
     $editInput[0].focus();
     $editInput[0].select();
     return false;
