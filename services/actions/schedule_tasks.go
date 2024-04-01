@@ -66,6 +66,11 @@ func startTasks(ctx context.Context) error {
 				}
 			}
 
+			if row.Repo.IsArchived {
+				// Skip if the repo is archived
+				continue
+			}
+
 			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
 			if err != nil {
 				if repo_model.IsErrUnitTypeNotExist(err) {
