@@ -14,7 +14,9 @@
 			<div class="ui attached table unstackable segment">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
-					{{if .IsMarkup}}
+					{{if .IsFileTooLarge}}
+						{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+					{{else if .IsMarkup}}
 						{{if .FileContent}}{{.FileContent | SafeHTML}}{{end}}
 					{{else if .IsPlainText}}
 						<pre>{{if .FileContent}}{{.FileContent | SafeHTML}}{{end}}</pre>
@@ -33,19 +35,15 @@
 							{{else if .IsPDFFile}}
 								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "diff.view_file"}}"></div>
 							{{else}}
-								<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+								<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
 					{{else if .FileSize}}
 						<table>
 							<tbody>
 								<tr>
-								{{if .IsFileTooLarge}}
-									<td><strong>{{ctx.Locale.Tr "repo.file_too_large"}}</strong></td>
-								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
 									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol>{{.FileContent}}</ol></code></pre></td>
-								{{end}}
 								</tr>
 							</tbody>
 						</table>

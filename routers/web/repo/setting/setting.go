@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -897,6 +899,10 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+		}
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -913,6 +919,12 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
+		}
+
+		if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+			if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
