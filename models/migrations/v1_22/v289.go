@@ -3,49 +3,16 @@
 
 package v1_22 //nolint
 
-import (
-	"context"
+import "xorm.io/xorm"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-
-	"xorm.io/builder"
-	"xorm.io/xorm"
-)
-
-func AddActionsVisibility(x *xorm.Engine) error {
-	type User struct {
-		ActionsVisibility structs.ActionsVisibility `xorm:"NOT NULL DEFAULT 0"`
+func AddDefaultWikiBranch(x *xorm.Engine) error {
+	type Repository struct {
+		ID                int64
+		DefaultWikiBranch string
 	}
-
-	// This migration maybe rerun so that we should check if it has been run
-	hasActionsVisibility, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "user", "actions_visibility")
-	if err != nil || hasActionsVisibility {
+	if err := x.Sync(&Repository{}); err != nil {
 		return err
 	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = sess.Sync(&User{}); err != nil {
-		return err
-	}
-
-	if _, err := sess.
-		Where(builder.Eq{"keep_activity_private": 1}).
-		Cols("actions_visibility").
-		Update(user.User{ActionsVisibility: structs.ActionsVisibilityNone}); err != nil {
-		return err
-	}
-
-	if err := base.DropTableColumns(sess, "user", "keep_activity_private"); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	_, err := x.Exec("UPDATE `repository` SET default_wiki_branch = 'master' WHERE (default_wiki_branch IS NULL) OR (default_wiki_branch = '')")
+	return err
 }

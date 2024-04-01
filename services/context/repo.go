@@ -681,7 +681,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		} else {
-			ctx.Repo.BranchName, _ = gitRepo.GetDefaultBranch()
+			ctx.Repo.BranchName, _ = gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository)
 			if ctx.Repo.BranchName == "" {
 				// If it still can't get a default branch, fall back to default branch from setting.
 				// Something might be wrong. Either site admin should fix the repo sync or Gitea should fix a potential bug.

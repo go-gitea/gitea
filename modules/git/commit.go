@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -311,7 +312,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
-// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
@@ -395,6 +396,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 				ismodule = false
 			}
 		}
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
 	return c.submoduleCache, nil

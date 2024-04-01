@@ -425,7 +425,7 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
-// GetCompleteName returns the the full name and username in the form of
+// GetCompleteName returns the full name and username in the form of
 // "Full Name (username)" if full name is not empty, otherwise it returns
 // "username".
 func (u *User) GetCompleteName() string {
@@ -586,6 +586,16 @@ type CreateUserOverwriteOptions struct {
 
 // CreateUser creates record of a new user.
 func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, false, overwriteDefault...)
+}
+
+// AdminCreateUser is used by admins to manually create users
+func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, true, overwriteDefault...)
+}
+
+// createUser creates record of a new user.
+func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -639,8 +649,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	if err := ValidateEmail(u.Email); err != nil {
-		return err
+	if createdByAdmin {
+		if err := ValidateEmailForAdmin(u.Email); err != nil {
+			return err
+		}
+	} else {
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -1215,4 +1231,22 @@ func GetOrderByName() string {
 		return "full_name, name"
 	}
 	return "name"
+}
+
+// IsFeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
+// user if applicable
+func IsFeatureDisabledWithLoginType(user *User, feature string) bool {
+	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
+	return (user != nil && user.LoginType > auth.Plain && setting.Admin.ExternalUserDisableFeatures.Contains(feature)) ||
+		setting.Admin.UserDisabledFeatures.Contains(feature)
+}
+
+// DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type
+// of the user if applicable
+func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
+	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
+	if user != nil && user.LoginType > auth.Plain {
+		return &setting.Admin.ExternalUserDisableFeatures
+	}
+	return &setting.Admin.UserDisabledFeatures
 }

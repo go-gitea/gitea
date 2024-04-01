@@ -287,20 +287,17 @@ func LFSFileGet(ctx *context.Context) {
 
 	st := typesniffer.DetectContentType(buf)
 	ctx.Data["IsTextFile"] = st.IsText()
-	isRepresentableAsText := st.IsRepresentableAsText()
-
-	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
-	case isRepresentableAsText:
-		if st.IsSvgImage() {
-			ctx.Data["IsImageFile"] = true
-		}
-
-		if fileSize >= setting.UI.MaxDisplayFileSize {
+	case st.IsRepresentableAsText():
+		if meta.Size >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
+		}
+
+		if st.IsSvgImage() {
+			ctx.Data["IsImageFile"] = true
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
@@ -338,6 +335,8 @@ func LFSFileGet(ctx *context.Context) {
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+	default:
+		// TODO: the logic is not the same as "renderFile" in "view.go"
 	}
 	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }

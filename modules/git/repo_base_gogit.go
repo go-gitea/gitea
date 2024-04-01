@@ -8,11 +8,11 @@ package git
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -52,7 +52,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !isDir(repoPath) {
-		return nil, errors.New("no such file or directory")
+		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
 	fs := osfs.New(repoPath)

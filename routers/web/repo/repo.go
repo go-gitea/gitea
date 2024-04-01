@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
 const (
@@ -370,7 +371,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
@@ -546,9 +547,13 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
-			Page:     ctx.FormInt("page"),
+			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		Actor:              ctx.Doer,
@@ -617,47 +622,36 @@ func SearchRepo(ctx *context.Context) {
 		}
 	}
 
-	var err error
+	// To improve performance when only the count is requested
+	if ctx.FormBool("count_only") {
+		if count, err := repo_model.CountRepository(ctx, opts); err != nil {
+			log.Error("CountRepository: %v", err)
+			ctx.JSON(http.StatusInternalServerError, nil) // frontend JS doesn't handle error response (same as below)
+		} else {
+			ctx.SetTotalCountHeader(count)
+			ctx.JSONOK()
+		}
+		return
+	}
+
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
+		log.Error("SearchRepository: %v", err)
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
 	ctx.SetTotalCountHeader(count)
 
-	// To improve performance when only the count is requested
-	if ctx.FormBool("count_only") {
-		return
-	}
-
-	// collect the latest commit of each repo
-	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
-	repoBranchNames := make(map[int64]string, len(repos))
-	for _, repo := range repos {
-		repoBranchNames[repo.ID] = repo.DefaultBranch
-	}
-
-	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(ctx, repos)
 	if err != nil {
-		log.Error("FindBranchesByRepoAndBranchName: %v", err)
-		return
-	}
-
-	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptionsAll)
-	if err != nil {
-		log.Error("GetLatestCommitStatusForPairs: %v", err)
+		log.Error("FindReposLastestCommitStatuses: %v", err)
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
-		latestCommitStatus := git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
-
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
@@ -671,8 +665,11 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatus:       latestCommitStatus,
-			LocaleLatestCommitStatus: latestCommitStatus.LocaleString(ctx.Locale),
+		}
+
+		if latestCommitStatuses[i] != nil {
+			results[i].LatestCommitStatus = latestCommitStatuses[i]
+			results[i].LocaleLatestCommitStatus = latestCommitStatuses[i].LocaleString(ctx.Locale)
 		}
 	}
 
@@ -691,9 +688,7 @@ func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
@@ -726,9 +721,7 @@ func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {

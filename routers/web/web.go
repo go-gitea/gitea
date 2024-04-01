@@ -174,7 +174,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		// Redirect to dashboard (or alternate location) if user tries to visit any non-login page.
 		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
-			ctx.RedirectToFirst(ctx.FormString("redirect_to"))
+			ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"))
 			return
 		}
 
@@ -1008,7 +1008,6 @@ func registerRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
 						m.Delete("", org.DeleteProjectBoard)
 						m.Post("/default", org.SetDefaultProjectBoard)
-						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
 
 						m.Post("/move", org.MoveIssues)
 					})
@@ -1348,7 +1347,6 @@ func registerRoutes(m *web.Route) {
 						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
-						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
 
 						m.Post("/move", repo.MoveIssues)
 					})
@@ -1374,7 +1372,7 @@ func registerRoutes(m *web.Route) {
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
-				m.Post("/artifacts", actions.ArtifactsView)
+				m.Get("/artifacts", actions.ArtifactsView)
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)

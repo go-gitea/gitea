@@ -323,12 +323,14 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "tab", "TabName")
+	pager.AddParamString("tab", tab)
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParam(ctx, "language", "Language")
+		pager.AddParamString("language", language)
 	}
 	if tab == "activity" {
-		pager.AddParam(ctx, "date", "Date")
+		if ctx.Data["Date"] != nil {
+			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
+		}
 	}
 	ctx.Data["Page"] = pager
 }

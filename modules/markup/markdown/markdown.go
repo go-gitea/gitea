@@ -104,7 +104,8 @@ func SpecializedMarkdown() goldmark.Markdown {
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							// the "display" class is used by "js/markup/math.js" to render the code element as a block
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + ` display">`)
 							if err != nil {
 								return
 							}
@@ -125,7 +126,7 @@ func SpecializedMarkdown() goldmark.Markdown {
 				parser.WithAttribute(),
 				parser.WithAutoHeadingID(),
 				parser.WithASTTransformers(
-					util.Prioritized(&ASTTransformer{}, 10000),
+					util.Prioritized(NewASTTransformer(), 10000),
 				),
 			),
 			goldmark.WithRendererOptions(
