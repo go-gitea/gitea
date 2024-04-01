@@ -900,7 +900,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
-			log.Error("CleanRepoScheduleTasks: %v", err)
+			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
@@ -923,7 +923,7 @@ func SettingsPost(ctx *context.Context) {
 
 		if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
 			if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
-				log.Error("DetectAndHandleSchedules: %v", err)
+				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
 		}
 
