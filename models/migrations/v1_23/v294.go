@@ -17,7 +17,7 @@ func AddUniqueIndexForProjectIssue(x *xorm.Engine) error {
 	if err := x.Select("issue_id, project_id, count(*) as cnt").
 		Table("project_issue").
 		GroupBy("issue_id, project_id").
-		Where("cnt > 1").
+		Having("count(*) > 1").
 		Find(&results); err != nil {
 		return err
 	}
