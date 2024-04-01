@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -572,6 +573,9 @@ var migrations = []Migration{
 	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
 	// v293 -> v294
 	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+
+	// Gitea 1.22.0 ends at 294
+	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
 }
 
 // GetCurrentDBVersion returns the current db version
