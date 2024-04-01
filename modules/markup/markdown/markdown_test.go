@@ -508,8 +508,16 @@ func TestMathBlock(t *testing.T) {
 			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
 		},
 		{
+			`$a$.`,
+			`<p><code class="language-math is-loading">a</code>.</p>` + nl,
+		},
+		{
+			`.$a$`,
+			`<p>.$a$</p>` + nl,
+		},
+		{
 			`$a a$b b$`,
-			`<p>$a a<code class="language-math is-loading">b b</code></p>` + nl,
+			`<p>$a a$b b$</p>` + nl,
 		},
 		{
 			`a a$b b`,
@@ -517,11 +525,11 @@ func TestMathBlock(t *testing.T) {
 		},
 		{
 			`a$b $a a$b b$`,
-			`<p>a$b $a a<code class="language-math is-loading">b b</code></p>` + nl,
+			`<p>a$b $a a$b b$</p>` + nl,
 		},
 		{
 			"a$x$",
-			`<p>a<code class="language-math is-loading">x</code></p>` + nl,
+			`<p>a$x$</p>` + nl,
 		},
 		{
 			"$x$a",

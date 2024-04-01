@@ -41,9 +41,12 @@ func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
 
+func isPunctuation(b byte) bool {
+	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
+}
+
 func isAlphanumeric(b byte) bool {
-	// Github only cares about 0-9A-Za-z
-	return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 // Parse parses the current line and returns a result of parsing.
@@ -52,6 +55,12 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 
 	if !bytes.HasPrefix(line, parser.start) {
 		// We'll catch this one on the next time round
+		return nil
+	}
+
+	precedingCharacter := block.PrecendingCharacter()
+	if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
+		// need to exclude things like `a$` from being considered a start
 		return nil
 	}
 
@@ -74,7 +83,8 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		if len(line) <= pos {
 			break
 		}
-		if isAlphanumeric(line[pos]) {
+		suceedingCharacter := line[pos]
+		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') {
 			return nil
 		}
 		if line[ender-1] != '\\' {
