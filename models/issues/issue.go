@@ -193,20 +193,6 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 	return issue.Repo.IsTimetrackerEnabled(ctx)
 }
 
-// GetPullRequest returns the issue pull request
-func (issue *Issue) GetPullRequest(ctx context.Context) (pr *PullRequest, err error) {
-	if !issue.IsPull {
-		return nil, fmt.Errorf("Issue is not a pull request")
-	}
-
-	pr, err = GetPullRequestByIssueID(ctx, issue.ID)
-	if err != nil {
-		return nil, err
-	}
-	pr.Issue = issue
-	return pr, err
-}
-
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil && issue.PosterID != 0 {

@@ -195,43 +195,43 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
 	}
 
-	if options.ProjectID != nil {
-		query.Must(elastic.NewTermQuery("project_id", *options.ProjectID))
+	if options.ProjectID.Has() {
+		query.Must(elastic.NewTermQuery("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID != nil {
-		query.Must(elastic.NewTermQuery("project_board_id", *options.ProjectBoardID))
-	}
-
-	if options.PosterID != nil {
-		query.Must(elastic.NewTermQuery("poster_id", *options.PosterID))
+	if options.ProjectBoardID.Has() {
+		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectBoardID.Value()))
 	}
 
-	if options.AssigneeID != nil {
-		query.Must(elastic.NewTermQuery("assignee_id", *options.AssigneeID))
+	if options.PosterID.Has() {
+		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
 	}
 
-	if options.MentionID != nil {
-		query.Must(elastic.NewTermQuery("mention_ids", *options.MentionID))
+	if options.AssigneeID.Has() {
+		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
 	}
 
-	if options.ReviewedID != nil {
-		query.Must(elastic.NewTermQuery("reviewed_ids", *options.ReviewedID))
-	}
-	if options.ReviewRequestedID != nil {
-		query.Must(elastic.NewTermQuery("review_requested_ids", *options.ReviewRequestedID))
+	if options.MentionID.Has() {
+		query.Must(elastic.NewTermQuery("mention_ids", options.MentionID.Value()))
 	}
 
-	if options.SubscriberID != nil {
-		query.Must(elastic.NewTermQuery("subscriber_ids", *options.SubscriberID))
+	if options.ReviewedID.Has() {
+		query.Must(elastic.NewTermQuery("reviewed_ids", options.ReviewedID.Value()))
+	}
+	if options.ReviewRequestedID.Has() {
+		query.Must(elastic.NewTermQuery("review_requested_ids", options.ReviewRequestedID.Value()))
 	}
 
-	if options.UpdatedAfterUnix != nil || options.UpdatedBeforeUnix != nil {
+	if options.SubscriberID.Has() {
+		query.Must(elastic.NewTermQuery("subscriber_ids", options.SubscriberID.Value()))
+	}
+
+	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
 		q := elastic.NewRangeQuery("updated_unix")
-		if options.UpdatedAfterUnix != nil {
-			q.Gte(*options.UpdatedAfterUnix)
+		if options.UpdatedAfterUnix.Has() {
+			q.Gte(options.UpdatedAfterUnix.Value())
 		}
-		if options.UpdatedBeforeUnix != nil {
-			q.Lte(*options.UpdatedBeforeUnix)
+		if options.UpdatedBeforeUnix.Has() {
+			q.Lte(options.UpdatedBeforeUnix.Value())
 		}
 		query.Must(q)
 	}

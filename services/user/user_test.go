@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -184,4 +186,27 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.NoError(t, DeleteUser(db.DefaultContext, v.user, false))
 	}
+}
+
+func TestDeleteInactiveUsers(t *testing.T) {
+	addUser := func(name, email string, createdUnix timeutil.TimeStamp, active bool) {
+		inactiveUser := &user_model.User{Name: name, LowerName: strings.ToLower(name), Email: email, CreatedUnix: createdUnix, IsActive: active}
+		_, err := db.GetEngine(db.DefaultContext).NoAutoTime().Insert(inactiveUser)
+		assert.NoError(t, err)
+		inactiveUserEmail := &user_model.EmailAddress{UID: inactiveUser.ID, IsPrimary: true, Email: email, LowerEmail: strings.ToLower(email), IsActivated: active}
+		err = db.Insert(db.DefaultContext, inactiveUserEmail)
+		assert.NoError(t, err)
+	}
+	addUser("user-inactive-10", "user-inactive-10@test.com", timeutil.TimeStampNow().Add(-600), false)
+	addUser("user-inactive-5", "user-inactive-5@test.com", timeutil.TimeStampNow().Add(-300), false)
+	addUser("user-active-10", "user-active-10@test.com", timeutil.TimeStampNow().Add(-600), true)
+	addUser("user-active-5", "user-active-5@test.com", timeutil.TimeStampNow().Add(-300), true)
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-10"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
+	assert.NoError(t, DeleteInactiveUsers(db.DefaultContext, 8*time.Minute))
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user-inactive-10"})
+	unittest.AssertNotExistsBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-5"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-10"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-5"})
 }

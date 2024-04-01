@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/indexer/internal"
 )
@@ -16,7 +17,17 @@ type Indexer interface {
 	internal.Indexer
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error
 	Delete(ctx context.Context, repoID int64) error
-	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error)
+}
+
+type SearchOptions struct {
+	RepoIDs  []int64
+	Keyword  string
+	Language string
+
+	IsKeywordFuzzy bool
+
+	db.Paginator
 }
 
 // NewDummyIndexer returns a dummy indexer
@@ -38,6 +49,6 @@ func (d *dummyIndexer) Delete(ctx context.Context, repoID int64) error {
 	return fmt.Errorf("indexer is not ready")
 }
 
-func (d *dummyIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isFuzzy bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (d *dummyIndexer) Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	return 0, nil, nil, fmt.Errorf("indexer is not ready")
 }

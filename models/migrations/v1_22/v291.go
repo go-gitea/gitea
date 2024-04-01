@@ -3,15 +3,12 @@
 
 package v1_22 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddIndeciesToIssueDepencencies(x *xorm.Engine) error {
-	type IssueDependency struct {
-		IssueID      int64 `xorm:"UNIQUE(issue_dependency) NOT NULL index"`
-		DependencyID int64 `xorm:"UNIQUE(issue_dependency) NOT NULL index"`
+func AddCommentIDIndexofAttachment(x *xorm.Engine) error {
+	type Attachment struct {
+		CommentID int64 `xorm:"INDEX"`
 	}
 
-	return x.Sync(&IssueDependency{})
+	return x.Sync(&Attachment{})
 }

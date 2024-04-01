@@ -16,9 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -130,11 +133,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
-<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
+<p>See commit <a href="/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 <p>Ideas and codes</p>
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
+<li>Bezier widget (by <a href="/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
@@ -433,6 +436,10 @@ func TestColorPreview(t *testing.T) {
 		testcase string
 		expected string
 	}{
+		{ // do not render color names
+			"The CSS class `red` is there",
+			"<p>The CSS class <code>red</code> is there</p>\n",
+		},
 		{ // hex
 			"`#FF0000`",
 			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
@@ -442,8 +449,8 @@ func TestColorPreview(t *testing.T) {
 			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
 		},
 		{ // short hex
-			"This is the color white `#000`",
-			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+			"This is the color white `#0a0`",
+			`<p>This is the color white <code>#0a0<span class="color-preview" style="background-color: #0a0"></span></code></p>` + nl,
 		},
 		{ // hsl
 			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
@@ -956,4 +963,37 @@ space</p>
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
 		assert.Equal(t, template.HTML(c.Expected), result, "Unexpected result in testcase %v", i)
 	}
+}
+
+func TestAttention(t *testing.T) {
+	defer svg.MockIcon("octicon-info")()
+	defer svg.MockIcon("octicon-light-bulb")()
+	defer svg.MockIcon("octicon-report")()
+	defer svg.MockIcon("octicon-alert")()
+	defer svg.MockIcon("octicon-stop")()
+
+	renderAttention := func(attention, icon string) string {
+		tmpl := `<blockquote class="attention-header attention-{attention}"><p><svg class="attention-icon attention-{attention} svg {icon}" width="16" height="16"></svg><strong class="attention-{attention}">{Attention}</strong></p>`
+		tmpl = strings.ReplaceAll(tmpl, "{attention}", attention)
+		tmpl = strings.ReplaceAll(tmpl, "{icon}", icon)
+		tmpl = strings.ReplaceAll(tmpl, "{Attention}", cases.Title(language.English).String(attention))
+		return tmpl
+	}
+
+	test := func(input, expected string) {
+		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(result)))
+	}
+
+	test(`
+> [!NOTE]
+> text
+`, renderAttention("note", "octicon-info")+"\n<p>text</p>\n</blockquote>")
+
+	test(`> [!note]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
+	test(`> [!tip]`, renderAttention("tip", "octicon-light-bulb")+"\n</blockquote>")
+	test(`> [!important]`, renderAttention("important", "octicon-report")+"\n</blockquote>")
+	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
+	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
 }

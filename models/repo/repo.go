@@ -531,6 +531,9 @@ func (repo *Repository) GetBaseRepo(ctx context.Context) (err error) {
 		return nil
 	}
 
+	if repo.BaseRepo != nil {
+		return nil
+	}
 	repo.BaseRepo, err = GetRepositoryByID(ctx, repo.ForkID)
 	return err
 }

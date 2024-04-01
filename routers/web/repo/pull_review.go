@@ -179,11 +179,9 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	for _, c := range comments {
-		if err := c.LoadAttachments(ctx); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
 	}
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
@@ -279,6 +277,10 @@ func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
 	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
+		if pull_service.IsErrDismissRequestOnClosedPR(err) {
+			ctx.Status(http.StatusForbidden)
+			return
+		}
 		ctx.ServerError("pull_service.DismissReview", err)
 		return
 	}

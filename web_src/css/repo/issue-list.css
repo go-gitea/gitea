@@ -9,6 +9,7 @@
 
 .issue-list-toolbar-left {
   display: flex;
+  align-items: center;
 }
 
 .issue-list-toolbar-right .filter.menu {
@@ -80,10 +81,6 @@
 
 #issue-list .flex-item-body .checklist progress::-moz-progress-bar {
   background-color: var(--color-secondary-dark-4);
-}
-
-#issue-list .separator-container > .flex-text-inline::before {
-  content: "•";
 }
 
 .archived-label-filter {

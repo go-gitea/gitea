@@ -5,7 +5,7 @@
 
 			<div class="flex-item-icon">
 				{{if $.CanWriteIssuesOrPulls}}
-				<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+				<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
 				{{template "shared/issueicon" .}}
 			</div>
@@ -19,9 +19,9 @@
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
-						<span class="labels-list gt-ml-2">
+						<span class="labels-list tw-ml-1">
 							{{range .Labels}}
-								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context .}}</a>
+								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context ctx.Locale .}}</a>
 							{{end}}
 						</span>
 					</div>
@@ -163,7 +163,7 @@
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
 		<div class="ui error message">
-			<p>{{ctx.Locale.Tr "repo.issues.keyword_search_unavailable"}}</p>
+			<p>{{ctx.Locale.Tr "search.keyword_search_unavailable"}}</p>
 		</div>
 	{{end}}
 </div>
