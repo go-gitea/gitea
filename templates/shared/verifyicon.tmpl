@@ -4,7 +4,7 @@ Template Attributes:
 * Verification: Verification struct
 */}}
 {{if (and .Commit .Commit.Signature .Verification)}}
-	{{$icon = "octicon-unverified"}}
+	{{$icon := "octicon-unverified"}}
 	{{$text := ""}}
 	{{$colorClass := ""}}
 	{{if .Verification.Verified}}
