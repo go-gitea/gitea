@@ -30,6 +30,9 @@
 	</h4>
 	<div class="ui attached table unstackable segment">
 		<div class="file-view code-view unicode-escaped">
+			{{if .IsFileTooLarge}}
+				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+			{{else}}
 			<table>
 				<tbody>
 					{{range $row := .BlameRows}}
@@ -75,6 +78,7 @@
 					{{end}}
 				</tbody>
 			</table>
+			{{end}}{{/* end if .IsFileTooLarge */}}
 			<div class="code-line-menu tippy-target">
 				{{if $.Permission.CanRead $.UnitTypeIssues}}
 					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
