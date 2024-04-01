@@ -897,6 +897,10 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+			log.Error("CleanRepoScheduleTasks: %v", err)
+		}
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
