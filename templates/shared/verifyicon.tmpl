@@ -4,12 +4,12 @@ Template Attributes:
 * Verification: Verification struct
 */}}
 {{if (and .Commit .Commit.Signature .Verification)}}
-	{{$icon := ""}}
+	{{$icon = "octicon-unverified"}}
 	{{$text := ""}}
 	{{$colorClass := ""}}
 	{{if .Verification.Verified}}
-		{{$icon = "octicon-verified"}}
 		{{if eq .Verification.TrustStatus "trusted"}}
+			{{$icon = "octicon-verified"}}
 			{{$colorClass = "tw-text-green"}}
 			{{$text = (ctx.Locale.Tr "sig_verified")}}
 		{{else if eq .Verification.TrustStatus "untrusted"}}
@@ -20,7 +20,6 @@ Template Attributes:
 			{{$text = (ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched")}}
 		{{end}}
 	{{else}}
-		{{$icon = "octicon-unverified"}}
 		{{if .Verification.Warning}}
 			{{$colorClass = "tw-text-red"}}
 		{{else}}
