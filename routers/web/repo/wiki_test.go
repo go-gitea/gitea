@@ -200,12 +200,13 @@ func TestDeleteWikiPagePost(t *testing.T) {
 
 func TestWikiRaw(t *testing.T) {
 	for filepath, filetype := range map[string]string{
-		"jpeg.jpg":                 "image/jpeg",
-		"images/jpeg.jpg":          "image/jpeg",
-		"Page With Spaced Name":    "text/plain; charset=utf-8",
-		"Page-With-Spaced-Name":    "text/plain; charset=utf-8",
-		"Page With Spaced Name.md": "", // there is no "Page With Spaced Name.md" in repo
-		"Page-With-Spaced-Name.md": "text/plain; charset=utf-8",
+		"jpeg.jpg":                      "image/jpeg",
+		"images/jpeg.jpg":               "image/jpeg",
+		"files/Non-Renderable-File.zip": "application/octet-stream",
+		"Page With Spaced Name":         "text/plain; charset=utf-8",
+		"Page-With-Spaced-Name":         "text/plain; charset=utf-8",
+		"Page With Spaced Name.md":      "", // there is no "Page With Spaced Name.md" in repo
+		"Page-With-Spaced-Name.md":      "text/plain; charset=utf-8",
 	} {
 		unittest.PrepareTestEnv(t)
 
