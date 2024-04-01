@@ -4,33 +4,47 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.self_check"}}
 	</h4>
+
+	{{if .DeprecatedWarnings}}
 	<div class="ui attached segment">
-		{{if .DatabaseCheckHasProblems}}
-			{{if .DatabaseType.IsMySQL}}
-				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
-			{{else if .DatabaseType.IsMSSQL}}
-				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
-			{{end}}
-			{{if .DatabaseCheckCollationMismatch}}
-				<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
-			{{end}}
-			{{if .DatabaseCheckCollationCaseInsensitive}}
-				<div class="ui warning message">{{ctx.Locale.Tr "admin.self_check.database_collation_case_insensitive" .DatabaseCheckResult.DatabaseCollation}}</div>
-			{{end}}
-			{{if .DatabaseCheckInconsistentCollationColumns}}
-				<div class="ui red message">
-					{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}
-					<ul class="tw-w-full">
-					{{range .DatabaseCheckInconsistentCollationColumns}}
-						<li>{{.}}</li>
-					{{end}}
-					</ul>
-				</div>
-			{{end}}
-		{{else}}
-			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}</div>
+		<div class="ui warning message">
+			<div>{{ctx.Locale.Tr "admin.self_check.startup_warnings"}}</div>
+			<ul class="tw-w-full">{{range .DeprecatedWarnings}}<li>{{.}}</li>{{end}}</ul>
+		</div>
+	</div>
+	{{end}}
+
+	{{if .DatabaseCheckHasProblems}}
+	<div class="ui attached segment">
+		{{if .DatabaseType.IsMySQL}}
+			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
+		{{else if .DatabaseType.IsMSSQL}}
+			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
+		{{end}}
+		{{if .DatabaseCheckCollationMismatch}}
+			<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
+		{{end}}
+		{{if .DatabaseCheckCollationCaseInsensitive}}
+			<div class="ui warning message">{{ctx.Locale.Tr "admin.self_check.database_collation_case_insensitive" .DatabaseCheckResult.DatabaseCollation}}</div>
+		{{end}}
+		{{if .DatabaseCheckInconsistentCollationColumns}}
+			<div class="ui red message">
+				{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}
+				<ul class="tw-w-full">
+				{{range .DatabaseCheckInconsistentCollationColumns}}
+					<li>{{.}}</li>
+				{{end}}
+				</ul>
+			</div>
 		{{end}}
 	</div>
+	{{end}}
+
+	{{if and (not .DeprecatedWarnings) (not .DatabaseCheckHasProblems)}}
+	<div class="ui attached segment">
+		{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}
+	</div>
+	{{end}}
 </div>
 
 {{template "admin/layout_footer" .}}
