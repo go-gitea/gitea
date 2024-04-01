@@ -3,7 +3,12 @@
 
 package v1_23 //nolint
 
-import "xorm.io/xorm"
+import (
+	"fmt"
+
+	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
+)
 
 // AddUniqueIndexForProjectIssue adds unique indexes for project issue table
 func AddUniqueIndexForProjectIssue(x *xorm.Engine) error {
@@ -22,8 +27,18 @@ func AddUniqueIndexForProjectIssue(x *xorm.Engine) error {
 		return err
 	}
 	for _, r := range results {
-		if _, err := x.Exec("DELETE FROM project_issue WHERE issue_id = ? AND project_id = ? ORDER BY id DESC LIMIT ?", r.IssueID, r.ProjectID, r.Cnt-1); err != nil {
-			return err
+		if x.Dialect().URI().DBType == schemas.MSSQL {
+			if _, err := x.Exec(fmt.Sprintf("delete from project_issue where id in (SELECT top %d id FROM project_issue WHERE issue_id = ? and project_id = ?)", r.Cnt-1), r.IssueID, r.ProjectID); err != nil {
+				return err
+			}
+		} else {
+			var ids []int64
+			if err := x.SQL("SELECT id FROM project_issue WHERE issue_id = ? and project_id = ? limit ?", r.IssueID, r.ProjectID, r.Cnt-1).Find(&ids); err != nil {
+				return err
+			}
+			if _, err := x.Table("project_issue").In("id", ids).Delete(); err != nil {
+				return err
+			}
 		}
 	}
 
