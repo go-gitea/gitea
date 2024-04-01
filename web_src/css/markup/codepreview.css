@@ -1,0 +1,26 @@
+.markup .code-preview-container {
+  border: 1px solid var(--color-secondary);
+}
+
+.markup .code-preview-container .code-preview-header {
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0.5em;
+  font-size: 11px;
+}
+
+.markup .code-preview-container table {
+  width: 100%;
+  margin: 0.25em 0;
+  max-height: 100px;
+  overflow-y: scroll;
+}
+
+/* override the polluted styles from the content.css: ".markup table ..." */
+.markup .code-preview-container table tr {
+  border: 0 !important;
+}
+.markup .code-preview-container table th,
+.markup .code-preview-container table td {
+  border: 0 !important;
+  padding: 0 0 0 5px !important;
+}

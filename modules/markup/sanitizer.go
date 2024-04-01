@@ -58,7 +58,13 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy := bluemonday.UGCPolicy()
 
 	// For JS code copy and Mermaid loading state
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).Globally()
+
+	// For code preview
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-preview-[-\w]+$`)).Globally()
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-num$`)).Globally()
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-code chroma$`)).Globally()
+	policy.AllowAttrs("data-line-number").OnElements("span")
 
 	// For color preview
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")

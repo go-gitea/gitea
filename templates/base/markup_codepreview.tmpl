@@ -1,0 +1,17 @@
+<div class="code-preview-container">
+	<div class="code-preview-header">
+		<a href="{{.FullURL}}" class="muted" rel="nofollow">{{.FilePath}}</a>
+		Lines {{.LineStart}} to {{.LineStop}} in
+		<a href="{{.RepoLink}}/src/commit/{{.CommitID}}" rel="nofollow">{{.CommitID | ShortSha}}</a>
+	</div>
+	<table>
+		<tbody>
+			{{- range .HighlightLines -}}
+			<tr>
+				<td class="lines-num"><span data-line-number="{{.Num}}"></span></td>
+				<td class="lines-code chroma">{{.FormattedContent}}</td>
+			</tr>
+			{{- end -}}
+		</tbody>
+	</table>
+</div>

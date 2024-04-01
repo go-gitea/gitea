@@ -70,9 +70,9 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 	return nil
 }
 
-func HighlightSearchResultCode(filename string, lineNums []int, code string) []ResultLine {
+func HighlightSearchResultCode(filename, language string, lineNums []int, code string) []ResultLine {
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	hl, _ := highlight.Code(filename, "", code)
+	hl, _ := highlight.Code(filename, language, code)
 	highlightedLines := strings.Split(string(hl), "\n")
 
 	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
@@ -122,7 +122,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		UpdatedUnix: result.UpdatedUnix,
 		Language:    result.Language,
 		Color:       result.Color,
-		Lines:       HighlightSearchResultCode(result.Filename, lineNums, formattedLinesBuffer.String()),
+		Lines:       HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String()),
 	}, nil
 }
 

@@ -41,6 +41,7 @@
 
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
+@import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
