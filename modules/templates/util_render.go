@@ -147,8 +147,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
-	r, g, b := util.HexToRBGColor(label.Color);
-	luminance := util.GetLuminance(r, g, b)
+	luminance := util.GetLuminance(label.Color)
 	contrast := 0.01 + luminance*0.03
 	// Ensure we add the same amount of contrast also near 0 and 1.
 	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
@@ -157,6 +156,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
 	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
 
+	r, g, b := util.HexToRBGColor(label.Color);
 	scopeBytes := []byte{
 		uint8(math.Min(math.Round(r*darkenFactor), 255)),
 		uint8(math.Min(math.Round(g*darkenFactor), 255)),
