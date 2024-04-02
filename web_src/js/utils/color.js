@@ -7,9 +7,6 @@ function getRelativeLuminance(color) {
   return (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 255;
 }
 
-// Given a background color, returns a black or white foreground color that the highest
-// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
-// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 function useLightText(backgroundColor) {
   return getRelativeLuminance(backgroundColor) < 0.453 ? true : false;
 }
