@@ -58,13 +58,21 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy := bluemonday.UGCPolicy()
 
 	// For JS code copy and Mermaid loading state
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).Globally()
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
 
 	// For code preview
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-preview-[-\w]+$`)).Globally()
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-num$`)).Globally()
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-code chroma$`)).Globally()
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-preview-[-\w]+( file-content)?$`)).Globally()
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-num$`)).OnElements("td")
 	policy.AllowAttrs("data-line-number").OnElements("span")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-code chroma$`)).OnElements("td")
+
+	// For code preview (unicode escape)
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^file-view( unicode-escaped)?$`)).OnElements("table")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-escape$`)).OnElements("td")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^toggle-escape-button btn interact-bg$`)).OnElements("a") // don't use button, button might submit a form
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(ambiguous-code-point|escaped-code-point|broken-code-point)$`)).OnElements("span")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^char$`)).OnElements("span")
+	policy.AllowAttrs("data-tooltip-content", "data-escaped").OnElements("span")
 
 	// For color preview
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")

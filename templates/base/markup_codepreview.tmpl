@@ -1,15 +1,19 @@
-<div class="code-preview-container">
+<div class="code-preview-container file-content">
 	<div class="code-preview-header">
 		<a href="{{.FullURL}}" class="muted" rel="nofollow">{{.FilePath}}</a>
 		Lines {{.LineStart}} to {{.LineStop}} in
 		<a href="{{.RepoLink}}/src/commit/{{.CommitID}}" rel="nofollow">{{.CommitID | ShortSha}}</a>
 	</div>
-	<table>
+	<table class="file-view">
 		<tbody>
-			{{- range .HighlightLines -}}
+			{{- range $idx, $line := .HighlightLines -}}
 			<tr>
-				<td class="lines-num"><span data-line-number="{{.Num}}"></span></td>
-				<td class="lines-code chroma">{{.FormattedContent}}</td>
+				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
+				{{- if $.EscapeStatus.Escaped -}}
+					{{- $lineEscapeStatus := index $.LineEscapeStatus $idx -}}
+					<td class="lines-escape">{{if $lineEscapeStatus.Escaped}}<a href="#" class="toggle-escape-button btn interact-bg" title="{{if $lineEscapeStatus.HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $lineEscapeStatus.HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
+				{{- end}}
+				<td class="lines-code chroma">{{$line.FormattedContent}}</td>
 			</tr>
 			{{- end -}}
 		</tbody>

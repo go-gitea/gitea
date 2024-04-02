@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 
 	"golang.org/x/net/html"
 )
@@ -62,6 +63,9 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 	for node != nil {
 		urlPosStart, urlPosEnd, h, err := renderCodeBlock(ctx, node)
 		if err != nil || h == "" {
+			if err != nil {
+				log.Error("Unable to render code preview: %v", err)
+			}
 			node = node.NextSibling
 			continue
 		}

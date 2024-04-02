@@ -1,5 +1,6 @@
 .markup .code-preview-container {
   border: 1px solid var(--color-secondary);
+  margin: 0.25em 0;
 }
 
 .markup .code-preview-container .code-preview-header {
@@ -10,7 +11,6 @@
 
 .markup .code-preview-container table {
   width: 100%;
-  margin: 0.25em 0;
   max-height: 100px;
   overflow-y: auto;
 }
