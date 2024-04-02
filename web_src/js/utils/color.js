@@ -1,16 +1,16 @@
 import tinycolor from 'tinycolor2';
 
-// Check similar implementation in modules/util/color.go and keep synchronization
 
-// Returns relative luminance for SRGB - https://en.wikipedia.org/wiki/Relative_luminance
+// Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
+// Keep this in sync with modules/util/color.go
 function getLuminance(color) {
   const {r, g, b} = tinycolor(color).toRgb();
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 255;
 }
 
-// Given a background color whether to render black or white foreground
-// In the future WCAG 3 APCA may be a better solution.
-// Check if text should use light color based on RGB of background
+// Given a background color, returns a black or white foreground color that the highest
+// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 export function contrastColor(backgroundColor) {
   return getLuminance(backgroundColor) < 0.453 ? '#fff' : '#000';
 }

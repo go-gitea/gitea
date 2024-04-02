@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// Check similar implementation in web_src/js/utils/color.js and keep synchronization
-
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
 func HexToRBGColor(colorString string) (float64, float64, float64) {
 	hexString := colorString
@@ -37,18 +35,18 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	return r, g, b
 }
 
-// return luminance given RGB channels
-// Reference from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
-func GetLuminance(r, g, b float64) float64 {
-	return (0.2126*r + 0.7152*g + 0.0722*b) / 255
+// Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
+// Keep this in sync with web_src/js/utils/color.js
+func GetLuminance(hexColor string) float64 {
+	r, g, b := HexToRBGColor(color);
+	return (0.2126729*r + 0.7151522*g + 0.0721750*b) / 255
 }
 
-// Reference from: https://firsching.ch/github_labels.html
-// In the future WCAG 3 APCA may be a better solution.
-// Check if text should use light color based on RGB of background
-func ContrastColor(color string) string {
-	r, g, b := HexToRBGColor(color);
-	if GetLuminance(r, g, b) < 0.453 {
+// Given a background color, returns a black or white foreground color that the highest
+// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
+func ContrastColor(backgroundColor string) string {
+	if GetLuminance(backgroundColor) < 0.453 {
 		return "#fff"
 	} else {
 		return "#000"
