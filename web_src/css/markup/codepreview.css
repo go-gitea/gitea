@@ -17,6 +17,11 @@
   margin: 0; /* override ".markup table {margin}" */
 }
 
+/* workaround to hide empty p before container - more details are in "html_codepreview.go" */
+.markup p:empty:has(+ .code-preview-container) {
+  display: none;
+}
+
 /* override the polluted styles from the content.css: ".markup table ..." */
 .markup .code-preview-container table tr {
   border: 0 !important;
