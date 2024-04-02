@@ -22,6 +22,10 @@
   cursor: default;
 }
 
+.project-column .issue-card {
+  color: var(--color-text);
+}
+
 .project-column-header {
   display: flex;
   align-items: center;
