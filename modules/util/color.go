@@ -42,13 +42,13 @@ func GetRelativeLuminance(color string) float64 {
 	return (0.2126729*r + 0.7151522*g + 0.0721750*b) / 255
 }
 
-// Given a background color, returns a black or white foreground color that the highest
-// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
-// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func UseLightText(backgroundColor string) bool {
 	return GetRelativeLuminance(backgroundColor) < 0.453
 }
 
+// Given a background color, returns a black or white foreground color that the highest
+// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func ContrastColor(backgroundColor string) string {
 	if UseLightText(backgroundColor) {
 		return "#fff"
