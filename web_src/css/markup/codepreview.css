@@ -26,3 +26,6 @@
   border: 0 !important;
   padding: 0 0 0 5px !important;
 }
+.markup .code-preview-container table tr:nth-child(2n) {
+  background: none !important;
+}
