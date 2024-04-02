@@ -36,7 +36,7 @@ func Test_HexToRBGColor(t *testing.T) {
 func Test_UseLightText(t *testing.T) {
 	cases := []struct {
 		color    string
-		expected bool
+		expected string
 	}{
 		{"#d73a4a", "#fff"},
 		{"#0075ca", "#fff"},
