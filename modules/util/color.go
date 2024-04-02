@@ -48,15 +48,13 @@ func GetLuminance(color string) float64 {
 func UseLightText(backgroundColor string) bool {
 	if GetLuminance(backgroundColor) < 0.453 {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 func ContrastColor(backgroundColor string) string {
 	if UseLightText(backgroundColor) {
 		return "#fff"
-	} else {
-		return "#000"
 	}
+	return "#000"
 }
