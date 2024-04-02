@@ -147,7 +147,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
-	luminance := util.GetLuminance(label.Color)
+	luminance := util.GetRelativeLuminance(label.Color)
 	contrast := 0.01 + luminance*0.03
 	// Ensure we add the same amount of contrast also near 0 and 1.
 	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)

@@ -2,7 +2,7 @@ import tinycolor from 'tinycolor2';
 
 // Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
 // Keep this in sync with modules/util/color.go
-function getLuminance(color) {
+function getRelativeLuminance(color) {
   const {r, g, b} = tinycolor(color).toRgb();
   return (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 255;
 }
@@ -11,7 +11,7 @@ function getLuminance(color) {
 // contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 function useLightText(backgroundColor) {
-  return getLuminance(backgroundColor) < 0.453 ? true : false;
+  return getRelativeLuminance(backgroundColor) < 0.453 ? true : false;
 }
 
 export function contrastColor(backgroundColor) {

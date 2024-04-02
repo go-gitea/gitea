@@ -37,7 +37,7 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 
 // Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
 // Keep this in sync with web_src/js/utils/color.js
-func GetLuminance(color string) float64 {
+func GetRelativeLuminance(color string) float64 {
 	r, g, b := HexToRBGColor(color)
 	return (0.2126729*r + 0.7151522*g + 0.0721750*b) / 255
 }
@@ -46,7 +46,7 @@ func GetLuminance(color string) float64 {
 // contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func UseLightText(backgroundColor string) bool {
-	if GetLuminance(backgroundColor) < 0.453 {
+	if GetRelativeLuminance(backgroundColor) < 0.453 {
 		return true
 	}
 	return false
