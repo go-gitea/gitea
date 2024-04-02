@@ -70,10 +70,13 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 		next := node.NextSibling
-		nodeText := node.Data
-		node.Data = nodeText[:urlPosStart]
+		textBefore := node.Data[:urlPosStart]
+		textAfter := node.Data[urlPosEnd:]
+		node.Data = textBefore
 		node.Parent.InsertBefore(&html.Node{Type: html.RawNode, Data: string(h)}, next)
-		node.Parent.InsertBefore(&html.Node{Type: html.TextNode, Data: nodeText[urlPosEnd:]}, next)
+		if textAfter != "" {
+			node.Parent.InsertBefore(&html.Node{Type: html.TextNode, Data: textAfter}, next)
+		}
 		node = next
 	}
 }
