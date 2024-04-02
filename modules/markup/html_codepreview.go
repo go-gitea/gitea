@@ -77,8 +77,11 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 		textBefore := node.Data[:urlPosStart]
 		textAfter := node.Data[urlPosEnd:]
 		// "textBefore" could be empty if there is only a URL in the text node, then an empty node (p, or li) will be left here.
-		// However, the empty node can't be simply removed, because the following processors will still try to access it.
-		// To fundamentally solve this problem, it needs to refactor the whole processor system first.
+		// However, the empty node can't be simply removed, because:
+		// 1. the following processors will still try to access it (need to double-check undefined behaviors)
+		// 2. the new node is inserted as "<p>{TextBefore}<div NewNode/>{TextAfter}</p>" (the parent could also be "li")
+		//    then it is resolved as: "<p>{TextBefore}</p><div NewNode/><p>{TextAfter}</p>",
+		//    so unless it could correctly replace the parent "p/li" node, it is very difficult to eliminate the "TextBefore" empty node.
 		node.Data = textBefore
 		node.Parent.InsertBefore(&html.Node{Type: html.RawNode, Data: string(h)}, next)
 		if textAfter != "" {
