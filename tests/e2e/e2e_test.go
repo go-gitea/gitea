@@ -106,6 +106,7 @@ func TestE2e(t *testing.T) {
 		// Load install routes for tests inside that folder
 		if strings.Contains(path, "install/") {
 			testE2eWebRoutes = install.Routes()
+			setting.InstallLock = false
 		} else {
 			testE2eWebRoutes = routers.NormalRoutes()
 		}
