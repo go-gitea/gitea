@@ -21,8 +21,9 @@ var (
 )
 
 // MockSet sets the time to a mocked time.Time
-func MockSet(now time.Time) {
+func MockSet(now time.Time) func() {
 	mockNow = now
+	return MockUnset
 }
 
 // MockUnset will unset the mocked time.Time
