@@ -1,5 +1,6 @@
 .markup .code-preview-container {
   border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
   margin: 0.25em 0;
 }
 
@@ -13,6 +14,7 @@
   width: 100%;
   max-height: 100px;
   overflow-y: auto;
+  margin: 0; /* override ".markup table {margin}" */
 }
 
 /* override the polluted styles from the content.css: ".markup table ..." */

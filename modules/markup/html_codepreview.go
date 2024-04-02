@@ -61,6 +61,10 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 
 func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 	for node != nil {
+		if node.Type != html.TextNode {
+			node = node.NextSibling
+			continue
+		}
 		urlPosStart, urlPosEnd, h, err := renderCodeBlock(ctx, node)
 		if err != nil || h == "" {
 			if err != nil {
