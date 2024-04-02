@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/install"
 	"code.gitea.io/gitea/tests"
 )
 
@@ -38,7 +40,6 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	tests.InitTest(false)
-	testE2eWebRoutes = routers.NormalRoutes()
 
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")
@@ -84,22 +85,35 @@ func TestE2e(t *testing.T) {
 		t.Fatal(fmt.Errorf("No e2e tests found in %s", searchGlob))
 	}
 
-	runArgs := []string{"npx", "playwright", "test"}
+	// Also search subdirectories (go globbing does now support the "**" wildcard)
+	searchGlobSubdir := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*", "*.test.e2e.js")
+	pathsSubdir, _ := filepath.Glob(searchGlobSubdir)
+
+	runCommand := []string{"npx", "playwright", "test"}
 
 	// To update snapshot outputs
 	if _, set := os.LookupEnv("ACCEPT_VISUAL"); set {
-		runArgs = append(runArgs, "--update-snapshots")
+		runCommand = append(runCommand, "--update-snapshots")
 	}
 
 	// Create new test for each input file
-	for _, path := range paths {
+	for _, path := range append(paths, pathsSubdir...) {
 		_, filename := filepath.Split(path)
 		testname := filename[:len(filename)-len(filepath.Ext(path))]
+
+		runArgs := append(runCommand, path)
+
+		// Load install routes for tests inside that folder
+		if strings.Contains(path, "install/") {
+			testE2eWebRoutes = install.Routes()
+		} else {
+			testE2eWebRoutes = routers.NormalRoutes()
+		}
 
 		t.Run(testname, func(t *testing.T) {
 			// Default 2 minute timeout
 			onGiteaRun(t, func(*testing.T, *url.URL) {
-				cmd := exec.Command(runArgs[0], runArgs...)
+				cmd := exec.Command(runArgs[0], runArgs[1:]...)
 				cmd.Env = os.Environ()
 				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
 				var stdout, stderr bytes.Buffer
