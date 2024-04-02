@@ -17,6 +17,11 @@
   margin: 0; /* override ".markup table {margin}" */
 }
 
+/* workaround to hide empty p before container - https://github.com/go-gitea/gitea/pull/30234#issuecomment-2032521488 */
+.markup p:empty:has(+ .code-preview-container) {
+  display: none;
+}
+
 /* override the polluted styles from the content.css: ".markup table ..." */
 .markup .code-preview-container table tr {
   border: 0 !important;
