@@ -46,10 +46,7 @@ func GetRelativeLuminance(color string) float64 {
 // contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func UseLightText(backgroundColor string) bool {
-	if GetRelativeLuminance(backgroundColor) < 0.453 {
-		return true
-	}
-	return false
+	return GetRelativeLuminance(backgroundColor) < 0.453
 }
 
 func ContrastColor(backgroundColor string) string {
