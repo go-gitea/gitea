@@ -35,7 +35,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 
 	httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 
-	if setting.XFrameOptions != "false" {
+	if setting.UseXFrameOptions {
 		w.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
 	}
 

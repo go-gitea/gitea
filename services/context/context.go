@@ -191,7 +191,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 
-			if setting.XFrameOptions != "false" {
+			if setting.UseXFrameOptions {
 				ctx.Resp.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
 			}
 
