@@ -28,22 +28,6 @@
   justify-content: space-between;
 }
 
-.project-column-header.dark-label {
-  color: var(--color-project-board-dark-label) !important;
-}
-
-.project-column-header.dark-label .project-column-title {
-  color: var(--color-project-board-dark-label) !important;
-}
-
-.project-column-header.light-label {
-  color: var(--color-project-board-light-label) !important;
-}
-
-.project-column-header.light-label .project-column-title {
-  color: var(--color-project-board-light-label) !important;
-}
-
 .project-column-title {
   background: none !important;
   line-height: 1.25 !important;
