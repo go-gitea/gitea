@@ -50,6 +50,11 @@
   cursor: inherit;
 }
 
+.project-column-title,
+.project-column-issue-count {
+  color: inherit !important;
+}
+
 .project-column > .cards {
   flex: 1;
   display: flex;

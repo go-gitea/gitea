@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {useLightText} from '../utils/color.js';
+import {contrastColor} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
 
@@ -101,16 +101,10 @@ export function initRepoProject() {
 
   for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
     const projectHeader = modal.closest('.project-column-header');
-    const projectTitleLabel = projectHeader?.querySelector('.project-column-title');
+    const projectTitleLabel = projectHeader?.querySelector('.project-column-title-label');
     const projectTitleInput = modal.querySelector('.project-column-title-input');
     const projectColorInput = modal.querySelector('#new_project_column_color');
     const boardColumn = modal.closest('.project-column');
-    const bgColor = boardColumn?.style.backgroundColor;
-
-    if (bgColor) {
-      setLabelColor(projectHeader, rgbToHex(bgColor));
-    }
-
     modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
       try {
@@ -125,10 +119,8 @@ export function initRepoProject() {
       } finally {
         projectTitleLabel.textContent = projectTitleInput?.value;
         projectTitleInput.closest('form')?.classList.remove('dirty');
-        if (projectColorInput?.value) {
-          setLabelColor(projectHeader, projectColorInput.value);
-        }
-        boardColumn.style = `background: ${projectColorInput.value} !important`;
+        boardColumn.style.setProperty('background', projectColorInput.value, 'important');
+        boardColumn.style.setProperty('color', contrastColor(projectColorInput.value), 'important');
         $('.ui.modal').modal('hide');
       }
     });
@@ -180,16 +172,6 @@ export function initRepoProject() {
     const url = e.target.getAttribute('data-url');
     createNewColumn(url, $columnTitle, $projectColorInput);
   });
-}
-
-function setLabelColor(label, color) {
-  if (useLightText(color)) {
-    label.classList.remove('dark-label');
-    label.classList.add('light-label');
-  } else {
-    label.classList.remove('light-label');
-    label.classList.add('dark-label');
-  }
 }
 
 function rgbToHex(rgb) {
