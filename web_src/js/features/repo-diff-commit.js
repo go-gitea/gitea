@@ -35,7 +35,7 @@ function addBranches(area, branches, defaultBranch) {
 
 function addLink(parent, href, text, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'gt-px-2');
+  link.classList.add('muted', 'tw-px-1');
   link.href = href;
   link.textContent = text;
   if (tooltip) {

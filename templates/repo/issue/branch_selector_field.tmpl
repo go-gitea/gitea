@@ -20,12 +20,12 @@
 				<div class="two column row">
 					<a class="reference column muted" href="#" data-target="#branch-list">
 						<span class="text black">
-							{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.branches"}}
+							{{svg "octicon-git-branch" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.branches"}}
 						</span>
 					</a>
 					<a class="reference column muted" href="#" data-target="#tag-list">
 						<span class="text">
-							{{svg "octicon-tag" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.tags"}}
+							{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.tags"}}
 						</span>
 					</a>
 				</div>
@@ -42,7 +42,7 @@
 				<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} gt-hidden">
+		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} tw-hidden">
 			{{if .Reference}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
