@@ -1,8 +1,12 @@
 <div class="code-preview-container file-content">
 	<div class="code-preview-header">
 		<a href="{{.FullURL}}" class="muted" rel="nofollow">{{.FilePath}}</a>
-		Lines {{.LineStart}} to {{.LineStop}} in
-		<a href="{{.RepoLink}}/src/commit/{{.CommitID}}" rel="nofollow">{{.CommitID | ShortSha}}</a>
+		{{$link := HTMLFormat `<a href="%s/src/commit/%s" rel="nofollow">%s</a>` .RepoLink .CommitID (.CommitID | ShortSha) -}}
+		{{- if eq .LineStart .LineStop -}}
+			{{ctx.Locale.Tr "repo.code_preview_line_in" .LineStart $link}}
+		{{- else -}}
+			{{ctx.Locale.Tr "repo.code_preview_line_from_to" .LineStart .LineStop $link}}
+		{{- end}}
 	</div>
 	<table class="file-view">
 		<tbody>
