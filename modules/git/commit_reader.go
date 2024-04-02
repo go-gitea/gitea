@@ -99,7 +99,7 @@ readLoop:
 		}
 	}
 	commit.CommitMessage = messageSB.String()
-	commit.Signature = &CommitGPGSignature{
+	commit.Signature = &CommitSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
 	}
