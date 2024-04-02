@@ -28,6 +28,7 @@ test('Perform Install', async ({page}) => {
   //  - Existing .ini and db files trigger the "reinstall" dialogue rather than normal install
   //  - Successfully reinstalling seems to work, but the backend will drop the "install" routes
   //      and is not setup to start the "normal" routes (thats something the CLI handles)
+  //  - Playwright will run all browsers simultaneously which leads to race conditions between the test runs
   // Those are probably all resolvable but might take a larger re-work of the fixtures/setup logic
 
   // await page.getByRole('button', {name: "Install Gitea"}).click();
