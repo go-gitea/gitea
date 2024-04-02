@@ -171,6 +171,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
+	codePreviewPatternProcessor,
 	fullHashPatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,

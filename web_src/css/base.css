@@ -1186,8 +1186,11 @@ overflow-menu .ui.label {
   content: attr(data-line-number);
   line-height: 20px !important;
   padding: 0 10px;
-  cursor: pointer;
   display: block;
+}
+
+.code-view .lines-num span::after {
+  cursor: pointer;
 }
 
 .lines-type-marker {

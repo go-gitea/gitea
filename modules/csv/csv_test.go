@@ -561,14 +561,14 @@ func TestFormatError(t *testing.T) {
 			err: &csv.ParseError{
 				Err: csv.ErrFieldCount,
 			},
-			expectedMessage: "repo.error.csv.invalid_field_count",
+			expectedMessage: "repo.error.csv.invalid_field_count:0",
 			expectsError:    false,
 		},
 		{
 			err: &csv.ParseError{
 				Err: csv.ErrBareQuote,
 			},
-			expectedMessage: "repo.error.csv.unexpected",
+			expectedMessage: "repo.error.csv.unexpected:0,0",
 			expectsError:    false,
 		},
 		{
