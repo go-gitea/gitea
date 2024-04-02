@@ -4,13 +4,6 @@ modifies/docs:
           - "**/*.md"
           - "docs/**"
 
-modifies/frontend:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "web_src/**"
-          - "tailwind.config.js"
-          - "webpack.config.js"
-
 modifies/templates:
   - changed-files:
       - all-globs-to-any-file:
@@ -53,7 +46,7 @@ modifies/internal:
           - ".gitpod.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
-          - ".stylelintrc.yaml"
+          - "stylelint.config.js"
           - ".yamllint.yaml"
           - ".github/**"
           - ".gitea/"

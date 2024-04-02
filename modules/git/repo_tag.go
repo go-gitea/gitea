@@ -185,17 +185,15 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 	tag.Tagger = parseSignatureFromCommitLine(ref["creator"])
 	tag.Message = ref["contents"]
-	// strip PGP signature if present in contents field
-	pgpStart := strings.Index(tag.Message, beginpgp)
-	if pgpStart >= 0 {
-		tag.Message = tag.Message[0:pgpStart]
-	}
+
+	// strip any signature if present in contents field
+	_, tag.Message, _ = parsePayloadSignature(util.UnsafeStringToBytes(tag.Message), 0)
 
 	// annotated tag with GPG signature
 	if tag.Type == "tag" && ref["contents:signature"] != "" {
 		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s\n",
 			tag.Object, tag.Name, ref["creator"], strings.TrimSpace(tag.Message))
-		tag.Signature = &CommitGPGSignature{
+		tag.Signature = &CommitSignature{
 			Signature: ref["contents:signature"],
 			Payload:   payload,
 		}
