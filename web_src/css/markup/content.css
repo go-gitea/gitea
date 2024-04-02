@@ -382,7 +382,7 @@
   text-align: center;
 }
 
-.markup span.align-center span img
+.markup span.align-center span img,
 .markup span.align-center span video {
   margin: 0 auto;
   text-align: center;
@@ -432,7 +432,7 @@
   text-align: right;
 }
 
-.markup code,
+.markup code:not(.code-inner),
 .markup tt {
   padding: 0.2em 0.4em;
   margin: 0;

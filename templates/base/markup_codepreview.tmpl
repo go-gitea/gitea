@@ -1,0 +1,25 @@
+<div class="code-preview-container file-content">
+	<div class="code-preview-header">
+		<a href="{{.FullURL}}" class="muted" rel="nofollow">{{.FilePath}}</a>
+		{{$link := HTMLFormat `<a href="%s/src/commit/%s" rel="nofollow">%s</a>` .RepoLink .CommitID (.CommitID | ShortSha) -}}
+		{{- if eq .LineStart .LineStop -}}
+			{{ctx.Locale.Tr "repo.code_preview_line_in" .LineStart $link}}
+		{{- else -}}
+			{{ctx.Locale.Tr "repo.code_preview_line_from_to" .LineStart .LineStop $link}}
+		{{- end}}
+	</div>
+	<table class="file-view">
+		<tbody>
+			{{- range $idx, $line := .HighlightLines -}}
+			<tr>
+				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
+				{{- if $.EscapeStatus.Escaped -}}
+					{{- $lineEscapeStatus := index $.LineEscapeStatus $idx -}}
+					<td class="lines-escape">{{if $lineEscapeStatus.Escaped}}<a href="#" class="toggle-escape-button btn interact-bg" title="{{if $lineEscapeStatus.HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $lineEscapeStatus.HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
+				{{- end}}
+				<td class="lines-code chroma"><code class="code-inner">{{$line.FormattedContent}}</code></td>
+			</tr>
+			{{- end -}}
+		</tbody>
+	</table>
+</div>
