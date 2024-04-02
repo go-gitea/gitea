@@ -85,7 +85,7 @@ func TestE2e(t *testing.T) {
 		t.Fatal(fmt.Errorf("No e2e tests found in %s", searchGlob))
 	}
 
-	// Also search subdirectories (go globbing does now support the "**" wildcard)
+	// Also search subdirectories (go globbing does not support the "**" wildcard)
 	searchGlobSubdir := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*", "*.test.e2e.js")
 	pathsSubdir, _ := filepath.Glob(searchGlobSubdir)
 
