@@ -5,8 +5,6 @@ package markup
 
 import (
 	"bufio"
-	"bytes"
-	"fmt"
 	"html"
 	"io"
 	"regexp"
@@ -15,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 func init() {
@@ -40,6 +39,8 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`ui top attached warning message`)},
+		{Element: "a", AllowAttr: "href", Regexp: regexp.MustCompile(`\?display=source`)},
 	}
 }
 
@@ -80,79 +81,32 @@ func writeField(w io.Writer, element, class, field string) error {
 // Render implements markup.Renderer
 func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	tmpBlock := bufio.NewWriter(output)
+	warnBlock := bufio.NewWriter(tmpBlock)
 	maxSize := setting.UI.CSV.MaxFileSize
+	maxRows := setting.UI.CSV.MaxRows
 
-	if maxSize == 0 {
-		return r.tableRender(ctx, input, tmpBlock)
+	if maxSize != 0 {
+		input = io.LimitReader(input, maxSize+1)
 	}
 
-	rawBytes, err := io.ReadAll(io.LimitReader(input, maxSize+1))
-	if err != nil {
-		return err
-	}
-
-	if int64(len(rawBytes)) <= maxSize {
-		return r.tableRender(ctx, bytes.NewReader(rawBytes), tmpBlock)
-	}
-	return r.fallbackRender(io.MultiReader(bytes.NewReader(rawBytes), input), tmpBlock)
-}
-
-func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
-	_, err := tmpBlock.WriteString("<pre>")
-	if err != nil {
-		return err
-	}
-
-	scan := bufio.NewScanner(input)
-	scan.Split(bufio.ScanRunes)
-	for scan.Scan() {
-		switch scan.Text() {
-		case `&`:
-			_, err = tmpBlock.WriteString("&amp;")
-		case `'`:
-			_, err = tmpBlock.WriteString("&#39;") // "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
-		case `<`:
-			_, err = tmpBlock.WriteString("&lt;")
-		case `>`:
-			_, err = tmpBlock.WriteString("&gt;")
-		case `"`:
-			_, err = tmpBlock.WriteString("&#34;") // "&#34;" is shorter than "&quot;".
-		default:
-			_, err = tmpBlock.Write(scan.Bytes())
-		}
-		if err != nil {
-			return err
-		}
-	}
-	if err = scan.Err(); err != nil {
-		return fmt.Errorf("fallbackRender scan: %w", err)
-	}
-
-	_, err = tmpBlock.WriteString("</pre>")
-	if err != nil {
-		return err
-	}
-	return tmpBlock.Flush()
-}
-
-func (Renderer) tableRender(ctx *markup.RenderContext, input io.Reader, tmpBlock *bufio.Writer) error {
 	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, input)
 	if err != nil {
 		return err
 	}
-
 	if _, err := tmpBlock.WriteString(`<table class="data-table">`); err != nil {
 		return err
 	}
+
 	row := 1
 	for {
 		fields, err := rd.Read()
-		if err == io.EOF {
+		if err == io.EOF || (row >= maxRows && maxRows != 0) {
 			break
 		}
 		if err != nil {
 			continue
 		}
+
 		if _, err := tmpBlock.WriteString("<tr>"); err != nil {
 			return err
 		}
@@ -173,6 +127,22 @@ func (Renderer) tableRender(ctx *markup.RenderContext, input io.Reader, tmpBlock
 		}
 
 		row++
+	}
+
+	// Check if maxRows or maxSize is reached, and if true, warn.
+	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
+		locale := ctx.Ctx.Value(translation.ContextKey).(translation.Locale)
+
+		// Construct the HTML string
+		warn := `<div class="ui top attached warning message" tabindex="0">` + locale.TrString("repo.file_too_large") + ` <b><a class="source" href="?display=source">` + locale.TrString("repo.file_view_source") + `</a></b></div>`
+
+		// Write the HTML string to the output
+		if _, err := warnBlock.WriteString(warn); err != nil {
+			return err
+		}
+		if err = warnBlock.Flush(); err != nil {
+			return err
+		}
 	}
 	if _, err = tmpBlock.WriteString("</table>"); err != nil {
 		return err
