@@ -12,7 +12,7 @@
   width: 100%;
   margin: 0.25em 0;
   max-height: 100px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 /* override the polluted styles from the content.css: ".markup table ..." */
