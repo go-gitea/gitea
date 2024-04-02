@@ -156,7 +156,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
 	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
 
-	r, g, b := util.HexToRBGColor(label.Color);
+	r, g, b := util.HexToRBGColor(label.Color)
 	scopeBytes := []byte{
 		uint8(math.Min(math.Round(r*darkenFactor), 255)),
 		uint8(math.Min(math.Round(g*darkenFactor), 255)),

@@ -1,6 +1,5 @@
 import tinycolor from 'tinycolor2';
 
-
 // Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
 // Keep this in sync with modules/util/color.go
 function getLuminance(color) {
@@ -11,8 +10,12 @@ function getLuminance(color) {
 // Given a background color, returns a black or white foreground color that the highest
 // contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
+export function useLightText(backgroundColor) {
+  return getLuminance(backgroundColor) < 0.453 ? true : false;
+}
+
 export function contrastColor(backgroundColor) {
-  return getLuminance(backgroundColor) < 0.453 ? '#fff' : '#000';
+  return useLightText(backgroundColor) ? '#fff' : '#000';
 }
 
 function resolveColors(obj) {

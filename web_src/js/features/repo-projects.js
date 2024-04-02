@@ -1,6 +1,5 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
+import {useLightText} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
 
@@ -184,8 +183,7 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const {r, g, b} = tinycolor(color).toRgb();
-  if (useLightTextOnBackground(r, g, b)) {
+  if (useLightText(color)) {
     label.classList.remove('dark-label');
     label.classList.add('light-label');
   } else {

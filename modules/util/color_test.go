@@ -33,10 +33,10 @@ func Test_HexToRBGColor(t *testing.T) {
 	}
 }
 
-func Test_ContrastColor(t *testing.T) {
+func Test_UseLightText(t *testing.T) {
 	cases := []struct {
 		color    string
-		expected string
+		expected bool
 	}{
 		{"#d73a4a", "#fff"},
 		{"#0075ca", "#fff"},
@@ -58,7 +58,6 @@ func Test_ContrastColor(t *testing.T) {
 		{"#84b6eb", "#000"},
 	}
 	for n, c := range cases {
-		result := ContrastColor(c.color)
-		assert.Equal(t, c.expected, result, "case %d: error should match", n)
+		assert.Equal(t, c.expected, ContrastColor(c.color), "case %d: error should match", n)
 	}
 }
