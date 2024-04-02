@@ -292,23 +292,23 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForPairs(ctx context.Context, repoShas []RepoSha) (map[int64][]*CommitStatus, error) {
+func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map[int64][]*CommitStatus, error) {
 	type result struct {
 		Index  int64
 		RepoID int64
 		SHA    string
 	}
 
-	results := make([]result, 0, len(repoShas))
+	results := make([]result, 0, len(repoSHAs))
 
 	getBase := func() *xorm.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{})
 	}
 
 	// Create a disjunction of conditions for each repoID and SHA pair
-	conds := make([]builder.Cond, 0, len(repoShas))
-	for _, repoSha := range repoShas {
-		conds = append(conds, builder.Eq{"repo_id": repoSha.RepoID, "sha": repoSha.SHA})
+	conds := make([]builder.Cond, 0, len(repoSHAs))
+	for _, repoSHA := range repoSHAs {
+		conds = append(conds, builder.Eq{"repo_id": repoSHA.RepoID, "sha": repoSHA.SHA})
 	}
 	sess := getBase().Where(builder.Or(conds...)).
 		Select("max( `index` ) as `index`, repo_id, sha").

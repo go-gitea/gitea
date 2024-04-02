@@ -1,4 +1,4 @@
-// Copyright 2017 Gitea. All rights reserved.
+// Copyright 2024 Gitea. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"xorm.io/builder"
 )
 
@@ -23,14 +24,14 @@ func init() {
 	db.RegisterModel(new(CommitStatusSummary))
 }
 
-type RepoSha struct {
+type RepoSHA struct {
 	RepoID int64
 	SHA    string
 }
 
-func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoShas []RepoSha) ([]*CommitStatus, error) {
+func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CommitStatus, error) {
 	cond := builder.NewCond()
-	for _, rs := range repoShas {
+	for _, rs := range repoSHAs {
 		cond = cond.Or(builder.Eq{"repo_id": rs.RepoID, "sha": rs.SHA})
 	}
 
@@ -39,7 +40,7 @@ func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoShas []RepoSha
 		return nil, err
 	}
 
-	commitStatuses := make([]*CommitStatus, 0, len(repoShas))
+	commitStatuses := make([]*CommitStatus, 0, len(repoSHAs))
 	for _, summary := range summaries {
 		commitStatuses = append(commitStatuses, &CommitStatus{
 			RepoID: summary.RepoID,

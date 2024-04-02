@@ -121,12 +121,12 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 		return nil, fmt.Errorf("FindBranchesByRepoAndBranchName: %v", err)
 	}
 
-	var repoSha []git_model.RepoSha
+	var repoSHAs []git_model.RepoSHA
 	for id, sha := range repoIDsToLatestCommitSHAs {
-		repoSha = append(repoSha, git_model.RepoSha{RepoID: id, SHA: sha})
+		repoSHAs = append(repoSHAs, git_model.RepoSHA{RepoID: id, SHA: sha})
 	}
 
-	summaryResults, err := git_model.GetLatestCommitStatusForRepoAndSHAs(ctx, repoSha)
+	summaryResults, err := git_model.GetLatestCommitStatusForRepoAndSHAs(ctx, repoSHAs)
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestCommitStatusForRepoAndSHAs: %v", err)
 	}
@@ -135,7 +135,7 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 		for i, repo := range repos {
 			if repo.ID == summary.RepoID {
 				results[i] = summary
-				_ = slices.DeleteFunc(repoSha, func(repoSha git_model.RepoSha) bool {
+				_ = slices.DeleteFunc(repoSHAs, func(repoSha git_model.RepoSHA) bool {
 					return repoSha.RepoID == repo.ID
 				})
 				if results[i].State != "" {
@@ -149,7 +149,7 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoSha)
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoSHAs)
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestCommitStatusForPairs: %v", err)
 	}
