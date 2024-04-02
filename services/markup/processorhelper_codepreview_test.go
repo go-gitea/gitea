@@ -37,10 +37,10 @@ func TestProcessorHelperCodePreview(t *testing.T) {
 	<table class="file-view">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
-				<td class="lines-code chroma"><span class="gh"># repo1</td>
+				<td class="lines-code chroma"><code class="code-inner"><span class="gh"># repo1</code></td>
 			</tr><tr>
 				<td class="lines-num"><span data-line-number="2"></span></td>
-				<td class="lines-code chroma"></span><span class="gh"></span></td>
+				<td class="lines-code chroma"><code class="code-inner"></span><span class="gh"></span></code></td>
 			</tr></tbody>
 	</table>
 </div>
