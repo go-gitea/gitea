@@ -1,4 +1,4 @@
-import {contrastColor} from './color.js';
+import {contrastColor, rgbToHex} from './color.js';
 
 test('contrastColor', () => {
   expect(contrastColor('#d73a4a')).toBe('#fff');
@@ -19,4 +19,8 @@ test('contrastColor', () => {
   expect(contrastColor('#81706d')).toBe('#fff');
   expect(contrastColor('#807070')).toBe('#fff');
   expect(contrastColor('#84b6eb')).toBe('#000');
+});
+
+test('rgbToHex', () => {
+  expect(rgbToHex('rgb(235, 100, 32)')).toEqual('#eb6420');
 });

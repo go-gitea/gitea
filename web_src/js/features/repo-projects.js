@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {contrastColor} from '../utils/color.js';
+import {contrastColor, rgbToHex} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
 
@@ -172,14 +172,4 @@ export function initRepoProject() {
     const url = e.target.getAttribute('data-url');
     createNewColumn(url, $columnTitle, $projectColorInput);
   });
-}
-
-function rgbToHex(rgb) {
-  rgb = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+).*\)$/);
-  return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
-}
-
-function hex(x) {
-  const hexDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-  return Number.isNaN(x) ? '00' : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
 }
