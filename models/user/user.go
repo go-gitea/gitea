@@ -736,7 +736,7 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 
 func HitCreationLimit(ctx context.Context) bool {
 	// don't bother calling DB if limit not set
-	if setting.Service.MaxUserCreationLimit == -1 ||
+	if setting.Service.MaxUserCreationLimit < 0 ||
 		int64(setting.Service.MaxUserCreationLimit) < CountUsers(ctx, &CountUserFilter{}) {
 		return false
 	}
