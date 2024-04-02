@@ -101,7 +101,8 @@ func TestE2e(t *testing.T) {
 		_, filename := filepath.Split(path)
 		testname := filename[:len(filename)-len(filepath.Ext(path))]
 
-		runArgs := append(runCommand, path)
+		runArgs := runCommand
+		runArgs = append(runArgs, path)
 
 		// Load install routes for tests inside that folder
 		if strings.Contains(path, "install/") {
