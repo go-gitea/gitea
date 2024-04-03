@@ -7,10 +7,9 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
-
-	"github.com/minio/sha256-simd"
 )
 
 // GenerateKeyPair generates a public and private keypair

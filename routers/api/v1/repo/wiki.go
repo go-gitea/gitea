@@ -10,14 +10,15 @@ import (
 	"net/url"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -50,6 +51,10 @@ func NewWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
@@ -85,7 +90,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, wikiName)
 
 	if !ctx.Written() {
-		notification.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
+		notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 		ctx.JSON(http.StatusCreated, wikiPage)
 	}
 }
@@ -124,6 +129,10 @@ func EditWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
@@ -153,7 +162,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, newWikiName)
 
 	if !ctx.Written() {
-		notification.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
+		notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 		ctx.JSON(http.StatusOK, wikiPage)
 	}
 }
@@ -194,7 +203,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	return &api.WikiPage{
-		WikiPageMetaData: convert.ToWikiPageMetaData(wikiName, lastCommit, ctx.Repo.Repository),
+		WikiPageMetaData: wiki_service.ToWikiPageMetaData(wikiName, lastCommit, ctx.Repo.Repository),
 		ContentBase64:    content,
 		CommitCount:      commitsCount,
 		Sidebar:          sidebarContent,
@@ -230,6 +239,8 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
 
@@ -242,7 +253,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
+	notify_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -322,7 +333,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
 			return
 		}
-		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
+		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
 	ctx.SetTotalCountHeader(int64(len(entries)))
@@ -465,7 +476,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
 
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {

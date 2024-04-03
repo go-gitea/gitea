@@ -1,22 +1,22 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings twofa")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.twofa_enroll"}}
+			{{ctx.Locale.Tr "settings.twofa_enroll"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.locale.Tr "settings.scan_this_image"}}</p>
+			<p>{{ctx.Locale.Tr "settings.scan_this_image"}}</p>
 			<img src="{{.QrUri}}" alt="{{.TwofaSecret}}">
-			<p>{{.locale.Tr "settings.or_enter_secret" .TwofaSecret}}</p>
-			<p>{{.locale.Tr "settings.then_enter_passcode"}}</p>
+			<p>{{ctx.Locale.Tr "settings.or_enter_secret" .TwofaSecret}}</p>
+			<p>{{ctx.Locale.Tr "settings.then_enter_passcode"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_Passcode}}error{{end}}">
-					<label for="passcode">{{.locale.Tr "passcode"}}</label>
+					<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
 					<input id="passcode" name="passcode" autofocus required>
 				</div>
 				<div class="inline field">
 					<label></label>
-					<button class="ui green button">{{.locale.Tr "auth.verify"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "auth.verify"}}</button>
 				</div>
 			</form>
 		</div>

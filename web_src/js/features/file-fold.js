@@ -17,4 +17,3 @@ export function setFileFolding(fileContentBox, foldArrow, newFold) {
 export function invertFileFolding(fileContentBox, foldArrow) {
   setFileFolding(fileContentBox, foldArrow, fileContentBox.getAttribute('data-folded') !== 'true');
 }
-

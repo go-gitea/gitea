@@ -31,8 +31,8 @@ var (
 	// CmdHook represents the available hooks sub-command.
 	CmdHook = &cli.Command{
 		Name:        "hook",
-		Usage:       "Delegate commands to corresponding Git hooks",
-		Description: "This should only be called by Git",
+		Usage:       "(internal) Should only be called by Git",
+		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Subcommands: []*cli.Command{
 			subcmdHookPreReceive,
@@ -376,7 +376,9 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = git.RefName(fields[2])
-		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+
+		commitID, _ := git.NewIDFromString(newCommitIDs[count])
+		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
 			masterPushed = true
 		}
 		count++
@@ -669,7 +671,8 @@ Gitea or set your environment appropriately.`, "")
 		if err != nil {
 			return err
 		}
-		if rs.OldOID != git.EmptySHA {
+		commitID, _ := git.NewIDFromString(rs.OldOID)
+		if !commitID.IsZero() {
 			err = writeDataPktLine(ctx, os.Stdout, []byte("option old-oid "+rs.OldOID))
 			if err != nil {
 				return err

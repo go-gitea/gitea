@@ -31,7 +31,10 @@
   padding-top: 3px;
   padding-bottom: 3px;
   display: flex;
-  justify-content: center;
+}
+
+#navbar > .menu > .item {
+  color: var(--color-nav-text);
 }
 
 #navbar .dropdown .item {
@@ -105,13 +108,6 @@
   }
 }
 
-@media (min-width: 767.98px) {
-  #navbar .navbar-mobile-right,
-  #navbar .mobile-only {
-    display: none;
-  }
-}
-
 #navbar a.item .notification_count {
   color: var(--color-nav-bg);
   padding: 0 3.75px;
@@ -139,4 +135,13 @@
   align-items: center;
   justify-content: center;
   z-index: 1; /* prevent menu button background from overlaying icon */
+}
+
+.secondary-nav {
+  background: var(--color-secondary-nav-bg) !important; /* important because of .ui.secondary.menu */
+}
+
+.issue-navbar {
+  display: flex;
+  justify-content: space-between;
 }

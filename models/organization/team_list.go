@@ -77,8 +77,8 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) (TeamList, int64, error) {
-	sess := db.GetEngine(db.DefaultContext)
+func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, error) {
+	sess := db.GetEngine(ctx)
 
 	opts.SetDefaultValues()
 	cond := opts.toCond()

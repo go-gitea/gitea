@@ -8,7 +8,8 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -41,12 +42,12 @@ func TestCleanUploadName(t *testing.T) {
 
 func TestGetUniquePatchBranchName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	expectedBranchName := "user2-patch-1"
@@ -56,17 +57,17 @@ func TestGetUniquePatchBranchName(t *testing.T) {
 
 func TestGetClosestParentWithFiles(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
-	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	var expectedTreePath string // Should return the root dir, empty string, since there are no subdirs in this repo

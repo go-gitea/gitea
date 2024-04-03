@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -199,6 +199,8 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedIssues", err)
@@ -229,6 +231,8 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedPullRequests", err)
@@ -236,18 +240,12 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	}
 
 	apiPrs := make([]*api.PullRequest, len(issues))
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPullRequests", err)
+		return
+	}
 	for i, currentIssue := range issues {
-		pr, err := currentIssue.GetPullRequest()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
-			return
-		}
-
-		if err = pr.LoadIssue(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-			return
-		}
-
+		pr := currentIssue.PullRequest
 		if err = pr.LoadAttributes(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
@@ -290,6 +288,8 @@ func AreNewIssuePinsAllowed(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoNewIssuePinsAllowed"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	pinsAllowed := api.NewIssuePinsAllowed{}
 	var err error
 

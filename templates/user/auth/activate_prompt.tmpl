@@ -1,0 +1,15 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user activate">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<h2 class="ui top attached header">
+				{{ctx.Locale.Tr "auth.active_your_account"}}
+			</h2>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				<p>{{.ActivationPromptMessage}}</p>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

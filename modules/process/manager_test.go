@@ -50,7 +50,7 @@ func TestManager_Cancel(t *testing.T) {
 	select {
 	case <-ctx.Done():
 	default:
-		assert.Fail(t, "Cancel should cancel the provided context")
+		assert.FailNow(t, "Cancel should cancel the provided context")
 	}
 	finished()
 
@@ -62,7 +62,7 @@ func TestManager_Cancel(t *testing.T) {
 	select {
 	case <-ctx.Done():
 	default:
-		assert.Fail(t, "Cancel should cancel the provided context")
+		assert.FailNow(t, "Cancel should cancel the provided context")
 	}
 	finished()
 }

@@ -28,16 +28,16 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a dependency and check if it was successful
-	err = issues_model.CreateIssueDependency(user1, issue1, issue2)
+	err = issues_model.CreateIssueDependency(db.DefaultContext, user1, issue1, issue2)
 	assert.NoError(t, err)
 
 	// Do it again to see if it will check if the dependency already exists
-	err = issues_model.CreateIssueDependency(user1, issue1, issue2)
+	err = issues_model.CreateIssueDependency(db.DefaultContext, user1, issue1, issue2)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrDependencyExists(err))
 
 	// Check for circular dependencies
-	err = issues_model.CreateIssueDependency(user1, issue2, issue1)
+	err = issues_model.CreateIssueDependency(db.DefaultContext, user1, issue2, issue1)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrCircularDependency(err))
 
@@ -57,6 +57,6 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.True(t, left)
 
 	// Test removing the dependency
-	err = issues_model.RemoveIssueDependency(user1, issue1, issue2, issues_model.DependencyTypeBlockedBy)
+	err = issues_model.RemoveIssueDependency(db.DefaultContext, user1, issue1, issue2, issues_model.DependencyTypeBlockedBy)
 	assert.NoError(t, err)
 }

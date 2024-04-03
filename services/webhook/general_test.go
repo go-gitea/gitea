@@ -240,7 +240,7 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 			Target:  "master",
 			Title:   "First stable release",
 			Note:    "Note of first stable release",
-			URL:     "http://localhost:3000/api/v1/repos/test/repo/releases/2",
+			HTMLURL: "http://localhost:3000/test/repo/releases/tag/v1.0",
 		},
 	}
 }
@@ -299,6 +299,36 @@ func repositoryTestPayload() *api.RepositoryPayload {
 			HTMLURL:  "http://localhost:3000/test/repo",
 			Name:     "repo",
 			FullName: "test/repo",
+		},
+	}
+}
+
+func packageTestPayload() *api.PackagePayload {
+	return &api.PackagePayload{
+		Action: api.HookPackageCreated,
+		Sender: &api.User{
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
+		},
+		Repository: nil,
+		Organization: &api.User{
+			UserName:  "org1",
+			AvatarURL: "http://localhost:3000/org1/avatar",
+		},
+		Package: &api.Package{
+			Owner: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Repository: nil,
+			Creator: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Type:    "container",
+			Name:    "GiteaContainer",
+			Version: "latest",
+			HTMLURL: "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest",
 		},
 	}
 }

@@ -37,13 +37,12 @@
 .combo-markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
-  min-height: 200px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
   resize: vertical;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
 }
 
 /* use the same styles as markup/content.css */
@@ -86,6 +85,7 @@ text-expander .suggestions {
   border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 text-expander .suggestions li {

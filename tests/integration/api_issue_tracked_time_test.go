@@ -30,7 +30,8 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiTimes api.TrackedTimeList
 	DecodeJSON(t, resp, &apiTimes)
@@ -53,7 +54,8 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	since := "2000-01-01T00%3A00%3A02%2B00%3A00"  // 946684802
 	before := "2000-01-01T00%3A00%3A12%2B00%3A00" // 946684812
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s&token=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var filterAPITimes api.TrackedTimeList
 	DecodeJSON(t, resp, &filterAPITimes)
@@ -74,11 +76,13 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Deletion not allowed
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	time3 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 3})
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	// Delete non existing time
 	MakeRequest(t, req, http.StatusNotFound)
@@ -88,7 +92,8 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3661), trackedSeconds)
 
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	MakeRequest(t, req, http.StatusNotFound)
 
@@ -108,13 +113,13 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 	session := loginUser(t, admin.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.AddTimeOption{
 		Time:    33,
 		User:    user2.Name,
 		Created: time.Unix(947688818, 0),
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiNewTime api.TrackedTime
 	DecodeJSON(t, resp, &apiNewTime)

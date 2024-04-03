@@ -92,7 +92,7 @@ func (i *Indexer) Ping(_ context.Context) error {
 }
 
 func (i *Indexer) Close() {
-	if i == nil {
+	if i == nil || i.Indexer == nil {
 		return
 	}
 

@@ -50,7 +50,8 @@ Cargo 将可用软件包的信息存储在一个存储在 git 仓库中的软件
 default = "gitea"
 
 [registries.gitea]
-index = "https://gitea.example.com/{owner}/_cargo-index.git"
+index = "sparse+https://gitea.example.com/api/packages/{owner}/cargo/" # Sparse index
+# index = "https://gitea.example.com/{owner}/_cargo-index.git" # Git
 
 [net]
 git-fetch-with-cli = true

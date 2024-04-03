@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -90,6 +91,7 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeActions,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks
@@ -318,14 +320,13 @@ var (
 
 // FindUnitTypes give the unit key names and return valid unique units and invalid keys
 func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
-	m := map[Type]struct{}{}
+	m := make(container.Set[Type])
 	for _, key := range nameKeys {
 		t := TypeFromKey(key)
 		if t == TypeInvalid {
 			invalidKeys = append(invalidKeys, key)
-		} else if _, ok := m[t]; !ok {
+		} else if m.Add(t) {
 			res = append(res, t)
-			m[t] = struct{}{}
 		}
 	}
 	return res, invalidKeys

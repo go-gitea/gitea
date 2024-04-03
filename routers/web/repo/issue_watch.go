@@ -8,8 +8,13 @@ import (
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
+)
+
+const (
+	tplWatching base.TplName = "repo/issue/view_content/watching"
 )
 
 // IssueWatch sets issue watching
@@ -47,10 +52,12 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(ctx, ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.Data["Issue"] = issue
+	ctx.Data["IssueWatch"] = &issues_model.IssueWatch{IsWatching: watch}
+	ctx.HTML(http.StatusOK, tplWatching)
 }

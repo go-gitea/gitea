@@ -70,7 +70,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -78,6 +78,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
+	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/context"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -137,12 +139,33 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 				return
 			}
 
-			authToken := strings.TrimPrefix(authHeader, "Bearer ")
-			task, err := actions.GetRunningTaskByToken(req.Context(), authToken)
-			if err != nil {
-				log.Error("Error runner api getting task: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
-				return
+			// New act_runner uses jwt to authenticate
+			tID, err := actions_service.ParseAuthorizationToken(req)
+
+			var task *actions.ActionTask
+			if err == nil {
+
+				task, err = actions.GetTaskByID(req.Context(), tID)
+				if err != nil {
+					log.Error("Error runner api getting task by ID: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
+					return
+				}
+				if task.Status != actions.StatusRunning {
+					log.Error("Error runner api getting task: task is not running")
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+					return
+				}
+			} else {
+				// Old act_runner uses GITEA_TOKEN to authenticate
+				authToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)
+				if err != nil {
+					log.Error("Error runner api getting task: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
+					return
+				}
 			}
 
 			if err := task.LoadJob(req.Context()); err != nil {
@@ -170,8 +193,9 @@ func (ar artifactRoutes) buildArtifactURL(runID int64, artifactHash, suffix stri
 }
 
 type getUploadArtifactRequest struct {
-	Type string
-	Name string
+	Type          string
+	Name          string
+	RetentionDays int64
 }
 
 type getUploadArtifactResponse struct {
@@ -192,10 +216,16 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
+	// set retention days
+	retentionQuery := ""
+	if req.RetentionDays > 0 {
+		retentionQuery = fmt.Sprintf("?retentionDays=%d", req.RetentionDays)
+	}
+
 	// use md5(artifact_name) to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(req.Name)))
 	resp := getUploadArtifactResponse{
-		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"),
+		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"+retentionQuery),
 	}
 	log.Debug("[artifact] get upload url: %s", resp.FileContainerResourceURL)
 	ctx.JSON(http.StatusOK, resp)
@@ -219,8 +249,21 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
+	// get artifact retention days
+	expiredDays := setting.Actions.ArtifactRetentionDays
+	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
+		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
+		if err != nil {
+			log.Error("Error parse retention days: %v", err)
+			ctx.Error(http.StatusBadRequest, "Error parse retention days")
+			return
+		}
+	}
+	log.Debug("[artifact] upload chunk, name: %s, path: %s, size: %d, retention days: %d",
+		artifactName, artifactPath, fileRealTotalSize, expiredDays)
+
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath)
+	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
@@ -237,8 +280,11 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// update artifact size if zero
-	if artifact.FileSize == 0 || artifact.FileCompressedSize == 0 {
+	// update artifact size if zero or not match, over write artifact size
+	if artifact.FileSize == 0 ||
+		artifact.FileCompressedSize == 0 ||
+		artifact.FileSize != fileRealTotalSize ||
+		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
 		artifact.ContentEncoding = ctx.Req.Header.Get("Content-Encoding")
@@ -247,6 +293,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 			ctx.Error(http.StatusInternalServerError, "Error update artifact")
 			return
 		}
+		log.Debug("[artifact] update artifact size, artifact_id: %d, size: %d, compressed size: %d",
+			artifact.ID, artifact.FileSize, artifact.FileCompressedSize)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -294,7 +342,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunID(ctx, runID)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -356,7 +404,10 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunIDAndArtifactName(ctx, runID, itemPath)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:        runID,
+		ArtifactName: itemPath,
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -376,7 +427,19 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 	var items []downloadArtifactResponseItem
 	for _, artifact := range artifacts {
-		downloadURL := ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+		var downloadURL string
+		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName)
+			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
+				log.Error("Error getting serve direct url: %v", err)
+			}
+			if u != nil {
+				downloadURL = u.String()
+			}
+		}
+		if downloadURL == "" {
+			downloadURL = ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+		}
 		item := downloadArtifactResponseItem{
 			Path:            util.PathJoinRel(itemPath, artifact.ArtifactPath),
 			ItemType:        "file",
@@ -399,14 +462,14 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	artifactID := ctx.ParamsInt64("artifact_id")
-	artifact, err := actions.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusNotFound, err.Error())
-		return
-	} else if err != nil {
+	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
+	if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	} else if !exist {
+		log.Error("artifact with ID %d does not exist", artifactID)
+		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {

@@ -89,7 +89,7 @@ func TestLoadUnitConfig(t *testing.T) {
 		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases", "repo.releases"}
 		assert.NoError(t, LoadUnitConfig())
 		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnits)
-		assert.ElementsMatch(t, []Type{TypeCode, TypePullRequests, TypeReleases, TypeWiki, TypePackages, TypeProjects}, DefaultRepoUnits)
+		assert.ElementsMatch(t, []Type{TypeCode, TypePullRequests, TypeReleases, TypeWiki, TypePackages, TypeProjects, TypeActions}, DefaultRepoUnits)
 		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
 	})
 }

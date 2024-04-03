@@ -13,7 +13,6 @@ import (
 
 	db_model "code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
@@ -21,10 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -204,12 +203,13 @@ func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMeta
 func populateIssueIndexer(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
-	if err := PopulateIssueIndexer(ctx, true); err != nil {
+	ctx = contextWithKeepRetry(ctx) // keep retrying since it's a background task
+	if err := PopulateIssueIndexer(ctx); err != nil {
 		log.Error("Issue indexer population failed: %v", err)
 	}
 }
 
-func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
+func PopulateIssueIndexer(ctx context.Context) error {
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
@@ -220,7 +220,7 @@ func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
 			ListOptions: db_model.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db_model.SearchOrderByID,
 			Private:     true,
-			Collaborate: util.OptionalBoolFalse,
+			Collaborate: optional.Some(false),
 		})
 		if err != nil {
 			log.Error("SearchRepositoryByName: %v", err)
@@ -232,20 +232,8 @@ func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
 		}
 
 		for _, repo := range repos {
-			for {
-				select {
-				case <-ctx.Done():
-					return fmt.Errorf("shutdown before completion: %w", ctx.Err())
-				default:
-				}
-				if err := updateRepoIndexer(ctx, repo.ID); err != nil {
-					if keepRetrying && ctx.Err() == nil {
-						log.Warn("Retry to populate issue indexer for repo %d: %v", repo.ID, err)
-						continue
-					}
-					return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
-				}
-				break
+			if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+				return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
 			}
 		}
 	}
@@ -259,8 +247,8 @@ func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issueID int64) {
-	if err := updateIssueIndexer(issueID); err != nil {
+func UpdateIssueIndexer(ctx context.Context, issueID int64) {
+	if err := updateIssueIndexer(ctx, issueID); err != nil {
 		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
@@ -320,35 +308,8 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 
 // CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
 func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
-	opts = opts.Copy(func(options *SearchOptions) { opts.Paginator = &db_model.ListOptions{PageSize: 0} })
+	opts = opts.Copy(func(options *SearchOptions) { options.Paginator = &db_model.ListOptions{PageSize: 0} })
 
 	_, total, err := SearchIssues(ctx, opts)
 	return total, err
-}
-
-// CountIssuesByRepo counts issues by options and group by repo id.
-// It's not a complete implementation, since it requires the caller should provide the repo ids.
-// That means opts.RepoIDs must be specified, and opts.AllPublic must be false.
-// It's good enough for the current usage, and it can be improved if needed.
-// TODO: use "group by" of the indexer engines to implement it.
-func CountIssuesByRepo(ctx context.Context, opts *SearchOptions) (map[int64]int64, error) {
-	if len(opts.RepoIDs) == 0 {
-		return nil, fmt.Errorf("opts.RepoIDs must be specified")
-	}
-	if opts.AllPublic {
-		return nil, fmt.Errorf("opts.AllPublic must be false")
-	}
-
-	repoIDs := container.SetOf(opts.RepoIDs...).Values()
-	ret := make(map[int64]int64, len(repoIDs))
-	// TODO: it could be faster if do it in parallel for some indexer engines. Improve it if users report it's slow.
-	for _, repoID := range repoIDs {
-		count, err := CountIssues(ctx, opts.Copy(func(o *internal.SearchOptions) { o.RepoIDs = []int64{repoID} }))
-		if err != nil {
-			return nil, err
-		}
-		ret[repoID] = count
-	}
-
-	return ret, nil
 }

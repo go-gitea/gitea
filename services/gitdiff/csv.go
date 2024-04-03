@@ -7,8 +7,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -396,7 +394,7 @@ func tryMapColumnsByContent(baseCSVReader *csvReader, base2HeadColMap []int, hea
 		headStart := 0
 		for base2HeadColMap[i] == unmappedColumn && headStart < len(head2BaseColMap) {
 			if head2BaseColMap[headStart] == unmappedColumn {
-				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(baseCSVReader.buffer), len(headCSVReader.buffer))-1))
+				rows := min(maxRowsToInspect, max(0, min(len(baseCSVReader.buffer), len(headCSVReader.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
 					baseCell, baseErr := getCell(baseCSVReader.buffer[j], i)

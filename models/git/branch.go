@@ -158,6 +158,11 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+func GetBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Branch, error) {
+	branches := make([]*Branch, 0, len(branchNames))
+	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames).Find(&branches)
+}
+
 func AddBranches(ctx context.Context, branches []*Branch) error {
 	for _, branch := range branches {
 		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {
@@ -205,10 +210,9 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 	})
 }
 
-// UpdateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
-// If it doest not exist, insert a new record into database
-func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
-	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
+// UpdateBranch updates the branch information in the database.
+func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
 		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitID:      commit.ID.String(),
@@ -217,21 +221,6 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			IsDeleted:     false,
 		})
-	if err != nil {
-		return err
-	}
-	if cnt > 0 {
-		return nil
-	}
-
-	return db.Insert(ctx, &Branch{
-		RepoID:        repoID,
-		Name:          branchName,
-		CommitID:      commit.ID.String(),
-		CommitMessage: commit.Summary(),
-		PusherID:      pusherID,
-		CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
-	})
 }
 
 // AddDeletedBranch adds a deleted branch to the database
@@ -299,7 +288,7 @@ func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *
 }
 
 // RenameBranch rename a branch
-func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(ctx context.Context, isDefault bool) error) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -307,6 +296,17 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	defer committer.Close()
 
 	sess := db.GetEngine(ctx)
+
+	var branch Branch
+	exist, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, from).Get(&branch)
+	if err != nil {
+		return err
+	} else if !exist || branch.IsDeleted {
+		return ErrBranchNotExist{
+			RepoID:     repo.ID,
+			BranchName: from,
+		}
+	}
 
 	// 1. update branch in database
 	if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
@@ -363,7 +363,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 
 	// 5. do git action
-	if err = gitAction(isDefault); err != nil {
+	if err = gitAction(ctx, isDefault); err != nil {
 		return err
 	}
 

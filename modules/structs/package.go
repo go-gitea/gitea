@@ -16,6 +16,7 @@ type Package struct {
 	Type       string      `json:"type"`
 	Name       string      `json:"name"`
 	Version    string      `json:"version"`
+	HTMLURL    string      `json:"html_url"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 }

@@ -66,4 +66,4 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 
 ## 合并请求模板
 
-有关合并请求模板的更多信息请您移步 : [工单与合并请求模板](issue-pull-request-templates)
+有关合并请求模板的更多信息请您移步 : [工单与合并请求模板](usage/issue-pull-request-templates.md)

@@ -9,7 +9,10 @@ import (
 	"fmt"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -33,12 +36,6 @@ type ErrSecretNotFound struct {
 	Name string
 }
 
-// IsErrSecretNotFound checks if an error is a ErrSecretNotFound.
-func IsErrSecretNotFound(err error) bool {
-	_, ok := err.(ErrSecretNotFound)
-	return ok
-}
-
 func (err ErrSecretNotFound) Error() string {
 	return fmt.Sprintf("secret was not found [name: %s]", err.Name)
 }
@@ -47,23 +44,18 @@ func (err ErrSecretNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// newSecret Creates a new already encrypted secret
-func newSecret(ownerID, repoID int64, name, data string) *Secret {
-	return &Secret{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    data,
-	}
-}
-
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}
-	secret := newSecret(ownerID, repoID, name, encrypted)
+	secret := &Secret{
+		OwnerID: ownerID,
+		RepoID:  repoID,
+		Name:    strings.ToUpper(name),
+		Data:    encrypted,
+	}
 	if err := secret.Validate(); err != nil {
 		return secret, err
 	}
@@ -83,11 +75,13 @@ func (s *Secret) Validate() error {
 
 type FindSecretsOptions struct {
 	db.ListOptions
-	OwnerID int64
-	RepoID  int64
+	OwnerID  int64
+	RepoID   int64
+	SecretID int64
+	Name     string
 }
 
-func (opts *FindSecretsOptions) toConds() builder.Cond {
+func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -95,68 +89,65 @@ func (opts *FindSecretsOptions) toConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
+	if opts.SecretID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.SecretID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
 
 	return cond
 }
 
-func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error) {
-	var secrets []*Secret
-	sess := db.GetEngine(ctx)
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	return secrets, sess.
-		Where(opts.toConds()).
-		Find(&secrets)
-}
-
-// CountSecrets counts the secrets
-func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Secret))
-}
-
 // UpdateSecret changes org or user reop secret.
-func UpdateSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
-	sc := new(Secret)
-	name = strings.ToUpper(name)
-	has, err := db.GetEngine(ctx).
-		Where("owner_id=?", orgID).
-		And("repo_id=?", repoID).
-		And("name=?", name).
-		Get(sc)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrSecretNotFound{Name: name}
-	}
-
+func UpdateSecret(ctx context.Context, secretID int64, data string) error {
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return err
 	}
 
-	sc.Data = encrypted
-	_, err = db.GetEngine(ctx).ID(sc.ID).Cols("data").Update(sc)
+	s := &Secret{
+		Data: encrypted,
+	}
+	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data").Update(s)
+	if affected != 1 {
+		return ErrSecretNotFound{}
+	}
 	return err
 }
 
-// DeleteSecret deletes secret from an organization.
-func DeleteSecret(ctx context.Context, orgID, repoID int64, name string) error {
-	sc := new(Secret)
-	has, err := db.GetEngine(ctx).
-		Where("owner_id=?", orgID).
-		And("repo_id=?", repoID).
-		And("name=?", strings.ToUpper(name)).
-		Get(sc)
+func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[string]string, error) {
+	secrets := map[string]string{}
+
+	secrets["GITHUB_TOKEN"] = task.Token
+	secrets["GITEA_TOKEN"] = task.Token
+
+	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
+		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
+		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
+		return secrets, nil
+	}
+
+	ownerSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
-		return err
-	} else if !has {
-		return ErrSecretNotFound{Name: name}
+		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
+		return nil, err
+	}
+	repoSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
+		return nil, err
 	}
 
-	if _, err := db.GetEngine(ctx).ID(sc.ID).Delete(new(Secret)); err != nil {
-		return fmt.Errorf("Delete: %w", err)
+	for _, secret := range append(ownerSecrets, repoSecrets...) {
+		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
+		if err != nil {
+			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
+			return nil, err
+		}
+		secrets[secret.Name] = v
 	}
 
-	return nil
+	return secrets, nil
 }

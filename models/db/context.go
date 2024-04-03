@@ -120,6 +120,16 @@ func (c *halfCommitter) Close() error {
 
 // TxContext represents a transaction Context,
 // it will reuse the existing transaction in the parent context or create a new one.
+// Some tips to use:
+//
+//	1 It's always recommended to use `WithTx` in new code instead of `TxContext`, since `WithTx` will handle the transaction automatically.
+//	2. To maintain the old code which uses `TxContext`:
+//	  a. Always call `Close()` before returning regardless of whether `Commit()` has been called.
+//	  b. Always call `Commit()` before returning if there are no errors, even if the code did not change any data.
+//	  c. Remember the `Committer` will be a halfCommitter when a transaction is being reused.
+//	     So calling `Commit()` will do nothing, but calling `Close()` without calling `Commit()` will rollback the transaction.
+//	     And all operations submitted by the caller stack will be rollbacked as well, not only the operations in the current function.
+//	  d. It doesn't mean rollback is forbidden, but always do it only when there is an error, and you do want to rollback.
 func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	if sess, ok := inTransaction(parentCtx); ok {
 		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil
@@ -173,19 +183,74 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
-// GetByBean filled empty fields of the bean according non-empty fields to query in database.
-func GetByBean(ctx context.Context, bean any) (bool, error) {
-	return GetEngine(ctx).Get(bean)
+func Get[T any](ctx context.Context, cond builder.Cond) (object *T, exist bool, err error) {
+	if !cond.IsValid() {
+		panic("cond is invalid in db.Get(ctx, cond). This should not be possible.")
+	}
+
+	var bean T
+	has, err := GetEngine(ctx).Where(cond).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, false, err
+	} else if !has {
+		return nil, false, nil
+	}
+	return &bean, true, nil
+}
+
+func GetByID[T any](ctx context.Context, id int64) (object *T, exist bool, err error) {
+	var bean T
+	has, err := GetEngine(ctx).ID(id).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, false, err
+	} else if !has {
+		return nil, false, nil
+	}
+	return &bean, true, nil
+}
+
+func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	if !cond.IsValid() {
+		panic("cond is invalid in db.Exist(ctx, cond). This should not be possible.")
+	}
+
+	var bean T
+	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
+}
+
+func ExistByID[T any](ctx context.Context, id int64) (bool, error) {
+	var bean T
+	return GetEngine(ctx).ID(id).NoAutoCondition().Exist(&bean)
+}
+
+// DeleteByID deletes the given bean with the given ID
+func DeleteByID[T any](ctx context.Context, id int64) (int64, error) {
+	var bean T
+	return GetEngine(ctx).ID(id).NoAutoCondition().NoAutoTime().Delete(&bean)
+}
+
+func DeleteByIDs[T any](ctx context.Context, ids ...int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	var bean T
+	_, err := GetEngine(ctx).In("id", ids).NoAutoCondition().NoAutoTime().Delete(&bean)
+	return err
+}
+
+func Delete[T any](ctx context.Context, opts FindOptions) (int64, error) {
+	if opts == nil || !opts.ToConds().IsValid() {
+		panic("opts are empty or invalid in db.Delete(ctx, opts). This should not be possible.")
+	}
+
+	var bean T
+	return GetEngine(ctx).Where(opts.ToConds()).NoAutoCondition().NoAutoTime().Delete(&bean)
 }
 
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
-}
-
-// DeleteByID deletes the given bean with the given ID
-func DeleteByID(ctx context.Context, id int64, bean any) (int64, error) {
-	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
 }
 
 // FindIDs finds the IDs for the given table name satisfying the given condition

@@ -9,7 +9,7 @@ import "code.gitea.io/gitea/modules/log"
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID SHA1
+	ID ObjectID
 
 	ptree *Tree
 

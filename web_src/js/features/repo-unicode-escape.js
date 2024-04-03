@@ -1,31 +1,27 @@
-import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElemSiblings, showElem, toggleElem} from '../utils/dom.js';
 
 export function initUnicodeEscapeButton() {
-  $(document).on('click', '.escape-button', (e) => {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.escape-button, .unescape-button, .toggle-escape-button');
+    if (!btn) return;
+
     e.preventDefault();
-    $(e.target).parents('.file-content, .non-diff-file-content').find('.file-code, .file-view').addClass('unicode-escaped');
-    hideElem($(e.target));
-    showElem($(e.target).siblings('.unescape-button'));
-  });
-  $(document).on('click', '.unescape-button', (e) => {
-    e.preventDefault();
-    $(e.target).parents('.file-content, .non-diff-file-content').find('.file-code, .file-view').removeClass('unicode-escaped');
-    hideElem($(e.target));
-    showElem($(e.target).siblings('.escape-button'));
-  });
-  $(document).on('click', '.toggle-escape-button', (e) => {
-    e.preventDefault();
-    const fileContent = $(e.target).parents('.file-content, .non-diff-file-content');
-    const fileView = fileContent.find('.file-code, .file-view');
-    if (fileView.hasClass('unicode-escaped')) {
-      fileView.removeClass('unicode-escaped');
-      hideElem(fileContent.find('.unescape-button'));
-      showElem(fileContent.find('.escape-button'));
-    } else {
-      fileView.addClass('unicode-escaped');
-      showElem(fileContent.find('.unescape-button'));
-      hideElem(fileContent.find('.escape-button'));
+
+    const fileContent = btn.closest('.file-content, .non-diff-file-content');
+    const fileView = fileContent?.querySelectorAll('.file-code, .file-view');
+    if (btn.matches('.escape-button')) {
+      for (const el of fileView) el.classList.add('unicode-escaped');
+      hideElem(btn);
+      showElem(queryElemSiblings(btn, '.unescape-button'));
+    } else if (btn.matches('.unescape-button')) {
+      for (const el of fileView) el.classList.remove('unicode-escaped');
+      hideElem(btn);
+      showElem(queryElemSiblings(btn, '.escape-button'));
+    } else if (btn.matches('.toggle-escape-button')) {
+      const isEscaped = fileView[0]?.classList.contains('unicode-escaped');
+      for (const el of fileView) el.classList.toggle('unicode-escaped', !isEscaped);
+      toggleElem(fileContent.querySelectorAll('.unescape-button'), !isEscaped);
+      toggleElem(fileContent.querySelectorAll('.escape-button'), isEscaped);
     }
   });
 }

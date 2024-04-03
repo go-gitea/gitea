@@ -22,12 +22,16 @@ menu:
 ### Action URL绝对路径
 
 Gitea Actions支持通过URL绝对路径定义actions，这意味着您可以使用来自任何Git存储库的Actions。
-例如，`uses: https://github.com/actions/checkout@v3`或`uses: http://your_gitea.com/owner/repo@branch`。
+例如，`uses: https://github.com/actions/checkout@v4`或`uses: http://your_gitea.com/owner/repo@branch`。
 
 ### 使用Go编写Actions
 
 Gitea Actions支持使用Go编写Actions。
 请参阅[创建Go Actions](https://blog.gitea.com/creating-go-actions/)。
+
+### 支持非标准的调度语法 @yearly, @monthly, @weekly, @daily, @hourly
+
+Github Actions 不支持这些语法，详见： https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
 
 ## 不支持的工作流语法
 
@@ -91,12 +95,6 @@ Gitea Actions目前不支持此功能，如果使用它，结果将始终为空�
 
 ## 缺失的功能
 
-### 变量
-
-请参阅[变量](https://docs.github.com/zh/actions/learn-github-actions/variables)。
-
-目前变量功能正在开发中。
-
 ### 问题匹配器
 
 问题匹配器是一种扫描Actions输出以查找指定正则表达式模式并在用户界面中突出显示该信息的方法。
@@ -116,52 +114,23 @@ Gitea Actions目前不支持此功能。
 
 预处理和后处理步骤在Job日志用户界面中没有自己的用户界面。
 
+### 服务步骤
+
+服务步骤在Job日志用户界面中没有自己的用户界面。
+
 ## 不一样的行为
 
 ### 下载Actions
 
-Gitea Actions默认不从GitHub下载Actions。
-"默认" 意味着您在`uses` 字段中不指定主机，如`uses: actions/checkout@v3`。
-相反，`uses: https://github.com/actions/checkout@v3`是有指定主机的。
+当 `[actions].DEFAULT_ACTIONS_URL` 保持默认值为 `github` 时，Gitea将会从 https://github.com 下载相对路径的actions。比如：
+如果你使用 `uses: actions/checkout@v4`，Gitea将会从 https://github.com/actions/checkout.git 下载这个 actions 项目。
+如果你想要从另外一个 Git服务下载actions，你只需要使用绝对URL `uses: https://gitea.com/actions/checkout@v4` 来下载。
 
-如果您不进行配置，缺失的主机将填充为`https://gitea.com`。
-这意味着`uses: actions/checkout@v3`将从[gitea.com/actions/checkout](https://gitea.com/actions/checkout)下载该Action，而不是[github.com/actions/checkout](https://github.com/actions/checkout)。
+如果你的 Gitea 实例是部署在一个互联网限制的网络中，也可以使用绝对地址来下载 actions。你也可以将配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v4` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
 
-正如前面提到的，这是可配置的。
-如果您希望您的运行程序默认从GitHub或您自己的Gitea实例下载动作，您可以通过设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
+设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
 
 ### 上下文可用性
 
 不检查上下文可用性，因此您可以在更多地方使用env上下文。
 请参阅[上下文可用性](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability)。
-
-## 已知问题
-
-### `docker/build-push-action@v4`
-
-请参阅[act_runner#119](https://gitea.com/gitea/act_runner/issues/119#issuecomment-738294)。
-
-`ACTIONS_RUNTIME_TOKEN`在Gitea Actions中是一个随机字符串，而不是JWT。
-但是`DOCKER/BUILD-PUSH-ACTION@V4尝试将令牌解析为JWT，并且不处理错误，因此Job失败。
-
-有两种解决方法：
-
-手动将`ACTIONS_RUNTIME_TOKEN`设置为空字符串，例如：
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@v4
-  env:
-    ACTIONS_RUNTIME_TOKEN: ''
-  with:
-...
-```
-
-该问题已在较新的[提交](https://gitea.com/docker/build-push-action/commit/d8823bfaed2a82c6f5d4799a2f8e86173c461aba?style=split&whitespace=show-all#diff-1af9a5bdf96ddff3a2f3427ed520b7005e9564ad)中修复，但尚未发布。因此，您可以通过指定分支名称来使用最新版本，例如：
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@master
-  with:
-...
-```

@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -18,11 +18,11 @@ type ReviewList []*Review
 
 // LoadReviewers loads reviewers
 func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
-	reviewerIds := make([]int64, len(reviews))
+	reviewerIDs := make([]int64, len(reviews))
 	for i := 0; i < len(reviews); i++ {
-		reviewerIds[i] = reviews[i].ReviewerID
+		reviewerIDs[i] = reviews[i].ReviewerID
 	}
-	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIDs)
 	if err != nil {
 		return err
 	}
@@ -38,12 +38,12 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIds := container.Set[int64]{}
+	issueIDs := container.Set[int64]{}
 	for i := 0; i < len(reviews); i++ {
-		issueIds.Add(reviews[i].IssueID)
+		issueIDs.Add(reviews[i].IssueID)
 	}
 
-	issues, err := GetIssuesByIDs(ctx, issueIds.Values())
+	issues, err := GetIssuesByIDs(ctx, issueIDs.Values())
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ type FindReviewOptions struct {
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
-	Dismissed    util.OptionalBool
+	Dismissed    optional.Option[bool]
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -85,8 +85,8 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})
 	}
-	if !opts.Dismissed.IsNone() {
-		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.IsTrue()})
+	if opts.Dismissed.Has() {
+		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.Value()})
 	}
 	return cond
 }
@@ -126,16 +126,16 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 }
 
 // CountReviews returns count of reviews passing FindReviewOptions
-func CountReviews(opts FindReviewOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Review{})
+func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
 // GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request
-func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewersFromOriginalAuthorsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
 	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(db.DefaultContext).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
+	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
 		return nil, err
@@ -145,10 +145,10 @@ func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error)
 }
 
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",

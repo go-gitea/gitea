@@ -18,7 +18,7 @@ export async function login_user(browser, workerInfo, user) {
   // Fill out form
   await page.type('input[name=user_name]', user);
   await page.type('input[name=password]', LOGIN_PASSWORD);
-  await page.click('form button.ui.green.button:visible');
+  await page.click('form button.ui.primary.button:visible');
 
   await page.waitForLoadState('networkidle');
 
@@ -52,7 +52,7 @@ export async function save_visual(page) {
       fullPage: true,
       timeout: 20000,
       mask: [
-        page.locator('.dashboard-navbar span>img.ui.avatar'),
+        page.locator('.secondary-nav span>img.ui.avatar'),
         page.locator('.ui.dropdown.jump.item span>img.ui.avatar'),
       ],
     });
