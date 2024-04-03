@@ -102,7 +102,7 @@ DELETE https://gitea.example.com/api/packages/{owner}/alpine/{branch}/{repositor
 | `branch`       | The branch to use. |
 | `repository`   | The repository to use. |
 | `architecture` | The package architecture. |
-| `filename`     | The file to delete.
+| `filename`     | The file to delete. |
 
 Example request using HTTP Basic authentication:
 

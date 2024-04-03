@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,7 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +50,7 @@ func TestGetDeletedBranches(t *testing.T) {
 	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
 		ListOptions:     db.ListOptionsAll,
 		RepoID:          repo.ID,
-		IsDeletedBranch: util.OptionalBoolTrue,
+		IsDeletedBranch: optional.Some(true),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 2)
@@ -132,7 +133,7 @@ func TestRenameBranch(t *testing.T) {
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
-	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(isDefault bool) error {
+	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(ctx context.Context, isDefault bool) error {
 		_isDefault = isDefault
 		return nil
 	}))

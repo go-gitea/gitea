@@ -57,21 +57,24 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: rel.Repo.Link(),
-		Metas:     rel.Repo.ComposeMetas(ctx),
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: rel.Repo.HTMLURL(),
+		},
+		Metas: rel.Repo.ComposeMetas(ctx),
 	}, rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
+	subject := locale.TrString("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]any{
 		"locale":   locale,
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
+		"Link":     rel.HTMLURL(),
 	}
 
 	var mailBody bytes.Buffer

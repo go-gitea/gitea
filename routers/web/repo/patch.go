@@ -10,10 +10,10 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/repository/files"
 )
@@ -79,7 +79,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	// `message` will be both the summary and message combined
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
-		message = ctx.Tr("repo.editor.patch")
+		message = ctx.Locale.TrString("repo.editor.patch")
 	}
 
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)

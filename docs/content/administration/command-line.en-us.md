@@ -95,6 +95,7 @@ Admin operations:
       - Options:
         - `--username value`, `-u value`: Username. Required.
         - `--password value`, `-p value`: New password. Required.
+        - `--must-change-password`: If provided, the user is required to choose a new password after the login. Optional.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
     - `must-change-password`:

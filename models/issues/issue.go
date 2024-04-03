@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"regexp"
 	"slices"
 
@@ -105,7 +106,7 @@ type Issue struct {
 	OriginalAuthorID int64                  `xorm:"index"`
 	Title            string                 `xorm:"name"`
 	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
+	RenderedContent  template.HTML          `xorm:"-"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`
@@ -190,20 +191,6 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 		return false
 	}
 	return issue.Repo.IsTimetrackerEnabled(ctx)
-}
-
-// GetPullRequest returns the issue pull request
-func (issue *Issue) GetPullRequest(ctx context.Context) (pr *PullRequest, err error) {
-	if !issue.IsPull {
-		return nil, fmt.Errorf("Issue is not a pull request")
-	}
-
-	pr, err = GetPullRequestByIssueID(ctx, issue.ID)
-	if err != nil {
-		return nil, err
-	}
-	pr.Issue = issue
-	return pr, err
 }
 
 // LoadPoster loads poster

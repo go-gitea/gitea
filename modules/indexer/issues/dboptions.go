@@ -6,6 +6,7 @@ package issues
 import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {
@@ -38,13 +39,12 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	}
 
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
-	convertID := func(id int64) *int64 {
+	convertID := func(id int64) optional.Option[int64] {
 		if id > 0 {
-			return &id
+			return optional.Some(id)
 		}
 		if id == db.NoConditionID {
-			var zero int64
-			return &zero
+			return optional.None[int64]()
 		}
 		return nil
 	}
@@ -59,10 +59,10 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	searchOpt.SubscriberID = convertID(opts.SubscriberID)
 
 	if opts.UpdatedAfterUnix > 0 {
-		searchOpt.UpdatedAfterUnix = &opts.UpdatedAfterUnix
+		searchOpt.UpdatedAfterUnix = optional.Some(opts.UpdatedAfterUnix)
 	}
 	if opts.UpdatedBeforeUnix > 0 {
-		searchOpt.UpdatedBeforeUnix = &opts.UpdatedBeforeUnix
+		searchOpt.UpdatedBeforeUnix = optional.Some(opts.UpdatedBeforeUnix)
 	}
 
 	searchOpt.Paginator = opts.Paginator

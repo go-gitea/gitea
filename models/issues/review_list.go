@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -18,11 +18,11 @@ type ReviewList []*Review
 
 // LoadReviewers loads reviewers
 func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
-	reviewerIds := make([]int64, len(reviews))
+	reviewerIDs := make([]int64, len(reviews))
 	for i := 0; i < len(reviews); i++ {
-		reviewerIds[i] = reviews[i].ReviewerID
+		reviewerIDs[i] = reviews[i].ReviewerID
 	}
-	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIDs)
 	if err != nil {
 		return err
 	}
@@ -38,12 +38,12 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIds := container.Set[int64]{}
+	issueIDs := container.Set[int64]{}
 	for i := 0; i < len(reviews); i++ {
-		issueIds.Add(reviews[i].IssueID)
+		issueIDs.Add(reviews[i].IssueID)
 	}
 
-	issues, err := GetIssuesByIDs(ctx, issueIds.Values())
+	issues, err := GetIssuesByIDs(ctx, issueIDs.Values())
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ type FindReviewOptions struct {
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
-	Dismissed    util.OptionalBool
+	Dismissed    optional.Option[bool]
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -85,8 +85,8 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})
 	}
-	if !opts.Dismissed.IsNone() {
-		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.IsTrue()})
+	if opts.Dismissed.Has() {
+		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.Value()})
 	}
 	return cond
 }

@@ -1,8 +1,8 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 <div class="ui container">
-	<div class="gt-df gt-sb gt-ac gt-mb-4">
-		<h2 class="gt-mb-0">{{.Project.Title}}</h2>
+	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
+		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
 				<a class="item" href="{{.Link}}/edit?redirect=project">
@@ -41,9 +41,9 @@
 						</div>
 
 						<div class="field color-field">
-							<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-							<div class="color picker column">
-								<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
+							<label for="new_project_column_color_picker">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
+							<div class="js-color-picker-input column">
+								<input maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
 								{{template "repo/issue/label_precolors"}}
 							</div>
 						</div>
@@ -58,7 +58,7 @@
 		{{end}}
 	</div>
 
-	<div class="content">{{$.Project.RenderedContent|Str2html}}</div>
+	<div class="content">{{$.Project.RenderedContent}}</div>
 
 	<div class="divider"></div>
 </div>
@@ -67,16 +67,16 @@
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
 			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
-				<div class="project-column-header">
-					<div class="ui large label project-column-title gt-py-2">
+				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
+					<div class="ui large label project-column-title tw-py-1">
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
 						</div>
 						{{.Title}}
 					</div>
-					{{if and $canWriteProject (ne .ID 0)}}
+					{{if $canWriteProject}}
 						<div class="ui dropdown jump item">
-							<div class="gt-px-3">
+							<div class="tw-px-2">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu">
@@ -86,29 +86,20 @@
 								</a>
 								{{if not .Default}}
 									<a class="item show-modal button default-project-column-show"
-									data-modal="#default-project-column-modal-{{.ID}}"
-									data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
-									data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
-									data-url="{{$.Link}}/{{.ID}}/default">
+										data-modal="#default-project-column-modal-{{.ID}}"
+										data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
+										data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
+										data-url="{{$.Link}}/{{.ID}}/default">
 										{{svg "octicon-pin"}}
 										{{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
-								{{else}}
-									<a class="item show-modal button default-project-column-show"
-									data-modal="#default-project-column-modal-{{.ID}}"
-									data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.unset_default"}}"
-									data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.unset_default_desc"}}"
-									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
-										{{svg "octicon-pin-slash"}}
-										{{ctx.Locale.Tr "repo.projects.column.unset_default"}}
+									<a class="item show-modal button show-delete-project-column-modal"
+										data-modal="#delete-project-column-modal-{{.ID}}"
+										data-url="{{$.Link}}/{{.ID}}">
+										{{svg "octicon-trash"}}
+										{{ctx.Locale.Tr "repo.projects.column.delete"}}
 									</a>
 								{{end}}
-								<a class="item show-modal button show-delete-project-column-modal"
-									data-modal="#delete-project-column-modal-{{.ID}}"
-									data-url="{{$.Link}}/{{.ID}}">
-									{{svg "octicon-trash"}}
-									{{ctx.Locale.Tr "repo.projects.column.delete"}}
-								</a>
 
 								<div class="ui small modal edit-project-column-modal" id="edit-project-column-modal-{{.ID}}">
 									<div class="header">
@@ -123,8 +114,8 @@
 
 											<div class="field color-field">
 												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-												<div class="color picker column">
-													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
+												<div class="js-color-picker-input column">
+													<input maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
 													{{template "repo/issue/label_precolors"}}
 												</div>
 											</div>
@@ -165,9 +156,9 @@
 
 				<div class="divider"></div>
 
-				<div class="ui cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
-						<div class="issue-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-issue="{{.ID}}">
+						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 						</div>
 					{{end}}

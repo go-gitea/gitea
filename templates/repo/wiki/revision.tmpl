@@ -10,19 +10,19 @@
 					{{$title}}
 					<div class="ui sub header gt-word-break">
 						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 					</div>
 				</div>
 			</div>
 			<div class="ui eight wide column text right">
-				<div class="ui action small input" id="clone-panel">
+				<div class="clone-panel ui action small input">
 					{{template "repo/clone_buttons" .}}
 					{{template "repo/clone_script" .}}
 				</div>
 			</div>
 		</div>
 		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
-		<div class="gt-mt-4">
+		<div class="tw-mt-4">
 			<h4 class="ui top attached header">
 				<div class="ui stackable grid">
 					<div class="sixteen wide column">

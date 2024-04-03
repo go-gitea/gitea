@@ -26,7 +26,8 @@ To work with the Swift package registry, you need to use [swift](https://www.swi
 To register the package registry and provide credentials, execute:
 
 ```shell
-swift package-registry set https://gitea.example.com/api/packages/{owner}/swift -login {username} -password {password}
+swift package-registry set https://gitea.example.com/api/packages/{owner}/swift
+swift package-registry login https://gitea.example.com/api/packages/{owner}/swift --username {username} --password {password}
 ```
 
 | Placeholder  | Description |

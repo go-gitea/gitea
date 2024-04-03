@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import {POST} from '../modules/fetch.js';
 
 const preventListener = (e) => e.preventDefault();
 
@@ -55,12 +55,11 @@ export function initMarkupTasklist() {
           const updateUrl = editContentZone.getAttribute('data-update-url');
           const context = editContentZone.getAttribute('data-context');
 
-          await $.post(updateUrl, {
-            ignore_attachments: true,
-            _csrf: window.config.csrfToken,
-            content: newContent,
-            context
-          });
+          const requestBody = new FormData();
+          requestBody.append('ignore_attachments', 'true');
+          requestBody.append('content', newContent);
+          requestBody.append('context', context);
+          await POST(updateUrl, {data: requestBody});
 
           rawContent.textContent = newContent;
         } catch (err) {

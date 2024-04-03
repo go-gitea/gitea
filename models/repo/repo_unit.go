@@ -122,6 +122,7 @@ type PullRequestsConfig struct {
 	AllowRebase                   bool
 	AllowRebaseMerge              bool
 	AllowSquash                   bool
+	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
 	AllowRebaseUpdate             bool
@@ -148,6 +149,7 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleFastForwardOnly && cfg.AllowFastForwardOnly ||
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
@@ -200,6 +202,53 @@ func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// ProjectsMode represents the projects enabled for a repository
+type ProjectsMode string
+
+const (
+	// ProjectsModeRepo allows only repo-level projects
+	ProjectsModeRepo ProjectsMode = "repo"
+	// ProjectsModeOwner allows only owner-level projects
+	ProjectsModeOwner ProjectsMode = "owner"
+	// ProjectsModeAll allows both kinds of projects
+	ProjectsModeAll ProjectsMode = "all"
+	// ProjectsModeNone doesn't allow projects
+	ProjectsModeNone ProjectsMode = "none"
+)
+
+// ProjectsConfig describes projects config
+type ProjectsConfig struct {
+	ProjectsMode ProjectsMode
+}
+
+// FromDB fills up a ProjectsConfig from serialized format.
+func (cfg *ProjectsConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a ProjectsConfig to a serialized format.
+func (cfg *ProjectsConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+func (cfg *ProjectsConfig) GetProjectsMode() ProjectsMode {
+	if cfg.ProjectsMode != "" {
+		return cfg.ProjectsMode
+	}
+
+	return ProjectsModeAll
+}
+
+func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
+	projectsMode := cfg.GetProjectsMode()
+
+	if m == ProjectsModeNone {
+		return true
+	}
+
+	return projectsMode == m || projectsMode == ProjectsModeAll
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
@@ -215,7 +264,9 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(IssuesConfig)
 		case unit.TypeActions:
 			r.Config = new(ActionsConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
+		case unit.TypeProjects:
+			r.Config = new(ProjectsConfig)
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -263,6 +314,11 @@ func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 	return r.Config.(*ActionsConfig)
 }
 
+// ProjectsConfig returns config for unit.ProjectsConfig
+func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
+	return r.Config.(*ProjectsConfig)
+}
+
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
 	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
@@ -282,30 +338,4 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
 	return err
-}
-
-// UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(ctx context.Context, repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	// Delete existing settings of units before adding again
-	for _, u := range units {
-		deleteUnitTypes = append(deleteUnitTypes, u.Type)
-	}
-
-	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
-		return err
-	}
-
-	if len(units) > 0 {
-		if err = db.Insert(ctx, units); err != nil {
-			return err
-		}
-	}
-
-	return committer.Commit()
 }
