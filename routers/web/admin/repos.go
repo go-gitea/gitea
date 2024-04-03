@@ -4,6 +4,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,12 +13,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -85,7 +85,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
 		pager.SetDefaultParams(ctx)
-		pager.AddParam(ctx, "search", "search")
+		pager.AddParamString("search", fmt.Sprint(doSearch))
 		ctx.Data["Page"] = pager
 		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
@@ -99,7 +99,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "search", "search")
+	pager.AddParamString("search", fmt.Sprint(doSearch))
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
@@ -144,7 +144,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {

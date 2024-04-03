@@ -1,11 +1,14 @@
-import tippy from 'tippy.js';
+import tippy, {followCursor} from 'tippy.js';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
+import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
 
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, ...other} = opts;
+
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -33,16 +36,14 @@ export function createTippy(target, opts = {}) {
       return onShow?.(instance);
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    role: role || 'menu', // HTML role attribute
+    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
+    plugins: [followCursor],
     ...other,
   });
 
-  // for popups where content refers to a DOM element, we use the 'tippy-target' class
-  // to initially hide the content, now we can remove it as the content has been removed
-  // from the DOM by tippy
-  if (other.content instanceof Element) {
-    other.content.classList.remove('tippy-target');
+  if (role === 'menu') {
+    target.setAttribute('aria-haspopup', 'true');
   }
 
   return instance;
@@ -78,6 +79,7 @@ function attachTooltip(target, content = null) {
     theme: 'tooltip',
     hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
+    followCursor: target.getAttribute('data-tooltip-follow-cursor') || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };
 
@@ -90,8 +92,15 @@ function attachTooltip(target, content = null) {
 }
 
 function switchTitleToTooltip(target) {
-  const title = target.getAttribute('title');
+  let title = target.getAttribute('title');
   if (title) {
+    // apply custom formatting to relative-time's tooltips
+    if (target.tagName.toLowerCase() === 'relative-time') {
+      const datetime = target.getAttribute('datetime');
+      if (datetime) {
+        title = formatDatetime(new Date(datetime));
+      }
+    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
     // keep the attribute, in case there are some other "[title]" selectors
@@ -104,7 +113,7 @@ function switchTitleToTooltip(target) {
 /**
  * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */
@@ -134,14 +143,12 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
-
 export function initGlobalTooltips() {
   // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title']
+    attributeFilter: ['data-tooltip-content', 'title'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();
@@ -150,11 +157,10 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (elementNodeTypes.has(el.nodeType)) {
-            attachChildrenLazyTooltip(el);
-            if (el.hasAttribute('data-tooltip-content')) {
-              attachLazyTooltip(el);
-            }
+          if (!isDocumentFragmentOrElementNode(el)) continue;
+          attachChildrenLazyTooltip(el);
+          if (el.hasAttribute('data-tooltip-content')) {
+            attachLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
@@ -169,6 +175,11 @@ export function initGlobalTooltips() {
 }
 
 export function showTemporaryTooltip(target, content) {
+  // if the target is inside a dropdown, don't show the tooltip because when the dropdown
+  // closes, the tippy would be pushed unsightly to the top-left of the screen like seen
+  // on the issue comment menu.
+  if (target.closest('.ui.dropdown > .menu')) return;
+
   const tippy = target._tippy ?? attachTooltip(target, content);
   tippy.setContent(content);
   if (!tippy.state.isShown) tippy.show();

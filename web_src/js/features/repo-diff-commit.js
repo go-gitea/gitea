@@ -1,9 +1,10 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {GET} from '../modules/fetch.js';
 
 async function loadBranchesAndTags(area, loadingButton) {
   loadingButton.classList.add('disabled');
   try {
-    const res = await fetch(loadingButton.getAttribute('data-fetch-url'));
+    const res = await GET(loadingButton.getAttribute('data-fetch-url'));
     const data = await res.json();
     hideElem(loadingButton);
     addTags(area, data.tags);
@@ -34,11 +35,11 @@ function addBranches(area, branches, defaultBranch) {
 
 function addLink(parent, href, text, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'gt-px-2');
+  link.classList.add('muted', 'tw-px-1');
   link.href = href;
   link.textContent = text;
   if (tooltip) {
-    link.classList.add('gt-border-secondary', 'gt-rounded');
+    link.classList.add('tw-border', 'tw-border-secondary', 'tw-rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   parent.append(link);

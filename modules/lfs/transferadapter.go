@@ -6,8 +6,6 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -15,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// TransferAdapter represents an adapter for downloading/uploading LFS objects
+// TransferAdapter represents an adapter for downloading/uploading LFS objects.
 type TransferAdapter interface {
 	Name() string
 	Download(ctx context.Context, l *Link) (io.ReadCloser, error)
@@ -23,41 +21,48 @@ type TransferAdapter interface {
 	Verify(ctx context.Context, l *Link, p Pointer) error
 }
 
-// BasicTransferAdapter implements the "basic" adapter
+// BasicTransferAdapter implements the "basic" adapter.
 type BasicTransferAdapter struct {
 	client *http.Client
 }
 
-// Name returns the name of the adapter
+// Name returns the name of the adapter.
 func (a *BasicTransferAdapter) Name() string {
 	return "basic"
 }
 
-// Download reads the download location and downloads the data
+// Download reads the download location and downloads the data.
 func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
-	resp, err := a.performRequest(ctx, "GET", l, nil, nil)
+	req, err := createRequest(ctx, http.MethodGet, l.Href, l.Header, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := performRequest(ctx, a.client, req)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Body, nil
 }
 
-// Upload sends the content to the LFS server
+// Upload sends the content to the LFS server.
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
-	_, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) {
-		if len(req.Header.Get("Content-Type")) == 0 {
-			req.Header.Set("Content-Type", "application/octet-stream")
-		}
-
-		if req.Header.Get("Transfer-Encoding") == "chunked" {
-			req.TransferEncoding = []string{"chunked"}
-		}
-
-		req.ContentLength = p.Size
-	})
+	req, err := createRequest(ctx, http.MethodPut, l.Href, l.Header, r)
 	if err != nil {
 		return err
 	}
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/octet-stream")
+	}
+	if req.Header.Get("Transfer-Encoding") == "chunked" {
+		req.TransferEncoding = []string{"chunked"}
+	}
+	req.ContentLength = p.Size
+
+	res, err := performRequest(ctx, a.client, req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
 	return nil
 }
 
@@ -69,66 +74,15 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 		return err
 	}
 
-	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) {
-		req.Header.Set("Content-Type", MediaType)
-	})
+	req, err := createRequest(ctx, http.MethodPost, l.Href, l.Header, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", MediaType)
+	res, err := performRequest(ctx, a.client, req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
 	return nil
-}
-
-func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, body io.Reader, callback func(*http.Request)) (*http.Response, error) {
-	log.Trace("Calling: %s %s", method, l.Href)
-
-	req, err := http.NewRequestWithContext(ctx, method, l.Href, body)
-	if err != nil {
-		log.Error("Error creating request: %v", err)
-		return nil, err
-	}
-	for key, value := range l.Header {
-		req.Header.Set(key, value)
-	}
-	req.Header.Set("Accept", MediaType)
-
-	if callback != nil {
-		callback(req)
-	}
-
-	res, err := a.client.Do(req)
-	if err != nil {
-		select {
-		case <-ctx.Done():
-			return res, ctx.Err()
-		default:
-		}
-		log.Error("Error while processing request: %v", err)
-		return res, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return res, handleErrorResponse(res)
-	}
-
-	return res, nil
-}
-
-func handleErrorResponse(resp *http.Response) error {
-	defer resp.Body.Close()
-
-	er, err := decodeResponseError(resp.Body)
-	if err != nil {
-		return fmt.Errorf("Request failed with status %s", resp.Status)
-	}
-	log.Trace("ErrorRespone: %v", er)
-	return errors.New(er.Message)
-}
-
-func decodeResponseError(r io.Reader) (ErrorResponse, error) {
-	var er ErrorResponse
-	err := json.NewDecoder(r).Decode(&er)
-	if err != nil {
-		log.Error("Error decoding json: %v", err)
-	}
-	return er, err
 }

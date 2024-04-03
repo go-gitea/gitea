@@ -32,13 +32,15 @@ textarea,
 .ui.form input[type="text"],
 .ui.form input[type="time"],
 .ui.form input[type="url"],
-.ui.selection.dropdown,
-.ui.checkbox label::before,
-.ui.checkbox input:checked ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::before {
+.ui.selection.dropdown {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
   color: var(--color-input-text);
+}
+
+/* fix fomantic small dropdown having inconsistent padding with input */
+.ui.small.selection.dropdown {
+  padding: .67857143em 3.2em .67857143em 1em;
 }
 
 input:hover,
@@ -58,12 +60,7 @@ textarea:hover,
 .ui.form input[type="text"]:hover,
 .ui.form input[type="time"]:hover,
 .ui.form input[type="url"]:hover,
-.ui.selection.dropdown:hover,
-.ui.checkbox label:hover::before,
-.ui.checkbox label:active::before,
-.ui.radio.checkbox label::after,
-.ui.radio.checkbox input:focus ~ label::before,
-.ui.radio.checkbox input:checked ~ label::before {
+.ui.selection.dropdown:hover {
   background: var(--color-input-background);
   border-color: var(--color-input-border-hover);
   color: var(--color-input-text);
@@ -86,11 +83,7 @@ textarea:focus,
 .ui.form input[type="text"]:focus,
 .ui.form input[type="time"]:focus,
 .ui.form input[type="url"]:focus,
-.ui.selection.dropdown:focus,
-.ui.checkbox input:focus ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::before,
-.ui.checkbox input:checked:focus ~ label::before,
-.ui.radio.checkbox input:focus:checked ~ label::before {
+.ui.selection.dropdown:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
   color: var(--color-input-text);
@@ -101,56 +94,19 @@ textarea:focus,
 .ui.form .inline.fields .field > label,
 .ui.form .inline.fields .field > p,
 .ui.form .inline.field > label,
-.ui.form .inline.field > p,
-.ui.checkbox label,
-.ui.checkbox + label,
-.ui.checkbox label:hover,
-.ui.checkbox + label:hover,
-.ui.checkbox input:focus ~ label,
-.ui.checkbox input:active ~ label {
+.ui.form .inline.field > p {
   color: var(--color-text);
 }
 
 .ui.form .required.fields:not(.grouped) > .field > label::after,
 .ui.form .required.fields.grouped > label::after,
 .ui.form .required.field > label::after,
-.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
-.ui.form .required.field > .checkbox::after,
 .ui.form label.required::after {
   color: var(--color-red);
 }
 
-.ui.input,
-.ui.checkbox input:focus ~ label::after,
-.ui.checkbox input:checked ~ label::after,
-.ui.checkbox label:active::after,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::after,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::after,
-.ui.checkbox input:checked:focus ~ label::after,
-.ui.disabled.checkbox label,
-.ui.checkbox input[disabled] ~ label {
+.ui.input {
   color: var(--color-input-text);
-}
-
-.ui.radio.checkbox input:focus ~ label::after,
-.ui.radio.checkbox input:checked ~ label::after,
-.ui.radio.checkbox input:focus:checked ~ label::after {
-  background: var(--color-input-text);
-}
-
-.ui.toggle.checkbox label::before {
-  background: var(--color-input-toggle-background);
-}
-
-.ui.toggle.checkbox label,
-.ui.toggle.checkbox input:checked ~ label,
-.ui.toggle.checkbox input:focus:checked ~ label {
-  color: var(--color-text) !important;
-}
-
-.ui.toggle.checkbox input:checked ~ label::before,
-.ui.toggle.checkbox input:focus:checked ~ label::before {
-  background: var(--color-primary) !important;
 }
 
 /* match <select> padding to <input> */
@@ -179,8 +135,7 @@ textarea:focus,
   #create-page-form form .header {
     padding-left: 280px !important;
   }
-  #create-page-form form .inline.field > label,
-  #create-page-form form .inline.field.captcha-field > span {
+  #create-page-form form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -206,6 +161,13 @@ textarea:focus,
   }
 }
 
+.m-captcha-style {
+  width: 100%;
+  height: 5em;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 @media (min-width: 768px) {
   .g-recaptcha-style,
   .h-captcha-style {
@@ -215,9 +177,12 @@ textarea:focus,
   }
   .g-recaptcha-style iframe,
   .h-captcha-style iframe {
-    border-radius: 5px !important;
+    border-radius: var(--border-radius) !important;
     width: 302px !important;
     height: 76px !important;
+  }
+  .m-captcha-style {
+    width: 50%;
   }
 }
 
@@ -230,11 +195,8 @@ textarea:focus,
   }
 }
 
-.user.activate form,
 .user.forgot.password form,
 .user.reset.password form,
-.user.link-account form,
-.user.signin form,
 .user.signup form {
   margin: auto;
   width: 700px !important;
@@ -266,18 +228,7 @@ textarea:focus,
   .user.signup form .header {
     padding-left: 280px !important;
   }
-  .user.activate form .inline.field > label,
-  .user.forgot.password form .inline.field > label,
-  .user.reset.password form .inline.field > label,
-  .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label,
-  .user.activate form .inline.field.captcha-field > span,
-  .user.forgot.password form .inline.field.captcha-field > span,
-  .user.reset.password form .inline.field.captcha-field > span,
-  .user.link-account form .inline.field.captcha-field > span,
-  .user.signin form .inline.field.captcha-field > span,
-  .user.signup form .inline.field.captcha-field > span {
+  .user.activate form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -421,10 +372,7 @@ textarea:focus,
   }
   .repository.new.repo form .inline.field > label,
   .repository.new.migrate form .inline.field > label,
-  .repository.new.fork form .inline.field > label,
-  .repository.new.repo form .inline.field.captcha-field > span,
-  .repository.new.migrate form .inline.field.captcha-field > span,
-  .repository.new.fork form .inline.field.captcha-field > span {
+  .repository.new.fork form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;

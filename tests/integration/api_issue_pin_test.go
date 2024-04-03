@@ -32,14 +32,12 @@ func TestAPIPinIssue(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req := NewRequest(t, "POST", urlStr)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is pinned
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
 	var issueAPI api.Issue
 	DecodeJSON(t, resp, &issueAPI)
@@ -59,28 +57,24 @@ func TestAPIUnpinIssue(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req := NewRequest(t, "POST", urlStr)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is pinned
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
 	var issueAPI api.Issue
 	DecodeJSON(t, resp, &issueAPI)
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Unpin the Issue
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req = NewRequest(t, "DELETE", urlStr)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is no longer pinned
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &issueAPI)
 	assert.Equal(t, 0, issueAPI.PinOrder)
@@ -100,42 +94,36 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the first Issue
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req := NewRequest(t, "POST", urlStr)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the first Issue is pinned at position 1
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
 	var issueAPI api.Issue
 	DecodeJSON(t, resp, &issueAPI)
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Pin the second Issue
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue2.Index, token)
-	req = NewRequest(t, "POST", urlStr)
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue2.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Move the first Issue to position 2
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin/2?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req = NewRequest(t, "PATCH", urlStr)
+	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin/2", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the first Issue is pinned at position 2
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
 	var issueAPI3 api.Issue
 	DecodeJSON(t, resp, &issueAPI3)
 	assert.Equal(t, 2, issueAPI3.PinOrder)
 
 	// Check if the second Issue is pinned at position 1
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue2.Index)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue2.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
 	var issueAPI4 api.Issue
 	DecodeJSON(t, resp, &issueAPI4)
@@ -155,14 +143,12 @@ func TestAPIListPinnedIssues(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
-	req := NewRequest(t, "POST", urlStr)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is in the List
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/pinned", repo.OwnerName, repo.Name)
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/pinned", repo.OwnerName, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 	var issueList []api.Issue
 	DecodeJSON(t, resp, &issueList)
@@ -178,8 +164,7 @@ func TestAPIListPinnedPullrequests(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/pinned", repo.OwnerName, repo.Name)
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/pinned", repo.OwnerName, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 	var prList []api.PullRequest
 	DecodeJSON(t, resp, &prList)
@@ -193,8 +178,7 @@ func TestAPINewPinAllowed(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/new_pin_allowed", owner.Name, repo.Name)
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/new_pin_allowed", owner.Name, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var newPinsAllowed api.NewIssuePinsAllowed

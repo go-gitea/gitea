@@ -12,20 +12,15 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-)
-
-const (
-	zombieTaskTimeout   = 10 * time.Minute
-	endlessTaskTimeout  = 3 * time.Hour
-	abandonedJobTimeout = 24 * time.Hour
 )
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
 func StopZombieTasks(ctx context.Context) error {
 	return stopTasks(ctx, actions_model.FindTaskOptions{
 		Status:        actions_model.StatusRunning,
-		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-zombieTaskTimeout).Unix()),
+		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.ZombieTaskTimeout).Unix()),
 	})
 }
 
@@ -33,12 +28,12 @@ func StopZombieTasks(ctx context.Context) error {
 func StopEndlessTasks(ctx context.Context) error {
 	return stopTasks(ctx, actions_model.FindTaskOptions{
 		Status:        actions_model.StatusRunning,
-		StartedBefore: timeutil.TimeStamp(time.Now().Add(-endlessTaskTimeout).Unix()),
+		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
 	})
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
-	tasks, err := actions_model.FindTasks(ctx, opts)
+	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find tasks: %w", err)
 	}
@@ -79,9 +74,9 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 
 // CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
-		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
+		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.AbandonedJobTimeout).Unix()),
 	})
 	if err != nil {
 		log.Warn("find abandoned tasks: %v", err)

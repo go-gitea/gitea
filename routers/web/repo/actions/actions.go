@@ -15,10 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -60,26 +61,26 @@ func List(ctx *context.Context) {
 
 	var workflows []Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("IsEmpty", err)
 		return
 	} else if !empty {
 		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
 		entries, err := actions.ListWorkflows(commit)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("ListWorkflows", err)
 			return
 		}
 
 		// Get all runner labels
-		opts := actions_model.FindRunnerOptions{
+		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
+			IsOnline:      optional.Some(true),
 			WithAvailable: true,
-		}
-		runners, err := actions_model.FindRunners(ctx, opts)
+		})
 		if err != nil {
 			ctx.ServerError("FindRunners", err)
 			return
@@ -94,17 +95,22 @@ func List(ctx *context.Context) {
 			workflow := Workflow{Entry: *entry}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
+				ctx.ServerError("GetContentFromEntry", err)
 				return
 			}
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				workflows = append(workflows, workflow)
 				continue
 			}
-			// Check whether have matching runner
+			// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
+			hasJobWithoutNeeds := false
+			// Check whether have matching runner and a job without "needs"
 			for _, j := range wf.Jobs {
+				if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
+					hasJobWithoutNeeds = true
+				}
 				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
 					if strings.Contains(ro, "${{") {
@@ -114,13 +120,16 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}
 				if workflow.ErrMsg != "" {
 					break
 				}
+			}
+			if !hasJobWithoutNeeds {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
 			}
 			workflows = append(workflows, workflow)
 		}
@@ -169,9 +178,9 @@ func List(ctx *context.Context) {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
-	runs, total, err := actions_model.FindRuns(ctx, opts)
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("FindAndCount", err)
 		return
 	}
 
@@ -179,8 +188,8 @@ func List(ctx *context.Context) {
 		run.Repo = ctx.Repo.Repository
 	}
 
-	if err := runs.LoadTriggerUser(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
+		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
 
@@ -188,10 +197,10 @@ func List(ctx *context.Context) {
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetActors", err)
 		return
 	}
-	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 
@@ -201,6 +210,7 @@ func List(ctx *context.Context) {
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
 }

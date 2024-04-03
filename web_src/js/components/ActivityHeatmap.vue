@@ -1,19 +1,3 @@
-<template>
-  <div id="user-heatmap">
-    <div class="total-contributions">
-      {{ locale.contributions_in_the_last_12_months }}
-    </div>
-    <calendar-heatmap
-      :locale="locale"
-      :no-data-text="locale.no_contributions"
-      :tooltip-unit="locale.contributions"
-      :end-date="endDate"
-      :values="values"
-      :range-color="colorRange"
-      @day-click="handleDayClick($event)"
-    />
-  </div>
-</template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
@@ -27,7 +11,7 @@ export default {
     locale: {
       type: Object,
       default: () => {},
-    }
+    },
   },
   data: () => ({
     colorRange: [
@@ -65,7 +49,21 @@ export default {
 
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
-    }
+    },
   },
 };
 </script>
+<template>
+  <div class="total-contributions">
+    {{ locale.contributions_in_the_last_12_months }}
+  </div>
+  <calendar-heatmap
+    :locale="locale"
+    :no-data-text="locale.no_contributions"
+    :tooltip-unit="locale.contributions"
+    :end-date="endDate"
+    :values="values"
+    :range-color="colorRange"
+    @day-click="handleDayClick($event)"
+  />
+</template>

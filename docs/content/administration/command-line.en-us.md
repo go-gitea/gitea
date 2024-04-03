@@ -95,6 +95,7 @@ Admin operations:
       - Options:
         - `--username value`, `-u value`: Username. Required.
         - `--password value`, `-p value`: New password. Required.
+        - `--must-change-password`: If provided, the user is required to choose a new password after the login. Optional.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
     - `must-change-password`:
@@ -313,7 +314,7 @@ directory and will overwrite any existing files.
   - `--ecdsa-curve value`: ECDSA curve to use to generate a key. Optional. Valid options
     are P224, P256, P384, P521.
   - `--rsa-bits value`: Size of RSA key to generate. Optional. Ignored if --ecdsa-curve is
-    set. (default: 2048).
+    set. (default: 3072).
   - `--start-date value`: Creation date. Optional. (format: `Jan 1 15:04:05 2011`).
   - `--duration value`: Duration which the certificate is valid for. Optional. (default: 8760h0m0s)
   - `--ca`: If provided, this cert generates it's own certificate authority. Optional.
@@ -334,9 +335,9 @@ in the current directory.
   - `--skip-attachment-data`: Skip dumping of attachment data. Optional.
   - `--skip-package-data`: Skip dumping of package data. Optional.
   - `--skip-log`: Skip dumping of log data. Optional.
-  - `--database`, `-d`: Specify the database SQL syntax. Optional.
+  - `--database`, `-d`: Specify the database SQL syntax. Optional (supported arguments: sqlite3, mysql, mssql, postgres).
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
-  - `--type`: Set the dump output format. Optional. (default: zip)
+  - `--type`: Set the dump output format. Optional. (formats: zip, tar, tar.sz, tar.gz, tar.xz, tar.bz2, tar.br, tar.lz4, tar.zst default: zip).
 - Examples:
   - `gitea dump`
   - `gitea dump --verbose`

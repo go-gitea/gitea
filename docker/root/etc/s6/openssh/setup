@@ -11,7 +11,7 @@ fi
 
 if [ ! -f /data/ssh/ssh_host_rsa_key ]; then
     echo "Generating /data/ssh/ssh_host_rsa_key..."
-    ssh-keygen -t rsa -b 2048 -f /data/ssh/ssh_host_rsa_key -N "" > /dev/null
+    ssh-keygen -t rsa -b 3072 -f /data/ssh/ssh_host_rsa_key -N "" > /dev/null
 fi
 
 if [ ! -f /data/ssh/ssh_host_ecdsa_key ]; then

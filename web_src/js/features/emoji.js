@@ -23,7 +23,7 @@ for (const key of emojiKeys) {
 // retrieve HTML for given emoji name
 export function emojiHTML(name) {
   let inner;
-  if (Object.prototype.hasOwnProperty.call(customEmojis, name)) {
+  if (Object.hasOwn(customEmojis, name)) {
     inner = `<img alt=":${name}:" src="${assetUrlPrefix}/img/emoji/${name}.png">`;
   } else {
     inner = emojiString(name);

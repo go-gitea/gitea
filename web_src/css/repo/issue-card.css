@@ -16,6 +16,10 @@
 
 .issue-card-title {
   flex: 1;
-  font-size: 18px;
+  font-size: 14px;
   margin-left: 4px;
+}
+
+.issue-card.sortable-chosen .issue-card-title {
+  cursor: inherit;
 }

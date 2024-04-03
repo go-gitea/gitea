@@ -36,6 +36,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
+		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
 		"/assets/img/404.png",
 		"/assets/img/500.png",
 		"/.well-known/security.txt",
@@ -159,6 +160,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases/new",
 		//"/wiki/_pages",
 		"/wiki/?action=_new",
+		"/activity",
 	}
 
 	for _, repo := range apiRepos {
@@ -173,4 +175,36 @@ func TestLinksLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
+}
+
+func TestRepoLinks(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// repo1 has enabled almost features, so we can test most links
+	repoLink := "/user2/repo1"
+	links := []string{
+		"/actions",
+		"/packages",
+		"/projects",
+	}
+
+	// anonymous user
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		MakeRequest(t, req, http.StatusOK)
+	}
+
+	// admin/owner user
+	session := loginUser(t, "user1")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
+	}
+
+	// non-admin non-owner user
+	session = loginUser(t, "user2")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
+	}
 }

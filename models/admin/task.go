@@ -48,11 +48,7 @@ type TranslatableMessage struct {
 }
 
 // LoadRepo loads repository of the task
-func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.DefaultContext)
-}
-
-func (task *Task) loadRepo(ctx context.Context) error {
+func (task *Task) LoadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}
@@ -70,13 +66,13 @@ func (task *Task) loadRepo(ctx context.Context) error {
 }
 
 // LoadDoer loads do user
-func (task *Task) LoadDoer() error {
+func (task *Task) LoadDoer(ctx context.Context) error {
 	if task.Doer != nil {
 		return nil
 	}
 
 	var doer user_model.User
-	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
+	has, err := db.GetEngine(ctx).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
@@ -90,13 +86,13 @@ func (task *Task) LoadDoer() error {
 }
 
 // LoadOwner loads owner user
-func (task *Task) LoadOwner() error {
+func (task *Task) LoadOwner(ctx context.Context) error {
 	if task.Owner != nil {
 		return nil
 	}
 
 	var owner user_model.User
-	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
+	has, err := db.GetEngine(ctx).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
@@ -110,8 +106,8 @@ func (task *Task) LoadOwner() error {
 }
 
 // UpdateCols updates some columns
-func (task *Task) UpdateCols(cols ...string) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(task.ID).Cols(cols...).Update(task)
+func (task *Task) UpdateCols(ctx context.Context, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(task.ID).Cols(cols...).Update(task)
 	return err
 }
 
@@ -169,12 +165,12 @@ func (err ErrTaskDoesNotExist) Unwrap() error {
 }
 
 // GetMigratingTask returns the migrating task by repo's id
-func GetMigratingTask(repoID int64) (*Task, error) {
+func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
 	task := Task{
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(&task)
+	has, err := db.GetEngine(ctx).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -184,13 +180,13 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 }
 
 // GetMigratingTaskByID returns the migrating task by repo's id
-func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+func GetMigratingTaskByID(ctx context.Context, id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
 		ID:     id,
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(&task)
+	has, err := db.GetEngine(ctx).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
@@ -205,12 +201,12 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 }
 
 // CreateTask creates a task on database
-func CreateTask(task *Task) error {
-	return db.Insert(db.DefaultContext, task)
+func CreateTask(ctx context.Context, task *Task) error {
+	return db.Insert(ctx, task)
 }
 
 // FinishMigrateTask updates database when migrate task finished
-func FinishMigrateTask(task *Task) error {
+func FinishMigrateTask(ctx context.Context, task *Task) error {
 	task.Status = structs.TaskStatusFinished
 	task.EndTime = timeutil.TimeStampNow()
 
@@ -231,6 +227,6 @@ func FinishMigrateTask(task *Task) error {
 	}
 	task.PayloadContent = string(confBytes)
 
-	_, err = db.GetEngine(db.DefaultContext).ID(task.ID).Cols("status", "end_time", "payload_content").Update(task)
+	_, err = db.GetEngine(ctx).ID(task.ID).Cols("status", "end_time", "payload_content").Update(task)
 	return err
 }

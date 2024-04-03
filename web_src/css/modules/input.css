@@ -1,0 +1,192 @@
+/* based on Fomantic UI input module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.input {
+  position: relative;
+  font-weight: var(--font-weight-normal);
+  display: inline-flex;
+  color: var(--color-input-text);
+}
+.ui.input > input {
+  margin: 0;
+  max-width: 100%;
+  flex: 1 0 auto;
+  outline: none;
+  font-family: var(--fonts-regular);
+  padding: 0.67857143em 1em;
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+  border-radius: 0.28571429rem;
+  line-height: var(--line-height-default);
+  text-align: start;
+}
+
+.ui.disabled.input,
+.ui.input:not(.disabled) input[disabled] {
+  opacity: var(--opacity-disabled);
+}
+.ui.disabled.input > input,
+.ui.input:not(.disabled) input[disabled] {
+  pointer-events: none;
+}
+
+.ui.input.focus > input,
+.ui.input > input:focus {
+  border-color: var(--color-primary);
+}
+
+.ui.input.error > input {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.ui.icon.input > i.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.5;
+  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  pointer-events: none;
+  padding: 4px;
+}
+
+.ui.icon.input > i.icon.is-loading {
+  position: absolute !important;
+}
+
+.ui.icon.input > i.icon.is-loading > * {
+  visibility: hidden;
+}
+
+.ui.ui.ui.ui.icon.input > textarea,
+.ui.ui.ui.ui.icon.input > input {
+  padding-right: 2.67142857em;
+}
+.ui.icon.input > i.link.icon {
+  cursor: pointer;
+}
+.ui.icon.input > i.circular.icon {
+  top: 0.35em;
+  right: 0.5em;
+}
+
+.ui[class*="left icon"].input > i.icon {
+  right: auto;
+  left: 8px;
+  border-radius: 0.28571429rem 0 0 0.28571429rem;
+}
+.ui[class*="left icon"].input > i.circular.icon {
+  right: auto;
+  left: 0.5em;
+}
+.ui.ui.ui.ui[class*="left icon"].input > textarea,
+.ui.ui.ui.ui[class*="left icon"].input > input {
+  padding-left: 2.67142857em;
+  padding-right: 1em;
+}
+
+.ui.icon.input > textarea:focus ~ .icon,
+.ui.icon.input > input:focus ~ .icon {
+  opacity: 1;
+}
+
+.ui.icon.input > textarea ~ i.icon {
+  height: 3em;
+}
+
+.ui.form .field.error > .ui.action.input > .ui.button,
+.ui.action.input.error > .ui.button {
+  border-top: 1px solid var(--color-error-border);
+  border-bottom: 1px solid var(--color-error-border);
+}
+
+.ui.action.input > .button,
+.ui.action.input > .buttons {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.ui.action.input > .button,
+.ui.action.input > .buttons > .button {
+  padding-top: 0.78571429em;
+  padding-bottom: 0.78571429em;
+  margin: 0;
+}
+
+.ui.action.input:not([class*="left action"]) > input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-color: transparent;
+}
+
+.ui.action.input > .dropdown:first-child,
+.ui.action.input > .button:first-child,
+.ui.action.input > .buttons:first-child > .button {
+  border-radius: 0.28571429rem 0 0 0.28571429rem;
+}
+.ui.action.input > .dropdown:not(:first-child),
+.ui.action.input > .button:not(:first-child),
+.ui.action.input > .buttons:not(:first-child) > .button {
+  border-radius: 0;
+}
+.ui.action.input > .dropdown:last-child,
+.ui.action.input > .button:last-child,
+.ui.action.input > .buttons:last-child > .button {
+  border-radius: 0 0.28571429rem 0.28571429rem 0;
+}
+
+.ui.fluid.input {
+  display: flex;
+}
+.ui.fluid.input > input {
+  width: 0 !important;
+}
+
+.ui.tiny.input {
+  font-size: 0.85714286em;
+}
+.ui.small.input {
+  font-size: 0.92857143em;
+}
+
+.ui.action.input .ui.ui.button {
+  border-color: var(--color-input-border);
+  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
+  padding-bottom: 0;
+}
+
+/* currently used for search bar dropdowns in repo search and explore code */
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
+  min-width: 10em;
+}
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
+  border-right: none;
+}
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
+  border-color: var(--color-input-border);
+}
+.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.ui.action.input:not([class*="left action"]) > input,
+.ui.action.input:not([class*="left action"]) > input:hover {
+  border-right: none;
+}
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
+.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
+  border-left-color: var(--color-primary);
+}
+.ui.action.input:not([class*="left action"]) > input:focus {
+  border-right-color: var(--color-primary);
+}

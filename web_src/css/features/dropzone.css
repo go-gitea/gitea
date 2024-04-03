@@ -3,7 +3,7 @@
   background: none;
   box-shadow: none;
   padding: 0;
-  border-radius: 4px;
+  border-radius: var(--border-radius-medium);
   min-height: 0;
 }
 

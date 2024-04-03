@@ -54,7 +54,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	case id := <-idChan:
 		assert.EqualValues(t, pr.ID, id)
 	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}
 
 	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))

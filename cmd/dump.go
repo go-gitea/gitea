@@ -128,7 +128,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		&cli.StringFlag{
 			Name:    "database",
 			Aliases: []string{"d"},
-			Usage:   "Specify the database SQL syntax",
+			Usage:   "Specify the database SQL syntax: sqlite3, mysql, mssql, postgres",
 		},
 		&cli.BoolFlag{
 			Name:    "skip-repository",
@@ -452,7 +452,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		return err
 	}
 	for _, file := range files {
-		currentAbsPath := path.Join(absPath, file.Name())
+		currentAbsPath := filepath.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
 			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {

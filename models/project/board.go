@@ -69,8 +69,8 @@ func (Board) TableName() string {
 }
 
 // NumIssues return counter of all issues assigned to the board
-func (b *Board) NumIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+func (b *Board) NumIssues(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", b.ProjectID).
 		And("project_board_id=?", b.ID).
 		GroupBy("issue_id").
@@ -123,6 +123,17 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 		return nil
 	}
 
+	board := Board{
+		CreatedUnix: timeutil.TimeStampNow(),
+		CreatorID:   project.CreatorID,
+		Title:       "Backlog",
+		ProjectID:   project.ID,
+		Default:     true,
+	}
+	if err := db.Insert(ctx, board); err != nil {
+		return err
+	}
+
 	if len(items) == 0 {
 		return nil
 	}
@@ -142,18 +153,18 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 }
 
 // NewBoard adds a new project board to a given project
-func NewBoard(board *Board) error {
+func NewBoard(ctx context.Context, board *Board) error {
 	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
 		return fmt.Errorf("bad color code: %s", board.Color)
 	}
 
-	_, err := db.GetEngine(db.DefaultContext).Insert(board)
+	_, err := db.GetEngine(ctx).Insert(board)
 	return err
 }
 
 // DeleteBoardByID removes all issues references to the project board.
-func DeleteBoardByID(boardID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteBoardByID(ctx context.Context, boardID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -176,6 +187,10 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return err
 	}
 
+	if board.Default {
+		return fmt.Errorf("deleteBoardByID: cannot delete default board")
+	}
+
 	if err = board.removeIssues(ctx); err != nil {
 		return err
 	}
@@ -194,7 +209,6 @@ func deleteBoardByProjectID(ctx context.Context, projectID int64) error {
 // GetBoard fetches the current board of a project
 func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 	board := new(Board)
-
 	has, err := db.GetEngine(ctx).ID(boardID).Get(board)
 	if err != nil {
 		return nil, err
@@ -228,11 +242,10 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 }
 
 // GetBoards fetches all boards related to a project
-// if no default board set, first board is a temporary "Uncategorized" board
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("Sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 
@@ -244,53 +257,64 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	return append([]*Board{defaultB}, boards...), nil
 }
 
-// getDefaultBoard return default board and create a dummy if none exist
+// getDefaultBoard return default board and ensure only one exists
 func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
-	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, true).Get(&board)
+	has, err := db.GetEngine(ctx).
+		Where("project_id=? AND `default` = ?", p.ID, true).
+		Desc("id").Get(&board)
 	if err != nil {
 		return nil, err
 	}
-	if exist {
+
+	if has {
 		return &board, nil
 	}
 
-	// represents a board for issues not assigned to one
-	return &Board{
+	// create a default board if none is found
+	board = Board{
 		ProjectID: p.ID,
-		Title:     "Uncategorized",
 		Default:   true,
-	}, nil
+		Title:     "Uncategorized",
+		CreatorID: p.CreatorID,
+	}
+	if _, err := db.GetEngine(ctx).Insert(&board); err != nil {
+		return nil, err
+	}
+	return &board, nil
 }
 
 // SetDefaultBoard represents a board for issues not assigned to one
-// if boardID is 0 unset default
-func SetDefaultBoard(projectID, boardID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Where(builder.Eq{
-		"project_id": projectID,
-		"`default`":  true,
-	}).Cols("`default`").Update(&Board{Default: false})
-	if err != nil {
-		return err
-	}
+func SetDefaultBoard(ctx context.Context, projectID, boardID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := GetBoard(ctx, boardID); err != nil {
+			return err
+		}
 
-	if boardID > 0 {
-		_, err = db.GetEngine(db.DefaultContext).ID(boardID).Where(builder.Eq{"project_id": projectID}).
+		if _, err := db.GetEngine(ctx).Where(builder.Eq{
+			"project_id": projectID,
+			"`default`":  true,
+		}).Cols("`default`").Update(&Board{Default: false}); err != nil {
+			return err
+		}
+
+		_, err := db.GetEngine(ctx).ID(boardID).
+			Where(builder.Eq{"project_id": projectID}).
 			Cols("`default`").Update(&Board{Default: true})
-	}
-
-	return err
+		return err
+	})
 }
 
 // UpdateBoardSorting update project board sorting
-func UpdateBoardSorting(bs BoardList) error {
-	for i := range bs {
-		_, err := db.GetEngine(db.DefaultContext).ID(bs[i].ID).Cols(
-			"sorting",
-		).Update(bs[i])
-		if err != nil {
-			return err
+func UpdateBoardSorting(ctx context.Context, bs BoardList) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for i := range bs {
+			if _, err := db.GetEngine(ctx).ID(bs[i].ID).Cols(
+				"sorting",
+			).Update(bs[i]); err != nil {
+				return err
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }

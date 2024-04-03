@@ -24,11 +24,11 @@ func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 	})
 }
 
-// NewContext start cache service
-func NewContext() error {
+// Init start cache service
+func Init() error {
 	var err error
 
-	if conn == nil && setting.CacheService.Enabled {
+	if conn == nil {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}

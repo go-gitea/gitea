@@ -58,11 +58,11 @@ func IsMultilineCommitMessage(msg string) bool {
 // Actioner describes an action
 type Actioner interface {
 	GetOpType() activities_model.ActionType
-	GetActUserName() string
-	GetRepoUserName() string
-	GetRepoName() string
-	GetRepoPath() string
-	GetRepoLink() string
+	GetActUserName(ctx context.Context) string
+	GetRepoUserName(ctx context.Context) string
+	GetRepoName(ctx context.Context) string
+	GetRepoPath(ctx context.Context) string
+	GetRepoLink(ctx context.Context) string
 	GetBranch() string
 	GetContent() string
 	GetCreate() time.Time
@@ -74,27 +74,31 @@ func ActionIcon(opType activities_model.ActionType) string {
 	switch opType {
 	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
-	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
+	case activities_model.ActionCommitRepo:
 		return "git-commit"
-	case activities_model.ActionCreateIssue:
-		return "issue-opened"
-	case activities_model.ActionCreatePullRequest:
-		return "git-pull-request"
-	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
-		return "comment-discussion"
+	case activities_model.ActionDeleteBranch:
+		return "git-branch"
 	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
-	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
+	case activities_model.ActionCreatePullRequest:
+		return "git-pull-request"
+	case activities_model.ActionClosePullRequest:
+		return "git-pull-request-closed"
+	case activities_model.ActionCreateIssue:
+		return "issue-opened"
+	case activities_model.ActionCloseIssue:
 		return "issue-closed"
 	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		return "issue-reopened"
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
+		return "comment-discussion"
 	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
 		return "mirror"
 	case activities_model.ActionApprovePullRequest:
 		return "check"
 	case activities_model.ActionRejectPullRequest:
-		return "diff"
-	case activities_model.ActionPublishRelease:
+		return "file-diff"
+	case activities_model.ActionPublishRelease, activities_model.ActionPushTag, activities_model.ActionDeleteTag:
 		return "tag"
 	case activities_model.ActionPullReviewDismissed:
 		return "x"

@@ -63,7 +63,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		UID:  user.ID,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 	t.Scope = accessTokenScope
 
 	// create the token
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		return err
 	}
 

@@ -19,8 +19,7 @@ menu:
 
 ## 开启/配置 API 访问
 
-通常情况下， `ENABLE_SWAGGER` 默认开启并且参数 `MAX_RESPONSE_ITEMS` 默认为 50。您可以从 [Config Cheat
-Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) 中获取更多配置相关信息。
+通常情况下， `ENABLE_SWAGGER` 默认开启并且参数 `MAX_RESPONSE_ITEMS` 默认为 50。您可以从 [Config Cheat Sheet](administration/config-cheat-sheet.md) 中获取更多配置相关信息。
 
 ## 通过 API 认证
 
@@ -61,7 +60,7 @@ curl "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 `/users/:name/tokens` 是一个特殊的接口，需要您使用 basic authentication 进行认证，具体原因在 issue 中
 [#3842](https://github.com/go-gitea/gitea/issues/3842#issuecomment-397743346) 有所提及，使用方法如下所示：
 
-### 使用 Basic authentication 认证：
+### 使用 Basic authentication 认证
 
 ```
 $ curl --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens

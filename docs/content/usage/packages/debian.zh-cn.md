@@ -27,7 +27,7 @@ menu:
 要注册 Debian 注册表，请将 URL 添加到已知 `apt` 源列表中：
 
 ```shell
-echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb [signed-by=/etc/apt/keyrings/gitea-{owner}.asc] https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 | 占位符         | 描述           |
@@ -39,13 +39,13 @@ echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {
 如果注册表是私有的，请在 URL 中提供凭据。您可以使用密码或[个人访问令牌](development/api-usage.md#通过-api-认证)：
 
 ```shell
-echo "deb https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb [signed-by=/etc/apt/keyrings/gitea-{owner}.asc] https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 Debian 注册表文件使用 PGP 密钥进行签名，`apt` 必须知道该密钥：
 
 ```shell
-sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/trusted.gpg.d/gitea-{owner}.asc
+sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/keyrings/gitea-{owner}.asc
 ```
 
 然后更新本地软件包索引：

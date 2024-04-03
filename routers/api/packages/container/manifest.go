@@ -17,10 +17,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	digest "github.com/opencontainers/go-digest"
@@ -306,7 +306,7 @@ func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *package
 		return err
 	}
 
-	notification.NotifyPackageCreate(ctx, doer, pd)
+	notify_service.PackageCreate(ctx, doer, pd)
 
 	return nil
 }

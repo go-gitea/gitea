@@ -15,13 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Basic{}
-	_ Named  = &Basic{}
 )
 
 // BasicMethodName is the constant name of the basic authentication method
@@ -43,7 +43,7 @@ func (b *Basic) Name() string {
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawOrAttachOrLFSPath(req) {
 		return nil, nil
 	}
 
@@ -72,7 +72,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check oauth2 token
-	uid := CheckOAuthAccessToken(authToken)
+	uid := CheckOAuthAccessToken(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -87,7 +87,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check personal access token
-	token, err := auth_model.GetAccessTokenBySHA(authToken)
+	token, err := auth_model.GetAccessTokenBySHA(req.Context(), authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
 		u, err := user_model.GetUserByID(req.Context(), token.UID)
@@ -97,7 +97,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		token.UpdatedUnix = timeutil.TimeStampNow()
-		if err = auth_model.UpdateAccessToken(token); err != nil {
+		if err = auth_model.UpdateAccessToken(req.Context(), token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
 		}
 
@@ -124,7 +124,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
-	u, source, err := UserSignIn(uname, passwd)
+	u, source, err := UserSignIn(req.Context(), uname, passwd)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
@@ -132,11 +132,30 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return nil, err
 	}
 
-	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
-		store.GetData()["SkipLocalTwoFA"] = true
+	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
+		if err := validateTOTP(req, u); err != nil {
+			return nil, err
+		}
 	}
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)
 
 	return u, nil
+}
+
+func validateTOTP(req *http.Request, u *user_model.User) error {
+	twofa, err := auth_model.GetTwoFactorByUID(req.Context(), u.ID)
+	if err != nil {
+		if auth_model.IsErrTwoFactorNotEnrolled(err) {
+			// No 2FA enrollment for this user
+			return nil
+		}
+		return err
+	}
+	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
+		return err
+	} else if !ok {
+		return util.NewInvalidArgumentErrorf("invalid provided OTP")
+	}
+	return nil
 }

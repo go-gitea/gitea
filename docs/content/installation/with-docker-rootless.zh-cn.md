@@ -281,7 +281,7 @@ services:
       - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-要设置所需的 TOKEN 和 SECRET 值，可以使用 Gitea 的内置[生成使用函数](https://docs.gitea.io/en-us/command-line/#generate).
+要设置所需的 TOKEN 和 SECRET 值，可以使用 Gitea 的内置[生成使用函数](administration/command-line.md#generate).
 
 # SSH 容器透传
 
@@ -310,7 +310,7 @@ sudo chmod +x /usr/local/bin/gitea-shell
 sudo usermod -s /usr/local/bin/gitea-shell git
 ```
 
-现在，所有的 SSH 命令都会被转发到容器，您需要在主机上设置 SSH 认证。这可以通过利用 [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) 来匹配 Gitea 接受的密钥。在主机的 `/etc/ssh/sshd_config` 文件中添加以下代码块：
+现在，所有的 SSH 命令都会被转发到容器，您需要在主机上设置 SSH 认证。这可以通过利用 [SSH AuthorizedKeysCommand](administration/command-line.md#keys) 来匹配 Gitea 接受的密钥。在主机的 `/etc/ssh/sshd_config` 文件中添加以下代码块：
 
 ```bash
 Match User git

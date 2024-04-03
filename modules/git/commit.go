@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -21,18 +22,18 @@ import (
 // Commit represents a git commit.
 type Commit struct {
 	Tree
-	ID            SHA1 // The ID of this commit object
+	ID            ObjectID // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
-	Signature     *CommitGPGSignature
+	Signature     *CommitSignature
 
-	Parents        []SHA1 // SHA1 strings
+	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache
 }
 
-// CommitGPGSignature represents a git commit signature part.
-type CommitGPGSignature struct {
+// CommitSignature represents a git commit signature part.
+type CommitSignature struct {
 	Signature string
 	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
@@ -43,15 +44,16 @@ func (c *Commit) Message() string {
 }
 
 // Summary returns first line of commit message.
+// The string is forced to be valid UTF8
 func (c *Commit) Summary() string {
-	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
+	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
 }
 
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
-func (c *Commit) ParentID(n int) (SHA1, error) {
+func (c *Commit) ParentID(n int) (ObjectID, error) {
 	if n >= len(c.Parents) {
-		return SHA1{}, ErrNotExist{"", ""}
+		return nil, ErrNotExist{"", ""}
 	}
 	return c.Parents[n], nil
 }
@@ -208,9 +210,9 @@ func (c *Commit) CommitsBefore() ([]*Commit, error) {
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
+func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 	this := c.ID.String()
-	that := commitHash.String()
+	that := objectID.String()
 
 	if this == that {
 		return false, nil
@@ -231,9 +233,14 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 
 // IsForcePush returns true if a push from oldCommitHash to this is a force push
 func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
-	if oldCommitID == EmptySHA {
+	objectFormat, err := c.repo.GetObjectFormat()
+	if err != nil {
+		return false, err
+	}
+	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		return false, nil
 	}
+
 	oldCommit, err := c.repo.GetCommit(oldCommitID)
 	if err != nil {
 		return false, err
@@ -305,7 +312,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
-// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
@@ -389,6 +396,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 				ismodule = false
 			}
 		}
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
 	return c.submoduleCache, nil
@@ -495,7 +505,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand(ctx, "log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
+	err := NewCommand(ctx, "log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: w,
 		Stderr: stderr,

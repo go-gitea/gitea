@@ -26,7 +26,8 @@ To work with the Swift package registry, you need to use [swift](https://www.swi
 To register the package registry and provide credentials, execute:
 
 ```shell
-swift package-registry set https://gitea.example.com/api/packages/{owner}/swift -login {username} -password {password}
+swift package-registry set https://gitea.example.com/api/packages/{owner}/swift
+swift package-registry login https://gitea.example.com/api/packages/{owner}/swift --username {username} --password {password}
 ```
 
 | Placeholder  | Description |
@@ -66,6 +67,14 @@ curl -X PUT --user {username}:{password} \
 | `metadata`  | (Optional) The metadata of the package. JSON encoded subset of https://schema.org/SoftwareSourceCode |
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+
+The server responds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `201 Created`     | The package has been published. |
+| `400 Bad Request` | The package is invalid. |
+| `409 Conflict`    | A package file with the same combination of parameters exists already. |
 
 ## Install a package
 

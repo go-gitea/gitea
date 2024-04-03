@@ -43,7 +43,7 @@ Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 		},
 		&cli.IntFlag{
 			Name:  "rsa-bits",
-			Value: 2048,
+			Value: 3072,
 			Usage: "Size of RSA key to generate. Ignored if --ecdsa-curve is set",
 		},
 		&cli.StringFlag{
