@@ -54,28 +54,19 @@ func ListActionTasks(ctx *context.APIContext) {
 		Status:      actions_model.StatusUnknown, // Unknown means all
 		IDOrderDesc: true,
 	}
-	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
+
+	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
 		return
 	}
 
 	res := new(api.ActionTaskResponse)
+	res.TotalCount = total
 
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
 		res.Entries[i] = convert.ToActionTask(ctx, ctx.Repo.Repository, tasks[i])
-	}
-
-	opts = actions_model.FindTaskOptions{
-		RepoID:      ctx.Repo.Repository.ID,
-		Status:      actions_model.StatusUnknown, // Unknown means all
-		IDOrderDesc: true,
-	}
-	tasks, res.TotalCount, err = db.FindAndCount[actions_model.ActionTask](ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
-		return
 	}
 
 	ctx.JSON(http.StatusOK, &res)
