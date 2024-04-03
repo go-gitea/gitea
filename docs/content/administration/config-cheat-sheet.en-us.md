@@ -1429,5 +1429,6 @@ Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-ser
 
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
+- `SHOW_FOOTER_POWERED_BY`: **true**: Show the "powered by" text in the footer.
 - `ENABLE_SITEMAP`: **true**: Generate sitemap.
 - `ENABLE_FEED`: **true**: Enable/Disable RSS/Atom feed.
