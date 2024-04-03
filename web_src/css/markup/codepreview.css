@@ -12,7 +12,7 @@
 
 .markup .code-preview-container table {
   width: 100%;
-  max-height: 100px;
+  max-height: 240px; /* 12 lines at 20px per line */
   overflow-y: auto;
   margin: 0; /* override ".markup table {margin}" */
 }
