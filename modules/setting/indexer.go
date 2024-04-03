@@ -58,7 +58,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 		if !filepath.IsAbs(Indexer.IssuePath) {
 			Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 		}
-		fatalDuplicatedPath("issue_indexer", Indexer.IssuePath)
+		checkOverlappedPath("indexer.ISSUE_INDEXER_PATH", Indexer.IssuePath)
 	} else {
 		Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
 		if Indexer.IssueType == "meilisearch" {

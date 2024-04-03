@@ -6,6 +6,7 @@ package context
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/url"
@@ -43,14 +44,14 @@ func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
-// RedirectToFirst redirects to first not empty URL
-func (ctx *Context) RedirectToFirst(location ...string) {
+// RedirectToCurrentSite redirects to first not empty URL which belongs to current site
+func (ctx *Context) RedirectToCurrentSite(location ...string) {
 	for _, loc := range location {
 		if len(loc) == 0 {
 			continue
 		}
 
-		if httplib.IsRiskyRedirectURL(loc) {
+		if !httplib.IsCurrentGiteaSiteURL(loc) {
 			continue
 		}
 
@@ -104,11 +105,11 @@ func (ctx *Context) JSONTemplate(tmpl base.TplName) {
 	}
 }
 
-// RenderToString renders the template content to a string
-func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (string, error) {
+// RenderToHTML renders the template content to a HTML string
+func (ctx *Context) RenderToHTML(name base.TplName, data map[string]any) (template.HTML, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data, ctx.TemplateContext)
-	return buf.String(), err
+	err := ctx.Render.HTML(&buf, 0, string(name), data, ctx.TemplateContext)
+	return template.HTML(buf.String()), err
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.

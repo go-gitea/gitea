@@ -170,15 +170,16 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
-// CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
-	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
+// CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
+// It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+	// Find all runs in the specified repository, reference, and workflow with non-final status
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
 		return err
@@ -337,6 +338,23 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	}
 
 	return run, nil
+}
+
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
+	var run ActionRun
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("ref = ?", branch).
+		And("workflow_id = ?", workflowFile)
+	if event != "" {
+		q.And("event = ?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+	}
+	return &run, nil
 }
 
 // UpdateRun updates a run.

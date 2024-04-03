@@ -10,17 +10,17 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc"}}</p>
 				</div>
 
 				{{.CsrfTokenHtml}}
@@ -52,7 +52,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
@@ -67,7 +67,7 @@
 								<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 										{{range .Teams}}
 											<div class="item" data-value="{{.ID}}">
@@ -98,7 +98,7 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
 					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
-					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
@@ -113,7 +113,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
@@ -128,7 +128,7 @@
 								<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 									{{range .Teams}}
 										<div class="item" data-value="{{.ID}}">
@@ -179,7 +179,7 @@
 								<tr>
 									<td>
 										<span>{{.}}</span>
-										<span class="status-check-matched-mark gt-hidden" data-status-check="{{.}}">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
+										<span class="status-check-matched-mark tw-hidden" data-status-check="{{.}}">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
 									</td>
 								</tr>
 							{{else}}
@@ -210,7 +210,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
@@ -225,7 +225,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 								<div class="menu">
 								{{range .Teams}}
 									<div class="item" data-value="{{.ID}}">

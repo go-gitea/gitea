@@ -80,8 +80,12 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		}
 	}
 
-	// Redirect to viewing file or folder
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(newBranchName) + "/" + util.PathEscapeSegments(treePath))
+	returnURI := ctx.FormString("return_uri")
+
+	ctx.RedirectToCurrentSite(
+		returnURI,
+		ctx.Repo.RepoLink+"/src/branch/"+util.PathEscapeSegments(newBranchName)+"/"+util.PathEscapeSegments(treePath),
+	)
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
@@ -100,6 +104,7 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 }
 
 func editFile(ctx *context.Context, isNewFile bool) {
+	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	canCommit := renderCommitRights(ctx)
@@ -189,6 +194,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
+
+	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
+	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
@@ -333,15 +341,15 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(form.LastCommit)+"..."+util.PathEscapeSegments(ctx.Repo.CommitID)), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.commit_id_not_matching"), tplEditFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(form.LastCommit)+"..."+util.PathEscapeSegments(form.NewBranchName)), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.push_out_of_date"), tplEditFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -353,7 +361,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
 				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
 				"Details": utils.SanitizeFlashErrorString(err.Error()),
@@ -542,7 +550,7 @@ func DeleteFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -742,7 +750,7 @@ func UploadFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
+				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),

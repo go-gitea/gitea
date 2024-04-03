@@ -4,10 +4,10 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -27,7 +27,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
+	users, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -101,7 +101,12 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
-		ctx.ServerError("AddCollaborator", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		} else {
+			ctx.ServerError("AddCollaborator", err)
+		}
 		return
 	}
 
@@ -126,10 +131,19 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
+	if collaborator, err := user_model.GetUserByID(ctx, ctx.FormInt64("id")); err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
+		} else {
+			ctx.ServerError("GetUserByName", err)
+			return
+		}
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
+		if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
+			ctx.Flash.Error("DeleteCollaboration: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
+		}
 	}
 
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")

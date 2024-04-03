@@ -18,6 +18,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_model "code.gitea.io/gitea/models/packages/nuget"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
@@ -122,7 +123,7 @@ func SearchServiceV2(ctx *context.Context) {
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -172,7 +173,7 @@ func SearchServiceV2Count(ctx *context.Context) {
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -187,7 +188,7 @@ func SearchServiceV3(ctx *context.Context) {
 	pvs, count, err := nuget_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
@@ -313,7 +314,7 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      packageName,
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -358,7 +359,7 @@ func EnumeratePackageVersionsV2Count(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      strings.Trim(ctx.FormTrim("id"), "'"),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

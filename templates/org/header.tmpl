@@ -1,15 +1,15 @@
-<div class="ui container gt-df">
+<div class="ui container tw-flex">
 	{{ctx.AvatarUtils.Avatar .Org 100 "org-avatar"}}
-	<div id="org-info" class="gt-df gt-fc">
+	<div id="org-info" class="tw-flex tw-flex-col">
 		<div class="ui header">
 			{{.Org.DisplayName}}
 			<span class="org-visibility">
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 			</span>
-			<span class="gt-df gt-ac gt-gap-2 gt-ml-auto gt-font-16 gt-whitespace-nowrap">
+			<span class="tw-flex tw-items-center tw-gap-1 tw-ml-auto tw-text-16 tw-whitespace-nowrap">
 				{{if .EnableFeed}}
-					<a class="ui basic label button gt-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+					<a class="ui basic label button tw-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 24}}
 					</a>
 				{{end}}
@@ -18,8 +18,8 @@
 				{{end}}
 			</span>
 		</div>
-		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription | Str2html}}</div>{{end}}
-		<div class="text light meta gt-mt-2">
+		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription}}</div>{{end}}
+		<div class="text light meta tw-mt-1">
 			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			{{if .IsSigned}}

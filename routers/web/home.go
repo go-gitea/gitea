@@ -13,10 +13,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/user"
@@ -71,7 +71,7 @@ func HomeSitemap(ctx *context.Context) {
 		_, cnt, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 			Type:        user_model.UserTypeIndividual,
 			ListOptions: db.ListOptions{PageSize: 1},
-			IsActive:    util.OptionalBoolTrue,
+			IsActive:    optional.Some(true),
 			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {

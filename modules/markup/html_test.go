@@ -43,7 +43,8 @@ func TestRender_Commits(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
 			Links: markup.Links{
-				Base: markup.TestRepoURL,
+				AbsolutePrefix: true,
+				Base:           markup.TestRepoURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -96,7 +97,8 @@ func TestRender_CrossReferences(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			Links: markup.Links{
-				Base: setting.AppSubURL,
+				AbsolutePrefix: true,
+				Base:           setting.AppSubURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -397,7 +399,7 @@ func TestRender_ShortLinks(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
@@ -407,7 +409,7 @@ func TestRender_ShortLinks(t *testing.T) {
 			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
 	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
@@ -510,7 +512,7 @@ func TestRender_RelativeImages(t *testing.T) {
 			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
@@ -520,7 +522,7 @@ func TestRender_RelativeImages(t *testing.T) {
 			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
 	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
@@ -588,7 +590,8 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		err := markup.PostProcess(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
-				Base: "https://example.com",
+				AbsolutePrefix: true,
+				Base:           "https://example.com",
 			},
 			Metas: localMetas,
 		}, strings.NewReader(input), &res)

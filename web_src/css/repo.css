@@ -4,16 +4,6 @@
   user-select: none;
 }
 
-.repository .navbar {
-  display: flex;
-  justify-content: space-between;
-}
-
-.repository .navbar .ui.label {
-  margin-left: 7px;
-  padding: 3px 5px;
-}
-
 .repository .owner.dropdown {
   min-width: 40% !important;
 }
@@ -143,41 +133,31 @@
   margin-bottom: 12px;
 }
 
-.repository #clone-panel #repo-clone-url {
+.repository .clone-panel #repo-clone-url {
   width: 320px;
   border-radius: 0;
 }
 
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .repository #clone-panel #repo-clone-url {
+@media (max-width: 991.98px) {
+  .repository .clone-panel #repo-clone-url {
     width: 200px;
   }
 }
 
-@media (max-width: 767.98px) {
-  .repository #clone-panel #repo-clone-url {
-    width: 200px;
-  }
+.repository .ui.action.input.clone-panel > button + button,
+.repository .ui.action.input.clone-panel > button + input {
+  margin-left: -1px; /* make the borders overlap to avoid double borders */
 }
 
-.repository #clone-panel #repo-clone-https,
-.repository #clone-panel #repo-clone-ssh {
-  border-right: none;
-}
-
-.repository #clone-panel #more-btn {
-  border-left: none;
-}
-
-.repository #clone-panel button:first-of-type {
+.repository .clone-panel > button:first-of-type {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-.repository #clone-panel button:last-of-type {
+.repository .clone-panel > button:last-of-type {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-.repository #clone-panel .dropdown .menu {
+.repository .clone-panel .dropdown .menu {
   right: 0 !important;
   left: auto !important;
 }
@@ -935,18 +915,11 @@
 
 .repository.view.issue .comment-list .comment .merge-section .item-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 0;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
-}
-
-@media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .comment .merge-section .item-section {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  gap: 0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
@@ -1072,11 +1045,7 @@
 
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
-  margin-left: 14px;
-}
-
-.repository.view.issue .comment-list .event .detail .svg {
-  margin-right: 2px;
+  margin-left: 15px;
 }
 
 .repository.view.issue .comment-list .event .segments {
@@ -1427,6 +1396,7 @@
 
 .repository .data-table tr {
   border-top: 0;
+  background: none !important;
 }
 
 .repository .data-table td,
@@ -1437,6 +1407,21 @@
   text-align: left;
   white-space: nowrap;
   border: 1px solid var(--color-secondary);
+}
+
+/* the border css competes with .markup where all tables have outer border which would add a double
+   border here, remove only the outer borders from this table */
+.repository .data-table tr:first-child :is(td,th) {
+  border-top: none !important;
+}
+.repository .data-table tr:last-child :is(td,th) {
+  border-bottom: none !important;
+}
+.repository .data-table tr :is(td,th):first-child {
+  border-left: none !important;
+}
+.repository .data-table tr :is(td,th):last-child {
+  border-right: none !important;
 }
 
 .repository .data-table td {
@@ -1476,7 +1461,7 @@
   min-width: 50px;
   font-family: monospace;
   line-height: 20px;
-  color: var(--color-secondary-dark-2);
+  color: var(--color-text-light-1);
   white-space: nowrap;
   vertical-align: top;
   cursor: pointer;
@@ -1617,7 +1602,6 @@
 
 .repository .diff-file-box .file-body.file-code .lines-num {
   text-align: right;
-  color: var(--color-text-light);
   width: 1%;
   min-width: 50px;
 }
@@ -1752,10 +1736,6 @@
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.repository.quickstart .guide .clone.button:first-child {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
 .repository.quickstart .guide #repo-clone-url {
@@ -2030,13 +2010,8 @@
 }
 
 #cite-repo-modal #citation-panel {
-  width: 500px;
-}
-
-@media (max-width: 767.98px) {
-  #cite-repo-modal #citation-panel {
-    width: 100%;
-  }
+  display: flex;
+  width: 100%;
 }
 
 #cite-repo-modal #citation-panel input {
@@ -2056,6 +2031,7 @@
   padding: 5px 10px;
   font-size: 1.2em;
   line-height: 1.4;
+  flex: 1;
 }
 
 #cite-repo-modal #citation-panel #citation-copy-apa,
@@ -2284,104 +2260,6 @@
   padding-top: 15px;
 }
 
-.edit-label.modal .form .color.picker.column,
-.new-label.modal .form .color.picker.column {
-  display: flex;
-}
-
-.edit-label.modal .form .color.picker.column .minicolors,
-.new-label.modal .form .color.picker.column .minicolors {
-  flex: 1;
-}
-
-.edit-label.modal .form .minicolors-swatch.minicolors-sprite,
-.new-label.modal .form .minicolors-swatch.minicolors-sprite {
-  top: 10px;
-  left: 10px;
-  width: 15px;
-  height: 15px;
-}
-
-.tab-size-1 {
-  tab-size: 1 !important;
-  -moz-tab-size: 1 !important;
-}
-
-.tab-size-2 {
-  tab-size: 2 !important;
-  -moz-tab-size: 2 !important;
-}
-
-.tab-size-3 {
-  tab-size: 3 !important;
-  -moz-tab-size: 3 !important;
-}
-
-.tab-size-4 {
-  tab-size: 4 !important;
-  -moz-tab-size: 4 !important;
-}
-
-.tab-size-5 {
-  tab-size: 5 !important;
-  -moz-tab-size: 5 !important;
-}
-
-.tab-size-6 {
-  tab-size: 6 !important;
-  -moz-tab-size: 6 !important;
-}
-
-.tab-size-7 {
-  tab-size: 7 !important;
-  -moz-tab-size: 7 !important;
-}
-
-.tab-size-8 {
-  tab-size: 8 !important;
-  -moz-tab-size: 8 !important;
-}
-
-.tab-size-9 {
-  tab-size: 9 !important;
-  -moz-tab-size: 9 !important;
-}
-
-.tab-size-10 {
-  tab-size: 10 !important;
-  -moz-tab-size: 10 !important;
-}
-
-.tab-size-11 {
-  tab-size: 11 !important;
-  -moz-tab-size: 11 !important;
-}
-
-.tab-size-12 {
-  tab-size: 12 !important;
-  -moz-tab-size: 12 !important;
-}
-
-.tab-size-13 {
-  tab-size: 13 !important;
-  -moz-tab-size: 13 !important;
-}
-
-.tab-size-14 {
-  tab-size: 14 !important;
-  -moz-tab-size: 14 !important;
-}
-
-.tab-size-15 {
-  tab-size: 15 !important;
-  -moz-tab-size: 15 !important;
-}
-
-.tab-size-16 {
-  tab-size: 16 !important;
-  -moz-tab-size: 16 !important;
-}
-
 .stats-table {
   display: table;
   width: 100%;
@@ -2406,6 +2284,11 @@
   background: none !important;
   padding: 0 !important;
   gap: 0 !important;
+}
+
+.archived-label {
+  filter: grayscale(0.5);
+  opacity: 0.5;
 }
 
 .ui.label.scope-left {
@@ -2457,6 +2340,7 @@ tbody.commit-list {
 
 .author-wrapper {
   max-width: 180px;
+  align-self: center;
 }
 
 /* in the commit list, messages can wrap so we can use inline */
@@ -2553,6 +2437,7 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
+  margin: 0;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -2776,16 +2661,6 @@ tbody.commit-list {
 .code-diff-split tbody tr td:nth-child(5),
 .code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
-}
-
-.repository .ui.menu.new-menu {
-  background: none !important;
-}
-
-@media (max-width: 1200px) {
-  .repository .ui.menu.new-menu::after {
-    background: none !important;
-  }
 }
 
 .migrate-entries {
@@ -3013,4 +2888,34 @@ tbody.commit-list {
 
 #cherry-pick-modal .scrolling.menu {
   max-height: 200px;
+}
+
+/* Branch tag selector - TODO: Merge this into the same selector on repo page */
+.repository .issue-content .issue-content-right  .ui.grid .column.row {
+  padding: 10px;
+  padding-bottom: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted {
+  padding: 0;
+}
+.repository .issue-content .issue-content-right  .ui.grid .column.muted .text {
+  display: inline-block;
+  padding: 10px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
+  border-color: var(--color-secondary);
+  background: var(--color-menu);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
+  border-top: none;
+}
+.repository .issue-content .issue-content-right .branch-tag-divider {
+  margin-top: -1px;
+  border-top: 1px solid var(--color-secondary);
 }

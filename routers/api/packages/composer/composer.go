@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
@@ -66,7 +67,7 @@ func SearchPackages(ctx *context.Context) {
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeComposer,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  &paginator,
 	}
 	if ctx.FormTrim("type") != "" {

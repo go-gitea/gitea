@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -96,13 +97,17 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	labelIDs, err := base.StringsToInt64s(ctx.FormStrings("labels"))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
-
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
 		State:       ctx.FormTrim("state"),
 		SortType:    ctx.FormTrim("sort"),
-		Labels:      ctx.FormStrings("labels"),
+		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
 	})
 	if err != nil {
@@ -362,6 +367,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "409":
@@ -510,9 +517,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
-			return
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		return
 	}
 
@@ -630,6 +639,8 @@ func EditPullRequest(ctx *context.APIContext) {
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+			} else if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.Error(http.StatusForbidden, "UpdateAssignees", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
 			}
@@ -1062,6 +1073,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			return nil, nil, nil, nil, "", ""
 		}
 		headBranch = headInfos[1]
+		// The head repository can also point to the same repo
+		isSameRepo = ctx.Repo.Owner.ID == headUser.ID
 
 	} else {
 		ctx.NotFound()

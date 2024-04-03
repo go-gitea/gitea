@@ -955,6 +955,15 @@ func Routes() *web.Route {
 						Delete(user.DeleteSecret)
 				})
 
+				m.Group("/variables", func() {
+					m.Get("", user.ListVariables)
+					m.Combo("/{variablename}").
+						Get(user.GetVariable).
+						Delete(user.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), user.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), user.UpdateVariable)
+				})
+
 				m.Group("/runners", func() {
 					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 				})
@@ -1027,7 +1036,16 @@ func Routes() *web.Route {
 			m.Group("/avatar", func() {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
-			}, reqToken())
+			})
+
+			m.Group("/blocks", func() {
+				m.Get("", user.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckUserBlock)
+					m.Put("", user.BlockUser)
+					m.Delete("", user.UnblockUser)
+				}, context.UserAssignmentAPI())
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1062,6 +1080,15 @@ func Routes() *web.Route {
 						m.Combo("/{secretname}").
 							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
 							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+					})
+
+					m.Group("/variables", func() {
+						m.Get("", reqToken(), reqOwner(), repo.ListVariables)
+						m.Combo("/{variablename}").
+							Get(reqToken(), reqOwner(), repo.GetVariable).
+							Delete(reqToken(), reqOwner(), repo.DeleteVariable).
+							Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateVariable).
+							Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateVariable)
 					})
 
 					m.Group("/runners", func() {
@@ -1443,6 +1470,15 @@ func Routes() *web.Route {
 						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 				})
 
+				m.Group("/variables", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListVariables)
+					m.Combo("/{variablename}").
+						Get(reqToken(), reqOrgOwnership(), org.GetVariable).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteVariable).
+						Post(reqToken(), reqOrgOwnership(), bind(api.CreateVariableOption{}), org.CreateVariable).
+						Put(reqToken(), reqOrgOwnership(), bind(api.UpdateVariableOption{}), org.UpdateVariable)
+				})
+
 				m.Group("/runners", func() {
 					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
 				})
@@ -1477,6 +1513,15 @@ func Routes() *web.Route {
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+
+			m.Group("/blocks", func() {
+				m.Get("", org.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", org.CheckUserBlock)
+					m.Put("", org.BlockUser)
+					m.Delete("", org.UnblockUser)
+				})
+			}, reqToken(), reqOrgOwnership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1519,6 +1564,9 @@ func Routes() *web.Route {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
+					m.Get("/badges", admin.ListUserBadges)
+					m.Post("/badges", bind(api.UserBadgeOption{}), admin.AddUserBadges)
+					m.Delete("/badges", bind(api.UserBadgeOption{}), admin.DeleteUserBadges)
 				}, context.UserAssignmentAPI())
 			})
 			m.Group("/emails", func() {

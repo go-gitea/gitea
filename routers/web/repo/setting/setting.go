@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -23,12 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -488,6 +490,13 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
+		if form.DefaultWikiBranch != "" {
+			if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
+				log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
+				ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
+			}
+		}
+
 		if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
@@ -534,6 +543,9 @@ func SettingsPost(ctx *context.Context) {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
+				Config: &repo_model.ProjectsConfig{
+					ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
+				},
 			})
 		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
@@ -693,7 +705,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
@@ -780,6 +792,8 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+			} else if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
@@ -885,6 +899,10 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+		}
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -901,6 +919,12 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
+		}
+
+		if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+			if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))

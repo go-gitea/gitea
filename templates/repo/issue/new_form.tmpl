@@ -1,17 +1,15 @@
+{{if .Flash}}
+{{template "base/alert" .}}
+{{end}}
 <form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
-	{{if .Flash}}
-		<div class="sixteen wide column">
-			{{template "base/alert" .}}
-		</div>
-	{{end}}
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
 				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
-				<div class="ui segment content gt-my-0">
+				<div class="ui segment content tw-my-0">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" autofocus required maxlength="255" autocomplete="off">
+						<input name="title" class="js-autofocus-end" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{ctx.Locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0)}}</div>
 						{{end}}
@@ -62,7 +60,7 @@
 			<span class="text flex-text-block">
 				<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -70,11 +68,11 @@
 			</div>
 		</div>
 		<div class="ui select-milestone list">
-			<span class="no-select item {{if .Milestone}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
+			<span class="no-select item {{if .Milestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Milestone}}
 					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
-						{{svg "octicon-milestone" 18 "gt-mr-3"}}
+						{{svg "octicon-milestone" 18 "tw-mr-2"}}
 						{{.Milestone.Name}}
 					</a>
 				{{end}}
@@ -89,7 +87,7 @@
 			<span class="text flex-text-block">
 				<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{svg "octicon-gear" 16 "tw-ml-1"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -112,7 +110,7 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -123,7 +121,7 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -131,11 +129,11 @@
 			</div>
 		</div>
 		<div class="ui select-project list">
-			<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
+			<span class="no-select item {{if .Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Project}}
 					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
-						{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
+						{{svg .Project.IconName 18 "tw-mr-2"}}{{.Project.Title}}
 					</a>
 				{{end}}
 			</div>
@@ -147,7 +145,7 @@
 				<span class="text flex-text-block">
 					<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear" 16 "gt-ml-2"}}
+						{{svg "octicon-gear" 16 "tw-ml-1"}}
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
@@ -158,22 +156,22 @@
 					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
+							<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
-								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
+								{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}{{template "repo/search_name" .}}
 							</span>
 						</a>
 					{{end}}
 				</div>
 			</div>
 			<div class="ui assignees list">
-				<span class="no-select item {{if .HasSelectedLabel}}gt-hidden{{end}}">
+				<span class="no-select item {{if .HasSelectedLabel}}tw-hidden{{end}}">
 					{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}
 				</span>
 				<div class="selected">
 				{{range .Assignees}}
-					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+					<a class="item tw-p-1 muted tw-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+						{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2 tw-align-middle"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
 				</div>

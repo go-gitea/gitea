@@ -21,7 +21,7 @@
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
@@ -30,11 +30,11 @@
 					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"
@@ -45,7 +45,7 @@
 					{{ctx.Locale.Tr "loading"}}
 				</div>
 				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
-					{{ctx.Locale.Tr "loading"}}
+					<div class="tw-p-16"></div>
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}

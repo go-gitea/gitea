@@ -50,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderMarkdown creates a minimal markdown render context from an action.
 // If rendering fails, the original markdown text is returned
-func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) string {
+func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
 	markdownCtx := &markup.RenderContext{
 		Ctx: ctx,
 		Links: markup.Links{
@@ -64,7 +64,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 	}
 	markdown, err := markdown.RenderString(markdownCtx, content)
 	if err != nil {
-		return content
+		return templates.SanitizeHTML(content) // old code did so: use SanitizeHTML to render in tmpl
 	}
 	return markdown
 }
@@ -74,7 +74,11 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
-		var content, desc, title string
+		// TODO: the code seems quite strange (maybe not right)
+		// sometimes it uses text content but sometimes it uses HTML content
+		// it should clearly defines which kind of content it should use for the feed items: plan text or rich HTML
+		var title, desc string
+		var content template.HTML
 
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
@@ -228,7 +232,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + renderMarkdown(ctx, act, comment)
+					desc += "\n\n" + string(renderMarkdown(ctx, act, comment))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -239,7 +243,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			}
 		}
 		if len(content) == 0 {
-			content = desc
+			content = templates.SanitizeHTML(desc)
 		}
 
 		items = append(items, &feeds.Item{
@@ -253,7 +257,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
 			Created: act.CreatedUnix.AsTime(),
-			Content: content,
+			Content: string(content),
 		})
 	}
 	return items, err
@@ -282,7 +286,8 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			return nil, err
 		}
 
-		var title, content string
+		var title string
+		var content template.HTML
 
 		if rel.IsTag {
 			title = rel.TagName
@@ -311,7 +316,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),
-			Content: content,
+			Content: string(content),
 		})
 	}
 

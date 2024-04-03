@@ -2,7 +2,6 @@ import $ from 'jquery';
 import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
-import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
@@ -11,7 +10,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
-import {request, POST} from '../modules/fetch.js';
+import {request, POST, GET} from '../modules/fetch.js';
 import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
@@ -19,7 +18,7 @@ const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if ($('.user.signin').length === 0) {
+  if (!$('.user.signin').length) {
     $('form:not(.ignore-dirty)').areYouSure();
   }
 }
@@ -37,11 +36,10 @@ export function initHeadNavbarContentToggle() {
 }
 
 export function initFootLanguageMenu() {
-  function linkLanguageAction() {
+  async function linkLanguageAction() {
     const $this = $(this);
-    $.get($this.data('url')).always(() => {
-      window.location.reload();
-    });
+    await GET($this.data('url'));
+    window.location.reload();
   }
 
   $('.language-menu a[lang]').on('click', linkLanguageAction);
@@ -92,19 +90,26 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       } else {
         window.location.reload();
       }
+      return;
     } else if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-      showErrorToast(data.errorMessage || `server error: ${resp.status}`);
+      if (data.errorMessage) {
+        showErrorToast(data.errorMessage, {useHtmlBody: data.renderFormat === 'html'});
+      } else {
+        showErrorToast(`server error: ${resp.status}`);
+      }
     } else {
       showErrorToast(`server error: ${resp.status}`);
     }
   } catch (e) {
-    console.error('error when doRequest', e);
-    actionElem.classList.remove('is-loading', 'small-loading-icon');
-    showErrorToast(i18n.network_error);
+    if (e.name !== 'AbortError') {
+      console.error('error when doRequest', e);
+      showErrorToast(`${i18n.network_error} ${e}`);
+    }
   }
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -116,7 +121,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('small-loading-icon');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
@@ -190,8 +195,6 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
 
-  $('.ui.checkbox').checkbox();
-
   $('.tabular.menu .item').tab();
 
   initSubmitEventPolyfill();
@@ -225,12 +228,12 @@ export function initDropzone(el) {
     init() {
       this.on('success', (file, data) => {
         file.uuid = data.uuid;
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $dropzone.find('.files').append(input);
+        const $input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        $dropzone.find('.files').append($input);
         // Create a "Copy Link" element, to conveniently copy the image
         // or file link as Markdown to the clipboard
         const copyLinkElement = document.createElement('div');
-        copyLinkElement.className = 'gt-text-center';
+        copyLinkElement.className = 'tw-text-center';
         // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
         copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
         copyLinkElement.addEventListener('click', async (e) => {
@@ -295,42 +298,41 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
+    if (this.getAttribute('data-modal-id')) {
+      filter += `#${this.getAttribute('data-modal-id')}`;
     }
 
-    const dialog = $(`.delete.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
+    const $dialog = $(`.delete.modal${filter}`);
+    $dialog.find('.name').text($this.data('name'));
     for (const [key, value] of Object.entries(dataArray)) {
       if (key && key.startsWith('data')) {
-        dialog.find(`.${key}`).text(value);
+        $dialog.find(`.${key}`).text(value);
       }
     }
 
-    dialog.modal({
+    $dialog.modal({
       closable: false,
-      onApprove() {
+      onApprove: async () => {
         if ($this.data('type') === 'form') {
           $($this.data('form')).trigger('submit');
           return;
         }
-
-        const postData = {
-          _csrf: csrfToken,
-        };
+        const postData = new FormData();
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.slice(4)] = value;
+            postData.append(key.slice(4), value);
           }
           if (key === 'id') {
-            postData['id'] = value;
+            postData.append('id', value);
           }
         }
 
-        $.post($this.data('url'), postData).done((data) => {
+        const response = await POST($this.data('url'), {data: postData});
+        if (response.ok) {
+          const data = await response.json();
           window.location.href = data.redirect;
-        });
-      }
+        }
+      },
     }).modal('show');
   }
 
@@ -347,8 +349,7 @@ function initGlobalShowModal() {
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
   $('.show-modal').on('click', function (e) {
     e.preventDefault();
-    const $el = $(this);
-    const modalSelector = $el.attr('data-modal');
+    const modalSelector = this.getAttribute('data-modal');
     const $modal = $(modalSelector);
     if (!$modal.length) {
       throw new Error('no modal for this action');
@@ -369,16 +370,13 @@ function initGlobalShowModal() {
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+      } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const colorPickers = $modal.find('.color-picker');
-    if (colorPickers.length > 0) {
-      initCompColorPicker(); // FIXME: this might cause duplicate init
-    }
+
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -401,7 +399,7 @@ export function initGlobalButtons() {
     // a '.show-panel' element can show a panel, by `data-panel="selector"`
     // if it has "toggle" class, it toggles the panel
     e.preventDefault();
-    const sel = $(this).attr('data-panel');
+    const sel = this.getAttribute('data-panel');
     if (this.classList.contains('toggle')) {
       toggleElem(sel);
     } else {
@@ -412,12 +410,12 @@ export function initGlobalButtons() {
   $('.hide-panel').on('click', function (e) {
     // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
-    let sel = $(this).attr('data-panel');
+    let sel = this.getAttribute('data-panel');
     if (sel) {
       hideElem($(sel));
       return;
     }
-    sel = $(this).attr('data-panel-closest');
+    sel = this.getAttribute('data-panel-closest');
     if (sel) {
       hideElem($(this).closest(sel));
       return;

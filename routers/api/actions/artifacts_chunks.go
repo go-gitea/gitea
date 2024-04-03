@@ -5,11 +5,16 @@ package actions
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
@@ -17,6 +22,52 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
+
+func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
+	artifact *actions.ActionArtifact,
+	contentSize, runID, start, end, length int64, checkMd5 bool,
+) (int64, error) {
+	// build chunk store path
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
+	var r io.Reader = ctx.Req.Body
+	var hasher hash.Hash
+	if checkMd5 {
+		// use io.TeeReader to avoid reading all body to md5 sum.
+		// it writes data to hasher after reading end
+		// if hash is not matched, delete the read-end result
+		hasher = md5.New()
+		r = io.TeeReader(r, hasher)
+	}
+	// save chunk to storage
+	writtenSize, err := st.Save(storagePath, r, -1)
+	if err != nil {
+		return -1, fmt.Errorf("save chunk to storage error: %v", err)
+	}
+	var checkErr error
+	if checkMd5 {
+		// check md5
+		reqMd5String := ctx.Req.Header.Get(artifactXActionsResultsMD5Header)
+		chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+		log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
+		// if md5 not match, delete the chunk
+		if reqMd5String != chunkMd5String {
+			checkErr = fmt.Errorf("md5 not match")
+		}
+	}
+	if writtenSize != contentSize {
+		checkErr = errors.Join(checkErr, fmt.Errorf("contentSize not match body size"))
+	}
+	if checkErr != nil {
+		if err := st.Delete(storagePath); err != nil {
+			log.Error("Error deleting chunk: %s, %v", storagePath, err)
+		}
+		return -1, checkErr
+	}
+	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
+		storagePath, contentSize, artifact.ID, start, end)
+	// return chunk total size
+	return length, nil
+}
 
 func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	artifact *actions.ActionArtifact,
@@ -29,33 +80,15 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
-	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
-	// use io.TeeReader to avoid reading all body to md5 sum.
-	// it writes data to hasher after reading end
-	// if hash is not matched, delete the read-end result
-	hasher := md5.New()
-	r := io.TeeReader(ctx.Req.Body, hasher)
-	// save chunk to storage
-	writtenSize, err := st.Save(storagePath, r, -1)
-	if err != nil {
-		return -1, fmt.Errorf("save chunk to storage error: %v", err)
-	}
-	// check md5
-	reqMd5String := ctx.Req.Header.Get(artifactXActionsResultsMD5Header)
-	chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
-	// if md5 not match, delete the chunk
-	if reqMd5String != chunkMd5String || writtenSize != contentSize {
-		if err := st.Delete(storagePath); err != nil {
-			log.Error("Error deleting chunk: %s, %v", storagePath, err)
-		}
-		return -1, fmt.Errorf("md5 not match")
-	}
-	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
-		storagePath, contentSize, artifact.ID, start, end)
-	// return chunk total size
-	return length, nil
+	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, length, true)
+}
+
+func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
+	artifact *actions.ActionArtifact,
+	start, contentSize, runID int64,
+) (int64, error) {
+	end := start + contentSize - 1
+	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, contentSize, false)
 }
 
 type chunkFileItem struct {
@@ -111,14 +144,14 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 			log.Debug("artifact %d chunks not found", art.ID)
 			continue
 		}
-		if err := mergeChunksForArtifact(ctx, chunks, st, art); err != nil {
+		if err := mergeChunksForArtifact(ctx, chunks, st, art, ""); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact) error {
+func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) error {
 	sort.Slice(chunks, func(i, j int) bool {
 		return chunks[i].Start < chunks[j].Start
 	})
@@ -157,6 +190,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		readers = append(readers, readCloser)
 	}
 	mergedReader := io.MultiReader(readers...)
+	shaPrefix := "sha256:"
+	var hash hash.Hash
+	if strings.HasPrefix(checksum, shaPrefix) {
+		hash = sha256.New()
+	}
+	if hash != nil {
+		mergedReader = io.TeeReader(mergedReader, hash)
+	}
 
 	// if chunk is gzip, use gz as extension
 	// download-artifact action will use content-encoding header to decide if it should decompress the file
@@ -184,6 +225,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 			}
 		}
 	}()
+
+	if hash != nil {
+		rawChecksum := hash.Sum(nil)
+		actualChecksum := hex.EncodeToString(rawChecksum)
+		if !strings.HasSuffix(checksum, actualChecksum) {
+			return fmt.Errorf("update artifact error checksum is invalid")
+		}
+	}
 
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s, old:%s", artifact.ID, storagePath, artifact.StoragePath)

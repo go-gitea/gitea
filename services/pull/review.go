@@ -18,12 +18,30 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
+// ErrDismissRequestOnClosedPR represents an error when an user tries to dismiss a review associated to a closed or merged PR.
+type ErrDismissRequestOnClosedPR struct{}
+
+// IsErrDismissRequestOnClosedPR checks if an error is an ErrDismissRequestOnClosedPR.
+func IsErrDismissRequestOnClosedPR(err error) bool {
+	_, ok := err.(ErrDismissRequestOnClosedPR)
+	return ok
+}
+
+func (err ErrDismissRequestOnClosedPR) Error() string {
+	return "can't dismiss a review associated to a closed or merged PR"
+}
+
+func (err ErrDismissRequestOnClosedPR) Unwrap() error {
+	return util.ErrPermissionDenied
+}
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
@@ -52,11 +70,9 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	issueIDs := prs.GetIssueIDs()
 
 	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		Type:        issues_model.CommentTypeCode,
-		Invalidated: util.OptionalBoolFalse,
+		Invalidated: optional.Some(false),
 		IssueIDs:    issueIDs,
 	})
 	if err != nil {
@@ -268,11 +284,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
-	pr, err := issue.GetPullRequest(ctx)
-	if err != nil {
+	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, nil, err
 	}
 
+	pr := issue.PullRequest
 	var stale bool
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
@@ -322,12 +338,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 // DismissApprovalReviews dismiss all approval reviews because of new commits
 func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IssueID:   pull.IssueID,
-		Type:      issues_model.ReviewTypeApprove,
-		Dismissed: util.OptionalBoolFalse,
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pull.IssueID,
+		Type:        issues_model.ReviewTypeApprove,
+		Dismissed:   optional.Some(false),
 	})
 	if err != nil {
 		return err
@@ -386,6 +400,21 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
 	}
 
+	issue := review.Issue
+
+	if issue.IsClosed {
+		return nil, ErrDismissRequestOnClosedPR{}
+	}
+
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return nil, err
+		}
+		if issue.PullRequest.HasMerged {
+			return nil, ErrDismissRequestOnClosedPR{}
+		}
+	}
+
 	if err := issues_model.DismissReview(ctx, review, isDismiss); err != nil {
 		return nil, err
 	}
@@ -394,7 +423,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    review.IssueID,
 			ReviewerID: review.ReviewerID,
-			Dismissed:  util.OptionalBoolFalse,
+			Dismissed:  optional.Some(false),
 		})
 		if err != nil {
 			return nil, err

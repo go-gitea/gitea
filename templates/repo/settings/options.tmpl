@@ -80,7 +80,7 @@
 			</h4>
 			<div class="ui attached segment">
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message gt-text-center">
+					<div class="ui warning message tw-text-center">
 						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
 					</div>
 				{{else}}
@@ -110,19 +110,18 @@
 					<table class="ui table">
 						<thead>
 							<tr>
-								<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
+								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
 								<th></th>
 							</tr>
 						</thead>
-						{{end}}
 						{{if $modifyBrokenPullMirror}}
 							{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 							<tbody>
 								<tr>
 									<td colspan="4">
-										<div class="text red gt-py-4 gt-border-secondary-bottom">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+										<div class="text red tw-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 									</td>
 								</tr>
 							</tbody>
@@ -133,7 +132,7 @@
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
 								<td class="right aligned">
-									<form method="post" class="gt-dib">
+									<form method="post" class="tw-inline-block">
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="mirror-sync">
 										<button class="ui primary tiny button inline text-thin">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
@@ -164,10 +163,10 @@
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
 										<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
-											<summary class="gt-p-2">
+											<summary class="tw-p-1">
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
-											<div class="gt-p-2">
+											<div class="tw-p-1">
 												<div class="inline field {{if .Err_Auth}}error{{end}}">
 													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
@@ -201,13 +200,14 @@
 								</td>
 							</tr>
 						</tbody>
+						{{end}}{{/* end if: $modifyBrokenPullMirror / $isWorkingPullMirror */}}
 					</table>
-					{{end}}{{/* end if: IsMirror */}}
+					{{end}}{{/* end if .Repository.IsMirror */}}
 
 					<table class="ui table">
 						<thead>
 							<tr>
-								<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
+								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
 								<th></th>
@@ -230,13 +230,13 @@
 									>
 										{{svg "octicon-pencil" 14}}
 									</button>
-									<form method="post" class="gt-dib">
+									<form method="post" class="tw-inline-block">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-sync">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
 									</form>
-									<form method="post" class="gt-dib">
+									<form method="post" class="tw-inline-block">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-remove">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
@@ -262,10 +262,10 @@
 												<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 											</div>
 											<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
-												<summary class="gt-p-2">
+												<summary class="tw-p-1">
 													{{ctx.Locale.Tr "repo.need_auth"}}
 												</summary>
-												<div class="gt-p-2">
+												<div class="tw-p-1">
 													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
 														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
@@ -335,13 +335,17 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
+					<div class="inline field tw-pl-4">
+						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
+						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
 						<label for="external_wiki_url">{{ctx.Locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{ctx.Locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -368,7 +372,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+					<div class="field tw-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -400,7 +404,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{ctx.Locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -446,13 +450,45 @@
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
+				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} tw-pl-4" id="projects_box">
+					<p>
+						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
+					</p>
+					<div class="ui dropdown selection">
+						<select name="projects_mode">
+							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+						</select>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="default text">
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
+							{{end}}
+							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
+								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
+							{{end}}
+						</div>
+						<div class="menu">
+							<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
+							<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
+							<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
 				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}
@@ -801,7 +837,7 @@
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
-					<div class="flex-item gt-ac">
+					<div class="flex-item tw-items-center">
 						<div class="flex-item-main">
 							{{if .Repository.IsArchived}}
 								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>

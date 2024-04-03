@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -161,6 +162,21 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 	ctx.Data["NumFollowing"] = numFollowing
 
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
+
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
@@ -203,10 +219,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			StarredByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -225,10 +246,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			WatchedByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -270,10 +296,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -293,12 +324,14 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "tab", "TabName")
+	pager.AddParamString("tab", tab)
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParam(ctx, "language", "Language")
+		pager.AddParamString("language", language)
 	}
 	if tab == "activity" {
-		pager.AddParam(ctx, "date", "Date")
+		if ctx.Data["Date"] != nil {
+			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
+		}
 	}
 	ctx.Data["Page"] = pager
 }
@@ -308,7 +341,7 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser)
 	case "unfollow":
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}

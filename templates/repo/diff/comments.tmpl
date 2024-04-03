@@ -8,10 +8,10 @@
 		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
-		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
-			<div class="comment-header-left gt-df gt-ac">
+		<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+			<div class="comment-header-left tw-flex tw-items-center">
 				{{if .OriginalAuthor}}
-					<span class="text black gt-font-semibold gt-mr-2">
+					<span class="text black tw-font-semibold tw-mr-1">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -30,14 +30,14 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="comment-header-right actions gt-df gt-ac">
+			<div class="comment-header-right actions tw-flex tw-items-center">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
-				{{if and .Review}}
+				{{if .Review}}
 					{{if eq .Review.Type 0}}
 						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.pending.tooltip" (ctx.Locale.Tr "repo.diff.review") (ctx.Locale.Tr "repo.diff.review.approve") (ctx.Locale.Tr "repo.diff.review.comment") (ctx.Locale.Tr "repo.diff.review.reject")}}">
 						{{ctx.Locale.Tr "repo.issues.review.pending"}}
@@ -55,15 +55,15 @@
 		<div class="ui attached segment comment-body">
 			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
-				{{.RenderedContent|Str2html}}
+				{{.RenderedContent}}
 			{{else}}
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
 			{{if .Attachments}}
-				{{template "repo/issue/view_content/attachments" dict "ctxData" $ "Attachments" .Attachments "Content" .RenderedContent}}
+				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}

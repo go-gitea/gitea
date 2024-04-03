@@ -14,8 +14,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -278,15 +278,15 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	var isPull util.OptionalBool
+	var isPull optional.Option[bool]
 	canReadIssue := ctx.Repo.CanRead(unit.TypeIssues)
 	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
 	if canReadIssue && canReadPull {
-		isPull = util.OptionalBoolNone
+		isPull = optional.None[bool]()
 	} else if canReadIssue {
-		isPull = util.OptionalBoolFalse
+		isPull = optional.Some(false)
 	} else if canReadPull {
-		isPull = util.OptionalBoolTrue
+		isPull = optional.Some(true)
 	} else {
 		ctx.NotFound()
 		return
@@ -321,10 +321,6 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	apiComments := make([]*api.Comment, len(comments))
 	if err := comments.LoadIssues(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
-		return
-	}
-	if err := comments.LoadPosters(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 	if err := comments.LoadAttachments(ctx); err != nil {
@@ -382,6 +378,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -401,7 +398,11 @@ func CreateIssueComment(ctx *context.APIContext) {
 
 	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "CreateIssueComment", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
+		}
 		return
 	}
 
@@ -522,6 +523,7 @@ func EditIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
 	editIssueComment(ctx, *form)
 }
@@ -610,7 +612,11 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	oldContent := comment.Content
 	comment.Content = form.Body
 	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
+		}
 		return
 	}
 

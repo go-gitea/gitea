@@ -107,13 +107,25 @@ func TestSignupEmailActive(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `A new confirmation email has been sent to <b>email-1@example.com</b>.`)
 
-	// access "user/active" means trying to re-send the activation email
+	// access "user/activate" means trying to re-send the activation email
 	session := loginUserWithPassword(t, "test-user-1", "password1")
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/activate"), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "You have already requested an activation email recently")
 
-	// access "user/active" with a valid activation code, then get the "verify password" page
+	// access anywhere else will see a "Activate Your Account" prompt, and there is a chance to change email
+	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/issues"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<input id="change-email" name="change_email" `)
+
+	// post to "user/activate" with a new email
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/activate", map[string]string{"change_email": "email-changed@example.com"}), http.StatusSeeOther)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
+	assert.Equal(t, "email-changed@example.com", user.Email)
+	email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "email-changed@example.com"})
+	assert.False(t, email.IsActivated)
+	assert.True(t, email.IsPrimary)
+
+	// access "user/activate" with a valid activation code, then get the "verify password" page
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
 	activationCode := user.GenerateEmailActivateCode(user.Email)
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/activate?code="+activationCode), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `<input id="verify-password"`)

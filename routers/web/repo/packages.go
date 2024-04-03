@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -37,7 +37,7 @@ func Packages(ctx *context.Context) {
 		RepoID:     ctx.Repo.Repository.ID,
 		Type:       packages.Type(packageType),
 		Name:       packages.SearchValue{Value: query},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -70,8 +70,8 @@ func Packages(ctx *context.Context) {
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Query")
-	pager.AddParam(ctx, "type", "PackageType")
+	pager.AddParamString("q", query)
+	pager.AddParamString("type", packageType)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

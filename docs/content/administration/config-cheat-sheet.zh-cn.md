@@ -497,15 +497,17 @@ Gitea 创建以下非唯一队列：
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**：用户电子邮件通知的默认配置（用户可配置）。选项：enabled、onmention、disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**：禁止普通（非管理员）用户创建组织。
-- `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`， 未来可以增加更多设置。
+- `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`，`manage_ssh_keys`， `manage_gpg_keys` 未来可以增加更多设置。
   - `deletion`: 用户不能通过界面或者API删除他自己。
+  - `manage_ssh_keys`: 用户不能通过界面或者API配置SSH Keys。
+  - `manage_gpg_keys`: 用户不能配置 GPG 密钥。
 
 ## 安全性 (`security`)
 
 - `INSTALL_LOCK`: **false**：控制是否能够访问安装向导页面，设置为 `true` 则禁止访问安装向导页面。
 - `SECRET_KEY`: **\<每次安装时随机生成\>**：全局服务器安全密钥。这个密钥非常重要，如果丢失将无法解密加密的数据（例如 2FA）。
 - `SECRET_KEY_URI`: **_empty_**：与定义 `SECRET_KEY` 不同，此选项可用于使用存储在文件中的密钥（示例值：`file:/etc/gitea/secret_key`）。它不应该像 `SECRET_KEY` 一样容易丢失。
-- `LOGIN_REMEMBER_DAYS`: **7**：Cookie 保存时间，单位为天。
+- `LOGIN_REMEMBER_DAYS`: **31**：在要求重新登录之前，记住用户的登录状态多长时间（以天为单位）。
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**：保存自动登录信息的 Cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**：反向代理认证的 HTTP 头部名称，用于提供用户信息。
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**：反向代理认证的 HTTP 头部名称，用于提供邮箱信息。
@@ -560,7 +562,7 @@ Gitea 创建以下非唯一队列：
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**：允许通过OpenID进行身份验证。
+- `ENABLE_OPENID_SIGNIN`: **true**：允许通过OpenID进行身份验证。
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**：允许通过OpenID进行注册。
 - `WHITELISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于允许访问。
 - `BLACKLISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于阻止访问。
@@ -780,7 +782,7 @@ Gitea 创建以下非唯一队列：
 ## 工单和合并请求的附件 (`attachment`)
 
 - `ENABLED`: **true**: 是否允许用户上传附件。
-- `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
+- `ALLOWED_TYPES`: **.cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
 - `MAX_SIZE`: **2048**: 附件的最大限制（MB）。
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。

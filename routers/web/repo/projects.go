@@ -14,14 +14,14 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
-	attachment_model "code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -33,16 +33,17 @@ const (
 	tplProjectsView base.TplName = "repo/projects/view"
 )
 
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
+// MustEnableRepoProjects check if repo projects are enabled in settings
+func MustEnableRepoProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
-			ctx.NotFound("MustEnableProjects", nil)
+		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
+		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+			ctx.NotFound("MustEnableRepoProjects", nil)
 			return
 		}
 	}
@@ -78,7 +79,7 @@ func Projects(ctx *context.Context) {
 			Page:     page,
 		},
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
 		Title:    keyword,
@@ -117,7 +118,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
@@ -314,10 +315,6 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
-	}
-
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
@@ -325,10 +322,10 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
-		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		issuesAttachmentMap := make(map[int64][]*repo_model.Attachment)
 		for _, issuesList := range issuesMap {
 			for _, issue := range issuesList {
-				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+				if issueAttachment, err := repo_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
 					issuesAttachmentMap[issue.ID] = issueAttachment
 				}
 			}
@@ -349,7 +346,7 @@ func ViewProject(ctx *context.Context) {
 			if len(referencedIDs) > 0 {
 				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIDs,
-					IsPull:   util.OptionalBoolTrue,
+					IsPull:   optional.Some(true),
 				}); err == nil {
 					linkedPrsMap[issue.ID] = linkedPrs
 				}
@@ -582,21 +579,6 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-// UnSetDefaultProjectBoard unset default board for uncategorized issues/pulls
-func UnSetDefaultProjectBoard(ctx *context.Context) {
-	project, _ := checkProjectBoardChangePermissions(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
-		ctx.ServerError("SetDefaultBoard", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.Context) {
 	if ctx.Doer == nil {
@@ -627,28 +609,19 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	var board *project_model.Board
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("ProjectBoardNotExist", nil)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+		return
+	}
 
-	if ctx.ParamsInt64(":boardID") == 0 {
-		board = &project_model.Board{
-			ID:        0,
-			ProjectID: project.ID,
-			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
-		}
-	} else {
-		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
-		if err != nil {
-			if project_model.IsErrProjectBoardNotExist(err) {
-				ctx.NotFound("ProjectBoardNotExist", nil)
-			} else {
-				ctx.ServerError("GetProjectBoard", err)
-			}
-			return
-		}
-		if board.ProjectID != project.ID {
-			ctx.NotFound("BoardNotInProject", nil)
-			return
-		}
+	if board.ProjectID != project.ID {
+		ctx.NotFound("BoardNotInProject", nil)
+		return
 	}
 
 	type movedIssuesForm struct {

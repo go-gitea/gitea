@@ -4,7 +4,9 @@
 package repo
 
 import (
+	"io"
 	"net/http"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
@@ -154,6 +156,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	// - application/json
 	// consumes:
 	// - multipart/form-data
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -180,7 +183,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//   in: formData
 	//   description: attachment to upload
 	//   type: file
-	//   required: true
+	//   required: false
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
@@ -202,20 +205,36 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Get uploaded file from request
-	file, header, err := ctx.Req.FormFile("attachment")
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFile", err)
-		return
-	}
-	defer file.Close()
+	var content io.ReadCloser
+	var filename string
+	var size int64 = -1
 
-	filename := header.Filename
-	if query := ctx.FormString("name"); query != "" {
-		filename = query
+	if strings.HasPrefix(strings.ToLower(ctx.Req.Header.Get("Content-Type")), "multipart/form-data") {
+		file, header, err := ctx.Req.FormFile("attachment")
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetFile", err)
+			return
+		}
+		defer file.Close()
+
+		content = file
+		size = header.Size
+		filename = header.Filename
+		if name := ctx.FormString("name"); name != "" {
+			filename = name
+		}
+	} else {
+		content = ctx.Req.Body
+		filename = ctx.FormString("name")
+	}
+
+	if filename == "" {
+		ctx.Error(http.StatusBadRequest, "CreateReleaseAttachment", "Could not determine name of attachment.")
+		return
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(ctx, file, setting.Repository.Release.AllowedTypes, header.Size, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,

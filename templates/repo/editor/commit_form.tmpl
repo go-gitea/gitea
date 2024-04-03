@@ -39,36 +39,36 @@
 					</label>
 				</div>
 			</div>
-			{{if not .Repository.IsEmpty}}
-			<div class="field">
-				<div class="ui radio checkbox">
-					{{if .CanCreatePullRequest}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
-					{{else}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
-					{{end}}
-					<label>
-						{{svg "octicon-git-pull-request"}}
+			{{if and (not .Repository.IsEmpty) (not .IsEditingFileOnly)}}
+				<div class="field">
+					<div class="ui radio checkbox">
 						{{if .CanCreatePullRequest}}
-							{{ctx.Locale.Tr "repo.editor.create_new_branch"}}
+							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 						{{else}}
-							{{ctx.Locale.Tr "repo.editor.create_new_branch_np"}}
+							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 						{{end}}
-					</label>
+						<label>
+							{{svg "octicon-git-pull-request"}}
+							{{if .CanCreatePullRequest}}
+								{{ctx.Locale.Tr "repo.editor.create_new_branch"}}
+							{{else}}
+								{{ctx.Locale.Tr "repo.editor.create_new_branch_np"}}
+							{{end}}
+						</label>
+					</div>
 				</div>
-			</div>
-			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}gt-hidden{{end}}">
-				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
-					{{svg "octicon-git-branch"}}
-					<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast gt-mr-2 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
-					<span class="text-muted js-quick-pull-normalization-info"></span>
+				<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}tw-hidden{{end}}">
+					<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
+						{{svg "octicon-git-branch"}}
+						<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast tw-mr-1 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
+						<span class="text-muted js-quick-pull-normalization-info"></span>
+					</div>
 				</div>
-			</div>
 			{{end}}
 		</div>
 	</div>
 	<button id="commit-button" type="submit" class="ui primary button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
-	<a class="ui button red" href="{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
+	<a class="ui button red" href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
 </div>

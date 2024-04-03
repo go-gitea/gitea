@@ -18,13 +18,13 @@ export function initRepoGraphGit() {
       window.history.replaceState({}, '', window.location.pathname);
     }
     $('.pagination a').each((_, that) => {
-      const href = $(that).attr('href');
+      const href = that.getAttribute('href');
       if (!href) return;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.set('mode', 'monochrome');
       url.search = `?${params.toString()}`;
-      $(that).attr('href', url.href);
+      that.setAttribute('href', url.href);
     });
   });
   $('#flow-color-colored').on('click', () => {
@@ -32,13 +32,13 @@ export function initRepoGraphGit() {
     $('#flow-color-monochrome').removeClass('active');
     $('#git-graph-container').addClass('colored').removeClass('monochrome');
     $('.pagination a').each((_, that) => {
-      const href = $(that).attr('href');
+      const href = that.getAttribute('href');
       if (!href) return;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.delete('mode');
       url.search = `?${params.toString()}`;
-      $(that).attr('href', url.href);
+      that.setAttribute('href', url.href);
     });
     const params = new URLSearchParams(window.location.search);
     params.delete('mode');
@@ -57,19 +57,19 @@ export function initRepoGraphGit() {
     ajaxUrl.searchParams.set('div-only', 'true');
     window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
     $('#pagination').empty();
-    $('#rel-container').addClass('gt-hidden');
-    $('#rev-container').addClass('gt-hidden');
-    $('#loading-indicator').removeClass('gt-hidden');
+    $('#rel-container').addClass('tw-hidden');
+    $('#rev-container').addClass('tw-hidden');
+    $('#loading-indicator').removeClass('tw-hidden');
     (async () => {
       const response = await GET(String(ajaxUrl));
       const html = await response.text();
-      const div = $(html);
-      $('#pagination').html(div.find('#pagination').html());
-      $('#rel-container').html(div.find('#rel-container').html());
-      $('#rev-container').html(div.find('#rev-container').html());
-      $('#loading-indicator').addClass('gt-hidden');
-      $('#rel-container').removeClass('gt-hidden');
-      $('#rev-container').removeClass('gt-hidden');
+      const $div = $(html);
+      $('#pagination').html($div.find('#pagination').html());
+      $('#rel-container').html($div.find('#rel-container').html());
+      $('#rev-container').html($div.find('#rev-container').html());
+      $('#loading-indicator').addClass('tw-hidden');
+      $('#rel-container').removeClass('tw-hidden');
+      $('#rev-container').removeClass('tw-hidden');
     })();
   };
   const dropdownSelected = params.getAll('branch');

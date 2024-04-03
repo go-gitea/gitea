@@ -11,6 +11,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -112,4 +114,19 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 	assert.EqualValues(t, 1, ctx.Data["Total"])
 	assert.Len(t, ctx.Data["Milestones"], 1)
 	assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
+}
+
+func TestDashboardPagination(t *testing.T) {
+	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	page := context.NewPagination(10, 3, 1, 3)
+
+	setting.AppSubURL = "/SubPath"
+	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
+	assert.NoError(t, err)
+	assert.Contains(t, out, `<a class=" item navigation" href="/SubPath/?page=2">`)
+
+	setting.AppSubURL = ""
+	out, err = ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
+	assert.NoError(t, err)
+	assert.Contains(t, out, `<a class=" item navigation" href="/?page=2">`)
 }

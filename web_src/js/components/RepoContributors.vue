@@ -34,7 +34,7 @@ const customEventListener = {
       chart.resetZoom();
       opts.instance.updateOtherCharts(args.event, true);
     }
-  }
+  },
 };
 
 Chart.defaults.color = chartJsColors.text;
@@ -82,7 +82,7 @@ export default {
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
         this.sortContributors();
-      }
+      },
     });
   },
   methods: {
@@ -175,7 +175,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type])
+        ...this.totalStats.weeks.map((o) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -187,7 +187,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type)
+        ...this.sortedContributors.map((c) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -303,7 +303,7 @@ export default {
 </script>
 <template>
   <div>
-    <h2 class="ui header gt-df gt-ac gt-sb">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
           v-if="xAxisMin > 0"
@@ -334,7 +334,7 @@ export default {
         <div class="ui dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="text">
-              {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
+              <span class="not-mobile">{{ locale.filterLabel }}&nbsp;</span><strong>{{ locale.contributionType[type] }}</strong>
               <svg-icon name="octicon-triangle-down" :size="14"/>
             </span>
           </div>
@@ -351,11 +351,11 @@ export default {
           </div>
         </div>
       </div>
-    </h2>
-    <div class="gt-df ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+    </div>
+    <div class="tw-flex ui segment main-graph">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
@@ -370,20 +370,21 @@ export default {
     </div>
     <div class="contributor-grid">
       <div
-        v-for="(contributor, index) in sortedContributors" :key="index" class="stats-table"
+        v-for="(contributor, index) in sortedContributors"
+        :key="index"
         v-memo="[sortedContributors, type]"
       >
-        <div class="ui top attached header gt-df gt-f1">
+        <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar gt-vm" height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
           </a>
-          <div class="gt-ml-3">
+          <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>
-            <p class="gt-font-12 gt-df gt-gap-2">
+            <p class="tw-text-12 tw-flex tw-gap-1">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
@@ -406,11 +407,23 @@ export default {
 <style scoped>
 .main-graph {
   height: 260px;
+  padding-top: 2px;
 }
+
 .contributor-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+.contributor-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .contributor-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .contributor-name {

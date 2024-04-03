@@ -114,8 +114,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
+	projectsMode := repo_model.ProjectsModeAll
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
 		hasProjects = true
+		config := unit.ProjectsConfig()
+		projectsMode = config.ProjectsMode
 	}
 
 	hasReleases := false
@@ -212,6 +215,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		ProjectsMode:                  string(projectsMode),
 		HasReleases:                   hasReleases,
 		HasPackages:                   hasPackages,
 		HasActions:                    hasActions,

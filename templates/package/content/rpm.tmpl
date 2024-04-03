@@ -11,13 +11,13 @@
 # {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
 {{- range $group := .Groups}}
 	{{- if $group}}{{$group = print "/" $group}}{{end}}
-dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></gitea-origin-url>
+dnf config-manager --add-repo <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></origin-url>
 {{- end}}
 
 # {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
 {{- range $group := .Groups}}
 	{{- if $group}}{{$group = print "/" $group}}{{end}}
-zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></gitea-origin-url>
+zypper addrepo <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></origin-url>
 {{- end}}</code></pre></div>
 			</div>
 			<div class="field">
