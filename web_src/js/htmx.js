@@ -26,6 +26,6 @@ document.body.addEventListener('htmx:responseError', (e) => {
 document.body.addEventListener('htmx:wsOpen', (e) => {
   const socket = e.detail.socketWrapper;
   socket.send(
-    JSON.stringify({action: 'subscribe', data: {url: window.location.href}})
+    JSON.stringify({action: 'subscribe', data: {url: window.location.href}}),
   );
 });
