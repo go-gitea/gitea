@@ -213,6 +213,14 @@ func ToPointer[T any](val T) *T {
 	return &val
 }
 
+// Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
+func Iif[T comparable](condition bool, trueVal, falseVal T) T {
+	if condition {
+		return trueVal
+	}
+	return falseVal
+}
+
 // IfZero returns "def" if "v" is a zero value, otherwise "v"
 func IfZero[T comparable](v, def T) T {
 	var zero T
