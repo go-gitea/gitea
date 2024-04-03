@@ -5,11 +5,11 @@ export function initCompReactionSelector($parent) {
   $parent.find(`.select-reaction .item.reaction, .comment-reaction-button`).on('click', async function (e) {
     e.preventDefault();
 
-    if ($(this).hasClass('disabled')) return;
+    if (this.classList.contains('disabled')) return;
 
-    const actionUrl = $(this).closest('[data-action-url]').attr('data-action-url');
-    const reactionContent = $(this).attr('data-reaction-content');
-    const hasReacted = $(this).closest('.ui.segment.reactions').find(`a[data-reaction-content="${reactionContent}"]`).attr('data-has-reacted') === 'true';
+    const actionUrl = this.closest('[data-action-url]')?.getAttribute('data-action-url');
+    const reactionContent = this.getAttribute('data-reaction-content');
+    const hasReacted = this.closest('.ui.segment.reactions')?.querySelector(`a[data-reaction-content="${reactionContent}"]`)?.getAttribute('data-has-reacted') === 'true';
 
     const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
       data: new URLSearchParams({content: reactionContent}),

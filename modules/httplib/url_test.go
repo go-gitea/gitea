@@ -53,6 +53,8 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		assert.True(t, IsCurrentGiteaSiteURL(s), "good = %q", s)
 	}
 	bad := []string{
+		".",
+		"foo",
 		"/",
 		"//",
 		"\\\\",
@@ -67,5 +69,8 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 
 	setting.AppURL = "http://localhost:3000/"
 	setting.AppSubURL = ""
+	assert.False(t, IsCurrentGiteaSiteURL("//"))
+	assert.False(t, IsCurrentGiteaSiteURL("\\\\"))
+	assert.False(t, IsCurrentGiteaSiteURL("http://localhost"))
 	assert.True(t, IsCurrentGiteaSiteURL("http://localhost:3000?key=val"))
 }

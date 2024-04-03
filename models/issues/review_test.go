@@ -288,3 +288,33 @@ func TestDeleteDismissedReview(t *testing.T) {
 	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review))
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
+
+func TestAddReviewRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Issue:    issue,
+		Reviewer: reviewer,
+		Type:     issues_model.ReviewTypeReject,
+	})
+
+	assert.NoError(t, err)
+	pull.HasMerged = false
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = true
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+
+	pull.HasMerged = true
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = false
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+}

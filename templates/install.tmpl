@@ -28,7 +28,7 @@
 						</div>
 					</div>
 
-					<div class="gt-mt-4 gt-hidden" data-db-setting-for="common-host">
+					<div class="tw-mt-4 tw-hidden" data-db-setting-for="common-host">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{ctx.Locale.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -47,7 +47,7 @@
 						</div>
 					</div>
 
-					<div class="gt-mt-4 gt-hidden" data-db-setting-for="postgres">
+					<div class="tw-mt-4 tw-hidden" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label>{{ctx.Locale.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -68,7 +68,7 @@
 						</div>
 					</div>
 
-					<div class="gt-mt-4 gt-hidden" data-db-setting-for="sqlite3">
+					<div class="tw-mt-4 tw-hidden" data-db-setting-for="sqlite3">
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{ctx.Locale.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
@@ -160,7 +160,7 @@
 
 					<!-- Email -->
 					<details class="optional field">
-						<summary class="right-content gt-py-3{{if .Err_SMTP}} text red{{end}}">
+						<summary class="right-content tw-py-2{{if .Err_SMTP}} text red{{end}}">
 							{{ctx.Locale.Tr "install.email_title"}}
 						</summary>
 						<div class="inline field">
@@ -200,7 +200,7 @@
 
 					<!-- Server and other services -->
 					<details class="optional field">
-						<summary class="right-content gt-py-3{{if .Err_Services}} text red{{end}}">
+						<summary class="right-content tw-py-2{{if .Err_Services}} text red{{end}}">
 							{{ctx.Locale.Tr "install.server_service_title"}}
 						</summary>
 						<div class="inline field">
@@ -298,7 +298,7 @@
 
 					<!-- Admin -->
 					<details class="optional field">
-						<summary class="right-content gt-py-3{{if .Err_Admin}} text red{{end}}">
+						<summary class="right-content tw-py-2{{if .Err_Admin}} text red{{end}}">
 							{{ctx.Locale.Tr "install.admin_title"}}
 						</summary>
 						<p class="center">{{ctx.Locale.Tr "install.admin_setting_desc"}}</p>
@@ -327,7 +327,7 @@
 						<div class="right-content">
 							{{ctx.Locale.Tr "install.env_config_keys_prompt"}}
 						</div>
-						<div class="right-content gt-mt-3">
+						<div class="right-content tw-mt-2">
 							{{range .EnvConfigKeys}}<span class="ui label">{{.}}</span>{{end}}
 						</div>
 					</div>
@@ -338,7 +338,7 @@
 						<div class="right-content">
 							These configuration options will be written into: {{.CustomConfFile}}
 						</div>
-						<div class="right-content gt-mt-3">
+						<div class="right-content tw-mt-2">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>
 						</div>
 					</div>
@@ -347,5 +347,5 @@
 		</div>
 	</div>
 </div>
-<img class="gt-hidden" src="{{AssetUrlPrefix}}/img/loading.png">
+<img class="tw-hidden" src="{{AssetUrlPrefix}}/img/loading.png">
 {{template "base/footer" .}}
