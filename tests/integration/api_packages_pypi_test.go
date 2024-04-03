@@ -54,9 +54,9 @@ func TestPackagePyPI(t *testing.T) {
 
 		_ = writer.Close()
 
-		req := NewRequestWithBody(t, "POST", root, body)
-		req.Header.Add("Content-Type", writer.FormDataContentType())
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "POST", root, body).
+			SetHeader("Content-Type", writer.FormDataContentType()).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, expectedStatus)
 	}
 
@@ -137,8 +137,8 @@ func TestPackagePyPI(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		downloadFile := func(filename string) {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", root, packageName, packageVersion, filename))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", root, packageName, packageVersion, filename)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, []byte(content), resp.Body.Bytes())
@@ -156,8 +156,8 @@ func TestPackagePyPI(t *testing.T) {
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/simple/%s", root, packageName))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/simple/%s", root, packageName)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)

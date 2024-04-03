@@ -36,8 +36,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 	}
 
 	const batchSize = 100
-	var start int
-	for {
+	for page := 0; ; page++ {
 		select {
 		case <-ctx.Done():
 			log.Warn("UpdateMigrationPosterIDByGitService(%s) cancelled", tp.Name())
@@ -45,10 +44,13 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		default:
 		}
 
-		users, err := user_model.FindExternalUsersByProvider(ctx, user_model.FindExternalUserOptions{
+		users, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+			ListOptions: db.ListOptions{
+				PageSize: batchSize,
+				Page:     page,
+			},
 			Provider: provider,
-			Start:    start,
-			Limit:    batchSize,
+			OrderBy:  "login_source_id ASC, external_id ASC",
 		})
 		if err != nil {
 			return err
@@ -70,7 +72,6 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		if len(users) < batchSize {
 			break
 		}
-		start += len(users)
 	}
 	return nil
 }

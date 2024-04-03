@@ -196,7 +196,7 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
+func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	cfg := ini.Empty(configProviderLoadOptions())
 	loadedFromEmpty := true
 
@@ -210,12 +210,6 @@ func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvi
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
 			loadedFromEmpty = false
-		}
-	}
-
-	for _, s := range extraConfigs {
-		if err := cfg.Append([]byte(s)); err != nil {
-			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 

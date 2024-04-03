@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetUserByParamsName get user by name

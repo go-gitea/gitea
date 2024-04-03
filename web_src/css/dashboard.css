@@ -28,23 +28,6 @@
   width: 75%;
 }
 
-.dashboard.feeds .filter.menu .item .floating.label,
-.dashboard.issues .filter.menu .item .floating.label {
-  top: 7px;
-  left: 90%;
-  width: 15%;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard.feeds .filter.menu .item .floating.label,
-  .dashboard.issues .filter.menu .item .floating.label {
-    top: 10px;
-    left: auto;
-    width: auto;
-    right: 13px;
-  }
-}
-
 /* Sort */
 .dashboard.feeds .filter.menu .jump.item,
 .dashboard.issues .filter.menu .jump.item {
@@ -77,15 +60,14 @@
   margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
 }
 
-.dashboard .dashboard-navbar {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+.dashboard .secondary-nav {
+  padding: 1px 12px; /* match .overflow-menu-items in height */
 }
 
-.dashboard .dashboard-navbar .org-visibility .label {
+.dashboard .secondary-nav .org-visibility .label {
   margin-left: 5px;
 }
 
-.dashboard .dashboard-navbar .ui.dropdown {
+.dashboard .secondary-nav .ui.dropdown {
   max-width: 100%;
 }

@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 // IssuePinOrUnpin pin or unpin a Issue
@@ -87,6 +87,12 @@ func IssuePinMove(ctx *context.Context) {
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
+		return
+	}
+
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		log.Error("Issue does not belong to this repository")
 		return
 	}
 

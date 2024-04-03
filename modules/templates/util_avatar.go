@@ -59,7 +59,7 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 		}
 	}
 
-	return ""
+	return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)

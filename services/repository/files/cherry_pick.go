@@ -31,10 +31,13 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		log.Error("%v", err)
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(opts.OldBranch, false); err != nil {
 		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {
+		return nil, err
+	}
+	if err := t.RefreshIndex(); err != nil {
 		return nil, err
 	}
 
@@ -48,7 +51,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
 		}
@@ -67,7 +70,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 	parent, err := commit.ParentID(0)
 	if err != nil {
-		parent = git.MustIDFromString(git.EmptyTreeSHA)
+		parent = git.ObjectFormatFromName(repo.ObjectFormatName).EmptyTree()
 	}
 
 	base, right := parent.String(), commit.ID.String()

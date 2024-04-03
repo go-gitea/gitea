@@ -21,8 +21,7 @@ type PackageSearchOptions struct {
 	Architecture string
 }
 
-// SearchLatestPackages gets the latest packages matching the search options
-func SearchLatestPackages(ctx context.Context, opts *PackageSearchOptions) ([]*packages.PackageFileDescriptor, error) {
+func (opts *PackageSearchOptions) toCond() builder.Cond {
 	var cond builder.Cond = builder.Eq{
 		"package_file.is_lead":        true,
 		"package.type":                packages.TypeDebian,
@@ -62,28 +61,40 @@ func SearchLatestPackages(ctx context.Context, opts *PackageSearchOptions) ([]*p
 		})
 	}
 
-	cond = cond.
-		And(builder.Expr("pv2.id IS NULL"))
+	return cond
+}
 
-	joinCond := builder.
-		Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))").
-		And(builder.Eq{"pv2.is_internal": false})
+// ExistPackages tests if there are packages matching the search options
+func ExistPackages(ctx context.Context, opts *PackageSearchOptions) (bool, error) {
+	return db.GetEngine(ctx).
+		Table("package_file").
+		Join("INNER", "package_version", "package_version.id = package_file.version_id").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(opts.toCond()).
+		Exist(new(packages.PackageFile))
+}
 
-	pfs := make([]*packages.PackageFile, 0, 10)
-	err := db.GetEngine(ctx).
+// SearchPackages gets the packages matching the search options
+func SearchPackages(ctx context.Context, opts *PackageSearchOptions, iter func(*packages.PackageFileDescriptor)) error {
+	return db.GetEngine(ctx).
 		Table("package_file").
 		Select("package_file.*").
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
-		Join("LEFT", "package_version pv2", joinCond).
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond).
-		Desc("package_version.created_unix").
-		Find(&pfs)
-	if err != nil {
-		return nil, err
-	}
+		Where(opts.toCond()).
+		Asc("package.lower_name", "package_version.created_unix").
+		Iterate(new(packages.PackageFile), func(_ int, bean any) error {
+			pf := bean.(*packages.PackageFile)
 
-	return packages.GetPackageFileDescriptors(ctx, pfs)
+			pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
+			if err != nil {
+				return err
+			}
+
+			iter(pfd)
+
+			return nil
+		})
 }
 
 // GetDistributions gets all available distributions

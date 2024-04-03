@@ -240,25 +240,6 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 	return reaction, nil
 }
 
-// CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(ctx context.Context, doerID, issueID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:    content,
-		DoerID:  doerID,
-		IssueID: issueID,
-	})
-}
-
-// CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:      content,
-		DoerID:    doerID,
-		IssueID:   issueID,
-		CommentID: commentID,
-	})
-}
-
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 	reaction := &Reaction{
