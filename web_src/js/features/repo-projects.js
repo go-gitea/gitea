@@ -33,7 +33,7 @@ async function moveIssue({item, from, to, oldIndex}) {
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt($(card).attr('data-issue')),
+      issueID: parseInt(card.getAttribute('data-issue')),
       sorting: i,
     })),
   };
@@ -58,9 +58,7 @@ async function initRepoProjectSortable() {
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
-    filter: '[data-id="0"]',
-    animation: 150,
-    ghostClass: 'card-ghost',
+    handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => {
@@ -87,8 +85,6 @@ async function initRepoProjectSortable() {
     const boardCardList = boardColumn.getElementsByClassName('cards')[0];
     createSortable(boardCardList, {
       group: 'shared',
-      animation: 150,
-      ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
       delayOnTouchOnly: true,
@@ -98,47 +94,46 @@ async function initRepoProjectSortable() {
 }
 
 export function initRepoProject() {
-  if (!$('.repository.projects').length) {
+  if (!document.querySelector('.repository.projects')) {
     return;
   }
 
   const _promise = initRepoProjectSortable();
 
-  $('.edit-project-column-modal').each(function () {
-    const $projectHeader = $(this).closest('.project-column-header');
-    const $projectTitleLabel = $projectHeader.find('.project-column-title');
-    const $projectTitleInput = $(this).find('.project-column-title-input');
-    const $projectColorInput = $(this).find('#new_project_column_color');
-    const $boardColumn = $(this).closest('.project-column');
+  for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
+    const projectHeader = modal.closest('.project-column-header');
+    const projectTitleLabel = projectHeader?.querySelector('.project-column-title');
+    const projectTitleInput = modal.querySelector('.project-column-title-input');
+    const projectColorInput = modal.querySelector('#new_project_column_color');
+    const boardColumn = modal.closest('.project-column');
+    const bgColor = boardColumn?.style.backgroundColor;
 
-    const bgColor = $boardColumn[0].style.backgroundColor;
     if (bgColor) {
-      setLabelColor($projectHeader, rgbToHex(bgColor));
+      setLabelColor(projectHeader, rgbToHex(bgColor));
     }
 
-    $(this).find('.edit-project-column-button').on('click', async function (e) {
+    modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
-
       try {
-        await PUT($(this).data('url'), {
+        await PUT(this.getAttribute('data-url'), {
           data: {
-            title: $projectTitleInput.val(),
-            color: $projectColorInput.val(),
+            title: projectTitleInput?.value,
+            color: projectColorInput?.value,
           },
         });
       } catch (error) {
         console.error(error);
       } finally {
-        $projectTitleLabel.text($projectTitleInput.val());
-        $projectTitleInput.closest('form').removeClass('dirty');
-        if ($projectColorInput.val()) {
-          setLabelColor($projectHeader, $projectColorInput.val());
+        projectTitleLabel.textContent = projectTitleInput?.value;
+        projectTitleInput.closest('form')?.classList.remove('dirty');
+        if (projectColorInput?.value) {
+          setLabelColor(projectHeader, projectColorInput.value);
         }
-        $boardColumn.attr('style', `background: ${$projectColorInput.val()}!important`);
+        boardColumn.style = `background: ${projectColorInput.value} !important`;
         $('.ui.modal').modal('hide');
       }
     });
-  });
+  }
 
   $('.default-project-column-modal').each(function () {
     const $boardColumn = $(this).closest('.project-column');
@@ -159,9 +154,9 @@ export function initRepoProject() {
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const $deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const $deleteColumnModal = $(`${this.getAttribute('data-modal')}`);
     const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = $(this).attr('data-url');
+    const deleteUrl = this.getAttribute('data-url');
 
     $deleteColumnButton.on('click', async (e) => {
       e.preventDefault();
@@ -191,9 +186,11 @@ export function initRepoProject() {
 function setLabelColor(label, color) {
   const {r, g, b} = tinycolor(color).toRgb();
   if (useLightTextOnBackground(r, g, b)) {
-    label.removeClass('dark-label').addClass('light-label');
+    label.classList.remove('dark-label');
+    label.classList.add('light-label');
   } else {
-    label.removeClass('light-label').addClass('dark-label');
+    label.classList.remove('light-label');
+    label.classList.add('dark-label');
   }
 }
 

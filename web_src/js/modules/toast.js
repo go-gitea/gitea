@@ -39,6 +39,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, ..
 
   toast.showToast();
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
+  return toast;
 }
 
 export function showInfoToast(message, opts) {

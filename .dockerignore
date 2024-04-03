@@ -14,7 +14,7 @@ _test
 
 # MS VSCode
 .vscode
-__debug_bin
+__debug_bin*
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -78,7 +78,6 @@ cpu.out
 /public/assets/css
 /public/assets/fonts
 /public/assets/img/avatar
-/public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*

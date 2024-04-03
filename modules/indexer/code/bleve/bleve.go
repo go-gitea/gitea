@@ -39,6 +39,8 @@ import (
 const (
 	unicodeNormalizeName = "unicodeNormalize"
 	maxBatchSize         = 16
+	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
+	fuzzyDenominator = 4
 )
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
@@ -239,15 +241,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		keywordQuery query.Query
 	)
 
+	phraseQuery := bleve.NewMatchPhraseQuery(opts.Keyword)
+	phraseQuery.FieldVal = "Content"
+	phraseQuery.Analyzer = repoIndexerAnalyzer
+	keywordQuery = phraseQuery
 	if opts.IsKeywordFuzzy {
-		phraseQuery := bleve.NewMatchPhraseQuery(opts.Keyword)
-		phraseQuery.FieldVal = "Content"
-		phraseQuery.Analyzer = repoIndexerAnalyzer
-		keywordQuery = phraseQuery
-	} else {
-		prefixQuery := bleve.NewPrefixQuery(opts.Keyword)
-		prefixQuery.FieldVal = "Content"
-		keywordQuery = prefixQuery
+		phraseQuery.Fuzziness = len(opts.Keyword) / fuzzyDenominator
 	}
 
 	if len(opts.RepoIDs) > 0 {

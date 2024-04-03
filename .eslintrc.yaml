@@ -3,6 +3,7 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
+  - /web_src/fomantic
 
 parserOptions:
   sourceType: module
@@ -119,7 +120,7 @@ rules:
   "@stylistic/js/arrow-spacing": [2, {before: true, after: true}]
   "@stylistic/js/block-spacing": [0]
   "@stylistic/js/brace-style": [2, 1tbs, {allowSingleLine: true}]
-  "@stylistic/js/comma-dangle": [2, only-multiline]
+  "@stylistic/js/comma-dangle": [2, always-multiline]
   "@stylistic/js/comma-spacing": [2, {before: false, after: true}]
   "@stylistic/js/comma-style": [2, last]
   "@stylistic/js/computed-property-spacing": [2, never]
@@ -167,7 +168,7 @@ rules:
   "@stylistic/js/semi-spacing": [2, {before: false, after: true}]
   "@stylistic/js/semi-style": [2, last]
   "@stylistic/js/space-before-blocks": [2, always]
-  "@stylistic/js/space-before-function-paren": [0]
+  "@stylistic/js/space-before-function-paren": [2, {anonymous: ignore, named: never, asyncArrow: always}]
   "@stylistic/js/space-in-parens": [2, never]
   "@stylistic/js/space-infix-ops": [2]
   "@stylistic/js/space-unary-ops": [2]
@@ -281,7 +282,7 @@ rules:
   jquery/no-ajax-events: [2]
   jquery/no-ajax: [2]
   jquery/no-animate: [2]
-  jquery/no-attr: [0]
+  jquery/no-attr: [2]
   jquery/no-bind: [2]
   jquery/no-class: [0]
   jquery/no-clone: [2]
@@ -303,7 +304,7 @@ rules:
   jquery/no-in-array: [2]
   jquery/no-is-array: [2]
   jquery/no-is-function: [2]
-  jquery/no-is: [0]
+  jquery/no-is: [2]
   jquery/no-load: [2]
   jquery/no-map: [2]
   jquery/no-merge: [2]
@@ -397,7 +398,7 @@ rules:
   no-jquery/no-animate-toggle: [2]
   no-jquery/no-animate: [2]
   no-jquery/no-append-html: [2]
-  no-jquery/no-attr: [0]
+  no-jquery/no-attr: [2]
   no-jquery/no-bind: [2]
   no-jquery/no-box-model: [2]
   no-jquery/no-browser: [2]
@@ -440,7 +441,7 @@ rules:
   no-jquery/no-is-numeric: [2]
   no-jquery/no-is-plain-object: [2]
   no-jquery/no-is-window: [2]
-  no-jquery/no-is: [0]
+  no-jquery/no-is: [2]
   no-jquery/no-jquery-constructor: [0]
   no-jquery/no-live: [2]
   no-jquery/no-load-shorthand: [2]
