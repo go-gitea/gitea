@@ -54,7 +54,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		Status:      actions_model.StatusUnknown, // Unknown means all
 		IDOrderDesc: true,
 	}
-	tasks, err := actions_model.FindTasks(ctx, opts)
+	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
 		return
@@ -72,7 +72,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		Status:      actions_model.StatusUnknown, // Unknown means all
 		IDOrderDesc: true,
 	}
-	res.TotalCount, err = actions_model.CountTasks(ctx, opts)
+	tasks, res.TotalCount, err = db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
 		return
