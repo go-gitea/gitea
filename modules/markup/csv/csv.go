@@ -39,7 +39,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`ui top attached warning message`)},
+		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`tw-flex tw-justify-center tw-items-center`)},
 		{Element: "a", AllowAttr: "href", Regexp: regexp.MustCompile(`\?display=source`)},
 	}
 }
@@ -134,7 +134,7 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 		locale := ctx.Ctx.Value(translation.ContextKey).(translation.Locale)
 
 		// Construct the HTML string
-		warn := `<div class="ui top attached warning message" tabindex="0">` + locale.TrString("repo.file_too_large") + ` <b><a class="source" href="?display=source">` + locale.TrString("repo.file_view_source") + `</a></b></div>`
+		warn := `<div class="tw-flex tw-justify-center tw-items-center"><div>` + locale.TrString("repo.file_too_large") + ` <a class="source" href="?display=source">` + locale.TrString("repo.file_view_source") + `</a></div></div>`
 
 		// Write the HTML string to the output
 		if _, err := warnBlock.WriteString(warn); err != nil {
