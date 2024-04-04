@@ -64,9 +64,6 @@
   min-width: 1.55em;
   padding-top: 0;
   transition: color 0.1s ease;
-}
-.ui.list .list > .item > i.icon,
-.ui.list > .item > i.icon {
   padding-right: 0.28571429em;
   vertical-align: top;
 }
