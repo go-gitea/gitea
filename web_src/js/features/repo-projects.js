@@ -69,7 +69,6 @@ async function initRepoProjectSortable() {
           try {
             const bgColor = window.getComputedStyle($(column)[0]).backgroundColor;
             const color = tinycolor(bgColor).toHexString();
-            console.log(bgColor, color);
             await PUT($(column).data('url'), {data: {sorting: i, color}});
           } catch (error) {
             console.error(error);
