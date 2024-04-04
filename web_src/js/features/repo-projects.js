@@ -117,8 +117,21 @@ export function initRepoProject() {
       } finally {
         projectTitleLabel.textContent = projectTitleInput?.value;
         projectTitleInput.closest('form')?.classList.remove('dirty');
-        boardColumn.style.setProperty('background', projectColorInput.value, 'important');
-        boardColumn.style.setProperty('color', contrastColor(projectColorInput.value), 'important');
+        const dividers = boardColumn.querySelectorAll(':scope > .divider');
+        if (projectColorInput.value) {
+          const color = contrastColor(projectColorInput.value);
+          boardColumn.style.setProperty('background', projectColorInput.value, 'important');
+          boardColumn.style.setProperty('color', color, 'important');
+          for (const divider of dividers) {
+            divider.style.setProperty('color', color);
+          }
+        } else {
+          boardColumn.style.removeProperty('background');
+          boardColumn.style.removeProperty('color');
+          for (const divider of dividers) {
+            divider.style.removeProperty('color');
+          }
+        }
         $('.ui.modal').modal('hide');
       }
     });

@@ -57,6 +57,8 @@
 
 .project-column > .divider {
   margin: 5px 0;
+  border-color: currentcolor;
+  opacity: .5;
 }
 
 .project-column:first-child {
