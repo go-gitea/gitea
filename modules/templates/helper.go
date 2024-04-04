@@ -106,6 +106,9 @@ func NewFuncMap() template.FuncMap {
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},
+		"ShowFooterPoweredBy": func() bool {
+			return setting.Other.ShowFooterPoweredBy
+		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
