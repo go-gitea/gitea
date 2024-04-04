@@ -566,10 +566,6 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-.ui.divided.list > .item {
-  border-color: var(--color-secondary);
-}
-
 .ui.error.message .header,
 .ui.warning.message .header {
   color: inherit;
