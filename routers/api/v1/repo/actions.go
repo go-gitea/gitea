@@ -42,6 +42,16 @@ func ListActionTasks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TasksList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	page := ctx.FormInt("page")
 	limit := convert.ToCorrectPageSize(ctx.FormInt("limit"))
 
