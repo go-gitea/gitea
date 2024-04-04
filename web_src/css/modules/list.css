@@ -65,8 +65,8 @@
   padding-top: 0;
   transition: color 0.1s ease;
 }
-.ui.list .list > .item > i.icon:not(.loading),
-.ui.list > .item > i.icon:not(.loading) {
+.ui.list .list > .item > i.icon,
+.ui.list > .item > i.icon {
   padding-right: 0.28571429em;
   vertical-align: top;
 }
@@ -111,10 +111,6 @@
   width: 100%;
   padding: 0 0 0 0.5em;
   vertical-align: top;
-}
-.ui.list .list > .item > i.loading.icon + .content,
-.ui.list > .item > i.loading.icon + .content {
-  padding-left: calc(0.2857142857142857em + 0.5em);
 }
 .ui.list .list > .item > img.image + .content,
 .ui.list > .item > img.image + .content {
