@@ -8,7 +8,7 @@ function getRelativeLuminance(color) {
 }
 
 function useLightText(backgroundColor) {
-  return getRelativeLuminance(backgroundColor) < 0.453 ? true : false;
+  return getRelativeLuminance(backgroundColor) < 0.453;
 }
 
 // Given a background color, returns a black or white foreground color that the highest
