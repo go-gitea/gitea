@@ -58,6 +58,7 @@ type Package struct {
 type Metadata struct {
 	Description              string                  `json:"description,omitempty"`
 	ReleaseNotes             string                  `json:"release_notes,omitempty"`
+	Readme                   string                  `json:"readme,omitempty"`
 	Authors                  string                  `json:"authors,omitempty"`
 	ProjectURL               string                  `json:"project_url,omitempty"`
 	RepositoryURL            string                  `json:"repository_url,omitempty"`
@@ -81,6 +82,7 @@ type nuspecPackage struct {
 		ProjectURL               string `xml:"projectUrl"`
 		Description              string `xml:"description"`
 		ReleaseNotes             string `xml:"releaseNotes"`
+		Readme                   string `xml:"readme"`
 		PackageTypes             struct {
 			PackageType []struct {
 				Name string `xml:"name,attr"`
@@ -90,7 +92,7 @@ type nuspecPackage struct {
 			URL string `xml:"url,attr"`
 		} `xml:"repository"`
 		Dependencies struct {
-			Dependency      []struct {
+			Dependency []struct {
 				ID      string `xml:"id,attr"`
 				Version string `xml:"version,attr"`
 				Exclude string `xml:"exclude,attr"`
@@ -128,14 +130,14 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			return ParseNuspecMetaData(f)
+			return ParseNuspecMetaData(archive, f)
 		}
 	}
 	return nil, ErrMissingNuspecFile
 }
 
 // ParseNuspecMetaData parses a Nuspec file to retrieve the metadata of a Nuget package
-func ParseNuspecMetaData(r io.Reader) (*Package, error) {
+func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 	var p nuspecPackage
 	if err := xml.NewDecoder(r).Decode(&p); err != nil {
 		return nil, err
@@ -170,6 +172,15 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 		RepositoryURL:            p.Metadata.Repository.URL,
 		RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
 		Dependencies:             make(map[string][]Dependency),
+	}
+
+	if p.Metadata.Readme != "" {
+		f, err := archive.Open(p.Metadata.Readme)
+		if err == nil {
+			buf, _ := io.ReadAll(f)
+			m.Readme = string(buf)
+			_ = f.Close()
+		}
 	}
 
 	if len(p.Metadata.Dependencies.Dependency) > 0 {
