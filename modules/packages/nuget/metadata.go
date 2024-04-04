@@ -71,6 +71,7 @@ type Dependency struct {
 	Version string `json:"version"`
 }
 
+// https://learn.microsoft.com/en-us/nuget/reference/nuspec
 type nuspecPackage struct {
 	Metadata struct {
 		ID                       string `xml:"id"`
@@ -89,6 +90,11 @@ type nuspecPackage struct {
 			URL string `xml:"url,attr"`
 		} `xml:"repository"`
 		Dependencies struct {
+			Dependency      []struct {
+				ID      string `xml:"id,attr"`
+				Version string `xml:"version,attr"`
+				Exclude string `xml:"exclude,attr"`
+			} `xml:"dependency"`
 			Group []struct {
 				TargetFramework string `xml:"targetFramework,attr"`
 				Dependency      []struct {
@@ -166,6 +172,19 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 		Dependencies:             make(map[string][]Dependency),
 	}
 
+	if len(p.Metadata.Dependencies.Dependency) > 0 {
+		deps := make([]Dependency, 0, len(p.Metadata.Dependencies.Dependency))
+		for _, dep := range p.Metadata.Dependencies.Dependency {
+			if dep.ID == "" || dep.Version == "" {
+				continue
+			}
+			deps = append(deps, Dependency{
+				ID:      dep.ID,
+				Version: dep.Version,
+			})
+		}
+		m.Dependencies[""] = deps
+	}
 	for _, group := range p.Metadata.Dependencies.Group {
 		deps := make([]Dependency, 0, len(group.Dependency))
 		for _, dep := range group.Dependency {
