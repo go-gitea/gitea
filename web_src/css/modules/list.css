@@ -25,7 +25,7 @@
   list-style-type: none;
   list-style-position: outside;
   padding: 0.21428571em 0;
-  line-height: var(--line-height-default); /* fix Fomantic's line-height causing vertical scrollbars to appear */
+  line-height: var(--line-height-default); /* fix line-height causing vertical scrollbars to appear */
 }
 
 .ui.list > .list > .item::after,
