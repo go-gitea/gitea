@@ -438,7 +438,7 @@
   margin: 0;
   font-size: 85%;
   white-space: break-spaces;
-  background-color: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-inline);
   border-radius: var(--border-radius);
 }
 
@@ -475,6 +475,11 @@
   border-radius: var(--border-radius);
 }
 
+.markup .highlight pre > code,
+.markup pre > code {
+  background: none !important;
+}
+
 .markup .highlight pre {
   margin-bottom: 0;
   word-break: normal;
@@ -494,6 +499,10 @@
   border: 0;
 }
 
+.markup pre code {
+  font-size: 100% !important;
+}
+
 .markup pre code::before,
 .markup pre code::after,
 .markup pre tt::before,
@@ -508,7 +517,7 @@
   line-height: 10px;
   color: var(--color-text-light);
   vertical-align: middle;
-  background-color: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   box-shadow: inset 0 -1px 0 var(--color-secondary);
