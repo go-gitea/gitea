@@ -68,12 +68,8 @@ async function initRepoProjectSortable() {
         if (parseInt(column.getAttribute('data-sorting')) !== i) {
           try {
             const bgColor = column.style.backgroundColor; // will be rgb() string
-            await PUT(column.getAttribute('data-url'), {
-              data: {
-                sorting: i,
-                color: bgColor ? tinycolor(bgColor).toHexString() : '',
-              },
-            });
+            const color = bgColor ? tinycolor(bgColor).toHexString() : '';
+            await PUT(column.getAttribute('data-url'), {data: {sorting: i, color}});
           } catch (error) {
             console.error(error);
           }
