@@ -61,7 +61,7 @@ export default {
       return this.issue.labels.map((label) => ({
         name: label.name,
         color: `#${label.color}`,
-        textColor: contrastColor(label.color),
+        textColor: contrastColor(`#${label.color}`),
       }));
     },
   },
@@ -102,7 +102,7 @@ export default {
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
-      <div>
+      <div class="tw-flex tw-flex-wrap tw-gap-1">
         <div
           v-for="label in labels"
           :key="label.name"
