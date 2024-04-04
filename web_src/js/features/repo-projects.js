@@ -1,7 +1,8 @@
 import $ from 'jquery';
-import {contrastColor, rgbToHex} from '../utils/color.js';
+import {contrastColor} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
+import tinycolor from 'tinycolor2';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
@@ -66,12 +67,10 @@ async function initRepoProjectSortable() {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
           try {
-            await PUT($(column).data('url'), {
-              data: {
-                sorting: i,
-                color: rgbToHex(window.getComputedStyle($(column)[0]).backgroundColor),
-              },
-            });
+            const bgColor = window.getComputedStyle($(column)[0]).backgroundColor;
+            const color = tinycolor(bgColor).toHexString();
+            console.log(bgColor, color);
+            await PUT($(column).data('url'), {data: {sorting: i, color}});
           } catch (error) {
             console.error(error);
           }
