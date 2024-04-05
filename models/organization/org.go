@@ -658,6 +658,11 @@ func (org *Organization) TeamsWithAccessToRepo(ctx context.Context, repoID int64
 	return GetTeamsWithAccessToRepo(ctx, org.ID, repoID, mode)
 }
 
+// TeamsWithAccessToRepoFromIDs returns teams that have given access level to the repository based on the given teamIDs.
+func (org *Organization) TeamsWithAccessToRepoFromIDs(ctx context.Context, repoID int64, mode perm.AccessMode, teamIDs []int64) ([]*Team, error) {
+	return GetTeamsWithAccessToRepoFromIDs(ctx, org.ID, repoID, mode, teamIDs)
+}
+
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
 func (org *Organization) GetUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
 	return org.getUserTeamIDs(ctx, userID)

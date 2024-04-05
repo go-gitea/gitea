@@ -106,30 +106,59 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.WhitelistUserIDs)
+func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
+	pushWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.WhitelistUserIDs)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
+		log.Error("GetRepoReadersFromIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.MergeWhitelistUserIDs)
-	if err != nil {
-		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
+	var pushWhitelistUsernames []string
+	for _, username := range pushWhitelistUsernamesRaw {
+		pushWhitelistUsernames = append(pushWhitelistUsernames, username.Name)
 	}
-	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.ApprovalsWhitelistUserIDs)
+
+	mergeWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.MergeWhitelistUserIDs)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+		log.Error("GetRepoReadersFromIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	pushWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.WhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
+	var mergeWhitelistUsernames []string
+	for _, username := range mergeWhitelistUsernamesRaw {
+		mergeWhitelistUsernames = append(mergeWhitelistUsernames, username.Name)
 	}
-	mergeWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.MergeWhitelistTeamIDs)
+
+	approvalsWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
-		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
+		log.Error("GetRepoReadersFromIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.ApprovalsWhitelistTeamIDs)
+	var approvalsWhitelistUsernames []string
+	for _, username := range approvalsWhitelistUsernamesRaw {
+		approvalsWhitelistUsernames = append(approvalsWhitelistUsernames, username.Name)
+	}
+
+	pushWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.WhitelistTeamIDs)
 	if err != nil {
-		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
+		log.Error("TeamsWithAccessToRepoFromIDs (WhitelistTeamIDs): %v", err)
+	}
+	var pushWhitelistTeams []string
+	for _, team := range pushWhitelistTeamsRaw {
+		pushWhitelistTeams = append(pushWhitelistTeams, team.Name)
+	}
+
+	mergeWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error("TeamsWithAccessToRepoFromIDs (MergeWhitelistTeamIDs): %v", err)
+	}
+	var mergeWhitelistTeams []string
+	for _, team := range mergeWhitelistTeamsRaw {
+		mergeWhitelistTeams = append(mergeWhitelistTeams, team.Name)
+	}
+
+	approvalsWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		log.Error("TeamsWithAccessToRepoFromIDs (ApprovalsWhitelistTeamIDs): %v", err)
+	}
+	var approvalsWhitelistTeams []string
+	for _, team := range approvalsWhitelistTeamsRaw {
+		approvalsWhitelistTeams = append(approvalsWhitelistTeams, team.Name)
 	}
 
 	branchName := ""
