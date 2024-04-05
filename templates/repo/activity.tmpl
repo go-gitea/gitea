@@ -8,6 +8,8 @@
 		<div class="flex-container-main">
 			{{if .PageIsPulse}}{{template "repo/pulse" .}}{{end}}
 			{{if .PageIsContributors}}{{template "repo/contributors" .}}{{end}}
+			{{if .PageIsCodeFrequency}}{{template "repo/code_frequency" .}}{{end}}
+			{{if .PageIsRecentCommits}}{{template "repo/recent_commits" .}}{{end}}
 		</div>
 	</div>
 </div>

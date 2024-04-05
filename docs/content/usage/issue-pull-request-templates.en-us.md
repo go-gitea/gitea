@@ -19,9 +19,10 @@ menu:
 
 Some projects have a standard list of questions that users need to answer
 when creating an issue or pull request. Gitea supports adding templates to the
-main branch of the repository so that they can autopopulate the form when users are
+**default branch of the repository** so that they can autopopulate the form when users are
 creating issues and pull requests. This will cut down on the initial back and forth
 of getting some clarifying details.
+It is currently not possible to provide generic issue/pull-request templates globally.
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 
@@ -135,6 +136,12 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
+  # some markdown that will only be visible once the issue has been created
+  - type: markdown
+    attributes:
+      value: |
+        This issue was created by an issue **template** :)
+    visible: [content]
   - type: input
     id: contact
     attributes:
@@ -186,17 +193,24 @@ body:
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true
+        - label: I have also read the CONTRIBUTION.MD
+          required: true
+          visible: [form]
+        - label: This is a TODO only visible after issue creation
+          visible: [content]
 ```
 
 ### Markdown
 
-You can use a `markdown` element to display Markdown in your form that provides extra context to the user, but is not submitted.
+You can use a `markdown` element to display Markdown in your form that provides extra context to the user, but is not submitted by default.
 
 Attributes:
 
 | Key   | Description                                                  | Required | Type   | Default | Valid values |
 |-------|--------------------------------------------------------------|----------|--------|---------|--------------|
 | value | The text that is rendered. Markdown formatting is supported. | Required | String | -       | -            |
+
+visible: Default is **[form]**
 
 ### Textarea
 
@@ -217,6 +231,8 @@ Validations:
 | Key      | Description                                          | Required | Type    | Default | Valid values |
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
+
+visible: Default is **[form, content]**
 
 ### Input
 
@@ -239,6 +255,8 @@ Validations:
 | is_number | Prevents form submission until element is filled with a number.                                  | Optional | Boolean | false   | -                                                                        |
 | regex     | Prevents form submission until element is filled with a value that match the regular expression. | Optional | String  | -       | a [regular expression](https://en.wikipedia.org/wiki/Regular_expression) |
 
+visible: Default is **[form, content]**
+
 ### Dropdown
 
 You can use a `dropdown` element to add a dropdown menu in your form.
@@ -258,6 +276,8 @@ Validations:
 |----------|------------------------------------------------------|----------|---------|---------|--------------|
 | required | Prevents form submission until element is completed. | Optional | Boolean | false   | -            |
 
+visible: Default is **[form, content]**
+
 ### Checkboxes
 
 You can use the `checkboxes` element to add a set of checkboxes to your form.
@@ -265,17 +285,20 @@ You can use the `checkboxes` element to add a set of checkboxes to your form.
 Attributes:
 
 | Key         | Description                                                                                           | Required | Type   | Default      | Valid values |
-|-------------|-------------------------------------------------------------------------------------------------------|----------|--------|--------------|--------------|
+| ----------- | ----------------------------------------------------------------------------------------------------- | -------- | ------ | ------------ | ------------ |
 | label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String | -            | -            |
 | description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String | Empty String | -            |
 | options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array  | -            | -            |
 
 For each value in the options array, you can set the following keys.
 
-| Key      | Description                                                                                                                              | Required | Type    | Default | Options |
-|----------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
-| label    | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
-| required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
+| Key          | Description                                                                                                                              | Required | Type         | Default | Options |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|---------|---------|
+| label        | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String       | -       | -       |
+| required     | Prevents form submission until element is completed.                                                                                     | Optional | Boolean      | false   | -       |
+| visible      | Whether a specific checkbox appears in the form only, in the created issue only, or both. Valid options are "form" and "content".        | Optional | String array | false   | -       |
+
+visible: Default is **[form, content]**
 
 ## Syntax for issue config
 
@@ -291,15 +314,15 @@ contact_links:
 
 ### Possible Options
 
-| Key                  | Description                                                                                           | Type               | Default        |
-|----------------------|-------------------------------------------------------------------------------------------------------|--------------------|----------------|
-| blank_issues_enabled | If set to false, the User is forced to use a Template                                                 | Boolean            | true           |
-| contact_links        | Custom Links to show in the Choose Box                                                                | Contact Link Array | Empty Array    |
+| Key                  | Description                                           | Type               | Default     |
+|----------------------|-------------------------------------------------------|--------------------|-------------|
+| blank_issues_enabled | If set to false, the User is forced to use a Template | Boolean            | true        |
+| contact_links        | Custom Links to show in the Choose Box                | Contact Link Array | Empty Array |
 
 ### Contact Link
 
-| Key                  | Description                                                                                           | Type    | Required |
-|----------------------|-------------------------------------------------------------------------------------------------------|---------|----------|
-| name  | the name of your link                                                                                                | String  | true     |
-| url   | The URL of your Link                                                                                                 | String  | true     |
-| about | A short description of your Link                                                                                     | String  | true     |
+| Key   | Description                      | Type   | Required |
+|-------|----------------------------------|--------|----------|
+| name  | the name of your link            | String | true     |
+| url   | The URL of your Link             | String | true     |
+| about | A short description of your Link | String | true     |

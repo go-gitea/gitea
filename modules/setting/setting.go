@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // settings
@@ -158,9 +159,11 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 func loadRunModeFrom(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
+
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
+	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || util.OptionalBoolParse(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value()
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
@@ -227,11 +230,14 @@ func LoadSettingsForInstall() {
 	loadMailerFrom(CfgProvider)
 }
 
-var uniquePaths = make(map[string]string)
+var configuredPaths = make(map[string]string)
 
-func fatalDuplicatedPath(name, p string) {
-	if targetName, ok := uniquePaths[p]; ok && targetName != name {
-		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss.", p, targetName, name)
+func checkOverlappedPath(name, path string) {
+	// TODO: some paths shouldn't overlap (storage.xxx.path), while some could (data path is the base path for storage path)
+	if targetName, ok := configuredPaths[path]; ok && targetName != name {
+		msg := fmt.Sprintf("Configured path %q is used by %q and %q at the same time. The paths must be unique to prevent data loss.", path, targetName, name)
+		log.Error("%s", msg)
+		DeprecatedWarnings = append(DeprecatedWarnings, msg)
 	}
-	uniquePaths[p] = name
+	configuredPaths[path] = name
 }

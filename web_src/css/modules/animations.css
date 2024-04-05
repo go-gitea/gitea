@@ -6,11 +6,15 @@
 .is-loading {
   pointer-events: none !important;
   position: relative !important;
-  overflow: hidden !important;
 }
 
 .is-loading > * {
   opacity: 0.3;
+}
+
+.btn.is-loading > *,
+.button.is-loading > * {
+  opacity: 0;
 }
 
 .is-loading::after {
@@ -20,6 +24,7 @@
   left: 50%;
   top: 50%;
   height: min(4em, 66.6%);
+  width: fit-content; /* compat: safari - https://bugs.webkit.org/show_bug.cgi?id=267625 */
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;
@@ -29,8 +34,12 @@
   border-radius: var(--border-radius-circle);
 }
 
-.is-loading.small-loading-icon::after {
+.is-loading.loading-icon-2px::after {
   border-width: 2px;
+}
+
+.is-loading.loading-icon-3px::after {
+  border-width: 3px;
 }
 
 /* for single form button, the loading state should be on the button, but not go semi-transparent, just replace the text on the button with the loader. */
@@ -57,7 +66,7 @@ form.single-button-form.is-loading .button {
   background: transparent;
 }
 
-/* TODO: not needed, use "is-loading small-loading-icon" instead */
+/* TODO: not needed, use "is-loading loading-icon-2px" instead */
 code.language-math.is-loading::after {
   padding: 0;
   border-width: 2px;

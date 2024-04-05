@@ -2,8 +2,7 @@ import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
-
-const {csrfToken} = window.config;
+import {POST, DELETE, PUT} from '../modules/fetch.js';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
@@ -11,45 +10,42 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
 }
 
-function createNewColumn(url, columnTitle, projectColorInput) {
-  $.ajax({
-    url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    method: 'POST',
-  }).done(() => {
+async function createNewColumn(url, columnTitle, projectColorInput) {
+  try {
+    await POST(url, {
+      data: {
+        title: columnTitle.val(),
+        color: projectColorInput.val(),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+  } finally {
     columnTitle.closest('form').removeClass('dirty');
     window.location.reload();
-  });
+  }
 }
 
-function moveIssue({item, from, to, oldIndex}) {
+async function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt($(card).attr('data-issue')),
+      issueID: parseInt(card.getAttribute('data-issue')),
       sorting: i,
     })),
   };
 
-  $.ajax({
-    url: `${to.getAttribute('data-url')}/move`,
-    data: JSON.stringify(columnSorting),
-    headers: {
-      'X-Csrf-Token': csrfToken,
-    },
-    contentType: 'application/json',
-    type: 'POST',
-    error: () => {
-      from.insertBefore(item, from.children[oldIndex]);
-    },
-  });
+  try {
+    await POST(`${to.getAttribute('data-url')}/move`, {
+      data: columnSorting,
+    });
+  } catch (error) {
+    console.error(error);
+    from.insertBefore(item, from.children[oldIndex]);
+  }
 }
 
 async function initRepoProjectSortable() {
@@ -62,25 +58,24 @@ async function initRepoProjectSortable() {
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
-    filter: '[data-id="0"]',
-    animation: 150,
-    ghostClass: 'card-ghost',
+    handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: () => {
+    onSort: async () => {
       boardColumns = mainBoard.getElementsByClassName('project-column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
-          $.ajax({
-            url: $(column).data('url'),
-            data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
-            headers: {
-              'X-Csrf-Token': csrfToken,
-            },
-            contentType: 'application/json',
-            method: 'PUT',
-          });
+          try {
+            await PUT($(column).data('url'), {
+              data: {
+                sorting: i,
+                color: rgbToHex(window.getComputedStyle($(column)[0]).backgroundColor),
+              },
+            });
+          } catch (error) {
+            console.error(error);
+          }
         }
       }
     },
@@ -90,8 +85,6 @@ async function initRepoProjectSortable() {
     const boardCardList = boardColumn.getElementsByClassName('cards')[0];
     createSortable(boardCardList, {
       group: 'shared',
-      animation: 150,
-      ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
       delayOnTouchOnly: true,
@@ -101,106 +94,103 @@ async function initRepoProjectSortable() {
 }
 
 export function initRepoProject() {
-  if (!$('.repository.projects').length) {
+  if (!document.querySelector('.repository.projects')) {
     return;
   }
 
   const _promise = initRepoProjectSortable();
 
-  $('.edit-project-column-modal').each(function () {
-    const projectHeader = $(this).closest('.project-column-header');
-    const projectTitleLabel = projectHeader.find('.project-column-title');
-    const projectTitleInput = $(this).find('.project-column-title-input');
-    const projectColorInput = $(this).find('#new_project_column_color');
-    const boardColumn = $(this).closest('.project-column');
+  for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
+    const projectHeader = modal.closest('.project-column-header');
+    const projectTitleLabel = projectHeader?.querySelector('.project-column-title');
+    const projectTitleInput = modal.querySelector('.project-column-title-input');
+    const projectColorInput = modal.querySelector('#new_project_column_color');
+    const boardColumn = modal.closest('.project-column');
+    const bgColor = boardColumn?.style.backgroundColor;
 
-    if (boardColumn.css('backgroundColor')) {
-      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
+    if (bgColor) {
+      setLabelColor(projectHeader, rgbToHex(bgColor));
     }
 
-    $(this).find('.edit-project-column-button').on('click', function (e) {
+    modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
-
-      $.ajax({
-        url: $(this).data('url'),
-        data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'PUT',
-      }).done(() => {
-        projectTitleLabel.text(projectTitleInput.val());
-        projectTitleInput.closest('form').removeClass('dirty');
-        if (projectColorInput.val()) {
-          setLabelColor(projectHeader, projectColorInput.val());
+      try {
+        await PUT(this.getAttribute('data-url'), {
+          data: {
+            title: projectTitleInput?.value,
+            color: projectColorInput?.value,
+          },
+        });
+      } catch (error) {
+        console.error(error);
+      } finally {
+        projectTitleLabel.textContent = projectTitleInput?.value;
+        projectTitleInput.closest('form')?.classList.remove('dirty');
+        if (projectColorInput?.value) {
+          setLabelColor(projectHeader, projectColorInput.value);
         }
-        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        boardColumn.style = `background: ${projectColorInput.value} !important`;
         $('.ui.modal').modal('hide');
-      });
+      }
     });
-  });
+  }
 
   $('.default-project-column-modal').each(function () {
-    const boardColumn = $(this).closest('.project-column');
-    const showButton = $(boardColumn).find('.default-project-column-show');
-    const commitButton = $(this).find('.actions > .ok.button');
+    const $boardColumn = $(this).closest('.project-column');
+    const $showButton = $($boardColumn).find('.default-project-column-show');
+    const $commitButton = $(this).find('.actions > .ok.button');
 
-    $(commitButton).on('click', (e) => {
+    $($commitButton).on('click', async (e) => {
       e.preventDefault();
 
-      $.ajax({
-        method: 'POST',
-        url: $(showButton).data('url'),
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-      }).done(() => {
+      try {
+        await POST($($showButton).data('url'));
+      } catch (error) {
+        console.error(error);
+      } finally {
         window.location.reload();
-      });
+      }
     });
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = $(this).attr('data-url');
+    const $deleteColumnModal = $(`${this.getAttribute('data-modal')}`);
+    const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
+    const deleteUrl = this.getAttribute('data-url');
 
-    deleteColumnButton.on('click', (e) => {
+    $deleteColumnButton.on('click', async (e) => {
       e.preventDefault();
 
-      $.ajax({
-        url: deleteUrl,
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'DELETE',
-      }).done(() => {
+      try {
+        await DELETE(deleteUrl);
+      } catch (error) {
+        console.error(error);
+      } finally {
         window.location.reload();
-      });
+      }
     });
   });
 
   $('#new_project_column_submit').on('click', (e) => {
     e.preventDefault();
-    const columnTitle = $('#new_project_column');
-    const projectColorInput = $('#new_project_column_color_picker');
-    if (!columnTitle.val()) {
+    const $columnTitle = $('#new_project_column');
+    const $projectColorInput = $('#new_project_column_color_picker');
+    if (!$columnTitle.val()) {
       return;
     }
-    const url = $(this).data('url');
-    createNewColumn(url, columnTitle, projectColorInput);
+    const url = e.target.getAttribute('data-url');
+    createNewColumn(url, $columnTitle, $projectColorInput);
   });
 }
 
 function setLabelColor(label, color) {
   const {r, g, b} = tinycolor(color).toRgb();
   if (useLightTextOnBackground(r, g, b)) {
-    label.removeClass('dark-label').addClass('light-label');
+    label.classList.remove('dark-label');
+    label.classList.add('light-label');
   } else {
-    label.removeClass('light-label').addClass('dark-label');
+    label.classList.remove('light-label');
+    label.classList.add('dark-label');
   }
 }
 

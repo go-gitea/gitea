@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -18,7 +18,7 @@ const (
 
 // Contributors render the page to show repository contributors graph
 func Contributors(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.contributors")
+	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.contributors")
 
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true

@@ -23,6 +23,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	alpine_model "code.gitea.io/gitea/models/packages/alpine"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -30,7 +31,10 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-const IndexFilename = "APKINDEX.tar.gz"
+const (
+	IndexFilename        = "APKINDEX"
+	IndexArchiveFilename = IndexFilename + ".tar.gz"
+)
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Alpine registry needs multiple index files which are stored in this package.
@@ -120,7 +124,22 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, re
 		return err
 	}
 
-	return buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture)
+	architectures := container.SetOf(architecture)
+	if architecture == alpine_module.NoArch {
+		// Update all other architectures too when updating the noarch index
+		additionalArchitectures, err := alpine_model.GetArchitectures(ctx, ownerID, repository)
+		if err != nil {
+			return err
+		}
+		architectures.AddMultiple(additionalArchitectures...)
+	}
+
+	for architecture := range architectures {
+		if err := buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type packageData struct {
@@ -133,8 +152,7 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-// https://wiki.alpinelinux.org/wiki/Apk_spec#APKINDEX_Format
-func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
+func searchPackageFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) ([]*packages_model.PackageFile, error) {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ownerID,
 		PackageType: packages_model.TypeAlpine,
@@ -146,12 +164,29 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		},
 	})
 	if err != nil {
+		return nil, err
+	}
+	return pfs, nil
+}
+
+// https://wiki.alpinelinux.org/wiki/Apk_spec#APKINDEX_Format
+func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
+	pfs, err := searchPackageFiles(ctx, ownerID, branch, repository, architecture)
+	if err != nil {
 		return err
+	}
+	if architecture != alpine_module.NoArch {
+		// Add all noarch packages too
+		noarchFiles, err := searchPackageFiles(ctx, ownerID, branch, repository, alpine_module.NoArch)
+		if err != nil {
+			return err
+		}
+		pfs = append(pfs, noarchFiles...)
 	}
 
 	// Delete the package indices if there are no packages
 	if len(pfs) == 0 {
-		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
+		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexArchiveFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		} else if pf == nil {
@@ -206,7 +241,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		fmt.Fprintf(&buf, "C:%s\n", pd.FileMetadata.Checksum)
 		fmt.Fprintf(&buf, "P:%s\n", pd.Package.Name)
 		fmt.Fprintf(&buf, "V:%s\n", pd.Version.Version)
-		fmt.Fprintf(&buf, "A:%s\n", pd.FileMetadata.Architecture)
+		fmt.Fprintf(&buf, "A:%s\n", architecture)
 		if pd.VersionMetadata.Description != "" {
 			fmt.Fprintf(&buf, "T:%s\n", pd.VersionMetadata.Description)
 		}
@@ -244,7 +279,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	h := sha1.New()
 
-	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), "APKINDEX", buf.Bytes(), true); err != nil {
+	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), IndexFilename, buf.Bytes(), true); err != nil {
 		return err
 	}
 
@@ -299,13 +334,18 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     IndexFilename,
+				Filename:     IndexArchiveFilename,
 				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              signedIndexContent,
 			IsLead:            false,
 			OverwriteExisting: true,
+			Properties: map[string]string{
+				alpine_module.PropertyBranch:       branch,
+				alpine_module.PropertyRepository:   repository,
+				alpine_module.PropertyArchitecture: architecture,
+			},
 		},
 	)
 	return err

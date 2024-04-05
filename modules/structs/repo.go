@@ -90,6 +90,7 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	ProjectsMode                  string           `json:"projects_mode"`
 	HasReleases                   bool             `json:"has_releases"`
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
@@ -180,6 +181,8 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// `repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.
+	ProjectsMode *string `json:"projects_mode,omitempty" binding:"In(repo,owner,all)"`
 	// either `true` to enable releases unit, or `false` to disable them.
 	HasReleases *bool `json:"has_releases,omitempty"`
 	// either `true` to enable packages unit, or `false` to disable them.

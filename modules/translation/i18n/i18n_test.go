@@ -4,6 +4,7 @@
 package i18n
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 
@@ -80,6 +81,71 @@ c=22
 	assert.Equal(t, "11", lang1.TrString("a"))
 	assert.Equal(t, "21", lang1.TrString("b"))
 	assert.Equal(t, "22", lang1.TrString("c"))
+}
+
+type stringerPointerReceiver struct {
+	s string
+}
+
+func (s *stringerPointerReceiver) String() string {
+	return s.s
+}
+
+type stringerStructReceiver struct {
+	s string
+}
+
+func (s stringerStructReceiver) String() string {
+	return s.s
+}
+
+type errorStructReceiver struct {
+	s string
+}
+
+func (e errorStructReceiver) Error() string {
+	return e.s
+}
+
+type errorPointerReceiver struct {
+	s string
+}
+
+func (e *errorPointerReceiver) Error() string {
+	return e.s
+}
+
+func TestLocaleWithTemplate(t *testing.T) {
+	ls := NewLocaleStore()
+	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", []byte(`key=<a>%s</a>`), nil))
+	lang1, _ := ls.Locale("lang1")
+
+	tmpl := template.New("test").Funcs(template.FuncMap{"tr": lang1.TrHTML})
+	tmpl = template.Must(tmpl.Parse(`{{tr "key" .var}}`))
+
+	cases := []struct {
+		in   any
+		want string
+	}{
+		{"<str>", "<a>&lt;str&gt;</a>"},
+		{[]byte("<bytes>"), "<a>[60 98 121 116 101 115 62]</a>"},
+		{template.HTML("<html>"), "<a><html></a>"},
+		{stringerPointerReceiver{"<stringerPointerReceiver>"}, "<a>{&lt;stringerPointerReceiver&gt;}</a>"},
+		{&stringerPointerReceiver{"<stringerPointerReceiver ptr>"}, "<a>&lt;stringerPointerReceiver ptr&gt;</a>"},
+		{stringerStructReceiver{"<stringerStructReceiver>"}, "<a>&lt;stringerStructReceiver&gt;</a>"},
+		{&stringerStructReceiver{"<stringerStructReceiver ptr>"}, "<a>&lt;stringerStructReceiver ptr&gt;</a>"},
+		{errorStructReceiver{"<errorStructReceiver>"}, "<a>&lt;errorStructReceiver&gt;</a>"},
+		{&errorStructReceiver{"<errorStructReceiver ptr>"}, "<a>&lt;errorStructReceiver ptr&gt;</a>"},
+		{errorPointerReceiver{"<errorPointerReceiver>"}, "<a>{&lt;errorPointerReceiver&gt;}</a>"},
+		{&errorPointerReceiver{"<errorPointerReceiver ptr>"}, "<a>&lt;errorPointerReceiver ptr&gt;</a>"},
+	}
+
+	buf := &strings.Builder{}
+	for _, c := range cases {
+		buf.Reset()
+		assert.NoError(t, tmpl.Execute(buf, map[string]any{"var": c.in}))
+		assert.Equal(t, c.want, buf.String())
+	}
 }
 
 func TestLocaleStoreQuirks(t *testing.T) {

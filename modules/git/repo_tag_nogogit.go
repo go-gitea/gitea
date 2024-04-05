@@ -103,6 +103,9 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		return nil, err
 	}
 	if typ != "tag" {
+		if err := DiscardFull(rd, size+1); err != nil {
+			return nil, err
+		}
 		return nil, ErrNotExist{ID: tagID.String()}
 	}
 

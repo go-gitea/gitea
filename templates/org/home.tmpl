@@ -1,51 +1,14 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
-	<div class="ui container gt-df">
-		{{ctx.AvatarUtils.Avatar .Org 140 "org-avatar"}}
-		<div id="org-info">
-			<div class="ui header">
-				{{.Org.DisplayName}}
-				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
-				</span>
-			</div>
-			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
-			<div class="text grey meta">
-				{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
-				{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
-				{{if $.IsSigned}}
-					{{if .Org.Email}}<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>{{end}}
-				{{end}}
-			</div>
-		</div>
-		<div class="right menu">
-			{{if .EnableFeed}}
-			<a class="ui basic label button gt-mr-0" href="{{$.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
-				{{svg "octicon-rss" 24}}
-			</a>
-			{{end}}
-			{{if .IsSigned}}
-				<button class="ui basic button gt-mr-0" hx-post="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
-					{{if $.IsFollowing}}
-						{{ctx.Locale.Tr "user.unfollow"}}
-					{{else}}
-						{{ctx.Locale.Tr "user.follow"}}
-					{{end}}
-				</button>
-			{{end}}
-		</div>
-	</div>
-
-	{{template "org/menu" .}}
+	{{template "org/header" .}}
 
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadme}}
-					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
+					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
 				{{end}}
-				{{template "explore/repo_search" .}}
+				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
 			</div>
@@ -53,7 +16,7 @@
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="center aligned">
+					<div class="center aligned tw-mb-4">
 						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
 							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
@@ -62,9 +25,9 @@
 					<div class="divider"></div>
 				{{end}}
 				{{if .NumMembers}}
-					<h4 class="ui top attached header gt-df">
-						<strong class="gt-f1">{{ctx.Locale.Tr "org.members"}}</strong>
-						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+					<h4 class="ui top attached header tw-flex">
+						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.members"}}</strong>
+						<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
 						{{$isMember := .IsOrganizationMember}}
@@ -76,9 +39,9 @@
 					</div>
 				{{end}}
 				{{if .IsOrganizationMember}}
-					<div class="ui top attached header gt-df">
-						<strong class="gt-f1">{{ctx.Locale.Tr "org.teams"}}</strong>
-						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+					<div class="ui top attached header tw-flex">
+						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.teams"}}</strong>
+						<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
 						{{range .Teams}}
