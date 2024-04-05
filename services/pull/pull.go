@@ -989,12 +989,12 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
 		var commitTime time.Time
-		if commit.Committer != nil {
-			committerOrAuthorName = commit.Committer.Name
-			commitTime = commit.Committer.When
-		} else {
+		if commit.Author != nil {
 			committerOrAuthorName = commit.Author.Name
 			commitTime = commit.Author.When
+		} else {
+			committerOrAuthorName = commit.Committer.Name
+			commitTime = commit.Committer.When
 		}
 
 		commits = append(commits, CommitInfo{
