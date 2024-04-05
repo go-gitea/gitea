@@ -2855,6 +2855,7 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 767.98px) {
