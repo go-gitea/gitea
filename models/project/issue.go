@@ -75,6 +75,14 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 	return int(c)
 }
 
+func AddIssueToBoard(ctx context.Context, issueID int64, newBoard *Board) error {
+	return db.Insert(ctx, &ProjectIssue{
+		IssueID:        issueID,
+		ProjectID:      newBoard.ProjectID,
+		ProjectBoardID: newBoard.ID,
+	})
+}
+
 func MoveIssueToAnotherBoard(ctx context.Context, issueID int64, newBoard *Board) error {
 	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newBoard.ID, issueID)
 	return err

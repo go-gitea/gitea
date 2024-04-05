@@ -12,6 +12,7 @@ const (
 	// Project workflow event names
 	EventItemAddedToProject = "item_added_to_project"
 	EventItemClosed         = "item_closed"
+	EventItem
 )
 
 type Event struct {
@@ -21,8 +22,9 @@ type Event struct {
 }
 
 type Workflow struct {
-	Name   string
-	Events []Event
+	Name      string
+	Events    []Event
+	ProjectID int64
 }
 
 func ParseWorkflow(content string) (*Workflow, error) {
