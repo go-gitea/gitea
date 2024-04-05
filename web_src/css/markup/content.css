@@ -91,6 +91,9 @@
 .markup h6 tt,
 .markup h6 code {
   font-size: inherit;
+  padding: 0.2em 0.4em;
+  background-color: var(--color-markup-code-block);
+  border-radius: var(--border-radius);
 }
 
 .markup h1 {
@@ -432,16 +435,6 @@
   text-align: right;
 }
 
-.markup code:not(.code-inner),
-.markup tt {
-  padding: 0.2em 0.4em;
-  margin: 0;
-  font-size: 85%;
-  white-space: break-spaces;
-  background-color: var(--color-markup-code-block);
-  border-radius: var(--border-radius);
-}
-
 .markup code br,
 .markup tt br {
   display: none;
@@ -451,15 +444,16 @@
   text-decoration: inherit;
 }
 
-.markup pre > code {
-  padding: 0;
-  margin: 0;
-  font-size: 100%;
-  white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
-  background: transparent;
-  border: 0;
+/* for inline code blocks */
+.markup p > code,
+.markup li > code,
+.markup p > tt,
+.markup li > tt {
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+  white-space: break-spaces;
+  background-color: var(--color-markup-code-block);
+  border-radius: var(--border-radius);
 }
 
 .markup .highlight {
@@ -484,14 +478,15 @@
   word-wrap: normal;
 }
 
+/* for multiline code blocks */
 .markup pre code,
 .markup pre tt {
-  display: inline;
-  padding: 0;
-  line-height: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
   word-wrap: normal;
+  overflow-wrap: break-word;
+
   background-color: transparent;
-  border: 0;
 }
 
 .markup pre code::before,
