@@ -38,21 +38,21 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 
 	// get upload url
 	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact/abc.txt"
+	url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact/abc-2.txt"
 
 	// upload artifact chunk
-	body := strings.Repeat("A", 1024)
+	body := strings.Repeat("C", 1024)
 	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 		SetHeader("Content-Range", "bytes 0-1023/1024").
 		SetHeader("x-tfs-filelength", "1024").
-		SetHeader("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
+		SetHeader("x-actions-results-md5", "XVlf820rMInUi64wmMi6EA==") // base64(md5(body))
 	MakeRequest(t, req, http.StatusOK)
 
 	t.Logf("Create artifact confirm")
 
 	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact").
+	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact-single").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	MakeRequest(t, req, http.StatusOK)
 }
@@ -115,19 +115,19 @@ func TestActionsArtifactDownload(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var listResp listArtifactsResponse
 	DecodeJSON(t, resp, &listResp)
-	assert.Equal(t, int64(1), listResp.Count)
-	assert.Equal(t, "artifact", listResp.Value[0].Name)
+	assert.Equal(t, int64(2), listResp.Count)
+	assert.Equal(t, "artifact-download", listResp.Value[0].Name)
 	assert.Contains(t, listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact"
+	url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
 	var downloadResp downloadArtifactResponse
 	DecodeJSON(t, resp, &downloadResp)
 	assert.Len(t, downloadResp.Value, 1)
-	assert.Equal(t, "artifact/abc.txt", downloadResp.Value[0].Path)
+	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[0].Path)
 	assert.Equal(t, "file", downloadResp.Value[0].ItemType)
 	assert.Contains(t, downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
@@ -136,8 +136,9 @@ func TestActionsArtifactDownload(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
+
 	body := strings.Repeat("A", 1024)
-	assert.Equal(t, resp.Body.String(), body)
+	assert.Equal(t, body, resp.Body.String())
 }
 
 func TestActionsArtifactUploadMultipleFile(t *testing.T) {
@@ -163,14 +164,14 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 
 	files := []uploadingFile{
 		{
-			Path:    "abc.txt",
-			Content: strings.Repeat("A", 1024),
-			MD5:     "1HsSe8LeLWh93ILaw1TEFQ==",
+			Path:    "abc-3.txt",
+			Content: strings.Repeat("D", 1024),
+			MD5:     "9nqj7E8HZmfQtPifCJ5Zww==",
 		},
 		{
-			Path:    "xyz/def.txt",
-			Content: strings.Repeat("B", 1024),
-			MD5:     "6fgADK/7zjadf+6cB9Q1CQ==",
+			Path:    "xyz/def-2.txt",
+			Content: strings.Repeat("E", 1024),
+			MD5:     "/s1kKvxeHlUX85vaTaVxuA==",
 		},
 	}
 
@@ -199,7 +200,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	const testArtifactName = "multi-files"
+	const testArtifactName = "multi-file-download"
 
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
@@ -226,7 +227,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	DecodeJSON(t, resp, &downloadResp)
 	assert.Len(t, downloadResp.Value, 2)
 
-	downloads := [][]string{{"multi-files/abc.txt", "A"}, {"multi-files/xyz/def.txt", "B"}}
+	downloads := [][]string{{"multi-file-download/abc.txt", "B"}, {"multi-file-download/xyz/def.txt", "C"}}
 	for _, v := range downloadResp.Value {
 		var bodyChar string
 		var path string
@@ -247,8 +248,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
-		body := strings.Repeat(bodyChar, 1024)
-		assert.Equal(t, resp.Body.String(), body)
+		assert.Equal(t, strings.Repeat(bodyChar, 1024), resp.Body.String())
 	}
 }
 
