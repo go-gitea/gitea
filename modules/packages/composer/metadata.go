@@ -40,6 +40,7 @@ type Package struct {
 type Metadata struct {
 	Description string            `json:"description,omitempty"`
 	Keywords    []string          `json:"keywords,omitempty"`
+	Comments    Comments          `json:"_comments,omitempty"`
 	Homepage    string            `json:"homepage,omitempty"`
 	License     Licenses          `json:"license,omitempty"`
 	Authors     []Author          `json:"authors,omitempty"`
@@ -70,6 +71,28 @@ func (l *Licenses) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		*l = Licenses(values)
+	}
+	return nil
+}
+
+// Comments represents the comments of a Composer package
+type Comments []string
+
+// UnmarshalJSON reads from a string or array
+func (c *Comments) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*c = Comments{value}
+	case '[':
+		values := make([]string, 0, 5)
+		if err := json.Unmarshal(data, &values); err != nil {
+			return err
+		}
+		*c = Comments(values)
 	}
 	return nil
 }
