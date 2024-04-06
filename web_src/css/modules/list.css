@@ -24,7 +24,6 @@
   table-layout: fixed;
   list-style-type: none;
   list-style-position: outside;
-  padding: 0.21428571em 0;
   line-height: var(--line-height-default); /* fix line-height causing vertical scrollbars to appear */
 }
 
@@ -35,16 +34,6 @@
   height: 0;
   clear: both;
   visibility: hidden;
-}
-
-.ui.list .list > .item:first-child,
-.ui.list > .item:first-child {
-  padding-top: 0;
-}
-
-.ui.list .list > .item:last-child,
-.ui.list > .item:last-child {
-  padding-bottom: 0;
 }
 
 .ui.list .list:not(.icon) {
@@ -175,12 +164,6 @@
 .ui.list .list > a.item:hover > i.icon,
 .ui.list > a.item:hover > i.icon {
   color: var(--color-text-dark);
-}
-
-.ui.list[class*="middle aligned"] .image,
-.ui.list[class*="middle aligned"] .content,
-.ui.list [class*="middle aligned"] {
-  vertical-align: middle !important;
 }
 
 .ui.divided.list > .item {
