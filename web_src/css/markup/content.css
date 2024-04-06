@@ -432,7 +432,7 @@
   text-align: right;
 }
 
-.markup code:not(.code-inner),
+.markup code,
 .markup tt {
   padding: 0.2em 0.4em;
   margin: 0;
