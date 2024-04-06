@@ -4,6 +4,7 @@
 package cron
 
 import (
+	"sort"
 	"strconv"
 	"testing"
 
@@ -22,9 +23,10 @@ func TestAddTaskToScheduler(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, scheduler.Jobs(), 1)
-	assert.Equal(t, "task 1", scheduler.Jobs()[0].Tags()[0])
-	assert.Equal(t, "5 4 * * *", scheduler.Jobs()[0].Tags()[1])
+	jobs := scheduler.Jobs()
+	assert.Len(t, jobs, 1)
+	assert.Equal(t, "task 1", jobs[0].Tags()[0])
+	assert.Equal(t, "5 4 * * *", jobs[0].Tags()[1])
 
 	// with seconds
 	err = addTaskToScheduler(&Task{
@@ -34,9 +36,13 @@ func TestAddTaskToScheduler(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, scheduler.Jobs(), 2)
-	assert.Equal(t, "task 2", scheduler.Jobs()[1].Tags()[0])
-	assert.Equal(t, "30 5 4 * * *", scheduler.Jobs()[1].Tags()[1])
+	jobs = scheduler.Jobs() // the item order is not guaranteed, so we need to sort it before "assert"
+	sort.Slice(jobs, func(i, j int) bool {
+		return jobs[i].Tags()[0] < jobs[j].Tags()[0]
+	})
+	assert.Len(t, jobs, 2)
+	assert.Equal(t, "task 2", jobs[1].Tags()[0])
+	assert.Equal(t, "30 5 4 * * *", jobs[1].Tags()[1])
 }
 
 func TestScheduleHasSeconds(t *testing.T) {

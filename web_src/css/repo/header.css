@@ -1,0 +1,69 @@
+.repository .secondary-nav {
+  padding-top: 12px;
+}
+
+.repository .secondary-nav .fork-flag {
+  margin-top: 0.5rem;
+  font-size: 12px;
+}
+
+.repo-header {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+}
+
+.repo-header .flex-item {
+  padding: 0;
+}
+
+.repo-header .flex-item-main {
+  flex: 0;
+  flex-basis: unset;
+}
+
+.repo-header .flex-item-trailing {
+  flex-wrap: nowrap;
+}
+
+.repo-buttons {
+  align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  word-break: keep-all;
+  gap: 0.25em;
+}
+
+.repo-buttons .ui.labeled.button > .label:hover {
+  color: var(--color-primary-light-2);
+  background: var(--color-light);
+}
+
+.repo-buttons button[disabled] ~ .label {
+  opacity: var(--opacity-disabled);
+  color: var(--color-text-dark);
+  background: var(--color-light-mimic-enabled) !important;
+}
+
+.repo-buttons button[disabled] ~ .label:hover {
+  color: var(--color-primary-dark-1);
+}
+
+.repo-buttons .ui.labeled.button.disabled {
+  pointer-events: inherit !important;
+}
+
+.repo-buttons .ui.labeled.button.disabled > .label {
+  color: var(--color-text-dark);
+  background: var(--color-light-mimic-enabled) !important;
+}
+
+.repo-buttons .ui.labeled.button.disabled > .label:hover {
+  color: var(--color-primary-dark-1);
+}
+
+.repo-buttons .ui.labeled.button.disabled > .button {
+  pointer-events: none !important;
+}

@@ -31,9 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
-	request.Header.Set("X-NuGet-ApiKey", token)
-	return request
+func addNuGetAPIKeyHeader(req *RequestWrapper, token string) {
+	req.SetHeader("X-NuGet-ApiKey", token)
 }
 
 func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v any) {
@@ -141,9 +140,9 @@ func TestPackageNuGet(t *testing.T) {
 
 				req := NewRequest(t, "GET", url)
 				if c.UseBasicAuth {
-					req = AddBasicAuthHeader(req, user.Name)
+					req.AddBasicAuth(user.Name)
 				} else if c.UseTokenAuth {
-					req = addNuGetAPIKeyHeader(req, token)
+					addNuGetAPIKeyHeader(req, token)
 				}
 				resp := MakeRequest(t, req, http.StatusOK)
 
@@ -178,9 +177,9 @@ func TestPackageNuGet(t *testing.T) {
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
 				if c.UseBasicAuth {
-					req = AddBasicAuthHeader(req, user.Name)
+					req.AddBasicAuth(user.Name)
 				} else if c.UseTokenAuth {
-					req = addNuGetAPIKeyHeader(req, token)
+					addNuGetAPIKeyHeader(req, token)
 				}
 				resp := MakeRequest(t, req, http.StatusOK)
 
@@ -219,8 +218,8 @@ func TestPackageNuGet(t *testing.T) {
 		t.Run("DependencyPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
@@ -244,8 +243,8 @@ func TestPackageNuGet(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, int64(len(content)), pb.Size)
 
-			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
@@ -278,16 +277,16 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				return &buf
 			}
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage"))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage")).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage"))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage")).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
@@ -330,8 +329,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 	})
@@ -348,16 +347,16 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 		checkDownloadCount(0)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
 		checkDownloadCount(1)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
 		checkDownloadCount(1)
@@ -368,12 +367,12 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/gitea.pdb", url, symbolFilename, symbolID))
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, "00000000000000000000000000000000", symbolFilename))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, "00000000000000000000000000000000", symbolFilename)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFffff/%s", url, symbolFilename, symbolID, symbolFilename))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFffff/%s", url, symbolFilename, symbolID, symbolFilename)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
 			checkDownloadCount(1)
@@ -414,8 +413,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			{"test", 1, 10, 1, 0},
 		}
 
-		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99"))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99")).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		t.Run("v2", func(t *testing.T) {
@@ -423,8 +422,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				defer tests.PrintCurrentTest(t)()
 
 				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+						AddBasicAuth(user.Name)
 					resp := MakeRequest(t, req, http.StatusOK)
 
 					var result FeedResponse
@@ -433,8 +432,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
 
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+						AddBasicAuth(user.Name)
 					resp = MakeRequest(t, req, http.StatusOK)
 
 					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
@@ -445,8 +444,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				defer tests.PrintCurrentTest(t)()
 
 				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+						AddBasicAuth(user.Name)
 					resp := MakeRequest(t, req, http.StatusOK)
 
 					var result FeedResponse
@@ -455,8 +454,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
 
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
-					req = AddBasicAuthHeader(req, user.Name)
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+						AddBasicAuth(user.Name)
 					resp = MakeRequest(t, req, http.StatusOK)
 
 					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
@@ -464,8 +463,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			})
 
 			t.Run("Next", func(t *testing.T) {
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='test'&$skip=0&$top=1", url))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='test'&$skip=0&$top=1", url)).
+					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result FeedResponse
@@ -479,8 +478,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			defer tests.PrintCurrentTest(t)()
 
 			for i, c := range cases {
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s&skip=%d&take=%d", url, c.Query, c.Skip, c.Take)).
+					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result nuget.SearchResultResponse
@@ -493,12 +492,12 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			t.Run("EnforceGrouped", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequestWithBody(t, "PUT", url, createPackage(packageName+".dummy", "1.0.0"))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, createPackage(packageName+".dummy", "1.0.0")).
+					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusCreated)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s", url, packageName))
-				req = AddBasicAuthHeader(req, user.Name)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s", url, packageName)).
+					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result nuget.SearchResultResponse
@@ -514,14 +513,14 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					}
 				}
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
-				req = AddBasicAuthHeader(req, user.Name)
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0")).
+					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 			})
 		})
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99"))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99")).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
@@ -533,8 +532,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("RegistrationIndex", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/index.json", url, packageName))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/index.json", url, packageName)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result nuget.RegistrationIndexResponse
@@ -560,8 +559,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			t.Run("v2", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages(Id='%s',Version='%s')", url, packageName, packageVersion))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages(Id='%s',Version='%s')", url, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result FeedEntry
@@ -577,8 +576,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			t.Run("v3", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result nuget.RegistrationLeafResponse
@@ -595,8 +594,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("v2", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()?id='%s'&$top=1", url, packageName))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()?id='%s'&$top=1", url, packageName)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result FeedResponse
@@ -606,8 +605,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			assert.Equal(t, packageVersion, result.Entries[0].Properties.Version)
 			assert.Condition(t, containsOneNextLink(t, result.Links))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()/$count?id='%s'", url, packageName))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()/$count?id='%s'", url, packageName)).
+				AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, "1", resp.Body.String())
@@ -616,8 +615,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("v3", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result nuget.PackageVersionsResponse
@@ -631,8 +630,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
@@ -643,20 +642,20 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	t.Run("DownloadNotExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("DeleteNotExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

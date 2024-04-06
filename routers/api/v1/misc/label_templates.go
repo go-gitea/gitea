@@ -6,9 +6,9 @@ package misc
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 

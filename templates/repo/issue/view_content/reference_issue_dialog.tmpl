@@ -2,7 +2,7 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}
 	</div>
-	<div class="content" style="text-align:left">
+	<div class="content tw-text-left">
 		<form class="ui form form-fetch-action" action="{{printf "%s/issues/new" .Repository.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="ui segment content">

@@ -24,7 +24,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 			gogitTreeEntry: &object.TreeEntry{
 				Name: "",
 				Mode: filemode.Dir,
-				Hash: t.ID,
+				Hash: plumbing.Hash(t.ID.RawValue()),
 			},
 		}, nil
 	}

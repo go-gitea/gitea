@@ -10,23 +10,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreUsers explore users page template
 	tplExploreUsers base.TplName = "explore/users"
-)
-
-// UserSearchDefaultSortType is the default sort type for user search
-const (
-	UserSearchDefaultSortType  = "recentupdate"
-	UserSearchDefaultAdminSort = "alphabetically"
 )
 
 var nullByte = []byte{0x00}
@@ -60,8 +55,13 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
@@ -80,8 +80,14 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 		fallthrough
 	default:
 		// in case the sortType is not valid, we set it to recentupdate
+		sortOrder = "recentupdate"
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = "`user`.updated_unix DESC"
+	}
+
+	if opts.SupportedSortOrders != nil && !opts.SupportedSortOrders.Contains(sortOrder) {
+		ctx.NotFound("unsupported sort order", nil)
+		return
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
@@ -133,15 +139,25 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+	supportedSortOrders := container.SetOf(
+		"newest",
+		"oldest",
+		"alphabetically",
+		"reversealphabetically",
+	)
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = "newest"
+		ctx.SetFormString("sort", sortOrder)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive:    util.OptionalBoolTrue,
+		IsActive:    optional.Some(true),
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+
+		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)
 }

@@ -332,7 +332,6 @@ func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
-// FIXME: user could send PullRequest also could be assigned???
 func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
@@ -341,7 +340,8 @@ func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	if err != nil {
 		return false, err
 	}
-	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.TypeCode, unit.TypeIssues, unit.TypePullRequests), nil
+	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.AllRepoUnitTypes...) ||
+		perm.CanAccessAny(perm_model.AccessModeRead, unit.TypePullRequests), nil
 }
 
 // HasAccess returns true if user has access to repo

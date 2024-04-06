@@ -8,11 +8,12 @@
 package charset
 
 import (
-	"bufio"
+	"html/template"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -20,20 +21,18 @@ import (
 const RuneNBSP = 0xa0
 
 // EscapeControlHTML escapes the unicode control sequences in a provided html document
-func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output string) {
+func EscapeControlHTML(html template.HTML, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output template.HTML) {
 	sb := &strings.Builder{}
-	outputStream := &HTMLStreamerWriter{Writer: sb}
-	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
-
-	if err := StreamHTML(strings.NewReader(text), streamer); err != nil {
-		streamer.escaped.HasError = true
-		log.Error("Error whilst escaping: %v", err)
-	}
-	return streamer.escaped, sb.String()
+	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), sb, locale, allowed...) // err has been handled in EscapeControlReader
+	return escaped, template.HTML(sb.String())
 }
 
-// EscapeControlReaders escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
+// EscapeControlReader escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
 func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
+	if !setting.UI.AmbiguousUnicodeDetection {
+		_, err = io.Copy(writer, reader)
+		return &EscapeStatus{}, err
+	}
 	outputStream := &HTMLStreamerWriter{Writer: writer}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
 
@@ -42,42 +41,4 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 		log.Error("Error whilst escaping: %v", err)
 	}
 	return streamer.escaped, err
-}
-
-// EscapeControlStringReader escapes the unicode control sequences in a provided reader of string content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte. HTML line breaks are not inserted after every newline by this method.
-func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
-	bufRd := bufio.NewReader(reader)
-	outputStream := &HTMLStreamerWriter{Writer: writer}
-	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
-
-	for {
-		line, rdErr := bufRd.ReadString('\n')
-		if len(line) > 0 {
-			if err := streamer.Text(line); err != nil {
-				streamer.escaped.HasError = true
-				log.Error("Error whilst escaping: %v", err)
-				return streamer.escaped, err
-			}
-		}
-		if rdErr != nil {
-			if rdErr != io.EOF {
-				err = rdErr
-			}
-			break
-		}
-	}
-	return streamer.escaped, err
-}
-
-// EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
-func EscapeControlString(text string, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output string) {
-	sb := &strings.Builder{}
-	outputStream := &HTMLStreamerWriter{Writer: sb}
-	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
-
-	if err := streamer.Text(text); err != nil {
-		streamer.escaped.HasError = true
-		log.Error("Error whilst escaping: %v", err)
-	}
-	return streamer.escaped, sb.String()
 }

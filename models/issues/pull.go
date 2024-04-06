@@ -78,24 +78,6 @@ func (err ErrPullRequestAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error
-type ErrPullRequestHeadRepoMissing struct {
-	ID         int64
-	HeadRepoID int64
-}
-
-// IsErrErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
-func IsErrErrPullRequestHeadRepoMissing(err error) bool {
-	_, ok := err.(ErrPullRequestHeadRepoMissing)
-	return ok
-}
-
-// Error does pretty-printing :D
-func (err ErrPullRequestHeadRepoMissing) Error() string {
-	return fmt.Sprintf("pull request head repo missing [id: %d, head_repo_id: %d]",
-		err.ID, err.HeadRepoID)
-}
-
 // ErrPullWasClosed is used close a closed pull request
 type ErrPullWasClosed struct {
 	ID    int64
@@ -189,11 +171,11 @@ type PullRequest struct {
 	HeadBranch          string
 	HeadCommitID        string `xorm:"-"`
 	BaseBranch          string
-	MergeBase           string `xorm:"VARCHAR(40)"`
+	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
-	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergedCommitID string             `xorm:"VARCHAR(64)"`
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
@@ -660,16 +642,42 @@ func GetPullRequestByIssueIDWithNoAttributes(ctx context.Context, issueID int64)
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
-	pr := &PullRequest{
-		IssueID: issueID,
-	}
-	has, err := db.GetByBean(ctx, pr)
+	pr, exist, err := db.Get[PullRequest](ctx, builder.Eq{"issue_id": issueID})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
 	return pr, pr.LoadAttributes(ctx)
+}
+
+// GetPullRequestsByBaseHeadInfo returns the pull request by given base and head
+func GetPullRequestByBaseHeadInfo(ctx context.Context, baseID, headID int64, base, head string) (*PullRequest, error) {
+	pr := &PullRequest{}
+	sess := db.GetEngine(ctx).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Where("base_repo_id = ? AND base_branch = ? AND head_repo_id = ? AND head_branch = ?", baseID, base, headID, head)
+	has, err := sess.Get(pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{
+			HeadRepoID: headID,
+			BaseRepoID: baseID,
+			HeadBranch: head,
+			BaseBranch: base,
+		}
+	}
+
+	if err = pr.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
 }
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
@@ -761,18 +769,6 @@ func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
 }
 
-// GetPullRequestsByHeadBranch returns all prs by head branch
-// Since there could be multiple prs with the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepoID int64) ([]*PullRequest, error) {
-	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
-	prs := make([]*PullRequest, 0, 2)
-	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
-		Find(&prs); err != nil {
-		return nil, err
-	}
-	return prs, nil
-}
-
 // GetBaseBranchLink returns the relative URL of the base branch
 func (pr *PullRequest) GetBaseBranchLink(ctx context.Context) string {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
@@ -834,7 +830,7 @@ func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.Prot
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
-	if protectBranch.DismissStaleApprovals {
+	if protectBranch.IgnoreStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
 	approvals, err := sess.Count(new(Review))
@@ -885,82 +881,6 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
-}
-
-func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullRequest) error {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-
-	if pr.IsWorkInProgress(ctx) {
-		return nil
-	}
-
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
-	}
-
-	repo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer repo.Close()
-
-	branch, err := repo.GetDefaultBranch()
-	if err != nil {
-		return err
-	}
-
-	commit, err := repo.GetBranchCommit(branch)
-	if err != nil {
-		return err
-	}
-
-	var data string
-	for _, file := range files {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err == nil {
-				break
-			}
-		}
-	}
-
-	rules, _ := GetCodeOwnersFromContent(ctx, data)
-	changedFiles, err := repo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-	if err != nil {
-		return err
-	}
-
-	uniqUsers := make(map[int64]*user_model.User)
-	uniqTeams := make(map[string]*org_model.Team)
-	for _, rule := range rules {
-		for _, f := range changedFiles {
-			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
-				for _, u := range rule.Users {
-					uniqUsers[u.ID] = u
-				}
-				for _, t := range rule.Teams {
-					uniqTeams[fmt.Sprintf("%d/%d", t.OrgID, t.ID)] = t
-				}
-			}
-		}
-	}
-
-	for _, u := range uniqUsers {
-		if u.ID != pull.Poster.ID {
-			if _, err := AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
-				return err
-			}
-		}
-	}
-	for _, t := range uniqTeams {
-		if _, err := AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // GetCodeOwnersFromContent returns the code owners configuration
@@ -1124,4 +1044,24 @@ func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 		}
 	}
 	return committer.Commit()
+}
+
+// GetPullRequestByMergedCommit returns a merged pull request by the given commit
+func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string) (*PullRequest, error) {
+	pr := new(PullRequest)
+	has, err := db.GetEngine(ctx).Where("base_repo_id = ? AND merged_commit_id = ?", repoID, sha).Get(pr)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
+	}
+
+	if err = pr.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
 }

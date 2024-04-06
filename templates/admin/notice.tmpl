@@ -17,10 +17,10 @@
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td><div class="ui checkbox gt-df" data-id="{{.ID}}"><input type="checkbox"></div></td>
+						<td><div class="ui checkbox tw-flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
 						<td>{{ctx.Locale.Tr .TrStr}}</td>
-						<td class="view-detail auto-ellipsis" style="width: 80%;"><span class="notice-description">{{.Description}}</span></td>
+						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
@@ -31,7 +31,7 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="gt-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
+								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
 									{{.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
@@ -49,8 +49,8 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
-									{{ctx.Locale.Tr "admin.notices.delete_selected"}}
+								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
+									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>
 						</tr>

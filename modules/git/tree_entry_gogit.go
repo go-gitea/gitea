@@ -14,7 +14,7 @@ import (
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID SHA1
+	ID ObjectID
 
 	gogitTreeEntry *object.TreeEntry
 	ptree          *Tree
@@ -88,7 +88,7 @@ func (te *TreeEntry) Blob() *Blob {
 	}
 
 	return &Blob{
-		ID:              te.gogitTreeEntry.Hash,
+		ID:              ParseGogitHash(te.gogitTreeEntry.Hash),
 		gogitEncodedObj: encodedObj,
 		name:            te.Name(),
 	}

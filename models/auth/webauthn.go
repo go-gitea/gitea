@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"xorm.io/xorm"
 )
 
 // ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
@@ -83,7 +82,7 @@ func (cred *WebAuthnCredential) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (cred *WebAuthnCredential) AfterLoad(session *xorm.Session) {
+func (cred *WebAuthnCredential) AfterLoad() {
 	cred.LowerName = strings.ToLower(cred.Name)
 }
 

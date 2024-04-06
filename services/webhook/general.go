@@ -293,6 +293,24 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
+func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	refLink := linkFormatter(p.Package.HTMLURL, p.Package.Name+":"+p.Package.Version)
+
+	switch p.Action {
+	case api.HookPackageCreated:
+		text = fmt.Sprintf("Package created: %s", refLink)
+		color = greenColor
+	case api.HookPackageDeleted:
+		text = fmt.Sprintf("Package deleted: %s", refLink)
+		color = redColor
+	}
+	if withSender {
+		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+	}
+
+	return text, color
+}
+
 // ToHook convert models.Webhook to api.Hook
 // This function is not part of the convert package to prevent an import cycle
 func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {

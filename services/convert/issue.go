@@ -98,7 +98,8 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 		}
 		if issue.PullRequest != nil {
 			apiIssue.PullRequest = &api.PullRequestMeta{
-				HasMerged: issue.PullRequest.HasMerged,
+				HasMerged:        issue.PullRequest.HasMerged,
+				IsWorkInProgress: issue.PullRequest.IsWorkInProgress(ctx),
 			}
 			if issue.PullRequest.HasMerged {
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()

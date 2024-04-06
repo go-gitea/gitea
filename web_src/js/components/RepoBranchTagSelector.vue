@@ -19,24 +19,26 @@ const sfc = {
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
-      this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1);
+      this.active = !items.length && this.showCreateNewBranch ? 0 : -1;
       return items;
     },
     showNoResults() {
-      return this.filteredItems.length === 0 && !this.showCreateNewBranch;
+      return !this.filteredItems.length && !this.showCreateNewBranch;
     },
     showCreateNewBranch() {
       if (this.disableCreateBranch || !this.searchTerm) {
         return false;
       }
-      return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
+      return !this.items.filter((item) => {
+        return item.name.toLowerCase() === this.searchTerm.toLowerCase();
+      }).length;
     },
     formActionUrl() {
       return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
     shouldCreateTag() {
       return this.mode === 'tags';
-    }
+    },
   },
 
   watch: {
@@ -45,7 +47,7 @@ const sfc = {
         this.focusSearchField();
         this.fetchBranchesOrTags();
       }
-    }
+    },
   },
 
   beforeMount() {
@@ -83,7 +85,7 @@ const sfc = {
         this.isViewBranch = false;
         this.$refs.dropdownRefName.textContent = item.name;
         if (this.setAction) {
-          $(`#${this.branchForm}`).attr('action', url);
+          document.getElementById(this.branchForm)?.setAttribute('action', url);
         } else {
           $(`#${this.branchForm} input[name="refURL"]`).val(url);
         }
@@ -123,7 +125,7 @@ const sfc = {
       return -1;
     },
     scrollToActive() {
-      let el = this.$refs[`listItem${this.active}`];
+      let el = this.$refs[`listItem${this.active}`]; // eslint-disable-line no-jquery/variable-pattern
       if (!el || !el.length) return;
       if (Array.isArray(el)) {
         el = el[0];
@@ -209,7 +211,7 @@ const sfc = {
         this.isLoading = false;
       }
     },
-  }
+  },
 };
 
 export function initRepoBranchTagSelector(selector) {
@@ -245,13 +247,13 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
   <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text gt-df gt-ac gt-mr-2">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex tw-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="text tw-flex tw-items-center tw-mr-1">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="gt-ml-3">{{ refNameText }}</strong>
+          <strong ref="dropdownRefName" class="tw-ml-2">{{ refNameText }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
@@ -263,10 +265,10 @@ export default sfc; // activate IDE's Vue plugin
       </div>
       <div v-if="showBranchesInDropdown" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: mode === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
         </a>
         <a v-if="!noTag" class="branch-tag-item muted" :class="{active: mode === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
@@ -278,7 +280,7 @@ export default sfc; // activate IDE's Vue plugin
           <div class="ui label" v-if="item.name===repoDefaultBranch && mode === 'branches'">
             {{ textDefaultBranchLabel }}
           </div>
-          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon gt-float-right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
+          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon tw-float-right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>

@@ -19,7 +19,7 @@ export function initCopyContent() {
     // the text to copy is not in the DOM or it is an image which should be
     // fetched to copy in full resolution
     if (link) {
-      btn.classList.add('is-loading', 'small-loading-icon');
+      btn.classList.add('is-loading', 'loading-icon-2px');
       try {
         const res = await GET(link, {credentials: 'include', redirect: 'follow'});
         const contentType = res.headers.get('content-type');
@@ -33,7 +33,7 @@ export function initCopyContent() {
       } catch {
         return showTemporaryTooltip(btn, i18n.copy_error);
       } finally {
-        btn.classList.remove('is-loading', 'small-loading-icon');
+        btn.classList.remove('is-loading', 'loading-icon-2px');
       }
     } else { // text, read from DOM
       const lineEls = document.querySelectorAll('.file-view .lines-code');

@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -257,4 +258,63 @@ func TestDeleteReview(t *testing.T) {
 	review1, err = issues_model.GetReviewByID(db.DefaultContext, review1.ID)
 	assert.NoError(t, err)
 	assert.True(t, review1.Official)
+}
+
+func TestDeleteDismissedReview(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Content:  "reject",
+		Type:     issues_model.ReviewTypeReject,
+		Official: false,
+		Issue:    issue,
+		Reviewer: user,
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, issues_model.DismissReview(db.DefaultContext, review, true))
+	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+		Type:     issues_model.CommentTypeDismissReview,
+		Doer:     user,
+		Repo:     repo,
+		Issue:    issue,
+		ReviewID: review.ID,
+		Content:  "dismiss",
+	})
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review))
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
+}
+
+func TestAddReviewRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Issue:    issue,
+		Reviewer: reviewer,
+		Type:     issues_model.ReviewTypeReject,
+	})
+
+	assert.NoError(t, err)
+	pull.HasMerged = false
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = true
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+
+	pull.HasMerged = true
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = false
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 }
