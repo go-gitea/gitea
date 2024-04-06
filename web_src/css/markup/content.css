@@ -494,10 +494,6 @@
   border: 0;
 }
 
-.markup pre code {
-  font-size: 100% !important;
-}
-
 .markup pre code::before,
 .markup pre code::after,
 .markup pre tt::before,
