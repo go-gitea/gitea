@@ -44,7 +44,6 @@
 
 .ui.list .list > .item {
   padding: 0.14285714em 0;
-  line-height: inherit;
 }
 
 .ui.list .list > .item > i.icon,
@@ -86,7 +85,6 @@
 
 .ui.list .list > .item > .content,
 .ui.list > .item > .content {
-  line-height: 1.14285714;
   color: var(--color-text);
 }
 .ui.list .list > .item > .image + .content,
@@ -137,7 +135,6 @@
   list-style-type: none;
   list-style-position: outside;
   padding: 0.21428571em 0;
-  line-height: 1.14285714;
 }
 .ui.menu .ui.list .list > .item::before,
 .ui.menu .ui.list > .item::before {
