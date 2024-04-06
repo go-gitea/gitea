@@ -475,11 +475,6 @@
   border-radius: var(--border-radius);
 }
 
-.markup .highlight pre > code,
-.markup pre > code {
-  background: none !important;
-}
-
 .markup .highlight pre {
   margin-bottom: 0;
   word-break: normal;
