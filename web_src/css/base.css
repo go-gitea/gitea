@@ -44,7 +44,7 @@ html, body {
 }
 
 body {
-  line-height: 1.4285rem;
+  line-height: 20px;
   font-family: var(--fonts-regular);
   color: var(--color-text);
   background-color: var(--color-body);

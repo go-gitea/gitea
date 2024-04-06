@@ -24,7 +24,6 @@
   table-layout: fixed;
   list-style-type: none;
   list-style-position: outside;
-  line-height: var(--line-height-default); /* fix line-height causing vertical scrollbars to appear */
 }
 
 .ui.list > .list > .item::after,
