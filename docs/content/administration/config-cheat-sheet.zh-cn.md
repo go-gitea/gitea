@@ -1353,5 +1353,6 @@ PROXY_HOSTS = *.github.com
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: 在页脚显示模板执行的时间。
+- `SHOW_FOOTER_POWERED_BY`: **true**: 在页脚显示“由...提供动力”的文本。
 - `ENABLE_SITEMAP`: **true**: 生成sitemap.
 - `ENABLE_FEED`: **true**: 是否启用RSS/Atom

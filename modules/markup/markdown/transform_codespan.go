@@ -49,9 +49,28 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 	return ast.WalkContinue, nil
 }
 
+// cssColorHandler checks if a string is a render-able CSS color value.
+// The code is from "github.com/microcosm-cc/bluemonday/css.ColorHandler", except that it doesn't handle color words like "red".
+func cssColorHandler(value string) bool {
+	value = strings.ToLower(value)
+	if css.HexRGB.MatchString(value) {
+		return true
+	}
+	if css.RGB.MatchString(value) {
+		return true
+	}
+	if css.RGBA.MatchString(value) {
+		return true
+	}
+	if css.HSL.MatchString(value) {
+		return true
+	}
+	return css.HSLA.MatchString(value)
+}
+
 func (g *ASTTransformer) transformCodeSpan(ctx *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
 	colorContent := v.Text(reader.Source())
-	if css.ColorHandler(strings.ToLower(string(colorContent))) {
+	if cssColorHandler(string(colorContent)) {
 		v.AppendChild(v, NewColorPreview(colorContent))
 	}
 }

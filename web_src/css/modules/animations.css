@@ -34,8 +34,12 @@
   border-radius: var(--border-radius-circle);
 }
 
-.is-loading.small-loading-icon::after {
+.is-loading.loading-icon-2px::after {
   border-width: 2px;
+}
+
+.is-loading.loading-icon-3px::after {
+  border-width: 3px;
 }
 
 /* for single form button, the loading state should be on the button, but not go semi-transparent, just replace the text on the button with the loader. */
@@ -62,7 +66,7 @@ form.single-button-form.is-loading .button {
   background: transparent;
 }
 
-/* TODO: not needed, use "is-loading small-loading-icon" instead */
+/* TODO: not needed, use "is-loading loading-icon-2px" instead */
 code.language-math.is-loading::after {
   padding: 0;
   border-width: 2px;

@@ -522,6 +522,10 @@ And the following unique queues:
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
+  - `deletion`: User cannot delete their own account.
+  - `manage_ssh_keys`: User cannot configure ssh keys.
+  - `manage_gpg_keys`: User cannot configure gpg keys.
 
 ## Security (`security`)
 
@@ -1425,5 +1429,6 @@ Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-ser
 
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
+- `SHOW_FOOTER_POWERED_BY`: **true**: Show the "powered by" text in the footer.
 - `ENABLE_SITEMAP`: **true**: Generate sitemap.
 - `ENABLE_FEED`: **true**: Enable/Disable RSS/Atom feed.
