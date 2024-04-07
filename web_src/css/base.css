@@ -24,6 +24,7 @@
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
   --checkbox-size: 16px; /* height and width of checkbox and radio inputs */
+  --page-spacing: 16px; /* space between page elements */
 }
 
 :root * {
@@ -582,11 +583,14 @@ img.ui.avatar,
   margin-bottom: 14px;
 }
 
-/* add padding to all content when there is no .secondary.nav. this uses padding instead of
-   margin because with the negative margin on .ui.grid we would have to set margin-top: 0,
-   but that does not work universally for all pages */
+/* add margin to all pages when there is no .secondary.nav */
 .page-content > :first-child:not(.secondary-nav) {
-  padding-top: 14px;
+  margin-top: var(--page-spacing);
+}
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+   to compensate here */
+.page-content > :first-child.ui.grid {
+  margin-top: calc(var(--page-spacing) - 1rem);
 }
 
 .ui.pagination.menu .active.item {
