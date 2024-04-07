@@ -44,7 +44,7 @@ html, body {
 }
 
 body {
-  line-height: 1.4285rem;
+  line-height: 20px;
   font-family: var(--fonts-regular);
   color: var(--color-text);
   background-color: var(--color-body);
@@ -305,14 +305,6 @@ a.label,
   background-color: var(--color-label-bg);
 }
 
-/* fix Fomantic's line-height causing vertical scrollbars to appear */
-ul.ui.list li,
-ol.ui.list li,
-.ui.list > .item,
-.ui.list .list > .item {
-  line-height: var(--line-height-default);
-}
-
 .ui.menu {
   display: flex;
 }
@@ -456,21 +448,6 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
-.ui.list .list > .item .header,
-.ui.list > .item .header {
-  color: var(--color-text-dark);
-}
-
-.ui.list .list > .item > .content,
-.ui.list > .item > .content {
-  color: var(--color-text);
-}
-
-.ui.list .list > .item .description,
-.ui.list > .item .description {
-  color: var(--color-text);
-}
-
 /* replace item margin on secondary menu items with gap and remove both the
    negative margins on the menu as well as margin on the items */
 .ui.secondary.menu {
@@ -587,10 +564,6 @@ img.ui.avatar,
   border-radius: var(--border-radius);
   object-fit: contain;
   aspect-ratio: 1;
-}
-
-.ui.divided.list > .item {
-  border-color: var(--color-secondary);
 }
 
 .ui.error.message .header,
