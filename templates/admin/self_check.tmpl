@@ -5,11 +5,11 @@
 		{{ctx.Locale.Tr "admin.self_check"}}
 	</h4>
 
-	{{if .DeprecatedWarnings}}
+	{{if .StartupProblems}}
 	<div class="ui attached segment">
 		<div class="ui warning message">
 			<div>{{ctx.Locale.Tr "admin.self_check.startup_warnings"}}</div>
-			<ul class="tw-w-full">{{range .DeprecatedWarnings}}<li>{{.}}</li>{{end}}</ul>
+			<ul class="tw-w-full">{{range .StartupProblems}}<li>{{.}}</li>{{end}}</ul>
 		</div>
 	</div>
 	{{end}}
@@ -40,7 +40,7 @@
 	</div>
 	{{end}}
 
-	{{if and (not .DeprecatedWarnings) (not .DatabaseCheckHasProblems)}}
+	{{if and (not .StartupProblems) (not .DatabaseCheckHasProblems)}}
 	<div class="ui attached segment">
 		{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}
 	</div>

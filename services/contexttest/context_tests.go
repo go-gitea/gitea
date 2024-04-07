@@ -63,6 +63,7 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	base.Locale = &translation.MockLocale{}
 
 	ctx := context.NewWebContext(base, opt.Render, nil)
+	ctx.AppendContextValue(context.WebContextKey, ctx)
 	ctx.PageData = map[string]any{}
 	ctx.Data["PageStartTime"] = time.Now()
 	chiCtx := chi.NewRouteContext()
