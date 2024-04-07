@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
@@ -57,6 +58,12 @@ func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) er
 		return err
 	}
 	state := CalcCommitStatus(commitStatuses)
+	if setting.Database.Type.IsMySQL() {
+		_, err := db.GetEngine(ctx).Exec("INSERT INTO commit_status_summary (repo_id,sha,state) VALUES (?,?,?) ON DUPLICATE KEY UPDATE state=?",
+			repoID, sha, state.State, state.State)
+		return err
+	}
+
 	if cnt, err := db.GetEngine(ctx).Where("repo_id=? AND sha=?", repoID, sha).
 		Cols("state").
 		Update(&CommitStatusSummary{
