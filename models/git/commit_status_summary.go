@@ -58,6 +58,8 @@ func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) er
 		return err
 	}
 	state := CalcCommitStatus(commitStatuses)
+	// mysql will return 0 when update a record which state hasn't been changed which behaviour is different from other database,
+	// so we need to use insert in on duplicate
 	if setting.Database.Type.IsMySQL() {
 		_, err := db.GetEngine(ctx).Exec("INSERT INTO commit_status_summary (repo_id,sha,state) VALUES (?,?,?) ON DUPLICATE KEY UPDATE state=?",
 			repoID, sha, state.State, state.State)
