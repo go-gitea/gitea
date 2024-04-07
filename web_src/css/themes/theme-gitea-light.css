@@ -204,8 +204,9 @@
   --color-active: #00001714;
   --color-menu: #f8f9fb;
   --color-card: #f8f9fb;
-  --color-markup-table-row: #00001708;
-  --color-markup-code-block: #00001710;
+  --color-markup-table-row: #0030600a;
+  --color-markup-code-block: #00306010;
+  --color-markup-code-inline: #00306012;
   --color-button: #f8f9fb;
   --color-code-bg: #fafdff;
   --color-shadow: #00001726;
