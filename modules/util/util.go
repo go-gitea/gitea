@@ -214,7 +214,7 @@ func ToPointer[T any](val T) *T {
 }
 
 // Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
-func Iif[T comparable](condition bool, trueVal, falseVal T) T {
+func Iif[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
 		return trueVal
 	}
