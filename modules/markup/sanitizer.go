@@ -65,7 +65,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-num$`)).OnElements("td")
 	policy.AllowAttrs("data-line-number").OnElements("span")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^lines-code chroma$`)).OnElements("td")
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-inner$`)).OnElements("code")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-inner$`)).OnElements("div")
 
 	// For code preview (unicode escape)
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^file-view( unicode-escaped)?$`)).OnElements("table")
