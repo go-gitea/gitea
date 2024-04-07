@@ -1,8 +1,8 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
+import {contrastColor} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
+import tinycolor from 'tinycolor2';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
@@ -65,14 +65,11 @@ async function initRepoProjectSortable() {
       boardColumns = mainBoard.getElementsByClassName('project-column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
-        if (parseInt($(column).data('sorting')) !== i) {
+        if (parseInt(column.getAttribute('data-sorting')) !== i) {
           try {
-            await PUT($(column).data('url'), {
-              data: {
-                sorting: i,
-                color: rgbToHex(window.getComputedStyle($(column)[0]).backgroundColor),
-              },
-            });
+            const bgColor = column.style.backgroundColor; // will be rgb() string
+            const color = bgColor ? tinycolor(bgColor).toHexString() : '';
+            await PUT(column.getAttribute('data-url'), {data: {sorting: i, color}});
           } catch (error) {
             console.error(error);
           }
@@ -102,16 +99,10 @@ export function initRepoProject() {
 
   for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
     const projectHeader = modal.closest('.project-column-header');
-    const projectTitleLabel = projectHeader?.querySelector('.project-column-title');
+    const projectTitleLabel = projectHeader?.querySelector('.project-column-title-label');
     const projectTitleInput = modal.querySelector('.project-column-title-input');
     const projectColorInput = modal.querySelector('#new_project_column_color');
     const boardColumn = modal.closest('.project-column');
-    const bgColor = boardColumn?.style.backgroundColor;
-
-    if (bgColor) {
-      setLabelColor(projectHeader, rgbToHex(bgColor));
-    }
-
     modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
       try {
@@ -126,10 +117,21 @@ export function initRepoProject() {
       } finally {
         projectTitleLabel.textContent = projectTitleInput?.value;
         projectTitleInput.closest('form')?.classList.remove('dirty');
-        if (projectColorInput?.value) {
-          setLabelColor(projectHeader, projectColorInput.value);
+        const dividers = boardColumn.querySelectorAll(':scope > .divider');
+        if (projectColorInput.value) {
+          const color = contrastColor(projectColorInput.value);
+          boardColumn.style.setProperty('background', projectColorInput.value, 'important');
+          boardColumn.style.setProperty('color', color, 'important');
+          for (const divider of dividers) {
+            divider.style.setProperty('color', color);
+          }
+        } else {
+          boardColumn.style.removeProperty('background');
+          boardColumn.style.removeProperty('color');
+          for (const divider of dividers) {
+            divider.style.removeProperty('color');
+          }
         }
-        boardColumn.style = `background: ${projectColorInput.value} !important`;
         $('.ui.modal').modal('hide');
       }
     });
@@ -181,25 +183,4 @@ export function initRepoProject() {
     const url = e.target.getAttribute('data-url');
     createNewColumn(url, $columnTitle, $projectColorInput);
   });
-}
-
-function setLabelColor(label, color) {
-  const {r, g, b} = tinycolor(color).toRgb();
-  if (useLightTextOnBackground(r, g, b)) {
-    label.classList.remove('dark-label');
-    label.classList.add('light-label');
-  } else {
-    label.classList.remove('light-label');
-    label.classList.add('dark-label');
-  }
-}
-
-function rgbToHex(rgb) {
-  rgb = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+).*\)$/);
-  return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
-}
-
-function hex(x) {
-  const hexDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-  return Number.isNaN(x) ? '00' : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
 }
