@@ -46,7 +46,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
-		checkOverlappedPath("session.PROVIDER_CONFIG", SessionConfig.ProviderConfig)
+		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL

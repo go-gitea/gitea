@@ -117,11 +117,11 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
-func prepareDeprecatedWarningsAlert(ctx *context.Context) {
-	if len(setting.DeprecatedWarnings) > 0 {
-		content := setting.DeprecatedWarnings[0]
-		if len(setting.DeprecatedWarnings) > 1 {
-			content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
+func prepareStartupProblemsAlert(ctx *context.Context) {
+	if len(setting.StartupProblems) > 0 {
+		content := setting.StartupProblems[0]
+		if len(setting.StartupProblems) > 1 {
+			content += fmt.Sprintf(" (and %d more)", len(setting.StartupProblems)-1)
 		}
 		ctx.Flash.Error(content, true)
 	}
@@ -136,7 +136,7 @@ func Dashboard(ctx *context.Context) {
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
-	prepareDeprecatedWarningsAlert(ctx)
+	prepareStartupProblemsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
@@ -191,10 +191,10 @@ func DashboardPost(ctx *context.Context) {
 func SelfCheck(ctx *context.Context) {
 	ctx.Data["PageIsAdminSelfCheck"] = true
 
-	ctx.Data["DeprecatedWarnings"] = setting.DeprecatedWarnings
-	if len(setting.DeprecatedWarnings) == 0 && !setting.IsProd {
+	ctx.Data["StartupProblems"] = setting.StartupProblems
+	if len(setting.StartupProblems) == 0 && !setting.IsProd {
 		if time.Now().Unix()%2 == 0 {
-			ctx.Data["DeprecatedWarnings"] = []string{"This is a test warning message in dev mode"}
+			ctx.Data["StartupProblems"] = []string{"This is a test warning message in dev mode"}
 		}
 	}
 
