@@ -102,7 +102,7 @@ export default {
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
-      <div class="tw-flex tw-flex-wrap tw-gap-1">
+      <div class="labels-list">
         <div
           v-for="label in labels"
           :key="label.name"
