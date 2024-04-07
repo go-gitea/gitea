@@ -48,8 +48,11 @@
   cursor: default;
   position: absolute;
   text-align: center;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  right: 0;
+  margin: 0;
+  height: 100%;
+  width: 2.67142857em;
   opacity: 0.5;
   border-radius: 0 0.28571429rem 0.28571429rem 0;
   pointer-events: none;
@@ -58,6 +61,8 @@
 
 .ui.icon.input > i.icon.is-loading {
   position: absolute !important;
+  height: 28px;
+  top: 4px;
 }
 
 .ui.icon.input > i.icon.is-loading > * {
@@ -78,7 +83,7 @@
 
 .ui[class*="left icon"].input > i.icon {
   right: auto;
-  left: 8px;
+  left: 1px;
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
 .ui[class*="left icon"].input > i.circular.icon {
