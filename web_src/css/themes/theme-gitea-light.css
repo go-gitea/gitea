@@ -63,12 +63,12 @@
   /* console colors - used for actions console and console files */
   --color-console-fg: #f8f8f9;
   --color-console-fg-subtle: #bec4c8;
-  --color-console-bg: #181b1d;
-  --color-console-border: #313538;
-  --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #313538;
-  --color-console-menu-bg: #272b2e;
-  --color-console-menu-border: #464a4d;
+  --color-console-bg: #171b1e;
+  --color-console-border: #2e353b;
+  --color-console-hover-bg: #292d31;
+  --color-console-active-bg: #2e353b;
+  --color-console-menu-bg: #252b30;
+  --color-console-menu-border: #424b51;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
