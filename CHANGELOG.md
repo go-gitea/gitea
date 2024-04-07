@@ -18,6 +18,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix duplicate migrated milestones (#30102) (#30105)
   * Fix panic for fixBrokenRepoUnits16961 (#30068) (#30100)
   * Fix incorrect SVGs (#30087)
+  * Refactor render (#30136) (#30315)
 * MISC
   * Update katex to 0.16.10 (#30089)
 
