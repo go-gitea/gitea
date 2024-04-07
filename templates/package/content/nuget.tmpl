@@ -16,12 +16,11 @@
 		</div>
 	</div>
 
-	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes}}
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-		<div class="ui attached segment">
-			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
-			{{if .PackageDescriptor.Metadata.ReleaseNotes}}{{.PackageDescriptor.Metadata.ReleaseNotes}}{{end}}
-		</div>
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment markup markdown">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.ReleaseNotes}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.ReleaseNotes}}</div>{{end}}
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
