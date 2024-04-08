@@ -1,0 +1,294 @@
+/* based on Fomantic UI label module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.label {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  vertical-align: middle;
+  line-height: 1;
+  background: var(--color-label-bg);
+  color: var(--color-label-text);
+  padding: 0.3em 0.5em;
+  text-transform: none;
+  font-size: 0.85714286rem;
+  font-weight: var(--font-weight-medium);
+  border: 0 solid transparent;
+  border-radius: 0.28571429rem;
+  white-space: nowrap;
+}
+
+.ui.label:first-child {
+  margin-left: 0;
+}
+.ui.label:last-child {
+  margin-right: 0;
+}
+
+a.ui.label {
+  cursor: pointer;
+}
+
+.ui.label > a {
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+}
+.ui.label > a:hover {
+  opacity: 1;
+}
+
+.ui.label > img {
+  width: auto;
+  vertical-align: middle;
+  height: 2.1666em;
+}
+
+.ui.label > .color-icon {
+  margin-left: 0;
+}
+
+.ui.label > .icon {
+  width: auto;
+  margin: 0 0.75em 0 0;
+}
+
+.ui.label > .detail {
+  display: inline-block;
+  vertical-align: top;
+  font-weight: var(--font-weight-medium);
+  margin-left: 1em;
+  opacity: 0.8;
+}
+.ui.label > .detail .icon {
+  margin: 0 0.25em 0 0;
+}
+
+.ui.label > .close.icon,
+.ui.label > .delete.icon {
+  cursor: pointer;
+  font-size: 0.92857143em;
+  opacity: 0.5;
+}
+.ui.label > .close.icon:hover,
+.ui.label > .delete.icon:hover {
+  opacity: 1;
+}
+
+.ui.label.left.icon > .close.icon,
+.ui.label.left.icon > .delete.icon {
+  margin: 0 0.5em 0 0;
+}
+.ui.label:not(.icon) > .close.icon,
+.ui.label:not(.icon) > .delete.icon {
+  margin: 0 0 0 0.5em;
+}
+
+.ui.header > .ui.label {
+  margin-top: -0.29165em;
+}
+
+a.ui.label:hover {
+  background: var(--color-label-hover-bg);
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-label-text);
+}
+
+.ui.label.visible:not(.dropdown) {
+  display: inline-block !important;
+}
+
+.ui.basic.label {
+  background: var(--color-button);
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text-light);
+  padding: calc(0.5833em - 1px) calc(0.833em - 1px);
+}
+a.ui.basic.label:hover {
+  text-decoration: none;
+  color: var(--color-text);
+  border-color: var(--color-light-border);
+  background: var(--color-hover);
+}
+
+.ui.ui.ui.primary.label {
+  background: var(--color-primary);
+  border-color: var(--color-primary-dark-2);
+  color: var(--color-primary-contrast);
+}
+a.ui.ui.ui.primary.label:hover {
+  background: var(--color-primary-dark-3);
+  border-color: var(--color-primary-dark-3);
+  color: var(--color-primary-contrast);
+}
+.ui.ui.ui.basic.primary.label {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+a.ui.ui.ui.basic.primary.label:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary-dark-1);
+  color: var(--color-primary-dark-1);
+}
+
+.ui.ui.ui.red.label {
+  background: var(--color-red);
+  border-color: var(--color-red);
+  color: var(--color-white);
+}
+a.ui.ui.ui.red.label:hover {
+  background: var(--color-red-dark-1);
+  border-color: var(--color-red-dark-1);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.red.label {
+  background: transparent;
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+a.ui.ui.ui.basic.red.label:hover {
+  background: transparent;
+  border-color: var(--color-red-dark-1);
+  color: var(--color-red-dark-1);
+}
+
+.ui.ui.ui.orange.label {
+  background: var(--color-orange);
+  border-color: var(--color-orange);
+  color: var(--color-white);
+}
+a.ui.ui.ui.orange.label:hover {
+  background: var(--color-orange-dark-1);
+  border-color: var(--color-orange-dark-1);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.orange.label {
+  background: transparent;
+  border-color: var(--color-orange);
+  color: var(--color-orange);
+}
+a.ui.ui.ui.basic.orange.label:hover {
+  background: transparent;
+  border-color: var(--color-orange-dark-1);
+  color: var(--color-orange-dark-1);
+}
+
+.ui.ui.ui.yellow.label {
+  background: var(--color-yellow);
+  border-color: var(--color-yellow);
+  color: var(--color-white);
+}
+a.ui.ui.ui.yellow.label:hover {
+  background: var(--color-yellow-dark-1);
+  border-color: var(--color-yellow-dark-1);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.yellow.label {
+  background: transparent;
+  border-color: var(--color-yellow);
+  color: var(--color-yellow);
+}
+a.ui.ui.ui.basic.yellow.label:hover {
+  background: transparent;
+  border-color: var(--color-yellow-dark-1);
+  color: var(--color-yellow-dark-1);
+}
+.ui.ui.ui.olive.label {
+  background: var(--color-olive);
+  border-color: var(--color-olive);
+  color: var(--color-white);
+}
+
+.ui.ui.ui.green.label {
+  background: var(--color-green);
+  border-color: var(--color-green);
+  color: var(--color-white);
+}
+a.ui.ui.ui.green.label:hover {
+  background: var(--color-green-dark-1);
+  border-color: var(--color-green-dark-1);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.green.label {
+  background: transparent;
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+a.ui.ui.ui.basic.green.label:hover {
+  background: transparent;
+  border-color: var(--color-green-dark-1);
+  color: var(--color-green-dark-1);
+}
+
+.ui.ui.ui.purple.label {
+  background: var(--color-purple);
+  border-color: var(--color-purple);
+  color: var(--color-white);
+}
+a.ui.ui.ui.purple.label:hover {
+  background: var(--color-purple-dark-1);
+  border-color: var(--color-purple-dark-1);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.purple.label {
+  background: transparent;
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+a.ui.ui.ui.basic.purple.label:hover {
+  background: transparent;
+  border-color: var(--color-purple-dark-1);
+  color: var(--color-purple-dark-1);
+}
+
+.ui.ui.ui.grey.label {
+  background: var(--color-label-bg);
+  border-color: var(--color-label-bg);
+  color: var(--color-label-text);
+}
+a.ui.ui.ui.grey.label:hover {
+  background: var(--color-label-hover-bg);
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-white);
+}
+.ui.ui.ui.basic.grey.label {
+  background: transparent;
+  border-color: var(--color-label-bg);
+  color: var(--color-label-text);
+}
+a.ui.ui.ui.basic.grey.label:hover {
+  background: transparent;
+  border-color: var(--color-label-hover-bg);
+  color: var(--color-label-hover-bg);
+}
+
+.ui.horizontal.label {
+  margin: 0 0.5em 0 0;
+  padding: 0.4em 0.833em;
+  min-width: 3em;
+  text-align: center;
+}
+
+.ui.circular.label {
+  min-width: 2em;
+  min-height: 2em;
+  padding: 0.5em !important;
+  line-height: 1;
+  text-align: center;
+  border-radius: 500rem;
+  justify-content: center;
+}
+
+.ui.mini.label {
+  font-size: 0.64285714rem;
+}
+.ui.tiny.label {
+  font-size: 0.71428571rem;
+}
+.ui.small.label {
+  font-size: 0.78571429rem;
+}
+.ui.large.label {
+  font-size: 1rem;
+}

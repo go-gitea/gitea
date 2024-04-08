@@ -32,3 +32,21 @@ JWT_SECRET = BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 	assert.Len(t, actual, 32)
 	assert.EqualValues(t, expected, actual)
 }
+
+func TestOauth2DefaultApplications(t *testing.T) {
+	cfg, _ := NewConfigProviderFromData(``)
+	loadOAuth2From(cfg)
+	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea"}, OAuth2.DefaultApplications)
+
+	cfg, _ = NewConfigProviderFromData(`[oauth2]
+DEFAULT_APPLICATIONS = tea
+`)
+	loadOAuth2From(cfg)
+	assert.Equal(t, []string{"tea"}, OAuth2.DefaultApplications)
+
+	cfg, _ = NewConfigProviderFromData(`[oauth2]
+DEFAULT_APPLICATIONS =
+`)
+	loadOAuth2From(cfg)
+	assert.Nil(t, nil, OAuth2.DefaultApplications)
+}

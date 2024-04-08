@@ -406,6 +406,15 @@
   align-self: center !important;
 }
 
+.ui[class*="left aligned"].grid > .column,
+.ui[class*="left aligned"].grid > .row > .column,
+.ui.grid > [class*="left aligned"].row > .column,
+.ui.grid > [class*="left aligned"].column.column,
+.ui.grid > .row > [class*="left aligned"].column.column {
+  text-align: left;
+  align-self: inherit;
+}
+
 .ui[class*="center aligned"].grid > .column,
 .ui[class*="center aligned"].grid > .row > .column,
 .ui.grid > [class*="center aligned"].row > .column,
@@ -416,6 +425,15 @@
 }
 .ui[class*="center aligned"].grid {
   justify-content: center;
+}
+
+.ui[class*="right aligned"].grid > .column,
+.ui[class*="right aligned"].grid > .row > .column,
+.ui.grid > [class*="right aligned"].row > .column,
+.ui.grid > [class*="right aligned"].column.column,
+.ui.grid > .row > [class*="right aligned"].column.column {
+  text-align: right;
+  align-self: inherit;
 }
 
 .ui[class*="equal width"].grid > .column:not(.row),

@@ -47,7 +47,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			_ = stdoutWriter.Close()
 			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 			if err != nil {
-				log.Error("%v", err)
+				log.Error("readAndVerifyCommitsFromShaReader failed: %v", err)
 				cancel()
 			}
 			_ = stdoutReader.Close()
@@ -66,7 +66,6 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 		line := scanner.Text()
 		err := readAndVerifyCommit(line, repo, env)
 		if err != nil {
-			log.Error("%v", err)
 			return err
 		}
 	}

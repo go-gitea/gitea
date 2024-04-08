@@ -3,7 +3,7 @@ import {hideElem, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 async function getArchive($target, url, first) {
-  const dropdownBtn = $target[0].closest('.ui.dropdown.button');
+  const dropdownBtn = $target[0].closest('.ui.dropdown.button') ?? $target[0].closest('.ui.dropdown.btn');
 
   try {
     dropdownBtn.classList.add('is-loading');

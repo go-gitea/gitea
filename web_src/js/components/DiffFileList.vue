@@ -47,7 +47,7 @@ export default {
       </div>
       <!-- todo finish all file status, now modify, add, delete and rename -->
       <span :class="['status', diffTypeToString(file.Type)]" :data-tooltip-content="diffTypeToString(file.Type)">&nbsp;</span>
-      <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
+      <a class="file tw-font-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
     <li v-if="store.isIncomplete" class="tw-pt-1">
       <span class="file tw-flex tw-items-center tw-justify-between">{{ store.tooManyFilesMessage }}

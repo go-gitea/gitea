@@ -3,11 +3,12 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 import {formatDatetime} from '../utils/time.js';
 
 const visibleInstances = new Set();
+const arrowSvg = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 export function createTippy(target, opts = {}) {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, role, theme, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
 
   const instance = tippy(target, {
     appendTo: document.body,
@@ -35,9 +36,9 @@ export function createTippy(target, opts = {}) {
       visibleInstances.add(instance);
       return onShow?.(instance);
     },
-    arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
+    arrow: arrow || (theme === 'bare' ? false : arrowSvg),
     role: role || 'menu', // HTML role attribute
-    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
+    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu", "box-with-header" or "bare"
     plugins: [followCursor],
     ...other,
   });
