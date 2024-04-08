@@ -16,8 +16,8 @@ import (
 // CommitStatusSummary holds the latest commit Status of a single Commit
 type CommitStatusSummary struct {
 	ID     int64                 `xorm:"pk autoincr"`
-	RepoID int64                 `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	SHA    string                `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+	RepoID int64                 `xorm:"INDEX UNIQUE(repo_sha)"`
+	SHA    string                `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha)"`
 	State  api.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 }
 
