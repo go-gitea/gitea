@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.21.11](https://github.com/go-gitea/gitea/releases/tag/v1.21.11) - 2024-04-07
 
 * SECURITY
+  * Use go1.21.9 to include Golang security fix
   * Fix possible renderer security problem (#30136) (#30315)
 * BUGFIXES
   * Fix close file in the Upload func (#30262) (#30269)
