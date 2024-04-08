@@ -63,12 +63,12 @@
   /* console colors - used for actions console and console files */
   --color-console-fg: #f8f8f9;
   --color-console-fg-subtle: #bec4c8;
-  --color-console-bg: #181b1d;
-  --color-console-border: #313538;
-  --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #313538;
-  --color-console-menu-bg: #272b2e;
-  --color-console-menu-border: #464a4d;
+  --color-console-bg: #171b1e;
+  --color-console-border: #2e353b;
+  --color-console-hover-bg: #292d31;
+  --color-console-active-bg: #2e353b;
+  --color-console-menu-bg: #252b30;
+  --color-console-menu-border: #424b51;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -204,8 +204,9 @@
   --color-active: #00001714;
   --color-menu: #f8f9fb;
   --color-card: #f8f9fb;
-  --color-markup-table-row: #00001708;
-  --color-markup-code-block: #00001710;
+  --color-markup-table-row: #0030600a;
+  --color-markup-code-block: #00306010;
+  --color-markup-code-inline: #00306012;
   --color-button: #f8f9fb;
   --color-code-bg: #fafdff;
   --color-shadow: #00001726;
@@ -214,8 +215,6 @@
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #0e1114;
-  --color-project-board-light-label: #eaeef2;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000170a;
   --color-reaction-hover-bg: var(--color-primary-light-5);

@@ -65,7 +65,7 @@
   --color-console-fg-subtle: #bec4c8;
   --color-console-bg: #171b1e;
   --color-console-border: #2e353b;
-  --color-console-hover-bg: #e8e8ff16;
+  --color-console-hover-bg: #292d31;
   --color-console-active-bg: #2e353b;
   --color-console-menu-bg: #252b30;
   --color-console-menu-border: #424b51;
@@ -204,8 +204,9 @@
   --color-active: #e8e8ff24;
   --color-menu: #151a1e;
   --color-card: #151a1e;
-  --color-markup-table-row: #e8e8ff06;
-  --color-markup-code-block: #e8e8ff16;
+  --color-markup-table-row: #e8e8ff0f;
+  --color-markup-code-block: #e8e8ff12;
+  --color-markup-code-inline: #e8e8ff28;
   --color-button: #151a1e;
   --color-code-bg: #14171a;
   --color-shadow: #00001758;
@@ -214,8 +215,6 @@
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
-  --color-project-board-dark-label: #0e1011;
-  --color-project-board-light-label: #dde0e2;
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #e8e8ff12;
   --color-reaction-hover-bg: var(--color-primary-light-4);

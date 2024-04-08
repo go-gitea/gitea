@@ -34,23 +34,6 @@
   }
 }
 
-#issue-list .flex-item-title .labels-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25em;
-}
-
-#issue-list .flex-item-title .labels-list a {
-  display: flex;
-  text-decoration: none;
-}
-
-#issue-list .flex-item-title .labels-list .label {
-  padding: 0 6px;
-  margin: 0;
-  min-height: 20px;
-}
-
 #issue-list .flex-item-body .branches {
   display: inline-flex;
 }

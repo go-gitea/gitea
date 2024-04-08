@@ -1,7 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
+import {contrastColor} from '../utils/color.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, i18n} = window.config;
@@ -59,16 +58,11 @@ export default {
     },
 
     labels() {
-      return this.issue.labels.map((label) => {
-        let textColor;
-        const {r, g, b} = tinycolor(label.color).toRgb();
-        if (useLightTextOnBackground(r, g, b)) {
-          textColor = '#eeeeee';
-        } else {
-          textColor = '#111111';
-        }
-        return {name: label.name, color: `#${label.color}`, textColor};
-      });
+      return this.issue.labels.map((label) => ({
+        name: label.name,
+        color: `#${label.color}`,
+        textColor: contrastColor(`#${label.color}`),
+      }));
     },
   },
   mounted() {
@@ -108,7 +102,7 @@ export default {
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
-      <div>
+      <div class="labels-list">
         <div
           v-for="label in labels"
           :key="label.name"
