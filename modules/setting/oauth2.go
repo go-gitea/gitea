@@ -118,6 +118,10 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
+	if sec.HasKey("DEFAULT_APPLICATIONS") && sec.Key("DEFAULT_APPLICATIONS").String() == "" {
+		OAuth2.DefaultApplications = nil
+	}
+
 	// Handle the rename of ENABLE to ENABLED
 	deprecatedSetting(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
 	if sec.HasKey("ENABLE") && !sec.HasKey("ENABLED") {
