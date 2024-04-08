@@ -18,19 +18,19 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func ToIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, issue, WebAssetDownloadURL)
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadLabels(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -44,7 +44,7 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
 		Index:       issue.Index,
-		Poster:      ToUser(ctx, issue.Poster, nil),
+		Poster:      ToUser(ctx, issue.Poster, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
@@ -114,25 +114,25 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
 	for i := range il {
-		result[i] = ToIssue(ctx, il[i])
+		result[i] = ToIssue(ctx, doer, il[i])
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
 	for i := range il {
-		result[i] = ToAPIIssue(ctx, il[i])
+		result[i] = ToAPIIssue(ctx, doer, il[i])
 	}
 	return result
 }
 
 // ToTrackedTime converts TrackedTime to API format
-func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
+func ToTrackedTime(ctx context.Context, doer *user_model.User, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
 		ID:      t.ID,
 		IssueID: t.IssueID,
@@ -141,7 +141,7 @@ func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.
 		Created: t.Created,
 	}
 	if t.Issue != nil {
-		apiT.Issue = ToAPIIssue(ctx, t.Issue)
+		apiT.Issue = ToAPIIssue(ctx, doer, t.Issue)
 	}
 	if t.User != nil {
 		apiT.UserName = t.User.Name
@@ -192,10 +192,10 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 }
 
 // ToTrackedTimeList converts TrackedTimeList to API format
-func ToTrackedTimeList(ctx context.Context, tl issues_model.TrackedTimeList) api.TrackedTimeList {
+func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
-		result = append(result, ToTrackedTime(ctx, t))
+		result = append(result, ToTrackedTime(ctx, doer, t))
 	}
 	return result
 }
