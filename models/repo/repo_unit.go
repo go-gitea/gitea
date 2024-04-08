@@ -168,10 +168,27 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+    EnabledGlobalWorkflows []string
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
 	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
+} 
+
+func (cfg *ActionsConfig) DisableGlobalWorkflow(file string) {
+    cfg.EnabledGlobalWorkflows = util.SliceRemoveAll(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) IsGlobalWorkflowEnabled(file string) bool {
+    return slices.Contains(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) EnableGlobalWorkflow(file string) {
+    cfg.EnabledGlobalWorkflows = append(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) GetGlobalWorkflow() []string {
+    return cfg.EnabledGlobalWorkflows
 }
 
 func (cfg *ActionsConfig) ToString() string {

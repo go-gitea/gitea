@@ -145,6 +145,7 @@ func List(ctx *context.Context) {
 	workflow := ctx.FormString("workflow")
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
+    isGlobal := false
 	ctx.Data["CurWorkflow"] = workflow
 
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
@@ -153,6 +154,8 @@ func List(ctx *context.Context) {
 	if len(workflow) > 0 && ctx.Repo.IsAdmin() {
 		ctx.Data["AllowDisableOrEnableWorkflow"] = true
 		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
+        ctx.Data["CurGlobalWorkflowEnable"] = actionsConfig.IsGlobalWorkflowEnabled(workflow)
+        isGlobal = actionsConfig.IsGlobalWorkflowEnabled(workflow)
 	}
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
@@ -209,6 +212,9 @@ func List(ctx *context.Context) {
 	pager.AddParamString("workflow", workflow)
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
+    if isGlobal {
+        pager.AddParamString("global", fmt.Sprint(isGlobal))
+    }
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
