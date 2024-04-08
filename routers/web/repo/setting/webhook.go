@@ -666,7 +666,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -691,7 +691,7 @@ func TestWebhook(ctx *context.Context) {
 		Commits:      []*api.PayloadCommit{apiCommit},
 		TotalCommits: 1,
 		HeadCommit:   apiCommit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Doer, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}

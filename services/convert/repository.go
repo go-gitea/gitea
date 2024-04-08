@@ -13,16 +13,17 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission) *api.Repository {
-	return innerToRepo(ctx, repo, permissionInRepo, false)
+func ToRepo(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, permissionInRepo access_model.Permission) *api.Repository {
+	return innerToRepo(ctx, repo, doer, permissionInRepo, false)
 }
 
-func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
+func innerToRepo(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	if permissionInRepo.Units == nil && permissionInRepo.UnitsMode == nil {
@@ -50,7 +51,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 			//        But there isn't a good way to get the permission of the parent repo, because the doer is not passed in.
 			//        Use the permission of the current repo to keep the behavior consistent with the old API.
 			//        Maybe the right way is setting the permission of the parent repo to nil, empty is better than wrong.
-			parent = innerToRepo(ctx, repo.BaseRepo, permissionInRepo, true)
+			parent = innerToRepo(ctx, repo.BaseRepo, doer, permissionInRepo, true)
 		}
 	}
 
@@ -178,7 +179,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	return &api.Repository{
 		ID:                            repo.ID,
-		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, permissionInRepo.AccessMode),
+		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, doer, permissionInRepo.AccessMode),
 		Name:                          repo.Name,
 		FullName:                      repo.FullName(),
 		Description:                   repo.Description,

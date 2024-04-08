@@ -81,7 +81,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, p),
+			Repository: ToRepo(ctx, pr.BaseRepo, doer, p),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -153,7 +153,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, doer, p)
 
 		headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {

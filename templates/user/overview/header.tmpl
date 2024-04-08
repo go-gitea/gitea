@@ -36,7 +36,7 @@
 			{{if not .DisableStars}}
 			<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
 				{{svg "octicon-star"}} {{ctx.Locale.Tr "user.starred"}}
-				{{if .ContextUser.NumStars}}
+				{{if .StarCount}}
 					<div class="ui small label">{{.ContextUser.NumStars}}</div>
 				{{end}}
 			</a>
