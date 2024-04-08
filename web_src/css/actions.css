@@ -44,7 +44,7 @@
 }
 
 .run-list-item-right {
-  flex: 0 0 min(20%, 130px);
+  width: 130px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -56,4 +56,26 @@
   flex-wrap: nowrap;
   gap: .25rem;
   align-items: center;
+}
+
+.run-list .flex-item-trailing {
+  flex-wrap: nowrap;
+}
+
+.run-list-ref {
+  display: inline-block !important;
+  max-width: 200px;
+}
+
+@media (max-width: 767.98px) {
+  .run-list .flex-item-trailing {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .run-list-item-right {
+    width: 90px;
+  }
+  .run-list-ref {
+    max-width: 90px;
+  }
 }
