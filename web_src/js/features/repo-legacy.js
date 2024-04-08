@@ -358,11 +358,11 @@ async function onEditContent(event) {
           input.name = 'files';
           input.type = 'hidden';
           input.value = data.uuid;
-          dropzone.querySelector('.files').insertAdjacentHTML('beforeend', input.outerHTML);
+          dropzone.querySelector('.files').append(input);
         });
         this.on('removedfile', async (file) => {
-          if (disableRemovedfileEvent) return;
           document.getElementById(file.uuid)?.remove();
+          if (disableRemovedfileEvent) return;
           if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
             try {
               await POST(dropzone.getAttribute('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
@@ -384,6 +384,7 @@ async function onEditContent(event) {
             disableRemovedfileEvent = true;
             dz.removeAllFiles(true);
             dropzone.querySelector('.files').innerHTML = '';
+            for (const el of dropzone.querySelectorAll('.dz-preview')) el.remove();
             fileUuidDict = {};
             disableRemovedfileEvent = false;
 
@@ -392,7 +393,6 @@ async function onEditContent(event) {
               dz.emit('addedfile', attachment);
               dz.emit('thumbnail', attachment, imgSrc);
               dz.emit('complete', attachment);
-              dz.files.push(attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
               dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
               const input = document.createElement('input');
@@ -400,7 +400,10 @@ async function onEditContent(event) {
               input.name = 'files';
               input.type = 'hidden';
               input.value = attachment.uuid;
-              dropzone.querySelector('.files').insertAdjacentHTML('beforeend', input.outerHTML);
+              dropzone.querySelector('.files').append(input);
+            }
+            if (!dropzone.querySelector('.dz-preview')) {
+              dropzone.classList.remove('dz-started');
             }
           } catch (error) {
             console.error(error);
@@ -412,24 +415,24 @@ async function onEditContent(event) {
     return dz;
   };
 
-  const cancelAndReset = (dz) => {
+  const cancelAndReset = (e) => {
+    e.preventDefault();
     showElem(renderContent);
     hideElem(editContentZone);
-    if (dz) {
-      dz.emit('reload');
-    }
+    comboMarkdownEditor.attachedDropzoneInst?.emit('reload');
   };
 
-  const saveAndRefresh = async (dz) => {
+  const saveAndRefresh = async (e) => {
+    e.preventDefault();
     showElem(renderContent);
     hideElem(editContentZone);
-
+    const dropzoneInst = comboMarkdownEditor.attachedDropzoneInst;
     try {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
       });
-      for (const file of dz.files) params.append('files[]', file.uuid);
+      for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
 
       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
       const data = await response.json();
@@ -452,10 +455,8 @@ async function onEditContent(event) {
       } else {
         content.querySelector('.dropzone-attachments').outerHTML = data.attachments;
       }
-      if (dz) {
-        dz.emit('submit');
-        dz.emit('reload');
-      }
+      dropzoneInst?.emit('submit');
+      dropzoneInst?.emit('reload');
       initMarkupContent();
       initCommentContent();
     } catch (error) {
@@ -463,22 +464,13 @@ async function onEditContent(event) {
     }
   };
 
-  if (!editContentZone.innerHTML) {
+  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+  if (!comboMarkdownEditor) {
     editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-
-    const dropzone = editContentZone.querySelector('.dropzone');
-    const dz = await setupDropzone(dropzone);
-    editContentZone.querySelector('.cancel.button').addEventListener('click', (e) => {
-      e.preventDefault();
-      cancelAndReset(dz);
-    });
-    editContentZone.querySelector('.save.button').addEventListener('click', (e) => {
-      e.preventDefault();
-      saveAndRefresh(dz);
-    });
-  } else {
-    comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    comboMarkdownEditor.attachedDropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
+    editContentZone.querySelector('.cancel.button').addEventListener('click', cancelAndReset);
+    editContentZone.querySelector('.save.button').addEventListener('click', saveAndRefresh);
   }
 
   // Show write/preview tab and copy raw content as needed
