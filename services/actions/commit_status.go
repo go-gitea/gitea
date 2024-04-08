@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/automerge"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -136,6 +137,12 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		},
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus: %w", err)
+	}
+
+	if state.IsSuccess() {
+		if err := automerge.MergeScheduledPullRequest(ctx, sha, repo); err != nil {
+			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
+		}
 	}
 
 	return nil
