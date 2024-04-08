@@ -89,7 +89,9 @@
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
-			{{if .IsMarkup}}
+			{{if .IsFileTooLarge}}
+				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+			{{else if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent}}{{end}}
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
@@ -108,19 +110,10 @@
 					{{else if .IsPDFFile}}
 						<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "repo.diff.view_file"}}"></div>
 					{{else}}
-						<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+						<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 					{{end}}
 				</div>
 			{{else if .FileSize}}
-				{{if .IsFileTooLarge}}
-				<table>
-					<tbody>
-						<tr>
-							<td><strong>{{ctx.Locale.Tr "repo.file_too_large"}}</strong></td>
-						</tr>
-					</tbody>
-				</table>
-				{{else}}
 				<table>
 					<tbody>
 						{{range $idx, $code := .FileContent}}
@@ -142,7 +135,6 @@
 					<a class="item view_git_blame" role="menuitem" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.view_git_blame"}}</a>
 					<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
 				</div>
-				{{end}}
 			{{end}}
 		</div>
 	</div>

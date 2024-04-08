@@ -7,7 +7,7 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';
-import {submitEventSubmitter} from '../utils/dom.js';
+import {submitEventSubmitter, queryElemSiblings, hideElem, showElem} from '../utils/dom.js';
 import {POST, GET} from '../modules/fetch.js';
 
 const {pageData, i18n} = window.config;
@@ -16,7 +16,6 @@ function initRepoDiffReviewButton() {
   const reviewBox = document.getElementById('review-box');
   if (!reviewBox) return;
 
-  const $reviewBox = $(reviewBox);
   const counter = reviewBox.querySelector('.review-comments-counter');
   if (!counter) return;
 
@@ -27,23 +26,27 @@ function initRepoDiffReviewButton() {
       const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
-      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
-      $reviewBox.removeClass('pulse');
-      $reviewBox.width();
-      $reviewBox.addClass('pulse');
+
+      reviewBox.classList.remove('pulse');
+      requestAnimationFrame(() => {
+        reviewBox.classList.add('pulse');
+      });
     });
   });
 }
 
 function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
-    const $this = $(this);
-    $this.parent().children().removeClass('active');
-    $this.addClass('active');
+    for (const el of queryElemSiblings(this)) {
+      el.classList.remove('active');
+    }
+    this.classList.add('active');
 
-    const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('tw-hidden');
-    $target.removeClass('tw-hidden');
+    const target = document.querySelector(this.getAttribute('data-toggle-selector'));
+    if (!target) return;
+
+    hideElem(queryElemSiblings(target));
+    showElem(target);
   });
 }
 
@@ -57,9 +60,9 @@ function initRepoDiffConversationForm() {
       return;
     }
 
-    if ($form.hasClass('is-loading')) return;
+    if (e.target.classList.contains('is-loading')) return;
     try {
-      $form.addClass('is-loading');
+      e.target.classList.add('is-loading');
       const formData = new FormData($form[0]);
 
       // if the form is submitted by a button, append the button's name and value to the form data
@@ -74,10 +77,14 @@ function initRepoDiffConversationForm() {
       const {path, side, idx} = $newConversationHolder.data();
 
       $form.closest('.conversation-holder').replaceWith($newConversationHolder);
+      let selector;
       if ($form.closest('tr').data('line-type') === 'same') {
-        $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('tw-invisible');
+        selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
       } else {
-        $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('tw-invisible');
+        selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
+      }
+      for (const el of document.querySelectorAll(selector)) {
+        el.classList.add('tw-invisible');
       }
       $newConversationHolder.find('.dropdown').dropdown();
       initCompReactionSelector($newConversationHolder);
@@ -85,7 +92,7 @@ function initRepoDiffConversationForm() {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
     } finally {
-      $form.removeClass('is-loading');
+      e.target.classList.remove('is-loading');
     }
   });
 
@@ -145,13 +152,13 @@ function onShowMoreFiles() {
 }
 
 export async function loadMoreFiles(url) {
-  const $target = $('a#diff-show-more-files');
-  if ($target.hasClass('disabled') || pageData.diffFileInfo.isLoadingNewData) {
+  const target = document.querySelector('a#diff-show-more-files');
+  if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
   }
 
   pageData.diffFileInfo.isLoadingNewData = true;
-  $target.addClass('disabled');
+  target?.classList.add('disabled');
 
   try {
     const response = await GET(url);
@@ -168,7 +175,7 @@ export async function loadMoreFiles(url) {
     console.error('Error:', error);
     showErrorToast('An error occurred while loading more files.');
   } finally {
-    $target.removeClass('disabled');
+    target?.classList.remove('disabled');
     pageData.diffFileInfo.isLoadingNewData = false;
   }
 }
@@ -185,11 +192,11 @@ function initRepoDiffShowMore() {
     e.preventDefault();
     const $target = $(e.target);
 
-    if ($target.hasClass('disabled')) {
+    if (e.target.classList.contains('disabled')) {
       return;
     }
 
-    $target.addClass('disabled');
+    e.target.classList.add('disabled');
 
     const url = $target.data('href');
 
@@ -205,7 +212,7 @@ function initRepoDiffShowMore() {
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      $target.removeClass('disabled');
+      e.target.classList.remove('disabled');
     }
   });
 }

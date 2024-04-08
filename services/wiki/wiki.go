@@ -161,7 +161,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		if isOldWikiExist {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
-				log.Error("%v", err)
+				log.Error("RemoveFilesFromIndex failed: %v", err)
 				return err
 			}
 		}
@@ -171,18 +171,18 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("HashObject failed: %v", err)
 		return err
 	}
 
 	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
-		log.Error("%v", err)
+		log.Error("AddObjectToIndex failed: %v", err)
 		return err
 	}
 
 	tree, err := gitRepo.WriteTree()
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("WriteTree failed: %v", err)
 		return err
 	}
 
@@ -207,7 +207,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("CommitTree failed: %v", err)
 		return err
 	}
 
@@ -222,11 +222,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			0,
 		),
 	}); err != nil {
-		log.Error("%v", err)
+		log.Error("Push failed: %v", err)
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %w", err)
+		return fmt.Errorf("failed to push: %w", err)
 	}
 
 	return nil

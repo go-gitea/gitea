@@ -145,7 +145,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	})
 	NewWikiPost(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page"), ctx.Flash.ErrorMsg)
+	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), ctx.Flash.ErrorMsg)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
 }
 

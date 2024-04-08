@@ -482,15 +482,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	switch {
 	case isRepresentableAsText:
+		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
 		if fInfo.st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 			ctx.Data["CanCopyContent"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
-		}
-
-		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
-			ctx.Data["IsFileTooLarge"] = true
-			break
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
@@ -606,6 +606,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
+		// TODO: this logic seems strange, it duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
+		// maybe for this case, the file is a binary file, and shouldn't be rendered?
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
@@ -899,7 +901,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := repo_model.FindTopics(ctx, &repo_model.FindTopicOptions{
+	topics, err := db.Find[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {

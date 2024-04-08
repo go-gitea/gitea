@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {svg} from '../svg.js';
 import {showErrorToast} from '../modules/toast.js';
 import {GET, POST} from '../modules/fetch.js';
+import {showElem} from '../utils/dom.js';
 
 const {appSubUrl} = window.config;
 let i18nTextEdited;
@@ -73,10 +74,12 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         const response = await GET(url);
         const resp = await response.json();
 
-        $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
+        const commentDiffData = $dialog.find('.comment-diff-data')[0];
+        commentDiffData?.classList.remove('is-loading');
+        commentDiffData.innerHTML = resp.diffHtml;
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').removeClass('tw-hidden');
+          showElem($dialog.find('.dialog-header-options'));
         }
       } catch (error) {
         console.error('Error:', error);
