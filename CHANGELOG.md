@@ -6,6 +6,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.21.11](https://github.com/go-gitea/gitea/releases/tag/v1.21.11) - 2024-04-07
 
+* SECURITY
+  * Fix possible renderer security problem (#30136) (#30315)
 * BUGFIXES
   * Fix close file in the Upload func (#30262) (#30269)
   * Fix inline math blocks can't be preceeded/followed by alphanumerical characters (#30175) (#30250)
@@ -18,7 +20,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix duplicate migrated milestones (#30102) (#30105)
   * Fix panic for fixBrokenRepoUnits16961 (#30068) (#30100)
   * Fix incorrect SVGs (#30087)
-  * Refactor render (#30136) (#30315)
 * MISC
   * Update katex to 0.16.10 (#30089)
 
