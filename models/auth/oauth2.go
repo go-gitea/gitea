@@ -138,6 +138,9 @@ func (app *OAuth2Application) TableName() string {
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	contains := func(s string) bool {
+		if idx := strings.Index(s, "?"); idx > 0 {
+			s = s[:idx]
+		}
 		s = strings.TrimSuffix(strings.ToLower(s), "/")
 		for _, u := range app.RedirectURIs {
 			if strings.TrimSuffix(strings.ToLower(u), "/") == s {
