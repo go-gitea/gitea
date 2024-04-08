@@ -2273,8 +2273,21 @@
   height: 0.5em;
 }
 
+.labels-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+}
+
+.labels-list a {
+  display: flex;
+  text-decoration: none;
+}
+
 .labels-list .label {
-  margin: 2px 0;
+  padding: 0 6px;
+  margin: 0 !important;
+  min-height: 20px;
   display: inline-flex !important;
   line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
@@ -2855,6 +2868,7 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 767.98px) {
