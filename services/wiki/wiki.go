@@ -370,6 +370,10 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
+		if !repo.HasWiki() {
+			return nil
+		}
+
 		oldDefBranch, err := gitrepo.GetWikiDefaultBranch(ctx, repo)
 		if err != nil {
 			return fmt.Errorf("unable to get default branch: %w", err)
