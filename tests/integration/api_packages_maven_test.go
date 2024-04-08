@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -263,8 +264,14 @@ func TestPackageMavenConcurrent(t *testing.T) {
 	t.Run("Concurrent Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		var wg sync.WaitGroup
 		for i := 0; i < 10; i++ {
-			go putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)
+			wg.Add(1)
+			go func() {
+				putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)
+				wg.Done()
+			}()
 		}
+		wg.Wait()
 	})
 }
