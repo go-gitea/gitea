@@ -8,9 +8,9 @@ import (
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
-	ProjectColumnID   int64  `json:"project_column_id"`
-	ProjectColumnName string `json:"project_column_name"`
-	ProjectName       string `json:"project_name"`
+	ProjectColumnID    int64  `json:"project_column_id"`
+	ProjectColumnTitle string `json:"project_column_title"`
+	ProjectTitle       string `json:"project_title"`
 }
 
 func AddCommentMetaDataColumn(x *xorm.Engine) error {
