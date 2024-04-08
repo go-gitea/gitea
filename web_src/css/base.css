@@ -24,6 +24,7 @@
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
   --checkbox-size: 16px; /* height and width of checkbox and radio inputs */
+  --page-spacing: 16px; /* space between page elements */
 }
 
 :root * {
@@ -44,7 +45,7 @@ html, body {
 }
 
 body {
-  line-height: 1.4285rem;
+  line-height: 20px;
   font-family: var(--fonts-regular);
   color: var(--color-text);
   background-color: var(--color-body);
@@ -305,14 +306,6 @@ a.label,
   background-color: var(--color-label-bg);
 }
 
-/* fix Fomantic's line-height causing vertical scrollbars to appear */
-ul.ui.list li,
-ol.ui.list li,
-.ui.list > .item,
-.ui.list .list > .item {
-  line-height: var(--line-height-default);
-}
-
 .ui.menu {
   display: flex;
 }
@@ -456,21 +449,6 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
-.ui.list .list > .item .header,
-.ui.list > .item .header {
-  color: var(--color-text-dark);
-}
-
-.ui.list .list > .item > .content,
-.ui.list > .item > .content {
-  color: var(--color-text);
-}
-
-.ui.list .list > .item .description,
-.ui.list > .item .description {
-  color: var(--color-text);
-}
-
 /* replace item margin on secondary menu items with gap and remove both the
    negative margins on the menu as well as margin on the items */
 .ui.secondary.menu {
@@ -589,10 +567,6 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-.ui.divided.list > .item {
-  border-color: var(--color-secondary);
-}
-
 .ui.error.message .header,
 .ui.warning.message .header {
   color: inherit;
@@ -609,11 +583,14 @@ img.ui.avatar,
   margin-bottom: 14px;
 }
 
-/* add padding to all content when there is no .secondary.nav. this uses padding instead of
-   margin because with the negative margin on .ui.grid we would have to set margin-top: 0,
-   but that does not work universally for all pages */
+/* add margin to all pages when there is no .secondary.nav */
 .page-content > :first-child:not(.secondary-nav) {
-  padding-top: 14px;
+  margin-top: var(--page-spacing);
+}
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+   to compensate here */
+.page-content > :first-child.ui.grid {
+  margin-top: calc(var(--page-spacing) - 1rem);
 }
 
 .ui.pagination.menu .active.item {

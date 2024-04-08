@@ -114,7 +114,7 @@ func showWebStartupMessage(msg string) {
 	log.Info("* WorkPath: %s", setting.AppWorkPath)
 	log.Info("* CustomPath: %s", setting.CustomPath)
 	log.Info("* ConfigFile: %s", setting.CustomConf)
-	log.Info("%s", msg)
+	log.Info("%s", msg) // show startup message
 }
 
 func serveInstall(ctx *cli.Context) error {
