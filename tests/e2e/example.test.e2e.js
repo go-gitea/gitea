@@ -44,6 +44,20 @@ test('Test Login Form', async ({page}, workerInfo) => {
   save_visual(page);
 });
 
+test('@openid Test Login Form OpenID back and forth navigation', async ({page}, workerInfo) => {
+  const response = await page.goto('/user/login');
+  expect(response?.status()).toBe(200); // Status OK
+
+  await page.click('form .button.ui.openid');
+
+  await page.waitForLoadState('networkidle');
+  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/user/login/openid`);
+
+  // await expect(page.getByText('Sign in with username and password')).toBeVisible();
+
+  save_visual(page);
+});
+
 test('Test Logged In User', async ({browser}, workerInfo) => {
   const context = await load_logged_in_context(browser, workerInfo, 'user2');
   const page = await context.newPage();
