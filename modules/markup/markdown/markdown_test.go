@@ -436,6 +436,10 @@ func TestColorPreview(t *testing.T) {
 		testcase string
 		expected string
 	}{
+		{ // do not render color names
+			"The CSS class `red` is there",
+			"<p>The CSS class <code>red</code> is there</p>\n",
+		},
 		{ // hex
 			"`#FF0000`",
 			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
@@ -445,8 +449,8 @@ func TestColorPreview(t *testing.T) {
 			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
 		},
 		{ // short hex
-			"This is the color white `#000`",
-			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+			"This is the color white `#0a0`",
+			`<p>This is the color white <code>#0a0<span class="color-preview" style="background-color: #0a0"></span></code></p>` + nl,
 		},
 		{ // hsl
 			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
@@ -508,8 +512,16 @@ func TestMathBlock(t *testing.T) {
 			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
 		},
 		{
+			`$a$.`,
+			`<p><code class="language-math is-loading">a</code>.</p>` + nl,
+		},
+		{
+			`.$a$`,
+			`<p>.$a$</p>` + nl,
+		},
+		{
 			`$a a$b b$`,
-			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p>$a a$b b$</p>` + nl,
 		},
 		{
 			`a a$b b`,
@@ -517,7 +529,15 @@ func TestMathBlock(t *testing.T) {
 		},
 		{
 			`a$b $a a$b b$`,
-			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+			`<p>a$b $a a$b b$</p>` + nl,
+		},
+		{
+			"a$x$",
+			`<p>a$x$</p>` + nl,
+		},
+		{
+			"$x$a",
+			`<p>$x$a</p>` + nl,
 		},
 		{
 			"$$a$$",

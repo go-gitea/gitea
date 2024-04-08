@@ -199,7 +199,7 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}
@@ -269,7 +269,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}

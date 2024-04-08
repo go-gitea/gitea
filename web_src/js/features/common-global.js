@@ -2,7 +2,6 @@ import $ from 'jquery';
 import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
-import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
@@ -110,7 +109,7 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`${i18n.network_error} ${e}`);
     }
   }
-  actionElem.classList.remove('is-loading', 'small-loading-icon');
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -122,7 +121,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('small-loading-icon');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
@@ -195,8 +194,6 @@ export function initGlobalCommon() {
   //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
-
-  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
 
@@ -379,10 +376,7 @@ function initGlobalShowModal() {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const $colorPickers = $modal.find('.color-picker');
-    if ($colorPickers.length > 0) {
-      initCompColorPicker(); // FIXME: this might cause duplicate init
-    }
+
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
