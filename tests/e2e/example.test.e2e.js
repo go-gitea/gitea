@@ -48,7 +48,7 @@ test('Test Login Form OpenID navigation', async ({page}, workerInfo) => {
   const response = await page.goto('/user/login');
   expect(response?.status()).toBe(200); // Status OK
 
-  await page.click('form .button.ui.openid');
+  await page.getByRole('link', {name: 'Sign in with OpenID'}).click();
 
   await page.waitForLoadState('networkidle');
   expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/user/login/openid`);
