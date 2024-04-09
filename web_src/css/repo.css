@@ -212,8 +212,9 @@ td .commit-summary {
   overflow-wrap: anywhere;
 }
 
-.repository.file.list #repo-files-table {
-  table-layout: fixed;
+/* this is what limits the commit table width to a value that works on all viewport sizes */
+#repo-files-table th:first-of-type {
+  max-width: calc(calc(min(100vw, 1280px)) - 145px - calc(2 * var(--page-margin-x)));
 }
 
 .repository.file.list #repo-files-table thead th {
