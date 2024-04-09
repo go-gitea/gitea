@@ -4,21 +4,9 @@ package util
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
-
-// Check similar implementation in web_src/js/utils/color.js and keep synchronization
-
-// Return R, G, B values defined in reletive luminance
-func getLuminanceRGB(channel float64) float64 {
-	sRGB := channel / 255
-	if sRGB <= 0.03928 {
-		return sRGB / 12.92
-	}
-	return math.Pow((sRGB+0.055)/1.055, 2.4)
-}
 
 // Get color as RGB values in 0..255 range from the hex color string (with or without #)
 func HexToRBGColor(colorString string) (float64, float64, float64) {
@@ -47,19 +35,23 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	return r, g, b
 }
 
-// return luminance given RGB channels
-// Reference from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
-func GetLuminance(r, g, b float64) float64 {
-	R := getLuminanceRGB(r)
-	G := getLuminanceRGB(g)
-	B := getLuminanceRGB(b)
-	luminance := 0.2126*R + 0.7152*G + 0.0722*B
-	return luminance
+// Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
+// Keep this in sync with web_src/js/utils/color.js
+func GetRelativeLuminance(color string) float64 {
+	r, g, b := HexToRBGColor(color)
+	return (0.2126729*r + 0.7151522*g + 0.0721750*b) / 255
 }
 
-// Reference from: https://firsching.ch/github_labels.html
-// In the future WCAG 3 APCA may be a better solution.
-// Check if text should use light color based on RGB of background
-func UseLightTextOnBackground(r, g, b float64) bool {
-	return GetLuminance(r, g, b) < 0.453
+func UseLightText(backgroundColor string) bool {
+	return GetRelativeLuminance(backgroundColor) < 0.453
+}
+
+// Given a background color, returns a black or white foreground color that the highest
+// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
+func ContrastColor(backgroundColor string) string {
+	if UseLightText(backgroundColor) {
+		return "#fff"
+	}
+	return "#000"
 }

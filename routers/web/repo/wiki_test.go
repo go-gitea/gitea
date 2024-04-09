@@ -145,7 +145,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	})
 	NewWikiPost(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page"), ctx.Flash.ErrorMsg)
+	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), ctx.Flash.ErrorMsg)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
 }
 
@@ -226,6 +226,12 @@ func TestWikiRaw(t *testing.T) {
 func TestDefaultWikiBranch(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
+	// repo with no wiki
+	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.False(t, repoWithNoWiki.HasWiki())
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
+
+	// repo with wiki
 	assert.NoError(t, repo_model.UpdateRepositoryCols(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")

@@ -33,33 +33,31 @@ func Test_HexToRBGColor(t *testing.T) {
 	}
 }
 
-func Test_UseLightTextOnBackground(t *testing.T) {
+func Test_UseLightText(t *testing.T) {
 	cases := []struct {
-		r        float64
-		g        float64
-		b        float64
-		expected bool
+		color    string
+		expected string
 	}{
-		{215, 58, 74, true},
-		{0, 117, 202, true},
-		{207, 211, 215, false},
-		{162, 238, 239, false},
-		{112, 87, 255, true},
-		{0, 134, 114, true},
-		{228, 230, 105, false},
-		{216, 118, 227, true},
-		{255, 255, 255, false},
-		{43, 134, 133, true},
-		{43, 135, 134, true},
-		{44, 135, 134, true},
-		{59, 182, 179, true},
-		{124, 114, 104, true},
-		{126, 113, 108, true},
-		{129, 112, 109, true},
-		{128, 112, 112, true},
+		{"#d73a4a", "#fff"},
+		{"#0075ca", "#fff"},
+		{"#cfd3d7", "#000"},
+		{"#a2eeef", "#000"},
+		{"#7057ff", "#fff"},
+		{"#008672", "#fff"},
+		{"#e4e669", "#000"},
+		{"#d876e3", "#000"},
+		{"#ffffff", "#000"},
+		{"#2b8684", "#fff"},
+		{"#2b8786", "#fff"},
+		{"#2c8786", "#000"},
+		{"#3bb6b3", "#000"},
+		{"#7c7268", "#fff"},
+		{"#7e716c", "#fff"},
+		{"#81706d", "#fff"},
+		{"#807070", "#fff"},
+		{"#84b6eb", "#000"},
 	}
 	for n, c := range cases {
-		result := UseLightTextOnBackground(c.r, c.g, c.b)
-		assert.Equal(t, c.expected, result, "case %d: error should match", n)
+		assert.Equal(t, c.expected, ContrastColor(c.color), "case %d: error should match", n)
 	}
 }

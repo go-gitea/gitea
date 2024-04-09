@@ -4,13 +4,6 @@ modifies/docs:
           - "**/*.md"
           - "docs/**"
 
-modifies/frontend:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "web_src/**"
-          - "tailwind.config.js"
-          - "webpack.config.js"
-
 modifies/templates:
   - changed-files:
       - all-globs-to-any-file:
