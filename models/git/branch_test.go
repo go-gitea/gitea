@@ -213,7 +213,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []string{"new-commit", "org25/org_fork_repo59:org-fork-new-commit"},
+			want:  []string{"new-commit", "org25/org_fork_repo62:org-fork-new-commit"},
 		},
 		// user13 pushed 2 branches with the same name in repo10 and repo11
 		// and repo11's branch has a pr, but repo10's branch doesn't
@@ -239,7 +239,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927670,
 			},
 			count: 1,
-			want:  []string{"private_org35/private_org_fork_repo60:private-org-fork-new-commit"},
+			want:  []string{"private_org35/private_org_fork_repo63:private-org-fork-new-commit"},
 		},
 		// user2 does not have code permission in private_org35
 		{
@@ -258,7 +258,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927690,
 			},
 			count: 1,
-			want:  []string{"org25/org_fork_repo59:org-fork-new-commit"},
+			want:  []string{"org25/org_fork_repo62:org-fork-new-commit"},
 		},
 	}
 
@@ -272,7 +272,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 			assert.Equal(t, tt.count, len(branches))
 
 			for i := 0; i < tt.count; i++ {
-				assert.Equal(t, tt.want[i], branches[i].BranchName)
+				assert.Equal(t, tt.want[i], branches[i].BranchDisplayName)
 			}
 		})
 	}

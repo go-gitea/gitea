@@ -1773,8 +1773,8 @@
   id: 62
   owner_id: 25
   owner_name: org25
-  lower_name: org_fork_repo59
-  name: org_fork_repo59
+  lower_name: org_fork_repo62
+  name: org_fork_repo62
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1803,8 +1803,8 @@
   id: 63
   owner_id: 35
   owner_name: private_org35
-  lower_name: private_org_fork_repo60
-  name: private_org_fork_repo60
+  lower_name: private_org_fork_repo63
+  name: private_org_fork_repo63
   num_watches: 0
   num_stars: 0
   num_forks: 0
