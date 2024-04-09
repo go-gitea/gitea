@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -401,6 +402,7 @@ type FindRecentlyPushedNewBranchesOptions struct {
 
 type RecentlyPushedNewBranch struct {
 	BranchName       string
+	BranchLink       string
 	BranchCompareURL string
 	CommitTime       timeutil.TimeStamp
 }
@@ -416,9 +418,9 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		Private:    true,
 		AllPublic:  false, // Include also all public repositories of users and public organisations
 		AllLimited: false, // Include also all public repositories of limited organisations
-		Fork:       util.OptionalBoolTrue,
+		Fork:       optional.Some(true),
 		ForkFrom:   opts.BaseRepo.ID,
-		Archived:   util.OptionalBoolFalse,
+		Archived:   optional.Some(false),
 	}
 	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
 	if opts.Repo == opts.BaseRepo {
@@ -457,7 +459,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		RepoCond:        builder.In("branch.repo_id", repoIDs),
 		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
 		PusherID:        opts.Actor.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
+		IsDeletedBranch: optional.Some(false),
 		CommitAfterUnix: opts.CommitAfterUnix,
 		OrderBy:         "branch.updated_unix DESC",
 		// should not use branch name here, because if there are branches with same name in different repos,
@@ -480,6 +482,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		}
 		newBranches = append(newBranches, &RecentlyPushedNewBranch{
 			BranchName:       branchName,
+			BranchLink:       branch.Repo.Link(),
 			BranchCompareURL: branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
 			CommitTime:       branch.CommitTime,
 		})
