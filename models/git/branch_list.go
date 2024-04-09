@@ -10,7 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -91,7 +91,7 @@ type FindBranchOptions struct {
 	ExcludeBranchNames []string
 	CommitCond         builder.Cond
 	PusherID           int64
-	IsDeletedBranch    util.OptionalBool
+	IsDeletedBranch    optional.Option[bool]
 	CommitAfterUnix    int64
 	CommitBeforeUnix   int64
 	OrderBy            string
@@ -123,8 +123,8 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"branch.pusher_id": opts.PusherID})
 	}
 
-	if !opts.IsDeletedBranch.IsNone() {
-		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.IsTrue()})
+	if opts.IsDeletedBranch.Has() {
+		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.Value()})
 	}
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"name", opts.Keyword})
@@ -146,7 +146,7 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 
 func (opts FindBranchOptions) ToOrders() string {
 	orderBy := opts.OrderBy
-	if !opts.IsDeletedBranch.IsFalse() { // if deleted branch included, put them at the end
+	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the end
 		if orderBy != "" {
 			orderBy += ", "
 		}

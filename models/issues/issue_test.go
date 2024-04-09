@@ -355,7 +355,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
 }
 
-func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
+https://github.com/go-gitea/gitea/pull/25812/conflict?name=models%252Fissues%252Fissue_test.go&ancestor_oid=cc363d2fae7c607d293393017094e5e385e470e7&base_oid=b93ea6d9f04b25760feac861043b8f2e08cca6de&head_oid=1bbc0eee564fda8994f817eebc95a3f05a61fba8func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	miles := issues_model.MilestoneList{
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}),
@@ -379,7 +379,7 @@ func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 26, count)
+	assert.EqualValues(t, 28, count)
 }
 
 func TestIssueLoadAttributes(t *testing.T) {

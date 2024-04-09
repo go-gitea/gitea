@@ -1,7 +1,7 @@
 {{if and .comment.Time (.ctxData.Repository.IsTimetrackerEnabled ctx)}} {{/* compatibility with time comments made before v1.14 */}}
 	{{if (not .comment.Time.Deleted)}}
 		{{if (or .ctxData.IsAdmin (and .ctxData.IsSigned (eq .ctxData.SignedUserID .comment.PosterID)))}}
-			<span class="gt-float-right">
+			<span class="tw-float-right">
 				<div class="ui mini modal issue-delete-time-modal" data-id="{{.comment.Time.ID}}">
 					<form method="post" class="delete-time-form" action="{{.ctxData.RepoLink}}/issues/{{.ctxData.Issue.Index}}/times/{{.comment.TimeID}}/delete">
 						{{.ctxData.CsrfTokenHtml}}

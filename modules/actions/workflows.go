@@ -441,6 +441,9 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 	// all acts conditions should be satisfied
 	for cond, vals := range acts {
 		switch cond {
+		case "types":
+			// types have been checked
+			continue
 		case "branches":
 			refName := git.RefName(prPayload.PullRequest.Base.Ref)
 			patterns, err := workflowpattern.CompilePatterns(vals...)

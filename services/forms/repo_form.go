@@ -12,10 +12,10 @@ import (
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
@@ -133,6 +133,7 @@ type RepoSettingForm struct {
 	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
+	DefaultWikiBranch                     string
 	ExternalWikiURL                       string
 	EnableIssues                          bool
 	EnableExternalTracker                 bool
@@ -142,6 +143,7 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	ProjectsMode                          string
 	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
@@ -626,6 +628,7 @@ type CodeCommentForm struct {
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
+	Files          []string
 }
 
 // Validate validates the fields

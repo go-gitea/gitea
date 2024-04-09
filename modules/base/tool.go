@@ -5,6 +5,7 @@ package base
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -22,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
-	"github.com/minio/sha256-simd"
 )
 
 // EncodeSha1 string to sha1 hex value.
@@ -150,13 +150,16 @@ func TruncateString(str string, limit int) string {
 
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
-	ints := make([]int64, len(strs))
-	for i := range strs {
-		n, err := strconv.ParseInt(strs[i], 10, 64)
+	if strs == nil {
+		return nil, nil
+	}
+	ints := make([]int64, 0, len(strs))
+	for _, s := range strs {
+		n, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			return ints, err
+			return nil, err
 		}
-		ints[i] = n
+		ints = append(ints, n)
 	}
 	return ints, nil
 }

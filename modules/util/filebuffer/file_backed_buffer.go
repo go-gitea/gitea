@@ -149,6 +149,7 @@ func (b *FileBackedBuffer) Close() error {
 	if b.file != nil {
 		err := b.file.Close()
 		os.Remove(b.file.Name())
+		b.file = nil
 		return err
 	}
 	return nil

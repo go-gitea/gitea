@@ -9,6 +9,7 @@
   head_branch: branch1
   base_branch: master
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  merged_commit_id: 1a8823cd1a9549fde083f992f6b9b87a7ab74fb3
   has_merged: true
   merger_id: 2
 

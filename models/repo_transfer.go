@@ -13,6 +13,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // RepoTransfer is used to manage repository transfers
@@ -94,21 +96,46 @@ func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.
 	return allowed
 }
 
+type PendingRepositoryTransferOptions struct {
+	RepoID      int64
+	SenderID    int64
+	RecipientID int64
+}
+
+func (opts *PendingRepositoryTransferOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.SenderID != 0 {
+		cond = cond.And(builder.Eq{"doer_id": opts.SenderID})
+	}
+	if opts.RecipientID != 0 {
+		cond = cond.And(builder.Eq{"recipient_id": opts.RecipientID})
+	}
+	return cond
+}
+
+func GetPendingRepositoryTransfers(ctx context.Context, opts *PendingRepositoryTransferOptions) ([]*RepoTransfer, error) {
+	transfers := make([]*RepoTransfer, 0, 10)
+	return transfers, db.GetEngine(ctx).
+		Where(opts.ToConds()).
+		Find(&transfers)
+}
+
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
-	transfer := new(RepoTransfer)
-
-	has, err := db.GetEngine(ctx).Where("repo_id = ? ", repo.ID).Get(transfer)
+	transfers, err := GetPendingRepositoryTransfers(ctx, &PendingRepositoryTransferOptions{RepoID: repo.ID})
 	if err != nil {
 		return nil, err
 	}
 
-	if !has {
+	if len(transfers) != 1 {
 		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID}
 	}
 
-	return transfer, nil
+	return transfers[0], nil
 }
 
 func DeleteRepositoryTransfer(ctx context.Context, repoID int64) error {

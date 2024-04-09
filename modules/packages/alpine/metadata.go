@@ -34,6 +34,8 @@ const (
 
 	RepositoryPackage = "_alpine"
 	RepositoryVersion = "_repository"
+
+	NoArch = "noarch"
 )
 
 // https://wiki.alpinelinux.org/wiki/Apk_spec

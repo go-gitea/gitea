@@ -9,10 +9,10 @@ package git
 import (
 	"bufio"
 	"context"
-	"errors"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func init() {
@@ -54,7 +54,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !isDir(repoPath) {
-		return nil, errors.New("no such file or directory")
+		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
 	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -70,11 +70,6 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 
 	repo.batchWriter, repo.batchReader, repo.batchCancel = CatFileBatch(ctx, repoPath)
 	repo.checkWriter, repo.checkReader, repo.checkCancel = CatFileBatchCheck(ctx, repoPath)
-
-	repo.objectFormat, err = repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
-	}
 
 	return repo, nil
 }
@@ -103,7 +98,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 	}
 }
 
-func (repo *Repository) Close() (err error) {
+func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
@@ -123,5 +118,5 @@ func (repo *Repository) Close() (err error) {
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
-	return err
+	return nil
 }
