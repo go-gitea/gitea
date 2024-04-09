@@ -120,6 +120,8 @@ A registration token can also be obtained from the gitea [command-line interface
 gitea --config /etc/gitea/app.ini actions generate-runner-token
 ```
 
+Tokens are valid for registering multiple runners, until they are revoked and replaced by a new token using the token reset link in the web interface.
+
 ### Register the runner
 
 The act runner can be registered by running the following command:

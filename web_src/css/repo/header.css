@@ -1,4 +1,8 @@
-.fork-flag {
+.repository .secondary-nav {
+  padding-top: 12px;
+}
+
+.repository .secondary-nav .fork-flag {
   margin-top: 0.5rem;
   font-size: 12px;
 }
@@ -8,26 +12,20 @@
   flex-flow: row wrap;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 4px;
 }
 
 .repo-header .flex-item {
   padding: 0;
 }
 
-.repo-header .btn.interact-bg:hover {
-  text-decoration: none;
-}
-
 .repo-header .flex-item-main {
+  flex: 0;
   flex-basis: unset;
 }
 
 .repo-header .flex-item-trailing {
   flex-wrap: nowrap;
-}
-
-.repo-header .flex-item-trailing .repo-icon {
-  display: none;
 }
 
 .repo-buttons {
@@ -68,34 +66,4 @@
 
 .repo-buttons .ui.labeled.button.disabled > .button {
   pointer-events: none !important;
-}
-
-.repository .header-wrapper {
-  background-color: var(--color-header-wrapper);
-}
-
-.repository .header-wrapper .new-menu {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.repository .header-wrapper .new-menu .item {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-@media (max-width: 767.98px) {
-  .repo-header .flex-item {
-    flex-grow: 1;
-  }
-  .repo-buttons .ui.labeled.button .text {
-    display: none;
-  }
-  .repo-header .flex-item-trailing .label {
-    display: none;
-  }
-  .repo-header .flex-item-trailing .repo-icon {
-    display: initial;
-  }
 }

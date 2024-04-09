@@ -14,26 +14,28 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplDashboard   base.TplName = "admin/dashboard"
-	tplSelfCheck   base.TplName = "admin/self_check"
-	tplCron        base.TplName = "admin/cron"
-	tplQueue       base.TplName = "admin/queue"
-	tplStacktrace  base.TplName = "admin/stacktrace"
-	tplQueueManage base.TplName = "admin/queue_manage"
-	tplStats       base.TplName = "admin/stats"
+	tplDashboard    base.TplName = "admin/dashboard"
+	tplSystemStatus base.TplName = "admin/system_status"
+	tplSelfCheck    base.TplName = "admin/self_check"
+	tplCron         base.TplName = "admin/cron"
+	tplQueue        base.TplName = "admin/queue"
+	tplStacktrace   base.TplName = "admin/stacktrace"
+	tplQueueManage  base.TplName = "admin/queue_manage"
+	tplStats        base.TplName = "admin/stats"
 )
 
 var sysStatus struct {
@@ -71,7 +73,7 @@ var sysStatus struct {
 
 	// Garbage collector statistics.
 	NextGC       string // next run in HeapAlloc time (bytes)
-	LastGC       string // last run in absolute time (ns)
+	LastGCTime   string // last run time
 	PauseTotalNs string
 	PauseNs      string // circular buffer of recent GC pause times, most recent at [(NumGC+255)%256]
 	NumGC        uint32
@@ -109,17 +111,17 @@ func updateSystemStatus() {
 	sysStatus.OtherSys = base.FileSize(int64(m.OtherSys))
 
 	sysStatus.NextGC = base.FileSize(int64(m.NextGC))
-	sysStatus.LastGC = fmt.Sprintf("%.1fs", float64(time.Now().UnixNano()-int64(m.LastGC))/1000/1000/1000)
+	sysStatus.LastGCTime = time.Unix(0, int64(m.LastGC)).Format(time.RFC3339)
 	sysStatus.PauseTotalNs = fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1000/1000/1000)
 	sysStatus.PauseNs = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC+255)%256])/1000/1000/1000)
 	sysStatus.NumGC = m.NumGC
 }
 
-func prepareDeprecatedWarningsAlert(ctx *context.Context) {
-	if len(setting.DeprecatedWarnings) > 0 {
-		content := setting.DeprecatedWarnings[0]
-		if len(setting.DeprecatedWarnings) > 1 {
-			content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
+func prepareStartupProblemsAlert(ctx *context.Context) {
+	if len(setting.StartupProblems) > 0 {
+		content := setting.StartupProblems[0]
+		if len(setting.StartupProblems) > 1 {
+			content += fmt.Sprintf(" (and %d more)", len(setting.StartupProblems)-1)
 		}
 		ctx.Flash.Error(content, true)
 	}
@@ -131,12 +133,17 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
-	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
-	prepareDeprecatedWarningsAlert(ctx)
+	prepareStartupProblemsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
+}
+
+func SystemStatus(ctx *context.Context) {
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
+	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
 
 // DashboardPost run an admin operation
@@ -157,6 +164,13 @@ func DashboardPost(ctx *context.Context) {
 				}
 			}()
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
+		case "sync_repo_tags":
+			go func() {
+				if err := release_service.AddAllRepoTagsToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
+					log.Error("AddAllRepoTagsToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_tag.started"))
 		default:
 			task := cron.GetTask(form.Op)
 			if task != nil {
@@ -176,6 +190,14 @@ func DashboardPost(ctx *context.Context) {
 
 func SelfCheck(ctx *context.Context) {
 	ctx.Data["PageIsAdminSelfCheck"] = true
+
+	ctx.Data["StartupProblems"] = setting.StartupProblems
+	if len(setting.StartupProblems) == 0 && !setting.IsProd {
+		if time.Now().Unix()%2 == 0 {
+			ctx.Data["StartupProblems"] = []string{"This is a test warning message in dev mode"}
+		}
+	}
+
 	r, err := db.CheckCollationsDefaultEngine()
 	if err != nil {
 		ctx.Flash.Error(fmt.Sprintf("CheckCollationsDefaultEngine: %v", err), true)

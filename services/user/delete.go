@@ -92,6 +92,8 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&pull_model.ReviewState{UserID: u.ID},
 		&user_model.Redirect{RedirectUserID: u.ID},
 		&actions_model.ActionRunner{OwnerID: u.ID},
+		&user_model.Blocking{BlockerID: u.ID},
+		&user_model.Blocking{BlockeeID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -186,6 +188,10 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		return fmt.Errorf("ExternalLoginUser: %w", err)
 	}
 	// ***** END: ExternalLoginUser *****
+
+	if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+		return fmt.Errorf("DeleteAuthTokensByUserID: %w", err)
+	}
 
 	if _, err = db.DeleteByID[user_model.User](ctx, u.ID); err != nil {
 		return fmt.Errorf("delete: %w", err)

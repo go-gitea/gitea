@@ -15,7 +15,7 @@
 					<div class="ui dropdown type jump item">
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
+						<div class="menu flex-items-menu">
 							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
@@ -52,11 +52,7 @@
 					</div>
 				</div>
 
-				<!-- Search Text -->
-				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "Value" .Keyword}}
-					<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
-				</div>
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 			</form>
 		</div>
 		<div class="ui attached table segment">
@@ -96,7 +92,7 @@
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
 							</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
@@ -107,7 +103,7 @@
 								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
 							<td>
-								<div class="gt-df gt-gap-3">
+								<div class="tw-flex tw-gap-2">
 									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-person"}}</a>
 									<a href="{{$.Link}}/{{.ID}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 								</div>

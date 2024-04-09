@@ -78,3 +78,22 @@ func TestContentHistory(t *testing.T) {
 	assert.EqualValues(t, 7, list2[1].HistoryID)
 	assert.EqualValues(t, 4, list2[2].HistoryID)
 }
+
+func TestHasIssueContentHistoryForCommentOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	_ = db.TruncateBeans(db.DefaultContext, &issues_model.ContentHistory{})
+
+	hasHistory1, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 0)
+	assert.False(t, hasHistory1)
+	hasHistory2, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 100)
+	assert.False(t, hasHistory2)
+
+	_ = issues_model.SaveIssueContentHistory(db.DefaultContext, 1, 10, 100, timeutil.TimeStampNow(), "c-a", true)
+	_ = issues_model.SaveIssueContentHistory(db.DefaultContext, 1, 10, 100, timeutil.TimeStampNow().Add(5), "c-b", false)
+
+	hasHistory1, _ = issues_model.HasIssueContentHistory(db.DefaultContext, 10, 0)
+	assert.False(t, hasHistory1)
+	hasHistory2, _ = issues_model.HasIssueContentHistory(db.DefaultContext, 10, 100)
+	assert.True(t, hasHistory2)
+}

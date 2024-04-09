@@ -1,0 +1,11 @@
+# type Repository struct {
+#   ID        int64  `xorm:"pk autoincr"`
+# }
+-
+  id: 1
+-
+  id: 2
+-
+  id: 3
+-
+  id: 10

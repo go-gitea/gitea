@@ -9,7 +9,10 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // To define the wiki related concepts:
@@ -154,4 +157,16 @@ func UserTitleToWebPath(base, title string) WebPath {
 		title = "unnamed"
 	}
 	return WebPath(title)
+}
+
+// ToWikiPageMetaData converts meta information to a WikiPageMetaData
+func ToWikiPageMetaData(wikiName WebPath, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
+	subURL := string(wikiName)
+	_, title := WebPathToUserTitle(wikiName)
+	return &api.WikiPageMetaData{
+		Title:      title,
+		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", subURL),
+		SubURL:     subURL,
+		LastCommit: convert.ToWikiCommit(lastCommit),
+	}
 }

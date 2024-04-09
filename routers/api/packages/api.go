@@ -10,7 +10,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -36,7 +35,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -512,7 +511,77 @@ func CommonRoutes() *web.Route {
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/rpm", RpmRoutes(r), reqPackageAccess(perm.AccessModeRead))
+		r.Group("/rpm", func() {
+			r.Group("/repository.key", func() {
+				r.Head("", rpm.GetRepositoryKey)
+				r.Get("", rpm.GetRepositoryKey)
+			})
+
+			var (
+				repoPattern     = regexp.MustCompile(`\A(.*?)\.repo\z`)
+				uploadPattern   = regexp.MustCompile(`\A(.*?)/upload\z`)
+				filePattern     = regexp.MustCompile(`\A(.*?)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
+				repoFilePattern = regexp.MustCompile(`\A(.*?)/repodata/([^/]+)\z`)
+			)
+
+			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
+				path := ctx.Params("*")
+				isHead := ctx.Req.Method == "HEAD"
+				isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
+				isPut := ctx.Req.Method == "PUT"
+				isDelete := ctx.Req.Method == "DELETE"
+
+				m := repoPattern.FindStringSubmatch(path)
+				if len(m) == 2 && isGetHead {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					rpm.GetRepositoryConfig(ctx)
+					return
+				}
+
+				m = repoFilePattern.FindStringSubmatch(path)
+				if len(m) == 3 && isGetHead {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					ctx.SetParams("filename", m[2])
+					if isHead {
+						rpm.CheckRepositoryFileExistence(ctx)
+					} else {
+						rpm.GetRepositoryFile(ctx)
+					}
+					return
+				}
+
+				m = uploadPattern.FindStringSubmatch(path)
+				if len(m) == 2 && isPut {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					rpm.UploadPackageFile(ctx)
+					return
+				}
+
+				m = filePattern.FindStringSubmatch(path)
+				if len(m) == 6 && (isGetHead || isDelete) {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					ctx.SetParams("name", m[2])
+					ctx.SetParams("version", m[3])
+					ctx.SetParams("architecture", m[4])
+					if isGetHead {
+						rpm.DownloadPackageFile(ctx)
+					} else {
+						reqPackageAccess(perm.AccessModeWrite)(ctx)
+						if ctx.Written() {
+							return
+						}
+						rpm.DeletePackageFile(ctx)
+					}
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -572,85 +641,9 @@ func CommonRoutes() *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
+	}, context.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
-}
-
-// Support for uploading rpm packages with arbitrary depth paths
-func RpmRoutes(r *web.Route) func() {
-	var (
-		groupRepoInfo = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)\.repo\z`)
-		groupUpload   = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/upload\z`)
-		groupRpm      = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
-		groupMetadata = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/repodata/([^/]+)\z`)
-	)
-
-	return func() {
-		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "*", func(ctx *context.Context) {
-			path := ctx.Params("*")
-			isHead := ctx.Req.Method == "HEAD"
-			isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
-			isPut := ctx.Req.Method == "PUT"
-			isDelete := ctx.Req.Method == "DELETE"
-
-			if path == "/repository.key" && isGetHead {
-				rpm.GetRepositoryKey(ctx)
-				return
-			}
-
-			// get repo
-			m := groupRepoInfo.FindStringSubmatch(path)
-			if len(m) == 2 && isGetHead {
-				ctx.SetParams("group", strings.Trim(m[1], "/"))
-				rpm.GetRepositoryConfig(ctx)
-				return
-			}
-			// get meta
-			m = groupMetadata.FindStringSubmatch(path)
-			if len(m) == 3 && isGetHead {
-				ctx.SetParams("group", strings.Trim(m[1], "/"))
-				ctx.SetParams("filename", m[2])
-				if isHead {
-					rpm.CheckRepositoryFileExistence(ctx)
-				} else {
-					rpm.GetRepositoryFile(ctx)
-				}
-				return
-			}
-			// upload
-			m = groupUpload.FindStringSubmatch(path)
-			if len(m) == 2 && isPut {
-				reqPackageAccess(perm.AccessModeWrite)(ctx)
-				if ctx.Written() {
-					return
-				}
-				ctx.SetParams("group", strings.Trim(m[1], "/"))
-				rpm.UploadPackageFile(ctx)
-				return
-			}
-			// rpm down/delete
-			m = groupRpm.FindStringSubmatch(path)
-			if len(m) == 6 {
-				ctx.SetParams("group", strings.Trim(m[1], "/"))
-				ctx.SetParams("name", m[2])
-				ctx.SetParams("version", m[3])
-				ctx.SetParams("architecture", m[4])
-				if isGetHead {
-					rpm.DownloadPackageFile(ctx)
-					return
-				} else if isDelete {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					rpm.DeletePackageFile(ctx)
-				}
-			}
-			// default
-			ctx.Status(http.StatusNotFound)
-		})
-	}
 }
 
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
@@ -818,7 +811,7 @@ func ContainerRoutes() *web.Route {
 
 			ctx.Status(http.StatusNotFound)
 		})
-	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }

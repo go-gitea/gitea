@@ -33,7 +33,7 @@ type RepoArchiver struct { //revive:disable-line:exported
 	RepoID      int64           `xorm:"index unique(s)"`
 	Type        git.ArchiveType `xorm:"unique(s)"`
 	Status      ArchiverStatus
-	CommitID    string             `xorm:"VARCHAR(40) unique(s)"`
+	CommitID    string             `xorm:"VARCHAR(64) unique(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 }
 
