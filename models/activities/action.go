@@ -142,18 +142,18 @@ type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64            // Action user id.
-	ActUser     *user_model.User `xorm:"-"`
-	RepoID      int64
+	ActUserID   int64                  // Action user id.
+	ActUser     *user_model.User       `xorm:"-"`
+	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
 	Comment     *issues_model.Comment  `xorm:"-"`
 	Issue       *issues_model.Issue    `xorm:"-"` // get the issue id from content
-	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
+	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 func init() {
@@ -168,10 +168,13 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
+	actDashboardIndex := schemas.NewIndex("r_c_u_d", schemas.IndexType)
+	actDashboardIndex.AddColumn("repo_id", "created_unix", "user_id", "is_deleted")
+
 	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
+	indices := []*schemas.Index{actUserIndex, repoIndex, actDashboardIndex, cudIndex}
 
 	return indices
 }
