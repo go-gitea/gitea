@@ -2300,7 +2300,7 @@
 }
 
 .archived-label {
-  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0%,rgba(255, 255, 255, 0) 5%, rgba(92, 194, 214, 0.3) 5%, rgba(92, 194, 214, 0.3) 10%, rgba(255, 255, 255, 0.3) 10%);
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0%,rgba(255, 255, 255, 0) 5%, rgba(92, 194, 214, 0.3) 5%, rgba(92, 194, 214, 0.3) 10%, rgba(255, 255, 255, 0.3) 10%) !important;
 }
 
 .ui.label.scope-left {
