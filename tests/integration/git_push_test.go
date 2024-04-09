@@ -49,6 +49,17 @@ func testGitPush(t *testing.T, u *url.URL) {
 		})
 	})
 
+	t.Run("Push branch with options", func(t *testing.T) {
+		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
+			branchName := "branch-with-options"
+			doGitCreateBranch(gitPath, branchName)(t)
+			doGitPushTestRepository(gitPath, "origin", branchName, "-o", "repo.private=true", "-o", "repo.template=true")(t)
+			pushed = append(pushed, branchName)
+
+			return pushed, deleted
+		})
+	})
+
 	t.Run("Delete branches", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
 			doGitPushTestRepository(gitPath, "origin", "master")(t) // make sure master is the default branch instead of a branch we are going to delete
