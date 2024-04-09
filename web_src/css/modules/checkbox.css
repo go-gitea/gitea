@@ -20,7 +20,7 @@ input[type="radio"] {
 .ui.checkbox input[type="checkbox"],
 .ui.checkbox input[type="radio"] {
   position: absolute;
-  top: 0;
+  top: 1px;
   left: 0;
   width: var(--checkbox-size);
   height: var(--checkbox-size);
