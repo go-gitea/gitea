@@ -61,26 +61,20 @@ func asFixer(fn func(ctx context.Context) error) func(ctx context.Context) (int6
 	}
 }
 
-func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCheck {
+func genericOrphanCheck(name, subject, refObject, joinCond string) consistencyCheck {
 	return consistencyCheck{
 		Name: name,
 		Counter: func(ctx context.Context) (int64, error) {
-			return db.CountOrphanedObjects(ctx, subject, refobject, joincond)
+			return db.CountOrphanedObjects(ctx, subject, refObject, joinCond)
 		},
 		Fixer: func(ctx context.Context) (int64, error) {
-			err := db.DeleteOrphanedObjects(ctx, subject, refobject, joincond)
+			err := db.DeleteOrphanedObjects(ctx, subject, refObject, joinCond)
 			return -1, err
 		},
 	}
 }
 
-func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
-	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
-		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
-		return err
-	}
-
+func prepareDBConsistencyChecks() []consistencyCheck {
 	consistencyChecks := []consistencyCheck{
 		{
 			// find labels without existing repo or org
@@ -210,7 +204,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			"oauth2_grant", "user", "oauth2_grant.user_id=`user`.id"),
 		// find OAuth2Application without existing user
 		genericOrphanCheck("Orphaned OAuth2Application without existing User",
-			"oauth2_application", "user", "oauth2_application.uid=`user`.id"),
+			"oauth2_application", "user", "oauth2_application.uid=0 OR oauth2_application.uid=`user`.id"),
 		// find OAuth2AuthorizationCode without existing OAuth2Grant
 		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
 			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
@@ -224,7 +218,16 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		genericOrphanCheck("Orphaned Redirects without existing redirect user",
 			"user_redirect", "user", "user_redirect.redirect_user_id=`user`.id"),
 	)
+	return consistencyChecks
+}
 
+func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
+	// make sure DB version is uptodate
+	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
+		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
+		return err
+	}
+	consistencyChecks := prepareDBConsistencyChecks()
 	for _, c := range consistencyChecks {
 		if err := c.Run(ctx, logger, autofix); err != nil {
 			return err
