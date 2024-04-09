@@ -2372,9 +2372,9 @@
 }
 
 .labels-list {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.25em;
+  gap: 2.5px;
 }
 
 .labels-list a {
