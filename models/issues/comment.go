@@ -1272,7 +1272,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		return nil
 	}
 
-	issueIDs := container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	issueIDs := container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.IssueID, true
 	})
 

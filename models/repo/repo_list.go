@@ -104,7 +104,7 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	userIDs := container.FilterMapUnique(repos, func(repo *Repository) (int64, bool) {
+	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
 		return repo.OwnerID, true
 	})
 	repoIDs := make([]int64, len(repos))

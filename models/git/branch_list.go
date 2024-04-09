@@ -17,7 +17,7 @@ import (
 type BranchList []*Branch
 
 func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
-	ids := container.FilterMapUnique(branches, func(branch *Branch) (int64, bool) {
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
 		return branch.DeletedByID, branch.IsDeleted
 	})
 
@@ -38,7 +38,7 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 }
 
 func (branches BranchList) LoadPusher(ctx context.Context) error {
-	ids := container.FilterMapUnique(branches, func(branch *Branch) (int64, bool) {
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
 		// pusher_id maybe zero because some branches are sync by backend with no pusher
 		return branch.PusherID, branch.PusherID > 0
 	})

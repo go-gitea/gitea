@@ -17,7 +17,7 @@ import (
 type CommentList []*Comment
 
 func (comments CommentList) getPosterIDs() []int64 {
-	return container.FilterMapUnique(comments, func(c *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(c *Comment) (int64, bool) {
 		return c.PosterID, c.PosterID > 0
 	})
 }
@@ -40,7 +40,7 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 }
 
 func (comments CommentList) getLabelIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.LabelID, comment.LabelID > 0
 	})
 }
@@ -86,7 +86,7 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 }
 
 func (comments CommentList) getMilestoneIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.MilestoneID, comment.MilestoneID > 0
 	})
 }
@@ -125,7 +125,7 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getOldMilestoneIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.OldMilestoneID, comment.OldMilestoneID > 0
 	})
 }
@@ -164,7 +164,7 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getAssigneeIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.AssigneeID, comment.AssigneeID > 0
 	})
 }
@@ -217,7 +217,7 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 
 // getIssueIDs returns all the issue ids on this comment list which issue hasn't been loaded
 func (comments CommentList) getIssueIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.IssueID, comment.Issue == nil
 	})
 }
@@ -286,7 +286,7 @@ func (comments CommentList) LoadIssues(ctx context.Context) error {
 }
 
 func (comments CommentList) getDependentIssueIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		if comment.DependentIssue != nil {
 			return 0, false
 		}
@@ -346,7 +346,7 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 
 // getAttachmentCommentIDs only return the comment ids which possibly has attachments
 func (comments CommentList) getAttachmentCommentIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.ID, comment.Type.HasAttachmentSupport()
 	})
 }
@@ -416,7 +416,7 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 }
 
 func (comments CommentList) getReviewIDs() []int64 {
-	return container.FilterMapUnique(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		return comment.ReviewID, comment.ReviewID > 0
 	})
 }

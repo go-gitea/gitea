@@ -10,7 +10,7 @@ import (
 )
 
 func TestFilterMapUnique(t *testing.T) {
-	result := FilterMapUnique([]int{
+	result := FilterSlice([]int{
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 	}, func(i int) (int, bool) {
 		switch i {

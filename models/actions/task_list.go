@@ -16,7 +16,7 @@ import (
 type TaskList []*ActionTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	return container.FilterMapUnique(tasks, func(t *ActionTask) (int64, bool) {
+	return container.FilterSlice(tasks, func(t *ActionTask) (int64, bool) {
 		return t.JobID, t.JobID != 0
 	})
 }

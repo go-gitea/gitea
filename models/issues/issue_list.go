@@ -74,7 +74,7 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
-	return container.FilterMapUnique(issues, func(issue *Issue) (int64, bool) {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		return issue.PosterID, true
 	})
 }
@@ -191,7 +191,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	return container.FilterMapUnique(issues, func(issue *Issue) (int64, bool) {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		return issue.MilestoneID, true
 	})
 }

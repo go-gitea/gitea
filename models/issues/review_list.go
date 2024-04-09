@@ -38,7 +38,7 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIDs := container.FilterMapUnique(reviews, func(review *Review) (int64, bool) {
+	issueIDs := container.FilterSlice(reviews, func(review *Review) (int64, bool) {
 		return review.IssueID, true
 	})
 

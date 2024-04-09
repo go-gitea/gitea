@@ -18,13 +18,13 @@ type ScheduleList []*ActionSchedule
 
 // GetUserIDs returns a slice of user's id
 func (schedules ScheduleList) GetUserIDs() []int64 {
-	return container.FilterMapUnique(schedules, func(schedule *ActionSchedule) (int64, bool) {
+	return container.FilterSlice(schedules, func(schedule *ActionSchedule) (int64, bool) {
 		return schedule.TriggerUserID, true
 	})
 }
 
 func (schedules ScheduleList) GetRepoIDs() []int64 {
-	return container.FilterMapUnique(schedules, func(schedule *ActionSchedule) (int64, bool) {
+	return container.FilterSlice(schedules, func(schedule *ActionSchedule) (int64, bool) {
 		return schedule.RepoID, true
 	})
 }

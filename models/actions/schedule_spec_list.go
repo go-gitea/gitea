@@ -16,7 +16,7 @@ import (
 type SpecList []*ActionScheduleSpec
 
 func (specs SpecList) GetScheduleIDs() []int64 {
-	return container.FilterMapUnique(specs, func(spec *ActionScheduleSpec) (int64, bool) {
+	return container.FilterSlice(specs, func(spec *ActionScheduleSpec) (int64, bool) {
 		return spec.ScheduleID, true
 	})
 }
@@ -44,7 +44,7 @@ func (specs SpecList) LoadSchedules(ctx context.Context) error {
 }
 
 func (specs SpecList) GetRepoIDs() []int64 {
-	return container.FilterMapUnique(specs, func(spec *ActionScheduleSpec) (int64, bool) {
+	return container.FilterSlice(specs, func(spec *ActionScheduleSpec) (int64, bool) {
 		return spec.RepoID, true
 	})
 }

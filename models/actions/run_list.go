@@ -19,13 +19,13 @@ type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
-	return container.FilterMapUnique(runs, func(run *ActionRun) (int64, bool) {
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
 		return run.TriggerUserID, true
 	})
 }
 
 func (runs RunList) GetRepoIDs() []int64 {
-	return container.FilterMapUnique(runs, func(run *ActionRun) (int64, bool) {
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
 		return run.RepoID, true
 	})
 }

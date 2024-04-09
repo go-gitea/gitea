@@ -16,7 +16,7 @@ import (
 type ActionJobList []*ActionRunJob
 
 func (jobs ActionJobList) GetRunIDs() []int64 {
-	return container.FilterMapUnique(jobs, func(j *ActionRunJob) (int64, bool) {
+	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
 		return j.RunID, j.RunID != 0
 	})
 }

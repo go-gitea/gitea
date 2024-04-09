@@ -16,7 +16,7 @@ type RunnerList []*ActionRunner
 
 // GetUserIDs returns a slice of user's id
 func (runners RunnerList) GetUserIDs() []int64 {
-	return container.FilterMapUnique(runners, func(runner *ActionRunner) (int64, bool) {
+	return container.FilterSlice(runners, func(runner *ActionRunner) (int64, bool) {
 		return runner.OwnerID, runner.OwnerID != 0
 	})
 }

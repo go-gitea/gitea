@@ -305,7 +305,7 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	return container.FilterMapUnique(list, func(reaction *Reaction) (int64, bool) {
+	return container.FilterSlice(list, func(reaction *Reaction) (int64, bool) {
 		if reaction.OriginalAuthor != "" {
 			return 0, false
 		}

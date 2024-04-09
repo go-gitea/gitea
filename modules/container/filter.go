@@ -5,14 +5,14 @@ package container
 
 import "slices"
 
-// FilterMapUnique ranges over the slice and calls include() for each element.
+// FilterSlice ranges over the slice and calls include() for each element.
 // If the second returned value is true, the first returned value will be included in the resulting
 // slice (after deduplication).
-func FilterMapUnique[T, V comparable](elements []T, include func(T) (V, bool)) []V {
-	filtered := make([]V, 0, len(elements)) // slice will be clipped before returning
-	seen := make(map[V]bool, len(elements))
-	for _, e := range elements {
-		if v, ok := include(e); ok && !seen[v] {
+func FilterSlice[E any, T comparable](s []E, include func(E) (T, bool)) []T {
+	filtered := make([]T, 0, len(s)) // slice will be clipped before returning
+	seen := make(map[T]bool, len(s))
+	for i := range s {
+		if v, ok := include(s[i]); ok && !seen[v] {
 			filtered = append(filtered, v)
 			seen[v] = true
 		}

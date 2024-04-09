@@ -22,7 +22,7 @@ import (
 type ActionList []*Action
 
 func (actions ActionList) getUserIDs() []int64 {
-	return container.FilterMapUnique(actions, func(action *Action) (int64, bool) {
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
 		return action.ActUserID, true
 	})
 }
@@ -48,7 +48,7 @@ func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_mod
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
-	return container.FilterMapUnique(actions, func(action *Action) (int64, bool) {
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
 		return action.RepoID, true
 	})
 }
@@ -76,7 +76,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		userMap = make(map[int64]*user_model.User)
 	}
 
-	missingUserIDs := container.FilterMapUnique(actions, func(action *Action) (int64, bool) {
+	missingUserIDs := container.FilterSlice(actions, func(action *Action) (int64, bool) {
 		if action.Repo == nil {
 			return 0, false
 		}
