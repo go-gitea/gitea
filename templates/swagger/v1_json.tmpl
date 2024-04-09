@@ -21,7 +21,7 @@
     },
     "version": "{{AppVer | JSEscape}}"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -18762,6 +18762,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Compare": {
+      "type": "object",
+      "title": "Compare represents a comparison between two commits.",
+      "properties": {
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Commit"
+          },
+          "x-go-name": "Commits"
+        },
+        "total_commits": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCommits"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -24721,6 +24740,12 @@
         "items": {
           "$ref": "#/definitions/CommitStatus"
         }
+      }
+    },
+    "Compare": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/Compare"
       }
     },
     "ContentsListResponse": {
