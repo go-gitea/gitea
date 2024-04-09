@@ -50,5 +50,10 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
 		cookie.Path = strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
 		resp.Header().Add("Set-Cookie", cookie.String())
+		// Ensure that we delete the cookie when AppSubURL is non-empty.
+		if cookie.Path != "/" {
+			cookie.Path = "/"
+			resp.Header().Add("Set-Cookie", cookie.String())
+		}
 	}
 }
