@@ -165,7 +165,7 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 	config.GetDynGetter().InvalidateCache()
-	prepareDeprecatedWarningsAlert(ctx)
+	prepareStartupProblemsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }
