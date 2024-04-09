@@ -21,7 +21,7 @@
     },
     "version": "{{AppVer | JSEscape}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -5333,6 +5333,51 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequest"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/compare/{basehead}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Get",
+          "commit",
+          "comparison"
+        ],
+        "summary": "Get commit comparison information",
+        "operationId": "information",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "compare two branches or commits",
+            "name": "basehead",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Compare"
           },
           "404": {
             "$ref": "#/responses/notFound"
