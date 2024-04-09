@@ -289,18 +289,54 @@
 
 -
   id: 49
-  team_id: 18
-  type: 1 # code
+  team_id: 21
+  type: 1
   access_mode: 4
 
 -
   id: 50
   team_id: 21
-  type: 1 # code
+  type: 2
   access_mode: 4
 
 -
   id: 51
+  team_id: 21
+  type: 3
+  access_mode: 4
+
+-
+  id: 52
   team_id: 22
+  type: 1
+  access_mode: 1
+
+-
+  id: 53
+  team_id: 22
+  type: 2
+  access_mode: 1
+
+-
+  id: 54
+  team_id: 22
+  type: 3
+  access_mode: 1
+
+-
+  id: 55
+  team_id: 18
+  type: 1 # code
+  access_mode: 4
+
+-
+  id: 56
+  team_id: 23
+  type: 1 # code
+  access_mode: 4
+
+-
+  id: 57
+  team_id: 24
   type: 1 # code
   access_mode: 0
