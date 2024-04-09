@@ -401,10 +401,10 @@ type FindRecentlyPushedNewBranchesOptions struct {
 }
 
 type RecentlyPushedNewBranch struct {
-	BranchName       string
-	BranchLink       string
-	BranchCompareURL string
-	CommitTime       timeutil.TimeStamp
+	BranchDisplayName string
+	BranchLink        string
+	BranchCompareURL  string
+	CommitTime        timeutil.TimeStamp
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
@@ -433,7 +433,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 	repoIDs := builder.Select("id").From("repository").Where(repoCond)
 
 	// find branches which have already created PRs
-	prBranchIds := builder.Select("branch.id").From("branch").
+	prBranchIDs := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		Where(builder.And(
 			builder.Eq{"pull_request.base_repo_id": opts.BaseRepo.ID},
@@ -464,7 +464,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		OrderBy:         "branch.updated_unix DESC",
 		// should not use branch name here, because if there are branches with same name in different repos,
 		// we can not detect them correctly
-		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
+		PullRequestCond: builder.NotIn("branch.id", prBranchIDs),
 		ListOptions:     opts.ListOptions,
 	})
 	if err != nil {
@@ -476,15 +476,15 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 
 	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
 	for _, branch := range branches {
-		branchName := branch.Name
+		branchDisplayName := branch.Name
 		if branch.Repo.ID != opts.BaseRepo.ID && branch.Repo.ID != opts.Repo.ID {
-			branchName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchName)
+			branchDisplayName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchDisplayName)
 		}
 		newBranches = append(newBranches, &RecentlyPushedNewBranch{
-			BranchName:       branchName,
-			BranchLink:       branch.Repo.Link(),
-			BranchCompareURL: branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
-			CommitTime:       branch.CommitTime,
+			BranchDisplayName: branchDisplayName,
+			BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
+			BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
+			CommitTime:        branch.CommitTime,
 		})
 	}
 	return newBranches, nil
