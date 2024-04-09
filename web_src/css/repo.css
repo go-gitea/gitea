@@ -294,7 +294,6 @@ td .commit-summary {
 }
 
 .repository.file.list #repo-files-table td.age {
-  width: 120px;
   color: var(--color-text-light-1);
 }
 
