@@ -528,7 +528,11 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	// Here we use the commit author as the Doer of the notifyInput
 	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
 	if err != nil {
-		return fmt.Errorf("get user by email: %w", err)
+		if user_model.IsErrUserNotExist(err) {
+			commitUser = user_model.NewReplaceUser(commit.Author.Name)
+		} else {
+			return fmt.Errorf("get user by email: %w", err)
+		}
 	}
 	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
 
