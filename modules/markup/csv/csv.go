@@ -97,7 +97,7 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 		return err
 	}
 
-	row := 1
+	row := 0
 	for {
 		fields, err := rd.Read()
 		if err == io.EOF || (row >= maxRows && maxRows != 0) {
@@ -114,7 +114,7 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 		if row == 0 {
 			element = "th"
 		}
-		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
+		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row+1)); err != nil {
 			return err
 		}
 		for _, field := range fields {
