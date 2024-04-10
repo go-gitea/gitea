@@ -135,8 +135,8 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 		for i, repo := range repos {
 			if repo.ID == summary.RepoID {
 				results[i] = summary
-				_ = slices.DeleteFunc(repoSHAs, func(repoSha git_model.RepoSHA) bool {
-					return repoSha.RepoID == repo.ID
+				_ = slices.DeleteFunc(repoSHAs, func(repoSHA git_model.RepoSHA) bool {
+					return repoSHA.RepoID == repo.ID
 				})
 				if results[i].State != "" {
 					if err := updateCommitStatusCache(ctx, repo.ID, repo.DefaultBranch, results[i].State); err != nil {
