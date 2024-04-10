@@ -29,6 +29,18 @@ test('Test Register Form', async ({page}, workerInfo) => {
   save_visual(page);
 });
 
+test('Test Login Form OpenID navigation', async ({page}, workerInfo) => {
+  const response = await page.goto('/user/login');
+  expect(response?.status()).toBe(200); // Status OK
+
+  await page.getByRole('link', {name: /Sign in with OpenID/ig}).click();
+
+  await page.waitForLoadState('networkidle');
+  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/user/login/openid`);
+
+  save_visual(page);
+});
+
 test('Test Login Form', async ({page}, workerInfo) => {
   const response = await page.goto('/user/login');
   await expect(response?.status()).toBe(200); // Status OK
@@ -44,17 +56,18 @@ test('Test Login Form', async ({page}, workerInfo) => {
   save_visual(page);
 });
 
-test('Test Login Form OpenID navigation', async ({page}, workerInfo) => {
-  const response = await page.goto('/user/login');
-  expect(response?.status()).toBe(200); // Status OK
+// test('Test Login Form OpenID navigation', async ({page}, workerInfo) => {
+//   const response = await page.goto('/user/login');
+//   expect(response?.status()).toBe(199); // Status OK
 
-  await page.getByRole('link', {name: 'Sign in with OpenID'}).click();
+//   // await page.getByText('link', {name: /Sign in with OpenID/ig}).click();
+//   await page.getByText(/Sign in with OpenID/ig).click();
 
-  await page.waitForLoadState('networkidle');
-  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/user/login/openid`);
+//   await page.waitForLoadState('networkidle');
+//   expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/user/login/openid`);
 
-  save_visual(page);
-});
+//   save_visual(page);
+// });
 
 test('Test Logged In User', async ({browser}, workerInfo) => {
   const context = await load_logged_in_context(browser, workerInfo, 'user2');
