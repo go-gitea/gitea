@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	chiSession "gitea.com/go-chi/session"
 	"github.com/gorilla/sessions"
@@ -65,6 +67,7 @@ func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *s
 	chiStore := chiSession.GetSession(r)
 
 	if session.IsNew {
+		middleware.DeleteSiteCookieWithTrailingSlash(w, setting.SessionConfig.CookieName)
 		_, _ = chiSession.RegenerateSession(w, r)
 		session.IsNew = false
 	}

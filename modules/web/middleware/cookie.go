@@ -38,26 +38,36 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		Name:     name,
 		Value:    url.QueryEscape(value),
 		MaxAge:   maxAge,
-		Path:     "", // Filled in below.
+		Path:     setting.SessionConfig.CookiePath,
 		Domain:   setting.SessionConfig.Domain,
 		Secure:   setting.SessionConfig.Secure,
 		HttpOnly: true,
 		SameSite: setting.SessionConfig.SameSite,
 	}
-	if maxAge < 0 {
-		// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
-		// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
-		// The code was updated, but it behaves differently depending on the
-		// value of AppSubURL.  When AppSubURL is non-empty, the cookie with a
-		// trailing slash must be deleted.
-		withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
-		withTrailingSlash := withoutTrailingSlash + "/"
-		for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
-			cookie.Path = path
-			resp.Header().Add("Set-Cookie", cookie.String())
-		}
-	} else {
-		cookie.Path = setting.SessionConfig.CookiePath
-		resp.Header().Add("Set-Cookie", cookie.String())
+	resp.Header().Add("Set-Cookie", cookie.String())
+	// Previous versions would use a cookie path with a trailing /.
+	// These are more specific than cookies without a trailing /, so
+	// we need to delete these if they exist.
+	DeleteSiteCookieWithTrailingSlash(resp, name)
+}
+
+// DeleteSiteCookieWithTrailingSlash will delete cookies that have a path with a trailing /
+func DeleteSiteCookieWithTrailingSlash(resp http.ResponseWriter, name string) {
+	// If the cookie path is empty or ends with /, cookies with trailing /
+	// will not take precedence, so do nothing
+	if setting.SessionConfig.CookiePath == "" || strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
+		return
 	}
+
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     setting.SessionConfig.CookiePath + "/",
+		Domain:   setting.SessionConfig.Domain,
+		Secure:   setting.SessionConfig.Secure,
+		HttpOnly: true,
+		SameSite: setting.SessionConfig.SameSite,
+	}
+	resp.Header().Add("Set-Cookie", cookie.String())
 }
