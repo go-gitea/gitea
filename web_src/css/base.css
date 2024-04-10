@@ -1316,6 +1316,7 @@ overflow-menu .ui.label {
   white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: anywhere;
+  line-height: inherit; /* needed for inline code preview in markup */
 }
 
 .blame .code-inner {
