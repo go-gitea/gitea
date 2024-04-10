@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,40 +28,33 @@ func (s *Session) Name() string {
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
 func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	user := SessionUser(req.Context(), sess)
-	if user != nil {
-		return user, nil
-	}
-	return nil, nil
-}
-
-// SessionUser returns the user object corresponding to the "uid" session variable.
-func SessionUser(ctx context.Context, sess SessionStore) *user_model.User {
 	if sess == nil {
-		return nil
+		return nil, nil
 	}
 
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
-		return nil
+		return nil, nil
 	}
 	log.Trace("Session Authorization: Found user[%d]", uid)
 
 	id, ok := uid.(int64)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	// Get user object
-	user, err := user_model.GetUserByID(ctx, id)
+	user, err := user_model.GetUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserById: %v", err)
+			log.Error("GetUserByID: %v", err)
+			// Return the err as-is to keep current signed-in session, in case the err is something like context.Canceled. Otherwise non-existing user (nil, nil) will make the caller clear the signed-in session.
+			return nil, err
 		}
-		return nil
+		return nil, nil
 	}
 
 	log.Trace("Session Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }

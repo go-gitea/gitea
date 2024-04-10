@@ -23,22 +23,12 @@
   "components": [
     "api",
     "button",
-    "checkbox",
-    "container",
     "dimmer",
     "dropdown",
     "form",
-    "grid",
-    "header",
-    "input",
-    "label",
-    "list",
     "menu",
     "modal",
     "search",
-    "segment",
-    "site",
-    "tab",
-    "table"
+    "tab"
   ]
 }

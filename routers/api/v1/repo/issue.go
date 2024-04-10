@@ -311,7 +311,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(total), limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // ListIssues list the issues of a repository
@@ -548,7 +548,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(total), listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
@@ -614,7 +614,7 @@ func GetIssue(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 // CreateIssue create an issue of a repository
@@ -737,7 +737,7 @@ func CreateIssue(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 // EditIssue modify an issue of a repository
@@ -872,10 +872,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 	if form.State != nil {
 		if issue.IsPull {
-			if pr, err := issue.GetPullRequest(ctx); err != nil {
+			if err := issue.LoadPullRequest(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 				return
-			} else if pr.HasMerged {
+			}
+			if issue.PullRequest.HasMerged {
 				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
 				return
 			}
@@ -910,7 +911,7 @@ func EditIssue(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 func DeleteIssue(ctx *context.APIContext) {

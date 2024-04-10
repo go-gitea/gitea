@@ -39,11 +39,9 @@ function initEditPreviewTab($form) {
 }
 
 function initEditorForm() {
-  if ($('.repository .edit.form').length === 0) {
-    return;
-  }
-
-  initEditPreviewTab($('.repository .edit.form'));
+  const $form = $('.repository .edit.form');
+  if (!$form) return;
+  initEditPreviewTab($form);
 }
 
 function getCursorPosition($e) {
@@ -66,10 +64,10 @@ export function initRepoEditor() {
 
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
-      showElem($('.quick-pull-branch-name'));
+      showElem('.quick-pull-branch-name');
       document.querySelector('.quick-pull-branch-name input').required = true;
     } else {
-      hideElem($('.quick-pull-branch-name'));
+      hideElem('.quick-pull-branch-name');
       document.querySelector('.quick-pull-branch-name input').required = false;
     }
     $('#commit-button').text(this.getAttribute('button_text'));
@@ -149,8 +147,8 @@ export function initRepoEditor() {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change() {
-        const dirty = $(this).hasClass(dirtyFileClass);
+      change($form) {
+        const dirty = $form[0]?.classList.contains(dirtyFileClass);
         commitButton.disabled = !dirty;
       },
     });
@@ -165,7 +163,7 @@ export function initRepoEditor() {
 
     commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
-      if ($editArea.val().length === 0) {
+      if (!$editArea.val()) {
         $('#edit-empty-content-modal').modal({
           onApprove() {
             $('.edit.form').trigger('submit');

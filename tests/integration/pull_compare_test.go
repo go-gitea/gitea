@@ -25,4 +25,11 @@ func TestPullCompare(t *testing.T) {
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.EqualValues(t, http.StatusOK, resp.Code)
+
+	// test the edit button in the PR diff view
+	req = NewRequest(t, "GET", "/user2/repo1/pulls/3/files")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
+	assert.Greater(t, editButtonCount, 0, "Expected to find a button to edit a file in the PR diff view but there were none")
 }

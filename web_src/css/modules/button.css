@@ -61,11 +61,22 @@ It needs some tricks to tweak the left/right borders with active state */
   border-right: none;
 }
 
-.ui.buttons .button:first-child {
+.ui.buttons .button:hover {
+  border-color: var(--color-secondary-dark-2);
+}
+
+.ui.buttons .button:hover + .button {
+  border-left: 1px solid var(--color-secondary-dark-2);
+}
+
+/* TODO: these "tw-hidden" selectors are only used by "blame.tmpl" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */
+.ui.buttons .button:first-child,
+.ui.buttons .button.tw-hidden:first-child + .button {
   border-left: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button:last-child {
+.ui.buttons .button:last-child,
+.ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden) {
   border-right: 1px solid var(--color-light-border);
 }
 
@@ -105,6 +116,7 @@ It needs some tricks to tweak the left/right borders with active state */
 .ui.basic.button:hover {
   color: var(--color-text);
   background: var(--color-hover);
+  border-color: var(--color-secondary-dark-2);
 }
 
 .ui.basic.buttons .button:active,

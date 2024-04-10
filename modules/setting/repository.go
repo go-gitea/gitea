@@ -288,7 +288,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 
-	fatalDuplicatedPath("repository.ROOT", RepoRootPath)
+	checkOverlappedPath("[repository].ROOT", RepoRootPath)
 
 	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {

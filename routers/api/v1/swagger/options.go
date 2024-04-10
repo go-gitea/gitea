@@ -196,4 +196,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateEditStarListOptions api.CreateEditStarListOptions
+  
+  // in:body
+	CreateVariableOption api.CreateVariableOption
+
+	// in:body
+	UpdateVariableOption api.UpdateVariableOption
 }

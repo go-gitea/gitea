@@ -41,6 +41,21 @@ func Init() error {
 	return nil
 }
 
+func MockIcon(icon string) func() {
+	if svgIcons == nil {
+		svgIcons = make(map[string]string)
+	}
+	orig, exist := svgIcons[icon]
+	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
+	return func() {
+		if exist {
+			svgIcons[icon] = orig
+		} else {
+			delete(svgIcons, icon)
+		}
+	}
+}
+
 // RenderHTML renders icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
@@ -55,5 +70,6 @@ func RenderHTML(icon string, others ...any) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
-	return ""
+	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
+	return template.HTML(fmt.Sprintf("<span>%s(%d/%s)</span>", template.HTMLEscapeString(icon), size, template.HTMLEscapeString(class)))
 }

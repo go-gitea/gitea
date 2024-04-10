@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -536,4 +537,38 @@ func TestIsSameUser(t *testing.T) {
 	assert.False(t, user1.IsSameUser(nil))
 	assert.False(t, user1.IsSameUser(user4))
 	assert.True(t, user1.IsSameUser(user1))
+}
+
+func TestDisabledUserFeatures(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testValues := container.SetOf(setting.UserFeatureDeletion,
+		setting.UserFeatureManageSSHKeys,
+		setting.UserFeatureManageGPGKeys)
+
+	oldSetting := setting.Admin.ExternalUserDisableFeatures
+	defer func() {
+		setting.Admin.ExternalUserDisableFeatures = oldSetting
+	}()
+	setting.Admin.ExternalUserDisableFeatures = testValues
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Len(t, setting.Admin.UserDisabledFeatures.Values(), 0)
+
+	// no features should be disabled with a plain login type
+	assert.LessOrEqual(t, user.LoginType, auth.Plain)
+	assert.Len(t, user_model.DisabledFeaturesWithLoginType(user).Values(), 0)
+	for _, f := range testValues.Values() {
+		assert.False(t, user_model.IsFeatureDisabledWithLoginType(user, f))
+	}
+
+	// check disabled features with external login type
+	user.LoginType = auth.OAuth2
+
+	// all features should be disabled
+	assert.NotEmpty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
+	for _, f := range testValues.Values() {
+		assert.True(t, user_model.IsFeatureDisabledWithLoginType(user, f))
+	}
 }

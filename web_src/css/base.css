@@ -23,6 +23,21 @@
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
+  --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
+  --page-spacing: 16px; /* space between page elements */
+  --page-margin-x: 32px; /* minimum space on left and right side of page */
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  :root {
+    --page-margin-x: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  :root {
+    --page-margin-x: 8px;
+  }
 }
 
 :root * {
@@ -37,6 +52,23 @@
   border-color: currentcolor;
 }
 
+html, body {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  line-height: 20px;
+  font-family: var(--fonts-regular);
+  color: var(--color-text);
+  background-color: var(--color-body);
+  tab-size: var(--tab-size);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-wrap: break-word;
+}
+
 textarea {
   font-family: var(--fonts-regular);
 }
@@ -45,8 +77,15 @@ pre,
 code,
 kbd,
 samp {
-  font-size: 0.9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
+}
+
+pre,
+code,
+kbd,
+samp,
+.tw-font-mono {
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
 b,
@@ -60,13 +99,65 @@ h6 {
   font-weight: var(--font-weight-semibold);
 }
 
-body {
-  color: var(--color-text);
-  background-color: var(--color-body);
-  tab-size: var(--tab-size);
-  display: flex;
-  flex-direction: column;
-  overflow-wrap: break-word;
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.28571429;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
+  padding: 0;
+}
+
+h1 {
+  min-height: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.71428571rem;
+}
+
+h3 {
+  font-size: 1.28571429rem;
+}
+
+h4 {
+  font-size: 1.07142857rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child {
+  margin-top: 0;
+}
+
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child {
+  margin-bottom: 0;
+}
+
+p {
+  margin: 0 0 1em;
+  line-height: 1.4285;
+}
+
+p:first-child {
+  margin-top: 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
 }
 
 table {
@@ -121,8 +212,8 @@ progress::-moz-progress-bar {
 }
 
 ::selection {
-  background: var(--color-primary-light-1) !important;
-  color: var(--color-white) !important;
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
 }
 
 ::placeholder,
@@ -146,7 +237,12 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
+}
+
+a:hover {
+  text-decoration-line: underline;
 }
 
 /* a = always colored, underlined on hover */
@@ -175,7 +271,7 @@ a.suppressed:hover {
 }
 
 a.silenced:hover {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 a.label,
@@ -183,7 +279,7 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
@@ -219,83 +315,19 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--color-markup-code-block);
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
 }
 
-.ui.dividing.header {
-  border-bottom-color: var(--color-secondary);
-}
-
-.page-content {
-  margin-top: 15px;
-}
-
-.page-content .header-wrapper,
-.page-content overflow-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
-}
-
-/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
-.ui.input > input {
-  line-height: var(--line-height-default);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-/* fix Fomantic's line-height causing vertical scrollbars to appear */
-ul.ui.list li,
-ol.ui.list li,
-.ui.list > .item,
-.ui.list .list > .item {
-  line-height: var(--line-height-default);
-}
-
-.ui.input.focus > input,
-.ui.input > input:focus {
-  border-color: var(--color-primary);
-}
-
-.ui.action.input .ui.ui.button {
-  border-color: var(--color-input-border);
-  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
-  padding-bottom: 0;
-}
-
-/* currently used for search bar dropdowns in repo search and explore code */
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
-  min-width: 10em;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
-  border-right: none;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
-  border-color: var(--color-input-border);
-}
-.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-}
-.ui.action.input:not([class*="left action"]) > input,
-.ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: none;
-}
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
-  border-left-color: var(--color-primary);
-}
-.ui.action.input:not([class*="left action"]) > input:focus {
-  border-right-color: var(--color-primary);
+.ui.menu {
+  display: flex;
 }
 
 .ui.menu,
 .ui.vertical.menu {
   background: var(--color-menu);
   border-color: var(--color-secondary);
+  box-shadow: none;
 }
 
 .ui.menu .item {
@@ -430,21 +462,6 @@ ol.ui.list li,
   color: var(--color-text-light-2);
 }
 
-.ui.list .list > .item .header,
-.ui.list > .item .header {
-  color: var(--color-text-dark);
-}
-
-.ui.list .list > .item > .content,
-.ui.list > .item > .content {
-  color: var(--color-text);
-}
-
-.ui.list .list > .item .description,
-.ui.list > .item .description {
-  color: var(--color-text);
-}
-
 /* replace item margin on secondary menu items with gap and remove both the
    negative margins on the menu as well as margin on the items */
 .ui.secondary.menu {
@@ -512,26 +529,6 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.error.header {
-  background: var(--color-error-bg) !important;
-  color: var(--color-error-text) !important;
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.error.segment {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.header {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border-color: var(--color-warning-border) !important;
-}
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -575,96 +572,12 @@ ol.ui.list li,
   color: var(--color-primary);
 }
 
-.ui.attached.table {
-  border-color: var(--color-secondary);
-}
-
-.ui.table {
-  color: var(--color-text);
-  background: var(--color-box-body);
-  border-color: var(--color-secondary);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-.ui.table th,
-.ui.table td {
-  transition: none;
-}
-
-.ui.table > tr > td,
-.ui.table > tbody > tr > td {
-  border-top-color: var(--color-secondary-alpha-50);
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n),
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
-
-.ui.ui.ui.ui.table tr.active,
-.ui.ui.table td.active {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.ui.selectable.table > tbody > tr:hover,
-.ui.table tbody tr td.selectable:hover {
-  color: var(--color-text);
-  background-color: var(--color-secondary-alpha-40);
-}
-
-.ui.ui.ui.ui.table tr.grey:not(.marked),
-.ui.ui.table td.grey:not(.marked) {
-  background: var(--color-body);
-  color: var(--color-text);
-}
-
-.ui.table > thead > tr > th {
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.ui.basic.table > tbody > tr {
-  border-color: var(--color-secondary);
-}
-
-.ui.table > tfoot > tr > th,
-.ui.table > tfoot > tr > td {
-  border-color: var(--color-secondary);
-  background: var(--color-box-body);
-  color: var(--color-text);
-}
-
-/* reduce table padding, needed especially for dense admin tables */
-.ui.table > thead > tr > th,
-.ui.table > tbody > tr > td,
-.ui.table > tr > td {
-  padding: 6px 5px;
-}
-/* use more horizontal padding on first and last items for visuals */
-.ui.table > thead > tr > th:first-of-type,
-.ui.table > tbody > tr > td:first-of-type,
-.ui.table > tr > td:first-of-type {
-  padding-left: 10px;
-}
-.ui.table > thead > tr > th:last-of-type,
-.ui.table > tbody > tr > td:last-of-type,
-.ui.table > tr > td:last-of-type {
-  padding-right: 10px;
-}
-
 img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
   border-radius: var(--border-radius);
   object-fit: contain;
   aspect-ratio: 1;
-}
-
-.ui.divided.list > .item {
-  border-color: var(--color-secondary);
 }
 
 .ui.error.message .header,
@@ -678,50 +591,24 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
-/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - 64px);
-  margin-left: auto;
-  margin-right: auto;
+/* add margin below .secondary nav when it is the first child */
+.page-content > :first-child.secondary-nav {
+  margin-bottom: 14px;
 }
 
-.ui.container.fluid.padded {
-  padding: 0 32px;
+/* add margin to all pages when there is no .secondary.nav */
+.page-content > :first-child:not(.secondary-nav) {
+  margin-top: var(--page-spacing);
 }
-
-/* enable fluid page widths for medium size viewports */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 32px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 16px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 8px;
-  }
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+   to compensate here */
+.page-content > :first-child.ui.grid {
+  margin-top: calc(var(--page-spacing) - 1rem);
 }
 
 .ui.pagination.menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.loading.segment::before,
-.ui.loading.form::before {
-  background: none;
-}
-
-.ui.loading.form > *,
-.ui.loading.segment > * {
-  opacity: 0.35;
 }
 
 .ui.form .fields.error .field textarea,
@@ -815,10 +702,6 @@ input:-webkit-autofill:active,
   opacity: var(--opacity-disabled);
 }
 
-.ui.loading.loading.input > i.icon svg {
-  visibility: hidden;
-}
-
 .text.primary {
   color: var(--color-primary) !important;
 }
@@ -903,20 +786,6 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
 }
 
-.ui.floating.label {
-  z-index: 10;
-}
-
-.ui.transparent.label {
-  background-color: transparent;
-}
-
-.ui.menu,
-.ui.vertical.menu,
-.ui.segment {
-  box-shadow: none;
-}
-
 /* replace fomantic popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -949,14 +818,6 @@ input:-webkit-autofill:active,
 
 .ui.menu .ui.dropdown.item .menu .item {
   width: 100%;
-}
-
-.ui.dropdown .menu > .item > .floating.label {
-  z-index: 11;
-}
-
-.ui.dropdown .menu .menu > .item > .floating.label {
-  z-index: 21;
 }
 
 .ui.dropdown .menu > .header {
@@ -1008,23 +869,6 @@ input:-webkit-autofill:active,
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
-}
-
-.ui .info.segment.top h3,
-.ui .info.segment.top h4 {
-  margin-top: 0;
-}
-
-.ui .info.segment.top h3:last-child {
-  margin-top: 4px;
-}
-
-.ui .info.segment.top > :last-child {
-  margin-bottom: 0;
-}
-
-.ui .normal.header {
-  font-weight: var(--font-weight-normal);
 }
 
 .ui .form .autofill-dummy {
@@ -1184,17 +1028,6 @@ input:-webkit-autofill:active,
   margin-right: 0;
 }
 
-.ui.icon.header svg {
-  width: 3em;
-  height: 3em;
-  float: none;
-  display: block;
-  line-height: var(--line-height-default);
-  padding: 0;
-  margin: 0 auto 0.5rem;
-  opacity: 1;
-}
-
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1220,11 +1053,6 @@ input:-webkit-autofill:active,
   height: 0.67em;
   width: 0.67em;
   border-radius: var(--border-radius);
-}
-
-.attention-header {
-  padding: 0.5em 0.75em !important;
-  color: var(--color-text) !important;
 }
 
 .attention-icon {
@@ -1270,15 +1098,7 @@ strong.attention-caution, svg.attention-caution {
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
-}
-
 overflow-menu {
-  margin-bottom: 15px !important;
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
 }
@@ -1290,6 +1110,10 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .ui.label {
+  margin-left: 7px !important; /* save some space */
 }
 
 .activity-bar-graph {
@@ -1325,57 +1149,21 @@ overflow-menu .overflow-menu-items .item {
   margin-top: 1px;
 }
 
-.ui.label {
-  padding: 0.3em 0.5em;
-  transition: none;
-  white-space: nowrap;
-}
-
-.ui.label,
-.ui.menu .item > .label,
-.ui.grey.labels .label,
-.ui.ui.ui.grey.label {
+.ui.menu .item > .label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
 }
 
-.ui.label > a {
-  opacity: .75; /* increase contrast over default fomantic .5 */
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.label:hover,
-a.ui.label:hover {
-  background: var(--color-label-hover-bg);
-  border-color: var(--color-label-hover-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.active.label:hover,
-a.ui.active.label:hover {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
-  width: 2%;
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 8px;
   text-align: right !important;
-  color: var(--color-text-light-1);
+  color: var(--color-text-light-2);
   width: 1%;
   font-family: var(--fonts-monospace);
 }
@@ -1388,8 +1176,11 @@ a.ui.active.label:hover {
   content: attr(data-line-number);
   line-height: 20px !important;
   padding: 0 10px;
-  cursor: pointer;
   display: block;
+}
+
+.code-view .lines-num span::after {
+  cursor: pointer;
 }
 
 .lines-type-marker {
@@ -1429,22 +1220,34 @@ a.ui.active.label:hover {
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
 }
 
-.lines-code.active,
-.lines-code .active {
-  background: var(--color-active-line) !important;
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
 }
 
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg) !important;
 }
 
-.blame .lines-code {
-  padding: 0 !important;
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -1452,27 +1255,25 @@ a.ui.active.label:hover {
   white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: anywhere;
+  line-height: inherit; /* needed for inline code preview in markup */
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: min(26vw, 300px);
   display: block;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 6px;
   line-height: 20px;
   box-sizing: content-box;
 }
@@ -1494,11 +1295,10 @@ a.ui.active.label:hover {
   flex-shrink: 0;
 }
 
-.lines-commit .ui.avatar {
-  height: 18px;
-  width: 18px;
-  display: block;
-  margin-top: 1px;
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
 }
 
 .top-line-blame {
@@ -1514,148 +1314,13 @@ a.ui.active.label:hover {
   border-bottom: 1px solid var(--color-secondary);
 }
 
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
+}
+
 .code-view table {
   width: 100%;
-}
-
-.ui.primary.label,
-.ui.primary.labels .label,
-.ui.ui.ui.primary.label {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary-dark-2);
-}
-
-.ui.basic.labels .primary.label,
-.ui.ui.ui.basic.primary.label {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.ui.basic.labels a.primary.label:hover,
-a.ui.ui.ui.basic.primary.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-primary-dark-1);
-  color: var(--color-primary-dark-1);
-}
-
-.ui.basic.labels .secondary.label,
-.ui.ui.ui.basic.secondary.label {
-  background: transparent;
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
-}
-
-.ui.basic.labels .orange.label,
-.ui.ui.ui.basic.orange.label {
-  background: transparent;
-  border-color: var(--color-orange);
-  color: var(--color-orange);
-}
-
-.ui.basic.labels .green.label,
-.ui.ui.ui.basic.green.label {
-  background: transparent;
-  border-color: var(--color-green);
-  color: var(--color-green);
-}
-
-.ui.basic.labels .olive.label,
-.ui.ui.ui.basic.olive.label {
-  background: transparent;
-  border-color: var(--color-olive);
-  color: var(--color-olive);
-}
-
-.ui.basic.labels .teal.label,
-.ui.ui.ui.basic.teal.label {
-  background: transparent;
-  border-color: var(--color-teal);
-  color: var(--color-teal);
-}
-
-.ui.basic.labels .blue.label,
-.ui.ui.ui.basic.blue.label {
-  background: transparent;
-  border-color: var(--color-blue);
-  color: var(--color-blue);
-}
-
-.ui.basic.labels .violet.label,
-.ui.ui.ui.basic.violet.label {
-  background: transparent;
-  border-color: var(--color-violet);
-  color: var(--color-violet);
-}
-
-.ui.basic.labels .purple.label,
-.ui.ui.ui.basic.purple.label {
-  background: transparent;
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-
-.ui.basic.labels .pink.label,
-.ui.ui.ui.basic.pink.label {
-  background: transparent;
-  border-color: var(--color-pink);
-  color: var(--color-pink);
-}
-
-.ui.basic.labels .red.label,
-.ui.ui.ui.basic.red.label {
-  background: transparent;
-  border-color: var(--color-red);
-  color: var(--color-red);
-}
-
-.ui.basic.labels .brown.label,
-.ui.ui.ui.basic.brown.label {
-  background: transparent;
-  border-color: var(--color-brown);
-  color: var(--color-brown);
-}
-
-.ui.basic.labels .yellow.label,
-.ui.ui.ui.basic.yellow.label {
-  background: transparent;
-  border-color: var(--color-yellow);
-  color: var(--color-yellow);
-}
-
-.ui.basic.labels .grey.label,
-.ui.ui.ui.basic.grey.label {
-  background: transparent;
-  border-color: var(--color-grey);
-  color: var(--color-grey);
-}
-
-.ui.basic.labels .black.label,
-.ui.ui.ui.basic.black.label {
-  background: transparent;
-  border-color: var(--color-black);
-  color: var(--color-black);
-}
-
-.ui.basic.labels .label,
-.ui.basic.label,
-.ui.secondary.labels .ui.basic.label {
-  background: var(--color-button);
-  border-color: var(--color-light-border);
-  color: var(--color-text-light);
-}
-
-.ui.basic.labels a.label:hover,
-a.ui.basic.label:hover {
-  color: var(--color-text);
-  border-color: var(--color-light-border);
-  background: var(--color-hover);
-}
-
-.ui.label > img {
-  width: auto !important;
-  vertical-align: middle;
-  height: 2.1666em !important;
 }
 
 .migrate .svg.gitea-git {
@@ -1667,56 +1332,6 @@ a.ui.basic.label:hover {
   border-radius: var(--border-radius-circle);
   height: 14px;
   width: 14px;
-}
-
-.ui.label > .color-icon {
-  margin-left: 0;
-}
-
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  border-color: var(--color-secondary);
-}
-
-.ui.segments > .segment {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.segment {
-  background: var(--color-secondary-bg);
-  color: var(--color-text-light);
-}
-
-.ui.attached.header {
-  position: relative;
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-}
-
-/* fix misaligned right buttons on box headers */
-.ui.attached.header > .ui.right {
-  position: absolute;
-  right: 0.78571429rem;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
-.ui.attached.header > .ui.right .ui.tiny.button {
-  padding: 6px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments + .ui.top.attached.header,
-.ui.attached.segment + .ui.top.attached.header {
-  margin-top: 1rem;
 }
 
 .rss-icon {
@@ -1769,27 +1384,8 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
-/* for the jquery.minicolors plugin */
-.minicolors-panel {
-  background: var(--color-secondary-dark-1) !important;
-}
-
-/* https://github.com/go-gitea/gitea/pull/11486 */
-.ui.sub.header {
-  text-transform: none;
-}
-
 .ui.tabular.menu {
   border-color: var(--color-secondary);
-}
-
-.ui.tabular.menu .item {
-  padding: 11px 12px;
-  color: var(--color-text-light-2);
-}
-
-.ui.tabular.menu .item:hover {
-  color: var(--color-text);
 }
 
 .ui.tabular.menu .active.item,
@@ -1808,31 +1404,34 @@ table th[data-sortt-desc] .svg {
   border-color: var(--color-secondary);
 }
 
+.ui.tabular.menu .item,
 .ui.secondary.pointing.menu .item {
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
 }
 
 .ui.secondary.pointing.menu .active.item,
 .ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
+.ui.secondary.pointing.menu .dropdown.item:hover {
   color: var(--color-text-dark);
 }
 
-.ui.header {
-  color: var(--color-text);
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
 }
 
-.ui.header .ui.label {
-  margin-left: 0.25rem;
-}
-
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
-.ui.header .sub.header {
-  color: var(--color-text-light-1);
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .flash-error details code,
@@ -1927,7 +1526,6 @@ table th[data-sortt-desc] .svg {
 .btn,
 .ui.ui.button,
 .ui.ui.dropdown,
-.ui.ui.label,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -1943,23 +1541,9 @@ table th[data-sortt-desc] .svg {
   vertical-align: middle;
 }
 
-.ui.ui.circular.label {
-  justify-content: center;
-}
-
 .ui.ui.labeled.button {
   gap: 0;
   align-items: stretch;
-}
-
-.ui.ui.icon.input .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ui.icon.input > i.icon {
-  transition: none;
 }
 
 .flex-items-block > .item,

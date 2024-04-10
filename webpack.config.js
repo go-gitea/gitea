@@ -171,14 +171,13 @@ export default {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                map: false, // https://github.com/postcss/postcss/issues/1914
                 plugins: [
                   tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
                 ],
               },
             },
-          }
+          },
         ],
       },
       {
@@ -191,14 +190,7 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
-        }
-      },
-      {
-        test: /\.png$/i,
-        type: 'asset/resource',
-        generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
-        }
+        },
       },
     ],
   },

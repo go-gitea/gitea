@@ -117,7 +117,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 		return nil
 	}
-	if input.Repo.IsEmpty {
+	if input.Repo.IsEmpty || input.Repo.IsArchived {
 		return nil
 	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
@@ -317,17 +317,17 @@ func handleWorkflows(
 			continue
 		}
 
-		// cancel running jobs if the event is push
-		if run.Event == webhook_module.HookEventPush {
-			// cancel running jobs of the same workflow
-			if err := actions_model.CancelRunningJobs(
+		// cancel running jobs if the event is push or pull_request_sync
+		if run.Event == webhook_module.HookEventPush ||
+			run.Event == webhook_module.HookEventPullRequestSync {
+			if err := actions_model.CancelPreviousJobs(
 				ctx,
 				run.RepoID,
 				run.Ref,
 				run.WorkflowID,
 				run.Event,
 			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
+				log.Error("CancelPreviousJobs: %v", err)
 			}
 		}
 
@@ -501,7 +501,7 @@ func handleSchedules(
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
 func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
-	if repo.IsEmpty {
+	if repo.IsEmpty || repo.IsArchived {
 		return nil
 	}
 
