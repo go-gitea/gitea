@@ -44,12 +44,12 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		HttpOnly: true,
 		SameSite: setting.SessionConfig.SameSite,
 	}
-	// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
-	// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
-	// The code was updated, but it behaves differently depending on the value
-	// of AppSubURL.  When AppSubURL is non-empty, the cookie with a trailing
-	// slash must be deleted.
 	if maxAge < 0 {
+		// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
+		// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
+		// The code was updated, but it behaves differently depending on the
+		// value of AppSubURL.  When AppSubURL is non-empty, the cookie with a
+		// trailing slash must be deleted.
 		withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
 		withTrailingSlash := withoutTrailingSlash + "/"
 		for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
