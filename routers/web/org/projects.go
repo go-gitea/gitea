@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -211,7 +210,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), id))
 }
 
 // DeleteProject delete a project
