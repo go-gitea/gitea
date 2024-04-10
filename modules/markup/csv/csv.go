@@ -111,7 +111,7 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 			return err
 		}
 		element := "td"
-		if row == 1 {
+		if row == 0 {
 			element = "th"
 		}
 		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
