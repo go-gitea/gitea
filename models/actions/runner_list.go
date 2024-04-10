@@ -36,16 +36,9 @@ func (runners RunnerList) LoadOwners(ctx context.Context) error {
 }
 
 func (runners RunnerList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(runners))
-	for _, runner := range runners {
-		if runner.RepoID == 0 {
-			continue
-		}
-		if _, ok := repoIDs[runner.RepoID]; !ok {
-			repoIDs[runner.RepoID] = struct{}{}
-		}
-	}
-	return repoIDs.Values()
+	return container.FilterSlice(runners, func(runner *ActionRunner) (int64, bool) {
+		return runner.RepoID, runner.RepoID > 0
+	})
 }
 
 func (runners RunnerList) LoadRepos(ctx context.Context) error {
