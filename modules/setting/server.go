@@ -331,7 +331,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
-	checkOverlappedPath("server.PPROF_DATA_PATH", PprofDataPath)
+	checkOverlappedPath("[server].PPROF_DATA_PATH", PprofDataPath)
 
 	landingPage := sec.Key("LANDING_PAGE").MustString("home")
 	switch landingPage {
