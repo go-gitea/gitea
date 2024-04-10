@@ -27,7 +27,7 @@ func TestAPICompareTag(t *testing.T) {
 
 	repoName := "repo1"
 
-	req := NewRequestf(t, "GET", "/user2/%s/compare/v1.1...master", repoName).
+	req := NewRequestf(t, "GET", "/api/v1/repos/user2/%s/compare/v1.1...master", repoName).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
