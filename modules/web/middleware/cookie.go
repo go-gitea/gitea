@@ -38,26 +38,23 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		Name:     name,
 		Value:    url.QueryEscape(value),
 		MaxAge:   maxAge,
-		Path:     setting.SessionConfig.CookiePath,
+		Path:     "", // Filled in below.
 		Domain:   setting.SessionConfig.Domain,
 		Secure:   setting.SessionConfig.Secure,
 		HttpOnly: true,
 		SameSite: setting.SessionConfig.SameSite,
 	}
-	resp.Header().Add("Set-Cookie", cookie.String())
-	if maxAge < 0 {
-		// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
-		// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
-		// The code was updated, but it behaves differently depending on the
-		// value of AppSubURL.  When AppSubURL is non-empty, the cookie with a
-		// trailing slash must be deleted.
-		withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
-		withTrailingSlash := withoutTrailingSlash + "/"
-		for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
-			if setting.SessionConfig.CookiePath != path {
-				cookie.Path = path
-				resp.Header().Add("Set-Cookie", cookie.String())
-			}
+	// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
+	// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
+	// The code was updated, but it behaves differently depending on the value
+	// of AppSubURL.  When AppSubURL is non-empty, the cookie with a trailing
+	// slash must be deleted.
+	withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
+	withTrailingSlash := withoutTrailingSlash + "/"
+	for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
+		if maxAge < 0 || setting.SessionConfig.CookiePath == path {
+			cookie.Path = path
+			resp.Header().Add("Set-Cookie", cookie.String())
 		}
 	}
 }
