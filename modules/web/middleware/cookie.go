@@ -49,12 +49,15 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 	// The code was updated, but it behaves differently depending on the value
 	// of AppSubURL.  When AppSubURL is non-empty, the cookie with a trailing
 	// slash must be deleted.
-	withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
-	withTrailingSlash := withoutTrailingSlash + "/"
-	for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
-		if maxAge < 0 || setting.SessionConfig.CookiePath == path {
+	if maxAge < 0 {
+		withoutTrailingSlash := strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
+		withTrailingSlash := withoutTrailingSlash + "/"
+		for _, path := range []string{withoutTrailingSlash, withTrailingSlash} {
 			cookie.Path = path
 			resp.Header().Add("Set-Cookie", cookie.String())
 		}
+	} else {
+		cookie.Path = setting.SessionConfig.CookiePath
+		resp.Header().Add("Set-Cookie", cookie.String())
 	}
 }
