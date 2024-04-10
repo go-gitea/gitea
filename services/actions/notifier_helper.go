@@ -525,12 +525,9 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	}
 
 	// We need a notifyInput to call handleSchedules
-	// if repo is a mirror, commit author maybe external user,
-	// so we need to use the repo owner as the Doer of the notifyInput
-	if err := repo.LoadOwner(ctx); err != nil {
-		return err
-	}
-	notifyInput := newNotifyInput(repo, repo.Owner, webhook_module.HookEventSchedule)
+	// if repo is a mirror, commit author maybe an external user,
+	// so we use action user as the Doer of the notifyInput
+	notifyInput := newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }
