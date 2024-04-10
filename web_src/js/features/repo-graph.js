@@ -19,8 +19,7 @@ export function initRepoGraphGit() {
     } else {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    const paginationLinks = document.querySelectorAll('.pagination a');
-    for (const link of paginationLinks) {
+    for (const link of document.querySelectorAll('.pagination a')) {
       const href = link.getAttribute('href');
       if (!href) continue;
       const url = new URL(href, window.location);
@@ -36,8 +35,7 @@ export function initRepoGraphGit() {
     document.getElementById('flow-color-monochrome')?.classList.remove('active');
     graphContainer.classList.add('colored');
     graphContainer.classList.remove('monochrome');
-    const paginationLinks = document.querySelectorAll('.pagination a');
-    for (const link of paginationLinks) {
+    for (const link of document.querySelectorAll('.pagination a')) {
       const href = link.getAttribute('href');
       if (!href) continue;
       const url = new URL(href, window.location);
