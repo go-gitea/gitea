@@ -525,16 +525,12 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	}
 
 	// We need a notifyInput to call handleSchedules
-	// Here we use the commit author as the Doer of the notifyInput
-	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			commitUser = user_model.NewReplaceUser(commit.Author.Name)
-		} else {
-			return fmt.Errorf("get user by email: %w", err)
-		}
+	// if repo is a mirror, commit author maybe external user,
+	// so we need to use the repo owner as the Doer of the notifyInput
+	if err := repo.LoadOwner(ctx); err != nil {
+		return err
 	}
-	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+	notifyInput := newNotifyInput(repo, repo.Owner, webhook_module.HookEventSchedule)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }
