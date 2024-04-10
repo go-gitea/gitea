@@ -111,7 +111,7 @@ var UI = struct {
 		MaxRows     int
 	}{
 		MaxFileSize: 524288,
-		MaxRows:     5000,
+		MaxRows:     100000,
 	},
 	Admin: struct {
 		UserPagingNum   int

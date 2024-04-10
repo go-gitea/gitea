@@ -39,8 +39,8 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`tw-flex tw-justify-center tw-items-center`)},
-		{Element: "a", AllowAttr: "href", Regexp: regexp.MustCompile(`\?display=source`)},
+		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`tw-flex tw-justify-center tw-items-center tw-py-4 tw-text-14`)},
+		{Element: "a", AllowAttr: "href", Regexp: regexp.MustCompile(``)},
 	}
 }
 
@@ -81,7 +81,6 @@ func writeField(w io.Writer, element, class, field string) error {
 // Render implements markup.Renderer
 func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	tmpBlock := bufio.NewWriter(output)
-	warnBlock := bufio.NewWriter(tmpBlock)
 	maxSize := setting.UI.CSV.MaxFileSize
 	maxRows := setting.UI.CSV.MaxRows
 
@@ -129,23 +128,22 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 		row++
 	}
 
+	if _, err = tmpBlock.WriteString("</table>"); err != nil {
+		return err
+	}
+
 	// Check if maxRows or maxSize is reached, and if true, warn.
 	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
 		locale := ctx.Ctx.Value(translation.ContextKey).(translation.Locale)
 
 		// Construct the HTML string
-		warn := `<div class="tw-flex tw-justify-center tw-items-center"><div>` + locale.TrString("repo.file_too_large") + ` <a class="source" href="?display=source">` + locale.TrString("repo.file_view_source") + `</a></div></div>`
+		warn := `<div class="tw-flex tw-justify-center tw-items-center tw-py-4 tw-text-14"><div>` + locale.TrString("repo.file_too_large") + ` <a class="source" href="` + ctx.Links.RawLink() + `/` + ctx.RelativePath + `">` + locale.TrString("repo.file_view_raw") + `</a></div></div>`
 
 		// Write the HTML string to the output
-		if _, err := warnBlock.WriteString(warn); err != nil {
-			return err
-		}
-		if err = warnBlock.Flush(); err != nil {
+		if _, err := tmpBlock.WriteString(warn); err != nil {
 			return err
 		}
 	}
-	if _, err = tmpBlock.WriteString("</table>"); err != nil {
-		return err
-	}
+
 	return tmpBlock.Flush()
 }
