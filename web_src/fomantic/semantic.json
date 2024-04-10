@@ -21,7 +21,6 @@
   "rtl": false,
   "admin": false,
   "components": [
-    "api",
     "button",
     "dimmer",
     "dropdown",
