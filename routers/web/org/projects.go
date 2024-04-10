@@ -208,11 +208,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	id := ctx.ParamsInt64(":id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", err)
-		} else {
-			ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
-		}
+		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
