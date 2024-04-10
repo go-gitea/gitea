@@ -4,15 +4,15 @@
 package actions
 
 import (
-    "context"
+	"context"
 
-    actions_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 )
 
-func CreateRequireAction(ctx context.Context, orgID int64, repoName string, workflowName string) (*actions_model.RequireAction, error) {
-    v, err := actions_model.AddRequireAction(ctx, orgID, repoName, workflowName)
-    if err != nil {
-        return nil, err
-    }
-    return v, nil
+func CreateRequireAction(ctx context.Context, orgID int64, repoName, workflowName string) (*actions_model.RequireAction, error) {
+	v, err := actions_model.AddRequireAction(ctx, orgID, repoName, workflowName)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
 }

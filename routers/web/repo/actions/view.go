@@ -716,36 +716,36 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 }
 
 func DisableGlobalWorkflowFile(ctx *context_module.Context) {
-    disableOrEnableGlobalWorkflowFile(ctx, true)
+	disableOrEnableGlobalWorkflowFile(ctx, true)
 }
 
 func EnableGlobalWorkflowFile(ctx *context_module.Context) {
-    disableOrEnableGlobalWorkflowFile(ctx, false)
+	disableOrEnableGlobalWorkflowFile(ctx, false)
 }
 
 func disableOrEnableGlobalWorkflowFile(ctx *context_module.Context, isGlobalEnable bool) {
-    workflow := ctx.FormString("workflow")
-    if len(workflow) == 0 {
-        ctx.ServerError("workflow", nil)
-        return
-    }
-    cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
-    cfg := cfgUnit.ActionsConfig()
-    if isGlobalEnable {
-        cfg.DisableGlobalWorkflow(workflow)
-    } else {
-        cfg.EnableGlobalWorkflow(workflow)
-    }
-    if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
-        ctx.ServerError("UpdateRepoUnit", err)
-        return
-    }
-    if isGlobalEnable {
-        ctx.Flash.Success(ctx.Tr("actions.workflow.global_disable_success", workflow))
-    } else {
-        ctx.Flash.Success(ctx.Tr("actions.workflow.global_enable_success", workflow))
-    }
-    redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-        url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
-    ctx.JSONRedirect(redirectURL)
+	workflow := ctx.FormString("workflow")
+	if len(workflow) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if isGlobalEnable {
+		cfg.DisableGlobalWorkflow(workflow)
+	} else {
+		cfg.EnableGlobalWorkflow(workflow)
+	}
+	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnit", err)
+		return
+	}
+	if isGlobalEnable {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.global_disable_success", workflow))
+	} else {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.global_enable_success", workflow))
+	}
+	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
+		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	ctx.JSONRedirect(redirectURL)
 }

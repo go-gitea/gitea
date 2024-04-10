@@ -6,9 +6,9 @@
 package setting
 
 import (
-    "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 )
 
 func RedirectToRepoSetting(ctx *context.Context) {
-    ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/require_action")
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/require_action")
 }

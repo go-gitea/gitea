@@ -1,18 +1,16 @@
 <div class="require-actions-container">
     <h4 class="ui top attached header">
-        {{ctx.Locale.Tr "actions.require_action.require_action_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
-        <div class="ui right">
-            <div class="ui top right">
-                <button class="ui primary tiny button show-modal"
-                  data-modal="#add-require-actions-modal"
+    {{ctx.Locale.Tr "actions.require_action.require_action_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+    <div class="ui right">
+        <div class="ui top right">
+            <button class="ui primary tiny button show-modal"
+                    data-modal="#add-require-actions-modal"
                     data-modal-form.action="{{.Link}}/add"
-                    data-modal-header="{{ctx.Locale.Tr "actions.require_action.add"}}"
-                >
+                    data-modal-header="{{ctx.Locale.Tr "actions.require_action.add"}}">
                     {{ctx.Locale.Tr "actions.require_action.add"}}
-                </button>
-            </div>
-
+            </button>
         </div>
+    </div>
     </h4>
     <div class="ui attached segment">
         <form class="ui form ignore-dirty" id="require-action-list-search-form" action="{{$.Link}}">
@@ -61,7 +59,7 @@
             </tbody>
         </table>
     </div>
-    {{template "base/paginate" .}}
+    {{template "base/paginate"}}
 </div>
 
 
@@ -69,7 +67,7 @@
 {{/* Add RequireAction dialog */}}
 <div class="ui small modal" id="add-require-actions-modal">
     <div class="header">
-        <span id="actions-modal-header">Availble Enable Workflows</span>
+        <span id="actions-modal-header">Enable Workflows</span>
     </div>
     <form class="ui form form-fetch-action" method="post">
         <div class="content">
@@ -77,7 +75,6 @@
                 <a href="https://docs.gitea.com/usage/actions/require-action">{{ctx.Locale.Tr "actions.require_action.enable_global_workflow"}}</a>
             </div>
             <div class="divider"></div>
-            <!-- <div class="ui input"> -->
             <table class="ui very basic striped table unstackable">
             <thead>
                 <tr>

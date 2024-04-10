@@ -6,77 +6,73 @@
 package actions
 
 import (
-    "context"
+	"context"
 
-    "code.gitea.io/gitea/models/db"
-    //"code.gitea.io/gitea/models/unit"
-    "code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
+	//"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/timeutil"
 
-    "xorm.io/builder"
+	"xorm.io/builder"
 )
 
 type RequireAction struct {
-    ID              int64           `xorm:"pk autoincr"`
-    OrgID           int64           `xorm:"index"`
-    RepoName        string          `xorm:"VARCHAR(255)"`
-    WorkflowName    string          `xorm:"VARCHAR(255) UNIQUE(require_action) NOT NULL"`
-    //Description string                  `xorm:"LONGTEXT NOT NULL"`
-    CreatedUnix timeutil.TimeStamp  `xorm:"created NOT NULL"`
-    UpdatedUnix timeutil.TimeStamp  `xorm:"updated"`
-    // RepoRange   string                  // glob match which repositories could use this runner
+	ID           int64  `xorm:"pk autoincr"`
+	OrgID        int64  `xorm:"index"`
+	RepoName     string `xorm:"VARCHAR(255)"`
+	WorkflowName string `xorm:"VARCHAR(255) UNIQUE(require_action) NOT NULL"`
+	// Description string                  `xorm:"LONGTEXT NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	// RepoRange   string                  // glob match which repositories could use this runner
 }
 
 type GlobalWorkflow struct {
-    RepoName    string
-    Filename    string
+	RepoName string
+	Filename string
 }
 
 func init() {
-    db.RegisterModel(new(RequireAction))
+	db.RegisterModel(new(RequireAction))
 }
 
 type FindRequireActionOptions struct {
-    db.ListOptions
-    RequireActionID int64
-    OrgID           int64
-    RepoName        string
+	db.ListOptions
+	RequireActionID int64
+	OrgID           int64
+	RepoName        string
 }
 
 func (opts FindRequireActionOptions) ToConds() builder.Cond {
-    cond := builder.NewCond()
-    if opts.OrgID > 0 {
-        cond = cond.And(builder.Eq{"org_id": opts.OrgID})
-    }
-    if opts.RequireActionID > 0 {
-        cond = cond.And(builder.Eq{"id": opts.RequireActionID})
-    }
-    if opts.RepoName != ""  {
-        cond = cond.And(builder.Eq{"repo_name": opts.RepoName})
-    }
-    return cond
+	cond := builder.NewCond()
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	}
+	if opts.RequireActionID > 0 {
+		cond = cond.And(builder.Eq{"id": opts.RequireActionID})
+	}
+	if opts.RepoName != "" {
+		cond = cond.And(builder.Eq{"repo_name": opts.RepoName})
+	}
+	return cond
 }
 
 // LoadAttributes loads the attributes of the require action
 func (r *RequireAction) LoadAttributes(ctx context.Context) error {
-    // place holder for now.
-    return nil
+	// place holder for now.
+	return nil
 }
 
 // if the workflow is removable
 func (r *RequireAction) Removable(orgID int64) bool {
-    // everyone can remove for now
-    if r.OrgID == orgID {
-        return true
-    }
-    return false
+	// everyone can remove for now
+	return r.OrgID == orgID
 }
 
-
-func AddRequireAction(ctx context.Context, orgID int64, repoName string, workflowName string) (*RequireAction, error) {
-    ra := &RequireAction{
-        OrgID:      orgID,
-        RepoName:   repoName,
-        WorkflowName:       workflowName,
-    }
-    return ra, db.Insert(ctx, ra)
+func AddRequireAction(ctx context.Context, orgID int64, repoName, workflowName string) (*RequireAction, error) {
+	ra := &RequireAction{
+		OrgID:        orgID,
+		RepoName:     repoName,
+		WorkflowName: workflowName,
+	}
+	return ra, db.Insert(ctx, ra)
 }
