@@ -228,7 +228,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if runner.RepoID != 0 {
 		jobCond = builder.Eq{"repo_id": runner.RepoID}
 	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("id").From("repository").
+		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
 			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
