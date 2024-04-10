@@ -177,12 +177,44 @@
   }
 }
 
-.repository.file.list .repo-path {
-  word-break: break-word;
+.commit-summary {
+  flex: 1;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.repository.file.list #repo-files-table {
-  table-layout: fixed;
+.commit-header .commit-summary,
+td .commit-summary {
+  white-space: normal;
+}
+
+.latest-commit {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+  .latest-commit .sha {
+    display: none;
+  }
+  .latest-commit .commit-summary {
+    margin-left: 8px;
+  }
+}
+
+.repo-path {
+  display: flex;
+  overflow-wrap: anywhere;
+}
+
+/* this is what limits the commit table width to a value that works on all viewport sizes */
+#repo-files-table th:first-of-type {
+  max-width: calc(calc(min(100vw, 1280px)) - 145px - calc(2 * var(--page-margin-x)));
 }
 
 .repository.file.list #repo-files-table thead th {
@@ -262,7 +294,6 @@
 }
 
 .repository.file.list #repo-files-table td.age {
-  width: 120px;
   color: var(--color-text-light-1);
 }
 
@@ -1219,10 +1250,6 @@
   margin: 0;
 }
 
-.repository #commits-table td.message {
-  text-overflow: unset;
-}
-
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
   background-color: var(--color-light) !important;
 }
@@ -2114,6 +2141,20 @@
   padding-bottom: 0 !important;
 }
 
+.commit-header-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .commit-header-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .settings.webhooks .list > .item:not(:first-child),
 .settings.githooks .list > .item:not(:first-child),
 .settings.actions .list > .item:not(:first-child) {
@@ -2346,7 +2387,7 @@ tbody.commit-list {
 .author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 50px);
+  max-width: 100%;
   display: inline-block;
   vertical-align: middle;
 }
@@ -2371,10 +2412,6 @@ tbody.commit-list {
   tr.commit-list {
     width: 100%;
   }
-  th .message-wrapper {
-    display: block;
-    max-width: calc(100vw - 70px);
-  }
   .author-wrapper {
     max-width: 80px;
   }
@@ -2384,26 +2421,17 @@ tbody.commit-list {
   tr.commit-list {
     width: 723px;
   }
-  th .message-wrapper {
-    max-width: 120px;
-  }
 }
 
 @media (min-width: 992px) and (max-width: 1200px) {
   tr.commit-list {
     width: 933px;
   }
-  th .message-wrapper {
-    max-width: 350px;
-  }
 }
 
 @media (min-width: 1201px) {
   tr.commit-list {
     width: 1127px;
-  }
-  th .message-wrapper {
-    max-width: 525px;
   }
 }
 
@@ -2732,7 +2760,7 @@ tbody.commit-list {
   .repository.file.list #repo-files-table .entry td.message,
   .repository.file.list #repo-files-table .commit-list td.message,
   .repository.file.list #repo-files-table .entry span.commit-summary,
-  .repository.file.list #repo-files-table .commit-list span.commit-summary {
+  .repository.file.list #repo-files-table .commit-list tr span.commit-summary {
     display: none !important;
   }
   .repository.view.issue .comment-list .timeline,
