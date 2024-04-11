@@ -13,17 +13,19 @@
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 			{{range .Commits}}
 				<tr>
-					<td class="author tw-flex">
-						{{$userName := .Author.Name}}
-						{{if .User}}
-							{{if and .User.FullName DefaultShowFullName}}
-								{{$userName = .User.FullName}}
+					<td class="author">
+						<div class="tw-flex">
+							{{$userName := .Author.Name}}
+							{{if .User}}
+								{{if and .User.FullName DefaultShowFullName}}
+									{{$userName = .User.FullName}}
+								{{end}}
+								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
+							{{else}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
+								<span class="author-wrapper">{{$userName}}</span>
 							{{end}}
-							{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
-						{{else}}
-							{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-							<span class="author-wrapper">{{$userName}}</span>
-						{{end}}
+						</div>
 					</td>
 					<td class="sha">
 						{{$class := "ui sha label"}}
