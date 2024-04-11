@@ -4,7 +4,29 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.21.10](https://github.com/go-gitea/gitea/releases/tag/1.21.10) - 2024-03-25
+## [1.21.11](https://github.com/go-gitea/gitea/releases/tag/v1.21.11) - 2024-04-07
+
+* SECURITY
+  * Use go1.21.9 to include Golang security fix
+  * Fix possible renderer security problem (#30136) (#30315)
+* BUGFIXES
+  * Fix close file in the Upload func (#30262) (#30269)
+  * Fix inline math blocks can't be preceeded/followed by alphanumerical characters (#30175) (#30250)
+  * Fix missing 0 prefix of GPG key id (#30245) (#30247)
+  * Include encoding in signature payload (#30174) (#30181)
+  * Move from `max( id )` to `max( index )` for latest commit statuses (#30076) (#30155)
+  * Load attachments for code comments (#30124) (#30126)
+  * Fix gitea doctor will remove repo-avatar files when execute command storage-archives (#30094) (#30120)
+  * Fix possible data race on tests (#30093) (#30108)
+  * Fix duplicate migrated milestones (#30102) (#30105)
+  * Fix panic for fixBrokenRepoUnits16961 (#30068) (#30100)
+  * Fix incorrect SVGs (#30087)
+  * Fix create commit status (#30225) #30340
+  * Performance optimization for git push (#30104) #30354
+* MISC
+  * Update katex to 0.16.10 (#30089)
+
+## [1.21.10](https://github.com/go-gitea/gitea/releases/tag/v1.21.10) - 2024-03-25
 
 * BUGFIXES
   * Fix Add/Remove WIP on pull request title failure (#29999) (#30066)
@@ -14,7 +36,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Remove duplicate option in admin screen and now-unused translation keys (#28492) (#30024)
   * Fix manual merge form and 404 page templates (#30000)
 
-## [1.21.9](https://github.com/go-gitea/gitea/releases/tag/1.21.9) - 2024-03-21
+## [1.21.9](https://github.com/go-gitea/gitea/releases/tag/v1.21.9) - 2024-03-21
 
 * PERFORMANCE
   * Only do counting when count_only=true for repo dashboard (#29884) (#29905)
@@ -47,7 +69,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Performance improvements for pull request list page (#29900) (#29972)
   * Fix bugs in rerunning jobs (#29983) (#29955)
 
-## [1.21.8](https://github.com/go-gitea/gitea/releases/tag/1.21.8) - 2024-03-12
+## [1.21.8](https://github.com/go-gitea/gitea/releases/tag/v1.21.8) - 2024-03-12
 
 * SECURITY
   * Only use supported sort orders for "/explore/users" page (#29430) (#29443)
@@ -92,7 +114,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fixing the issue when status checks per rule matches multiple actions (#29631) (#29655)
   * Improve contrast on blame timestamp, fix double border (#29482) (#29485)
 
-## [1.21.7](https://github.com/go-gitea/gitea/releases/tag/1.21.7) - 2024-02-26
+## [1.21.7](https://github.com/go-gitea/gitea/releases/tag/v1.21.7) - 2024-02-26
 
 * ENHANCEMENTS
   * Users with `read` permission of pull requests can be assigned too (#27263) (#29372)
