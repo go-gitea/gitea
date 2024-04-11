@@ -50,8 +50,11 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
+		{{$n := len .TreeNames}}
+		{{$l := Eval $n "-" 1}}
+		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
+			<div class="tw-flex tw-items-center tw-gap-y-2">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -66,9 +69,7 @@
 					</a>
 				{{end}}
 				<!-- Show go to file and breadcrumbs if not on home page -->
-				{{$n := len .TreeNames}}
-				{{$l := Eval $n "-" 1}}
-				{{if eq $n 0}}
+				{{if $isHomepage}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 
@@ -92,20 +93,20 @@
 					</button>
 				{{end}}
 
-				{{if and (eq $n 0) (.Repository.IsTemplate)}}
+				{{if and $isHomepage (.Repository.IsTemplate)}}
 					<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
 						{{ctx.Locale.Tr "repo.use_template"}}
 					</a>
 				{{end}}
-				{{if ne $n 0}}
+				{{if (not $isHomepage)}}
 					<span class="breadcrumb repo-path tw-ml-1">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
 							<span class="breadcrumb-divider">/</span>
 							{{- if eq $i $l -}}
-								<span class="active section" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</span>
+								<span class="active section" title="{{$v}}">{{$v}}</span>
 							{{- else -}}
-								{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</a></span>
+								{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{$v}}</a></span>
 							{{- end -}}
 						{{- end -}}
 					</span>
@@ -113,7 +114,7 @@
 			</div>
 			<div class="tw-flex tw-items-center">
 				<!-- Only show clone panel in repository home page -->
-				{{if eq $n 0}}
+				{{if $isHomepage}}
 					<div class="clone-panel ui action tiny input">
 						{{template "repo/clone_buttons" .}}
 						<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
@@ -136,7 +137,7 @@
 					</div>
 					{{template "repo/cite/cite_modal" .}}
 				{{end}}
-				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
+				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 						{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 					</a>
