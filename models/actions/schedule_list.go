@@ -40,6 +40,9 @@ func (schedules ScheduleList) LoadTriggerUser(ctx context.Context) error {
 			schedule.TriggerUser = user_model.NewActionsUser()
 		} else {
 			schedule.TriggerUser = users[schedule.TriggerUserID]
+			if schedule.TriggerUser == nil {
+				schedule.TriggerUser = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil

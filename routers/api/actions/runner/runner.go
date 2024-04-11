@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -50,6 +52,18 @@ func (s *Service) Register(
 
 	if !runnerToken.IsActive {
 		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
+	}
+
+	if runnerToken.OwnerID > 0 {
+		if _, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
+			return nil, errors.New("owner of the token not found")
+		}
+	}
+
+	if runnerToken.RepoID > 0 {
+		if _, err := repo_model.GetRepositoryByID(ctx, runnerToken.RepoID); err != nil {
+			return nil, errors.New("repository of the token not found")
+		}
 	}
 
 	labels := req.Msg.Labels
