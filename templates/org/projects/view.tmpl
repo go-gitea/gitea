@@ -2,7 +2,9 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects view-project">
 	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
-		{{template "user/overview/header" .}}
+		<div class="tw-mb-4">
+			{{template "user/overview/header" .}}
+		</div>
 	</div>
 	<div class="ui container fluid padded">
 		{{template "projects/view" .}}
