@@ -23,6 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix incorrect SVGs (#30087)
   * Fix create commit status (#30225) #30340
   * Performance optimization for git push (#30104) #30354
+  * Fix Inconsistency accessing user's variables and secrets #30402
 * MISC
   * Update katex to 0.16.10 (#30089)
 
