@@ -9,15 +9,11 @@ import (
 	"errors"
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	// "code.gitea.io/gitea/modules/log"
-
-	"code.gitea.io/gitea/services/context"
-
-	//"code.gitea.io/gitea/modules/setting"
-	actions_model "code.gitea.io/gitea/models/actions"
 	shared "code.gitea.io/gitea/routers/web/shared/actions"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -79,4 +75,13 @@ func RequireActionCreate(ctx *context.Context) {
 		return
 	}
 	shared.CreateRequireAction(ctx, vCtx.OrgID, vCtx.RedirectLink)
+}
+
+func RequireActionDelete(ctx *context.Context) {
+	vCtx, err := getRequireActionCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRequireActionCtx", err)
+		return
+	}
+	shared.DeleteRequireAction(ctx, vCtx.RedirectLink)
 }

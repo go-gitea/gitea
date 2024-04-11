@@ -15,10 +15,8 @@
     <div class="ui attached segment">
         <form class="ui form ignore-dirty" id="require-action-list-search-form" action="{{$.Link}}">
             <!-- Search Text -->
-            <div class="ui fluid action input">
                 {{template "shared/search/combo" dict "Value" .Keyword}}
                 <button class="ui primary button">{{ctx.Locale.Tr "actions.require_action.search"}}</button>
-            </div>
         </form>
     </div>
     <div class="ui attached table segment">
@@ -45,8 +43,15 @@
                         <td>{{.RepoName}}</td>
                         <td><a href="/{{$.OrgName}}/{{.RepoName}}">Workflow Link</a></td>
                         <td class="require_action-ops">
-                            {{if .Removable $.OrgID }}
-                            <a href="{{$.Link}}/{{.ID}}">{{svg "octicon-x-circle-fill"}}</a>
+                            {{if .Removable $.OrgID}}
+                            <button class="btn interact-bg tw-p-2 link-action"
+                                data-tooltip-content="{{ctx.Locale.Tr "actions.require_action.deletion"}}"
+                                data-url="{{$.Link}}/{{.ID}}/delete"
+                                data-modal-confirm="{{ctx.Locale.Tr "actions.require_action.deletion.description"}}"
+                            >
+                                {{svg "octicon-trash"}}
+                            </button>
+                            <!-- <a href="{{$.Link}}/{{.ID}}/delete">{{svg "octicon-x-circle-fill"}}</a>-->
                             {{end}}
                         </td>
                     </tr>
@@ -103,12 +108,12 @@
                     </a>
                 </div></td>
                 </tr>
-                {{ end }}
+                {{end}}
             {{else}}
                     <tr>
                         <td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.require_action.none"}}</td>
                     </tr>
-            {{ end }}
+            {{end}}
             </tbody>
             </table>
             <div class="divider"></div>

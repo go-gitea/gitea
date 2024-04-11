@@ -16,3 +16,7 @@ func CreateRequireAction(ctx context.Context, orgID int64, repoName, workflowNam
 	}
 	return v, nil
 }
+
+func DeleteRequireActionByID(ctx context.Context, requireActionID int64) error {
+	return actions_model.DeleteRequireAction(ctx, requireActionID)
+}

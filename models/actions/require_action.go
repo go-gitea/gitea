@@ -9,21 +9,18 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	//"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
 type RequireAction struct {
-	ID           int64  `xorm:"pk autoincr"`
-	OrgID        int64  `xorm:"index"`
-	RepoName     string `xorm:"VARCHAR(255)"`
-	WorkflowName string `xorm:"VARCHAR(255) UNIQUE(require_action) NOT NULL"`
-	// Description string                  `xorm:"LONGTEXT NOT NULL"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
-	// RepoRange   string                  // glob match which repositories could use this runner
+	ID           int64              `xorm:"pk autoincr"`
+	OrgID        int64              `xorm:"index"`
+	RepoName     string             `xorm:"VARCHAR(255)"`
+	WorkflowName string             `xorm:"VARCHAR(255) UNIQUE(require_action) NOT NULL"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
 type GlobalWorkflow struct {
@@ -75,4 +72,11 @@ func AddRequireAction(ctx context.Context, orgID int64, repoName, workflowName s
 		WorkflowName: workflowName,
 	}
 	return ra, db.Insert(ctx, ra)
+}
+
+func DeleteRequireAction(ctx context.Context, requireActionID int64) error {
+	if _, err := db.DeleteByID[RequireAction](ctx, requireActionID); err != nil {
+		return err
+	}
+	return nil
 }

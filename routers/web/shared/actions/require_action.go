@@ -13,9 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/forms"
-
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // SetRequireActionDeletePost response for deleting a require action workflow
@@ -62,8 +61,6 @@ func GlobalEnableWorkflow(ctx *context.Context, orgID int64) {
 func CreateRequireAction(ctx *context.Context, orgID int64, redirectURL string) {
 	ctx.Data["OrgID"] = ctx.Org.Organization.ID
 	form := web.GetForm(ctx).(*forms.RequireActionForm)
-	// log.Error("org %d, repo_name: %s, workflow_name %s", orgID, form.RepoName, form.WorkflowName)
-	log.Error("org %d, repo_name: %+v", orgID, form)
 	v, err := actions_service.CreateRequireAction(ctx, orgID, form.RepoName, form.WorkflowName)
 	if err != nil {
 		log.Error("CreateRequireAction: %v", err)
@@ -71,5 +68,17 @@ func CreateRequireAction(ctx *context.Context, orgID int64, redirectURL string) 
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.require_action.creation.success", v.WorkflowName))
+	ctx.JSONRedirect(redirectURL)
+}
+
+func DeleteRequireAction(ctx *context.Context, redirectURL string) {
+	id := ctx.ParamsInt64(":require_action_id")
+
+	if err := actions_service.DeleteRequireActionByID(ctx, id); err != nil {
+		log.Error("Delete RequireAction [%d] failed: %v", id, err)
+		ctx.JSONError(ctx.Tr("actions.require_action.deletion.failed"))
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("actions.require_action.deletion.success"))
 	ctx.JSONRedirect(redirectURL)
 }

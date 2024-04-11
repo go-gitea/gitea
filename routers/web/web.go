@@ -463,6 +463,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/require_action", func() {
 			m.Get("", repo_setting.RequireAction)
 			m.Post("/add", web.Bind(forms.RequireActionForm{}), repo_setting.RequireActionCreate)
+			m.Post("/{require_action_id}/delete", repo_setting.RequireActionDelete)
 		})
 	}
 
