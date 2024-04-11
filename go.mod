@@ -24,7 +24,6 @@ require (
 	github.com/buildkite/terminal-to-html/v3 v3.11.0
 	github.com/caddyserver/certmagic v0.20.0
 	github.com/chi-middleware/proxy v1.1.1
-	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/dimiro1/reply v0.0.0-20200315094148-d0136a4c9e21
 	github.com/djherbis/buffer v1.2.0
 	github.com/djherbis/nio/v3 v3.0.1
@@ -77,6 +76,7 @@ require (
 	github.com/meilisearch/meilisearch-go v0.26.2
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/microsoft/go-mssqldb v1.7.0
 	github.com/minio/minio-go/v7 v7.0.69
 	github.com/msteinert/pam v1.2.0
 	github.com/nektos/act v0.2.52
@@ -105,11 +105,11 @@ require (
 	github.com/yuin/goldmark v1.7.0
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.22.0
 	golang.org/x/image v0.15.0
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.24.0
 	golang.org/x/oauth2 v0.18.0
-	golang.org/x/sys v0.18.0
+	golang.org/x/sys v0.19.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.19.0
 	google.golang.org/grpc v1.62.1

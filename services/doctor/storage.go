@@ -162,7 +162,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		if opts.RepoArchives || opts.All {
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
-					storer: storage.RepoAvatars,
+					storer: storage.RepoArchives,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
 						exists, err := repo.ExistsRepoArchiverWithStoragePath(ctx, path)
 						if err == nil || errors.Is(err, util.ErrInvalidArgument) {

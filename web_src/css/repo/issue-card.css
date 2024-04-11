@@ -19,3 +19,7 @@
   font-size: 14px;
   margin-left: 4px;
 }
+
+.issue-card.sortable-chosen .issue-card-title {
+  cursor: inherit;
+}

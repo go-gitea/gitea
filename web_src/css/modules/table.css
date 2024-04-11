@@ -23,11 +23,13 @@
 }
 .ui.table > thead,
 .ui.table > tbody {
+  text-align: inherit;
   vertical-align: inherit;
 }
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
+  text-align: inherit;
   color: var(--color-text);
   padding: 6px 5px;
   vertical-align: inherit;
@@ -52,6 +54,7 @@
 .ui.table > tfoot > tr > td {
   border-top: 1px solid var(--color-secondary);
   background: var(--color-box-body);
+  text-align: inherit;
   color: var(--color-text);
   padding: 0.78571429em;
   vertical-align: inherit;
@@ -78,6 +81,7 @@
 .ui.table > tbody > tr > td {
   border-top: 1px solid var(--color-secondary-alpha-50);
   padding: 6px 5px;
+  text-align: inherit;
 }
 .ui.table > tr:first-child > td,
 .ui.table > tbody > tr:first-child > td {
@@ -146,6 +150,31 @@
   .ui.table:not(.unstackable) > tfoot > tr > td:first-child {
     font-weight: var(--font-weight-normal);
   }
+}
+
+.ui.table[class*="left aligned"],
+.ui.table [class*="left aligned"] {
+  text-align: left;
+}
+
+.ui.table[class*="center aligned"],
+.ui.table [class*="center aligned"] {
+  text-align: center;
+}
+
+.ui.table[class*="right aligned"],
+.ui.table [class*="right aligned"] {
+  text-align: right;
+}
+
+.ui.table[class*="top aligned"],
+.ui.table [class*="top aligned"] {
+  vertical-align: top;
+}
+
+.ui.table[class*="middle aligned"],
+.ui.table [class*="middle aligned"] {
+  vertical-align: middle;
 }
 
 .ui.table th.collapsing,

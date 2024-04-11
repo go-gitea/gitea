@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -32,13 +33,13 @@ const (
 )
 
 // Bool checks for a key in the map and parses as a boolean
-func (g GitPushOptions) Bool(key string, def bool) bool {
+func (g GitPushOptions) Bool(key string) optional.Option[bool] {
 	if val, ok := g[key]; ok {
 		if b, err := strconv.ParseBool(val); err == nil {
-			return b
+			return optional.Some(b)
 		}
 	}
-	return def
+	return optional.None[bool]()
 }
 
 // HookOptions represents the options for the Hook calls
@@ -87,13 +88,17 @@ type HookProcReceiveResult struct {
 
 // HookProcReceiveRefResult represents an individual result from ProcReceive
 type HookProcReceiveRefResult struct {
-	OldOID       string
-	NewOID       string
-	Ref          string
-	OriginalRef  git.RefName
-	IsForcePush  bool
-	IsNotMatched bool
-	Err          string
+	OldOID            string
+	NewOID            string
+	Ref               string
+	OriginalRef       git.RefName
+	IsForcePush       bool
+	IsNotMatched      bool
+	Err               string
+	IsCreatePR        bool
+	URL               string
+	ShouldShowMessage bool
+	HeadBranch        string
 }
 
 // HookPreReceive check whether the provided commits are allowed

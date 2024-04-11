@@ -463,7 +463,7 @@ export function initRepositoryActionView() {
         </div>
         <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="jobStep.status !== 'skipped' && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
+            <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
@@ -517,8 +517,16 @@ export function initRepositoryActionView() {
 
 .action-commit-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  margin: 0 0 0 28px;
+  margin-left: 28px;
+}
+
+@media (max-width: 767.98px) {
+  .action-commit-summary {
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }
 
 /* ================ */
@@ -531,6 +539,14 @@ export function initRepositoryActionView() {
   top: 12px;
   max-height: 100vh;
   overflow-y: auto;
+  background: var(--color-body);
+  z-index: 2; /* above .job-info-header */
+}
+
+@media (max-width: 767.98px) {
+  .action-view-left {
+    position: static; /* can not sticky because multiple jobs would overlap into right view */
+  }
 }
 
 .job-artifacts-title {
@@ -628,6 +644,8 @@ export function initRepositoryActionView() {
   flex-direction: column;
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
+  background: var(--color-console-bg);
+  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */
@@ -687,12 +705,12 @@ export function initRepositoryActionView() {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius);
   height: 60px;
-  z-index: 1;
+  z-index: 1; /* above .job-step-container */
+  background: var(--color-console-bg);
+  border-radius: 3px;
 }
 
 .job-info-header:has(+ .job-step-container) {
@@ -711,7 +729,6 @@ export function initRepositoryActionView() {
 }
 
 .job-step-container {
-  background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
   border-top: 1px solid var(--color-console-border);
@@ -731,7 +748,7 @@ export function initRepositoryActionView() {
 
 .job-step-container .job-step-summary.step-expandable:hover {
   color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
+  background: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -749,17 +766,15 @@ export function initRepositoryActionView() {
   top: 60px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .action-view-body {
     flex-direction: column;
   }
   .action-view-left, .action-view-right {
     width: 100%;
   }
-
   .action-view-left {
     max-width: none;
-    overflow-y: hidden;
   }
 }
 </style>

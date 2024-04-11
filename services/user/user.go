@@ -126,7 +126,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
 
-	if user_model.IsLastAdminUser(ctx, u) {
+	if u.IsActive && user_model.IsLastAdminUser(ctx, u) {
 		return models.ErrDeleteLastAdminUser{UID: u.ID}
 	}
 
@@ -250,7 +250,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if err := committer.Commit(); err != nil {
 		return err
 	}
-	committer.Close()
+	_ = committer.Close()
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
@@ -259,50 +259,45 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return err
 	}
 
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
+	// Note: There are something just cannot be roll back, so just keep error logs of those operations.
 	path := user_model.UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
+	if err = util.RemoveAll(path); err != nil {
+		err = fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-		return err
 	}
 
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
+			err = fmt.Errorf("failed to remove %s: %w", avatarPath, err)
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-			return err
 		}
 	}
 
 	return nil
 }
 
-// DeleteInactiveUsers deletes all inactive users and email addresses.
+// DeleteInactiveUsers deletes all inactive users and their email addresses.
 func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
-	users, err := user_model.GetInactiveUsers(ctx, olderThan)
+	inactiveUsers, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
 	}
 
 	// FIXME: should only update authorized_keys file once after all deletions.
-	for _, u := range users {
-		select {
-		case <-ctx.Done():
-			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
-		default:
-		}
-		if err := DeleteUser(ctx, u, false); err != nil {
-			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) ||
-				models.IsErrUserOwnPackages(err) || models.IsErrDeleteLastAdminUser(err) {
+	for _, u := range inactiveUsers {
+		if err = DeleteUser(ctx, u, false); err != nil {
+			// Ignore inactive users that were ever active but then were set inactive by admin
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
 			}
-			return err
+			select {
+			case <-ctx.Done():
+				return db.ErrCancelledf("when deleting inactive user %q", u.Name)
+			default:
+				return err
+			}
 		}
 	}
-
-	return user_model.DeleteInactiveEmailAddresses(ctx)
+	return nil // TODO: there could be still inactive users left, and the number would increase gradually
 }
