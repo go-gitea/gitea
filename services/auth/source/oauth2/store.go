@@ -67,7 +67,7 @@ func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *s
 	chiStore := chiSession.GetSession(r)
 
 	if session.IsNew {
-		middleware.DeleteSiteCookieWithTrailingSlash(w, setting.SessionConfig.CookieName)
+		middleware.DeleteLegacySiteCookie(w, setting.SessionConfig.CookieName)
 		_, _ = chiSession.RegenerateSession(w, r)
 		session.IsNew = false
 	}

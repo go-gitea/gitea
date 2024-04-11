@@ -65,7 +65,7 @@ func isArchivePath(req *http.Request) bool {
 func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	// Ensure that a cookie with a trail slash does not take
 	// precedence over the cookie written by the middleware
-	middleware.DeleteSiteCookieWithTrailingSlash(resp, setting.SessionConfig.CookieName)
+	middleware.DeleteLegacySiteCookie(resp, setting.SessionConfig.CookieName)
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
 	if err != nil {
