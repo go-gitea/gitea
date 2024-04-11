@@ -684,32 +684,47 @@ func EnableWorkflowFile(ctx *context_module.Context) {
 }
 
 func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
+	disableOrEnable(ctx, isEnable, false)
+}
+
+func disableOrEnable(ctx *context_module.Context, isEnable, isglobal bool) {
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
 		ctx.ServerError("workflow", nil)
 		return
 	}
-
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-
-	if isEnable {
-		cfg.EnableWorkflow(workflow)
+	if isglobal {
+		if isEnable {
+			cfg.DisableGlobalWorkflow(workflow)
+		} else {
+			cfg.EnableGlobalWorkflow(workflow)
+		}
 	} else {
-		cfg.DisableWorkflow(workflow)
+		if isEnable {
+			cfg.EnableWorkflow(workflow)
+		} else {
+			cfg.DisableWorkflow(workflow)
+		}
 	}
-
 	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
-
-	if isEnable {
-		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
+	if isglobal {
+		if isEnable {
+			ctx.Flash.Success(ctx.Tr("actions.workflow.global_disable_success", workflow))
+		} else {
+			ctx.Flash.Success(ctx.Tr("actions.workflow.global_enable_success", workflow))
+		}
 	} else {
-		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
+		if isEnable {
+			ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
+		} else {
+			ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
+		}
 	}
-
 	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
 		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
 	ctx.JSONRedirect(redirectURL)
@@ -723,29 +738,6 @@ func EnableGlobalWorkflowFile(ctx *context_module.Context) {
 	disableOrEnableGlobalWorkflowFile(ctx, false)
 }
 
-func disableOrEnableGlobalWorkflowFile(ctx *context_module.Context, isGlobalEnable bool) {
-	workflow := ctx.FormString("workflow")
-	if len(workflow) == 0 {
-		ctx.ServerError("workflow", nil)
-		return
-	}
-	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
-	cfg := cfgUnit.ActionsConfig()
-	if isGlobalEnable {
-		cfg.DisableGlobalWorkflow(workflow)
-	} else {
-		cfg.EnableGlobalWorkflow(workflow)
-	}
-	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
-		return
-	}
-	if isGlobalEnable {
-		ctx.Flash.Success(ctx.Tr("actions.workflow.global_disable_success", workflow))
-	} else {
-		ctx.Flash.Success(ctx.Tr("actions.workflow.global_enable_success", workflow))
-	}
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
-	ctx.JSONRedirect(redirectURL)
+func disableOrEnableGlobalWorkflowFile(ctx *context_module.Context, isEnable bool) {
+	disableOrEnable(ctx, isEnable, true)
 }
