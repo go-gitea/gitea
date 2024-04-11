@@ -844,10 +844,6 @@ func ActivateEmail(ctx *context.Context) {
 }
 
 func updateSession(ctx *context.Context, deletes []string, updates map[string]any) error {
-	// Ensure that a cookie with a trail slash does not take
-	// precedence over the cookie written by the middleware
-	middleware.DeleteLegacySiteCookie(ctx.Resp, setting.SessionConfig.CookieName)
-
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}
