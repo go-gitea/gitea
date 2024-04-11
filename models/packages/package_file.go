@@ -48,12 +48,12 @@ type PackageFile struct {
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	switch {
 	case setting.Database.Type.IsMySQL():
-		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE 1=1",
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package_file (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE 1=1",
 			pf.VersionID, pf.BlobID, pf.Name, pf.LowerName, pf.CompositeKey, pf.IsLead); err != nil {
 			return nil, err
 		}
 	case setting.Database.Type.IsPostgreSQL(), setting.Database.Type.IsSQLite3():
-		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON CONFLICT (version_id,lower_name,composite_key) DO UPDATE SET lower_name=lower_name",
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package_file (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON CONFLICT (version_id,lower_name,composite_key) DO UPDATE SET lower_name=lower_name",
 			pf.VersionID, pf.BlobID, pf.Name, pf.LowerName, pf.CompositeKey, pf.IsLead); err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 			return strings.ReplaceAll(s, "'", "''")
 		}
 		sql := fmt.Sprintf(`
-		MERGE INTO package WITH (HOLDLOCK) AS target USING (
+		MERGE INTO package_file WITH (HOLDLOCK) AS target USING (
 			SELECT
 				%d AS version_id,
 				%d AS blob_id,
