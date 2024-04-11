@@ -204,25 +204,30 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		}
 	case setting.Database.Type.IsMSSQL():
 		r := func(s string) string {
-			return strings.Replace(s, "'", "''", -1)
+			return strings.ReplaceAll(s, "'", "''")
 		}
-		sql := fmt.Sprintf(`MERGE INTO package WITH (HOLDLOCK) AS target
-		USING (SELECT
-				%d AS owner_id
-			,'%s' AS [type]
-			,'%s' AS lower_name
-			,'%s' AS name
-			, %s AS semver_compatible) AS source
-		(owner_id, [type], lower_name, name, semver_compatible)
-ON (target.owner_id = source.owner_id
-  AND target.[type] = source.[type]
-	AND target.lower_name = source.lower_name)
-WHEN MATCHED
-  THEN UPDATE
-      SET 1 = 1
-WHEN NOT MATCHED
-  THEN INSERT (owner_id, [type], lower_name, name, semver_compatible)
-      VALUES (%d, '%s', '%s', '%s', %s)`,
+		sql := fmt.Sprintf(`
+		MERGE INTO package WITH (HOLDLOCK) AS target USING (
+			SELECT
+				%d AS owner_id,
+				'%s' AS [type],
+				'%s' AS lower_name,
+				'%s' AS name,
+				%s AS semver_compatible
+			) AS source (
+				owner_id, [type], lower_name, name, semver_compatible
+			) ON (
+				target.owner_id = source.owner_id
+  			AND target.[type] = source.[type]
+				AND target.lower_name = source.lower_name
+			) WHEN MATCHED
+  				THEN UPDATE SET 1 = 1
+				WHEN NOT MATCHED
+  				THEN INSERT (
+						owner_id, [type], lower_name, name, semver_compatible
+					) VALUES (
+						%d, '%s', '%s', '%s', %s
+					)`,
 			p.OwnerID, r(string(p.Type)), r(p.LowerName), r(p.Name), strconv.FormatBool(p.SemverCompatible),
 			p.OwnerID, r(string(p.Type)), r(p.LowerName), r(p.Name), strconv.FormatBool(p.SemverCompatible),
 		)
