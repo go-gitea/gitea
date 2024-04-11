@@ -17,22 +17,17 @@ menu:
 
 You can create configuration variables on the user, organization and repository level.
 The level of the variable depends on where you created it. When creating a variable, the
-key will be converted as uppercase. You need use uppercase on the yaml file.
+key will be converted to uppercase. You need use uppercase on the yaml file.
 
 ### Naming conventions
 
 The following rules apply to variable names:
 
 - Variable names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
-
 - Variable names must not start with the `GITHUB_` and `GITEA_` prefix.
-
 - Variable names must not start with a number.
-
 - Variable names are case-insensitive.
-
 - Variable names must be unique at the level they are created at.
-
 - Variable names must not be `CI`.
 
 ### Using variable
