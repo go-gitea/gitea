@@ -94,7 +94,7 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 	c := cache.GetCache()
 
 	for i, repo := range repos {
-		status, ok := c.Get(getCacheKey(repo.ID, repo.DefaultBranch)).(string)
+		status, ok := c.Get(getCacheKey(repo.ID, repo.DefaultBranch))
 		if ok && status != "" {
 			results[i] = &git_model.CommitStatus{State: api.CommitStatusState(status)}
 		}
