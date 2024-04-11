@@ -212,3 +212,12 @@ func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bo
 		Limit(1).
 		Get(new(Issue))
 }
+
+// GetPullRequestByIssueIDs returns all pull requests by issue ids
+func GetPullRequestByIssueIDs(ctx context.Context, issueIDs []int64) (PullRequestList, error) {
+	prs := make([]*PullRequest, 0, len(issueIDs))
+	return prs, db.GetEngine(ctx).
+		Where("issue_id > 0").
+		In("issue_id", issueIDs).
+		Find(&prs)
+}

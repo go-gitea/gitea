@@ -370,6 +370,9 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.PullRequest = pullRequestMaps[issue.ID]
+		if issue.PullRequest != nil {
+			issue.PullRequest.Issue = issue
+		}
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -66,17 +67,25 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return nil
 	}
 
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
 		return err
 	}
 
+	var reviewNotifers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-		if err := PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
-			return err
+		var err error
+		reviewNotifers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		if err != nil {
+			log.Error("PullRequestCodeOwnersReview: %v", err)
 		}
 	}
 
 	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
 
 	return nil
 }

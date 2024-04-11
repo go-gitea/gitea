@@ -128,10 +128,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
-	divergence := &git.DivergeObject{
-		Ahead:  -1,
-		Behind: -1,
-	}
+	var divergence *git.DivergeObject
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
@@ -140,6 +137,11 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if err != nil {
 			log.Error("CountDivergingCommits: %v", err)
 		}
+	}
+
+	if divergence == nil {
+		// tolerate error that we can't get divergence
+		divergence = &git.DivergeObject{Ahead: -1, Behind: -1}
 	}
 
 	pr, err := issues_model.GetLatestPullRequestByHeadInfo(repo.ID, branchName)
