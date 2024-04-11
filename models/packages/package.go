@@ -247,10 +247,10 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	if has {
-		return &existing, ErrDuplicatePackage
+	if !has {
+		return nil, util.ErrNotExist
 	}
-	return p, nil
+	return &existing, nil
 }
 
 // DeletePackageByID deletes a package by id
