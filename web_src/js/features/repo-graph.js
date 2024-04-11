@@ -69,9 +69,9 @@ export function initRepoGraphGit() {
       const html = await response.text();
       const div = document.createElement('div');
       div.innerHTML = html;
-      document.getElementById('pagination').innerHTML = div.querySelector('#pagination').innerHTML;
-      document.getElementById('rel-container').innerHTML = div.querySelector('#rel-container').innerHTML;
-      document.getElementById('rev-container').innerHTML = div.querySelector('#rev-container').innerHTML;
+      document.getElementById('pagination').innerHTML = div.getElementById('pagination').innerHTML;
+      document.getElementById('rel-container').innerHTML = div.getElementById('rel-container').innerHTML;
+      document.getElementById('rev-container').innerHTML = div.getElementById('rev-container').innerHTML;
       hideElem('#loading-indicator');
       showElem('#rel-container');
       showElem('#rev-container');
