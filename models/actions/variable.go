@@ -100,13 +100,6 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
 	variables := map[string]string{}
 
-	// Global
-	globalVariables, err := FindVariables(ctx, FindVariablesOpts{})
-	if err != nil {
-		log.Error("find global variables: %v", err)
-		return nil, err
-	}
-
 	// Org / User level
 	ownerVariables, err := FindVariables(ctx, FindVariablesOpts{OwnerID: run.Repo.OwnerID})
 	if err != nil {
@@ -121,8 +114,8 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 		return nil, err
 	}
 
-	// Level precedence: Repo > Org / User > Global
-	for _, v := range append(globalVariables, append(ownerVariables, repoVariables...)...) {
+	// Level precedence: Repo > Org / User
+	for _, v := range append(ownerVariables, repoVariables...) {
 		variables[v.Name] = v.Data
 	}
 
