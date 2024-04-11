@@ -528,6 +528,17 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 	}
 }
 
+func TestIsSameUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	assert.False(t, user1.IsSameUser(nil))
+	assert.False(t, user1.IsSameUser(user4))
+	assert.True(t, user1.IsSameUser(user1))
+}
+
 func TestDisabledUserFeatures(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

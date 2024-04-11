@@ -62,7 +62,7 @@
 					{{end}}
 					{{template "repo/watch_unwatch" $}}
 					{{if not $.DisableStars}}
-					{{template "repo/star_unstar" $}}
+						{{template "repo/star_unstar" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button

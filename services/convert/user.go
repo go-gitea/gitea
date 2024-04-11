@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -105,4 +106,25 @@ func ToUserAndPermission(ctx context.Context, user, doer *user_model.User, acces
 		Permission: accessMode.String(),
 		RoleName:   accessMode.String(),
 	}
+}
+
+// ToStarList convert repo_model.StarList to api.StarList
+func ToStarList(ctx context.Context, starList *repo_model.StarList, doer *user_model.User) *api.StarList {
+	return &api.StarList{
+		ID:              starList.ID,
+		Name:            starList.Name,
+		Description:     starList.Description,
+		IsPrivate:       starList.IsPrivate,
+		RepositoryCount: starList.RepositoryCount,
+		User:            ToUser(ctx, starList.User, doer),
+	}
+}
+
+// ToStarLists convert repo_model.StarListSLice to list of api.StarList
+func ToStarLists(ctx context.Context, starLists repo_model.StarListSlice, doer *user_model.User) []*api.StarList {
+	apiList := make([]*api.StarList, len(starLists))
+	for i, list := range starLists {
+		apiList[i] = ToStarList(ctx, list, doer)
+	}
+	return apiList
 }

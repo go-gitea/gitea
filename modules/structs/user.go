@@ -132,3 +132,26 @@ type UserBadgeOption struct {
 	// example: ["badge1","badge2"]
 	BadgeSlugs []string `json:"badge_slugs" binding:"Required"`
 }
+
+// StarList represents a star list
+type StarList struct {
+	ID              int64  `json:"id"`
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	IsPrivate       bool   `json:"is_private"`
+	RepositoryCount int64  `json:"repository_count"`
+	User            *User  `json:"user"`
+}
+
+// CreateEditStarListOptions when creating or editing a star list
+type CreateEditStarListOptions struct {
+	Name        string `json:"name" binding:"Required"`
+	Description string `json:"description"`
+	IsPrivate   bool   `json:"is_private"`
+}
+
+// StarListRepoInfo represents a star list and if the repo contains this star list
+type StarListRepoInfo struct {
+	StarList *StarList `json:"star_list"`
+	Contains bool      `json:"contains"`
+}
