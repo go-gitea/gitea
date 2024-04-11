@@ -104,7 +104,7 @@ However, if a job container tries to fetch code from localhost, it will fail bec
 ### Connection 3, act runner to internet
 
 When you use some actions like `actions/checkout@v4`, the act runner downloads the scripts, not the job containers.
-By default, it downloads from [gitea.com](http://gitea.com/), so it requires access to the internet.
+By default, it downloads from [github.com](http://github.com/), so it requires access to the internet. If you configure the `DEFAULT_ACTIONS_URL` to `self`, then it will download from your Gitea instance by default. Then it will not connect to internet when downloading the action itself.
 It also downloads some docker images from Docker Hub by default, which also requires internet access.
 
 However, internet access is not strictly necessary.
