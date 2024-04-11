@@ -235,7 +235,6 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		if _, err := db.GetEngine(ctx).Exec(sql); err != nil {
 			return nil, err
 		}
-
 	}
 
 	var existing Package
