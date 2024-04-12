@@ -6,7 +6,6 @@ package commitstatus
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/automerge"
