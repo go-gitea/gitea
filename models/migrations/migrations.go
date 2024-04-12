@@ -581,7 +581,7 @@ var migrations = []Migration{
 	// v295 -> v296
 	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
 	// v296 -> v297
-	NewMigration("Add missed field of commit status summary table", v1_23.AddCommitStatusSummary2),
+	NewMigration("Add missing field of commit status summary table", v1_23.AddCommitStatusSummary2),
 }
 
 // GetCurrentDBVersion returns the current db version
