@@ -28,8 +28,8 @@ func getCacheKey(repoID int64, brancheName string) string {
 }
 
 type commitStatusCacheValue struct {
-	State     string
-	TargetURL string
+	State     string `json:"state"`
+	TargetURL string `json:"target_url"`
 }
 
 func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheValue {
