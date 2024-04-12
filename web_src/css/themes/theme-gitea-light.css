@@ -61,14 +61,14 @@
   --color-secondary-hover: var(--color-secondary-dark-5);
   --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
-  --color-console-fg: #f8f8f9;
-  --color-console-fg-subtle: #bec4c8;
+  --color-console-fg: #f7f8f9;
+  --color-console-fg-subtle: #bdc4cc;
   --color-console-bg: #171b1e;
   --color-console-border: #2e353b;
-  --color-console-hover-bg: #292d31;
+  --color-console-hover-bg: #272d33;
   --color-console-active-bg: #2e353b;
-  --color-console-menu-bg: #252b30;
-  --color-console-menu-border: #424b51;
+  --color-console-menu-bg: #262b31;
+  --color-console-menu-border: #414b55;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -81,7 +81,7 @@
   --color-purple: #a333c8;
   --color-pink: #e03997;
   --color-brown: #a5673f;
-  --color-black: #191c1d;
+  --color-black: #1d2328;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -94,7 +94,7 @@
   --color-purple-light: #bb64d8;
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
-  --color-black-light: #525558;
+  --color-black-light: #4b5b68;
   /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
   --color-red-dark-1: #c82121;
   --color-orange-dark-1: #e6630d;
@@ -107,7 +107,7 @@
   --color-purple-dark-1: #932eb4;
   --color-pink-dark-1: #db228a;
   --color-brown-dark-1: #955d39;
-  --color-black-dark-1: #16191c;
+  --color-black-dark-1: #2c3339;
   /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
   --color-red-dark-2: #b11e1e;
   --color-orange-dark-2: #cc580c;
@@ -122,7 +122,7 @@
   --color-brown-dark-2: #845232;
   --color-black-dark-2: #131619;
   /* ansi colors used for actions console and console files */
-  --color-ansi-black: #1f2326;
+  --color-ansi-black: #1e2327;
   --color-ansi-red: #cc4848;
   --color-ansi-green: #87ab63;
   --color-ansi-yellow: #cc9903;
