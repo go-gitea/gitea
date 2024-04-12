@@ -1,14 +1,16 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 import {GET} from '../modules/fetch.js';
 
 export function initRepoGraphGit() {
   const graphContainer = document.getElementById('git-graph-container');
   if (!graphContainer) return;
 
-  $('#flow-color-monochrome').on('click', () => {
-    $('#flow-color-monochrome').addClass('active');
-    $('#flow-color-colored').removeClass('active');
-    $('#git-graph-container').removeClass('colored').addClass('monochrome');
+  document.getElementById('flow-color-monochrome')?.addEventListener('click', () => {
+    document.getElementById('flow-color-monochrome').classList.add('active');
+    document.getElementById('flow-color-colored')?.classList.remove('active');
+    graphContainer.classList.remove('colored');
+    graphContainer.classList.add('monochrome');
     const params = new URLSearchParams(window.location.search);
     params.set('mode', 'monochrome');
     const queryString = params.toString();
@@ -17,29 +19,31 @@ export function initRepoGraphGit() {
     } else {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    $('.pagination a').each((_, that) => {
-      const href = that.getAttribute('href');
-      if (!href) return;
+    for (const link of document.querySelectorAll('.pagination a')) {
+      const href = link.getAttribute('href');
+      if (!href) continue;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.set('mode', 'monochrome');
       url.search = `?${params.toString()}`;
-      that.setAttribute('href', url.href);
-    });
+      link.setAttribute('href', url.href);
+    }
   });
-  $('#flow-color-colored').on('click', () => {
-    $('#flow-color-colored').addClass('active');
-    $('#flow-color-monochrome').removeClass('active');
-    $('#git-graph-container').addClass('colored').removeClass('monochrome');
-    $('.pagination a').each((_, that) => {
-      const href = that.getAttribute('href');
-      if (!href) return;
+
+  document.getElementById('flow-color-colored')?.addEventListener('click', () => {
+    document.getElementById('flow-color-colored').classList.add('active');
+    document.getElementById('flow-color-monochrome')?.classList.remove('active');
+    graphContainer.classList.add('colored');
+    graphContainer.classList.remove('monochrome');
+    for (const link of document.querySelectorAll('.pagination a')) {
+      const href = link.getAttribute('href');
+      if (!href) continue;
       const url = new URL(href, window.location);
       const params = url.searchParams;
       params.delete('mode');
       url.search = `?${params.toString()}`;
-      that.setAttribute('href', url.href);
-    });
+      link.setAttribute('href', url.href);
+    }
     const params = new URLSearchParams(window.location.search);
     params.delete('mode');
     const queryString = params.toString();
@@ -56,20 +60,21 @@ export function initRepoGraphGit() {
     const ajaxUrl = new URL(url);
     ajaxUrl.searchParams.set('div-only', 'true');
     window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
-    $('#pagination').empty();
-    $('#rel-container').addClass('tw-hidden');
-    $('#rev-container').addClass('tw-hidden');
-    $('#loading-indicator').removeClass('tw-hidden');
+    document.getElementById('pagination').innerHTML = '';
+    hideElem('#rel-container');
+    hideElem('#rev-container');
+    showElem('#loading-indicator');
     (async () => {
       const response = await GET(String(ajaxUrl));
       const html = await response.text();
-      const $div = $(html);
-      $('#pagination').html($div.find('#pagination').html());
-      $('#rel-container').html($div.find('#rel-container').html());
-      $('#rev-container').html($div.find('#rev-container').html());
-      $('#loading-indicator').addClass('tw-hidden');
-      $('#rel-container').removeClass('tw-hidden');
-      $('#rev-container').removeClass('tw-hidden');
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      document.getElementById('pagination').innerHTML = div.getElementById('pagination').innerHTML;
+      document.getElementById('rel-container').innerHTML = div.getElementById('rel-container').innerHTML;
+      document.getElementById('rev-container').innerHTML = div.getElementById('rev-container').innerHTML;
+      hideElem('#loading-indicator');
+      showElem('#rel-container');
+      showElem('#rev-container');
     })();
   };
   const dropdownSelected = params.getAll('branch');
@@ -77,8 +82,9 @@ export function initRepoGraphGit() {
     dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
   }
 
-  $('#flow-select-refs-dropdown').dropdown('set selected', dropdownSelected);
-  $('#flow-select-refs-dropdown').dropdown({
+  const flowSelectRefsDropdown = document.getElementById('flow-select-refs-dropdown');
+  $(flowSelectRefsDropdown).dropdown('set selected', dropdownSelected);
+  $(flowSelectRefsDropdown).dropdown({
     clearable: true,
     fullTextSeach: 'exact',
     onRemove(toRemove) {
@@ -104,36 +110,46 @@ export function initRepoGraphGit() {
       updateGraph();
     },
   });
-  $('#git-graph-container').on('mouseenter', '#rev-list li', (e) => {
-    const flow = $(e.currentTarget).data('flow');
-    if (flow === 0) return;
-    $(`#flow-${flow}`).addClass('highlight');
-    $(e.currentTarget).addClass('hover');
-    $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
+
+  graphContainer.addEventListener('mouseenter', (e) => {
+    if (e.target.matches('#rev-list li')) {
+      const flow = e.target.getAttribute('data-flow');
+      if (flow === '0') return;
+      document.getElementById(`flow-${flow}`)?.classList.add('highlight');
+      e.target.classList.add('hover');
+      for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
+        item.classList.add('highlight');
+      }
+    } else if (e.target.matches('#rel-container .flow-group')) {
+      e.target.classList.add('highlight');
+      const flow = e.target.getAttribute('data-flow');
+      for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
+        item.classList.add('highlight');
+      }
+    } else if (e.target.matches('#rel-container .flow-commit')) {
+      const rev = e.target.getAttribute('data-rev');
+      document.querySelector(`#rev-list li#commit-${rev}`)?.classList.add('hover');
+    }
   });
-  $('#git-graph-container').on('mouseleave', '#rev-list li', (e) => {
-    const flow = $(e.currentTarget).data('flow');
-    if (flow === 0) return;
-    $(`#flow-${flow}`).removeClass('highlight');
-    $(e.currentTarget).removeClass('hover');
-    $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
-  });
-  $('#git-graph-container').on('mouseenter', '#rel-container .flow-group', (e) => {
-    $(e.currentTarget).addClass('highlight');
-    const flow = $(e.currentTarget).data('flow');
-    $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
-  });
-  $('#git-graph-container').on('mouseleave', '#rel-container .flow-group', (e) => {
-    $(e.currentTarget).removeClass('highlight');
-    const flow = $(e.currentTarget).data('flow');
-    $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
-  });
-  $('#git-graph-container').on('mouseenter', '#rel-container .flow-commit', (e) => {
-    const rev = $(e.currentTarget).data('rev');
-    $(`#rev-list li#commit-${rev}`).addClass('hover');
-  });
-  $('#git-graph-container').on('mouseleave', '#rel-container .flow-commit', (e) => {
-    const rev = $(e.currentTarget).data('rev');
-    $(`#rev-list li#commit-${rev}`).removeClass('hover');
+
+  graphContainer.addEventListener('mouseleave', (e) => {
+    if (e.target.matches('#rev-list li')) {
+      const flow = e.target.getAttribute('data-flow');
+      if (flow === '0') return;
+      document.getElementById(`flow-${flow}`)?.classList.remove('highlight');
+      e.target.classList.remove('hover');
+      for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
+        item.classList.remove('highlight');
+      }
+    } else if (e.target.matches('#rel-container .flow-group')) {
+      e.target.classList.remove('highlight');
+      const flow = e.target.getAttribute('data-flow');
+      for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
+        item.classList.remove('highlight');
+      }
+    } else if (e.target.matches('#rel-container .flow-commit')) {
+      const rev = e.target.getAttribute('data-rev');
+      document.querySelector(`#rev-list li#commit-${rev}`)?.classList.remove('hover');
+    }
   });
 }
