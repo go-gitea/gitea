@@ -25,7 +25,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Performance optimization for git push (#30104) (#30354)
   * Fix misuse of unsupported global variables (#30402)
 * DOCS
-  * Update actions variables documents (#30394) #30405 
+  * Update actions variables documents (#30394) #30405
 * MISC
   * Update katex to 0.16.10 (#30089)
 
