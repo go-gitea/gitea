@@ -52,28 +52,21 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 }
 
 // DeleteLegacySiteCookie deletes the cookie with the given name at the cookie
-// path with a trailing / or no path at all, which would unintentionally
-// override the cookie.
+// path with a trailing /, which would unintentionally override the cookie.
 func DeleteLegacySiteCookie(resp http.ResponseWriter, name string) {
-	var path string
-	if setting.SessionConfig.CookiePath == "/" {
-		// If the cookie path is /, we need to delete the cookie with no path
-		// because that could take precedence.
-		path = ""
-	} else if strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
-		// If the cookie path is not / and ends with /, no legacy cookies will
-		// take precedence, so do nothing.
+	if setting.SessionConfig.CookiePath == "" || strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
+		// If the cookie path ends with /, no legacy cookies will take
+		// precedence, so do nothing.  The exception is that cookies with no
+		// path could override other cookies, but it's complicated and we don't
+		// currently handle that.
 		return
-	} else {
-		// Delete the cookie with a trailing /.
-		path = setting.SessionConfig.CookiePath + "/"
 	}
 
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    "",
 		MaxAge:   -1,
-		Path:     path,
+		Path:     setting.SessionConfig.CookiePath + "/",
 		Domain:   setting.SessionConfig.Domain,
 		Secure:   setting.SessionConfig.Secure,
 		HttpOnly: true,
