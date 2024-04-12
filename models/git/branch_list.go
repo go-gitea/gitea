@@ -61,14 +61,12 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 }
 
 func (branches BranchList) LoadRepo(ctx context.Context) error {
-	ids := container.Set[int64]{}
-	for _, branch := range branches {
-		if branch.RepoID > 0 {
-			ids.Add(branch.RepoID)
-		}
-	}
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
+		return branch.RepoID, branch.RepoID > 0
+	})
+
 	reposMap := make(map[int64]*repo_model.Repository, len(ids))
-	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&reposMap); err != nil {
+	if err := db.GetEngine(ctx).In("id", ids).Find(&reposMap); err != nil {
 		return err
 	}
 	for _, branch := range branches {
