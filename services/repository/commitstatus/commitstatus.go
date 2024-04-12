@@ -37,8 +37,12 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 	statusStr, ok := c.Get(getCacheKey(repoID, branchName)).(string)
 	if ok && statusStr != "" {
 		var cv commitStatusCacheValue
-		if err := json.Unmarshal([]byte(statusStr), &cv); err == nil && cv.State != "" {
+		err := json.Unmarshal([]byte(statusStr), &cv)
+		if err == nil && cv.State != "" {
 			return &cv
+		}
+		if err != nil {
+			log.Warn("getCommitStatusCache: json.Unmarshal failed: %v", err)
 		}
 	}
 	return nil
@@ -46,10 +50,14 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 
 func updateCommitStatusCache(repoID int64, branchName string, state api.CommitStatusState, targetURL string) error {
 	c := cache.GetCache()
-	bs, _ := json.Marshal(commitStatusCacheValue{
+	bs, err := json.Marshal(commitStatusCacheValue{
 		State:     state.String(),
 		TargetURL: targetURL,
 	})
+	if err != nil {
+		log.Warn("updateCommitStatusCache: json.Marshal failed: %v", err)
+		return nil
+	}
 	return c.Put(getCacheKey(repoID, branchName), string(bs), 3*24*60)
 }
 
