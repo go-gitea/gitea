@@ -142,33 +142,23 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	a := remoteAddress{}
 
-	remoteURL := m.OriginalURL
-	if ignoreOriginalURL || remoteURL == "" {
-		var err error
-		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
-		if err != nil {
-			log.Error("GetRemoteURL %v", err)
-			return a
-		}
-	}
-
-	u, err := giturl.Parse(remoteURL)
-	if err != nil {
+	// the URL stored in the git repo which contains authentication
+	if remoteURL, err := git.GetRemoteAddress(ctx, m.RepoPath(), remoteName); err != nil {
+		log.Error("GetRemoteURL %v", err)
+		return a
+	} else if u, err := giturl.Parse(remoteURL); err != nil {
 		log.Error("giturl.Parse %v", err)
 		return a
+	} else if u.User != nil {
+		a.Username = u.User.Username()
+		a.Password, _ = u.User.Password()
 	}
 
-	if u.Scheme != "ssh" && u.Scheme != "file" {
-		if u.User != nil {
-			a.Username = u.User.Username()
-			a.Password, _ = u.User.Password()
-		}
-		u.User = nil
-	}
-	a.Address = u.String()
+	// the URL stored in the database which doesn't contain authentication
+	a.Address = m.OriginalURL
 
 	return a
 }
