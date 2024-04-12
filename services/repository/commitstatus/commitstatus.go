@@ -47,7 +47,7 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 func updateCommitStatusCache(repoID int64, branchName string, state api.CommitStatusState, targetURL string) error {
 	c := cache.GetCache()
 	bs, _ := json.Marshal(commitStatusCacheValue{
-		State:     string(state),
+		State:     state.String(),
 		TargetURL: targetURL,
 	})
 	return c.Put(getCacheKey(repoID, branchName), string(bs), 3*24*60)
