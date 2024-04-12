@@ -318,7 +318,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	if exist {
 		if !dstBranch.IsDeleted {
 			return ErrBranchAlreadyExists{
-				BranchName: from,
+				BranchName: to,
 			}
 		}
 
@@ -381,12 +381,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		return err
 	}
 
-	// 5. do git action
-	if err = gitAction(ctx, isDefault); err != nil {
-		return err
-	}
-
-	// 6. insert renamed branch record
+	// 5. insert renamed branch record
 	renamedBranch := &RenamedBranch{
 		RepoID: repo.ID,
 		From:   from,
@@ -394,6 +389,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 	err = db.Insert(ctx, renamedBranch)
 	if err != nil {
+		return err
+	}
+
+	// 6. do git action
+	if err = gitAction(ctx, isDefault); err != nil {
 		return err
 	}
 
