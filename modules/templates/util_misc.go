@@ -154,9 +154,13 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
 		return ret
-	} else if u.User != nil {
-		ret.Username = u.User.Username()
-		ret.Password, _ = u.User.Password()
+	}
+
+	if u.Scheme != "ssh" && u.Scheme != "file" {
+		if u.User != nil {
+			ret.Username = u.User.Username()
+			ret.Password, _ = u.User.Password()
+		}
 	}
 
 	// The URL stored in the git repo could contain authentication,
