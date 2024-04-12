@@ -95,6 +95,9 @@ cpu.out
 /.air
 /.go-licenses
 
+# Folders that previously existed
+/public/assets/img/webpack
+
 # Snapcraft
 snap/.snapcraft/
 parts/

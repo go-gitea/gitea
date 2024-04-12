@@ -94,6 +94,9 @@ cpu.out
 /.air
 /.go-licenses
 
+# Folders that previously existed
+/public/assets/img/webpack
+
 # Snapcraft
 /gitea_a*.txt
 snap/.snapcraft/
