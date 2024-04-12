@@ -576,7 +576,10 @@ var migrations = []Migration{
 
 	// Gitea 1.22.0 ends at 294
 
+	// v294 -> v295
 	NewMigration("Add unique index for project issue table", v1_23.AddUniqueIndexForProjectIssue),
+	// v295 -> v296
+	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
 }
 
 // GetCurrentDBVersion returns the current db version
