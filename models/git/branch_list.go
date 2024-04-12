@@ -62,7 +62,7 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 
 func (branches BranchList) LoadRepo(ctx context.Context) error {
 	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
-		return branch.RepoID, branch.RepoID > 0
+		return branch.RepoID, branch.RepoID > 0 && branch.Repo == nil
 	})
 
 	reposMap := make(map[int64]*repo_model.Repository, len(ids))
@@ -70,7 +70,7 @@ func (branches BranchList) LoadRepo(ctx context.Context) error {
 		return err
 	}
 	for _, branch := range branches {
-		if branch.RepoID <= 0 {
+		if branch.RepoID <= 0 || branch.Repo != nil {
 			continue
 		}
 		branch.Repo = reposMap[branch.RepoID]
