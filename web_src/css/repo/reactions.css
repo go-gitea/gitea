@@ -9,7 +9,7 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.comment-code-cloud .segment.reactions {
+.timeline-item .conversation-holder .segment.reactions {
   padding-top: 1em !important;
   padding-bottom: 0 !important;
 }
