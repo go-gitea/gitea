@@ -5,7 +5,7 @@
 }
 
 .timeline-item .conversation-holder .bottom-reactions {
-  margin: 1em 0 -1em 36px; /* because there is a bottom padding on parent: "comment code-comment tw-pb-4" */
+  margin: 1em 0 0 36px;
 }
 
 .bottom-reactions .ui.label {
