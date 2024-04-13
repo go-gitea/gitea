@@ -49,7 +49,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
-  display: block;
+  display: inline-block;
 }
 
 #issue-list .flex-item-body .checklist progress {
