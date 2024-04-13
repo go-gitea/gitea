@@ -6,10 +6,12 @@
   margin-top: var(--page-spacing);
 }
 
+/* small options menu on the left, used in settings/admin pages */
 .flex-container-nav {
   width: 240px;
 }
 
+/* wide sidebar on the right, used in frontpage */
 .flex-container-sidebar {
   width: 35%;
 }
