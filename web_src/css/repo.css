@@ -913,6 +913,9 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .ui.comments {
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .repository.view.issue .comment-list .comment > .content > div:first-child {

@@ -6,6 +6,7 @@
 
 .timeline-item .conversation-holder .bottom-reactions {
   margin: 1em 0 0 36px;
+  padding-bottom: 8px;
 }
 
 .bottom-reactions .ui.label {
