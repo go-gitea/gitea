@@ -287,7 +287,7 @@
 							<div class="ui input fluid">
 								<input name="time_estimate" placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' value="{{TimeEstimateToStr .Issue.TimeEstimate}}" data-value="{{$.Issue.TimeEstimate}}" type="text" >
 							</div>
-							<button class="ui fluid button green tooltip gt-mt-3">
+							<button class="ui fluid button green tooltip tw-mt-1">
 								{{ctx.Locale.Tr "repo.issues.save"}}
 							</button>
 					</form>
@@ -691,7 +691,7 @@
 		{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
 			<div class="inline field">
-				<div class="ui checkbox small-loading-icon" id="allow-edits-from-maintainers"
+				<div class="ui checkbox loading-icon-2px" id="allow-edits-from-maintainers"
 						data-url="{{.Issue.Link}}"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 						data-prompt-error="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"

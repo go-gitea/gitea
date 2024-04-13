@@ -6,7 +6,7 @@
 		<div class="ui attached segment">
 			{{if or .allowAdopt .allowDelete}}
 				{{if .Dirs}}
-					<div class="ui middle aligned divided list">
+					<div class="ui list">
 						{{range $dirI, $dir := .Dirs}}
 							{{$repo := index $.ReposMap $dir}}
 							<div class="item {{if not $repo}}tw-py-1{{end}}">{{/* if not repo, then there are "adapt" buttons, so the padding shouldn't be that default large*/}}

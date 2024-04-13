@@ -125,7 +125,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			return nil
 		}
 
-		comment.TrackedTime = ToTrackedTime(ctx, c.Time)
+		comment.TrackedTime = ToTrackedTime(ctx, doer, c.Time)
 	}
 
 	if c.RefIssueID != 0 {
@@ -134,7 +134,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
 		}
-		comment.RefIssue = ToAPIIssue(ctx, issue)
+		comment.RefIssue = ToAPIIssue(ctx, doer, issue)
 	}
 
 	if c.RefCommentID != 0 {
@@ -185,7 +185,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.DependentIssue != nil {
-		comment.DependentIssue = ToAPIIssue(ctx, c.DependentIssue)
+		comment.DependentIssue = ToAPIIssue(ctx, doer, c.DependentIssue)
 	}
 
 	return comment

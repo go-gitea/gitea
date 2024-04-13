@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 // Check represents a Doctor check
@@ -25,6 +26,7 @@ type Check struct {
 	AbortIfFailed              bool
 	SkipDatabaseInitialization bool
 	Priority                   int
+	InitStorage                bool
 }
 
 func initDBSkipLogger(ctx context.Context) error {
@@ -84,6 +86,7 @@ func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) err
 	logger := log.BaseLoggerToGeneralLogger(&doctorCheckLogger{colorize: colorize})
 	loggerStep := log.BaseLoggerToGeneralLogger(&doctorCheckStepLogger{colorize: colorize})
 	dbIsInit := false
+	storageIsInit := false
 	for i, check := range checks {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
@@ -93,6 +96,14 @@ func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) err
 				return nil
 			}
 			dbIsInit = true
+		}
+		if !storageIsInit && check.InitStorage {
+			if err := storage.Init(); err != nil {
+				logger.Error("Error whilst initializing the storage: %v", err)
+				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")
+				return nil
+			}
+			storageIsInit = true
 		}
 		logger.Info("\n[%d] %s", i+1, check.Title)
 		if err := check.Run(ctx, loggerStep, autofix); err != nil {
