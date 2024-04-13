@@ -12,5 +12,5 @@ func AddCommitStatusSummary2(x *xorm.Engine) error {
 	}
 	// there is no migrations because if there is no data on this table, it will fall back to get data
 	// from commit status
-	return x.Sync2(new(CommitStatusSummary))
+	return x.Sync(new(CommitStatusSummary))
 }
