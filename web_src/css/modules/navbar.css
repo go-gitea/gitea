@@ -140,3 +140,8 @@
 .secondary-nav {
   background: var(--color-secondary-nav-bg) !important; /* important because of .ui.secondary.menu */
 }
+
+.issue-navbar {
+  display: flex;
+  justify-content: space-between;
+}

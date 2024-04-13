@@ -3,7 +3,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor,
+  initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -15,18 +15,13 @@ import {
 import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
-import {createDropzone} from './dropzone.js';
-import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {attachRefIssueContextPopup} from './contextpopup.js';
-import {POST, GET} from '../modules/fetch.js';
-
-const {csrfToken} = window.config;
+import {POST} from '../modules/fetch.js';
+import {initRepoIssueCommentEdit} from './repo-issue-edit.js';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function reloadConfirmDraftComment() {
@@ -316,180 +311,6 @@ export function initRepoCommentForm() {
   selectItem('.select-assignee', '#assignee_id');
 }
 
-async function onEditContent(event) {
-  event.preventDefault();
-
-  const segment = this.closest('.header').nextElementSibling;
-  const editContentZone = segment.querySelector('.edit-content-zone');
-  const renderContent = segment.querySelector('.render-content');
-  const rawContent = segment.querySelector('.raw-content');
-
-  let comboMarkdownEditor;
-
-  /**
-   * @param {HTMLElement} dropzone
-   */
-  const setupDropzone = async (dropzone) => {
-    if (!dropzone) return null;
-
-    let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
-    let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-    const dz = await createDropzone(dropzone, {
-      url: dropzone.getAttribute('data-upload-url'),
-      headers: {'X-Csrf-Token': csrfToken},
-      maxFiles: dropzone.getAttribute('data-max-file'),
-      maxFilesize: dropzone.getAttribute('data-max-size'),
-      acceptedFiles: ['*/*', ''].includes(dropzone.getAttribute('data-accepts')) ? null : dropzone.getAttribute('data-accepts'),
-      addRemoveLinks: true,
-      dictDefaultMessage: dropzone.getAttribute('data-default-message'),
-      dictInvalidFileType: dropzone.getAttribute('data-invalid-input-type'),
-      dictFileTooBig: dropzone.getAttribute('data-file-too-big'),
-      dictRemoveFile: dropzone.getAttribute('data-remove-file'),
-      timeout: 0,
-      thumbnailMethod: 'contain',
-      thumbnailWidth: 480,
-      thumbnailHeight: 480,
-      init() {
-        this.on('success', (file, data) => {
-          file.uuid = data.uuid;
-          fileUuidDict[file.uuid] = {submitted: false};
-          const input = document.createElement('input');
-          input.id = data.uuid;
-          input.name = 'files';
-          input.type = 'hidden';
-          input.value = data.uuid;
-          dropzone.querySelector('.files').insertAdjacentHTML('beforeend', input.outerHTML);
-        });
-        this.on('removedfile', async (file) => {
-          if (disableRemovedfileEvent) return;
-          document.getElementById(file.uuid)?.remove();
-          if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
-            try {
-              await POST(dropzone.getAttribute('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
-            } catch (error) {
-              console.error(error);
-            }
-          }
-        });
-        this.on('submit', () => {
-          for (const fileUuid of Object.keys(fileUuidDict)) {
-            fileUuidDict[fileUuid].submitted = true;
-          }
-        });
-        this.on('reload', async () => {
-          try {
-            const response = await GET(editContentZone.getAttribute('data-attachment-url'));
-            const data = await response.json();
-            // do not trigger the "removedfile" event, otherwise the attachments would be deleted from server
-            disableRemovedfileEvent = true;
-            dz.removeAllFiles(true);
-            dropzone.querySelector('.files').innerHTML = '';
-            fileUuidDict = {};
-            disableRemovedfileEvent = false;
-
-            for (const attachment of data) {
-              const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
-              dz.emit('addedfile', attachment);
-              dz.emit('thumbnail', attachment, imgSrc);
-              dz.emit('complete', attachment);
-              dz.files.push(attachment);
-              fileUuidDict[attachment.uuid] = {submitted: true};
-              dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
-              const input = document.createElement('input');
-              input.id = attachment.uuid;
-              input.name = 'files';
-              input.type = 'hidden';
-              input.value = attachment.uuid;
-              dropzone.querySelector('.files').insertAdjacentHTML('beforeend', input.outerHTML);
-            }
-          } catch (error) {
-            console.error(error);
-          }
-        });
-      },
-    });
-    dz.emit('reload');
-    return dz;
-  };
-
-  const cancelAndReset = (dz) => {
-    showElem(renderContent);
-    hideElem(editContentZone);
-    if (dz) {
-      dz.emit('reload');
-    }
-  };
-
-  const saveAndRefresh = async (dz) => {
-    showElem(renderContent);
-    hideElem(editContentZone);
-
-    try {
-      const params = new URLSearchParams({
-        content: comboMarkdownEditor.value(),
-        context: editContentZone.getAttribute('data-context'),
-      });
-      for (const file of dz.files) params.append('files[]', file.uuid);
-
-      const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
-      const data = await response.json();
-      if (!data.content) {
-        renderContent.innerHTML = document.getElementById('no-content').innerHTML;
-        rawContent.textContent = '';
-      } else {
-        renderContent.innerHTML = data.content;
-        rawContent.textContent = comboMarkdownEditor.value();
-        const refIssues = renderContent.querySelectorAll('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
-      }
-      const content = segment;
-      if (!content.querySelector('.dropzone-attachments')) {
-        if (data.attachments !== '') {
-          content.insertAdjacentHTML('beforeend', data.attachments);
-        }
-      } else if (data.attachments === '') {
-        content.querySelector('.dropzone-attachments').remove();
-      } else {
-        content.querySelector('.dropzone-attachments').outerHTML = data.attachments;
-      }
-      if (dz) {
-        dz.emit('submit');
-        dz.emit('reload');
-      }
-      initMarkupContent();
-      initCommentContent();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  if (!editContentZone.innerHTML) {
-    editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-
-    const dropzone = editContentZone.querySelector('.dropzone');
-    const dz = await setupDropzone(dropzone);
-    editContentZone.querySelector('.cancel.button').addEventListener('click', (e) => {
-      e.preventDefault();
-      cancelAndReset(dz);
-    });
-    editContentZone.querySelector('.save.button').addEventListener('click', (e) => {
-      e.preventDefault();
-      saveAndRefresh(dz);
-    });
-  } else {
-    comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-  }
-
-  // Show write/preview tab and copy raw content as needed
-  showElem(editContentZone);
-  hideElem(renderContent);
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
-  comboMarkdownEditor.focus();
-}
-
 export function initRepository() {
   if (!$('.page-content.repository').length) return;
 
@@ -592,34 +413,4 @@ export function initRepository() {
   }
 
   initUnicodeEscapeButton();
-}
-
-function initRepoIssueCommentEdit() {
-  // Edit issue or comment content
-  $(document).on('click', '.edit-content', onEditContent);
-
-  // Quote reply
-  $(document).on('click', '.quote-reply', async function (event) {
-    event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
-    const content = `> ${quote}\n\n`;
-    let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
-      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
-      editor = await handleReply($replyBtn);
-    } else {
-      // for normal issue/comment page
-      editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
-    }
-    if (editor) {
-      if (editor.value()) {
-        editor.value(`${editor.value()}\n\n${content}`);
-      } else {
-        editor.value(content);
-      }
-      editor.focus();
-      editor.moveCursorToEnd();
-    }
-  });
 }

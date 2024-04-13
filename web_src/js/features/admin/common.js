@@ -207,13 +207,13 @@ export function initAdminCommon() {
 
   // Notice
   if (document.querySelector('.admin.notice')) {
-    const $detailModal = document.getElementById('detail-modal');
+    const detailModal = document.getElementById('detail-modal');
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
-      $detailModal.find('.sub.header').text(this.closest('tr')?.querySelector('relative-time')?.getAttribute('title'));
-      $detailModal.modal('show');
+      const description = this.closest('tr').querySelector('.notice-description').textContent;
+      detailModal.querySelector('.content pre').textContent = description;
+      $(detailModal).modal('show');
       return false;
     });
 
