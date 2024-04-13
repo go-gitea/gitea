@@ -1,0 +1,92 @@
+.segment.reactions {
+  padding: 0;
+  display: flex;
+  border: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  gap: 6px;
+  padding: 0 1em 1em 1em !important;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.comment-code-cloud .segment.reactions {
+  padding-top: 1em !important;
+  padding-bottom: 0 !important;
+}
+
+.segment.reactions .ui.label {
+  border: 1px solid;
+  padding: 5px 8px !important;
+  display: flex !important;
+  align-items: center;
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  background: var(--color-reaction-bg);
+  font-weight: var(--font-weight-normal);
+  border-color: var(--color-secondary-dark-1) !important;
+}
+
+.segment.reactions .ui.label.disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.segment.reactions .ui.label .reaction {
+  font-size: 16px !important;
+  display: flex;
+}
+
+.segment.reactions .ui.label .reaction img {
+  height: 16px;
+  aspect-ratio: 1;
+}
+
+.segment.reactions .ui.label.basic.primary {
+  color: var(--color-primary) !important;
+  background-color: var(--color-reaction-active-bg) !important;
+  border-color: var(--color-primary-alpha-80) !important;
+}
+
+.segment.reactions .ui.label.basic:hover {
+  background-color: var(--color-reaction-hover-bg) !important;
+}
+
+.segment.reactions .reaction-count {
+  margin-left: 4px;
+}
+
+.select-reaction.dropdown .menu {
+  right: 0 !important;
+  left: auto !important;
+  min-width: 170px;
+}
+
+.select-reaction.dropdown .menu > .item {
+  float: left;
+  margin: 4px;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  min-height: 0 !important;
+  border-radius: var(--border-radius);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.segment.reactions .select-reaction {
+  padding: 0 10px;
+}
+
+.segment.reactions .select-reaction a {
+  color: inherit;
+}
+
+.segment.reactions .select-reaction:not(.active) {
+  visibility: hidden;
+}
+
+.segment.reactions:hover .select-reaction {
+  visibility: visible;
+}
