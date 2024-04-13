@@ -1902,19 +1902,12 @@ td .commit-summary {
   border-bottom: 1px solid var(--color-warning-border);
 }
 
-.repository .segment.reactions.dropdown .menu,
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
   left: auto !important;
   min-width: 170px;
 }
 
-.repository .segment.reactions.dropdown .menu > .header,
-.repository .select-reaction.dropdown .menu > .header {
-  margin: 0.75rem 0 0.5rem;
-}
-
-.repository .segment.reactions.dropdown .menu > .item,
 .repository .select-reaction.dropdown .menu > .item {
   float: left;
   margin: 4px;
@@ -1978,20 +1971,15 @@ td .commit-summary {
 }
 
 .repository .segment.reactions .select-reaction {
-  display: flex;
-  align-items: center;
-}
-
-.repository .segment.reactions .select-reaction a {
   padding: 0 14px;
 }
 
-.repository .segment.reactions .select-reaction:not(.active) a {
-  display: none;
+.repository .segment.reactions .select-reaction:not(.active) {
+  visibility: hidden;
 }
 
-.repository .segment.reactions:hover .select-reaction a {
-  display: block;
+.repository .segment.reactions:hover .select-reaction {
+  visibility: visible;
 }
 
 .repository .ui.fluid.action.input .ui.search.action.input {

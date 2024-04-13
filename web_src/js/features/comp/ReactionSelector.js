@@ -4,44 +4,32 @@ import {POST} from '../../modules/fetch.js';
 export function initCompReactionSelector() {
   for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {
     container.addEventListener('click', async (e) => {
-      const item = e.target.closest('.item.reaction');
-      const button = e.target.closest('.comment-reaction-button');
-      if (!item && !button) return;
+      // there are 2 places for the "reaction" buttons, one is the top-right reaction menu, one is the bottom of the comment
+      const target = e.target.closest('.comment-reaction-button');
+      if (!target) return;
       e.preventDefault();
 
-      const target = item || button;
       if (target.classList.contains('disabled')) return;
 
       const actionUrl = target.closest('[data-action-url]').getAttribute('data-action-url');
       const reactionContent = target.getAttribute('data-reaction-content');
 
-      const reactions = target.closest('.comment').querySelector('.segment.reactions');
+      const commentContainer = target.closest('.comment-container');
 
-      let hasReacted = false;
-      if (reactions) {
-        const btn = reactions.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`);
-        hasReacted = Boolean(btn?.getAttribute('data-has-reacted') === 'true');
-      }
-      const content = target.closest('.content');
+      const bottomReactions = commentContainer.querySelector('.segment.reactions'); // may not exist if there is no reaction
+      const bottomReactionBtn = bottomReactions?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`);
+      const hasReacted = bottomReactionBtn?.getAttribute('data-has-reacted') === 'true';
 
       const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
         data: new URLSearchParams({content: reactionContent}),
       });
 
       const data = await res.json();
-      if (data && (data.html || data.empty)) {
-        if ((!data.empty || data.html === '') && reactions) {
-          reactions.remove();
-        }
-        if (!data.empty) {
-          const attachments = content.querySelector('.segment.bottom');
-          if (attachments) {
-            attachments.insertAdjacentHTML('beforebegin', data.html);
-          } else {
-            content.insertAdjacentHTML('beforeend', data.html);
-          }
-          $(content.querySelectorAll('.segment.reactions .dropdown')).dropdown();
-        }
+      bottomReactions?.remove();
+      if (data.html) {
+        commentContainer.insertAdjacentHTML('beforeend', data.html);
+        const bottomReactionsDropdowns = commentContainer.querySelectorAll('.segment.reactions .dropdown.select-reaction');
+        $(bottomReactionsDropdowns).dropdown(); // re-init the dropdown
       }
     });
   }
