@@ -53,13 +53,13 @@ func NewFuncMap() template.FuncMap {
 		"JsonUtils":   NewJsonUtils,
 
 		// -----------------------------------------------------------------
-		// svg / avatar / icon
+		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
 		"ActionIcon":    ActionIcon,
-
-		"SortArrow": SortArrow,
+		"SortArrow":     SortArrow,
+		"ContrastColor": util.ContrastColor,
 
 		// -----------------------------------------------------------------
 		// time / number / format

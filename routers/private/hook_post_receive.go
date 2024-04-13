@@ -6,11 +6,12 @@ package private
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -159,8 +160,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
+	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
-	if len(opts.GitPushOptions) > 0 {
+	if isPrivate.Has() || isTemplate.Has() {
 		// load the repository
 		if repo == nil {
 			repo = loadRepository(ctx, ownerName, repoName)
@@ -171,13 +174,49 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
-		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "is_private", "is_template"); err != nil {
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
+			return
+		}
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
+		if err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+		if !perm.IsOwner() && !perm.IsAdmin() {
+			ctx.JSON(http.StatusNotFound, private.HookPostReceiveResult{
+				Err: "Permissions denied",
+			})
+			return
+		}
+
+		cols := make([]string, 0, len(opts.GitPushOptions))
+
+		if isPrivate.Has() {
+			repo.IsPrivate = isPrivate.Value()
+			cols = append(cols, "is_private")
+		}
+
+		if isTemplate.Has() {
+			repo.IsTemplate = isTemplate.Value()
+			cols = append(cols, "is_template")
+		}
+
+		if len(cols) > 0 {
+			if err := repo_model.UpdateRepositoryCols(ctx, repo, cols...); err != nil {
+				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
 		}
 	}
 
@@ -191,42 +230,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
-
-		// post update for agit pull request
-		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
-		if git.DefaultFeatures.SupportProcReceive && refFullName.IsPull() {
-			if repo == nil {
-				repo = loadRepository(ctx, ownerName, repoName)
-				if ctx.Written() {
-					return
-				}
-			}
-
-			pullIndex, _ := strconv.ParseInt(refFullName.PullName(), 10, 64)
-			if pullIndex <= 0 {
-				continue
-			}
-
-			pr, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
-			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
-				})
-				return
-			}
-			if pr == nil {
-				continue
-			}
-
-			results = append(results, private.HookPostReceiveBranchResult{
-				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-				Create:  false,
-				Branch:  "",
-				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-			})
-			continue
-		}
 
 		// If we've pushed a branch (and not deleted it)
 		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {

@@ -207,7 +207,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // ListPinnedPullRequests returns a list of all pinned PRs
