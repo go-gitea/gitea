@@ -297,6 +297,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 
 	sess := db.GetEngine(ctx)
 
+	// check whether from branch exist
 	var branch Branch
 	exist, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, from).Get(&branch)
 	if err != nil {
@@ -305,6 +306,24 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		return ErrBranchNotExist{
 			RepoID:     repo.ID,
 			BranchName: from,
+		}
+	}
+
+	// check whether to branch exist or is_deleted
+	var dstBranch Branch
+	exist, err = db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, to).Get(&dstBranch)
+	if err != nil {
+		return err
+	}
+	if exist {
+		if !dstBranch.IsDeleted {
+			return ErrBranchAlreadyExists{
+				BranchName: to,
+			}
+		}
+
+		if _, err := db.GetEngine(ctx).ID(dstBranch.ID).NoAutoCondition().Delete(&dstBranch); err != nil {
+			return err
 		}
 	}
 
@@ -362,12 +381,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		return err
 	}
 
-	// 5. do git action
-	if err = gitAction(ctx, isDefault); err != nil {
-		return err
-	}
-
-	// 6. insert renamed branch record
+	// 5. insert renamed branch record
 	renamedBranch := &RenamedBranch{
 		RepoID: repo.ID,
 		From:   from,
@@ -375,6 +389,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 	err = db.Insert(ctx, renamedBranch)
 	if err != nil {
+		return err
+	}
+
+	// 6. do git action
+	if err = gitAction(ctx, isDefault); err != nil {
 		return err
 	}
 
