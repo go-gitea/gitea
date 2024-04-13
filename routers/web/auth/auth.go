@@ -386,6 +386,9 @@ func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
 		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
+	case setting.OAuth2UsernamePreferredUsername:
+		preferredUsername := gothUser.RawData["preferred_username"].(string)
+		return user_model.NormalizeUserName(preferredUsername)
 	case setting.OAuth2UsernameNickname:
 		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
