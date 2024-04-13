@@ -2,10 +2,7 @@ import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
 
 export function initCompReactionSelector() {
-  const containers = document.querySelectorAll('.comment-list, .diff-file-body');
-  if (!containers.length) return;
-
-  for (const container of containers) {
+  for (const container of document.querySelectorAll('.comment-list, .diff-file-body')) {
     container.addEventListener('click', async (e) => {
       const item = e.target.closest('.item.reaction');
       const button = e.target.closest('.comment-reaction-button');
