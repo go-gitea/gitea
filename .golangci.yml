@@ -30,10 +30,6 @@ linters:
 
 run:
   timeout: 10m
-  skip-dirs:
-    - node_modules
-    - public
-    - web_src
 
 linters-settings:
   stylecheck:
@@ -94,6 +90,7 @@ linters-settings:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs: [node_modules, public, web_src]
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
