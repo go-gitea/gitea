@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"log"
 	"net/http"
 	"testing"
 
@@ -17,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPICompareTag(t *testing.T) {
+func TestAPICompareBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -25,16 +24,15 @@ func TestAPICompareTag(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	repoName := "repo1"
+	repoName := "repo20"
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/user2/%s/compare/v1.1...master", repoName).
+	req := NewRequestf(t, "GET", "/api/v1/repos/user2/%s/compare/add-csv...remove-files-b", repoName).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiResp *api.Compare
 	DecodeJSON(t, resp, &apiResp)
 
-	log.Printf("Total commits: %v", apiResp.TotalCommits)
-	log.Printf("Commits: %v", apiResp.Commits)
-	assert.Len(t, apiResp.TotalCommits, 1)
+	assert.Equal(t, 2, apiResp.TotalCommits)
+	assert.Len(t, apiResp.Commits, 2)
 }
