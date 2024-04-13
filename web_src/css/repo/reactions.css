@@ -1,12 +1,11 @@
 .segment.reactions {
-  padding: 0;
   display: flex;
   border: none !important;
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
   gap: 6px;
-  padding: 0 1em 1em 1em !important;
+  padding: 0 1em 1em !important;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
