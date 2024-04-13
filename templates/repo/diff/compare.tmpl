@@ -182,21 +182,21 @@
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
 			<div class="ui segment grid title">
-				<div class="twelve wide column issue-title">
+				<div class="column issue-title">
 					{{ctx.Locale.Tr "repo.pulls.has_pull_request" (print $.RepoLink "/pulls/" .PullRequest.Issue.Index) $.RepoRelPath .PullRequest.Index}}
-					<h1>
-						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}</span>
-						<span class="index">#{{.PullRequest.Issue.Index}}</span>
+					<h1 class="tw-mt-2 tw-flex">
+						<div class="tw-flex-1">
+							<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}</span>
+							<span class="index">#{{.PullRequest.Issue.Index}}</span>
+						</div>
+						{{- if .PullRequest.HasMerged -}}
+						<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+						{{else if .Issue.IsClosed}}
+						<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+						{{else}}
+						<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+						{{end}}
 					</h1>
-				</div>
-				<div class="four wide column middle aligned text right">
-				{{- if .PullRequest.HasMerged -}}
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
-				{{else if .Issue.IsClosed}}
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
-				{{else}}
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
-				{{end}}
 				</div>
 			</div>
 		{{else}}
