@@ -4,6 +4,8 @@
 package markdown
 
 import (
+	"path/filepath"
+
 	"code.gitea.io/gitea/modules/markup"
 	giteautil "code.gitea.io/gitea/modules/util"
 
@@ -18,7 +20,16 @@ func (g *ASTTransformer) transformLink(ctx *markup.RenderContext, v *ast.Link, r
 	if !isAnchorFragment && !markup.IsFullURLBytes(link) {
 		base := ctx.Links.Base
 		if ctx.IsWiki {
-			base = ctx.Links.WikiLink()
+			if filepath.Ext(string(link)) == "" {
+				// This link doesn't have a file extension - assume a regular wiki link
+				base = ctx.Links.WikiLink()
+			} else if markup.Type(string(link)) != "" {
+				// If it's a file type we can render, use a regular wiki link
+				base = ctx.Links.WikiLink()
+			} else {
+				// Otherwise, use a raw link instead
+				base = ctx.Links.WikiRawLink()
+			}
 		} else if ctx.Links.HasBranchInfo() {
 			base = ctx.Links.SrcLink()
 		}

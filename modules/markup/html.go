@@ -709,7 +709,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 
 		name += tail
 		image := false
-		switch ext := filepath.Ext(link); ext {
+		ext := filepath.Ext(link)
+		switch ext {
 		// fast path: empty string, ignore
 		case "":
 			// leave image as false
@@ -767,11 +768,26 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		} else {
 			if !absoluteLink {
+				var base string
 				if ctx.IsWiki {
-					link = util.URLJoin(ctx.Links.WikiLink(), link)
+					switch ext {
+					case "":
+						// no file extension, create a regular wiki link
+						base = ctx.Links.WikiLink()
+					default:
+						// we have a file extension:
+						// return a regular wiki link if it's a renderable file (extension),
+						// raw link otherwise
+						if Type(link) != "" {
+							base = ctx.Links.WikiLink()
+						} else {
+							base = ctx.Links.WikiRawLink()
+						}
+					}
 				} else {
-					link = util.URLJoin(ctx.Links.SrcLink(), link)
+					base = ctx.Links.SrcLink()
 				}
+				link = util.URLJoin(base, link)
 			}
 			childNode.Type = html.TextNode
 			childNode.Data = name
