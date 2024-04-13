@@ -29,6 +29,17 @@
   z-index: 1;
 }
 
+/* bare theme, no styling at all, except box-shadow */
+.tippy-box[data-theme="bare"] {
+  border: none;
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.tippy-box[data-theme="bare"] .tippy-content {
+  padding: 0;
+  background: transparent;
+}
+
 /* tooltip theme for text tooltips */
 
 .tippy-box[data-theme="tooltip"] {
