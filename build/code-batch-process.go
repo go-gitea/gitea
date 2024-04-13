@@ -278,6 +278,7 @@ func main() {
 				log.Print("the -d option is not supported by gitea-fmt")
 			}
 			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
+			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", append([]string{"-w", "-r", "interface{} -> any"}, substArgs...)))
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", getGoVersion()}, substArgs...)))
 		default:
 			log.Fatalf("unknown cmd: %s %v", subCmd, subArgs)
