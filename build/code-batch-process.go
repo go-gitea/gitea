@@ -203,17 +203,6 @@ Example:
 `, "file-batch-exec")
 }
 
-func getGoVersion() string {
-	goModFile, err := os.ReadFile("go.mod")
-	if err != nil {
-		log.Fatalf(`Faild to read "go.mod": %v`, err)
-		os.Exit(1)
-	}
-	goModVersionRegex := regexp.MustCompile(`go \d+\.\d+`)
-	goModVersionLine := goModVersionRegex.Find(goModFile)
-	return string(goModVersionLine[3:])
-}
-
 func newFileCollectorFromMainOptions(mainOptions map[string]string) (fc *fileCollector, err error) {
 	fileFilter := mainOptions["file-filter"]
 	if fileFilter == "" {
@@ -279,7 +268,7 @@ func main() {
 			}
 			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
 			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", append([]string{"-w", "-r", "interface{} -> any"}, substArgs...)))
-			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", getGoVersion()}, substArgs...)))
+			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra"}, substArgs...)))
 		default:
 			log.Fatalf("unknown cmd: %s %v", subCmd, subArgs)
 		}
