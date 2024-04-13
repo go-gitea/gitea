@@ -928,6 +928,7 @@ td .commit-summary {
 .repository.view.issue .comment-list .comment .comment-container {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
+  background: var(--color-box-body);
 }
 
 .repository.view.issue .comment-list .conversation-holder .comment .comment-container {

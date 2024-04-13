@@ -1,91 +1,69 @@
-.segment.reactions {
+.bottom-reactions {
   display: flex;
-  border: none !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
   gap: 6px;
-  padding: 0 1em 1em !important;
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  margin: 0 1em 1em;
 }
 
-.timeline-item .conversation-holder .segment.reactions {
-  padding-top: 1em !important;
-  padding-bottom: 0 !important;
+.timeline-item .conversation-holder .bottom-reactions {
+  margin: 1em 0 -1em 36px; /* because there is a bottom padding on parent: "comment code-comment tw-pb-4" */
 }
 
-.segment.reactions .ui.label {
-  border: 1px solid;
-  padding: 5px 8px !important;
-  display: flex !important;
-  align-items: center;
-  font-size: 12px;
-  border-radius: var(--border-radius);
-  background: var(--color-reaction-bg);
+.bottom-reactions .ui.label {
+  padding: 5px 8px;
   font-weight: var(--font-weight-normal);
-  border-color: var(--color-secondary-dark-1) !important;
 }
 
-.segment.reactions .ui.label.disabled {
+.bottom-reactions .ui.label.primary {
+  background-color: var(--color-reaction-active-bg) !important;
+}
+
+.bottom-reactions .ui.label:hover {
+  background-color: var(--color-reaction-hover-bg) !important;
+}
+
+.bottom-reactions .ui.label.disabled {
   cursor: default;
   opacity: 1;
 }
 
-.segment.reactions .ui.label .reaction {
-  font-size: 16px !important;
+.bottom-reactions .ui.label .reaction {
+  font-size: 16px;
   display: flex;
 }
 
-.segment.reactions .ui.label .reaction img {
+.bottom-reactions .ui.label .reaction img {
   height: 16px;
   aspect-ratio: 1;
 }
 
-.segment.reactions .ui.label.basic.primary {
-  color: var(--color-primary) !important;
-  background-color: var(--color-reaction-active-bg) !important;
-  border-color: var(--color-primary-alpha-80) !important;
-}
-
-.segment.reactions .ui.label.basic:hover {
-  background-color: var(--color-reaction-hover-bg) !important;
-}
-
-.segment.reactions .reaction-count {
+.bottom-reactions .reaction-count {
   margin-left: 4px;
 }
 
-.select-reaction.dropdown .menu {
-  right: 0 !important;
-  left: auto !important;
-  min-width: 170px;
+.ui.dropdown.select-reaction .menu {
+  min-width: 170px; /* item-outer-width * 4 */
 }
 
-.select-reaction.dropdown .menu > .item {
+.ui.dropdown.select-reaction .menu > .item {
   float: left;
   margin: 4px;
   font-size: 20px;
   width: 34px;
   height: 34px;
-  min-height: 0 !important;
   border-radius: var(--border-radius);
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.segment.reactions .select-reaction {
+.bottom-reactions .select-reaction {
   padding: 0 10px;
 }
 
-.segment.reactions .select-reaction a {
-  color: inherit;
-}
-
-.segment.reactions .select-reaction:not(.active) {
+.bottom-reactions .select-reaction:not(.active) {
   visibility: hidden;
 }
 
-.segment.reactions:hover .select-reaction {
+.bottom-reactions:hover .select-reaction {
   visibility: visible;
 }

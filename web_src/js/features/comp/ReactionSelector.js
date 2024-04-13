@@ -16,7 +16,7 @@ export function initCompReactionSelector() {
 
       const commentContainer = target.closest('.comment-container');
 
-      const bottomReactions = commentContainer.querySelector('.segment.reactions'); // may not exist if there is no reaction
+      const bottomReactions = commentContainer.querySelector('.bottom-reactions'); // may not exist if there is no reaction
       const bottomReactionBtn = bottomReactions?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`);
       const hasReacted = bottomReactionBtn?.getAttribute('data-has-reacted') === 'true';
 
@@ -28,7 +28,7 @@ export function initCompReactionSelector() {
       bottomReactions?.remove();
       if (data.html) {
         commentContainer.insertAdjacentHTML('beforeend', data.html);
-        const bottomReactionsDropdowns = commentContainer.querySelectorAll('.segment.reactions .dropdown.select-reaction');
+        const bottomReactionsDropdowns = commentContainer.querySelectorAll('.bottom-reactions .dropdown.select-reaction');
         $(bottomReactionsDropdowns).dropdown(); // re-init the dropdown
       }
     });
