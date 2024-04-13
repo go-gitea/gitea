@@ -12,11 +12,11 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -362,6 +362,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			true, // pending review
 			0,    // no reply
 			opts.CommitID,
+			nil,
 		); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateCodeComment", err)
 			return
@@ -544,7 +545,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 		return nil, nil, true
 	}
 
-	// validate the the review is for the given PR
+	// validate the review is for the given PR
 	if review.IssueID != pr.IssueID {
 		ctx.NotFound("ReviewNotInPR")
 		return nil, nil, true
@@ -639,6 +640,8 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
@@ -707,6 +710,10 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	for _, reviewer := range reviewers {
 		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, reviewer, isAdd)
 		if err != nil {
+			if issues_model.IsErrReviewRequestOnClosedPR(err) {
+				ctx.Error(http.StatusForbidden, "", err)
+				return
+			}
 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 			return
 		}
@@ -873,7 +880,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
 	}
-	review, pr, isWrong := prepareSingleReview(ctx)
+	review, _, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
 	}
@@ -883,13 +890,12 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		return
 	}
 
-	if pr.Issue.IsClosed {
-		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
-		return
-	}
-
 	_, err := pull_service.DismissReview(ctx, review.ID, ctx.Repo.Repository.ID, msg, ctx.Doer, isDismiss, dismissPriors)
 	if err != nil {
+		if pull_service.IsErrDismissRequestOnClosedPR(err) {
+			ctx.Error(http.StatusForbidden, "", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return
 	}

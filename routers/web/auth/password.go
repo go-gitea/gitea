@@ -12,14 +12,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -37,7 +36,7 @@ func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		log.Warn(ctx.Tr("auth.disable_forgot_password_mail_admin"))
+		log.Warn("no mail service configured")
 		ctx.Data["IsResetDisable"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -204,7 +203,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {
@@ -215,7 +214,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplResetPassword, nil)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
 			ctx.ServerError("UpdateAuth", err)
@@ -299,7 +297,6 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplMustChangePassword, &form)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
@@ -312,9 +309,9 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", ctx.Doer.Name)
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 

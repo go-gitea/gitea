@@ -4,24 +4,21 @@
 			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui secondary filter menu gt-ac gt-mx-0">
-				<form class="ui form ignore-dirty gt-f1">
-					<div class="ui fluid action input">
-						{{template "shared/searchinput" dict "Value" .Keyword}}
-						<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
-					</div>
+			<div class="ui secondary filter menu tw-items-center tw-mx-0">
+				<form class="ui form ignore-dirty tw-flex-1">
+					{{template "shared/search/combo" dict "Value" .Keyword}}
 				</form>
 				<!-- Sort -->
-				<div class="ui dropdown type jump item gt-mr-0">
+				<div class="ui dropdown type jump item tw-mr-0">
 					<span class="text">
 						{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
-						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
-						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
-						<a class="{{if eq .SortType "username"}}active {{end}}item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
-						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active {{end}}item" href="?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
 					</div>
 				</div>
 			</div>
@@ -47,8 +44,8 @@
 					{{range .Emails}}
 						<tr>
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.FullName}}</td>
-							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.FullName}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>
 								{{if .CanChange}}

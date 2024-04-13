@@ -240,25 +240,6 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 	return reaction, nil
 }
 
-// CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(ctx context.Context, doerID, issueID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:    content,
-		DoerID:  doerID,
-		IssueID: issueID,
-	})
-}
-
-// CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:      content,
-		DoerID:    doerID,
-		IssueID:   issueID,
-		CommentID: commentID,
-	})
-}
-
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 	reaction := &Reaction{
@@ -324,14 +305,12 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(container.Set[int64], len(list))
-	for _, reaction := range list {
+	return container.FilterSlice(list, func(reaction *Reaction) (int64, bool) {
 		if reaction.OriginalAuthor != "" {
-			continue
+			return 0, false
 		}
-		userIDs.Add(reaction.UserID)
-	}
-	return userIDs.Values()
+		return reaction.UserID, true
+	})
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {

@@ -21,9 +21,7 @@ menu:
 
 接下来，[安装 Node.js 和 npm](https://nodejs.org/zh-cn/download/)， 这是构建 JavaScript 和 CSS 文件所需的。最低支持的 Node.js 版本是 @minNodeVersion@，建议使用最新的 LTS 版本。
 
-**注意**：当执行需要外部工具的 make 任务（如`make misspell-check`）时，Gitea 将根据需要自动下载和构建这些工具。为了能够实现这个目的，你必须将`"$GOPATH/bin"`目录添加到可执行路径中。如果没有将 Go 的二进制目录添加到可执行路径中，你需要自行解决产生的问题。
-
-**注意2**：需要 Go 版本 @minGoVersion@ 或更高版本。不过，建议获取与我们的持续集成（continuous integration, CI）相同的版本，请参阅在 [Hacking on Gitea](development/hacking-on-gitea.md) 中给出的建议。
+**注意**：需要 Go 版本 @minGoVersion@ 或更高版本。不过，建议获取与我们的持续集成（continuous integration, CI）相同的版本，请参阅在 [Hacking on Gitea](development/hacking-on-gitea.md) 中给出的建议。
 
 ## 下载
 

@@ -24,7 +24,6 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"

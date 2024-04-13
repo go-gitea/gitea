@@ -11,6 +11,10 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
+import tailwindcss from 'tailwindcss';
+import tailwindConfig from './tailwind.config.js';
+import tailwindcssNesting from 'tailwindcss/nesting/index.js';
+import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -38,6 +42,18 @@ if ('ENABLE_SOURCEMAP' in env) {
 } else {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
+
+// define which web components we use for Vue to not interpret them as Vue components
+const webComponents = new Set([
+  // our own, in web_src/js/webcomponents
+  'overflow-menu',
+  'origin-url',
+  'absolute-date',
+  // from dependencies
+  'markdown-toolbar',
+  'relative-time',
+  'text-expander',
+]);
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
@@ -68,7 +84,7 @@ export default {
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/webcomponents.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/index.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
@@ -117,6 +133,11 @@ export default {
         test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
+        options: {
+          compilerOptions: {
+            isCustomElement: (tag) => webComponents.has(tag),
+          },
+        },
       },
       {
         test: /\.js$/i,
@@ -143,6 +164,18 @@ export default {
               sourceMap: sourceMaps === 'true',
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
+              importLoaders: 1,
+            },
+          },
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  tailwindcssNesting(postcssNesting({edition: '2024-02'})),
+                  tailwindcss(tailwindConfig),
+                ],
+              },
             },
           },
         ],
@@ -157,21 +190,18 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
-        }
-      },
-      {
-        test: /\.png$/i,
-        type: 'asset/resource',
-        generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
-        }
+        },
       },
     ],
   },
   plugins: [
+    new webpack.ProvidePlugin({ // for htmx extensions
+      htmx: 'htmx.org',
+    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // https://github.com/vuejs/vue-cli/pull/7443
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
@@ -205,10 +235,10 @@ export default {
       },
       override: {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
-        'htmx.org@1.9.10': {licenseName: 'BSD-2-Clause'}, // "BSD 2-Clause" -> "BSD-2-Clause"
+        'idiomorph@0.3.0': {licenseName: 'BSD-2-Clause'}, // https://github.com/bigskysoftware/idiomorph/pull/37
       },
       emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
+      allow: '(Apache-2.0 OR 0BSD OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
     }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {

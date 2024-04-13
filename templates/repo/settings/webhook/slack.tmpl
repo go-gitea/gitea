@@ -1,5 +1,5 @@
 {{if eq .HookType "slack"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://slack.com" (ctx.Locale.Tr "repo.settings.web_hook_name_slack") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://slack.com" (ctx.Locale.Tr "repo.settings.web_hook_name_slack")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/slack/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">

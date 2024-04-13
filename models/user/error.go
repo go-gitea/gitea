@@ -31,9 +31,8 @@ func (err ErrUserAlreadyExist) Unwrap() error {
 
 // ErrUserNotExist represents a "UserNotExist" kind of error.
 type ErrUserNotExist struct {
-	UID   int64
-	Name  string
-	KeyID int64
+	UID  int64
+	Name string
 }
 
 // IsErrUserNotExist checks if an error is a ErrUserNotExist.
@@ -43,7 +42,7 @@ func IsErrUserNotExist(err error) bool {
 }
 
 func (err ErrUserNotExist) Error() string {
-	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
+	return fmt.Sprintf("user does not exist [uid: %d, name: %s]", err.UID, err.Name)
 }
 
 // Unwrap unwraps this error as a ErrNotExist error

@@ -10,7 +10,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -33,7 +32,7 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 	needGenesis := len(status.CommitSha) == 0
 	if !needGenesis {
-		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
+		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(status.CommitSha, revision)
 		stdout, _, _ := hasAncestorCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		needGenesis = len(stdout) == 0
 	}
@@ -92,11 +91,9 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		return nil, runErr
 	}
 
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	var err error
-	objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
 	changes.Updates, err = parseGitLsTreeOutput(objectFormat, stdout)
 	return &changes, err
 }
@@ -175,10 +172,8 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		return nil, err
 	}
 
-	objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+
 	changes.Updates, err = parseGitLsTreeOutput(objectFormat, lsTreeStdout)
 	return &changes, err
 }

@@ -6,18 +6,22 @@ package private
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	gitea_context "code.gitea.io/gitea/services/context"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -27,6 +31,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	// We don't rely on RepoAssignment here because:
 	// a) we don't need the git repo in this function
+	//    OUT OF DATE: we do need the git repo to sync the branch to the db now.
 	// b) our update function will likely change the repository in the db so we will need to refresh it
 	// c) we don't always need the repo
 
@@ -34,7 +39,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repoName := ctx.Params(":repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
-	var repo *repo_model.Repository
+	var (
+		repo    *repo_model.Repository
+		gitRepo *git.Repository
+	)
+	defer gitRepo.Close() // it's safe to call Close on a nil pointer
 
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
@@ -68,6 +77,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			updates = append(updates, option)
 			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {
 				// put the master/main branch first
+				// FIXME: It doesn't always work, since the master/main branch may not be the first batch of updates.
+				//        If the user pushes many branches at once, the Git hook will call the internal API in batches, rather than all at once.
+				//        See https://github.com/go-gitea/gitea/blob/cb52b17f92e2d2293f7c003649743464492bca48/cmd/hook.go#L27
+				//        If the user executes `git push origin --all` and pushes more than 30 branches, the master/main may not be the default branch.
 				copy(updates[1:], updates)
 				updates[0] = option
 			}
@@ -75,6 +88,64 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if repo != nil && len(updates) > 0 {
+		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
+		for _, update := range updates {
+			if !update.RefFullName.IsBranch() {
+				continue
+			}
+			if repo == nil {
+				repo = loadRepository(ctx, ownerName, repoName)
+				if ctx.Written() {
+					return
+				}
+				wasEmpty = repo.IsEmpty
+			}
+
+			if update.IsDelRef() {
+				if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
+					log.Error("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
+				}
+			} else {
+				branchesToSync = append(branchesToSync, update)
+
+				// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
+				pull_service.UpdatePullsRefs(ctx, repo, update)
+			}
+		}
+		if len(branchesToSync) > 0 {
+			if gitRepo == nil {
+				var err error
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+				if err != nil {
+					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+					})
+					return
+				}
+			}
+
+			var (
+				branchNames = make([]string, 0, len(branchesToSync))
+				commitIDs   = make([]string, 0, len(branchesToSync))
+			)
+			for _, update := range branchesToSync {
+				branchNames = append(branchNames, update.RefFullName.BranchName())
+				commitIDs = append(commitIDs, update.NewCommitID)
+			}
+
+			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
+		}
+
 		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
@@ -89,8 +160,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
+	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
-	if len(opts.GitPushOptions) > 0 {
+	if isPrivate.Has() || isTemplate.Has() {
 		// load the repository
 		if repo == nil {
 			repo = loadRepository(ctx, ownerName, repoName)
@@ -101,13 +174,49 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
-		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "is_private", "is_template"); err != nil {
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
+			return
+		}
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
+		if err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+		if !perm.IsOwner() && !perm.IsAdmin() {
+			ctx.JSON(http.StatusNotFound, private.HookPostReceiveResult{
+				Err: "Permissions denied",
+			})
+			return
+		}
+
+		cols := make([]string, 0, len(opts.GitPushOptions))
+
+		if isPrivate.Has() {
+			repo.IsPrivate = isPrivate.Value()
+			cols = append(cols, "is_private")
+		}
+
+		if isTemplate.Has() {
+			repo.IsTemplate = isTemplate.Value()
+			cols = append(cols, "is_template")
+		}
+
+		if len(cols) > 0 {
+			if err := repo_model.UpdateRepositoryCols(ctx, repo, cols...); err != nil {
+				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
 		}
 	}
 
@@ -122,44 +231,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
 
-		// post update for agit pull request
-		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
-		if git.SupportProcReceive && refFullName.IsPull() {
-			if repo == nil {
-				repo = loadRepository(ctx, ownerName, repoName)
-				if ctx.Written() {
-					return
-				}
-			}
-
-			pullIndex, _ := strconv.ParseInt(refFullName.PullName(), 10, 64)
-			if pullIndex <= 0 {
-				continue
-			}
-
-			pr, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
-			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
-				})
-				return
-			}
-			if pr == nil {
-				continue
-			}
-
-			results = append(results, private.HookPostReceiveBranchResult{
-				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-				Create:  false,
-				Branch:  "",
-				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-			})
-			continue
-		}
-
 		// If we've pushed a branch (and not deleted it)
-		if git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
+		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
 			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)

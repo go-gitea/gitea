@@ -2,7 +2,8 @@
 
 .flex-container {
   display: flex !important;
-  gap: 16px;
+  gap: var(--page-spacing);
+  margin-top: var(--page-spacing);
 }
 
 .flex-container-nav {

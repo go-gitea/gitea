@@ -90,6 +90,7 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	ProjectsMode                  string           `json:"projects_mode"`
 	HasReleases                   bool             `json:"has_releases"`
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
@@ -98,6 +99,7 @@ type Repository struct {
 	AllowRebase                   bool             `json:"allow_rebase"`
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
@@ -179,6 +181,8 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// `repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.
+	ProjectsMode *string `json:"projects_mode,omitempty" binding:"In(repo,owner,all)"`
 	// either `true` to enable releases unit, or `false` to disable them.
 	HasReleases *bool `json:"has_releases,omitempty"`
 	// either `true` to enable packages unit, or `false` to disable them.
@@ -195,6 +199,8 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow fast-forward-only merging pull requests, or `false` to prevent fast-forward-only merging.
+	AllowFastForwardOnly *bool `json:"allow_fast_forward_only_merge,omitempty"`
 	// either `true` to allow mark pr as merged manually, or `false` to prevent it.
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
@@ -203,7 +209,7 @@ type EditRepoOption struct {
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
-	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`

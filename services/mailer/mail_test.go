@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
+	"mime/quotedprintable"
 	"regexp"
 	"strings"
 	"testing"
@@ -19,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -67,6 +70,12 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 func TestComposeIssueCommentMessage(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == doer.Name
+		},
+	})
+
 	setting.IncomingEmail.Enabled = true
 	defer func() { setting.IncomingEmail.Enabled = false }()
 
@@ -77,7 +86,8 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
-		Content: "test body", Comment: comment,
+		Content: fmt.Sprintf("test @%s %s#%d body", doer.Name, issue.Repo.FullName(), issue.Index),
+		Comment: comment,
 	}, "en-US", recipients, false, "issue comment")
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
@@ -96,6 +106,20 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", gomailMsg.GetHeader("Message-ID")[0], "Message-ID header doesn't match")
 	assert.Equal(t, "<mailto:"+replyTo+">", gomailMsg.GetHeader("List-Post")[0])
 	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 2) // url + mailto
+
+	var buf bytes.Buffer
+	gomailMsg.WriteTo(&buf)
+
+	b, err := io.ReadAll(quotedprintable.NewReader(&buf))
+	assert.NoError(t, err)
+
+	// text/plain
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL()))
+
+	// text/html
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
 }
 
 func TestComposeIssueMessage(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -21,10 +22,33 @@ type actionsClaims struct {
 	TaskID int64
 	RunID  int64
 	JobID  int64
+	Ac     string `json:"ac"`
 }
+
+type actionsCacheScope struct {
+	Scope      string
+	Permission actionsCachePermission
+}
+
+type actionsCachePermission int
+
+const (
+	actionsCachePermissionRead = 1 << iota
+	actionsCachePermissionWrite
+)
 
 func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 	now := time.Now()
+
+	ac, err := json.Marshal(&[]actionsCacheScope{
+		{
+			Scope:      "",
+			Permission: actionsCachePermissionWrite,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
 
 	claims := actionsClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -32,13 +56,14 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
+		Ac:     string(ac),
 		TaskID: taskID,
 		RunID:  runID,
 		JobID:  jobID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(setting.SecretKey))
+	tokenString, err := token.SignedString(setting.GetGeneralTokenSigningSecret())
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +87,7 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return []byte(setting.SecretKey), nil
+		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	if err != nil {
 		return 0, err

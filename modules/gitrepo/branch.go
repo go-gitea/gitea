@@ -50,3 +50,20 @@ func IsBranchExist(ctx context.Context, repo Repository, name string) bool {
 func IsWikiBranchExist(ctx context.Context, repo Repository, name string) bool {
 	return IsWikiReferenceExist(ctx, repo, git.BranchPrefix+name)
 }
+
+// SetDefaultBranch sets default branch of repository.
+func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
+	_, _, err := git.NewCommand(ctx, "symbolic-ref", "HEAD").
+		AddDynamicArguments(git.BranchPrefix + name).
+		RunStdString(&git.RunOpts{Dir: repoPath(repo)})
+	return err
+}
+
+// GetDefaultBranch gets default branch of repository.
+func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
+	return git.GetDefaultBranch(ctx, repoPath(repo))
+}
+
+func GetWikiDefaultBranch(ctx context.Context, repo Repository) (string, error) {
+	return git.GetDefaultBranch(ctx, wikiPath(repo))
+}
