@@ -866,7 +866,7 @@ func file_artifact_proto_rawDescGZIP() []byte {
 
 var (
 	file_artifact_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-	file_artifact_proto_goTypes  = []any{
+	file_artifact_proto_goTypes  = []interface{}{
 		(*CreateArtifactRequest)(nil),                  // 0: github.actions.results.api.v1.CreateArtifactRequest
 		(*CreateArtifactResponse)(nil),                 // 1: github.actions.results.api.v1.CreateArtifactResponse
 		(*FinalizeArtifactRequest)(nil),                // 2: github.actions.results.api.v1.FinalizeArtifactRequest
@@ -904,7 +904,7 @@ func file_artifact_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_artifact_proto_msgTypes[0].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CreateArtifactRequest); i {
 			case 0:
 				return &v.state
@@ -916,7 +916,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[1].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CreateArtifactResponse); i {
 			case 0:
 				return &v.state
@@ -928,7 +928,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[2].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FinalizeArtifactRequest); i {
 			case 0:
 				return &v.state
@@ -940,7 +940,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[3].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FinalizeArtifactResponse); i {
 			case 0:
 				return &v.state
@@ -952,7 +952,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[4].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListArtifactsRequest); i {
 			case 0:
 				return &v.state
@@ -964,7 +964,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[5].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListArtifactsResponse); i {
 			case 0:
 				return &v.state
@@ -976,7 +976,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[6].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListArtifactsResponse_MonolithArtifact); i {
 			case 0:
 				return &v.state
@@ -988,7 +988,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[7].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetSignedArtifactURLRequest); i {
 			case 0:
 				return &v.state
@@ -1000,7 +1000,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[8].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetSignedArtifactURLResponse); i {
 			case 0:
 				return &v.state
@@ -1012,7 +1012,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[9].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteArtifactRequest); i {
 			case 0:
 				return &v.state
@@ -1024,7 +1024,7 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
-		file_artifact_proto_msgTypes[10].Exporter = func(v any, i int) any {
+		file_artifact_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteArtifactResponse); i {
 			case 0:
 				return &v.state
