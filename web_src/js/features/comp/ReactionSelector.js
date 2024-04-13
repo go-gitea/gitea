@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
 
 export function initCompReactionSelector() {
-  const containers = document.querySelectorAll('.comment-container, .code-comment');
+  const containers = document.querySelectorAll('.comment-list, .diff-file-body');
   if (!containers.length) return;
 
   for (const container of containers) {
@@ -11,7 +11,6 @@ export function initCompReactionSelector() {
       const button = e.target.matches('.comment-reaction-button') ? e.target : e.target.closest('.comment-reaction-button');
       if (!item && !button) return;
       e.preventDefault();
-
       const target = item || button;
       if (target.classList.contains('disabled')) return;
 
