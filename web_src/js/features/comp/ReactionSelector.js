@@ -7,8 +7,8 @@ export function initCompReactionSelector() {
 
   for (const container of containers) {
     container.addEventListener('click', async (e) => {
-      const item = e.target.matches('.item.reaction') ? e.target : e.target.closest('.item.reaction');
-      const button = e.target.matches('.comment-reaction-button') ? e.target : e.target.closest('.comment-reaction-button');
+      const item = e.target.closest('.item.reaction');
+      const button = e.target.closest('.comment-reaction-button');
       if (!item && !button) return;
       e.preventDefault();
 
