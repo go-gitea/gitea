@@ -1,8 +1,12 @@
 <table id="repo-files-table" class="ui single line table tw-mt-0" {{if .HasFilesWithoutLatestCommit}}hx-indicator="tr.notready td.message span" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
 	<thead>
 		<tr class="commit-list">
-			<th colspan="2">
-				{{template "repo/latest_commit" .}}
+			<th class="tw-overflow-hidden" colspan="2">
+				<div class="tw-flex">
+					<div class="latest-commit">
+						{{template "repo/latest_commit" .}}
+					</div>
+				</div>
 			</th>
 			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
 		</tr>

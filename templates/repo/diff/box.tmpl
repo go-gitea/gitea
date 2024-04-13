@@ -111,7 +111,7 @@
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between tw-flex-wrap">
-							<div class="diff-file-name tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
+							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<button class="fold-file btn interact-bg tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
 										{{svg "octicon-chevron-right" 18}}
@@ -128,21 +128,23 @@
 										{{template "repo/diff/stats" dict "file" . "root" $}}
 									{{end}}
 								</div>
-								<span class="file tw-font-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}</span>
-								<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
-								{{if $file.IsGenerated}}
-									<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
-								{{end}}
-								{{if $file.IsVendored}}
-									<span class="ui label">{{ctx.Locale.Tr "repo.diff.vendored"}}</span>
-								{{end}}
-								{{if and $file.Mode $file.OldMode}}
-									{{$old := ctx.Locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
-									{{$new := ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}
-									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
-								{{else if $file.Mode}}
-									<span class="tw-ml-4 tw-font-mono">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
-								{{end}}
+								<span class="file tw-flex tw-items-center tw-font-mono tw-flex-1"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>
+									{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
+									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
+									{{if $file.IsGenerated}}
+										<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
+									{{end}}
+									{{if $file.IsVendored}}
+										<span class="ui label">{{ctx.Locale.Tr "repo.diff.vendored"}}</span>
+									{{end}}
+									{{if and $file.Mode $file.OldMode}}
+										{{$old := ctx.Locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
+										{{$new := ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}
+										<span class="tw-mx-2 tw-font-mono tw-whitespace-nowrap">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
+									{{else if $file.Mode}}
+										<span class="tw-mx-2 tw-font-mono tw-whitespace-nowrap">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
+									{{end}}
+								</span>
 							</div>
 							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
 								{{if $showFileViewToggle}}

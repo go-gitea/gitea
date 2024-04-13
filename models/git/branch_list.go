@@ -17,15 +17,12 @@ import (
 type BranchList []*Branch
 
 func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
-	ids := container.Set[int64]{}
-	for _, branch := range branches {
-		if !branch.IsDeleted {
-			continue
-		}
-		ids.Add(branch.DeletedByID)
-	}
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
+		return branch.DeletedByID, branch.IsDeleted
+	})
+
 	usersMap := make(map[int64]*user_model.User, len(ids))
-	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&usersMap); err != nil {
+	if err := db.GetEngine(ctx).In("id", ids).Find(&usersMap); err != nil {
 		return err
 	}
 	for _, branch := range branches {
@@ -41,14 +38,13 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 }
 
 func (branches BranchList) LoadPusher(ctx context.Context) error {
-	ids := container.Set[int64]{}
-	for _, branch := range branches {
-		if branch.PusherID > 0 { // pusher_id maybe zero because some branches are sync by backend with no pusher
-			ids.Add(branch.PusherID)
-		}
-	}
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
+		// pusher_id maybe zero because some branches are sync by backend with no pusher
+		return branch.PusherID, branch.PusherID > 0
+	})
+
 	usersMap := make(map[int64]*user_model.User, len(ids))
-	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&usersMap); err != nil {
+	if err := db.GetEngine(ctx).In("id", ids).Find(&usersMap); err != nil {
 		return err
 	}
 	for _, branch := range branches {

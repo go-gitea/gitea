@@ -28,7 +28,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
 	if err := t.Clone(opts.OldBranch, false); err != nil {
