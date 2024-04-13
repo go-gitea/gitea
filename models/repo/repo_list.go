@@ -104,18 +104,19 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(container.Set[int64])
+	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
+		return repo.OwnerID, true
+	})
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
 	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
+	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", set.Values()).
+		In("id", userIDs).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %w", err)
 	}

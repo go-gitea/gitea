@@ -74,7 +74,6 @@ func AccountPost(ctx *context.Context) {
 			case errors.Is(err, password.ErrIsPwned):
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned"))
 			case password.IsErrIsPwnedRequest(err):
-				log.Error("%s", err.Error())
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned_err"))
 			default:
 				ctx.ServerError("UpdateAuth", err)
@@ -235,7 +234,7 @@ func DeleteEmail(ctx *context.Context) {
 
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureDeletion) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureDeletion) {
 		ctx.Error(http.StatusNotFound)
 		return
 	}
@@ -319,7 +318,7 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
-	ctx.Data["UserDisabledFeatures"] = &setting.Admin.UserDisabledFeatures
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
 		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()

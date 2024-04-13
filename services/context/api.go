@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -21,15 +21,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
-
-	"gitea.com/go-chi/cache"
 )
 
 // APIContext is a specific context for API service
 type APIContext struct {
 	*Base
 
-	Cache cache.Cache
+	Cache cache.StringCache
 
 	Doer        *user_model.User // current signed-in user
 	IsSigned    bool
@@ -217,7 +215,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			base, baseCleanUp := NewBaseContext(w, req)
 			ctx := &APIContext{
 				Base:  base,
-				Cache: mc.GetCache(),
+				Cache: cache.GetCache(),
 				Repo:  &Repository{PullRequest: &PullRequest{}},
 				Org:   &APIOrganization{},
 			}

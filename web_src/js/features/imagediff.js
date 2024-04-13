@@ -110,15 +110,15 @@ export function initImageDiff() {
     const $imagesAfter = imageInfos[0].$images;
     const $imagesBefore = imageInfos[1].$images;
 
-    initSideBySide(createContext($imagesAfter[0], $imagesBefore[0]));
+    initSideBySide(this, createContext($imagesAfter[0], $imagesBefore[0]));
     if ($imagesAfter.length > 0 && $imagesBefore.length > 0) {
       initSwipe(createContext($imagesAfter[1], $imagesBefore[1]));
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    $container.find('> .image-diff-tabs').removeClass('is-loading');
+    this.querySelector(':scope > .image-diff-tabs')?.classList.remove('is-loading');
 
-    function initSideBySide(sizes) {
+    function initSideBySide(container, sizes) {
       let factor = 1;
       if (sizes.max.width > (diffContainerWidth - 24) / 2) {
         factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
@@ -126,13 +126,24 @@ export function initImageDiff() {
 
       const widthChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalWidth !== sizes.$image2[0].naturalWidth;
       const heightChanged = sizes.$image1.length !== 0 && sizes.$image2.length !== 0 && sizes.$image1[0].naturalHeight !== sizes.$image2[0].naturalHeight;
-      if (sizes.$image1.length !== 0) {
-        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.$image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
-        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.$image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
+      if (sizes.$image1?.length) {
+        const boundsInfoAfterWidth = container.querySelector('.bounds-info-after .bounds-info-width');
+        boundsInfoAfterWidth.textContent = `${sizes.$image1[0].naturalWidth}px`;
+        if (widthChanged) boundsInfoAfterWidth.classList.add('green');
+
+        const boundsInfoAfterHeight = container.querySelector('.bounds-info-after .bounds-info-height');
+        boundsInfoAfterHeight.textContent = `${sizes.$image1[0].naturalHeight}px`;
+        if (heightChanged) boundsInfoAfterHeight.classList.add('green');
       }
-      if (sizes.$image2.length !== 0) {
-        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.$image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
-        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.$image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
+
+      if (sizes.$image2?.length) {
+        const boundsInfoBeforeWidth = container.querySelector('.bounds-info-before .bounds-info-width');
+        boundsInfoBeforeWidth.textContent = `${sizes.$image2[0].naturalWidth}px`;
+        if (widthChanged) boundsInfoBeforeWidth.classList.add('red');
+
+        const boundsInfoBeforeHeight = container.querySelector('.bounds-info-before .bounds-info-height');
+        boundsInfoBeforeHeight.textContent = `${sizes.$image2[0].naturalHeight}px`;
+        if (heightChanged) boundsInfoBeforeHeight.classList.add('red');
       }
 
       const image1 = sizes.$image1[0];

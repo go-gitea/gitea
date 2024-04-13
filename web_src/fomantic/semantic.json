@@ -23,12 +23,9 @@
   "components": [
     "api",
     "button",
-    "checkbox",
     "dimmer",
     "dropdown",
     "form",
-    "input",
-    "list",
     "menu",
     "modal",
     "search",

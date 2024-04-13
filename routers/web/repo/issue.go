@@ -2179,7 +2179,7 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, issue))
+	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, ctx.Doer, issue))
 }
 
 // UpdateIssueTitle change issue's title
@@ -2498,6 +2498,10 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
 		if err != nil {
+			if issues_model.IsErrReviewRequestOnClosedPR(err) {
+				ctx.Status(http.StatusForbidden)
+				return
+			}
 			ctx.ServerError("ReviewRequest", err)
 			return
 		}
@@ -2705,7 +2709,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
@@ -2875,7 +2879,7 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func BatchDeleteIssues(ctx *context.Context) {

@@ -42,8 +42,8 @@
 
 						<div class="field color-field">
 							<label for="new_project_column_color_picker">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-							<div class="color picker column">
-								<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
+							<div class="js-color-picker-input column">
+								<input maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
 								{{template "repo/issue/label_precolors"}}
 							</div>
 						</div>
@@ -66,13 +66,13 @@
 <div id="project-board">
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
-			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
-				<div class="project-column-header">
+			<div class="ui segment project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
+				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
 					<div class="ui large label project-column-title tw-py-1">
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
 						</div>
-						{{.Title}}
+						<span class="project-column-title-label">{{.Title}}</span>
 					</div>
 					{{if $canWriteProject}}
 						<div class="ui dropdown jump item">
@@ -114,8 +114,8 @@
 
 											<div class="field color-field">
 												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-												<div class="color picker column">
-													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
+												<div class="js-color-picker-input column">
+													<input maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
 													{{template "repo/issue/label_precolors"}}
 												</div>
 											</div>
@@ -153,10 +153,8 @@
 						</div>
 					{{end}}
 				</div>
-
-				<div class="divider"></div>
-
-				<div class="ui cards{{if $canWriteProject}} tw-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
+				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
 						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}

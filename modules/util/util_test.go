@@ -235,3 +235,8 @@ func TestToPointer(t *testing.T) {
 	val123 := 123
 	assert.False(t, &val123 == ToPointer(val123))
 }
+
+func TestReserveLineBreakForTextarea(t *testing.T) {
+	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata"), "test\ndata")
+	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata\r\n"), "test\ndata\n")
+}

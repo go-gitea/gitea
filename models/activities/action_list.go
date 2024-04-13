@@ -22,11 +22,9 @@ import (
 type ActionList []*Action
 
 func (actions ActionList) getUserIDs() []int64 {
-	userIDs := make(container.Set[int64], len(actions))
-	for _, action := range actions {
-		userIDs.Add(action.ActUserID)
-	}
-	return userIDs.Values()
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+		return action.ActUserID, true
+	})
 }
 
 func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
@@ -50,11 +48,9 @@ func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_mod
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(actions))
-	for _, action := range actions {
-		repoIDs.Add(action.RepoID)
-	}
-	return repoIDs.Values()
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+		return action.RepoID, true
+	})
 }
 
 func (actions ActionList) LoadRepositories(ctx context.Context) error {
@@ -80,18 +76,16 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		userMap = make(map[int64]*user_model.User)
 	}
 
-	userSet := make(container.Set[int64], len(actions))
-	for _, action := range actions {
+	missingUserIDs := container.FilterSlice(actions, func(action *Action) (int64, bool) {
 		if action.Repo == nil {
-			continue
+			return 0, false
 		}
-		if _, ok := userMap[action.Repo.OwnerID]; !ok {
-			userSet.Add(action.Repo.OwnerID)
-		}
-	}
+		_, alreadyLoaded := userMap[action.Repo.OwnerID]
+		return action.Repo.OwnerID, !alreadyLoaded
+	})
 
 	if err := db.GetEngine(ctx).
-		In("id", userSet.Values()).
+		In("id", missingUserIDs).
 		Find(&userMap); err != nil {
 		return fmt.Errorf("find user: %w", err)
 	}

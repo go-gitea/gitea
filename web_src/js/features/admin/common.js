@@ -207,28 +207,35 @@ export function initAdminCommon() {
 
   // Notice
   if (document.querySelector('.admin.notice')) {
-    const $detailModal = document.getElementById('detail-modal');
+    const detailModal = document.getElementById('detail-modal');
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
-      $detailModal.find('.sub.header').text(this.closest('tr')?.querySelector('relative-time')?.getAttribute('title'));
-      $detailModal.modal('show');
+      const description = this.closest('tr').querySelector('.notice-description').textContent;
+      detailModal.querySelector('.content pre').textContent = description;
+      $(detailModal).modal('show');
       return false;
     });
 
     // Select actions
-    const $checkboxes = $('.select.table .ui.checkbox');
+    const checkboxes = document.querySelectorAll('.select.table .ui.checkbox input');
+
     $('.select.action').on('click', function () {
       switch ($(this).data('action')) {
         case 'select-all':
-          $checkboxes.checkbox('check');
+          for (const checkbox of checkboxes) {
+            checkbox.checked = true;
+          }
           break;
         case 'deselect-all':
-          $checkboxes.checkbox('uncheck');
+          for (const checkbox of checkboxes) {
+            checkbox.checked = false;
+          }
           break;
         case 'inverse':
-          $checkboxes.checkbox('toggle');
+          for (const checkbox of checkboxes) {
+            checkbox.checked = !checkbox.checked;
+          }
           break;
       }
     });
@@ -236,11 +243,11 @@ export function initAdminCommon() {
       e.preventDefault();
       this.classList.add('is-loading', 'disabled');
       const data = new FormData();
-      $checkboxes.each(function () {
-        if ($(this).checkbox('is checked')) {
-          data.append('ids[]', this.getAttribute('data-id'));
+      for (const checkbox of checkboxes) {
+        if (checkbox.checked) {
+          data.append('ids[]', checkbox.closest('.ui.checkbox').getAttribute('data-id'));
         }
-      });
+      }
       await POST(this.getAttribute('data-link'), {data});
       window.location.href = this.getAttribute('data-redirect');
     });
