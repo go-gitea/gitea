@@ -10,7 +10,7 @@
 		<span class="text branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
 	</div>
-	<div class="menu tw-left-auto tw-right-0">
+	<div class="menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
