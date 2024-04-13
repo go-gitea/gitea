@@ -110,7 +110,7 @@ func ChangeTimeEstimate(issue *issues_model.Issue, doer *user_model.User, timeEs
 	issue.TimeEstimate = timeEstimate
 
 	if err = issues_model.ChangeIssueTimeEstimate(issue, doer, timeEstimate); err != nil {
-		return
+		return err
 	}
 
 	return nil

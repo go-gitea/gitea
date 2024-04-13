@@ -282,7 +282,7 @@
 			<div>
 					<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_estimate"}}</strong></span>
 
-					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
+					<form method="post" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
 							<div class="ui input fluid">
 								<input name="time_estimate" placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' value="{{TimeEstimateToStr .Issue.TimeEstimate}}" data-value="{{$.Issue.TimeEstimate}}" type="text" >
