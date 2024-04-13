@@ -56,7 +56,7 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	metaData := ctx.Repo.Repository.ComposeDocumentMetas()
+	metaData := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 	metaData["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 
 	err = markup.Render(&markup.RenderContext{
