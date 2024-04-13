@@ -143,7 +143,6 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
-			scanner.Split(bufio.ScanLines)
 
 			for scanner.Scan() {
 				line := strings.TrimSpace(scanner.Text())
@@ -180,7 +179,6 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 					}
 				}
 				commitStats.Total = commitStats.Additions + commitStats.Deletions
-				scanner.Scan()
 				scanner.Text() // empty line at the end
 
 				res := &ExtendedCommitStats{

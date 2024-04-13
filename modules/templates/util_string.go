@@ -4,6 +4,8 @@
 package templates
 
 import (
+	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -15,6 +17,19 @@ var stringUtils = StringUtils{}
 
 func NewStringUtils() *StringUtils {
 	return &stringUtils
+}
+
+func (su *StringUtils) ToString(v any) string {
+	switch v := v.(type) {
+	case string:
+		return v
+	case template.HTML:
+		return string(v)
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprint(v)
+	}
 }
 
 func (su *StringUtils) HasPrefix(s, prefix string) bool {

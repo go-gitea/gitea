@@ -63,21 +63,10 @@ func setup(ctx context.Context, debug bool) {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
 	setting.MustInstalled()
-	if debug {
-		setting.RunMode = "dev"
-	}
-
-	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
-	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
-		if os.IsNotExist(err) {
-			_ = fail(ctx, "Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
-		} else {
-			_ = fail(ctx, "Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
-		}
+		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
 		return
 	}
-
 	if err := git.InitSimple(context.Background()); err != nil {
 		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}

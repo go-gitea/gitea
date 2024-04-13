@@ -5,4 +5,10 @@
 	<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/activity/contributors">
 		{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
 	</a>
+	<a class="{{if .PageIsCodeFrequency}}active{{end}} item" href="{{.RepoLink}}/activity/code-frequency">
+		{{ctx.Locale.Tr "repo.activity.navbar.code_frequency"}}
+	</a>
+	<a class="{{if .PageIsRecentCommits}}active{{end}} item" href="{{.RepoLink}}/activity/recent-commits">
+		{{ctx.Locale.Tr "repo.activity.navbar.recent_commits"}}
+	</a>
 </div>

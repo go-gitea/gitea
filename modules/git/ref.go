@@ -50,7 +50,7 @@ type Reference struct {
 
 // Commit return the commit of the reference
 func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
+	return ref.repo.GetCommitByObjectID(ref.Object)
 }
 
 // ShortName returns the short name of the reference

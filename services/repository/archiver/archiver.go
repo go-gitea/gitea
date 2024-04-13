@@ -216,7 +216,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	}
 	defer gitRepo.Close()
 
-	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
+	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo gitrepo.GitRepository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)

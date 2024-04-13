@@ -458,19 +458,17 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	var gitRepo *git.Repository
-	if len(results) == 0 {
-		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
-	} else {
-		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = gitrepo.OpenRepository(ctx, m.Repo)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
-			return false
-		}
-		defer gitRepo.Close()
+	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
+		return false
+	}
+	defer gitRepo.Close()
 
+	log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
+	if len(results) > 0 {
 		if ok := checkAndUpdateEmptyRepository(ctx, m, gitRepo, results); !ok {
+			log.Error("SyncMirrors [repo: %-v]: checkAndUpdateEmptyRepository: %v", m.Repo, err)
 			return false
 		}
 	}
@@ -488,10 +486,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
 			}
-			objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, m.Repo)
-			if err != nil {
-				log.Error("SyncMirrors [repo: %-v]: unable to GetHashTypeOfRepo: %v", m.Repo, err)
-			}
+			objectFormat := git.ObjectFormatFromName(m.Repo.ObjectFormatName)
 			notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 				RefFullName: result.refName,
 				OldCommitID: objectFormat.EmptyObjectID().String(),
@@ -546,16 +541,24 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
-	// Get latest commit date and update to current repository updated time
-	commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
+	isEmpty, err := gitRepo.IsEmpty()
 	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: unable to check empty git repo: %v", m.Repo, err)
 		return false
 	}
+	if !isEmpty {
+		// Get latest commit date and update to current repository updated time
+		commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
+		if err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
+			return false
+		}
 
-	if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
-		return false
+		if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
+			return false
+		}
+
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
@@ -602,7 +605,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gi
 			m.Repo.DefaultBranch = firstName
 		}
 		// Update the git repository default branch
-		if err := gitRepo.SetDefaultBranch(m.Repo.DefaultBranch); err != nil {
+		if err := gitrepo.SetDefaultBranch(ctx, m.Repo, m.Repo.DefaultBranch); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
 				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
 				desc := fmt.Sprintf("Failed to update default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)

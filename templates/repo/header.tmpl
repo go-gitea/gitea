@@ -1,31 +1,33 @@
-<div class="header-wrapper">
+<div class="secondary-nav">
 {{with .Repository}}
 	<div class="ui container">
 		<div class="repo-header">
-			<div class="flex-item gt-ac">
-				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
+			<div class="flex-item tw-items-center">
+				<div class="flex-item-leading">
+					{{template "repo/icon" .}}
+				</div>
 				<div class="flex-item-main">
-					<div class="flex-item-title gt-font-18">
-						<a class="muted gt-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
-						<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a></div>
+					<div class="flex-item-title tw-text-18">
+						<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					</div>
 				</div>
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
 					{{end}}
 					{{if .IsPrivate}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
 					{{else}}
 						{{if .Owner.Visibility.IsPrivate}}
-							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-							<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
+							<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
 					{{end}}
 					{{if .IsTemplate}}
-						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
-						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
+						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.template"}}</span>
+						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
 					{{end}}
 					{{if eq .ObjectFormatName "sha256"}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.sha256"}}</span>
@@ -76,34 +78,34 @@
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
-										data-modal="#fork-repo-modal"
+										href="#" data-modal="#fork-repo-modal"
 									{{else if eq (len $.UserAndOrgForks) 1}}
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
 								{{else if not $.UserAndOrgForks}}
-									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
+									href="{{$.RepoLink}}/fork"
 								{{else}}
-									data-modal="#fork-repo-modal"
+									href="#" data-modal="#fork-repo-modal"
 								{{end}}
 							>
-								{{svg "octicon-repo-forked"}}<span class="text">{{ctx.Locale.Tr "repo.fork"}}</span>
+								{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
 								<div class="header">
 									{{ctx.Locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content gt-text-left">
+								<div class="content tw-text-left">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
-											<div class="ui item gt-py-3">
-												<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "gt-mr-3"}}{{.FullName}}</a>
+											<div class="ui item tw-py-2">
+												<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "tw-mr-2"}}{{.FullName}}</a>
 											</div>
 										{{end}}
 									</div>
 									{{if $.CanSignedUserFork}}
 									<div class="divider"></div>
-									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
+									<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
 									{{end}}
 								</div>
 							</div>
@@ -126,9 +128,9 @@
 		{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
 	</div>
 {{end}}
-	<div class="ui container secondary pointing tabular top attached borderless menu new-menu navbar">
+	<overflow-menu class="ui container secondary pointing tabular top attached borderless menu tw-pt-0 tw-my-0">
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-			<div class="new-menu-inner">
+			<div class="overflow-menu-items">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
@@ -174,7 +176,8 @@
 					</a>
 				{{end}}
 
-				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
+				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
@@ -219,12 +222,12 @@
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
-			<div class="new-menu-inner">
+			<div class="overflow-menu-items">
 				<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 				</a>
 			</div>
 		{{end}}
-	</div>
+	</overflow-menu>
 	<div class="ui tabs divider"></div>
 </div>

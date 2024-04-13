@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,8 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user12 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+
 	watchers, err := repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
@@ -105,7 +108,7 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.Len(t, watchers, prevCount+1)
 
 	// Should remove watch, inhibit from adding auto
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, 12, 1, false))
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user12, repo, false))
 	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
@@ -115,25 +118,4 @@ func TestWatchIfAuto(t *testing.T) {
 	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
-}
-
-func TestWatchRepoMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeAuto))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeAuto}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNormal))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeNormal}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeDont))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeDont}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNone))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
 }

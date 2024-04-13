@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -25,14 +26,14 @@ type Commit struct {
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
-	Signature     *CommitGPGSignature
+	Signature     *CommitSignature
 
 	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache
 }
 
-// CommitGPGSignature represents a git commit signature part.
-type CommitGPGSignature struct {
+// CommitSignature represents a git commit signature part.
+type CommitSignature struct {
 	Signature string
 	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
@@ -63,7 +64,7 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	parent, err := c.repo.getCommit(id)
+	parent, err := c.repo.GetCommitByObjectID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +293,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
-// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
@@ -376,6 +377,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 				ismodule = false
 			}
 		}
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
 	return c.submoduleCache, nil

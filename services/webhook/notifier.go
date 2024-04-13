@@ -67,7 +67,7 @@ func (m *webhookNotifier) IssueClearLabels(ctx context.Context, doer *user_model
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		})
@@ -168,7 +168,7 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 		permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}
@@ -214,7 +214,7 @@ func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 					From: oldTitle,
 				},
 			},
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		})
@@ -250,7 +250,7 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 			CommitID:   commitID,
@@ -281,7 +281,7 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}); err != nil {
@@ -349,7 +349,7 @@ func (m *webhookNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 					From: oldContent,
 				},
 			},
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		})
@@ -384,7 +384,7 @@ func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 	permission, _ := access_model.GetUserRepoPermission(ctx, c.Issue.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: c.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,
-		Issue:   convert.ToAPIIssue(ctx, c.Issue),
+		Issue:   convert.ToAPIIssue(ctx, doer, c.Issue),
 		Comment: convert.ToAPIComment(ctx, c.Issue.Repo, c),
 		Changes: &api.ChangesPayload{
 			Body: &api.ChangesFromPayload{
@@ -412,7 +412,7 @@ func (m *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentCreated,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Comment:    convert.ToAPIComment(ctx, repo, comment),
 		Repository: convert.ToRepo(ctx, repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
@@ -449,7 +449,7 @@ func (m *webhookNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: comment.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentDeleted,
-		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, comment.Issue),
 		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
 		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
@@ -533,7 +533,7 @@ func (m *webhookNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		})
@@ -575,7 +575,7 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueMilestone, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		})

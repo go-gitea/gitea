@@ -31,7 +31,7 @@ func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.GetCommitByObjectID(id)
 }
 
 // GetBranchCommit returns the last commit of given branch.
@@ -68,7 +68,7 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.GetCommitByObjectID(id)
 }
 
 // GetCommitByPath returns the last commit of relative path.
@@ -246,7 +246,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 	}()
 
-	len := repo.objectFormat.FullLength()
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	len := objectFormat.FullLength()
 	commits := []*Commit{}
 	shaline := make([]byte, len+1)
 	for {
@@ -261,7 +266,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		if err != nil {
 			return nil, err
 		}
-		commit, err := repo.getCommit(objectID)
+		commit, err := repo.GetCommitByObjectID(objectID)
 		if err != nil {
 			return nil, err
 		}

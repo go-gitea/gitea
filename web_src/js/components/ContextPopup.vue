@@ -1,8 +1,7 @@
 <script>
-import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
+import {contrastColor} from '../utils/color.js';
+import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -59,17 +58,12 @@ export default {
     },
 
     labels() {
-      return this.issue.labels.map((label) => {
-        let textColor;
-        const {r, g, b} = tinycolor(label.color).toRgb();
-        if (useLightTextOnBackground(r, g, b)) {
-          textColor = '#eeeeee';
-        } else {
-          textColor = '#111111';
-        }
-        return {name: label.name, color: `#${label.color}`, textColor};
-      });
-    }
+      return this.issue.labels.map((label) => ({
+        name: label.name,
+        color: `#${label.color}`,
+        textColor: contrastColor(`#${label.color}`),
+      }));
+    },
   },
   mounted() {
     this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
@@ -80,32 +74,35 @@ export default {
     });
   },
   methods: {
-    load(data) {
+    async load(data) {
       this.loading = true;
       this.i18nErrorMessage = null;
-      $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
-        this.issue = issue;
-      }).fail((jqXHR) => {
-        if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-          this.i18nErrorMessage = jqXHR.responseJSON.message;
-        } else {
-          this.i18nErrorMessage = i18n.network_error;
+
+      try {
+        const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`);
+        const respJson = await response.json();
+        if (!response.ok) {
+          this.i18nErrorMessage = respJson.message ?? i18n.network_error;
+          return;
         }
-      }).always(() => {
+        this.issue = respJson;
+      } catch {
+        this.i18nErrorMessage = i18n.network_error;
+      } finally {
         this.loading = false;
-      });
-    }
-  }
+      }
+    },
+  },
 };
 </script>
 <template>
   <div ref="root">
-    <div v-if="loading" class="ui active centered inline loader"/>
+    <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
-      <div>
+      <div class="labels-list">
         <div
           v-for="label in labels"
           :key="label.name"

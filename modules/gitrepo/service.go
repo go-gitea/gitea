@@ -25,6 +25,7 @@ type Service interface {
 	CheckDelegateHooks(ctx context.Context, relativePath string) ([]string, error)
 	CreateDelegateHooks(ctx context.Context, relativePath string) (err error)
 	WalkReferences(ctx context.Context, relativePath string, walkfn func(sha1, refname string) error) (int, error)
+	GetDefaultBranch(ctx context.Context, relativePath string) (string, error)
 }
 
 var _ Service = &localServiceImpl{}
@@ -94,4 +95,8 @@ func (s *localServiceImpl) CreateDelegateHooks(ctx context.Context, relativePath
 
 func (s *localServiceImpl) WalkReferences(ctx context.Context, relativePath string, walkfn func(sha1, refname string) error) (int, error) {
 	return git.WalkShowRef(ctx, s.absPath(relativePath), nil, 0, 0, walkfn)
+}
+
+func (s *localServiceImpl) GetDefaultBranch(ctx context.Context, relativePath string) (string, error) {
+	return git.GetDefaultBranch(ctx, s.absPath(relativePath))
 }

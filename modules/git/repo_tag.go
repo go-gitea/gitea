@@ -135,7 +135,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			break
 		}
 
-		tag, err := parseTagRef(repo.objectFormat, ref)
+		tag, err := parseTagRef(ref)
 		if err != nil {
 			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
 		}
@@ -155,7 +155,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 }
 
 // parseTagRef parses a tag from a 'git for-each-ref'-produced reference.
-func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
+func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
 		Name: ref["refname:lstrip=2"],
@@ -179,17 +179,15 @@ func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, er
 
 	tag.Tagger = parseSignatureFromCommitLine(ref["creator"])
 	tag.Message = ref["contents"]
-	// strip PGP signature if present in contents field
-	pgpStart := strings.Index(tag.Message, beginpgp)
-	if pgpStart >= 0 {
-		tag.Message = tag.Message[0:pgpStart]
-	}
+
+	// strip any signature if present in contents field
+	_, tag.Message, _ = parsePayloadSignature(util.UnsafeStringToBytes(tag.Message), 0)
 
 	// annotated tag with GPG signature
 	if tag.Type == "tag" && ref["contents:signature"] != "" {
 		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s\n",
 			tag.Object, tag.Name, ref["creator"], strings.TrimSpace(tag.Message))
-		tag.Signature = &CommitGPGSignature{
+		tag.Signature = &CommitSignature{
 			Signature: ref["contents:signature"],
 			Payload:   payload,
 		}

@@ -497,7 +497,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 		}
 
-		objectFormat, _ := baseGitRepo.GetObjectFormat()
+		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 		if len(commitID) != objectFormat.FullLength() {
 			return fmt.Errorf("Wrong commit ID")
 		}

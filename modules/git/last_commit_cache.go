@@ -4,12 +4,11 @@
 package git
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/minio/sha256-simd"
 )
 
 // Cache represents a caching interface

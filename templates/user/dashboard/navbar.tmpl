@@ -1,15 +1,15 @@
-<div class="dashboard-navbar">
+<div class="secondary-nav tw-border-b tw-border-b-secondary">
 	<div class="ui secondary stackable menu">
 		<div class="item">
 			<div class="ui floating dropdown jump">
 				<span class="text truncated-item-container">
-					{{ctx.AvatarUtils.Avatar .ContextUser}}
+					{{ctx.AvatarUtils.Avatar .ContextUser 24 "tw-mr-1"}}
 					<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 					<span class="org-visibility">
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 					</span>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
 				</span>
 				<div class="context user overflow menu">
 					<div class="ui header">
@@ -78,7 +78,7 @@
 
 	{{if .ContextUser.IsOrganization}}
 		<div class="right menu">
-			<a class="{{if .PageIsNews}}active {{end}}item gt-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 			</a>
 			{{if not .UnitIssuesGlobalDisabled}}
@@ -105,4 +105,3 @@
 	{{end}}
 	</div>
 </div>
-<div class="divider"></div>

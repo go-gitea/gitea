@@ -10,7 +10,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -35,7 +34,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 	return SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doerID)
 }
 
-func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
+func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo gitrepo.GitRepository, doerID int64) (int64, error) {
 	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)
