@@ -930,6 +930,10 @@ td .commit-summary {
   border-radius: var(--border-radius);
 }
 
+.repository.view.issue .comment-list .conversation-holder .comment .comment-container {
+  border: none;
+}
+
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list .comment .content .form .button {
     width: 100%;
