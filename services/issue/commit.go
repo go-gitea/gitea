@@ -4,7 +4,6 @@
 package issue
 
 import (
-	"code.gitea.io/gitea/modules/util"
 	"context"
 	"errors"
 	"fmt"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func issueAddTime(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {

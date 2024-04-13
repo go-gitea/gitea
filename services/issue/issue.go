@@ -109,11 +109,7 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 func ChangeTimeEstimate(issue *issues_model.Issue, doer *user_model.User, timeEstimate int64) (err error) {
 	issue.TimeEstimate = timeEstimate
 
-	if err = issues_model.ChangeIssueTimeEstimate(issue, doer, timeEstimate); err != nil {
-		return err
-	}
-
-	return nil
+	return issues_model.ChangeIssueTimeEstimate(issue, doer, timeEstimate)
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.

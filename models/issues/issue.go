@@ -930,11 +930,11 @@ func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimate i
 	}
 
 	opts := &CreateCommentOptions{
-		Type:         CommentTypeChangeTimeEstimate,
-		Doer:         doer,
-		Repo:         issue.Repo,
-		Issue:        issue,
-		Content:      fmt.Sprintf("%d", timeEstimate),
+		Type:    CommentTypeChangeTimeEstimate,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: fmt.Sprintf("%d", timeEstimate),
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
