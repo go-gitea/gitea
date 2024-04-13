@@ -1066,7 +1066,7 @@ func Routes() *web.Route {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
-				m.Get("/compare/*", repo.CompareDiff)
+				m.Get("/compare/*", reqAnyRepoReader(), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
