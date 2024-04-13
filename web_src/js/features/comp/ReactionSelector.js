@@ -17,7 +17,7 @@ export function initCompReactionSelector() {
 
       const actionUrl = target.closest('[data-action-url]')?.getAttribute('data-action-url');
       const reactionContent = target.getAttribute('data-reaction-content');
-      const hasReacted = target.closest('.ui.segment.reactions')?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`)?.getAttribute('data-has-reacted') === 'true';
+      const hasReacted = target.closest('.segment.reactions')?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`)?.getAttribute('data-has-reacted') === 'true';
       const content = target.closest('.content');
 
       const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
