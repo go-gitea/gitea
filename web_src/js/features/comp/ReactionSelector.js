@@ -1,38 +1,45 @@
 import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
 
-export function initCompReactionSelector($parent) {
-  $parent.find(`.select-reaction .item.reaction, .comment-reaction-button`).on('click', async function (e) {
-    e.preventDefault();
+export function initCompReactionSelector() {
+  const containers = document.querySelectorAll('.comment-container, .code-comment');
+  if (!containers.length) return;
 
-    if (this.classList.contains('disabled')) return;
+  for (const container of containers) {
+    container.addEventListener('click', async (e) => {
+      const item = e.target.matches('.item.reaction') ? e.target : e.target.closest('.item.reaction');
+      const button = e.target.matches('.comment-reaction-button') ? e.target : e.target.closest('.comment-reaction-button');
+      if (!item && !button) return;
+      e.preventDefault();
 
-    const actionUrl = this.closest('[data-action-url]')?.getAttribute('data-action-url');
-    const reactionContent = this.getAttribute('data-reaction-content');
-    const hasReacted = this.closest('.ui.segment.reactions')?.querySelector(`a[data-reaction-content="${reactionContent}"]`)?.getAttribute('data-has-reacted') === 'true';
+      const target = item || button;
+      if (target.classList.contains('disabled')) return;
 
-    const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
-      data: new URLSearchParams({content: reactionContent}),
-    });
+      const actionUrl = target.closest('[data-action-url]')?.getAttribute('data-action-url');
+      const reactionContent = target.getAttribute('data-reaction-content');
+      const hasReacted = target.closest('.ui.segment.reactions')?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`)?.getAttribute('data-has-reacted') === 'true';
+      const content = target.closest('.content');
 
-    const data = await res.json();
-    if (data && (data.html || data.empty)) {
-      const $content = $(this).closest('.content');
-      let $react = $content.find('.segment.reactions');
-      if ((!data.empty || data.html === '') && $react.length > 0) {
-        $react.remove();
-      }
-      if (!data.empty) {
-        const $attachments = $content.find('.segment.bottom:first');
-        $react = $(data.html);
-        if ($attachments.length > 0) {
-          $react.insertBefore($attachments);
-        } else {
-          $react.appendTo($content);
+      const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
+        data: new URLSearchParams({content: reactionContent}),
+      });
+
+      const data = await res.json();
+      if (data && (data.html || data.empty)) {
+        const reactions = content.querySelector('.segment.reactions');
+        if ((!data.empty || data.html === '') && reactions) {
+          reactions.remove();
         }
-        $react.find('.dropdown').dropdown();
-        initCompReactionSelector($react);
+        if (!data.empty) {
+          const attachments = content.querySelector('.segment.bottom');
+          if (attachments) {
+            attachments.insertAdjacentHTML('beforebegin', data.html);
+          } else {
+            content.insertAdjacentHTML('beforeend', data.html);
+          }
+          $(content.querySelectorAll('.segment.reactions .dropdown')).dropdown();
+        }
       }
-    }
-  });
+    });
+  }
 }
