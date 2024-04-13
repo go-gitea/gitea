@@ -50,7 +50,7 @@ a special meaning for your command shell.
 
 If no pattern is provided, all files are listed.
 
-### Example
+### Example: Listing all embedded files
 
 Listing all embedded files with `openid` in their path:
 
@@ -101,7 +101,7 @@ When Gitea is upgraded to a new version (by replacing the executable), many of t
 embedded files will suffer changes. Gitea will honor and use any files found
 in the `custom` directory, even if they are old and incompatible.
 
-### Example
+### Example: Extracting mail templates
 
 Extracting mail templates to a temporary directory:
 

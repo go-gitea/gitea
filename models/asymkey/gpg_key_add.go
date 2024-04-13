@@ -66,13 +66,13 @@ func addGPGSubKey(ctx context.Context, key *GPGKey) (err error) {
 }
 
 // AddGPGKey adds new public key to database.
-func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, error) {
+func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature string) ([]*GPGKey, error) {
 	ekeys, err := checkArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 		// Get DB session
 
-		key, err := parseGPGKey(ownerID, ekey, verified)
+		key, err := parseGPGKey(ctx, ownerID, ekey, verified)
 		if err != nil {
 			return nil, err
 		}

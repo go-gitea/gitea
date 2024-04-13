@@ -86,6 +86,7 @@ Gitea creates OAuth applications for the following services by default on startu
 |-----------|-----------|---------|
 |[git-credential-oauth](https://github.com/hickford/git-credential-oauth)|Git credential helper|`a4792ccc-144e-407e-86c9-5e7d8d9c3269`|
 |[Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)|Git credential helper|`e90ee53c-94e2-48ac-9358-a874fb9e0662`|
+|[tea](https://gitea.com/gitea/tea)|tea|`d57cb8c4-630c-4168-8324-ec79935e18d4`|
 
 To prevent unexpected behavior, they are being displayed as locked in the UI and their creation can instead be controlled by the `DEFAULT_APPLICATIONS` parameter in `app.ini`.
 

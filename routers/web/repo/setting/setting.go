@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,25 +13,26 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -185,7 +187,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -243,6 +245,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+		pullMirror.RemoteAddress = remoteAddress
+
 		form.LFS = form.LFS && setting.LFS.StartServer
 
 		if len(form.LFSEndpoint) > 0 {
@@ -271,14 +280,14 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
 
 		mirror_service.AddPullMirrorToQueue(repo.ID)
 
-		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.pull_mirror_sync_in_progress", repo.OriginalURL))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-sync":
@@ -295,11 +304,11 @@ func SettingsPost(ctx *context.Context) {
 
 		mirror_service.AddPushMirrorToQueue(m.ID)
 
-		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.push_mirror_sync_in_progress", m.RemoteAddress))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-update":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -336,7 +345,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -365,7 +374,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
-		if setting.Mirror.DisableNewPush {
+		if setting.Mirror.DisableNewPush || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -397,14 +406,21 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m := &repo_model.PushMirror{
-			RepoID:       repo.ID,
-			Repo:         repo,
-			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			SyncOnCommit: form.PushMirrorSyncOnCommit,
-			Interval:     interval,
+		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
 		}
-		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
+
+		m := &repo_model.PushMirror{
+			RepoID:        repo.ID,
+			Repo:          repo,
+			RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit:  form.PushMirrorSyncOnCommit,
+			Interval:      interval,
+			RemoteAddress: remoteAddress,
+		}
+		if err := db.Insert(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
@@ -474,6 +490,13 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
+		if form.DefaultWikiBranch != "" {
+			if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
+				log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
+				ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
+			}
+		}
+
 		if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
@@ -520,6 +543,9 @@ func SettingsPost(ctx *context.Context) {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
+				Config: &repo_model.ProjectsConfig{
+					ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
+				},
 			})
 		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
@@ -562,6 +588,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:                   form.PullsAllowRebase,
 					AllowRebaseMerge:              form.PullsAllowRebaseMerge,
 					AllowSquash:                   form.PullsAllowSquash,
+					AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
@@ -580,7 +607,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
@@ -678,10 +705,10 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
-		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
+		} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
@@ -747,7 +774,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == user_model.UserTypeOrganization {
-			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
@@ -765,6 +792,8 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+			} else if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
@@ -799,7 +828,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
@@ -863,11 +892,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, true); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
+		}
+
+		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
@@ -881,11 +914,17 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, false); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
+		}
+
+		if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+			if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))

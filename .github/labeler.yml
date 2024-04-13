@@ -1,0 +1,77 @@
+modifies/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+modifies/templates:
+  - changed-files:
+      - all-globs-to-any-file:
+          - "templates/**"
+          - "!templates/swagger/v1_json.tmpl"
+
+modifies/api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "routers/api/**"
+          - "templates/swagger/v1_json.tmpl"
+
+modifies/cli:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cmd/**"
+
+modifies/translation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "options/locale/*.ini"
+
+modifies/migrations:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "models/migrations/**"
+
+modifies/internal:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".air.toml"
+          - "Makefile"
+          - "Dockerfile"
+          - "Dockerfile.rootless"
+          - ".dockerignore"
+          - "docker/**"
+          - ".editorconfig"
+          - ".eslintrc.yaml"
+          - ".golangci.yml"
+          - ".gitpod.yml"
+          - ".markdownlint.yaml"
+          - ".spectral.yaml"
+          - "stylelint.config.js"
+          - ".yamllint.yaml"
+          - ".github/**"
+          - ".gitea/"
+          - ".devcontainer/**"
+          - "build.go"
+          - "build/**"
+          - "contrib/**"
+
+modifies/dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "pyproject.toml"
+          - "poetry.lock"
+          - "go.mod"
+          - "go.sum"
+
+modifies/go:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.go"
+
+modifies/js:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.js"
+          - "**/*.vue"

@@ -30,12 +30,12 @@ func TestTeamInvite(t *testing.T) {
 	t.Run("CreateAndRemove", func(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		invite, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
+		invite, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "org3@example.com")
 		assert.NotNil(t, invite)
 		assert.NoError(t, err)
 
 		// Shouldn't allow duplicate invite
-		_, err = organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
+		_, err = organization.CreateTeamInvite(db.DefaultContext, user1, team, "org3@example.com")
 		assert.Error(t, err)
 
 		// should remove invite

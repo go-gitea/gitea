@@ -10,14 +10,15 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	gitea_context "code.gitea.io/gitea/services/context"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Init should be called exactly once when the application starts to allow plugins
@@ -37,18 +38,27 @@ func isContainerPath(req *http.Request) bool {
 }
 
 var (
-	gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
-	lfsPathRe           = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+	gitRawOrAttachPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`)
+	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+	archivePathRe        = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/archive/`)
 )
 
-func isGitRawReleaseOrLFSPath(req *http.Request) bool {
-	if gitRawReleasePathRe.MatchString(req.URL.Path) {
+func isGitRawOrAttachPath(req *http.Request) bool {
+	return gitRawOrAttachPathRe.MatchString(req.URL.Path)
+}
+
+func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
+	if isGitRawOrAttachPath(req) {
 		return true
 	}
 	if setting.LFS.StartServer {
 		return lfsPathRe.MatchString(req.URL.Path)
 	}
 	return false
+}
+
+func isArchivePath(req *http.Request) bool {
+	return archivePathRe.MatchString(req.URL.Path)
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
@@ -82,8 +92,10 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
-		user.Language = lc.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(lc.Language()),
+		}
+		if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

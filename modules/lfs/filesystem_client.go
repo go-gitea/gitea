@@ -15,7 +15,7 @@ import (
 
 // FilesystemClient is used to read LFS data from a filesystem path
 type FilesystemClient struct {
-	lfsdir string
+	lfsDir string
 }
 
 // BatchSize returns the preferred size of batchs to process
@@ -25,16 +25,12 @@ func (c *FilesystemClient) BatchSize() int {
 
 func newFilesystemClient(endpoint *url.URL) *FilesystemClient {
 	path, _ := util.FileURLToPath(endpoint)
-
-	lfsdir := filepath.Join(path, "lfs", "objects")
-
-	client := &FilesystemClient{lfsdir}
-
-	return client
+	lfsDir := filepath.Join(path, "lfs", "objects")
+	return &FilesystemClient{lfsDir}
 }
 
 func (c *FilesystemClient) objectPath(oid string) string {
-	return filepath.Join(c.lfsdir, oid[0:2], oid[2:4], oid)
+	return filepath.Join(c.lfsDir, oid[0:2], oid[2:4], oid)
 }
 
 // Download reads the specific LFS object from the target path
@@ -48,7 +44,7 @@ func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, call
 		if err != nil {
 			return err
 		}
-
+		defer f.Close()
 		if err := callback(p, f, nil); err != nil {
 			return err
 		}
@@ -79,7 +75,7 @@ func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callba
 			if err != nil {
 				return err
 			}
-
+			defer f.Close()
 			_, err = io.Copy(f, content)
 
 			return err

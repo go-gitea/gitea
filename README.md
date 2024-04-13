@@ -1,58 +1,18 @@
-<p align="center">
-  <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
-  </a>
-</p>
-<h1 align="center">Gitea - Git with a cup of tea</h1>
+# Gitea
 
-<p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
-  </a>
-  <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
-    <img src="https://img.shields.io/discord/322538954119184384.svg">
-  </a>
-  <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
-    <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
-  </a>
-  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
-    <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
-  </a>
-  <a href="https://pkg.go.dev/code.gitea.io/gitea" title="GoDoc">
-    <img src="https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg">
-  </a>
-  <a href="https://github.com/go-gitea/gitea/releases/latest" title="GitHub release">
-    <img src="https://img.shields.io/github/release/go-gitea/gitea.svg">
-  </a>
-  <a href="https://www.codetriage.com/go-gitea/gitea" title="Help Contribute to Open Source">
-    <img src="https://www.codetriage.com/go-gitea/gitea/badges/users.svg">
-  </a>
-  <a href="https://opencollective.com/gitea" title="Become a backer/sponsor of gitea">
-    <img src="https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen">
-  </a>
-  <a href="https://opensource.org/licenses/MIT" title="License: MIT">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg">
-  </a>
-  <a href="https://gitpod.io/#https://github.com/go-gitea/gitea">
-  <img
-    src="https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod"
-    alt="Contribute with Gitpod"
-  />
-  </a>
-  <a href="https://crowdin.com/project/gitea" title="Crowdin">
-    <img src="https://badges.crowdin.net/gitea/localized.svg">
-  </a>
-  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
-    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
-  </a>
-  <a href="https://app.bountysource.com/teams/gitea" title="Bountysource">
-    <img src="https://img.shields.io/bountysource/team/gitea/activity">
-  </a>
-</p>
+[![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
+[![](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea "Go Report Card")
+[![](https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg)](https://pkg.go.dev/code.gitea.io/gitea "GoDoc")
+[![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
+[![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
+[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
+[![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
+[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/go-gitea/gitea)
+[![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
+[![](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main "TODOs")
 
-<p align="center">
-  <a href="README_ZH.md">View this document in Chinese</a>
-</p>
+[View this document in Chinese](./README_ZH.md)
 
 ## Purpose
 
@@ -62,10 +22,15 @@ painless way of setting up a self-hosted Git service.
 As Gitea is written in Go, it works across **all** the platforms and
 architectures that are supported by Go, including Linux, macOS, and
 Windows on x86, amd64, ARM and PowerPC architectures.
-You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
 [forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
+
+For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
+
+For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
+
+To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
 ## Building
 
@@ -84,25 +49,23 @@ The `build` target is split into two sub-targets:
 
 Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
-Parallelism (`make -j <num>`) is not supported.
-
 More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
     ./gitea web
 
-NOTE: If you're interested in using our APIs, we have experimental
-support with [documentation](https://try.gitea.io/api/swagger).
+> [!NOTE]
+> If you're interested in using our APIs, we have experimental support with [documentation](https://try.gitea.io/api/swagger).
 
 ## Contributing
 
 Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
-NOTES:
-
-1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> [!NOTE]
+>
+> 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
+> 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
 ## Translating
 
@@ -120,8 +83,6 @@ For more information and instructions about how to install Gitea, please look at
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
-
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
 
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
@@ -175,5 +136,5 @@ Looking for an overview of the interface? Check it out!
 |![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
 |![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
-![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
+|![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|

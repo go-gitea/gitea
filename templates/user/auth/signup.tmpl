@@ -1,5 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin{{if .LinkAccountMode}} icon{{end}}">
+	{{template "user/auth/signin_navbar" .}}
 	<div class="ui middle very relaxed page grid">
 		{{template "user/auth/signup_inner" .}}
 	</div>

@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -16,7 +18,7 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,9 +34,7 @@ func NewRunnerServiceHandler() (string, http.Handler) {
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
 
-type Service struct {
-	runnerv1connect.UnimplementedRunnerServiceHandler
-}
+type Service struct{}
 
 // Register for new runner.
 func (s *Service) Register(
@@ -47,11 +47,23 @@ func (s *Service) Register(
 
 	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner token not found")
+		return nil, errors.New("runner registration token not found")
 	}
 
-	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already been activated")
+	if !runnerToken.IsActive {
+		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
+	}
+
+	if runnerToken.OwnerID > 0 {
+		if _, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
+			return nil, errors.New("owner of the token not found")
+		}
+	}
+
+	if runnerToken.RepoID > 0 {
+		if _, err := repo_model.GetRepositoryByID(ctx, runnerToken.RepoID); err != nil {
+			return nil, errors.New("repository of the token not found")
+		}
 	}
 
 	labels := req.Msg.Labels
@@ -202,8 +214,14 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
+	if err := task.Job.LoadRun(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load run: %v", err)
+	}
 
-	actions_service.CreateCommitStatus(ctx, task.Job)
+	// don't create commit status for cron job
+	if task.Job.Run.ScheduleID == 0 {
+		actions_service.CreateCommitStatus(ctx, task.Job)
+	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {

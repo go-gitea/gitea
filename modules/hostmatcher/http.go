@@ -7,12 +7,17 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"syscall"
 	"time"
 )
 
 // NewDialContext returns a DialContext for Transport, the DialContext will do allow/block list check
 func NewDialContext(usage string, allowList, blockList *HostMatchList) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return NewDialContextWithProxy(usage, allowList, blockList, nil)
+}
+
+func NewDialContextWithProxy(usage string, allowList, blockList *HostMatchList, proxy *url.URL) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	// How Go HTTP Client works with redirection:
 	//   transport.RoundTrip URL=http://domain.com, Host=domain.com
 	//   transport.DialContext addrOrHost=domain.com:80
@@ -26,11 +31,18 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList) func(ctx 
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 
-			Control: func(network, ipAddr string, c syscall.RawConn) (err error) {
-				var host string
-				if host, _, err = net.SplitHostPort(addrOrHost); err != nil {
+			Control: func(network, ipAddr string, c syscall.RawConn) error {
+				host, port, err := net.SplitHostPort(addrOrHost)
+				if err != nil {
 					return err
 				}
+				if proxy != nil {
+					// Always allow the host of the proxy, but only on the specified port.
+					if host == proxy.Hostname() && port == proxy.Port() {
+						return nil
+					}
+				}
+
 				// in Control func, the addr was already resolved to IP:PORT format, there is no cost to do ResolveTCPAddr here
 				tcpAddr, err := net.ResolveTCPAddr(network, ipAddr)
 				if err != nil {

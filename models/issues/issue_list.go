@@ -21,16 +21,15 @@ type IssueList []*Issue
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		if issue.Repo == nil {
-			repoIDs.Add(issue.RepoID)
+			return issue.RepoID, true
 		}
 		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
-			repoIDs.Add(issue.PullRequest.HeadRepoID)
+			return issue.PullRequest.HeadRepoID, true
 		}
-	}
-	return repoIDs.Values()
+		return 0, false
+	})
 }
 
 // LoadRepositories loads issues' all repositories
@@ -74,11 +73,9 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
-	posterIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		posterIDs.Add(issue.PosterID)
-	}
-	return posterIDs.Values()
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.PosterID, true
+	})
 }
 
 func (issues IssueList) loadPosters(ctx context.Context) error {
@@ -193,11 +190,9 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	ids := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		ids.Add(issue.MilestoneID)
-	}
-	return ids.Values()
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.MilestoneID, true
+	})
 }
 
 func (issues IssueList) loadMilestones(ctx context.Context) error {
@@ -370,6 +365,9 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.PullRequest = pullRequestMaps[issue.ID]
+		if issue.PullRequest != nil {
+			issue.PullRequest.Issue = issue
+		}
 	}
 	return nil
 }
@@ -388,9 +386,8 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "issue", "issue.id = attachment.issue_id").
-			In("issue.id", issuesIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("issue_id", issuesIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
@@ -475,6 +472,16 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		return nil
 	}
 	trackedTimes := make(map[int64]int64, len(issues))
+
+	reposMap := make(map[int64]*repo_model.Repository, len(issues))
+	for _, issue := range issues {
+		reposMap[issue.RepoID] = issue.Repo
+	}
+	repos := repo_model.RepositoryListOfMap(reposMap)
+
+	if err := repos.LoadUnits(ctx); err != nil {
+		return err
+	}
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
@@ -598,4 +605,24 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
+}
+
+func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
+	issueIDs := issues.getIssueIDs()
+	issueUsers := make([]*IssueUser, 0, len(issueIDs))
+	if err := db.GetEngine(ctx).Where("uid =?", userID).
+		In("issue_id").
+		Find(&issueUsers); err != nil {
+		return err
+	}
+
+	for _, issueUser := range issueUsers {
+		for _, issue := range issues {
+			if issue.ID == issueUser.IssueID {
+				issue.IsRead = issueUser.IsRead
+			}
+		}
+	}
+
+	return nil
 }

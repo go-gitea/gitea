@@ -72,7 +72,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	err = issues_model.CreateIssueDependency(user, issue1, issue2)
+	err = issues_model.CreateIssueDependency(db.DefaultContext, user, issue1, issue2)
 	assert.NoError(t, err)
 	left, err := issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)

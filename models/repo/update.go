@@ -6,7 +6,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,11 +15,11 @@ import (
 )
 
 // UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
-func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -36,8 +35,8 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 }
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
-func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime time.Time) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
 	return err
 }
 
@@ -107,7 +106,7 @@ func (err ErrRepoFilesAlreadyExist) Unwrap() error {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
+func CheckCreateRepository(ctx context.Context, doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -116,7 +115,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return err
 	}
 
-	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, u, name)
+	has, err := IsRepositoryModelOrDirExist(ctx, u, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -133,55 +132,6 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return ErrRepoFilesAlreadyExist{u.Name, name}
 	}
 	return nil
-}
-
-// ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName string) (err error) {
-	oldRepoName := repo.Name
-	newRepoName = strings.ToLower(newRepoName)
-	if err = IsUsableRepoName(newRepoName); err != nil {
-		return err
-	}
-
-	if err := repo.LoadOwner(db.DefaultContext); err != nil {
-		return err
-	}
-
-	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, repo.Owner, newRepoName)
-	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %w", err)
-	} else if has {
-		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
-	}
-
-	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
-		return fmt.Errorf("rename repository directory: %w", err)
-	}
-
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
-		return err
-	}
-	if isExist {
-		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
-			return fmt.Errorf("rename repository wiki: %w", err)
-		}
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := NewRedirect(ctx, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 // UpdateRepoSize updates the repository size, calculating it using getDirectorySize

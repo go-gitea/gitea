@@ -38,11 +38,7 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
-func (issue *Issue) ProjectBoardID() int64 {
-	return issue.projectBoardID(db.DefaultContext)
-}
-
-func (issue *Issue) projectBoardID(ctx context.Context) int64 {
+func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
@@ -53,23 +49,18 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
-	issueList := make(IssueList, 0, 10)
-
-	if b.ID != 0 {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: b.ID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
-		})
-		if err != nil {
-			return nil, err
-		}
-		issueList = issues
+	issueList, err := Issues(ctx, &IssuesOptions{
+		ProjectBoardID: b.ID,
+		ProjectID:      b.ProjectID,
+		SortType:       "project-column-sorting",
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	if b.Default {
 		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: -1, // Issues without ProjectBoardID
+			ProjectBoardID: db.NoConditionID,
 			ProjectID:      b.ProjectID,
 			SortType:       "project-column-sorting",
 		})
@@ -100,8 +91,8 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -153,31 +144,4 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		IssueID:   issue.ID,
 		ProjectID: newProjectID,
 	})
-}
-
-// MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
-	var pis project_model.ProjectIssue
-	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
-	if err != nil {
-		return err
-	}
-
-	if !has {
-		return fmt.Errorf("issue has to be added to a project first")
-	}
-
-	pis.ProjectBoardID = board.ID
-	if _, err := sess.ID(pis.ID).Cols("project_board_id").Update(&pis); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }

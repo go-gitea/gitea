@@ -4,6 +4,7 @@
 package organization
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -19,7 +20,7 @@ import (
 type MinimalOrg = Organization
 
 // GetUserOrgsList returns all organizations the given user has access to
-func GetUserOrgsList(user *user_model.User) ([]*MinimalOrg, error) {
+func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg, error) {
 	schema, err := db.TableInfo(new(user_model.User))
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func GetUserOrgsList(user *user_model.User) ([]*MinimalOrg, error) {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 	sess = sess.Select(groupByStr+", count(distinct repo_id) as org_count").
 		Table("user").
 		Join("INNER", "team", "`team`.org_id = `user`.id").

@@ -87,8 +87,5 @@ func (i *Indexer) Close() {
 	if i == nil {
 		return
 	}
-	if i.Client == nil {
-		return
-	}
 	i.Client = nil
 }

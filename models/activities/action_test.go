@@ -24,7 +24,7 @@ func TestAction_GetRepoPath(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &activities_model.Action{RepoID: repo.ID}
-	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
+	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath(db.DefaultContext))
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
@@ -35,9 +35,9 @@ func TestAction_GetRepoLink(t *testing.T) {
 	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
 	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
-	assert.Equal(t, expected, action.GetRepoLink())
-	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink())
-	assert.Equal(t, comment.HTMLURL(), action.GetCommentHTMLURL())
+	assert.Equal(t, expected, action.GetRepoLink(db.DefaultContext))
+	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(db.DefaultContext))
+	assert.Equal(t, comment.HTMLURL(db.DefaultContext), action.GetCommentHTMLURL(db.DefaultContext))
 }
 
 func TestGetFeeds(t *testing.T) {

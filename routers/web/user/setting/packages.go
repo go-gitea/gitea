@@ -9,11 +9,11 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	shared "code.gitea.io/gitea/routers/web/shared/packages"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -107,7 +107,7 @@ func RegenerateChefKeyPair(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.SetUserSetting(ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return
 	}

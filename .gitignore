@@ -11,10 +11,11 @@ _test
 .idea
 # Goland's output filename can not be set manually
 /go_build_*
+/gitea_*
 
 # MS VSCode
 .vscode
-__debug_bin
+__debug_bin*
 
 *.cgo1.go
 *.cgo2.c
@@ -57,7 +58,7 @@ cpu.out
 /data
 /indexers
 /log
-/public/img/avatar
+/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -75,7 +76,7 @@ cpu.out
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
-/public/assets/img/webpack
+/public/assets/licenses.txt
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
@@ -93,7 +94,11 @@ cpu.out
 /.air
 /.go-licenses
 
+# Files and folders that were previously generated
+/public/assets/img/webpack
+
 # Snapcraft
+/gitea_a*.txt
 snap/.snapcraft/
 parts/
 stage/

@@ -13,6 +13,7 @@ import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
 import {initTableSort} from './features/tablesort.js';
+import {initAutoFocusEnd} from './features/autofocus-end.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
@@ -23,7 +24,7 @@ import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
-import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
+import {initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
@@ -31,13 +32,9 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList
+  initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
 } from './features/repo-issue.js';
-import {
-  initRepoEllipsisButton,
-  initRepoCommitLastCommitLoader,
-  initCommitStatuses,
-} from './features/repo-commit.js';
+import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -83,10 +80,17 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoContributors} from './features/contributors.js';
+import {initRepoCodeFrequency} from './features/code-frequency.js';
+import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
+import {initDirAuto} from './modules/dirauto.js';
+import {initRepositorySearch} from './features/repo-search.js';
+import {initColorPickers} from './features/colorpicker.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
+initDirAuto();
 
 onDomReady(() => {
   initGlobalCommon();
@@ -120,6 +124,7 @@ onDomReady(() => {
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
+  initAutoFocusEnd();
   initFindFileInRepo();
   initCopyContent();
 
@@ -143,13 +148,13 @@ onDomReady(() => {
   initRepoCommentForm();
   initRepoEllipsisButton();
   initRepoDiffCommitBranchesAndTags();
-  initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
   initRepoIssueDue();
   initRepoIssueList();
   initRepoIssueSidebarList();
+  initArchivedLabelHandler();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();
   initRepoIssueWipTitle();
@@ -169,11 +174,14 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
+  initRepositorySearch();
+  initRepoContributors();
+  initRepoCodeFrequency();
+  initRepoRecentCommits();
 
   initCommitStatuses();
   initCaptcha();
 
-  initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
@@ -181,4 +189,5 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
+  initColorPickers();
 });

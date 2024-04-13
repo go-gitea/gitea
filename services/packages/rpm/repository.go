@@ -18,11 +18,11 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	rpm_model "code.gitea.io/gitea/models/packages/rpm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -33,18 +33,18 @@ import (
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The RPM registry needs multiple metadata files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
-func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, rpm_module.SettingKeyPrivate)
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, rpm_module.SettingKeyPublic)
+	pub, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -55,11 +55,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, rpm_module.SettingKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, rpm_module.SettingKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}
@@ -68,7 +68,7 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity(setting.AppName, "RPM Registry", "", nil)
+	e, err := openpgp.NewEntity("", "RPM Registry", "", nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -95,6 +95,39 @@ func generateKeypair() (string, string, error) {
 	w.Close()
 
 	return priv.String(), pub.String(), nil
+}
+
+// BuildAllRepositoryFiles (re)builds all repository files for every available group
+func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+
+	// 1. Delete all existing repository files
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, pf := range pfs {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+			return err
+		}
+	}
+
+	// 2. (Re)Build repository files for existing packages
+	groups, err := rpm_model.GetGroups(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+	for _, group := range groups {
+		if err := BuildSpecificRepositoryFiles(ctx, ownerID, group); err != nil {
+			return fmt.Errorf("failed to build repository files [%s]: %w", group, err)
+		}
+	}
+
+	return nil
 }
 
 type repoChecksum struct {
@@ -127,16 +160,17 @@ type packageData struct {
 type packageCache = map[*packages_model.PackageFile]*packageData
 
 // BuildSpecificRepositoryFiles builds metadata files for the repository
-func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, group string) error {
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		OwnerID:     ownerID,
-		PackageType: packages_model.TypeRpm,
-		Query:       "%.rpm",
+		OwnerID:      ownerID,
+		PackageType:  packages_model.TypeRpm,
+		Query:        "%.rpm",
+		CompositeKey: group,
 	})
 	if err != nil {
 		return err
@@ -149,10 +183,7 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 			return err
 		}
 		for _, pf := range pfs {
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
@@ -198,20 +229,21 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 		cache[pf] = pd
 	}
 
-	primary, err := buildPrimary(pv, pfs, cache)
+	primary, err := buildPrimary(ctx, pv, pfs, cache, group)
 	if err != nil {
 		return err
 	}
-	filelists, err := buildFilelists(pv, pfs, cache)
+	filelists, err := buildFilelists(ctx, pv, pfs, cache, group)
 	if err != nil {
 		return err
 	}
-	other, err := buildOther(pv, pfs, cache)
+	other, err := buildOther(ctx, pv, pfs, cache, group)
 	if err != nil {
 		return err
 	}
 
 	return buildRepomd(
+		ctx,
 		pv,
 		ownerID,
 		[]*repoData{
@@ -219,11 +251,12 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 			filelists,
 			other,
 		},
+		group,
 	)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#repomd-xml
-func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData) error {
+func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID int64, data []*repoData, group string) error {
 	type Repomd struct {
 		XMLName  xml.Name    `xml:"repomd"`
 		Xmlns    string      `xml:"xmlns,attr"`
@@ -241,7 +274,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 		return err
 	}
 
-	priv, _, err := GetOrCreateKeyPair(ownerID)
+	priv, _, err := GetOrCreateKeyPair(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -257,11 +290,14 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 	}
 
 	repomdAscContent, _ := packages_module.NewHashedBuffer()
+	defer repomdAscContent.Close()
+
 	if err := openpgp.ArmoredDetachSign(repomdAscContent, e, bytes.NewReader(buf.Bytes()), nil); err != nil {
 		return err
 	}
 
 	repomdContent, _ := packages_module.CreateHashedBufferFromReader(&buf)
+	defer repomdContent.Close()
 
 	for _, file := range []struct {
 		Name string
@@ -271,10 +307,12 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 		{"repomd.xml.asc", repomdAscContent},
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			pv,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename: file.Name,
+					Filename:     file.Name,
+					CompositeKey: group,
 				},
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
@@ -291,7 +329,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#primary-xml
-func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) {
+func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) {
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -371,7 +409,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 				files = append(files, f)
 			}
 		}
-
+		packageVersion := fmt.Sprintf("%s-%s", pd.FileMetadata.Version, pd.FileMetadata.Release)
 		packages = append(packages, &Package{
 			Type:         "rpm",
 			Name:         pd.Package.Name,
@@ -400,7 +438,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.FileMetadata.Architecture)),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(packageVersion), url.PathEscape(pd.FileMetadata.Architecture), url.PathEscape(fmt.Sprintf("%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture))),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,
@@ -425,16 +463,16 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "primary", &Metadata{
+	return addDataAsFileToRepo(ctx, pv, "primary", &Metadata{
 		Xmlns:        "http://linux.duke.edu/metadata/common",
 		XmlnsRpm:     "http://linux.duke.edu/metadata/rpm",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, group)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#filelists-xml
-func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -473,15 +511,15 @@ func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.Pac
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "filelists", &Filelists{
+	return addDataAsFileToRepo(ctx, pv, "filelists", &Filelists{
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, group)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#other-xml
-func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -520,11 +558,11 @@ func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.Package
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "other", &Otherdata{
+	return addDataAsFileToRepo(ctx, pv, "other", &Otherdata{
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, group)
 }
 
 // writtenCounter counts all written bytes
@@ -544,8 +582,10 @@ func (wc *writtenCounter) Written() int64 {
 	return wc.written
 }
 
-func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
+func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion, filetype string, obj any, group string) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
+	defer content.Close()
+
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
 	h := sha256.New()
@@ -564,10 +604,12 @@ func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj
 	filename := filetype + ".xml.gz"
 
 	_, err := packages_service.AddFileToPackageVersionInternal(
+		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
+				Filename:     filename,
+				CompositeKey: group,
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,

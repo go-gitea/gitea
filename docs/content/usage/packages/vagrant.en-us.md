@@ -44,7 +44,17 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/vagrant/test_system/1.0.0/hyperv.box
 ```
 
+If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
+
 You cannot publish a box if a box of the same name, version and provider already exists. You must delete the existing package first.
+
+The server responds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `201 Created`     | The package has been published. |
+| `400 Bad Request` | The package is invalid. |
+| `409 Conflict`    | A package with the same combination of parameters exists already. |
 
 ## Install a package
 

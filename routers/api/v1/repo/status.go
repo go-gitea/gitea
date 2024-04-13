@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
 // NewCommitStatus creates a new CommitStatus
@@ -48,6 +49,8 @@ func NewCommitStatus(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CommitStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.Params("sha")
@@ -61,7 +64,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := files_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
+	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
 		return
 	}
@@ -117,6 +120,8 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	getCommitStatuses(ctx, ctx.Params("sha"))
 }
@@ -169,6 +174,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	filter := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {
@@ -188,8 +195,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		SHA:         sha,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})
@@ -245,6 +254,8 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CombinedStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	sha := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {

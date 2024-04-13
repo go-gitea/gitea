@@ -12,19 +12,19 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context/upload"
 
 	"github.com/google/uuid"
 )
 
 // NewAttachment creates a new attachment object, but do not verify.
-func NewAttachment(attach *repo_model.Attachment, file io.Reader, size int64) (*repo_model.Attachment, error) {
+func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.Reader, size int64) (*repo_model.Attachment, error) {
 	if attach.RepoID == 0 {
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, size)
 		if err != nil {
@@ -39,14 +39,14 @@ func NewAttachment(attach *repo_model.Attachment, file io.Reader, size int64) (*
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(file io.Reader, allowedTypes string, fileSize int64, opts *repo_model.Attachment) (*repo_model.Attachment, error) {
+func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
 
-	if err := upload.Verify(buf, opts.Name, allowedTypes); err != nil {
+	if err := upload.Verify(buf, attach.Name, allowedTypes); err != nil {
 		return nil, err
 	}
 
-	return NewAttachment(opts, io.MultiReader(bytes.NewReader(buf), file), fileSize)
+	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
 }

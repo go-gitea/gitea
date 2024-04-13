@@ -4,6 +4,7 @@
 package smtp
 
 import (
+	"context"
 	"errors"
 	"net/smtp"
 	"net/textproto"
@@ -11,12 +12,13 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
 // Users will be autoregistered as required
-func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
 		idx := strings.Index(userName, "@")
@@ -74,10 +76,10 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		LoginName:   userName,
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return user, err
 	}
 

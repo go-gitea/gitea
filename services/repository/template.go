@@ -11,8 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // GenerateIssueLabels generates issue labels from a template repository
@@ -63,7 +62,7 @@ func GenerateProtectedBranch(ctx context.Context, templateRepo, generateRepo *re
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts repo_module.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	if !doer.IsAdmin && !owner.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
@@ -72,14 +71,14 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 	var generateRepo *repo_model.Repository
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
+		generateRepo, err = generateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
 		}
 
 		// Git Content
 		if opts.GitContent && !templateRepo.IsEmpty {
-			if err = repo_module.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
+			if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
@@ -130,7 +129,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(ctx, doer, owner, generateRepo)
+	notify_service.CreateRepository(ctx, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

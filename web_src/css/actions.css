@@ -14,16 +14,6 @@
   color: var(--color-red-light);
 }
 
-.runner-container .runner-basic-info .gt-dib {
-  margin-right: 1em;
-}
-
-.runner-container .runner-status-online {
-  padding: 0.3em 0.5em;
-  background-color: var(--color-green);
-  color: var(--color-white);
-}
-
 .runner-container .runner-new-text {
   color: var(--color-white);
 }
@@ -54,7 +44,7 @@
 }
 
 .run-list-item-right {
-  flex: 0 0 15%;
+  flex: 0 0 min(20%, 130px);
   display: flex;
   flex-direction: column;
   gap: 3px;

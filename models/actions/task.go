@@ -11,6 +11,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -227,14 +228,16 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if runner.RepoID != 0 {
 		jobCond = builder.Eq{"repo_id": runner.RepoID}
 	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": runner.OwnerID}))
+		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
+			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
+			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
 	if jobCond.IsValid() {
 		jobCond = builder.In("run_id", builder.Select("id").From("action_run").Where(jobCond))
 	}
 
 	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("id").Find(&jobs); err != nil {
+	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 
@@ -279,7 +282,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
 	} else if len(gots) != 1 {
 		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
-	} else {
+	} else { //nolint:revive
 		_, workflowJob = gots[0].Job()
 	}
 

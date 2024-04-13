@@ -4,6 +4,7 @@
 package externalaccount
 
 import (
+	"context"
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -19,11 +20,11 @@ type Store interface {
 }
 
 // LinkAccountFromStore links the provided user with a stored external user
-func LinkAccountFromStore(store Store, user *user_model.User) error {
+func LinkAccountFromStore(ctx context.Context, store Store, user *user_model.User) error {
 	gothUser := store.Get("linkAccountGothUser")
 	if gothUser == nil {
 		return fmt.Errorf("not in LinkAccount session")
 	}
 
-	return LinkAccountToUser(user, gothUser.(goth.User))
+	return LinkAccountToUser(ctx, user, gothUser.(goth.User))
 }
