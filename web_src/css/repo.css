@@ -1188,10 +1188,6 @@ td .commit-summary {
   color: var(--color-text-light-2);
 }
 
-.repository .ui.dropdown.filter > .menu {
-  margin-top: 1px;
-}
-
 .repository.branches .commit-divergence .bar-group {
   position: relative;
   float: left;
@@ -2610,6 +2606,16 @@ tbody.commit-list {
   display: inline-flex;
   align-items: center;
   word-break: break-all;
+}
+
+.select-branch #branch-list {
+  max-width: 200px;
+}
+
+.select-branch #branch-list .item {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .diff-file-header {
