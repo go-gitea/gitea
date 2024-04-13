@@ -72,10 +72,8 @@
     flex-direction: column;
     align-items: flex-end;
   }
-  .run-list-item-right {
-    width: 90px;
-  }
+  .run-list-item-right,
   .run-list-ref {
-    max-width: 90px;
+    max-width: 100px;
   }
 }
