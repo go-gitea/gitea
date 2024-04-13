@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
 
 export function initCompReactionSelector() {
-  for (const container of document.querySelectorAll('.comment-list, .diff-file-body')) {
+  for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {
     container.addEventListener('click', async (e) => {
       const item = e.target.closest('.item.reaction');
       const button = e.target.closest('.comment-reaction-button');
@@ -14,7 +14,14 @@ export function initCompReactionSelector() {
 
       const actionUrl = target.closest('[data-action-url]').getAttribute('data-action-url');
       const reactionContent = target.getAttribute('data-reaction-content');
-      const hasReacted = target.closest('.segment.reactions').querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`).getAttribute('data-has-reacted') === 'true';
+
+      const reactions = target.closest('.comment').querySelector('.segment.reactions');
+
+      let hasReacted = false;
+      if (reactions) {
+        const btn = reactions.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`);
+        hasReacted = Boolean(btn?.getAttribute('data-has-reacted') === 'true');
+      }
       const content = target.closest('.content');
 
       const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
@@ -23,7 +30,6 @@ export function initCompReactionSelector() {
 
       const data = await res.json();
       if (data && (data.html || data.empty)) {
-        const reactions = content.querySelector('.segment.reactions');
         if ((!data.empty || data.html === '') && reactions) {
           reactions.remove();
         }
