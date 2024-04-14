@@ -1132,7 +1132,7 @@ td .commit-summary {
 }
 
 .existing-issue-block .ui.primary.button .svg {
-  color: inherit !important; /* View Pull Request butt*/
+  color: inherit !important; /* View Pull Request button */
 }
 
 .repository.compare.pull .comment.form .content::before,
