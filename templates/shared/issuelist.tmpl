@@ -98,8 +98,8 @@
 						</a>
 					{{end}}
 					{{if .Ref}}
-						<a class="ref flex-text-inline" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
-							{{svg "octicon-git-branch" 14}}{{index $.IssueRefEndNames .ID}}
+						<a class="ref flex-text-inline tw-max-w-[250px]" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
+							<span class="gt-ellipsis">{{svg "octicon-git-branch" 14}}{{index $.IssueRefEndNames .ID}}</span>
 						</a>
 					{{end}}
 					{{$tasks := .GetTasks}}
