@@ -8,7 +8,7 @@
 			<div class="ui twelve wide column tw-mb-4">
 				{{template "user/overview/header" .}}
 				{{if eq .TabName "activity"}}
-					{{if and .ContextUser.ActionsVisibility.ShowNone (not .IsAdmin) (ne .ContextUser.ID .SignedUserID)}}
+					{{if and .ContextUser.ActivityVisibility.ShowNone (not .IsAdmin) (ne .ContextUser.ID .SignedUserID)}}
 						<div class="ui info message">
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>

@@ -166,21 +166,21 @@ func TestActivityReadable(t *testing.T) {
 		result: true,
 	}, {
 		desc:   "anon should NOT see activity",
-		user:   &user_model.User{ID: 1, ActionsVisibility: structs.ActionsVisibilityNone},
+		user:   &user_model.User{ID: 1, ActivityVisibility: structs.ActivityVisibilityNone},
 		result: false,
 	}, {
 		desc:   "user should see own activity if private too",
-		user:   &user_model.User{ID: 1, ActionsVisibility: structs.ActionsVisibilityNone},
+		user:   &user_model.User{ID: 1, ActivityVisibility: structs.ActivityVisibilityNone},
 		doer:   &user_model.User{ID: 1},
 		result: true,
 	}, {
 		desc:   "other user should NOT see activity",
-		user:   &user_model.User{ID: 1, ActionsVisibility: structs.ActionsVisibilityNone},
+		user:   &user_model.User{ID: 1, ActivityVisibility: structs.ActivityVisibilityNone},
 		doer:   &user_model.User{ID: 2},
 		result: false,
 	}, {
 		desc:   "admin should see activity",
-		user:   &user_model.User{ID: 1, ActionsVisibility: structs.ActionsVisibilityNone},
+		user:   &user_model.User{ID: 1, ActivityVisibility: structs.ActivityVisibilityNone},
 		doer:   &user_model.User{ID: 2, IsAdmin: true},
 		result: true,
 	}}

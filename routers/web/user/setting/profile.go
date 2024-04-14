@@ -87,13 +87,13 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:          optional.Some(form.FullName),
-		KeepEmailPrivate:  optional.Some(form.KeepEmailPrivate),
-		Description:       optional.Some(form.Description),
-		Website:           optional.Some(form.Website),
-		Location:          optional.Some(form.Location),
-		Visibility:        optional.Some(form.Visibility),
-		ActionsVisibility: optional.Some(form.ActionsVisibility),
+		FullName:           optional.Some(form.FullName),
+		KeepEmailPrivate:   optional.Some(form.KeepEmailPrivate),
+		Description:        optional.Some(form.Description),
+		Website:            optional.Some(form.Website),
+		Location:           optional.Some(form.Location),
+		Visibility:         optional.Some(form.Visibility),
+		ActivityVisibility: optional.Some(form.ActivityVisibility),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)

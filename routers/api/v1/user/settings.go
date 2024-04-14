@@ -46,15 +46,15 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.UserSettingsOptions)
 
 	opts := &user_service.UpdateOptions{
-		FullName:          optional.FromPtr(form.FullName),
-		Description:       optional.FromPtr(form.Description),
-		Website:           optional.FromPtr(form.Website),
-		Location:          optional.FromPtr(form.Location),
-		Language:          optional.FromPtr(form.Language),
-		Theme:             optional.FromPtr(form.Theme),
-		DiffViewStyle:     optional.FromPtr(form.DiffViewStyle),
-		KeepEmailPrivate:  optional.FromPtr(form.HideEmail),
-		ActionsVisibility: optional.FromPtr(form.ActionsVisibility),
+		FullName:           optional.FromPtr(form.FullName),
+		Description:        optional.FromPtr(form.Description),
+		Website:            optional.FromPtr(form.Website),
+		Location:           optional.FromPtr(form.Location),
+		Language:           optional.FromPtr(form.Language),
+		Theme:              optional.FromPtr(form.Theme),
+		DiffViewStyle:      optional.FromPtr(form.DiffViewStyle),
+		KeepEmailPrivate:   optional.FromPtr(form.HideEmail),
+		ActivityVisibility: optional.FromPtr(form.ActivityVisibility),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.InternalServerError(err)

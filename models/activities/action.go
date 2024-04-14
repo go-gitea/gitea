@@ -491,7 +491,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
-	return !user.ActionsVisibility.ShowNone() ||
+	return !user.ActivityVisibility.ShowNone() ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
@@ -512,12 +512,12 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 			builder.Select("`user`.id").Where(
 				builder.Eq{"visibility": structs.VisibleTypePublic},
 			).Where(
-				builder.Neq{"actions_visibility": structs.ActionsVisibilityNone},
+				builder.Neq{"activity_visibility": structs.ActivityVisibilityNone},
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
-			builder.Neq{"actions_visibility": structs.ActionsVisibilityNone},
+			builder.Neq{"activity_visibility": structs.ActivityVisibilityNone},
 		).Where(
 			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited),
 		).Or(builder.Eq{"id": opts.Actor.ID})
@@ -540,7 +540,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
-	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActionsVisibility.ShowAll()
+	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActivityVisibility.ShowAll()
 	// check readable repositories by doer/actor
 	if !includePrivateRepos && (opts.Actor == nil || !opts.Actor.IsAdmin) {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))

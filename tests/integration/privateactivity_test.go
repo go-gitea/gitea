@@ -48,11 +48,11 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":              GetCSRF(t, session, "/user/settings"),
-		"name":               privateActivityTestUser,
-		"email":              privateActivityTestUser + "@example.com",
-		"language":           "en-US",
-		"actions_visibility": fmt.Sprintf("%d", api.ActionsVisibilityNone),
+		"_csrf":               GetCSRF(t, session, "/user/settings"),
+		"name":                privateActivityTestUser,
+		"email":               privateActivityTestUser + "@example.com",
+		"language":            "en-US",
+		"activity_visibility": fmt.Sprintf("%d", api.ActivityVisibilityNone),
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }

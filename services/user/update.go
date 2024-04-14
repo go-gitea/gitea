@@ -27,7 +27,7 @@ type UpdateOptions struct {
 	MaxRepoCreation              optional.Option[int]
 	IsRestricted                 optional.Option[bool]
 	Visibility                   optional.Option[structs.VisibleType]
-	ActionsVisibility            optional.Option[structs.ActionsVisibility]
+	ActivityVisibility           optional.Option[structs.ActivityVisibility]
 	Language                     optional.Option[string]
 	Theme                        optional.Option[string]
 	DiffViewStyle                optional.Option[string]
@@ -129,10 +129,10 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 
 		cols = append(cols, "visibility")
 	}
-	if opts.ActionsVisibility.Has() {
-		u.ActionsVisibility = opts.ActionsVisibility.Value()
+	if opts.ActivityVisibility.Has() {
+		u.ActivityVisibility = opts.ActivityVisibility.Value()
 
-		cols = append(cols, "actions_visibility")
+		cols = append(cols, "activity_visibility")
 	}
 
 	if opts.AllowCreateOrganization.Has() {

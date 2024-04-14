@@ -72,19 +72,19 @@
 				</div>
 
 				<div class="inline field">
-					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.actions_visibility"}}</label></span>
+					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.activity_visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="actions_visibility" name="actions_visibility" value="{{printf "%d" .SignedUser.ActionsVisibility}}">
+						<input type="hidden" id="activity_visibility" name="activity_visibility" value="{{printf "%d" .SignedUser.ActivityVisibility}}">
 						<div class="text">
-							{{if .SignedUser.ActionsVisibility.ShowPublic}}{{ctx.Locale.Tr "public"}}{{end}}
-							{{if .SignedUser.ActionsVisibility.ShowAll}}{{ctx.Locale.Tr "all"}}{{end}}
-							{{if .SignedUser.ActionsVisibility.ShowNone}}{{ctx.Locale.Tr "none"}}{{end}}
+							{{if .SignedUser.ActivityVisibility.ShowPublic}}{{ctx.Locale.Tr "public"}}{{end}}
+							{{if .SignedUser.ActivityVisibility.ShowAll}}{{ctx.Locale.Tr "all"}}{{end}}
+							{{if .SignedUser.ActivityVisibility.ShowNone}}{{ctx.Locale.Tr "none"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "public"}}</div>
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "all"}}</div>
-							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.actions_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "none"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "public"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "all"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "none"}}</div>
 						</div>
 					</div>
 				</div>

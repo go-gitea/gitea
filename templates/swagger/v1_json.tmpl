@@ -17963,6 +17963,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActivityVisibility": {
+      "description": "ActivityVisibility defines the activities shown",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -24251,8 +24257,8 @@
       "description": "UserSettings represents user settings",
       "type": "object",
       "properties": {
-        "actions_visibility": {
-          "$ref": "#/definitions/ActionsVisibility"
+        "activity_visibility": {
+          "$ref": "#/definitions/ActivityVisibility"
         },
         "description": {
           "type": "string",
@@ -24294,8 +24300,8 @@
       "description": "UserSettingsOptions represents options to change user settings",
       "type": "object",
       "properties": {
-        "actions_visibility": {
-          "$ref": "#/definitions/ActionsVisibility"
+        "activity_visibility": {
+          "$ref": "#/definitions/ActivityVisibility"
         },
         "description": {
           "type": "string",
