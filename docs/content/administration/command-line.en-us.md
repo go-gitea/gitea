@@ -83,8 +83,7 @@ Admin operations:
         - `--email value`: Email. Required.
         - `--admin`: If provided, this makes the user an admin. Optional.
         - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
-        - `--must-change-password`: If provided, the created user will be required to choose a newer password after the
-          initial login. Optional. (default: true).
+        - `--must-change-password`: The created user will be required to set a new password after the initial login, default: true. It could be disabled by `--must-change-password=false`.
         - `--random-password`: If provided, a randomly generated password will be used as the password of the created
           user. The value of `--password` will be discarded. Optional.
         - `--random-password-length`: If provided, it will be used to configure the length of the randomly generated
@@ -95,7 +94,7 @@ Admin operations:
       - Options:
         - `--username value`, `-u value`: Username. Required.
         - `--password value`, `-p value`: New password. Required.
-        - `--must-change-password`: If provided, the user is required to choose a new password after the login. Optional.
+        - `--must-change-password`: The user is required to set a new password after the login, default: true. It could be disabled by `--must-change-password=false`.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
     - `must-change-password`:
