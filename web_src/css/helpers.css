@@ -13,6 +13,7 @@ Gitea's private styles use `g-` prefix.
   overflow: hidden !important;
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
+  min-width: 0;
 }
 
 .g-table-auto-ellipsis td.auto-ellipsis {
