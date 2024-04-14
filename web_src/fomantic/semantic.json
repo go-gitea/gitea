@@ -21,11 +21,9 @@
   "rtl": false,
   "admin": false,
   "components": [
-    "button",
     "dimmer",
     "dropdown",
     "form",
-    "menu",
     "modal",
     "search",
     "tab"
