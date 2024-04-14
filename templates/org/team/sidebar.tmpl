@@ -79,7 +79,7 @@
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>
+			<a class="ui small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>
