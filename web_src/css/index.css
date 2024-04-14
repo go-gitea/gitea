@@ -62,6 +62,7 @@
 @import "./repo/linebutton.css";
 @import "./repo/wiki.css";
 @import "./repo/header.css";
+@import "./repo/reactions.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
