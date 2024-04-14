@@ -2,7 +2,7 @@ root = "."
 tmp_dir = ".air"
 
 [build]
-pre_cmd = ["killall -9 gitea 2>/dev/null || true"]
+pre_cmd = ["killall -9 gitea 2>/dev/null || true"] # Sometimes, zombie processes seem to occur when (re-)running `make watch`
 cmd = "make --no-print-directory backend"
 bin = "gitea"
 delay = 2000
