@@ -10,7 +10,6 @@ Gitea's private styles use `g-` prefix.
 }
 
 .gt-ellipsis {
-  min-width: 0;
   overflow: hidden !important;
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
