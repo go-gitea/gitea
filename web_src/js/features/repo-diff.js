@@ -80,7 +80,6 @@ function initRepoDiffConversationForm() {
         $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('tw-invisible');
       }
       $newConversationHolder.find('.dropdown').dropdown();
-      initCompReactionSelector($newConversationHolder);
     } catch (error) {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
