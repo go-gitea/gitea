@@ -1164,14 +1164,6 @@ td .commit-summary {
   font-size: 14px;
 }
 
-.repository.compare.pull .title .issue-title {
-  margin-bottom: 0.5rem;
-}
-
-.repository.compare.pull .title .issue-title .index {
-  color: var(--color-text-light-2);
-}
-
 .repository .ui.dropdown.filter > .menu {
   margin-top: 1px;
 }
