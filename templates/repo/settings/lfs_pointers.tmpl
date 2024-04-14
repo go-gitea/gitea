@@ -37,7 +37,7 @@
 								</a>
 							</td>
 							<td>
-								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui brown button tw-font-mono">
+								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui button tw-font-mono">
 									{{ShortSha .Oid}}
 								</a>
 							</td>
