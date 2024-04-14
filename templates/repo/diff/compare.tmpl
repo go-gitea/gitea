@@ -184,7 +184,7 @@
 		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
-			<div class="ui segment flex-text-block tw-gap-3">
+			<div class="ui segment flex-text-block tw-gap-4">
 				{{template "shared/issueicon" .}}
 				<div class="issue-title tw-break-anywhere">
 					{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
