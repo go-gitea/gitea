@@ -106,7 +106,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 }
 
 // getWhitelistEntities returns the names of the entities that are in the whitelist
-func getWhitelistEntities(entities []interface{}, whitelistIDs []int64) []string {
+func getWhitelistEntities(entities []any, whitelistIDs []int64) []string {
 	whitelistIDsMap := make(map[int64]struct{})
 	for _, id := range whitelistIDs {
 		whitelistIDsMap[id] = struct{}{}
@@ -136,7 +136,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	readersInterface := make([]interface{}, len(readers))
+	readersInterface := make([]any, len(readers))
 	for i, v := range readers {
 		readersInterface[i] = v
 	}
@@ -150,7 +150,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	teamReadersInterface := make([]interface{}, len(teamReaders))
+	teamReadersInterface := make([]any, len(teamReaders))
 	for i, v := range teamReaders {
 		teamReadersInterface[i] = v
 	}
