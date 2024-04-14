@@ -1,8 +1,8 @@
 import {htmlEscape} from 'escape-goat';
-import {POST} from '../../modules/fetch.js';
-import {imageInfo} from '../../utils/image.js';
-import {getPastedContent, replaceTextareaSelection} from '../../utils/dom.js';
-import {isUrl} from '../../utils/url.js';
+import {POST} from '../modules/fetch.js';
+import {imageInfo} from '../utils/image.js';
+import {getPastedContent, replaceTextareaSelection} from '../utils/dom.js';
+import {isUrl} from '../utils/url.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();

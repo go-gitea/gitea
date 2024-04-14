@@ -2,10 +2,10 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
-import {setFileFolding} from './file-fold.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {setFileFolding} from '../features/file-fold.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from '../comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
-import {initDropzone} from './common-global.js';
+import {initDropzone} from '../features/common-global.js';
 import {POST, GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;

@@ -1,8 +1,8 @@
 import $ from 'jquery';
-import {updateIssuesMeta} from './repo-issue.js';
+import {updateIssuesMeta} from './issue.js';
 import {toggleElem, hideElem, isElemHidden} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {confirmModal} from './comp/ConfirmModal.js';
+import {confirmModal} from '../comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';

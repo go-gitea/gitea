@@ -1,10 +1,10 @@
 import $ from 'jquery';
-import {handleReply} from './repo-issue.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {createDropzone} from './dropzone.js';
+import {handleReply} from './issue.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from '../comp/ComboMarkdownEditor.js';
+import {createDropzone} from '../features/dropzone.js';
 import {GET, POST} from '../modules/fetch.js';
 import {hideElem, showElem} from '../utils/dom.js';
-import {attachRefIssueContextPopup} from './contextpopup.js';
+import {attachRefIssueContextPopup} from '../features/contextpopup.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 
 const {csrfToken} = window.config;

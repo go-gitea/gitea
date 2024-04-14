@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {POST} from '../../modules/fetch.js';
+import {POST} from '../modules/fetch.js';
 
 export function initCompReactionSelector() {
   for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {

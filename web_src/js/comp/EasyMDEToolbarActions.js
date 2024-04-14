@@ -1,4 +1,4 @@
-import {svg} from '../../svg.js';
+import {svg} from '../svg.js';
 
 export function easyMDEToolbarActions(EasyMDE, editor) {
   const actions = {

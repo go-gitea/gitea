@@ -4,24 +4,24 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
   initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
-} from './repo-issue.js';
-import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
+} from './issue.js';
+import {initUnicodeEscapeButton} from './unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
-} from './repo-common.js';
-import {initCitationFileCopyContent} from './citation.js';
-import {initCompLabelEdit} from './comp/LabelEdit.js';
-import {initRepoDiffConversationNav} from './repo-diff.js';
-import {initCompReactionSelector} from './comp/ReactionSelector.js';
-import {initRepoSettingBranches} from './repo-settings.js';
-import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
-import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
+} from './common.js';
+import {initCitationFileCopyContent} from '../features/citation.js';
+import {initCompLabelEdit} from '../comp/LabelEdit.js';
+import {initRepoDiffConversationNav} from './diff.js';
+import {initCompReactionSelector} from '../comp/ReactionSelector.js';
+import {initRepoSettingBranches} from './settings.js';
+import {initRepoPullRequestMergeForm} from './issue-pr-form.js';
+import {initRepoPullRequestCommitStatus} from './issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
-import {initRepoIssueCommentEdit} from './repo-issue-edit.js';
+import {initRepoIssueCommentEdit} from './issue-edit.js';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function reloadConfirmDraftComment() {

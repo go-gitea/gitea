@@ -1,5 +1,5 @@
-import {matchEmoji, matchMention} from '../../utils/match.js';
-import {emojiString} from '../emoji.js';
+import {matchEmoji, matchMention} from '../utils/match.js';
+import {emojiString} from '../features/emoji.js';
 
 export function initTextExpander(expander) {
   expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {

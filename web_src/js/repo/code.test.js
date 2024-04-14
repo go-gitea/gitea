@@ -1,4 +1,4 @@
-import {singleAnchorRegex, rangeAnchorRegex} from './repo-code.js';
+import {singleAnchorRegex, rangeAnchorRegex} from './code.js';
 
 test('singleAnchorRegex', () => {
   expect(singleAnchorRegex.test('#L0')).toEqual(false);

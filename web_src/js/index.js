@@ -7,20 +7,20 @@ import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
 import {initContextPopups} from './features/contextpopup.js';
-import {initRepoGraphGit} from './features/repo-graph.js';
+import {initRepoGraphGit} from './repo/graph.js';
 import {initHeatmap} from './features/heatmap.js';
 import {initImageDiff} from './features/imagediff.js';
-import {initRepoMigration} from './features/repo-migration.js';
-import {initRepoProject} from './features/repo-projects.js';
+import {initRepoMigration} from './repo/migration.js';
+import {initRepoProject} from './repo/projects.js';
 import {initTableSort} from './features/tablesort.js';
 import {initAutoFocusEnd} from './features/autofocus-end.js';
-import {initAdminUserListSearchForm} from './features/admin/users.js';
-import {initAdminConfigs} from './features/admin/config.js';
+import {initAdminUserListSearchForm} from './admin/users.js';
+import {initAdminConfigs} from './admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
-import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
+import {initRepoIssueContentHistory} from './repo/issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {initFindFileInRepo} from './features/repo-findfile.js';
+import {initFindFileInRepo} from './repo/findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
@@ -33,8 +33,8 @@ import {
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
-} from './features/repo-issue.js';
-import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.js';
+} from './repo/issue.js';
+import {initRepoEllipsisButton, initCommitStatuses} from './repo/commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -46,46 +46,46 @@ import {
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
 } from './features/common-global.js';
-import {initRepoTopicBar} from './features/repo-home.js';
-import {initAdminEmails} from './features/admin/emails.js';
-import {initAdminCommon} from './features/admin/common.js';
-import {initRepoTemplateSearch} from './features/repo-template.js';
-import {initRepoCodeView} from './features/repo-code.js';
+import {initRepoTopicBar} from './repo/home.js';
+import {initAdminEmails} from './admin/emails.js';
+import {initAdminCommon} from './admin/common.js';
+import {initRepoTemplateSearch} from './repo/template.js';
+import {initRepoCodeView} from './repo/code.js';
 import {initSshKeyFormParser} from './features/sshkey-helper.js';
 import {initUserSettings} from './features/user-settings.js';
-import {initRepoArchiveLinks} from './features/repo-common.js';
-import {initRepoMigrationStatusChecker} from './features/repo-migrate.js';
+import {initRepoArchiveLinks} from './repo/common.js';
+import {initRepoMigrationStatusChecker} from './repo/migrate.js';
 import {
   initRepoSettingGitHook,
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
-} from './features/repo-settings.js';
-import {initRepoDiffView} from './features/repo-diff.js';
+} from './repo/settings.js';
+import {initRepoDiffView} from './repo/diff.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
-import {initRepoEditor} from './features/repo-editor.js';
-import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
+import {initRepoRelease, initRepoReleaseNew} from './repo/release.js';
+import {initRepoEditor} from './repo/editor.js';
+import {initCompSearchUserBox} from './comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
-import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
-import {initRepoBranchButton} from './features/repo-branch.js';
+import {initCompWebHookEditor} from './comp/WebHookEditor.js';
+import {initRepoBranchButton} from './repo/branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
-import {initRepoWikiForm} from './features/repo-wiki.js';
-import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
+import {initRepoWikiForm} from './repo/wiki.js';
+import {initRepoCommentForm, initRepository} from './repo/legacy.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
-import {initGiteaFomantic} from './modules/fomantic.js';
+import {initGiteaFomantic} from './fomantic/index.js';
 import {onDomReady} from './utils/dom.js';
-import {initRepoIssueList} from './features/repo-issue-list.js';
+import {initRepoIssueList} from './repo/issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoContributors} from './features/contributors.js';
 import {initRepoCodeFrequency} from './features/code-frequency.js';
 import {initRepoRecentCommits} from './features/recent-commits.js';
-import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
+import {initRepoDiffCommitBranchesAndTags} from './repo/diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
-import {initRepositorySearch} from './features/repo-search.js';
+import {initRepositorySearch} from './repo/search.js';
 import {initColorPickers} from './features/colorpicker.js';
 
 // Init Gitea's Fomantic settings

@@ -1,9 +1,9 @@
 import $ from 'jquery';
-import {initFomanticApiPatch} from './fomantic/api.js';
-import {initAriaCheckboxPatch} from './fomantic/checkbox.js';
-import {initAriaDropdownPatch} from './fomantic/dropdown.js';
-import {initAriaModalPatch} from './fomantic/modal.js';
-import {initFomanticTransition} from './fomantic/transition.js';
+import {initFomanticApiPatch} from './api.js';
+import {initAriaCheckboxPatch} from './checkbox.js';
+import {initAriaDropdownPatch} from './dropdown.js';
+import {initAriaModalPatch} from './modal.js';
+import {initFomanticTransition} from './transition.js';
 import {svg} from '../svg.js';
 
 export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');

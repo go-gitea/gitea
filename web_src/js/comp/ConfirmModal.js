@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {svg} from '../../svg.js';
+import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 
 const {i18n} = window.config;

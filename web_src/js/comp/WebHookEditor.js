@@ -1,5 +1,5 @@
-import {POST} from '../../modules/fetch.js';
-import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
+import {POST} from '../modules/fetch.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 export function initCompWebHookEditor() {
   if (!document.querySelectorAll('.new.webhook').length) {

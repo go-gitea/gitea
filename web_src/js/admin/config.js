@@ -1,5 +1,5 @@
-import {showTemporaryTooltip} from '../../modules/tippy.js';
-import {POST} from '../../modules/fetch.js';
+import {showTemporaryTooltip} from '../modules/tippy.js';
+import {POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 

@@ -1,15 +1,15 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import $ from 'jquery';
-import {attachTribute} from '../tribute.js';
-import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
+import {attachTribute} from '../features/tribute.js';
+import {hideElem, showElem, autosize, isElemVisible} from '../utils/dom.js';
 import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {renderPreviewPanelContent} from '../repo-editor.js';
+import {renderPreviewPanelContent} from '../repo/editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
-import {showErrorToast} from '../../modules/toast.js';
-import {POST} from '../../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
+import {POST} from '../modules/fetch.js';
 
 let elementIdCounter = 0;
 

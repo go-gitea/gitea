@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
-import {createMonaco} from './codeeditor.js';
+import {createMonaco} from '../features/codeeditor.js';
 import {onInputDebounce, toggleElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 

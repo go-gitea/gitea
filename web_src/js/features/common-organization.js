@@ -1,4 +1,4 @@
-import {initCompLabelEdit} from './comp/LabelEdit.js';
+import {initCompLabelEdit} from '../comp/LabelEdit.js';
 import {toggleElem} from '../utils/dom.js';
 
 export function initCommonOrganization() {

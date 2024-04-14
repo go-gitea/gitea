@@ -1,9 +1,9 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {createCodeEditor} from './codeeditor.js';
+import {createCodeEditor} from '../features/codeeditor.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
-import {attachRefIssueContextPopup} from './contextpopup.js';
+import {attachRefIssueContextPopup} from '../features/contextpopup.js';
 import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {

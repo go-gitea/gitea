@@ -1,6 +1,6 @@
 import {initMarkupContent} from '../markup/content.js';
-import {validateTextareaNonEmpty, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {fomanticMobileScreen} from '../modules/fomantic.js';
+import {validateTextareaNonEmpty, initComboMarkdownEditor} from '../comp/ComboMarkdownEditor.js';
+import {fomanticMobileScreen} from '../fomantic/index.js';
 import {POST} from '../modules/fetch.js';
 
 async function initRepoWikiFormEditor() {

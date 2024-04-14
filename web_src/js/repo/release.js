@@ -1,5 +1,5 @@
 import {hideElem, showElem} from '../utils/dom.js';
-import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {initComboMarkdownEditor} from '../comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
   document.addEventListener('click', (e) => {

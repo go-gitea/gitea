@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
-import {invertFileFolding} from './file-fold.js';
+import {invertFileFolding} from '../features/file-fold.js';
 import {createTippy} from '../modules/tippy.js';
 import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.js';
