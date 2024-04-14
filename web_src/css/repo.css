@@ -2079,11 +2079,6 @@ td .commit-summary {
   padding: 10px 0 0;
 }
 
-.ui.vertical.menu .header.item {
-  font-size: 1.1em;
-  background: var(--color-box-header);
-}
-
 .comment:target .comment-container {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
