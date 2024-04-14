@@ -1,6 +1,15 @@
 {{template "base/head" .}}
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
+	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
+	<script type="module">
+		for (const el of $('.ui.modal')) {
+			const $btn = $('<button class="ui button">').text(`${el.id}`).on('click', () => {
+				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
+			});
+			$('.modal-buttons').append($btn);
+		}
+	</script>
 
 	<div id="test-modal-form-1" class="ui mini modal">
 		<div class="header">Form dialog (layout 1)</div>
@@ -60,15 +69,5 @@
 		<div class="content">hello, this is the modal dialog content, this is a dangerous operation</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
-
-	<div class="modal-buttons flex-text-block tw-flex-wrap tw-p-3"></div>
-	<script type="module">
-		for (const el of $('.ui.modal')) {
-			const $btn = $('<button class="ui button">').text(`${el.id}`).on('click', () => {
-				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
-			});
-			$('.modal-buttons').append($btn);
-		}
-	</script>
 </div>
 {{template "base/footer" .}}
