@@ -55,8 +55,8 @@
 			<div class="ui comments tw-mb-0">
 				{{range .comments}}
 					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
-					<div class="comment code-comment tw-pb-4" id="{{.HashTag}}">
-						<div class="content">
+					<div class="comment code-comment" id="{{.HashTag}}">
+						<div class="content comment-container">
 							<div class="header comment-header">
 								<div class="comment-header-left tw-flex tw-items-center">
 									{{if not .OriginalAuthor}}
@@ -82,7 +82,7 @@
 								<div class="comment-header-right actions tw-flex tw-items-center">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
-										{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 										{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 									{{end}}
 								</div>
@@ -103,7 +103,7 @@
 							</div>
 							{{$reactions := .Reactions.GroupByType}}
 							{{if $reactions}}
-								{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+								{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 							{{end}}
 						</div>
 					</div>

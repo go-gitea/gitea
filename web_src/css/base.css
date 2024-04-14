@@ -1366,8 +1366,7 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.emoji,
-.reaction {
+.emoji {
   font-size: 1.25em;
   line-height: var(--line-height-default);
   font-style: normal !important;
@@ -1375,8 +1374,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.075em;
 }
 
-.emoji img,
-.reaction img {
+.emoji img {
   border-width: 0 !important;
   margin: 0 !important;
   width: 1em !important;
