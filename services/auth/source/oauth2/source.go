@@ -15,7 +15,7 @@ type Source struct {
 	Provider                      string
 	ClientID                      string
 	ClientSecret                  string
-	ClientSecretEncrypt						string // Encrypted Client Secret
+	ClientSecretEncrypt           string // Encrypted Client Secret
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
