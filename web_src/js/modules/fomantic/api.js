@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import GET from '../fetch.js';
+import {GET} from '../fetch.js';
 import {isObject} from '../../utils.js';
 
 // action: "search"
@@ -18,7 +18,7 @@ export function initFomanticApi() {
   // stand-in for removed api module
   // https://github.com/fomantic/Fomantic-UI/blob/2.8.7/src/definitions/modules/dropdown.js
   // https://github.com/fomantic/Fomantic-UI/blob/2.8.7/src/definitions/behaviors/api.js
-  $.fn.api = async function (arg0) {
+  $.fn.api = function (arg0) {
     if (arg0 === 'is loading') return this._loading;
     if (arg0 === 'abort') {
       this._ac?.abort();
@@ -32,29 +32,33 @@ export function initFomanticApi() {
       }
       this._data = {url, onSuccess, onError, onAbort};
     } else if (arg0 === 'query') {
-      const {url, onSuccess, onError, onAbort} = this._data;
-      try {
-        this._loading = true;
-        this._ac = new AbortController();
-        const res = await GET(url, {signal: this.ac.signal});
-        if (!res.ok) {
-          onError?.();
-        }
+      (async () => {
+        const {url, onSuccess, onError, onAbort} = this._data;
 
-        if (res?.headers?.['content-type']?.startsWith('application/json')) {
-          onSuccess?.(await res.json());
-        } else {
-          onSuccess?.(await res.text());
+        try {
+          this._loading = true;
+          this._ac = new AbortController();
+          const res = await GET(url, {signal: this.ac.signal});
+          if (!res.ok) {
+            onError?.();
+          }
+
+          if (res?.headers?.['content-type']?.startsWith('application/json')) {
+            onSuccess?.(await res.json());
+          } else {
+            onSuccess?.(await res.text());
+          }
+        } catch (err) {
+          this._loading = false;
+          if (err.name === 'AbortError') {
+            onAbort?.();
+          } else {
+            onError?.();
+          }
         }
-      } catch (err) {
-        this._loading = false;
-        if (err.name === 'AbortError') {
-          onAbort?.();
-        } else {
-          onError?.();
-        }
-      }
+      })();
     }
-    return {};
+
+    return this;
   };
 }
