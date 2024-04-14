@@ -173,11 +173,11 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{end}}
 					</span>
 				</div>

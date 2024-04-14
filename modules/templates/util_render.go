@@ -216,15 +216,16 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return output
 }
 
-func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
+	isPullRequest := issue != nil && issue.IsPull
+	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-			repoLink, label.ID, RenderLabel(ctx, locale, label))
+		htmlCode += fmt.Sprintf(`<a href="%s?labels=%d">%s</a>`, baseLink, label.ID, RenderLabel(ctx, locale, label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
