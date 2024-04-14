@@ -184,16 +184,13 @@
 		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
-			<div class="existing-issue-block ui segment tw-flex tw-items-center tw-space-between tw-gap-3">
-				<div class="tw-flex tw-flex-1 tw-gap-3 tw-items-center tw-min-w-0">
+			<div class="ui segment flex-text-block">
+				<div class="issue-title gt-ellipsis tw-flex-1">
 					{{template "shared/issueicon" .}}
-					<div class="issue-title gt-ellipsis">
-						{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
-						<span class="index">#{{.PullRequest.Issue.Index}}</span>
-					</div>
+					{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
+					<span class="index">#{{.PullRequest.Issue.Index}}</span>
 				</div>
 				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
-					{{template "shared/issueicon" .}}
 					{{ctx.Locale.Tr "repo.pulls.view"}}
 				</a>
 			</div>
