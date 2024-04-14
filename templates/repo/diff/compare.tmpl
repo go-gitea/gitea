@@ -192,7 +192,7 @@
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</div>
 				</div>
-				<a role="button" href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
 					{{template "shared/issueicon" .}}
 					{{ctx.Locale.Tr "repo.pulls.view"}}
 				</a>
