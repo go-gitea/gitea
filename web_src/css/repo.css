@@ -654,15 +654,15 @@ td .commit-summary {
   padding: 2px .5rem;
 }
 
-.repository.view.issue .issue-title .index {
+.issue-title .index {
   color: var(--color-text-light-2);
 }
 
-.repository.view.issue .issue-title .label {
+.issue-title .label {
   margin-right: 10px;
 }
 
-.repository.view.issue .issue-title .edit-zone {
+.issue-title .edit-zone {
   margin-top: 10px;
 }
 
@@ -1129,6 +1129,10 @@ td .commit-summary {
   width: 100%;
   margin-top: -1rem;
   text-align: center;
+}
+
+.existing-issue-block .ui.primary.button .svg {
+  color: inherit !important; /* View Pull Request butt*/
 }
 
 .repository.compare.pull .comment.form .content::before,
