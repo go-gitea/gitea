@@ -398,32 +398,6 @@ func GetRepoReaders(ctx context.Context, repo *repo_model.Repository) (_ []*user
 	return getUsersWithAccessMode(ctx, repo, perm_model.AccessModeRead)
 }
 
-// getUsersWithAccessModeFromIDs returns users that have at least given access mode to the repository based on given userIDs.
-func getUsersWithAccessModeFromIDs(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, userIDs []int64) (_ []*user_model.User, err error) {
-	e := db.GetEngine(ctx)
-	accesses := make([]*Access, 0, 10)
-	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).In("user_id", userIDs).Find(&accesses); err != nil {
-		return nil, err
-	}
-	users := make([]*user_model.User, 0)
-	if len(accesses) > 0 {
-		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
-			userIDs[i] = accesses[i].UserID
-		}
-		if err = e.In("id", userIDs).Find(&users); err != nil {
-			return nil, err
-		}
-	}
-
-	return users, nil
-}
-
-// GetRepoReadersFromIDs returns the users who has explicit read access or higher to the repository based on given userIDs.
-func GetRepoReadersFromIDs(ctx context.Context, repo *repo_model.Repository, userIDs []int64) (_ []*user_model.User, err error) {
-	return getUsersWithAccessModeFromIDs(ctx, repo, perm_model.AccessModeRead, userIDs)
-}
-
 // GetRepoWriters returns all users that have write access to the repository.
 func GetRepoWriters(ctx context.Context, repo *repo_model.Repository) (_ []*user_model.User, err error) {
 	return getUsersWithAccessMode(ctx, repo, perm_model.AccessModeWrite)

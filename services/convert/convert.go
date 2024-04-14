@@ -105,61 +105,59 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	return branch, nil
 }
 
+// getWhitelistEntities returns the names of the entities that are in the whitelist
+func getWhitelistEntities(entities []interface{}, whitelistIDs []int64) []string {
+	whitelistIDsMap := make(map[int64]struct{})
+	for _, id := range whitelistIDs {
+		whitelistIDsMap[id] = struct{}{}
+	}
+
+	whitelistNames := make([]string, 0)
+	for _, entity := range entities {
+		switch v := entity.(type) {
+		case *user_model.User:
+			if _, ok := whitelistIDsMap[v.ID]; ok {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		case *organization.Team:
+			if _, ok := whitelistIDsMap[v.ID]; ok {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		}
+	}
+
+	return whitelistNames
+}
+
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
-	pushWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.WhitelistUserIDs)
+	readers, err := access_model.GetRepoReaders(ctx, repo)
 	if err != nil {
-		log.Error("GetRepoReadersFromIDs (WhitelistUserIDs): %v", err)
-	}
-	var pushWhitelistUsernames []string
-	for _, username := range pushWhitelistUsernamesRaw {
-		pushWhitelistUsernames = append(pushWhitelistUsernames, username.Name)
+		log.Error("GetRepoReaders: %v", err)
 	}
 
-	mergeWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.MergeWhitelistUserIDs)
-	if err != nil {
-		log.Error("GetRepoReadersFromIDs (MergeWhitelistUserIDs): %v", err)
-	}
-	var mergeWhitelistUsernames []string
-	for _, username := range mergeWhitelistUsernamesRaw {
-		mergeWhitelistUsernames = append(mergeWhitelistUsernames, username.Name)
+	readersInterface := make([]interface{}, len(readers))
+	for i, v := range readers {
+		readersInterface[i] = v
 	}
 
-	approvalsWhitelistUsernamesRaw, err := access_model.GetRepoReadersFromIDs(ctx, repo, bp.ApprovalsWhitelistUserIDs)
+	pushWhitelistUsernames := getWhitelistEntities(readersInterface, bp.WhitelistUserIDs)
+	mergeWhitelistUsernames := getWhitelistEntities(readersInterface, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getWhitelistEntities(readersInterface, bp.ApprovalsWhitelistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
 	if err != nil {
-		log.Error("GetRepoReadersFromIDs (ApprovalsWhitelistUserIDs): %v", err)
-	}
-	var approvalsWhitelistUsernames []string
-	for _, username := range approvalsWhitelistUsernamesRaw {
-		approvalsWhitelistUsernames = append(approvalsWhitelistUsernames, username.Name)
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	pushWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.WhitelistTeamIDs)
-	if err != nil {
-		log.Error("TeamsWithAccessToRepoFromIDs (WhitelistTeamIDs): %v", err)
-	}
-	var pushWhitelistTeams []string
-	for _, team := range pushWhitelistTeamsRaw {
-		pushWhitelistTeams = append(pushWhitelistTeams, team.Name)
+	teamReadersInterface := make([]interface{}, len(teamReaders))
+	for i, v := range teamReaders {
+		teamReadersInterface[i] = v
 	}
 
-	mergeWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.MergeWhitelistTeamIDs)
-	if err != nil {
-		log.Error("TeamsWithAccessToRepoFromIDs (MergeWhitelistTeamIDs): %v", err)
-	}
-	var mergeWhitelistTeams []string
-	for _, team := range mergeWhitelistTeamsRaw {
-		mergeWhitelistTeams = append(mergeWhitelistTeams, team.Name)
-	}
-
-	approvalsWhitelistTeamsRaw, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepoFromIDs(ctx, repo.ID, perm.AccessModeRead, bp.ApprovalsWhitelistTeamIDs)
-	if err != nil {
-		log.Error("TeamsWithAccessToRepoFromIDs (ApprovalsWhitelistTeamIDs): %v", err)
-	}
-	var approvalsWhitelistTeams []string
-	for _, team := range approvalsWhitelistTeamsRaw {
-		approvalsWhitelistTeams = append(approvalsWhitelistTeams, team.Name)
-	}
+	pushWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.WhitelistTeamIDs)
+	mergeWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.ApprovalsWhitelistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {

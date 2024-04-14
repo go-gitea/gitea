@@ -83,15 +83,3 @@ func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode per
 		OrderBy("name").
 		Find(&teams)
 }
-
-// GetTeamsWithAccessToRepoFromIDs returns teams in an organization that have given access level to the repository based on given teamIDs.
-func GetTeamsWithAccessToRepoFromIDs(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, teamIDs []int64) ([]*Team, error) {
-	teams := make([]*Team, 0)
-	return teams, db.GetEngine(ctx).Where("team.authorize >= ?", mode).
-		In("team.id", teamIDs).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		And("team_repo.org_id = ?", orgID).
-		And("team_repo.repo_id = ?", repoID).
-		OrderBy("name").
-		Find(&teams)
-}
