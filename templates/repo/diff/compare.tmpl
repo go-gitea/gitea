@@ -190,7 +190,7 @@
 					{{RenderIssueTitle $.Context .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
 					<span class="index">#{{.PullRequest.Issue.Index}}</span>
 				</div>
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary tw-whitespace-nowrap">
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
 					{{ctx.Locale.Tr "repo.pulls.view"}}
 				</a>
 			</div>

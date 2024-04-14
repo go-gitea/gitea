@@ -21,6 +21,13 @@
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
   color: var(--color-text);
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .ui.button {
+    white-space: normal;
+  }
 }
 
 .ui.button:hover {
