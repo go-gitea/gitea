@@ -194,9 +194,9 @@
 				</div>
 				<div class="four wide column middle aligned text right">
 				{{- if .PullRequest.HasMerged -}}
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else if .Issue.IsClosed}}
-				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else}}
 				<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{end}}
