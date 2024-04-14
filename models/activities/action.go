@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -468,21 +469,32 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	isOrgMemberMap := make(map[int64]bool, 0)
-	isPrivateForActor := true
 	if opts.Actor != nil && opts.RequestedUser != nil {
-		isPrivateForActor = !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
-		isOrgMemberMap, err = organization.IsOrganizationsMember(ctx, actions.GetOrgIDs(), opts.Actor.ID)
-		if err != nil {
-			return nil, 0, err
+		isPrivateForActor := !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
+
+		// cache user repo read permissions
+		canReadRepo := make(map[int64]optional.Option[bool], 0)
+
+		for _, action := range actions {
+			action.IsPrivateView = isPrivateForActor && action.IsPrivate
+
+			if action.IsPrivateView && action.Repo.Owner.IsOrganization() {
+				if !canReadRepo[action.Repo.ID].Has() {
+					perm, err := access_model.GetUserRepoPermission(ctx, action.Repo, opts.Actor)
+					if err != nil {
+						return nil, 0, fmt.Errorf("GetUserRepoPermission: %w", err)
+					}
+					canRead := perm.CanRead(unit.TypeCode)
+					action.IsPrivateView = !canRead
+					canReadRepo[action.Repo.ID] = optional.Option[bool]{canRead}
+				}
+
+				action.IsPrivateView = !canReadRepo[action.Repo.ID].Value()
+			}
 		}
-	}
-
-	for _, action := range actions {
-		action.IsPrivateView = isPrivateForActor && action.IsPrivate
-
-		if action.IsPrivateView && action.Repo.Owner.IsOrganization() {
-			action.IsPrivateView = !isOrgMemberMap[action.Repo.Owner.ID]
+	} else {
+		for _, action := range actions {
+			action.IsPrivateView = action.IsPrivate
 		}
 	}
 
@@ -491,8 +503,13 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
-	return !user.ActivityVisibility.ShowNone() ||
-		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
+	if doer != nil && (doer.IsAdmin || user.ID == doer.ID) {
+		return true
+	}
+	if user.ActivityVisibility.ShowNone() {
+		return false
+	}
+	return true
 }
 
 func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
