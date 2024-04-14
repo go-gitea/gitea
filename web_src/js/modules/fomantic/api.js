@@ -21,7 +21,10 @@ export function initFomanticApi() {
   $.fn.api = function (arg0) {
     console.info(arg0);
 
-    if (arg0 === 'is loading') return this._loading;
+    if (arg0 === 'is loading') {
+      return this._loading;
+    }
+
     if (arg0 === 'abort') {
       this._ac?.abort();
       return;
