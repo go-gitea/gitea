@@ -22,7 +22,7 @@ type Result struct {
 	UpdatedUnix timeutil.TimeStamp
 	Language    string
 	Color       string
-	Lines       []ResultLine
+	Lines       []*ResultLine
 }
 
 type ResultLine struct {
@@ -70,16 +70,18 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 	return nil
 }
 
-func HighlightSearchResultCode(filename string, lineNums []int, code string) []ResultLine {
+func HighlightSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	hl, _ := highlight.Code(filename, "", code)
+	hl, _ := highlight.Code(filename, language, code)
 	highlightedLines := strings.Split(string(hl), "\n")
 
 	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
-	lines := make([]ResultLine, min(len(highlightedLines), len(lineNums)))
+	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
 	for i := 0; i < len(lines); i++ {
-		lines[i].Num = lineNums[i]
-		lines[i].FormattedContent = template.HTML(highlightedLines[i])
+		lines[i] = &ResultLine{
+			Num:              lineNums[i],
+			FormattedContent: template.HTML(highlightedLines[i]),
+		}
 	}
 	return lines
 }
@@ -122,7 +124,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		UpdatedUnix: result.UpdatedUnix,
 		Language:    result.Language,
 		Color:       result.Color,
-		Lines:       HighlightSearchResultCode(result.Filename, lineNums, formattedLinesBuffer.String()),
+		Lines:       HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String()),
 	}, nil
 }
 
