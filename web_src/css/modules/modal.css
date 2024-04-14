@@ -10,8 +10,7 @@
   top: 1.2em;
 }
 
-.ui.modal > .close.inside,
-.ui.fullscreen.modal > .close {
+.ui.modal > .close.inside {
   color: inherit;
 }
 
