@@ -61,7 +61,8 @@
 
 .run-list .flex-item-trailing {
   flex-wrap: nowrap;
-  width: 300px;
+  width: 280px;
+  flex: 0 0 280px;
 }
 
 .run-list-ref {
@@ -73,6 +74,7 @@
     flex-direction: column;
     align-items: flex-end;
     width: auto;
+    flex-basis: auto;
   }
   .run-list-item-right,
   .run-list-ref {
