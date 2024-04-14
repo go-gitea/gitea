@@ -222,8 +222,7 @@
 }
 
 .ui.basic.primary.buttons .button,
-.ui.basic.primary.button,
-.ui.basic.primary.buttons .button {
+.ui.basic.primary.button {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background: none;
