@@ -663,10 +663,6 @@ input:-webkit-autofill:active,
   font-size: 0.75em;
 }
 
-.ui.form .ui.button {
-  font-weight: var(--font-weight-normal);
-}
-
 /* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -1346,10 +1342,6 @@ table th[data-sortt-desc] .svg {
   gap: .25rem;
   vertical-align: middle;
   min-width: 0;
-}
-
-.ui.ui.button {
-  justify-content: center;
 }
 
 .ui.dropdown .ui.label .svg {
