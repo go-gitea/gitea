@@ -1063,6 +1063,12 @@ td .commit-summary {
   margin-left: 15px;
 }
 
+.repository.view.issue .comment-list .event .detail .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .repository.view.issue .comment-list .event .segments {
   box-shadow: none;
 }
