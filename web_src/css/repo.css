@@ -50,16 +50,16 @@
   width: 300px;
 }
 
+.issue-content-right .dropdown > .menu {
+  max-width: 270px;
+  min-width: 0;
+}
+
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
     width: 100%;
   }
-}
-
-.repository .issue-content-right .menu {
-  overflow-x: auto;
-  max-height: 500px;
 }
 
 .repository .issue-content-right .ui.list .dependency {
@@ -111,11 +111,6 @@
   min-width: max-content;
   right: unset;
   left: 0;
-}
-
-.repository .filter.menu .ui.dropdown .menu .item {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .repository .select-label .desc {
@@ -1162,10 +1157,6 @@ td .commit-summary {
 
 .repository.compare.pull .markup {
   font-size: 14px;
-}
-
-.repository .ui.dropdown.filter > .menu {
-  margin-top: 1px;
 }
 
 .repository.branches .commit-divergence .bar-group {
@@ -2501,16 +2492,6 @@ tbody.commit-list {
   display: inline-flex;
   align-items: center;
   word-break: break-all;
-}
-
-.select-branch #branch-list {
-  max-width: 200px; /* this restricts overly wide dropdown, but does not actually enforce a max width for some reason */
-}
-
-.select-branch #branch-list .item {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .diff-file-header {

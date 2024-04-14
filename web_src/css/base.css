@@ -342,6 +342,8 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -386,6 +388,13 @@ a.label,
 
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
+}
+
+.ui.dropdown > .button,
+.ui.dropdown > .button > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
