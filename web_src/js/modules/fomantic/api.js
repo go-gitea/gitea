@@ -19,6 +19,8 @@ export function initFomanticApi() {
   // https://github.com/fomantic/Fomantic-UI/blob/2.8.7/src/definitions/modules/dropdown.js
   // https://github.com/fomantic/Fomantic-UI/blob/2.8.7/src/definitions/behaviors/api.js
   $.fn.api = function (arg0) {
+    console.info(arg0);
+
     if (arg0 === 'is loading') return this._loading;
     if (arg0 === 'abort') {
       this._ac?.abort();
