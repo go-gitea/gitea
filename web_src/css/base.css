@@ -1341,6 +1341,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
   vertical-align: middle;
+  min-width: 0;
 }
 
 .ui.dropdown .ui.label .svg {
@@ -1357,6 +1358,7 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: .25rem;
+  min-width: 0;
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
@@ -1364,4 +1366,5 @@ table th[data-sortt-desc] .svg {
   display: flex !important;
   align-items: center;
   gap: .5rem;
+  min-width: 0;
 }

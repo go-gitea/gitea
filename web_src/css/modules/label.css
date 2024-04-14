@@ -5,6 +5,8 @@
   display: inline-flex;
   align-items: center;
   gap: .25rem;
+  min-width: 0;
+  max-width: 100%; /* since we are using "flex" to align label contents, we also need to limit the x-axis, a label shouldn't be wider than 100% */
   vertical-align: middle;
   line-height: 1;
   background: var(--color-label-bg);
