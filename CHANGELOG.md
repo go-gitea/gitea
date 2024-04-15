@@ -39,7 +39,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Update actions variables documents (#30394) #30405
 * MISC
   * Update katex to 0.16.10 (#30089)
-  * Upgrade go-sqlite to v1.14.22
+  * Upgrade go-sqlite to v1.14.22 (#30462)
 
 ## [1.21.10](https://github.com/go-gitea/gitea/releases/tag/v1.21.10) - 2024-03-25
 
