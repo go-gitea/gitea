@@ -249,6 +249,7 @@
 
 .ui.red.button,
 .ui.red.buttons .button {
+  color: var(--color-white);
   background: var(--color-red);
 }
 
@@ -283,6 +284,7 @@
 
 .ui.green.button,
 .ui.green.buttons .button {
+  color: var(--color-white);
   background: var(--color-green);
 }
 
