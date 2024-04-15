@@ -111,6 +111,7 @@ func NewIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		return err
 	}
 
+	issue.isLabelsLoaded = false
 	issue.Labels = nil
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
