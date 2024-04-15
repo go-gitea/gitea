@@ -390,13 +390,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.dropdown > .button,
-.ui.dropdown > .button > .text {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
 .ui.dropdown > .text > .img {
   margin-left: 0;
