@@ -80,7 +80,6 @@
 .flex-item .flex-item-body a {
   color: inherit;
   overflow-wrap: anywhere;
-  display: inline-flex;
 }
 
 .flex-list > .flex-item + .flex-item {

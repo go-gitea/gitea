@@ -50,6 +50,7 @@
   text-overflow: ellipsis;
   max-width: 200px;
   display: inline-block;
+  vertical-align: top;
 }
 
 #issue-list .flex-item-body .checklist progress {
