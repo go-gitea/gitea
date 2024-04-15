@@ -183,7 +183,7 @@ export function initRepoIssueCommentEdit() {
   $(document).on('click', '.quote-reply', async function (event) {
     event.preventDefault();
     const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const quote = $(`#${target}`)[0].textContent.replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let editor;
     if ($(this).hasClass('quote-reply-diff')) {

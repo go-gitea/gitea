@@ -92,7 +92,7 @@ export function initImageDiff() {
         return loadElem(img, info.path);
       }));
       // only the first images is associated with $boundsInfo
-      if (!success) info.$boundsInfo.text('(image error)');
+      if (!success) info.$boundsInfo[0].textContent = '(image error)';
       if (info.mime === 'image/svg+xml') {
         const resp = await GET(info.path);
         const text = await resp.text();

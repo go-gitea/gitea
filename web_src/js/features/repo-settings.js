@@ -22,12 +22,12 @@ export function initRepoSettingsCollaboration() {
           data.append('mode', value);
           await POST(el.getAttribute('data-url'), {data});
         } catch {
-          $text.text('(error)'); // prevent from misleading users when error occurs
+          $text[0].textContent = '(error)'; // prevent from misleading users when error occurs
           el.setAttribute('data-last-value', lastValue);
         }
       },
       onChange(_value, text, _$choice) {
-        $text.text(text); // update the text when using keyboard navigating
+        $text[0].textContent = text; // update the text when using keyboard navigating
       },
       onHide() {
         // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
@@ -36,7 +36,7 @@ export function initRepoSettingsCollaboration() {
           if ($item) {
             $dropdown.dropdown('set selected', el.getAttribute('data-last-value'));
           } else {
-            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
+            $text[0].textContent = '(none)'; // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       },

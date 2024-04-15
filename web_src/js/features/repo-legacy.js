@@ -64,7 +64,7 @@ export function initRepoCommentForm() {
       const editMode = $('#editing_mode').val();
       $($(this).data('id-selector')).val(selectedValue);
       if ($isNewIssue) {
-        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+        $selectBranch.find('.ui .branch-name')[0].textContent = $(this).data('name');
         return;
       }
 
@@ -79,7 +79,7 @@ export function initRepoCommentForm() {
           console.error(error);
         }
       } else if (editMode === '') {
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
+        $selectBranch.find('.ui .branch-name')[0].textContent = selectedValue;
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
@@ -275,7 +275,7 @@ export function initRepoCommentForm() {
       $list.find('.selected').html(`
         <a class="item muted sidebar-item-link" href=${$(this).data('href')}>
           ${icon}
-          ${htmlEscape($(this).text())}
+          ${htmlEscape(this.textContent)}
         </a>
       `);
 

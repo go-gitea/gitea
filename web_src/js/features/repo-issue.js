@@ -281,7 +281,7 @@ export function initRepoPullRequestUpdate() {
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice.text();
+          buttonText.textContent = $choice[0].textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
@@ -566,7 +566,7 @@ export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
-    const content = $(`#${$this.data('target')}`).text();
+    const content = $(`#${$this.data('target')}`)[0].textContent;
     const poster = $this.data('poster-username');
     const reference = toAbsoluteUrl($this.data('reference'));
     const $modal = $($this.data('modal'));
@@ -603,8 +603,7 @@ export function initRepoIssueWipToggle() {
 
 async function pullrequest_targetbranch_change(update_url) {
   const targetBranch = $('#pull-target-branch').data('branch');
-  const $branchTarget = $('#branch_target');
-  if (targetBranch === $branchTarget.text()) {
+  if (targetBranch === $('#branch_target')[0].textContent) {
     window.location.reload();
     return false;
   }
@@ -640,8 +639,9 @@ export function initRepoIssueTitleEdit() {
   $('#cancel-edit-title').on('click', editTitleToggle);
   $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
     const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
-    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
-      $editInput.val($issueTitle.text());
+    const titleText = $issueTitle[0].textContent;
+    if (!$editInput.val().length || $editInput.val() === titleText) {
+      $editInput.val(titleText);
       await pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
       try {
@@ -650,7 +650,7 @@ export function initRepoIssueTitleEdit() {
         const response = await POST(this.getAttribute('data-update-url'), {data: params});
         const data = await response.json();
         $editInput.val(data.title);
-        $issueTitle.text(data.title);
+        $issueTitle[0].textContent = data.title;
         if (pullrequest_target_update_url) {
           await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
         } else {

@@ -303,10 +303,10 @@ export function initGlobalLinkActions() {
     }
 
     const $dialog = $(`.delete.modal${filter}`);
-    $dialog.find('.name').text($this.data('name'));
+    $dialog.find('.name')[0].textContent = $this.data('name');
     for (const [key, value] of Object.entries(dataArray)) {
       if (key && key.startsWith('data')) {
-        $dialog.find(`.${key}`).text(value);
+        $dialog.find(`.${key}`)[0].textContent = value;
       }
     }
 
@@ -373,7 +373,7 @@ function initGlobalShowModal() {
       } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
-        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
+        $attrTarget[0].textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
       }
     }
 

@@ -70,7 +70,7 @@ export function initRepoEditor() {
       hideElem('.quick-pull-branch-name');
       document.querySelector('.quick-pull-branch-name input').required = false;
     }
-    $('#commit-button').text(this.getAttribute('button_text'));
+    $('#commit-button')[0].textContent = this.getAttribute('button_text');
   });
 
   const joinTreePath = ($fileNameEl) => {
@@ -78,9 +78,9 @@ export function initRepoEditor() {
     $('.breadcrumb span.section').each(function () {
       const $element = $(this);
       if ($element.find('a').length) {
-        parts.push($element.find('a').text());
+        parts.push($element.find('a')[0].textContent);
       } else {
-        parts.push($element.text());
+        parts.push($element[0].textContent);
       }
     });
     if ($fileNameEl.val()) parts.push($fileNameEl.val());
@@ -116,7 +116,7 @@ export function initRepoEditor() {
     if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
       e.preventDefault();
       const $divider = $('.breadcrumb .breadcrumb-divider');
-      const value = $section.last().find('a').text();
+      const value = $section.last().find('a')[0].textContent;
       $(this).val(value + $(this).val());
       this.setSelectionRange(value.length, value.length);
       $section.last().remove();
