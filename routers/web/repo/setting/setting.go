@@ -480,7 +480,7 @@ func SettingsPost(ctx *context.Context) {
 				RepoID:             repo.ID,
 				Type:               unit_model.TypeWiki,
 				Config:             new(repo_model.UnitConfig),
-				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultWikiEveryoneAccess, perm.AccessModeUnset, perm.AccessModeRead, perm.AccessModeWrite),
+				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultWikiEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite),
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else {

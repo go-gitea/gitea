@@ -345,7 +345,7 @@
 						{{$unitBuiltinWiki := .Repository.MustGetUnit ctx $.UnitTypeWiki}}
 						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
 						<select name="default_wiki_everyone_access" class="ui dropdown">
-							<option value="unset" {{Iif (eq $unitBuiltinWiki.EveryoneAccessMode -1) "selected"}}>{{ctx.Locale.Tr "settings.permission_unset"}}</option>
+							<option value="none" {{Iif (eq $unitBuiltinWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_no_access"}}</option>
 							<option value="read" {{Iif (eq $unitBuiltinWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
 							<option value="write" {{Iif (eq $unitBuiltinWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
 						</select>

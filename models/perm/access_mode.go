@@ -14,9 +14,8 @@ import (
 type AccessMode int
 
 const (
-	AccessModeUnset AccessMode = -1 + iota // -1: no access mode is set
+	AccessModeNone AccessMode = iota // 0: no access
 
-	AccessModeNone  // 0:  no access
 	AccessModeRead  // 1: read access
 	AccessModeWrite // 2: write access
 	AccessModeAdmin // 3: admin access
@@ -26,8 +25,6 @@ const (
 // ToString returns the string representation of the access mode, do not make it a Stringer, otherwise it's difficult to render in templates
 func (mode AccessMode) ToString() string {
 	switch mode {
-	case AccessModeUnset:
-		return "unset"
 	case AccessModeRead:
 		return "read"
 	case AccessModeWrite:
@@ -49,8 +46,6 @@ func (mode AccessMode) LogString() string {
 func ParseAccessMode(permission string, allowed ...AccessMode) AccessMode {
 	m := AccessModeNone
 	switch permission {
-	case "unset":
-		m = AccessModeUnset
 	case "read":
 		m = AccessModeRead
 	case "write":
