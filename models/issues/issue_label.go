@@ -160,6 +160,8 @@ func NewIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		return err
 	}
 
+	// reload all labels
+	issue.isLabelsLoaded = false
 	issue.Labels = nil
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
