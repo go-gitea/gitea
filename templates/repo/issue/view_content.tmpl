@@ -46,7 +46,7 @@
 						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 						</div>
@@ -67,7 +67,7 @@
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
+						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>

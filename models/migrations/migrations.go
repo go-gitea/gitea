@@ -581,6 +581,8 @@ var migrations = []Migration{
 	// v295 -> v296
 	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
 	// v296 -> v297
+	NewMigration("Add missing field of commit status summary table", v1_23.AddCommitStatusSummary2),
+	// v297 -> v298
 	NewMigration("Add TimeEstimate to issue table", v1_23.AddTimeEstimateColumnToIssueTable),
 }
 

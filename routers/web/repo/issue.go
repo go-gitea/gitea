@@ -3373,7 +3373,6 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3480,7 +3479,6 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})

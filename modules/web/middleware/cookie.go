@@ -45,10 +45,32 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		SameSite: setting.SessionConfig.SameSite,
 	}
 	resp.Header().Add("Set-Cookie", cookie.String())
-	if maxAge < 0 {
-		// There was a bug in "setting.SessionConfig.CookiePath" code, the old default value of it was empty "".
-		// So we have to delete the cookie on path="" again, because some old code leaves cookies on path="".
-		cookie.Path = strings.TrimSuffix(setting.SessionConfig.CookiePath, "/")
-		resp.Header().Add("Set-Cookie", cookie.String())
+	// Previous versions would use a cookie path with a trailing /.
+	// These are more specific than cookies without a trailing /, so
+	// we need to delete these if they exist.
+	DeleteLegacySiteCookie(resp, name)
+}
+
+// DeleteLegacySiteCookie deletes the cookie with the given name at the cookie
+// path with a trailing /, which would unintentionally override the cookie.
+func DeleteLegacySiteCookie(resp http.ResponseWriter, name string) {
+	if setting.SessionConfig.CookiePath == "" || strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
+		// If the cookie path ends with /, no legacy cookies will take
+		// precedence, so do nothing.  The exception is that cookies with no
+		// path could override other cookies, but it's complicated and we don't
+		// currently handle that.
+		return
 	}
+
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     setting.SessionConfig.CookiePath + "/",
+		Domain:   setting.SessionConfig.Domain,
+		Secure:   setting.SessionConfig.Secure,
+		HttpOnly: true,
+		SameSite: setting.SessionConfig.SameSite,
+	}
+	resp.Header().Add("Set-Cookie", cookie.String())
 }
