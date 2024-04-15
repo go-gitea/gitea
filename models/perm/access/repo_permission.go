@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Permission contains all the permissions related variables to a repository for a user
@@ -40,15 +41,17 @@ func (p *Permission) HasAccess() bool {
 
 // UnitAccessMode returns current user access mode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
-	if len(p.UnitsMode) == 0 {
-		for _, u := range p.Units {
-			if u.Type == unitType {
-				return p.AccessMode
-			}
-		}
-		return perm_model.AccessModeNone
+	// if the units map contains the access mode, use it, but admin/owner mode could override it
+	if m, ok := p.UnitsMode[unitType]; ok {
+		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
-	return p.UnitsMode[unitType]
+	// if the units map does not contain the access mode, return the default access mode if the unit exists
+	for _, u := range p.Units {
+		if u.Type == unitType {
+			return p.AccessMode
+		}
+	}
+	return perm_model.AccessModeNone
 }
 
 // CanAccess returns true if user has mode access to the unit of the repository
