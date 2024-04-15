@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/log"
@@ -18,8 +19,8 @@ import (
 )
 
 var (
-	packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
-	filenameRegex    = packageNameRegex
+	packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -54,20 +55,38 @@ func DownloadPackageFile(ctx *context.Context) {
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 
+func isValidPackageName(packageName string) bool {
+	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
+		return false
+	}
+	return packageNameRegex.MatchString(packageName) && packageName != ".."
+}
+
+func isValidFileName(filename string) bool {
+	return filenameRegex.MatchString(filename) &&
+		strings.TrimSpace(filename) == filename &&
+		filename != "." && filename != ".."
+}
+
 // UploadPackage uploads the specific generic package.
 // Duplicated packages get rejected.
 func UploadPackage(ctx *context.Context) {
 	packageName := ctx.Params("packagename")
 	filename := ctx.Params("filename")
 
-	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package name or filename"))
+	if !isValidPackageName(packageName) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
+		return
+	}
+
+	if !isValidFileName(filename) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid filename"))
 		return
 	}
 
 	packageVersion := ctx.Params("packageversion")
 	if packageVersion != strings.TrimSpace(packageVersion) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package version"))
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package version"))
 		return
 	}
 

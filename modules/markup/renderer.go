@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -33,6 +34,8 @@ type ProcessorHelper struct {
 	IsUsernameMentionable func(ctx context.Context, username string) bool
 
 	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
+
+	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
 }
 
 var DefaultProcessorHelper ProcessorHelper

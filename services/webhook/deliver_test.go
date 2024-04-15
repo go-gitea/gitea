@@ -107,7 +107,6 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
-	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
 	hookTask := &webhook_model.HookTask{
 		HookID:         hook.ID,
@@ -259,7 +258,6 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 
 	for typ := range cases {
 		cases[typ].gotBody = make(chan []byte, 1)
-		typ := typ // TODO: remove this workaround when Go >= 1.22
 		t.Run(typ, func(t *testing.T) {
 			t.Parallel()
 			hook := &webhook_model.Webhook{

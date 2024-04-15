@@ -55,15 +55,20 @@ func startTasks(ctx context.Context) error {
 			// cancel running jobs if the event is push
 			if row.Schedule.Event == webhook_module.HookEventPush {
 				// cancel running jobs of the same workflow
-				if err := actions_model.CancelRunningJobs(
+				if err := actions_model.CancelPreviousJobs(
 					ctx,
 					row.RepoID,
 					row.Schedule.Ref,
 					row.Schedule.WorkflowID,
 					webhook_module.HookEventSchedule,
 				); err != nil {
-					log.Error("CancelRunningJobs: %v", err)
+					log.Error("CancelPreviousJobs: %v", err)
 				}
+			}
+
+			if row.Repo.IsArchived {
+				// Skip if the repo is archived
+				continue
 			}
 
 			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)

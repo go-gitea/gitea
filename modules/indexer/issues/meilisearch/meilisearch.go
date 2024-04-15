@@ -6,6 +6,7 @@ package meilisearch
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -217,7 +218,22 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
+	counting := limit == 0
+	if counting {
+		// If set limit to 0, it will be 20 by default, and -1 is not allowed.
+		// See https://www.meilisearch.com/docs/reference/api/search#limit
+		// So set limit to 1 to make the cost as low as possible, then clear the result before returning.
+		limit = 1
+	}
+
+	keyword := options.Keyword
+	if !options.IsFuzzyKeyword {
+		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
+		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
+		keyword = doubleQuoteKeyword(keyword)
+	}
+
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter:           query.Statement(),
 		Limit:            int64(limit),
 		Offset:           int64(skip),
@@ -228,7 +244,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		return nil, err
 	}
 
-	hits, err := nonFuzzyWorkaround(searchRes, options.Keyword, options.IsFuzzyKeyword)
+	if counting {
+		searchRes.Hits = nil
+	}
+
+	hits, err := convertHits(searchRes)
 	if err != nil {
 		return nil, err
 	}
@@ -247,11 +267,20 @@ func parseSortBy(sortBy internal.SortBy) string {
 	return field + ":asc"
 }
 
-// nonFuzzyWorkaround is needed as meilisearch does not have an exact search
-// and you can only change "typo tolerance" per index. So we have to post-filter the results
-// https://www.meilisearch.com/docs/learn/configuration/typo_tolerance#configuring-typo-tolerance
-// TODO: remove once https://github.com/orgs/meilisearch/discussions/377 is addressed
-func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, isFuzzy bool) ([]internal.Match, error) {
+func doubleQuoteKeyword(k string) string {
+	kp := strings.Split(k, " ")
+	parts := 0
+	for i := range kp {
+		part := strings.Trim(kp[i], "\"")
+		if part != "" {
+			kp[parts] = fmt.Sprintf(`"%s"`, part)
+			parts++
+		}
+	}
+	return strings.Join(kp[:parts], " ")
+}
+
+func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
 		hit, ok := hit.(map[string]any)
@@ -259,61 +288,11 @@ func nonFuzzyWorkaround(searchRes *meilisearch.SearchResponse, keyword string, i
 			return nil, ErrMalformedResponse
 		}
 
-		if !isFuzzy {
-			keyword = strings.ToLower(keyword)
-
-			// declare a anon func to check if the title, content or at least one comment contains the keyword
-			found, err := func() (bool, error) {
-				// check if title match first
-				title, ok := hit["title"].(string)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if strings.Contains(strings.ToLower(title), keyword) {
-					return true, nil
-				}
-
-				// check if content has a match
-				content, ok := hit["content"].(string)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if strings.Contains(strings.ToLower(content), keyword) {
-					return true, nil
-				}
-
-				// now check for each comment if one has a match
-				// so we first try to cast and skip if there are no comments
-				comments, ok := hit["comments"].([]any)
-				if !ok {
-					return false, ErrMalformedResponse
-				} else if len(comments) == 0 {
-					return false, nil
-				}
-
-				// now we iterate over all and report as soon as we detect one match
-				for i := range comments {
-					comment, ok := comments[i].(string)
-					if !ok {
-						return false, ErrMalformedResponse
-					}
-					if strings.Contains(strings.ToLower(comment), keyword) {
-						return true, nil
-					}
-				}
-
-				// we got no match
-				return false, nil
-			}()
-
-			if err != nil {
-				return nil, err
-			} else if !found {
-				continue
-			}
-		}
 		issueID, ok := hit["id"].(float64)
 		if !ok {
 			return nil, ErrMalformedResponse
 		}
+
 		hits = append(hits, internal.Match{
 			ID: int64(issueID),
 		})

@@ -30,10 +30,6 @@ linters:
 
 run:
   timeout: 10m
-  skip-dirs:
-    - node_modules
-    - public
-    - web_src
 
 linters-settings:
   stylecheck:
@@ -90,10 +86,13 @@ linters-settings:
             desc: do not use the internal package, use AddXxx function instead
           - pkg: gopkg.in/ini.v1
             desc: do not use the ini package, use gitea's config system instead
+          - pkg: gitea.com/go-chi/cache
+            desc: do not use the go-chi cache package, use gitea's cache system
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs: [node_modules, public, web_src]
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go

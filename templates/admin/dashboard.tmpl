@@ -6,12 +6,12 @@
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "admin.dashboard.operations"}}
+			{{ctx.Locale.Tr "admin.dashboard.maintenance_operations"}}
 		</h4>
 		<div class="ui attached table segment">
 			<form method="post" action="{{AppSubUrl}}/admin">
 				{{.CsrfTokenHtml}}
-				<table class="ui very basic table gt-mt-0 gt-px-4">
+				<table class="ui very basic table tw-mt-0 tw-px-4">
 					<tbody>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
