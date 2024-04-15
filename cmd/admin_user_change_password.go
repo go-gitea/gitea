@@ -36,6 +36,7 @@ var microcmdUserChangePassword = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "must-change-password",
 			Usage: "User must change password",
+			Value: true,
 		},
 	},
 }
@@ -57,23 +58,18 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	var mustChangePassword optional.Option[bool]
-	if c.IsSet("must-change-password") {
-		mustChangePassword = optional.Some(c.Bool("must-change-password"))
-	}
-
 	opts := &user_service.UpdateAuthOptions{
 		Password:           optional.Some(c.String("password")),
-		MustChangePassword: mustChangePassword,
+		MustChangePassword: optional.Some(c.Bool("must-change-password")),
 	}
 	if err := user_service.UpdateAuth(ctx, user, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
+			return fmt.Errorf("password is not long enough, needs to be at least %d characters", setting.MinPasswordLength)
 		case errors.Is(err, password.ErrComplexity):
-			return errors.New("Password does not meet complexity requirements")
+			return errors.New("password does not meet complexity requirements")
 		case errors.Is(err, password.ErrIsPwned):
-			return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
+			return errors.New("the password is in a list of stolen passwords previously exposed in public data breaches, please try again with a different password, to see more details: https://haveibeenpwned.com/Passwords")
 		default:
 			return err
 		}

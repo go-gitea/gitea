@@ -5,12 +5,12 @@
   display: inline-flex;
   align-items: center;
   gap: .25rem;
+  min-width: 0;
   vertical-align: middle;
   line-height: 1;
   background: var(--color-label-bg);
   color: var(--color-label-text);
   padding: 0.3em 0.5em;
-  text-transform: none;
   font-size: 0.85714286rem;
   font-weight: var(--font-weight-medium);
   border: 0 solid transparent;
