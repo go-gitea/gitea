@@ -15,7 +15,7 @@
 					{{range $i, $v := .TreeNames}}
 						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input id="file-name" maxlength="500" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+							<input id="file-name" maxlength="255" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
 							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
