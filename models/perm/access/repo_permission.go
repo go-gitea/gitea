@@ -104,7 +104,7 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 
 func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
-	args := []any{p.AccessMode.String(), len(p.Units), len(p.UnitsMode)}
+	args := []any{p.AccessMode.ToString(), len(p.Units), len(p.UnitsMode)}
 
 	for i, unit := range p.Units {
 		config := ""
@@ -126,23 +126,24 @@ func (p *Permission) LogString() string {
 	return fmt.Sprintf(format, args...)
 }
 
-// GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
-	var perm Permission
-	if log.IsTrace() {
-		defer func() {
-			if user == nil {
-				log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
-					repo,
-					perm)
-				return
+func applyDefaultUserRepoPermission(user *user_model.User, perm *Permission) {
+	if user != nil {
+		for _, u := range perm.Units {
+			if u.EveryoneAccessMode != perm_model.AccessModeUnset && u.EveryoneAccessMode > perm.UnitsMode[u.Type] {
+				perm.UnitsMode[u.Type] = u.EveryoneAccessMode
 			}
-			log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
-				user,
-				repo,
-				perm)
-		}()
+		}
 	}
+}
+
+// GetUserRepoPermission returns the user permissions to the repository
+func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+	defer func() {
+		applyDefaultUserRepoPermission(user, &perm)
+		if log.IsTrace() {
+			log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
+		}
+	}()
 
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
@@ -152,7 +153,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	var isCollaborator bool
-	var err error
 	if user != nil {
 		isCollaborator, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
 		if err != nil {

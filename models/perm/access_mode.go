@@ -5,26 +5,29 @@ package perm
 
 import (
 	"fmt"
+	"slices"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessMode specifies the users access mode
 type AccessMode int
 
 const (
-	// AccessModeNone no access
-	AccessModeNone AccessMode = iota // 0
-	// AccessModeRead read access
-	AccessModeRead // 1
-	// AccessModeWrite write access
-	AccessModeWrite // 2
-	// AccessModeAdmin admin access
-	AccessModeAdmin // 3
-	// AccessModeOwner owner access
-	AccessModeOwner // 4
+	AccessModeUnset AccessMode = -1 + iota // -1: no access mode is set
+
+	AccessModeNone  // 0:  no access
+	AccessModeRead  // 1: read access
+	AccessModeWrite // 2: write access
+	AccessModeAdmin // 3: admin access
+	AccessModeOwner // 4: owner access
 )
 
-func (mode AccessMode) String() string {
+// ToString returns the string representation of the access mode, do not make it a Stringer, otherwise it's difficult to render in templates
+func (mode AccessMode) ToString() string {
 	switch mode {
+	case AccessModeUnset:
+		return "unset"
 	case AccessModeRead:
 		return "read"
 	case AccessModeWrite:
@@ -39,19 +42,26 @@ func (mode AccessMode) String() string {
 }
 
 func (mode AccessMode) LogString() string {
-	return fmt.Sprintf("<AccessMode:%d:%s>", mode, mode.String())
+	return fmt.Sprintf("<AccessMode:%d:%s>", mode, mode.ToString())
 }
 
 // ParseAccessMode returns corresponding access mode to given permission string.
-func ParseAccessMode(permission string) AccessMode {
+func ParseAccessMode(permission string, allowed ...AccessMode) AccessMode {
+	m := AccessModeNone
 	switch permission {
+	case "unset":
+		m = AccessModeUnset
 	case "read":
-		return AccessModeRead
+		m = AccessModeRead
 	case "write":
-		return AccessModeWrite
+		m = AccessModeWrite
 	case "admin":
-		return AccessModeAdmin
+		m = AccessModeAdmin
 	default:
-		return AccessModeNone
+		// the "owner" access is not really used for user input, it's mainly for checking access level in code, so don't parse it
 	}
+	if len(allowed) == 0 {
+		return m
+	}
+	return util.Iif(slices.Contains(allowed, m), m, AccessModeNone)
 }

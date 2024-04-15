@@ -130,11 +130,11 @@ func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
 	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.String()
+			m[u.NameKey] = t.AccessMode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.String()
+			m[u.Unit().NameKey] = u.AccessMode.ToString()
 		}
 	}
 	return m

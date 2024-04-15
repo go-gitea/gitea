@@ -322,7 +322,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
-			Permission:              t.AccessMode.String(),
+			Permission:              t.AccessMode.ToString(),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
 		}
