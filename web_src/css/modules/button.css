@@ -63,6 +63,8 @@
 }
 .ui.labeled.button > .button {
   margin: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 .ui.labeled.button > .label {
   display: flex;
@@ -79,11 +81,6 @@
 
 .ui.labeled.button > .button:hover + .label {
   border-left-color: var(--color-secondary-dark-2);
-}
-
-.ui.labeled.button > .button {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
 }
 
 .ui.button > .icon:not(.button) {
