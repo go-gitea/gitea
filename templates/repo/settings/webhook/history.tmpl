@@ -6,7 +6,7 @@
 			<div class="ui right">
 				<!-- the button is wrapped with a span because the tooltip doesn't show on hover if we put data-tooltip-content directly on the button -->
 				<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc_disabled"}}{{end}}">
-					<button class="ui teal tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test" data-redirect="{{.Link}}">
+					<button class="ui tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test" data-redirect="{{.Link}}">
 						<span class="text">{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}</span>
 					</button>
 			</span>
