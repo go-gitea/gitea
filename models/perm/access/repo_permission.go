@@ -20,7 +20,7 @@ import (
 type Permission struct {
 	AccessMode perm_model.AccessMode
 	Units      []*repo_model.RepoUnit
-	UnitsMode  map[unit.Type]perm_model.AccessMode
+	UnitsMode  map[unit.Type]perm_model.AccessMode // zero length means use the AccessMode above
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -33,17 +33,14 @@ func (p *Permission) IsAdmin() bool {
 	return p.AccessMode >= perm_model.AccessModeAdmin
 }
 
-// HasAccess returns true if the current user has at least read access to any unit of this repository
+// HasAccess returns true if the current user might have at least read access to any unit of this repository
 func (p *Permission) HasAccess() bool {
-	if p.UnitsMode == nil {
-		return p.AccessMode >= perm_model.AccessModeRead
-	}
-	return len(p.UnitsMode) > 0
+	return len(p.UnitsMode) > 0 || p.AccessMode >= perm_model.AccessModeRead
 }
 
-// UnitAccessMode returns current user accessmode to the specify unit of the repository
+// UnitAccessMode returns current user access mode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
-	if p.UnitsMode == nil {
+	if len(p.UnitsMode) == 0 {
 		for _, u := range p.Units {
 			if u.Type == unitType {
 				return p.AccessMode
@@ -145,6 +142,12 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}()
 
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+	perm.Units = repo.Units
+	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
+
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
@@ -171,12 +174,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, nil
 	}
 
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
-	}
-
-	perm.Units = repo.Units
-
 	// anonymous visit public repo
 	if user == nil {
 		perm.AccessMode = perm_model.AccessModeRead
@@ -201,8 +198,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	if !repo.Owner.IsOrganization() {
 		return perm, nil
 	}
-
-	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// Collaborators on organization
 	if isCollaborator {
