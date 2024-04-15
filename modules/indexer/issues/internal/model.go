@@ -104,7 +104,7 @@ type SearchOptions struct {
 	UpdatedAfterUnix  *int64
 	UpdatedBeforeUnix *int64
 
-	db.Paginator
+	Paginator *db.ListOptions
 
 	SortBy SortBy // sort by field
 }
