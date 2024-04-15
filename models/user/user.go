@@ -856,7 +856,7 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetUserByIDs returns the user objects by given IDs if exists.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
-	if len(ids) <= 0 {
+	if len(ids) == 0 {
 		return nil, nil
 	}
 
