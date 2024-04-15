@@ -25,10 +25,10 @@ func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo a
 func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	if len(permissionInRepo.Units) == 0 && len(permissionInRepo.UnitsMode) == 0 {
-		// If Units and UnitsMode are both nil, it means that it's a hard coded permission,
+	if len(permissionInRepo.Units) == 0 {
+		// If Units is empty, it means that it's a hard coded permission, (TODO: maybe no such problem anymore, because we always load the units now)
 		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}.
-		// So we need to load units for the repo, or UnitAccessMode will always return perm.AccessModeNone.
+		// So we need to load units for the repo, otherwise UnitAccessMode will always return perm.AccessModeNone.
 		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
 		permissionInRepo.Units = repo.Units
 	}
