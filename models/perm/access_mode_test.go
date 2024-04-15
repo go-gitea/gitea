@@ -10,11 +10,12 @@ import (
 )
 
 func TestAccessMode(t *testing.T) {
-	names := []string{ /*-1*/ "unset", "none", "read", "write", "admin"}
+	names := []string{"none", "read", "write", "admin"}
 	for i, name := range names {
 		m := ParseAccessMode(name)
-		assert.Equal(t, AccessMode(i-1), m)
+		assert.Equal(t, AccessMode(i), m)
 	}
+	assert.Equal(t, AccessMode(4), AccessModeOwner)
 	assert.Equal(t, "owner", AccessModeOwner.ToString())
 	assert.Equal(t, AccessModeNone, ParseAccessMode("owner"))
 	assert.Equal(t, AccessModeNone, ParseAccessMode("invalid"))
