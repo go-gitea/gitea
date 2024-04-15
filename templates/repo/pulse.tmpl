@@ -25,12 +25,14 @@
 		<div class="column">
 			{{if gt .Activity.ActivePRCount 0}}
 			<div class="stats-table">
-				<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}{{if ne .Activity.MergedPRPerc 0}}%{{end}}"></a>
-				<a href="#proposed-pull-requests" class="table-cell tiny background green"></a>
+				{{if gt .Activity.MergedPRPerc 0}}
+					<a href="#merged-pull-requests" class="table-cell tiny tw-bg-purple" style="width: {{.Activity.MergedPRPerc}}%"></a>
+				{{end}}
+				<a href="#proposed-pull-requests" class="table-cell tiny tw-bg-green"></a>
 			</div>
 			{{else}}
 			<div class="stats-table">
-				<a class="table-cell tiny background light grey"></a>
+				<a class="table-cell tiny tw-bg-grey"></a>
 			</div>
 			{{end}}
 			{{ctx.Locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount}}
@@ -40,8 +42,10 @@
 		<div class="column">
 			{{if gt .Activity.ActiveIssueCount 0}}
 			<div class="stats-table">
-				<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}{{if ne .Activity.ClosedIssuePerc 0}}%{{end}}"></a>
-				<a href="#new-issues" class="table-cell tiny background green"></a>
+				{{if gt .Activity.ClosedIssuePerc 0}}
+					<a href="#closed-issues" class="table-cell tiny tw-bg-red" style="width: {{.Activity.ClosedIssuePerc}}%"></a>
+				{{end}}
+				<a href="#new-issues" class="table-cell tiny tw-bg-green"></a>
 			</div>
 			{{else}}
 			<div class="stats-table">
@@ -108,7 +112,7 @@
 {{end}}
 
 {{if gt .Activity.PublishedReleaseCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="published-releases">
+	<h4 class="divider divider-text" id="published-releases">
 		{{svg "octicon-tag" 16 "tw-mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.releases_published_by"
 			(ctx.Locale.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
@@ -130,7 +134,7 @@
 {{end}}
 
 {{if gt .Activity.MergedPRCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="merged-pull-requests">
+	<h4 class="divider divider-text" id="merged-pull-requests">
 		{{svg "octicon-git-pull-request" 16 "tw-mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_merged_by"
 			(ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
@@ -149,7 +153,7 @@
 {{end}}
 
 {{if gt .Activity.OpenedPRCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="proposed-pull-requests">
+	<h4 class="divider divider-text" id="proposed-pull-requests">
 		{{svg "octicon-git-branch" 16 "tw-mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_opened_by"
 			(ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
@@ -168,7 +172,7 @@
 {{end}}
 
 {{if gt .Activity.ClosedIssueCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="closed-issues">
+	<h4 class="divider divider-text" id="closed-issues">
 		{{svg "octicon-issue-closed" 16 "tw-mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_closed_from"
 			(ctx.Locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
@@ -187,7 +191,7 @@
 {{end}}
 
 {{if gt .Activity.OpenedIssueCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="new-issues">
+	<h4 class="divider divider-text" id="new-issues">
 		{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_created_by"
 			(ctx.Locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
@@ -206,7 +210,7 @@
 {{end}}
 
 {{if gt .Activity.UnresolvedIssueCount 0}}
-	<h4 class="divider divider-text tw-normal-case" id="unresolved-conversations" data-tooltip-content="{{ctx.Locale.Tr "repo.activity.unresolved_conv_desc"}}">
+	<h4 class="divider divider-text" id="unresolved-conversations" data-tooltip-content="{{ctx.Locale.Tr "repo.activity.unresolved_conv_desc"}}">
 		{{svg "octicon-comment-discussion" 16 "tw-mr-2"}}
 		{{ctx.Locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 	</h4>

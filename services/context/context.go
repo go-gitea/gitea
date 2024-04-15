@@ -17,7 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	web_types "code.gitea.io/gitea/modules/web/types"
 
-	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 )
 
@@ -46,7 +45,7 @@ type Context struct {
 	Render   Render
 	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
 
-	Cache   cache.Cache
+	Cache   cache.StringCache
 	Csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
@@ -102,6 +101,7 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx := NewTemplateContext(ctx)
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+	tmplCtx["RootData"] = ctx.Data
 	return tmplCtx
 }
 
@@ -111,7 +111,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Render:  render,
 		Session: session,
 
-		Cache: mc.GetCache(),
+		Cache: cache.GetCache(),
 		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
 		Repo:  &Repository{PullRequest: &PullRequest{}},
 		Org:   &Organization{},
