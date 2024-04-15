@@ -47,7 +47,7 @@ type RepoUnit struct { //revive:disable-line:exported
 	Type               unit.Type          `xorm:"INDEX(s)"`
 	Config             convert.Conversion `xorm:"TEXT"`
 	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX CREATED"`
-	EveryoneAccessMode perm.AccessMode    `xorm:"NOT NULL DEFAULT -1"`
+	EveryoneAccessMode perm.AccessMode    `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
