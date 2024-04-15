@@ -78,7 +78,6 @@
 .ui.labeled.button > .label:hover {
   background: var(--color-hover);
 }
-
 .ui.labeled.button > .button:hover + .label {
   border-left-color: var(--color-secondary-dark-2);
 }
