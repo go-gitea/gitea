@@ -98,32 +98,35 @@ var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID               int64                  `xorm:"pk autoincr"`
-	RepoID           int64                  `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo             *repo_model.Repository `xorm:"-"`
-	Index            int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID         int64                  `xorm:"INDEX"`
-	Poster           *user_model.User       `xorm:"-"`
-	OriginalAuthor   string
-	OriginalAuthorID int64                  `xorm:"index"`
-	Title            string                 `xorm:"name"`
-	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  template.HTML          `xorm:"-"`
-	ContentVersion   int                    `xorm:"NOT NULL DEFAULT 0"`
-	Labels           []*Label               `xorm:"-"`
-	MilestoneID      int64                  `xorm:"INDEX"`
-	Milestone        *Milestone             `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
-	Priority         int
-	AssigneeID       int64            `xorm:"-"`
-	Assignee         *user_model.User `xorm:"-"`
-	IsClosed         bool             `xorm:"INDEX"`
-	IsRead           bool             `xorm:"-"`
-	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest     `xorm:"-"`
-	NumComments      int
-	Ref              string
-	PinOrder         int `xorm:"DEFAULT 0"`
+	ID                int64                  `xorm:"pk autoincr"`
+	RepoID            int64                  `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo              *repo_model.Repository `xorm:"-"`
+	Index             int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID          int64                  `xorm:"INDEX"`
+	Poster            *user_model.User       `xorm:"-"`
+	OriginalAuthor    string
+	OriginalAuthorID  int64                  `xorm:"index"`
+	Title             string                 `xorm:"name"`
+	Content           string                 `xorm:"LONGTEXT"`
+	RenderedContent   template.HTML          `xorm:"-"`
+	ContentVersion    int                    `xorm:"NOT NULL DEFAULT 0"`
+	Labels            []*Label               `xorm:"-"`
+	isLabelsLoaded    bool                   `xorm:"-"`
+	MilestoneID       int64                  `xorm:"INDEX"`
+	Milestone         *Milestone             `xorm:"-"`
+	isMilestoneLoaded bool                   `xorm:"-"`
+	Project           *project_model.Project `xorm:"-"`
+	Priority          int
+	AssigneeID        int64            `xorm:"-"`
+	Assignee          *user_model.User `xorm:"-"`
+	isAssigneeLoaded  bool             `xorm:"-"`
+	IsClosed          bool             `xorm:"INDEX"`
+	IsRead            bool             `xorm:"-"`
+	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest       *PullRequest     `xorm:"-"`
+	NumComments       int
+	Ref               string
+	PinOrder          int `xorm:"DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -131,11 +134,12 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment `xorm:"-"`
-	Comments         CommentList              `xorm:"-"`
-	Reactions        ReactionList             `xorm:"-"`
-	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*user_model.User       `xorm:"-"`
+	Attachments         []*repo_model.Attachment `xorm:"-"`
+	isAttachmentsLoaded bool                     `xorm:"-"`
+	Comments            CommentList              `xorm:"-"`
+	Reactions           ReactionList             `xorm:"-"`
+	TotalTrackedTime    int64                    `xorm:"-"`
+	Assignees           []*user_model.User       `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -183,6 +187,19 @@ func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", issue.RepoID, err)
 		}
+	}
+	return nil
+}
+
+func (issue *Issue) LoadAttachments(ctx context.Context) (err error) {
+	if issue.isAttachmentsLoaded || issue.Attachments != nil {
+		return nil
+	}
+
+	issue.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
+	issue.isAttachmentsLoaded = true
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByIssueID [%d]: %w", issue.ID, err)
 	}
 	return nil
 }
@@ -287,8 +304,9 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 
 // LoadMilestone load milestone of this issue.
 func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
-	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
+	if !issue.isMilestoneLoaded && (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		issue.isMilestoneLoaded = true
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %w", issue.RepoID, issue.MilestoneID, err)
 		}
@@ -327,11 +345,8 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if issue.Attachments == nil {
-		issue.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByIssueID [%d]: %w", issue.ID, err)
-		}
+	if err = issue.LoadAttachments(ctx); err != nil {
+		return err
 	}
 
 	if err = issue.loadComments(ctx); err != nil {

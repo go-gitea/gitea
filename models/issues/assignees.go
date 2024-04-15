@@ -27,6 +27,10 @@ func init() {
 
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
+	if issue.isAssigneeLoaded || len(issue.Assignees) > 0 {
+		return nil
+	}
+
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*user_model.User{}
 	issue.Assignee = nil
@@ -35,6 +39,7 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
+	issue.isAssigneeLoaded = true
 	if err != nil {
 		return err
 	}

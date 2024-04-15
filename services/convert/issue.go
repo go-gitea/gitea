@@ -40,6 +40,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
+	if err := issue.LoadAttachments(ctx); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
