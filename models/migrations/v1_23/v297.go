@@ -4,9 +4,9 @@
 package v1_23 //nolint
 
 import (
-	"xorm.io/xorm"
-
 	"code.gitea.io/gitea/models/perm"
+
+	"xorm.io/xorm"
 )
 
 func AddRepoUnitEveryoneAccessMode(x *xorm.Engine) error {
