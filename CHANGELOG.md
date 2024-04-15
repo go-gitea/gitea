@@ -29,7 +29,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Avoid user does not exist error when detecting schedule actions when the commit author is an external user (#30357)
   * Change the default maxPerPage for gitbucket (#30392)
   * Check the token's owner and repository when registering a runner (#30406)
-  * Avoid losing token when updating mirror settings (#30429) 
+  * Avoid losing token when updating mirror settings (#30429)
   * Fix commit status cache which missed target_url (#30426)
   * Fix rename branch 500 when the target branch is deleted but exist in database (#30430)
   * Fix mirror error when mirror repo is empty (#30432)
