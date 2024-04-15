@@ -126,7 +126,7 @@ func (p *Permission) LogString() string {
 func applyDefaultUserRepoPermission(user *user_model.User, perm *Permission) {
 	if user != nil && user.ID > 0 {
 		for _, u := range perm.Units {
-			if u.EveryoneAccessMode > 0 && u.EveryoneAccessMode > perm.UnitsMode[u.Type] {
+			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.UnitsMode[u.Type] {
 				perm.UnitsMode[u.Type] = u.EveryoneAccessMode
 			}
 		}
