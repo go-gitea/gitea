@@ -32,3 +32,38 @@ func TestApplyDefaultUserRepoPermission(t *testing.T) {
 	applyDefaultUserRepoPermission(&user_model.User{ID: 1}, &perm)
 	assert.True(t, perm.CanRead(unit.TypeWiki))
 }
+
+func TestUnitAccessMode(t *testing.T) {
+	perm := Permission{
+		AccessMode: perm_model.AccessModeNone,
+	}
+	assert.Equal(t, perm_model.AccessModeNone, perm.UnitAccessMode(unit.TypeWiki), "no unit or map, use AccessMode")
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeOwner,
+		Units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
+		},
+		UnitsMode: map[unit.Type]perm_model.AccessMode{},
+	}
+	assert.Equal(t, perm_model.AccessModeOwner, perm.UnitAccessMode(unit.TypeWiki), "only unit no map, use AccessMode")
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeOwner,
+		UnitsMode: map[unit.Type]perm_model.AccessMode{
+			unit.TypeWiki: perm_model.AccessModeRead,
+		},
+	}
+	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "no unit only map, use map")
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeOwner,
+		Units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeWrite},
+		},
+		UnitsMode: map[unit.Type]perm_model.AccessMode{
+			unit.TypeWiki: perm_model.AccessModeRead,
+		},
+	}
+	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "has unit and map, use map")
+}

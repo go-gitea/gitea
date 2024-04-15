@@ -142,11 +142,11 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}()
 
-	if err := repo.LoadUnits(ctx); err != nil {
+	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode) // always initialize UnitsMode to avoid nil panic
+	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
 	perm.Units = repo.Units
-	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
@@ -163,7 +163,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return perm, err
 	}
 
@@ -192,9 +192,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, err
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
-		return perm, err
-	}
 	if !repo.Owner.IsOrganization() {
 		return perm, nil
 	}
