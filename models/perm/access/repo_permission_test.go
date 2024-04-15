@@ -18,16 +18,19 @@ func TestApplyDefaultUserRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
 		UnitsMode:  map[unit.Type]perm_model.AccessMode{},
-	}
-
-	perm.Units = []*repo_model.RepoUnit{
-		{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeNone},
+		Units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeNone},
+		},
 	}
 	applyDefaultUserRepoPermission(nil, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
 
-	perm.Units = []*repo_model.RepoUnit{
-		{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
+	perm = Permission{
+		AccessMode: perm_model.AccessModeNone,
+		UnitsMode:  map[unit.Type]perm_model.AccessMode{},
+		Units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
+		},
 	}
 	applyDefaultUserRepoPermission(&user_model.User{ID: 1}, &perm)
 	assert.True(t, perm.CanRead(unit.TypeWiki))

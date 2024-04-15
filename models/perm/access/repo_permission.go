@@ -21,7 +21,7 @@ import (
 type Permission struct {
 	AccessMode perm_model.AccessMode
 	Units      []*repo_model.RepoUnit
-	UnitsMode  map[unit.Type]perm_model.AccessMode // zero length means use the AccessMode above
+	UnitsMode  map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
