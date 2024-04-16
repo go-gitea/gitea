@@ -377,7 +377,7 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -386,8 +386,8 @@ export function initRepositoryActionView() {
         <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
         {{ run.commit.localePushedBy }}
         <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        <span class="ui label" v-if="run.commit.shortSHA">
-          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
+          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -426,8 +426,8 @@ export function initRepositoryActionView() {
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-left">
-            <h3 class="job-info-header-title">
+          <div class="job-info-header-left gt-ellipsis">
+            <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
             </h3>
             <p class="job-info-header-detail">
@@ -503,6 +503,7 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .action-info-summary-title {
@@ -513,6 +514,7 @@ export function initRepositoryActionView() {
   font-size: 20px;
   margin: 0 0 0 8px;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .action-commit-summary {
@@ -726,6 +728,10 @@ export function initRepositoryActionView() {
 .job-info-header .job-info-header-detail {
   color: var(--color-console-fg-subtle);
   font-size: 12px;
+}
+
+.job-info-header-left {
+  flex: 1;
 }
 
 .job-step-container {

@@ -319,68 +319,11 @@ a.label,
   background-color: var(--color-label-bg);
 }
 
-.ui.menu {
-  display: flex;
-}
-
-.ui.menu,
-.ui.vertical.menu {
-  background: var(--color-menu);
-  border-color: var(--color-secondary);
-  box-shadow: none;
-}
-
-.ui.menu .item {
-  color: var(--color-text);
-  user-select: auto;
-  line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
-}
-
-.ui.menu .item > .svg {
-  margin-right: 0.35em;
-}
-
 .ui.menu .dropdown.item:hover,
 .ui.menu a.item:hover,
 .ui.menu details.item summary:hover {
   color: var(--color-text);
   background: var(--color-hover);
-}
-
-.ui.menu .active.item,
-.ui.menu .active.item:hover,
-.ui.vertical.menu .active.item,
-.ui.vertical.menu .active.item:hover {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.menu a.item:active {
-  color: var(--color-text);
-  background: none;
-}
-
-.ui.ui.menu .item.disabled {
-  color: var(--color-text-light-3);
-}
-
-.ui.menu .item::before, .ui.vertical.menu .item::before {
-  background: var(--color-secondary);
-}
-
-/* sub menu of vertical menu */
-.ui.vertical.menu .item .menu .item {
-  color: var(--color-text-light-2);
-  text-indent: 16px;
-}
-
-.ui.vertical.menu .item .menu .item:hover,
-.ui.vertical.menu .item .menu a.item:hover {
-  color: var(--color-text-light-1);
-}
-
-.ui.vertical.menu .item .menu .active.item {
-  color: var(--color-text);
 }
 
 /* slightly more contrast for filters on issue list */
@@ -441,11 +384,6 @@ a.label,
   background: var(--color-hover);
 }
 
-.ui.menu .ui.dropdown .menu > .selected.item {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
 }
@@ -460,58 +398,6 @@ a.label,
 .ui.dropdown > .text > .description,
 .ui.dropdown .menu > .item > .description {
   color: var(--color-text-light-2);
-}
-
-/* replace item margin on secondary menu items with gap and remove both the
-   negative margins on the menu as well as margin on the items */
-.ui.secondary.menu {
-  margin-left: 0;
-  margin-right: 0;
-  gap: .35714286em;
-}
-.ui.secondary.menu .item {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.ui.secondary.menu .dropdown.item:hover,
-.ui.secondary.menu a.item:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.secondary.menu .active.item,
-.ui.secondary.menu .active.item:hover {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.secondary.menu.tight .item {
-  padding-left: 0.85714286em;
-  padding-right: 0.85714286em;
-}
-
-/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
-.ui.menu::after {
-  content: normal;
-}
-
-.ui.menu .dropdown.item .menu {
-  background: var(--color-body);
-}
-
-.ui.menu .ui.dropdown .menu > .item {
-  color: var(--color-text) !important;
-}
-
-.ui.menu .ui.dropdown .menu > .item:hover {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-
-.ui.menu .ui.dropdown .menu > .active.item {
-  color: var(--color-text) !important;
-  background: var(--color-active) !important;
 }
 
 .ui.form textarea:not([rows]) {
@@ -604,11 +490,6 @@ img.ui.avatar,
    to compensate here */
 .page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
-}
-
-.ui.pagination.menu .active.item {
-  color: var(--color-text);
-  background: var(--color-active);
 }
 
 .ui.form .fields.error .field textarea,
@@ -782,11 +663,7 @@ input:-webkit-autofill:active,
   font-size: 0.75em;
 }
 
-.ui.form .ui.button {
-  font-weight: var(--font-weight-normal);
-}
-
-/* replace fomantic popover box shadows */
+/* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
 .ui.menu .dropdown.item .menu,
@@ -802,22 +679,6 @@ input:-webkit-autofill:active,
 
 .ui.dimmer {
   background: var(--color-overlay-backdrop);
-}
-
-/* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
-/* This fixes the commit graph button on the commits page */
-/* modal svg icons, copied from fomantic except width and height */
-/* center text in fomantic modal dialogs */
-.ui .menu:not(.vertical) .item > .button.compact {
-  padding: 0.58928571em 1.125em;
-}
-
-.ui .menu:not(.vertical) .item > .button.small {
-  font-size: 0.92857143rem;
-}
-
-.ui.menu .ui.dropdown.item .menu .item {
-  width: 100%;
 }
 
 .ui.dropdown .menu > .header {
@@ -1010,24 +871,6 @@ input:-webkit-autofill:active,
   border-color: var(--color-gold) !important;
 }
 
-@media (max-width: 767.98px) {
-  .ui.pagination.menu .item:not(.active,.navigation),
-  .ui.pagination.menu .item.navigation span.navigation_label {
-    display: none;
-  }
-}
-
-.ui.pagination.menu.narrow .item {
-  padding-left: 8px;
-  padding-right: 8px;
-  min-width: 1em;
-  text-align: center;
-}
-
-.ui.pagination.menu.narrow .item .icon {
-  margin-right: 0;
-}
-
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1147,11 +990,6 @@ overflow-menu .ui.label {
 
 .inline-grouped-list > .ui:first-child {
   margin-top: 1px;
-}
-
-.ui.menu .item > .label {
-  background: var(--color-label-bg);
-  color: var(--color-label-text);
 }
 
 .lines-blame-btn {
@@ -1366,8 +1204,7 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.emoji,
-.reaction {
+.emoji {
   font-size: 1.25em;
   line-height: var(--line-height-default);
   font-style: normal !important;
@@ -1375,33 +1212,12 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.075em;
 }
 
-.emoji img,
-.reaction img {
+.emoji img {
   border-width: 0 !important;
   margin: 0 !important;
   width: 1em !important;
   height: 1em !important;
   vertical-align: -0.15em;
-}
-
-.ui.tabular.menu {
-  border-color: var(--color-secondary);
-}
-
-.ui.tabular.menu .active.item,
-.ui.tabular.menu .active.item:hover {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.ui.segment .ui.tabular.menu .active.item,
-.ui.segment .ui.tabular.menu .active.item:hover {
-  background: var(--color-box-body);
-}
-
-.ui.secondary.pointing.menu {
-  border-color: var(--color-secondary);
 }
 
 .ui.tabular.menu .item,
@@ -1413,12 +1229,6 @@ table th[data-sortt-desc] .svg {
 .ui.tabular.menu .item:hover,
 .ui.secondary.pointing.menu a.item:hover {
   color: var(--color-text);
-}
-
-.ui.secondary.pointing.menu .active.item,
-.ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover {
-  color: var(--color-text-dark);
 }
 
 .ui.tabular.menu .active.item,
@@ -1531,10 +1341,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
   vertical-align: middle;
-}
-
-.ui.ui.button {
-  justify-content: center;
+  min-width: 0;
 }
 
 .ui.dropdown .ui.label .svg {
@@ -1551,6 +1358,7 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: .25rem;
+  min-width: 0;
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
@@ -1558,4 +1366,5 @@ table th[data-sortt-desc] .svg {
   display: flex !important;
   align-items: center;
   gap: .5rem;
+  min-width: 0;
 }
