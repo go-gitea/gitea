@@ -84,7 +84,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		return action.Repo.OwnerID, !alreadyLoaded
 	})
 	if len(missingUserIDs) == 0 {
-		return
+		return nil
 	}
 
 	if err := db.GetEngine(ctx).
