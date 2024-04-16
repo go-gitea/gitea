@@ -66,7 +66,7 @@ input[type="radio"] {
 }
 .ui.toggle.checkbox input {
   width: 3.5rem;
-  height: 1.5rem;
+  height: 21px;
   opacity: 0;
   z-index: 3;
 }
@@ -81,29 +81,30 @@ input[type="radio"] {
   content: "";
   z-index: 1;
   top: 0;
-  width: 3.5rem;
-  height: 1.5rem;
+  width: 49px;
+  height: 21px;
   border-radius: 500rem;
   left: 0;
 }
 .ui.toggle.checkbox label::after {
   background: var(--color-white);
+  box-shadow: 1px 1px 4px 1px var(--color-shadow);
   position: absolute;
   content: "";
   opacity: 1;
   z-index: 2;
-  width: 1.5rem;
-  height: 1.5rem;
-  top: 0;
-  left: 0;
+  width: 18px;
+  height: 18px;
+  top: 1.5px;
+  left: 1.5px;
   border-radius: 500rem;
   transition: background 0.3s ease, left 0.3s ease;
 }
 .ui.toggle.checkbox input ~ label::after {
-  left: -0.05rem;
+  left: 1.5px;
 }
 .ui.toggle.checkbox input:checked ~ label::after {
-  left: 2.15rem;
+  left: 29px;
 }
 .ui.toggle.checkbox input:focus ~ label::before,
 .ui.toggle.checkbox label::before {
