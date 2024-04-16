@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.Paginator
+	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
@@ -103,23 +103,11 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		return sess
 	}
 
-	// Warning: Do not use GetSkipTake() for *db.ListOptions
-	// Its implementation could reset the page size with setting.API.MaxResponseItems
-	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
-		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
-			var start int
-			if listOptions.Page == 0 {
-				start = 0
-			} else {
-				start = (listOptions.Page - 1) * listOptions.PageSize
-			}
-			sess.Limit(listOptions.PageSize, start)
-		}
-		return sess
+	start := 0
+	if opts.Paginator.Page > 1 {
+		start = (opts.Paginator.Page - 1) * opts.Paginator.PageSize
 	}
-
-	start, limit := opts.Paginator.GetSkipTake()
-	sess.Limit(limit, start)
+	sess.Limit(opts.Paginator.PageSize, start)
 
 	return sess
 }
