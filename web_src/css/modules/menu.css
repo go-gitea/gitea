@@ -588,7 +588,6 @@
 .ui.secondary.pointing.menu .dropdown.item:active,
 .ui.secondary.pointing.menu a.item:active {
   background-color: transparent;
-  border-color: var(--color-secondary);
 }
 
 .ui.secondary.pointing.menu .active.item {

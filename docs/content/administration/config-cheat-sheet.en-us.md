@@ -608,9 +608,10 @@ And the following unique queues:
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
   - `userid` - use the userid / sub attribute
-  - `nickname` - use the nickname attribute
+  - `nickname` - use the nickname
+  - `preferred_username` - use the preferred_username
   - `email` - use the username part of the email attribute
-  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+  - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
     - the characters in the set `['´\x60]` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
