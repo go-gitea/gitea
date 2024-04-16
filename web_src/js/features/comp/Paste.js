@@ -118,7 +118,7 @@ async function handleClipboardFiles(editor, dropzone, files, e) {
 
     file.uuid = uuid;
     dropzone.dropzone.emit('addedfile', file);
-    if (/\.(jpg|jpeg|png|gif|bmp)$/i.test(file.name)) {
+    if (file.type?.startsWith('image/')) {
       const imgSrc = `/attachments/${file.uuid}`;
       dropzone.dropzone.emit('thumbnail', file, imgSrc);
       dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
