@@ -32,6 +32,9 @@ type commitStatusCacheValue struct {
 
 func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheValue {
 	c := cache.GetCache()
+	if c == nil {
+		return nil
+	}
 	statusStr, ok := c.Get(getCacheKey(repoID, branchName)).(string)
 	if ok && statusStr != "" {
 		var cv commitStatusCacheValue
@@ -48,6 +51,9 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 
 func updateCommitStatusCache(repoID int64, branchName string, state api.CommitStatusState, targetURL string) error {
 	c := cache.GetCache()
+	if c == nil {
+		return nil
+	}
 	bs, err := json.Marshal(commitStatusCacheValue{
 		State:     state.String(),
 		TargetURL: targetURL,
