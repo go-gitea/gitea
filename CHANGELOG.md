@@ -32,7 +32,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Avoid losing token when updating mirror settings (#30429) (#30466)
   * Fix commit status cache which missed target_url (#30426) (#30445)
   * Fix rename branch 500 when the target branch is deleted but exist in database (#30430) (#30437)
-  * Fix mirror error when mirror repo is empty (#30432) (30467)
+  * Fix mirror error when mirror repo is empty (#30432) (#30467)
   * Use db.ListOptions directly instead of Paginator interface to make it easier to use and fix performance of /pulls and /issues (#29990) (#30447)
   * Fix code owners will not be mentioned when a pull request comes from a forked repository (#30476) (#30497)
 * DOCS
