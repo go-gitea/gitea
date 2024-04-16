@@ -70,7 +70,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		}
 
 		src := html.EscapeString(item.UserAvatarLink)
-		class := avatars.DefaultAvatarClass + " gt-mr-3"
+		class := avatars.DefaultAvatarClass + " tw-mr-2"
 		name := html.EscapeString(username)
 		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
 		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))

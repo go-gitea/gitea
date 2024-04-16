@@ -256,14 +256,6 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
-// DeleteInactiveEmailAddresses deletes inactive email addresses
-func DeleteInactiveEmailAddresses(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).
-		Where("is_activated = ?", false).
-		Delete(new(EmailAddress))
-	return err
-}
-
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(ctx context.Context, email *EmailAddress) error {
 	ctx, committer, err := db.TxContext(ctx)

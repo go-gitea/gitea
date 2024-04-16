@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -568,6 +569,19 @@ var migrations = []Migration{
 	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
 	// v291 -> v292
 	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v292 -> v293
+	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
+	// v293 -> v294
+	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+
+	// Gitea 1.22.0 ends at 294
+
+	// v294 -> v295
+	NewMigration("Add unique index for project issue table", v1_23.AddUniqueIndexForProjectIssue),
+	// v295 -> v296
+	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
+	// v296 -> v297
+	NewMigration("Add missing field of commit status summary table", v1_23.AddCommitStatusSummary2),
 }
 
 // GetCurrentDBVersion returns the current db version

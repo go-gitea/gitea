@@ -1,5 +1,5 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}gt-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
@@ -25,8 +25,8 @@
 			</div>
 		{{end}}
 
-		<div class="field footer gt-mx-3">
-			<span class="markup-info">{{svg "octicon-markup"}} {{ctx.Locale.Tr "repo.diff.comment.markdown_info"}}</span>
+		<div class="field footer tw-mx-2">
+			<span class="markup-info">{{svg "octicon-markdown"}} {{ctx.Locale.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="tw-text-right">
 				{{if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>

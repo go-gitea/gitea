@@ -107,7 +107,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue).Attachments)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue).Attachments)
 }
 
 // CreateIssueAttachment creates an attachment and saves the given file

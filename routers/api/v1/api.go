@@ -955,6 +955,15 @@ func Routes() *web.Route {
 						Delete(user.DeleteSecret)
 				})
 
+				m.Group("/variables", func() {
+					m.Get("", user.ListVariables)
+					m.Combo("/{variablename}").
+						Get(user.GetVariable).
+						Delete(user.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), user.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), user.UpdateVariable)
+				})
+
 				m.Group("/runners", func() {
 					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 				})
@@ -1071,6 +1080,15 @@ func Routes() *web.Route {
 						m.Combo("/{secretname}").
 							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
 							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+					})
+
+					m.Group("/variables", func() {
+						m.Get("", reqToken(), reqOwner(), repo.ListVariables)
+						m.Combo("/{variablename}").
+							Get(reqToken(), reqOwner(), repo.GetVariable).
+							Delete(reqToken(), reqOwner(), repo.DeleteVariable).
+							Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateVariable).
+							Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateVariable)
 					})
 
 					m.Group("/runners", func() {
@@ -1450,6 +1468,15 @@ func Routes() *web.Route {
 					m.Combo("/{secretname}").
 						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
 						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+				})
+
+				m.Group("/variables", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListVariables)
+					m.Combo("/{variablename}").
+						Get(reqToken(), reqOrgOwnership(), org.GetVariable).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteVariable).
+						Post(reqToken(), reqOrgOwnership(), bind(api.CreateVariableOption{}), org.CreateVariable).
+						Put(reqToken(), reqOrgOwnership(), bind(api.UpdateVariableOption{}), org.UpdateVariable)
 				})
 
 				m.Group("/runners", func() {

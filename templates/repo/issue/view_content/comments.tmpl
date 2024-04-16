@@ -25,10 +25,10 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
-						<div class="comment-header-left gt-df gt-ac">
+					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
+						<div class="comment-header-left tw-flex tw-items-center">
 							{{if .OriginalAuthor}}
-								<span class="text black gt-font-semibold gt-mr-2">
+								<span class="text black tw-font-semibold tw-mr-1">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -50,10 +50,10 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions gt-df gt-ac">
+						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						</div>
@@ -66,15 +66,15 @@
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-						<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+						<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -173,11 +173,11 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{end}}
 					</span>
 				</div>
@@ -374,10 +374,9 @@
 					{{$reviewType := -1}}
 					{{if .Review}}{{$reviewType = .Review.Type}}{{end}}
 					{{if not .OriginalAuthor}}
-					{{/* Some timeline avatars need a offset to correctly align with their speech
-							bubble. The condition depends on review type and for positive reviews whether
-							there is a comment element or not */}}
-					<a class="timeline-avatar{{if or (and (eq $reviewType 1) (or .Content .Attachments)) (and (eq $reviewType 2) (or .Content .Attachments)) (eq $reviewType 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					{{/* Some timeline avatars need a offset to correctly align with their speech bubble.
+						The condition depends on whether the comment has contents/attachments or reviews */}}
+					<a class="timeline-avatar{{if or .Content .Attachments (and .Review .Review.CodeComments)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
@@ -403,8 +402,8 @@
 				{{if or .Content .Attachments}}
 				<div class="timeline-item comment">
 					<div class="content comment-container">
-						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
-							<div class="comment-header-left gt-df gt-ac">
+						<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+							<div class="comment-header-left tw-flex tw-items-center">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
@@ -412,7 +411,7 @@
 								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
-										<span class="text black gt-font-semibold">
+										<span class="text black tw-font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -425,10 +424,10 @@
 									{{ctx.Locale.Tr "repo.issues.review.left_comment"}}
 								</span>
 							</div>
-							<div class="comment-header-right actions gt-df gt-ac">
+							<div class="comment-header-right actions tw-flex tw-items-center">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 									{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 								{{end}}
 							</div>
@@ -441,15 +440,15 @@
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 							</div>
-							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-							<div class="edit-content-zone gt-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+							<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+							<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						{{end}}
 					</div>
 				</div>
@@ -624,7 +623,7 @@
 				{{if .Content}}
 					<div class="timeline-item comment">
 						<div class="content">
-							<div class="ui top attached header comment-header-left gt-df gt-ac arrow-top">
+							<div class="ui top attached header comment-header-left tw-flex tw-items-center arrow-top">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
