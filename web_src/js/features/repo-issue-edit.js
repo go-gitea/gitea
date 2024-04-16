@@ -1,9 +1,9 @@
 import $ from 'jquery';
 import {handleReply} from './repo-issue.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {initComboMarkdownEditor, removeLinksInTextarea} from './comp/ComboMarkdownEditor.js';
 import {createDropzone} from './dropzone.js';
 import {GET, POST} from '../modules/fetch.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, showElem, getComboMarkdownEditor} from '../utils/dom.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 
@@ -26,7 +26,6 @@ async function onEditContent(event) {
     if (!dropzone) return null;
 
     let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
-    let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
     const dz = await createDropzone(dropzone, {
       url: dropzone.getAttribute('data-upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
@@ -45,7 +44,6 @@ async function onEditContent(event) {
       init() {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
-          fileUuidDict[file.uuid] = {submitted: false};
           const input = document.createElement('input');
           input.id = data.uuid;
           input.name = 'files';
@@ -56,17 +54,13 @@ async function onEditContent(event) {
         this.on('removedfile', async (file) => {
           document.getElementById(file.uuid)?.remove();
           if (disableRemovedfileEvent) return;
-          if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
+          if (dropzone.getAttribute('data-remove-url')) {
             try {
               await POST(dropzone.getAttribute('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
+              removeLinksInTextarea(getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor')), file);
             } catch (error) {
               console.error(error);
             }
-          }
-        });
-        this.on('submit', () => {
-          for (const fileUuid of Object.keys(fileUuidDict)) {
-            fileUuidDict[fileUuid].submitted = true;
           }
         });
         this.on('reload', async () => {
@@ -78,16 +72,16 @@ async function onEditContent(event) {
             dz.removeAllFiles(true);
             dropzone.querySelector('.files').innerHTML = '';
             for (const el of dropzone.querySelectorAll('.dz-preview')) el.remove();
-            fileUuidDict = {};
             disableRemovedfileEvent = false;
 
             for (const attachment of data) {
-              const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
               dz.emit('addedfile', attachment);
-              dz.emit('thumbnail', attachment, imgSrc);
+              if (/\.(jpg|jpeg|png|gif|bmp)$/i.test(attachment.name)) {
+                const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
+                dz.emit('thumbnail', attachment, imgSrc);
+                dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
+              }
               dz.emit('complete', attachment);
-              fileUuidDict[attachment.uuid] = {submitted: true};
-              dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
               const input = document.createElement('input');
               input.id = attachment.uuid;
               input.name = 'files';

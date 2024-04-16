@@ -296,11 +296,6 @@ class ComboMarkdownEditor {
   }
 }
 
-export function getComboMarkdownEditor(el) {
-  if (el instanceof $) el = el[0];
-  return el?._giteaComboMarkdownEditor;
-}
-
 export async function initComboMarkdownEditor(container, options = {}) {
   if (container instanceof $) {
     if (container.length !== 1) {
@@ -314,4 +309,10 @@ export async function initComboMarkdownEditor(container, options = {}) {
   const editor = new ComboMarkdownEditor(container, options);
   await editor.init();
   return editor;
+}
+
+export function removeLinksInTextarea(editor, file) {
+  const fileName = file.name.slice(0, file.name.lastIndexOf('.'));
+  const fileText = `\\[${fileName}\\]\\(/attachments/${file.uuid}\\)`;
+  editor.value(editor.value().replace(new RegExp(`<img [\\s\\w"=]+ alt="${fileName}" src="/attachments/${file.uuid}">`, 'g'), '').replace(new RegExp(`\\!${fileText}`, 'g'), '').replace(new RegExp(fileText, 'g'), ''));
 }

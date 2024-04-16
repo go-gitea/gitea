@@ -5,12 +5,13 @@ import {createDropzone} from './dropzone.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
-import {hideElem, showElem, toggleElem, initSubmitEventPolyfill, submitEventSubmitter} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem, initSubmitEventPolyfill, submitEventSubmitter, getComboMarkdownEditor} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request, POST, GET} from '../modules/fetch.js';
+import {removeLinksInTextarea} from './comp/ComboMarkdownEditor.js';
 import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
@@ -249,12 +250,13 @@ export function initDropzone(el) {
         });
         file.previewTemplate.append(copyLinkElement);
       });
-      this.on('removedfile', (file) => {
-        $(`#${file.uuid}`).remove();
+      this.on('removedfile', async (file) => {
+        document.getElementById(file.uuid)?.remove();
         if ($dropzone.data('remove-url')) {
-          POST($dropzone.data('remove-url'), {
+          await POST($dropzone.data('remove-url'), {
             data: new URLSearchParams({file: file.uuid}),
           });
+          removeLinksInTextarea(getComboMarkdownEditor(el.closest('form').querySelector('.combo-markdown-editor')), file);
         }
       });
       this.on('error', function (file, message) {

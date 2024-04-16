@@ -82,35 +82,48 @@ class CodeMirrorEditor {
   }
 }
 
-async function handleClipboardImages(editor, dropzone, images, e) {
+async function handleClipboardFiles(editor, dropzone, files, e) {
   const uploadUrl = dropzone.getAttribute('data-upload-url');
   const filesContainer = dropzone.querySelector('.files');
 
-  if (!dropzone || !uploadUrl || !filesContainer || !images.length) return;
+  if (!dropzone || !uploadUrl || !filesContainer || !files.length) return;
 
   e.preventDefault();
   e.stopPropagation();
 
-  for (const img of images) {
-    const name = img.name.slice(0, img.name.lastIndexOf('.'));
+  for (const file of files) {
+    if (!file) continue;
+    const name = file.name.slice(0, file.name.lastIndexOf('.'));
 
     const placeholder = `![${name}](uploading ...)`;
     editor.insertPlaceholder(placeholder);
 
-    const {uuid} = await uploadFile(img, uploadUrl);
-    const {width, dppx} = await imageInfo(img);
+    const {uuid} = await uploadFile(file, uploadUrl);
+    const {width, dppx} = await imageInfo(file);
 
     const url = `/attachments/${uuid}`;
     let text;
-    if (width > 0 && dppx > 1) {
-      // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
-      // method to change image size in Markdown that is supported by all implementations.
-      text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
+    if (file.type?.startsWith('image/')) {
+      if (width > 0 && dppx > 1) {
+        // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
+        // method to change image size in Markdown that is supported by all implementations.
+        text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
+      } else {
+        text = `![${name}](${url})`;
+      }
     } else {
-      text = `![${name}](${url})`;
+      text = `[${name}](${url})`;
     }
     editor.replacePlaceholder(placeholder, text);
 
+    file.uuid = uuid;
+    dropzone.dropzone.emit('addedfile', file);
+    if (/\.(jpg|jpeg|png|gif|bmp)$/i.test(file.name)) {
+      const imgSrc = `/attachments/${file.uuid}`;
+      dropzone.dropzone.emit('thumbnail', file, imgSrc);
+      dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
+    }
+    dropzone.dropzone.emit('complete', file);
     const input = document.createElement('input');
     input.setAttribute('name', 'files');
     input.setAttribute('type', 'hidden');
@@ -134,21 +147,25 @@ function handleClipboardText(textarea, text, e) {
 }
 
 export function initEasyMDEPaste(easyMDE, dropzone) {
-  easyMDE.codemirror.on('paste', (_, e) => {
-    const {images} = getPastedContent(e);
-    if (images.length) {
-      handleClipboardImages(new CodeMirrorEditor(easyMDE.codemirror), dropzone, images, e);
+  const pasteFunc = (e) => {
+    const {files} = getPastedContent(e);
+    if (files.length) {
+      handleClipboardFiles(new CodeMirrorEditor(easyMDE.codemirror), dropzone, files, e);
     }
-  });
+  };
+  easyMDE.codemirror.on('paste', (_, e) => pasteFunc(e));
+  easyMDE.codemirror.on('drop', (_, e) => pasteFunc(e));
 }
 
 export function initTextareaPaste(textarea, dropzone) {
-  textarea.addEventListener('paste', (e) => {
-    const {images, text} = getPastedContent(e);
-    if (images.length) {
-      handleClipboardImages(new TextareaEditor(textarea), dropzone, images, e);
+  const pasteFunc = (e) => {
+    const {files, text} = getPastedContent(e);
+    if (files.length) {
+      handleClipboardFiles(new TextareaEditor(textarea), dropzone, files, e);
     } else if (text) {
       handleClipboardText(textarea, text, e);
     }
-  });
+  };
+  textarea.addEventListener('paste', (e) => pasteFunc(e));
+  textarea.addEventListener('drop', (e) => pasteFunc(e));
 }
