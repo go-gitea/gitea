@@ -18,7 +18,7 @@
   width: auto;
 }
 
-.page-content.install form.ui.form input:not([type="checkbox"]):not([type="radio"]),
+.page-content.install form.ui.form input:not([type="checkbox"],[type="radio"]),
 .page-content.install form.ui.form .ui.selection.dropdown {
   width: 60%;
 }
