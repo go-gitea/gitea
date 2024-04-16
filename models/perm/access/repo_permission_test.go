@@ -14,25 +14,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApplyDefaultUserRepoPermission(t *testing.T) {
+func TestApplyEveryoneRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
-		UnitsMode:  map[unit.Type]perm_model.AccessMode{},
+		unitsMode:  map[unit.Type]perm_model.AccessMode{},
 		Units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeNone},
 		},
 	}
-	applyDefaultUserRepoPermission(nil, &perm)
+	applyEveryoneRepoPermission(nil, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeNone,
-		UnitsMode:  map[unit.Type]perm_model.AccessMode{},
+		unitsMode:  map[unit.Type]perm_model.AccessMode{},
 		Units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
-	applyDefaultUserRepoPermission(&user_model.User{ID: 1}, &perm)
+	applyEveryoneRepoPermission(&user_model.User{ID: 1}, &perm)
 	assert.True(t, perm.CanRead(unit.TypeWiki))
 }
 
@@ -47,13 +47,13 @@ func TestUnitAccessMode(t *testing.T) {
 		Units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
-		UnitsMode: map[unit.Type]perm_model.AccessMode{},
+		unitsMode: map[unit.Type]perm_model.AccessMode{},
 	}
 	assert.Equal(t, perm_model.AccessModeOwner, perm.UnitAccessMode(unit.TypeWiki), "only unit no map, use AccessMode")
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeAdmin,
-		UnitsMode: map[unit.Type]perm_model.AccessMode{
+		unitsMode: map[unit.Type]perm_model.AccessMode{
 			unit.TypeWiki: perm_model.AccessModeRead,
 		},
 	}
@@ -61,7 +61,7 @@ func TestUnitAccessMode(t *testing.T) {
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeNone,
-		UnitsMode: map[unit.Type]perm_model.AccessMode{
+		unitsMode: map[unit.Type]perm_model.AccessMode{
 			unit.TypeWiki: perm_model.AccessModeRead,
 		},
 	}
@@ -72,7 +72,7 @@ func TestUnitAccessMode(t *testing.T) {
 		Units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeWrite},
 		},
-		UnitsMode: map[unit.Type]perm_model.AccessMode{
+		unitsMode: map[unit.Type]perm_model.AccessMode{
 			unit.TypeWiki: perm_model.AccessModeRead,
 		},
 	}

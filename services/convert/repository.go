@@ -26,9 +26,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	var parent *api.Repository
 
 	if len(permissionInRepo.Units) == 0 {
-		// If Units is empty, it means that it's a hard coded permission, (TODO: maybe no such problem anymore, because we always load the units now)
-		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}.
-		// So we need to load units for the repo, otherwise UnitAccessMode will always return perm.AccessModeNone.
+		// If Units is empty, it means that it's a hard-coded permission,
+		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}, or like access_model.Permission{AccessMode: perm.AccessModeNone}.
+		// So we need to load units for the repo, otherwise UnitAccessMode might return perm.AccessModeNone.
+		// FIXME: it should figure out why there are "access_model.Permission{AccessMode: perm.AccessModeNone}" in the code.
 		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
 		permissionInRepo.Units = repo.Units
 	}

@@ -6,6 +6,7 @@ package access
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -21,7 +22,7 @@ import (
 type Permission struct {
 	AccessMode perm_model.AccessMode
 	Units      []*repo_model.RepoUnit
-	UnitsMode  map[unit.Type]perm_model.AccessMode
+	unitsMode  map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -36,22 +37,26 @@ func (p *Permission) IsAdmin() bool {
 
 // HasAccess returns true if the current user might have at least read access to any unit of this repository
 func (p *Permission) HasAccess() bool {
-	return len(p.UnitsMode) > 0 || p.AccessMode >= perm_model.AccessModeRead
+	return len(p.unitsMode) > 0 || p.AccessMode >= perm_model.AccessModeRead
 }
 
 // UnitAccessMode returns current user access mode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	// if the units map contains the access mode, use it, but admin/owner mode could override it
-	if m, ok := p.UnitsMode[unitType]; ok {
+	if m, ok := p.unitsMode[unitType]; ok {
 		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
 	// if the units map does not contain the access mode, return the default access mode if the unit exists
+	hasUnit := slices.ContainsFunc(p.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
+	return util.Iif(hasUnit, p.AccessMode, perm_model.AccessModeNone)
+}
+
+func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
+	p.Units = units
+	p.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 	for _, u := range p.Units {
-		if u.Type == unitType {
-			return p.AccessMode
-		}
+		p.unitsMode[u.Type] = mode
 	}
-	return perm_model.AccessModeNone
 }
 
 // CanAccess returns true if user has mode access to the unit of the repository
@@ -104,21 +109,21 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 
 func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
-	args := []any{p.AccessMode.ToString(), len(p.Units), len(p.UnitsMode)}
+	args := []any{p.AccessMode.ToString(), len(p.Units), len(p.unitsMode)}
 
-	for i, unit := range p.Units {
+	for i, u := range p.Units {
 		config := ""
-		if unit.Config != nil {
-			configBytes, err := unit.Config.ToDB()
+		if u.Config != nil {
+			configBytes, err := u.Config.ToDB()
 			config = string(configBytes)
 			if err != nil {
 				config = err.Error()
 			}
 		}
 		format += "\nUnits[%d]: ID: %d RepoID: %d Type: %s Config: %s"
-		args = append(args, i, unit.ID, unit.RepoID, unit.Type.LogString(), config)
+		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
-	for key, value := range p.UnitsMode {
+	for key, value := range p.unitsMode {
 		format += "\nUnitMode[%-v]: %-v"
 		args = append(args, key.LogString(), value.LogString())
 	}
@@ -126,11 +131,11 @@ func (p *Permission) LogString() string {
 	return fmt.Sprintf(format, args...)
 }
 
-func applyDefaultUserRepoPermission(user *user_model.User, perm *Permission) {
+func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
 	if user != nil && user.ID > 0 {
 		for _, u := range perm.Units {
-			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.UnitsMode[u.Type] {
-				perm.UnitsMode[u.Type] = u.EveryoneAccessMode
+			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.unitsMode[u.Type] {
+				perm.unitsMode[u.Type] = u.EveryoneAccessMode
 			}
 		}
 	}
@@ -139,13 +144,12 @@ func applyDefaultUserRepoPermission(user *user_model.User, perm *Permission) {
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {
-		applyDefaultUserRepoPermission(user, &perm)
+		applyEveryoneRepoPermission(user, &perm)
 		if log.IsTrace() {
 			log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 		}
 	}()
 
-	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode) // always initialize UnitsMode to avoid nil panic
 	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
@@ -199,10 +203,12 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, nil
 	}
 
+	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+
 	// Collaborators on organization
 	if isCollaborator {
 		for _, u := range repo.Units {
-			perm.UnitsMode[u.Type] = perm.AccessMode
+			perm.unitsMode[u.Type] = perm.AccessMode
 		}
 	}
 
@@ -216,7 +222,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, team := range teams {
 		if team.AccessMode >= perm_model.AccessModeAdmin {
 			perm.AccessMode = perm_model.AccessModeOwner
-			perm.UnitsMode = nil
+			perm.unitsMode = nil
 			return perm, nil
 		}
 	}
@@ -226,9 +232,9 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		for _, team := range teams {
 			teamMode := team.UnitAccessMode(ctx, u.Type)
 			if teamMode > perm_model.AccessModeNone {
-				m := perm.UnitsMode[u.Type]
+				m := perm.unitsMode[u.Type]
 				if m < teamMode {
-					perm.UnitsMode[u.Type] = teamMode
+					perm.unitsMode[u.Type] = teamMode
 				}
 				found = true
 			}
@@ -236,15 +242,15 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
 		if !found && !repo.IsPrivate && !user.IsRestricted {
-			if _, ok := perm.UnitsMode[u.Type]; !ok {
-				perm.UnitsMode[u.Type] = perm_model.AccessModeRead
+			if _, ok := perm.unitsMode[u.Type]; !ok {
+				perm.unitsMode[u.Type] = perm_model.AccessModeRead
 			}
 		}
 	}
 
 	// remove no permission units
 	perm.Units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
-	for t := range perm.UnitsMode {
+	for t := range perm.unitsMode {
 		for _, u := range repo.Units {
 			if u.Type == t {
 				perm.Units = append(perm.Units, u)
@@ -329,7 +335,7 @@ func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
-		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+		return false, fmt.Errorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
 	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {

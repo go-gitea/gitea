@@ -62,7 +62,8 @@ func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, 
 		return true
 	}
 
-	if len(p.Units) < 1 {
+	// the code below depends on Units to get the repository ID, not ideal but just keep it for now
+	if len(p.Units) == 0 {
 		return false
 	}
 
