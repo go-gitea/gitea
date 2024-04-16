@@ -51,12 +51,12 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 		return nil, err
 	}
 
-	if pr.HeadRepo.IsFork {
-		return nil, nil
-	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
+	}
+
+	if pr.BaseRepo.IsFork {
+		return nil, nil
 	}
 
 	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)

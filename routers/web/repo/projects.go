@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -181,14 +180,10 @@ func ChangeProjectStatus(ctx *context.Context) {
 	id := ctx.ParamsInt64(":id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", err)
-		} else {
-			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
-		}
+		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(fmt.Sprintf("%s/projects/%d", ctx.Repo.RepoLink, id))
 }
 
 // DeleteProject delete a project

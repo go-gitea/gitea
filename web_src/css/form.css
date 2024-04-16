@@ -249,21 +249,6 @@ textarea:focus,
   .user.signup form .optional .title {
     margin-left: 250px !important;
   }
-  .user.activate form .inline.field > input,
-  .user.forgot.password form .inline.field > input,
-  .user.reset.password form .inline.field > input,
-  .user.link-account form .inline.field > input,
-  .user.signin form .inline.field > input,
-  .user.signup form .inline.field > input,
-  .user.activate form .inline.field > textarea,
-  .user.forgot.password form .inline.field > textarea,
-  .user.reset.password form .inline.field > textarea,
-  .user.link-account form .inline.field > textarea,
-  .user.signin form .inline.field > textarea,
-  .user.signup form .inline.field > textarea,
-  .oauth-login-link {
-    width: 50%;
-  }
 }
 
 @media (max-width: 767.98px) {
@@ -310,14 +295,7 @@ textarea:focus,
   .user.reset.password form .inline.field > label,
   .user.link-account form .inline.field > label,
   .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label,
-  .user.activate form input,
-  .user.forgot.password form input,
-  .user.reset.password form input,
-  .user.link-account form input,
-  .user.signin form input,
-  .user.signup form input,
-  .oauth-login-link {
+  .user.signup form .inline.field > label {
     width: 100% !important;
   }
 }
@@ -435,9 +413,9 @@ textarea:focus,
   .repository.new.repo form label,
   .repository.new.migrate form label,
   .repository.new.fork form label,
-  .repository.new.repo form input,
-  .repository.new.migrate form input,
-  .repository.new.fork form input,
+  .repository.new.repo form .inline.field > input,
+  .repository.new.migrate form .inline.field > input,
+  .repository.new.fork form .inline.field > input,
   .repository.new.fork form .field a,
   .repository.new.repo form .selection.dropdown,
   .repository.new.migrate form .selection.dropdown,

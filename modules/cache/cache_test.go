@@ -14,7 +14,7 @@ import (
 )
 
 func createTestCache() {
-	conn, _ = newCache(setting.Cache{
+	defaultCache, _ = NewStringCache(setting.Cache{
 		Adapter: "memory",
 		TTL:     time.Minute,
 	})
@@ -25,7 +25,7 @@ func TestNewContext(t *testing.T) {
 	assert.NoError(t, Init())
 
 	setting.CacheService.Cache = setting.Cache{Adapter: "redis", Conn: "some random string"}
-	con, err := newCache(setting.Cache{
+	con, err := NewStringCache(setting.Cache{
 		Adapter:  "rand",
 		Conn:     "false conf",
 		Interval: 100,
@@ -73,42 +73,6 @@ func TestGetString(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "some data", data)
-	Remove("key")
-}
-
-func TestGetInt(t *testing.T) {
-	createTestCache()
-
-	data, err := GetInt("key", func() (int, error) {
-		return 0, fmt.Errorf("some error")
-	})
-	assert.Error(t, err)
-	assert.Equal(t, 0, data)
-
-	data, err = GetInt("key", func() (int, error) {
-		return 0, nil
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 0, data)
-
-	data, err = GetInt("key", func() (int, error) {
-		return 100, nil
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 0, data)
-	Remove("key")
-
-	data, err = GetInt("key", func() (int, error) {
-		return 100, nil
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 100, data)
-
-	data, err = GetInt("key", func() (int, error) {
-		return 0, fmt.Errorf("some error")
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 100, data)
 	Remove("key")
 }
 

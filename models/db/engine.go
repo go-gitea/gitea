@@ -21,9 +21,9 @@ import (
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
-	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
-	_ "github.com/lib/pq"                // Needed for the Postgresql driver
+	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
+	_ "github.com/lib/pq"               // Needed for the Postgresql driver
+	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
 )
 
 var (
@@ -284,8 +284,8 @@ func MaxBatchInsertSize(bean any) int {
 }
 
 // IsTableNotEmpty returns true if table has at least one record
-func IsTableNotEmpty(tableName string) (bool, error) {
-	return x.Table(tableName).Exist()
+func IsTableNotEmpty(beanOrTableName any) (bool, error) {
+	return x.Table(beanOrTableName).Exist()
 }
 
 // DeleteAllRecords will delete all the records of this table
