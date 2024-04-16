@@ -473,7 +473,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	pb, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return
@@ -492,7 +492,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteColumnByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteColumnByID(ctx, ctx.ParamsInt64(":columnID")); err != nil {
 		ctx.ServerError("DeleteProjectColumnByID", err)
 		return
 	}
@@ -538,7 +538,7 @@ func CheckProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return nil, nil
@@ -617,7 +617,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectColumn", project_model.IsErrProjectColumnNotExist, err)
 		return

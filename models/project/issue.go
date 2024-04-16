@@ -102,7 +102,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueI
 	})
 }
 
-func (b *Column) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
+func (c *Column) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", c.ID)
 	return err
 }

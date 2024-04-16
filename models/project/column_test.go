@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetDefaultcolumn(t *testing.T) {
+func TestGetDefaultColumn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	projectWithoutDefault, err := GetProjectByID(db.DefaultContext, 5)

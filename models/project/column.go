@@ -56,17 +56,17 @@ func (Column) TableName() string {
 }
 
 // NumIssues return counter of all issues assigned to the column
-func (b *Column) NumIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", b.ProjectID).
-		And("project_board_id=?", b.ID).
+func (c *Column) NumIssues(ctx context.Context) int {
+	total, err := db.GetEngine(ctx).Table("project_issue").
+		Where("project_id=?", c.ProjectID).
+		And("project_board_id=?", c.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
 		Count()
 	if err != nil {
 		return 0
 	}
-	return int(c)
+	return int(total)
 }
 
 func init() {
@@ -113,9 +113,9 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 			return nil
 		}
 
-		boards := make([]Column, 0, len(items))
+		columns := make([]Column, 0, len(items))
 		for _, v := range items {
-			boards = append(boards, Column{
+			columns = append(columns, Column{
 				CreatedUnix: timeutil.TimeStampNow(),
 				CreatorID:   project.CreatorID,
 				Title:       v,
@@ -123,7 +123,7 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 			})
 		}
 
-		return db.Insert(ctx, boards)
+		return db.Insert(ctx, columns)
 	})
 }
 
@@ -210,18 +210,18 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 
 // GetColumns fetches all boards related to a project
 func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
-	boards := make([]*Column, 0, 5)
+	columns := make([]*Column, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&columns); err != nil {
 		return nil, err
 	}
 
-	defaultB, err := p.getDefaultColumn(ctx)
+	defaultCol, err := p.getDefaultColumn(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return append([]*Column{defaultB}, boards...), nil
+	return append([]*Column{defaultCol}, columns...), nil
 }
 
 // getDefaultColumn return default column and ensure only one exists

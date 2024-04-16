@@ -19,7 +19,7 @@ func TestCheckProjectColumnChangePermissions(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	ctx.ContextUser = ctx.Doer // user2
 	ctx.SetParams(":id", "4")
-	ctx.SetParams(":boardID", "4")
+	ctx.SetParams(":columnID", "4")
 
 	project, column := org.CheckProjectColumnChangePermissions(ctx)
 	assert.NotNil(t, project)

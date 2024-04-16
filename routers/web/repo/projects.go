@@ -36,7 +36,7 @@ const (
 // MustEnableRepoProjects check if repo projects are enabled in settings
 func MustEnableRepoProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound("EnableKanbanBoard", nil)
+		ctx.NotFound("EnableRepoProjects", nil)
 		return
 	}
 
@@ -309,15 +309,15 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project.GetColumns(ctx)
+	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, boards)
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns)
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfBoards", err)
+		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
 	}
 
@@ -372,7 +372,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["Columns"] = columns
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -432,7 +432,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	pb, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return
@@ -451,7 +451,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteColumnByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteColumnByID(ctx, ctx.ParamsInt64(":columnID")); err != nil {
 		ctx.ServerError("DeleteProjectColumnByID", err)
 		return
 	}
@@ -517,7 +517,7 @@ func checkProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return nil, nil
@@ -570,7 +570,7 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.SetDefaultColumn(ctx, project.ID, column.ID); err != nil {
-		ctx.ServerError("SetDefaultBoard", err)
+		ctx.ServerError("SetDefaultColumn", err)
 		return
 	}
 
@@ -607,7 +607,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
 		if project_model.IsErrProjectColumnNotExist(err) {
 			ctx.NotFound("ProjectColumnNotExist", nil)
@@ -618,7 +618,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if column.ProjectID != project.ID {
-		ctx.NotFound("BoardNotInProject", nil)
+		ctx.NotFound("ColumnNotInProject", nil)
 		return
 	}
 
