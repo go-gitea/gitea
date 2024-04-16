@@ -365,6 +365,13 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	return issue.loadReactions(ctx)
 }
 
+func (issue *Issue) ResetAttributesLoaded() {
+	issue.isLabelsLoaded = false
+	issue.isMilestoneLoaded = false
+	issue.isAttachmentsLoaded = false
+	issue.isAssigneeLoaded = false
+}
+
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
 	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
