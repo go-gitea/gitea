@@ -76,7 +76,7 @@ async function onEditContent(event) {
 
             for (const attachment of data) {
               dz.emit('addedfile', attachment);
-              if (/\.(jpg|jpeg|png|gif|bmp)$/i.test(attachment.name)) {
+              if (/\.(jpg|jpeg|png|gif|bmp|svg)$/i.test(attachment.name)) {
                 const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
                 dz.emit('thumbnail', attachment, imgSrc);
                 dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';

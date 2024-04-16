@@ -269,7 +269,7 @@ export function getPastedContent(e) {
   const files = [];
   const data = e.clipboardData?.items || e.dataTransfer?.items;
   for (const item of data ?? []) {
-    if (!item.type?.startsWith('text/')) {
+    if (item?.kind === 'file') {
       const file = item.getAsFile();
       const extName = file.name.slice(file.name.lastIndexOf('.'), file.name.length);
       if (acceptedFiles.includes(extName)) {
