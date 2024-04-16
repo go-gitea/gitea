@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/services/attachment"
 
 	_ "code.gitea.io/gitea/models/actions"
@@ -29,9 +30,8 @@ func TestRelease_Create(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -135,9 +135,8 @@ func TestRelease_Update(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -278,9 +277,8 @@ func TestRelease_createTag(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

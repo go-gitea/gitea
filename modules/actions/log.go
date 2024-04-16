@@ -100,7 +100,7 @@ func ReadLogs(ctx context.Context, inStorage bool, filename string, offset, limi
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scan: %w", err)
+		return nil, fmt.Errorf("ReadLogs scan: %w", err)
 	}
 
 	return rows, nil

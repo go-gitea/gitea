@@ -13,6 +13,9 @@
 		<a class="{{if .PageIsSettingsSecurity}}active {{end}}item" href="{{AppSubUrl}}/user/settings/security">
 			{{ctx.Locale.Tr "settings.security"}}
 		</a>
+		<a class="{{if .PageIsSettingsBlockedUsers}}active {{end}}item" href="{{AppSubUrl}}/user/settings/blocked_users">
+			{{ctx.Locale.Tr "user.block.list"}}
+		</a>
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{AppSubUrl}}/user/settings/applications">
 			{{ctx.Locale.Tr "settings.applications"}}
 		</a>

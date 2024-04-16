@@ -7,6 +7,10 @@ extends:
   - plugin:vue/vue3-recommended
   - plugin:vue-scoped-css/vue3-recommended
 
+parserOptions:
+  sourceType: module
+  ecmaVersion: latest
+
 env:
   browser: true
 

@@ -7,13 +7,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/minio/sha256-simd"
 )
 
 // AesEncrypt encrypts text and given key with AES.

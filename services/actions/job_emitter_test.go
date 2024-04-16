@@ -70,6 +70,62 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 			want: map[int64]actions_model.Status{},
 		},
+		{
+			name: "with ${{ always() }} condition",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ always() }}
+    steps:
+      - run: echo "always run"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
+		{
+			name: "with always() condition",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: always()
+    steps:
+      - run: echo "always run"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
+		{
+			name: "without always() condition",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo "not always run"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

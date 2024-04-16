@@ -11,16 +11,19 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/contexts"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
-	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
-	_ "github.com/lib/pq"                // Needed for the Postgresql driver
+	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
+	_ "github.com/lib/pq"               // Needed for the Postgresql driver
+	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
 )
 
 var (
@@ -142,6 +145,13 @@ func InitEngine(ctx context.Context) error {
 	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 	xormEngine.SetDefaultContext(ctx)
+
+	if setting.Database.SlowQueryThreshold > 0 {
+		xormEngine.AddHook(&SlowQueryHook{
+			Threshold: setting.Database.SlowQueryThreshold,
+			Logger:    log.GetLogger("xorm"),
+		})
+	}
 
 	SetDefaultEngine(ctx, xormEngine)
 	return nil
@@ -274,8 +284,8 @@ func MaxBatchInsertSize(bean any) int {
 }
 
 // IsTableNotEmpty returns true if table has at least one record
-func IsTableNotEmpty(tableName string) (bool, error) {
-	return x.Table(tableName).Exist()
+func IsTableNotEmpty(beanOrTableName any) (bool, error) {
+	return x.Table(beanOrTableName).Exist()
 }
 
 // DeleteAllRecords will delete all the records of this table
@@ -297,4 +307,25 @@ func SetLogSQL(ctx context.Context, on bool) {
 	} else if sess, ok := e.(*xorm.Session); ok {
 		sess.Engine().ShowSQL(on)
 	}
+}
+
+type SlowQueryHook struct {
+	Threshold time.Duration
+	Logger    log.Logger
+}
+
+var _ contexts.Hook = &SlowQueryHook{}
+
+func (SlowQueryHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	return c.Ctx, nil
+}
+
+func (h *SlowQueryHook) AfterProcess(c *contexts.ContextHook) error {
+	if c.ExecuteTime >= h.Threshold {
+		// 8 is the amount of skips passed to runtime.Caller, so that in the log the correct function
+		// is being displayed (the function that ultimately wants to execute the query in the code)
+		// instead of the function of the slow query hook being called.
+		h.Logger.Log(8, log.WARN, "[Slow SQL Query] %s %v - %v", c.SQL, c.Args, c.ExecuteTime)
+	}
+	return nil
 }

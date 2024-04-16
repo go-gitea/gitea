@@ -196,7 +196,7 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
+func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	cfg := ini.Empty(configProviderLoadOptions())
 	loadedFromEmpty := true
 
@@ -210,12 +210,6 @@ func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvi
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
 			loadedFromEmpty = false
-		}
-	}
-
-	for _, s := range extraConfigs {
-		if err := cfg.Append([]byte(s)); err != nil {
-			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 
@@ -321,21 +315,25 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 	}
 }
 
-// DeprecatedWarnings contains the warning message for various deprecations, including: setting option, file/folder, etc
-var DeprecatedWarnings []string
+// StartupProblems contains the messages for various startup problems, including: setting option, file/folder, etc
+var StartupProblems []string
+
+func logStartupProblem(skip int, level log.Level, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	log.Log(skip+1, level, "%s", msg)
+	StartupProblems = append(StartupProblems, msg)
+}
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		msg := fmt.Sprintf("Deprecated config option `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
-		log.Error("%v", msg)
-		DeprecatedWarnings = append(DeprecatedWarnings, msg)
+		logStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
 func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
+		logStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
 	}
 }
 

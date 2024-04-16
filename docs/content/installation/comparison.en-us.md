@@ -52,6 +52,7 @@ _Symbols used in table:_
 | Markdown support                                 | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | CSV support                                      | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✓         | ✘            | ✘            |
 | 'GitHub / GitLab pages'                          | [⚙️][gitea-pages-server], [⚙️][gitea-caddy-plugin]    | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
+| Gists / Snippets                                 | [⚙️][opengist]                                      | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | Repo-specific wiki (as a repo itself)            | ✓                                                   | ✓    | ✓         | ✓         | ✓         | /         | ✘            | ✘            |
 | Deploy Tokens                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | Repository Tokens with write rights              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
@@ -85,6 +86,9 @@ _Symbols used in table:_
 | Template Repositories                       | ✓                                                   | ✘    | ✓         | ✘         | ✓         | ✓         | ✘            | ✘            |
 | Git Blame                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | Visual comparison of image changes          | ✓                                                   | ✘    | ✓         | ?         | ?         | ?         | ✘            | ✘            |
+
+- Gitea has builtin repository-level code search
+- Better code search support could be achieved by [using a repository indexer](administration/repo-indexer.md)
 
 ## Issue Tracker
 
@@ -147,3 +151,4 @@ _Symbols used in table:_
 
 [gitea-caddy-plugin]: https://github.com/42wim/caddy-gitea
 [gitea-pages-server]: https://codeberg.org/Codeberg/pages-server
+[opengist]: https://github.com/thomiceli/opengist

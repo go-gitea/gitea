@@ -60,6 +60,9 @@ func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T], flushCh
 		full = true
 	}
 
+	// TODO: the logic could be improved in the future, to avoid a data-race between "doStartNewWorker" and "workerNum"
+	// The root problem is that if we skip "doStartNewWorker" here, the "workerNum" might be decreased by other workers later
+	// So ideally, it should check whether there are enough workers by some approaches, and start new workers if necessary.
 	q.workerNumMu.Lock()
 	noWorker := q.workerNum == 0
 	if full || noWorker {
@@ -143,7 +146,11 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 		log.Debug("Queue %q starts new worker", q.GetName())
 		defer log.Debug("Queue %q stops idle worker", q.GetName())
 
+		atomic.AddInt32(&q.workerStartedCounter, 1) // Only increase counter, used for debugging
+
 		t := time.NewTicker(workerIdleDuration)
+		defer t.Stop()
+
 		keepWorking := true
 		stopWorking := func() {
 			q.workerNumMu.Lock()
@@ -158,13 +165,18 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 			case batch, ok := <-q.batchChan:
 				if !ok {
 					stopWorking()
-				} else {
-					q.doWorkerHandle(batch)
-					t.Reset(workerIdleDuration)
+					continue
+				}
+				q.doWorkerHandle(batch)
+				// reset the idle ticker, and drain the tick after reset in case a tick is already triggered
+				t.Reset(workerIdleDuration)
+				select {
+				case <-t.C:
+				default:
 				}
 			case <-t.C:
 				q.workerNumMu.Lock()
-				keepWorking = q.workerNum <= 1
+				keepWorking = q.workerNum <= 1 // keep the last worker running
 				if !keepWorking {
 					q.workerNum--
 				}
