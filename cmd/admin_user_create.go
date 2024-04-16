@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/optional"
@@ -46,8 +47,9 @@ var microcmdUserCreate = &cli.Command{
 			Usage: "Generate a random password for the user",
 		},
 		&cli.BoolFlag{
-			Name:  "must-change-password",
-			Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
+			Name:               "must-change-password",
+			Usage:              "Set to false to prevent forcing the user to change their password after initial login",
+			DisableDefaultText: true,
 		},
 		&cli.IntFlag{
 			Name:  "random-password-length",
@@ -71,10 +73,10 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if c.IsSet("name") && c.IsSet("username") {
-		return errors.New("Cannot set both --name and --username flags")
+		return errors.New("cannot set both --name and --username flags")
 	}
 	if !c.IsSet("name") && !c.IsSet("username") {
-		return errors.New("One of --name or --username flags must be set")
+		return errors.New("one of --name or --username flags must be set")
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
@@ -110,17 +112,21 @@ func runCreateUser(c *cli.Context) error {
 		return errors.New("must set either password or random-password flag")
 	}
 
-	// always default to true
-	changePassword := true
-
-	// If this is the first user being created.
-	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(ctx, nil); n == 0 {
-		changePassword = false
-	}
-
+	isAdmin := c.Bool("admin")
+	mustChangePassword := true // always default to true
 	if c.IsSet("must-change-password") {
-		changePassword = c.Bool("must-change-password")
+		// if the flag is set, use the value provided by the user
+		mustChangePassword = c.Bool("must-change-password")
+	} else {
+		// check whether there are users in the database
+		hasUserRecord, err := db.IsTableNotEmpty(&user_model.User{})
+		if err != nil {
+			return fmt.Errorf("IsTableNotEmpty: %w", err)
+		}
+		if !hasUserRecord && isAdmin {
+			// if this is the first admin being created, don't force to change password (keep the old behavior)
+			mustChangePassword = false
+		}
 	}
 
 	restricted := optional.None[bool]()
@@ -136,8 +142,8 @@ func runCreateUser(c *cli.Context) error {
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
-		IsAdmin:            c.Bool("admin"),
-		MustChangePassword: changePassword,
+		IsAdmin:            isAdmin,
+		MustChangePassword: mustChangePassword,
 		Visibility:         visibility,
 	}
 

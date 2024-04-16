@@ -1,38 +1,36 @@
 import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
 
-export function initCompReactionSelector($parent) {
-  $parent.find(`.select-reaction .item.reaction, .comment-reaction-button`).on('click', async function (e) {
-    e.preventDefault();
+export function initCompReactionSelector() {
+  for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {
+    container.addEventListener('click', async (e) => {
+      // there are 2 places for the "reaction" buttons, one is the top-right reaction menu, one is the bottom of the comment
+      const target = e.target.closest('.comment-reaction-button');
+      if (!target) return;
+      e.preventDefault();
 
-    if (this.classList.contains('disabled')) return;
+      if (target.classList.contains('disabled')) return;
 
-    const actionUrl = this.closest('[data-action-url]')?.getAttribute('data-action-url');
-    const reactionContent = this.getAttribute('data-reaction-content');
-    const hasReacted = this.closest('.ui.segment.reactions')?.querySelector(`a[data-reaction-content="${reactionContent}"]`)?.getAttribute('data-has-reacted') === 'true';
+      const actionUrl = target.closest('[data-action-url]').getAttribute('data-action-url');
+      const reactionContent = target.getAttribute('data-reaction-content');
 
-    const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
-      data: new URLSearchParams({content: reactionContent}),
+      const commentContainer = target.closest('.comment-container');
+
+      const bottomReactions = commentContainer.querySelector('.bottom-reactions'); // may not exist if there is no reaction
+      const bottomReactionBtn = bottomReactions?.querySelector(`a[data-reaction-content="${CSS.escape(reactionContent)}"]`);
+      const hasReacted = bottomReactionBtn?.getAttribute('data-has-reacted') === 'true';
+
+      const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
+        data: new URLSearchParams({content: reactionContent}),
+      });
+
+      const data = await res.json();
+      bottomReactions?.remove();
+      if (data.html) {
+        commentContainer.insertAdjacentHTML('beforeend', data.html);
+        const bottomReactionsDropdowns = commentContainer.querySelectorAll('.bottom-reactions .dropdown.select-reaction');
+        $(bottomReactionsDropdowns).dropdown(); // re-init the dropdown
+      }
     });
-
-    const data = await res.json();
-    if (data && (data.html || data.empty)) {
-      const $content = $(this).closest('.content');
-      let $react = $content.find('.segment.reactions');
-      if ((!data.empty || data.html === '') && $react.length > 0) {
-        $react.remove();
-      }
-      if (!data.empty) {
-        const $attachments = $content.find('.segment.bottom:first');
-        $react = $(data.html);
-        if ($attachments.length > 0) {
-          $react.insertBefore($attachments);
-        } else {
-          $react.appendTo($content);
-        }
-        $react.find('.dropdown').dropdown();
-        initCompReactionSelector($react);
-      }
-    }
-  });
+  }
 }

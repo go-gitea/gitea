@@ -156,7 +156,7 @@
 											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
 										</div>
-										{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false}}
+										{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName}}
 										<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 											<label for="mirror_address">{{ctx.Locale.Tr "repo.mirror_address"}}</label>
 											<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>

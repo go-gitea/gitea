@@ -18,10 +18,10 @@
 			{{end}}
 		{{end}}
 		<div class="ui top attached header clearing segment tw-relative commit-header {{$class}}">
-			<div class="tw-flex tw-mb-4 tw-flex-wrap">
+			<div class="tw-flex tw-mb-4 tw-gap-1">
 				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
-					<div>
+					<div class="commit-header-buttons">
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
 							{{ctx.Locale.Tr "repo.diff.browse_source"}}
 						</a>
