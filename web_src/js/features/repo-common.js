@@ -134,10 +134,10 @@ export function initRepoCommonForksRepoSearchDropdown(selector) {
     fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.attr('data-url')) {
-        window.location.href = $choice.attr('data-url');
+      if ($choice.getAttribute('data-url')) {
+        window.location.href = $choice.getAttribute('data-url');
       }
     },
-    message: {noResults: $(selector).attr('data-no-results')},
+    message: {noResults: $(selector).getAttribute('data-no-results')},
   });
 }
