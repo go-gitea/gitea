@@ -239,6 +239,8 @@ func DotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
+// Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simpley used as "{{Iif expr trueVal}}" (omit the falseVal).
 func Iif(condition bool, vals ...any) any {
 	if condition {
 		return vals[0]
