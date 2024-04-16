@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -106,21 +107,17 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 }
 
 // getWhitelistEntities returns the names of the entities that are in the whitelist
-func getWhitelistEntities(entities []any, whitelistIDs []int64) []string {
-	whitelistIDsMap := make(map[int64]struct{})
-	for _, id := range whitelistIDs {
-		whitelistIDsMap[id] = struct{}{}
-	}
-
+func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
+	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
 	whitelistNames := make([]string, 0)
 	for _, entity := range entities {
-		switch v := entity.(type) {
+		switch v := any(entity).(type) {
 		case *user_model.User:
-			if _, ok := whitelistIDsMap[v.ID]; ok {
+			if whitelistUserIDsSet.Contains(v.ID) {
 				whitelistNames = append(whitelistNames, v.Name)
 			}
 		case *organization.Team:
-			if _, ok := whitelistIDsMap[v.ID]; ok {
+			if whitelistUserIDsSet.Contains(v.ID) {
 				whitelistNames = append(whitelistNames, v.Name)
 			}
 		}
@@ -136,28 +133,18 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	readersInterface := make([]any, len(readers))
-	for i, v := range readers {
-		readersInterface[i] = v
-	}
-
-	pushWhitelistUsernames := getWhitelistEntities(readersInterface, bp.WhitelistUserIDs)
-	mergeWhitelistUsernames := getWhitelistEntities(readersInterface, bp.MergeWhitelistUserIDs)
-	approvalsWhitelistUsernames := getWhitelistEntities(readersInterface, bp.ApprovalsWhitelistUserIDs)
+	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 
 	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	teamReadersInterface := make([]any, len(teamReaders))
-	for i, v := range teamReaders {
-		teamReadersInterface[i] = v
-	}
-
-	pushWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.WhitelistTeamIDs)
-	mergeWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.MergeWhitelistTeamIDs)
-	approvalsWhitelistTeams := getWhitelistEntities(teamReadersInterface, bp.ApprovalsWhitelistTeamIDs)
+	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
