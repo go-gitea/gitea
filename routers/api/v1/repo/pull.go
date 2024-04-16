@@ -123,7 +123,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	}
 	issueList, err := prs.LoadIssues(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
 
