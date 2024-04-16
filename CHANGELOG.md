@@ -16,15 +16,30 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Include encoding in signature payload (#30174) (#30181)
   * Move from `max( id )` to `max( index )` for latest commit statuses (#30076) (#30155)
   * Load attachments for code comments (#30124) (#30126)
-  * Fix gitea doctor will remove repo-avatar files when execute command storage-archives (#30094) (#30120)
+  * Fix gitea doctor will remove repo-avatar files when executing command storage-archives (#30094) (#30120)
   * Fix possible data race on tests (#30093) (#30108)
+  * Performance optimization for git push (#30104)
   * Fix duplicate migrated milestones (#30102) (#30105)
   * Fix panic for fixBrokenRepoUnits16961 (#30068) (#30100)
   * Fix incorrect SVGs (#30087)
-  * Fix create commit status (#30225) #30340
-  * Performance optimization for git push (#30104) #30354
+  * Fix create commit status (#30225) (#30340)
+  * Performance optimization for git push (#30104) (#30354)
+  * Fix misuse of unsupported global variables (#30402)
+  * Fix to delete the cookie when AppSubURL is non-empty (#30375) (#30468)
+  * Avoid user does not exist error when detecting schedule actions when the commit author is an external user (#30357) (#30408)
+  * Change the default maxPerPage for gitbucket (#30392) (#30471)
+  * Check the token's owner and repository when registering a runner (#30406) (#30412)
+  * Avoid losing token when updating mirror settings (#30429) (#30466)
+  * Fix commit status cache which missed target_url (#30426) (#30445)
+  * Fix rename branch 500 when the target branch is deleted but exist in database (#30430) (#30437)
+  * Fix mirror error when mirror repo is empty (#30432) (#30467)
+  * Use db.ListOptions directly instead of Paginator interface to make it easier to use and fix performance of /pulls and /issues (#29990) (#30447)
+  * Fix code owners will not be mentioned when a pull request comes from a forked repository (#30476) (#30497)
+* DOCS
+  * Update actions variables documents (#30394) (#30405)
 * MISC
   * Update katex to 0.16.10 (#30089)
+  * Upgrade go-sqlite to v1.14.22 (#30462)
 
 ## [1.21.10](https://github.com/go-gitea/gitea/releases/tag/v1.21.10) - 2024-03-25
 
