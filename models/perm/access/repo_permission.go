@@ -174,7 +174,9 @@ func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {
-		applyEveryoneRepoPermission(user, &perm)
+		if err == nil {
+			applyEveryoneRepoPermission(user, &perm)
+		}
 		if log.IsTrace() {
 			log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 		}
