@@ -832,55 +832,53 @@ td .commit-summary {
   margin-right: 0.25em;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit {
-  line-height: 34px; /* this must be same as .badge height, to avoid overflow */
-  clear: both; /* reset the "float right shabox", in the future, use flexbox instead */
+.singular-commit {
+  display: flex;
+  align-items: center;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit > img.avatar,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit > .avatar img {
-  position: relative;
-  top: -2px;
+.singular-commit .badge {
+  height: 30px !important;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
+.singular-commit .shabox .sha.label {
   margin: 0;
   border: 1px solid var(--color-light-border);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isWarning {
+.singular-commit .shabox .sha.label.isSigned.isWarning {
   border: 1px solid var(--color-red-badge);
   background: var(--color-red-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isWarning:hover {
+.singular-commit .shabox .sha.label.isSigned.isWarning:hover {
   background: var(--color-red-badge-hover-bg) !important;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerified {
+.singular-commit .shabox .sha.label.isSigned.isVerified {
   border: 1px solid var(--color-green-badge);
   background: var(--color-green-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerified:hover {
+.singular-commit .shabox .sha.label.isSigned.isVerified:hover {
   background: var(--color-green-badge-hover-bg) !important;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted {
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted {
   border: 1px solid var(--color-yellow-badge);
   background: var(--color-yellow-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted:hover {
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted:hover {
   background: var(--color-yellow-badge-hover-bg) !important;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched {
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched {
   border: 1px solid var(--color-orange-badge);
   background: var(--color-orange-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched:hover {
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched:hover {
   background: var(--color-orange-badge-hover-bg) !important;
 }
 
