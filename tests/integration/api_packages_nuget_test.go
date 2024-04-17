@@ -90,43 +90,33 @@ func TestPackageNuGet(t *testing.T) {
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
-	createPackage := func(id, version string) io.Reader {
+	createNuspec := func(id, version string) string {
+		return `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+	<metadata>
+		<id>` + id + `</id>
+		<version>` + version + `</version>
+		<authors>` + packageAuthors + `</authors>
+		<description>` + packageDescription + `</description>
+		<dependencies>
+			<group targetFramework=".NETStandard2.0">
+				<dependency id="Microsoft.CSharp" version="4.5.0" />
+			</group>
+		</dependencies>
+	</metadata>
+</package>`
+	}
+
+	createPackage := func(id, version string) *bytes.Buffer {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)
 		w, _ := archive.Create("package.nuspec")
-		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
-		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-			<metadata>
-				<id>` + id + `</id>
-				<version>` + version + `</version>
-				<authors>` + packageAuthors + `</authors>
-				<description>` + packageDescription + `</description>
-				<dependencies>
-					<group targetFramework=".NETStandard2.0">
-						<dependency id="Microsoft.CSharp" version="4.5.0" />
-					</group>
-				</dependencies>
-			</metadata>
-		</package>`))
+		w.Write([]byte(createNuspec(id, version)))
 		archive.Close()
 		return &buf
 	}
 
-	nuspec := `<?xml version="1.0" encoding="utf-8"?>
-		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-			<metadata>
-				<id>` + packageName + `</id>
-				<version>` + packageVersion + `</version>
-				<authors>` + packageAuthors + `</authors>
-				<description>` + packageDescription + `</description>
-				<dependencies>
-					<group targetFramework=".NETStandard2.0">
-						<dependency id="Microsoft.CSharp" version="4.5.0" />
-					</group>
-				</dependencies>
-			</metadata>
-		</package>`
-	content, _ := io.ReadAll(createPackage(packageName, packageVersion))
+	content := createPackage(packageName, packageVersion).Bytes()
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
@@ -250,12 +240,20 @@ func TestPackageNuGet(t *testing.T) {
 			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
-			assert.Equal(t, fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion), pfs[0].Name)
-			assert.True(t, pfs[0].IsLead)
-
-			pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
-			assert.NoError(t, err)
-			assert.Equal(t, int64(len(content)), pb.Size)
+			for _, pf := range pfs {
+				switch pf.Name {
+				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+					assert.True(t, pf.IsLead)
+			
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(len(content)), pb.Size)
+				case fmt.Sprintf("%s.nuspec", packageName):
+					assert.False(t, pf.IsLead)
+				default:
+					assert.Fail(t, "unexpected filename: %v", pf.Name)
+				}
+			}
 
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
@@ -382,7 +380,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, nuspec, resp.Body.String())
+		assert.Equal(t, createNuspec(packageName, packageVersion), resp.Body.String())
 
 		checkDownloadCount(1)
 
