@@ -101,24 +101,18 @@ export function initRepoCommonForksRepoSearchDropdown(selector) {
   dropdownInput.addEventListener('input', async function() {
     const root = this.closest(selector).querySelector('.reference-list-menu');
     const query = this.value.trim();
-    if (query.length === 0) {
-      return;
-    }
+    if (!query) return;
 
-    const rsp = await GET(`${appSubUrl}/repo/search?q=${query}`);
+    const rsp = await GET(`${appSubUrl}/repo/search?q=${encodeURIComponent(query)}`);
     const data = await rsp.json();
-    if (data.ok !== true) {
-      return;
-    }
+    if (data.ok !== true) return;
 
     const linkTmpl = root.getAttribute('data-url-tmpl');
 
     for (const item of data.data) {
       const {id, full_name, link} = item.repository;
-      const found = root.querySelector(`.item[data-id="${id}"]`);
-      if (found) {
-        continue;
-      }
+      const found = root.querySelector(`.item[data-id="${CSS.escape(id)}"]`);
+      if (found) continue;
 
       const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
       const newItem = document.createElement('div');
