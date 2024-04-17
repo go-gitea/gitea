@@ -721,12 +721,12 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 
 		var firstUnit *unit_model.Unit
-		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == unit_model.TypeCode {
+		for _, repoUnitType := range ctx.Repo.Permission.ReadableUnitTypes() {
+			if repoUnitType == unit_model.TypeCode {
 				return
 			}
 
-			unit, ok := unit_model.Units[repoUnit.Type]
+			unit, ok := unit_model.Units[repoUnitType]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
