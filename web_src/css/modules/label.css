@@ -107,7 +107,7 @@ a.ui.label:hover {
 a.ui.basic.label:hover {
   text-decoration: none;
   color: var(--color-text);
-  border-color: var(--color-light-border);
+  border-color: var(--color-secondary-dark-2);
   background: var(--color-hover);
 }
 
