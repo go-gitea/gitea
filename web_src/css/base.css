@@ -377,6 +377,12 @@ a.label,
   white-space: nowrap;
 }
 
+.ui.search.dropdown > .text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ui.selection.visible.dropdown > .text:not(.default) {
   color: var(--color-text);
 }
