@@ -684,7 +684,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
-	if len(ctx.Repo.Units) > 0 {
+	if ctx.Repo.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
@@ -723,6 +723,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		var firstUnit *unit_model.Unit
 		for _, repoUnitType := range ctx.Repo.Permission.ReadableUnitTypes() {
 			if repoUnitType == unit_model.TypeCode {
+				// we are doing this check in "code" unit related pages, so if the code unit is readable, no need to do any further redirection
 				return
 			}
 

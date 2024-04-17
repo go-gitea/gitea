@@ -25,13 +25,13 @@ func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo a
 func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	if len(permissionInRepo.Units) == 0 {
-		// If Units is empty, it means that it's a hard-coded permission,
-		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}, or like access_model.Permission{AccessMode: perm.AccessModeNone}.
-		// So we need to load units for the repo, otherwise UnitAccessMode might return perm.AccessModeNone.
-		// FIXME: it should figure out why there are "access_model.Permission{AccessMode: perm.AccessModeNone}" in the code.
+	if !permissionInRepo.HasUnits() && permissionInRepo.AccessMode > perm.AccessModeNone {
+		// If units is empty, it means that it's a hard-coded permission, like access_model.Permission{AccessMode: perm.AccessModeAdmin}
+		// So we need to load units for the repo, otherwise UnitAccessMode will just return perm.AccessModeNone.
+		// TODO: this logic is still not right (because unit modes are not correctly prepared)
+		//   the caller should prepare a proper "permission" before calling this function.
 		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
-		permissionInRepo.Units = repo.Units
+		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
 	cloneLink := repo.CloneLink()

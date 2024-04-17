@@ -17,8 +17,7 @@ import (
 func TestApplyEveryoneRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
-		unitsMode:  map[unit.Type]perm_model.AccessMode{},
-		Units: []*repo_model.RepoUnit{
+		units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeNone},
 		},
 	}
@@ -27,8 +26,7 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeNone,
-		unitsMode:  map[unit.Type]perm_model.AccessMode{},
-		Units: []*repo_model.RepoUnit{
+		units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
@@ -44,10 +42,9 @@ func TestUnitAccessMode(t *testing.T) {
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeOwner,
-		Units: []*repo_model.RepoUnit{
+		units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
-		unitsMode: map[unit.Type]perm_model.AccessMode{},
 	}
 	assert.Equal(t, perm_model.AccessModeOwner, perm.UnitAccessMode(unit.TypeWiki), "only unit no map, use AccessMode")
 
@@ -69,7 +66,7 @@ func TestUnitAccessMode(t *testing.T) {
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeNone,
-		Units: []*repo_model.RepoUnit{
+		units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeWrite},
 		},
 		unitsMode: map[unit.Type]perm_model.AccessMode{

@@ -21,8 +21,9 @@ import (
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
 	AccessMode perm_model.AccessMode
-	Units      []*repo_model.RepoUnit
-	unitsMode  map[unit.Type]perm_model.AccessMode
+
+	units     []*repo_model.RepoUnit
+	unitsMode map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -40,21 +41,37 @@ func (p *Permission) HasAccess() bool {
 	return len(p.unitsMode) > 0 || p.AccessMode >= perm_model.AccessModeRead
 }
 
+// HasUnits returns true if the permission contains attached units
+func (p *Permission) HasUnits() bool {
+	return len(p.units) > 0
+}
+
+// GetFirstUnitRepoID returns the repo ID of the first unit, it is a fragile design and should NOT be used anymore
+// deprecated
+func (p *Permission) GetFirstUnitRepoID() int64 {
+	if len(p.units) > 0 {
+		return p.units[0].RepoID
+	}
+	return 0
+}
+
 // UnitAccessMode returns current user access mode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
-	// if the units map contains the access mode, use it, but admin/owner mode could override it
-	if m, ok := p.unitsMode[unitType]; ok {
-		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
+	if p.unitsMode != nil {
+		// if the units map contains the access mode, use it, but admin/owner mode could override it
+		if m, ok := p.unitsMode[unitType]; ok {
+			return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
+		}
 	}
 	// if the units map does not contain the access mode, return the default access mode if the unit exists
-	hasUnit := slices.ContainsFunc(p.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
+	hasUnit := slices.ContainsFunc(p.units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
 	return util.Iif(hasUnit, p.AccessMode, perm_model.AccessModeNone)
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
-	p.Units = units
+	p.units = units
 	p.unitsMode = make(map[unit.Type]perm_model.AccessMode)
-	for _, u := range p.Units {
+	for _, u := range p.units {
 		p.unitsMode[u.Type] = mode
 	}
 }
@@ -108,8 +125,8 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 }
 
 func (p *Permission) ReadableUnitTypes() []unit.Type {
-	types := make([]unit.Type, 0, len(p.Units))
-	for _, u := range p.Units {
+	types := make([]unit.Type, 0, len(p.units))
+	for _, u := range p.units {
 		if p.CanRead(u.Type) {
 			types = append(types, u.Type)
 		}
@@ -119,9 +136,9 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 
 func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
-	args := []any{p.AccessMode.ToString(), len(p.Units), len(p.unitsMode)}
+	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
-	for i, u := range p.Units {
+	for i, u := range p.units {
 		config := ""
 		if u.Config != nil {
 			configBytes, err := u.Config.ToDB()
@@ -143,7 +160,10 @@ func (p *Permission) LogString() string {
 
 func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
 	if user != nil && user.ID > 0 {
-		for _, u := range perm.Units {
+		for _, u := range perm.units {
+			if perm.unitsMode == nil {
+				perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+			}
 			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.unitsMode[u.Type] {
 				perm.unitsMode[u.Type] = u.EveryoneAccessMode
 			}
@@ -163,7 +183,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
-	perm.Units = repo.Units
+	perm.units = repo.Units
 
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
@@ -255,11 +275,11 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	// remove no permission units
-	perm.Units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
+	perm.units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
 	for t := range perm.unitsMode {
 		for _, u := range repo.Units {
 			if u.Type == t {
-				perm.Units = append(perm.Units, u)
+				perm.units = append(perm.units, u)
 			}
 		}
 	}
