@@ -102,6 +102,16 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
+func (p *Permission) ReadableUnitTypes() []unit.Type {
+	types := make([]unit.Type, 0, len(p.Units))
+	for _, u := range p.Units {
+		if p.CanRead(u.Type) {
+			types = append(types, u.Type)
+		}
+	}
+	return types
+}
+
 func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
 	args := []any{p.AccessMode.String(), len(p.Units), len(p.UnitsMode)}

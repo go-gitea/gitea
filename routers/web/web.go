@@ -1120,8 +1120,10 @@ func registerRoutes(m *web.Route) {
 	)
 	// end "/{username}/{reponame}/settings"
 
+	// user/org home, including rss feeds
+	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home) // user/org home
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
@@ -1133,7 +1135,7 @@ func registerRoutes(m *web.Route) {
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 	}, ignSignIn, context.RepoAssignment, reqRepoCodeReader)
-	// end "/{username}/{reponame}": view home, find, compare (code related)
+	// end "/{username}/{reponame}": find, compare, list (code related)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because it would conflict with other routes like "/pulls/{index}"
