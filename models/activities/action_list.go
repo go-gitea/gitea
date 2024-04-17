@@ -83,6 +83,9 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		_, alreadyLoaded := userMap[action.Repo.OwnerID]
 		return action.Repo.OwnerID, !alreadyLoaded
 	})
+	if len(missingUserIDs) == 0 {
+		return nil
+	}
 
 	if err := db.GetEngine(ctx).
 		In("id", missingUserIDs).
@@ -128,6 +131,9 @@ func (actions ActionList) LoadComments(ctx context.Context) error {
 		if action.CommentID > 0 {
 			commentIDs = append(commentIDs, action.CommentID)
 		}
+	}
+	if len(commentIDs) == 0 {
+		return nil
 	}
 
 	commentsMap := make(map[int64]*issues_model.Comment, len(commentIDs))
