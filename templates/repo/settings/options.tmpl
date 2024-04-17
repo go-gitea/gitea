@@ -342,7 +342,7 @@
 						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
 					</div>
 					<div class="inline field tw-pl-4">
-						{{$unitBuiltinWiki := .Repository.MustGetUnit ctx $.UnitTypeWiki}}
+						{{$unitBuiltinWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
 						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
 						<select name="default_wiki_everyone_access" class="ui dropdown">
 							<option value="none" {{Iif (eq $unitBuiltinWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_no_access"}}</option>
