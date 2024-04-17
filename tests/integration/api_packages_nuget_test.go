@@ -244,7 +244,7 @@ func TestPackageNuGet(t *testing.T) {
 				switch pf.Name {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
-			
+
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
