@@ -107,6 +107,16 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
+func (p *Permission) ReadableUnitTypes() []unit.Type {
+	types := make([]unit.Type, 0, len(p.Units))
+	for _, u := range p.Units {
+		if p.CanRead(u.Type) {
+			types = append(types, u.Type)
+		}
+	}
+	return types
+}
+
 func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
 	args := []any{p.AccessMode.ToString(), len(p.Units), len(p.unitsMode)}
@@ -230,12 +240,8 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			teamMode := team.UnitAccessMode(ctx, u.Type)
-			if teamMode > perm_model.AccessModeNone {
-				m := perm.unitsMode[u.Type]
-				if m < teamMode {
-					perm.unitsMode[u.Type] = teamMode
-				}
+			if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
+				perm.UnitsMode[u.Type] = max(perm.UnitsMode[u.Type], teamMode)
 				found = true
 			}
 		}
