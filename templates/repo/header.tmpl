@@ -91,27 +91,27 @@
 							>
 								{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
 							</a>
-							<div class="ui small modal" id="fork-repo-modal">
-								<div class="header">
-									{{ctx.Locale.Tr "repo.already_forked" .Name}}
-								</div>
-								<div class="content tw-text-left">
-									<div class="ui list">
-										{{range $.UserAndOrgForks}}
-											<div class="ui item tw-py-2">
-												<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "tw-mr-2"}}{{.FullName}}</a>
-											</div>
-										{{end}}
-									</div>
-									{{if $.CanSignedUserFork}}
-									<div class="divider"></div>
-									<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
-									{{end}}
-								</div>
-							</div>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{CountFmt .NumForks}}
 							</a>
+						</div>
+						<div class="ui small modal" id="fork-repo-modal">
+							<div class="header">
+								{{ctx.Locale.Tr "repo.already_forked" .Name}}
+							</div>
+							<div class="content tw-text-left">
+								<div class="ui list">
+									{{range $.UserAndOrgForks}}
+										<div class="ui item tw-py-2">
+											<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "tw-mr-2"}}{{.FullName}}</a>
+										</div>
+									{{end}}
+								</div>
+								{{if $.CanSignedUserFork}}
+								<div class="divider"></div>
+								<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
+								{{end}}
+							</div>
 						</div>
 					{{end}}
 				</div>
