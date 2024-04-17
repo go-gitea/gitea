@@ -5,8 +5,8 @@ export function generateAriaId() {
 }
 
 export function linkLabelAndInput(label, input) {
-  const inputId = input.getAttribute('id');
   const labelFor = label.getAttribute('for');
+  const inputId = input.getAttribute('id');
 
   if (inputId && !labelFor) { // missing "for"
     label.setAttribute('for', inputId);
