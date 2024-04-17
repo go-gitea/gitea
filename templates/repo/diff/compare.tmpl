@@ -84,7 +84,7 @@
 					<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_repo"}}...">
 				</div>
 
-				<div class="scrolling menu reference-list-menu" data-url-tmpl="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{REOP_FULL_NAME}:{{PathEscapeSegments $.HeadBranch}}">
+				<div class="scrolling menu reference-list-menu" data-url-tmpl="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{REPO_FULL_NAME}:{{PathEscapeSegments $.HeadBranch}}">
 					{{range .CompareRepos}}
 						<div class="{{if and ($.HeadRepo) (eq $.HeadRepo.ID .ID)}}selected{{end}} item" data-id="{{.ID}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{PathEscape .OwnerName}}/{{PathEscape .Name}}:{{PathEscapeSegments $.HeadBranch}}">{{.OwnerName}}/{{.Name}}</div>
 					{{end}}

@@ -114,7 +114,7 @@ export function initRepoCommonForksRepoSearchDropdown(selector) {
       const found = root.querySelector(`.item[data-id="${CSS.escape(id)}"]`);
       if (found) continue;
 
-      const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REOP_FULL_NAME}', full_name);
+      const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REPO_FULL_NAME}', full_name);
       const newItem = document.createElement('div');
       newItem.classList.add('item');
       newItem.setAttribute('data-id', id);
