@@ -497,11 +497,11 @@ func (p *PackagePayload) JSONPayload() ([]byte, error) {
 
 // WorkflowDispatchPayload represents a workflow dispatch payload
 type WorkflowDispatchPayload struct {
-	Workflow   string                 `json:"workflow"`
-	Ref        string                 `json:"ref"`
-	Inputs     map[string]interface{} `json:"inputs"`
-	Repository *Repository            `json:"repository"`
-	Sender     *User                  `json:"sender"`
+	Workflow   string         `json:"workflow"`
+	Ref        string         `json:"ref"`
+	Inputs     map[string]any `json:"inputs"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
 }
 
 // JSONPayload implements Payload

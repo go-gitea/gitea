@@ -807,7 +807,7 @@ func Run(ctx *context_module.Context) {
 	workflow := &model.Workflow{
 		RawOn: workflows[0].RawOn,
 	}
-	inputs := make(map[string]interface{})
+	inputs := make(map[string]any)
 	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
 		for name, config := range workflowDispatch.Inputs {
 			value := ctx.Req.PostForm.Get(name)
