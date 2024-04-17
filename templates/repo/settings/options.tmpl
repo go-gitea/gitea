@@ -317,7 +317,9 @@
 					</div>
 				</div>
 
-				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeWiki) (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeExternalWiki)}}
+				{{$isBuiltinWikiEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeWiki}}
+				{{$isExternalWikiEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalWiki}}
+				{{$isWikiEnabled := or $isBuiltinWikiEnabled $isExternalWikiEnabled}}
 				{{$isWikiGlobalDisabled := ctx.Consts.RepoUnitTypeWiki.UnitGlobalDisabled}}
 				{{$isExternalWikiGlobalDisabled := ctx.Consts.RepoUnitTypeExternalWiki.UnitGlobalDisabled}}
 				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}

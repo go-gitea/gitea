@@ -241,7 +241,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		var found bool
 		for _, team := range teams {
 			if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
-				perm.UnitsMode[u.Type] = max(perm.UnitsMode[u.Type], teamMode)
+				perm.unitsMode[u.Type] = max(perm.unitsMode[u.Type], teamMode)
 				found = true
 			}
 		}
