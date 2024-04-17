@@ -95,43 +95,46 @@ export function initRepoCommonFilterSearchDropdown(selector) {
 const {appSubUrl} = window.config;
 
 export function initRepoCommonForksRepoSearchDropdown(selector) {
-  const dropdown = document.querySelector(selector);
-  const dropdownInput = dropdown.querySelector('input');
+  const dropdownList = document.querySelectorAll(selector);
 
-  dropdownInput.addEventListener('input', async function() {
-    const root = this.closest(selector).querySelector('.reference-list-menu');
-    const query = this.value.trim();
-    if (!query) return;
+  for (const dropdown of dropdownList) {
+    const dropdownInput = dropdown.querySelector('input');
 
-    const rsp = await GET(`${appSubUrl}/repo/search?q=${encodeURIComponent(query)}`);
-    const data = await rsp.json();
-    if (data.ok !== true) return;
+    dropdownInput.addEventListener('input', async function() {
+      const root = this.closest(selector).querySelector('.reference-list-menu');
+      const query = this.value.trim();
+      if (!query) return;
 
-    const linkTmpl = root.getAttribute('data-url-tmpl');
+      const rsp = await GET(`${appSubUrl}/repo/search?q=${encodeURIComponent(query)}`);
+      const data = await rsp.json();
+      if (data.ok !== true) return;
 
-    for (const item of data.data) {
-      const {id, full_name, link} = item.repository;
-      const found = root.querySelector(`.item[data-id="${CSS.escape(id)}"]`);
-      if (found) continue;
+      const linkTmpl = root.getAttribute('data-url-tmpl');
 
-      const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REPO_FULL_NAME}', full_name);
-      const newItem = document.createElement('div');
-      newItem.classList.add('item');
-      newItem.setAttribute('data-id', id);
-      newItem.setAttribute('data-url', compareLink);
-      newItem.textContent = full_name;
-      root.append(newItem);
-    }
-  });
+      for (const item of data.data) {
+        const {id, full_name, link} = item.repository;
+        const found = root.querySelector(`.item[data-id="${CSS.escape(id)}"]`);
+        if (found) continue;
 
-  $(selector).dropdown({
-    fullTextSearch: 'exact',
-    selectOnKeydown: false,
-    onChange(_text, _value, $choice) {
-      if ($choice.getAttribute('data-url')) {
-        window.location.href = $choice.getAttribute('data-url');
+        const compareLink = linkTmpl.replace('{REPO_LINK}', link).replace('{REPO_FULL_NAME}', full_name);
+        const newItem = document.createElement('div');
+        newItem.classList.add('item');
+        newItem.setAttribute('data-id', id);
+        newItem.setAttribute('data-url', compareLink);
+        newItem.textContent = full_name;
+        root.append(newItem);
       }
-    },
-    message: {noResults: $(selector).getAttribute('data-no-results')},
-  });
+    });
+
+    $(dropdown).dropdown({
+      fullTextSearch: 'exact',
+      selectOnKeydown: false,
+      onChange(_text, _value, $choice) {
+        if ($choice[0].getAttribute('data-url')) {
+          window.location.href = $choice[0].getAttribute('data-url');
+        }
+      },
+      message: {noResults: dropdown.getAttribute('data-no-results')},
+    });
+  }
 }

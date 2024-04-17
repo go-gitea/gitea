@@ -13,7 +13,7 @@
 	</h2>
 	<div class="ui segment choose branch">
 		<a class="tw-mr-2" href="{{if $.HeadInfoNotExist}}#{{else}}{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}{{end}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
-		<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
+		<div class="ui floating filter dropdown repo-search-box" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 			<div class="ui basic small button">
 				<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{$.Repository.OwnerName}}/{{$.Repository.Name}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -73,14 +73,14 @@
 
 		<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{.CompareSeparator}}</div></a>
 
-		<div class="ui floating filter dropdown repo-search-box">
+		<div class="ui floating filter dropdown repo-search-box" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 			<div class="ui basic small button">
 				<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{$.HeadUserName}}/{{$.HeadRepoName}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 			<div class="menu">
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+					<i class="icon tw-flex tw-items-center tw-justify-center tw-m-0">{{svg "octicon-filter" 16}}</i>
 					<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_repo"}}...">
 				</div>
 
