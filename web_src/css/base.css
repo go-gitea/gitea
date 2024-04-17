@@ -342,6 +342,8 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ui.dropdown .menu > .item:hover {
