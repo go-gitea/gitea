@@ -327,15 +327,15 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project.GetColumns(ctx)
+	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, boards)
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns)
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfBoards", err)
+		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
 	}
 
@@ -378,7 +378,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["Columns"] = columns
 	shared_user.RenderUserHeader(ctx)
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -624,7 +624,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if column.ProjectID != project.ID {
-		ctx.NotFound("BoardNotInProject", nil)
+		ctx.NotFound("ColumnNotInProject", nil)
 		return
 	}
 

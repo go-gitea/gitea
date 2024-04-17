@@ -34,7 +34,7 @@ func GetTemplateConfigs() []TemplateConfig {
 	}
 }
 
-// IsTemplateTypeValid checks if the project board type is valid
+// IsTemplateTypeValid checks if the project template type is valid
 func IsTemplateTypeValid(p TemplateType) bool {
 	switch p {
 	case TemplateTypeNone, TemplateTypeBasicKanban, TemplateTypeBugTriage:

@@ -52,7 +52,7 @@ type Column struct {
 
 // TableName return the real table name
 func (Column) TableName() string {
-	return "project_board" // FIXME: the legacy table name should be project_column
+	return "project_board" // TODO: the legacy table name should be project_column
 }
 
 // NumIssues return counter of all issues assigned to the column
@@ -155,7 +155,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return fmt.Errorf("deleteBoardByID: cannot delete default column")
+		return fmt.Errorf("deleteColumnByID: cannot delete default column")
 	}
 
 	if err = column.removeIssues(ctx); err != nil {
