@@ -337,7 +337,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
-					<div id="internal_wiki_box" class="inline field tw-pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
+					<div id="internal_wiki_box" class="field tw-pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
