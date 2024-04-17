@@ -192,7 +192,7 @@ func EditUser(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditUserOption)
 
-	parseAuthSource(ctx, ctx.ContextUser, form.SourceID, form.LoginName)
+	parseAuthSource(ctx, ctx.ContextUser, form.SourceID)
 	if ctx.Written() {
 		return
 	}
