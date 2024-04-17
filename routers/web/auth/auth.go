@@ -386,6 +386,13 @@ func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
 		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
+	case setting.OAuth2UsernamePreferredUsername:
+		preferredUsername, exists := gothUser.RawData["preferred_username"]
+		if exists {
+			return user_model.NormalizeUserName(preferredUsername.(string))
+		} else {
+			return "", fmt.Errorf("preferred_username is missing in received user data but configured as username source for user_id %q. Check if OPENID_CONNECT_SCOPES contains profile", gothUser.UserID)
+		}
 	case setting.OAuth2UsernameNickname:
 		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid

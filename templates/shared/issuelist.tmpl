@@ -88,18 +88,21 @@
 						</div>
 					{{end}}
 					{{if and .Milestone (ne $.listType "milestone")}}
-						<a class="milestone flex-text-inline" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
-							{{svg "octicon-milestone" 14}}{{.Milestone.Name}}
+						<a class="milestone flex-text-inline tw-max-w-[300px]" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
+							{{svg "octicon-milestone" 14}}
+							<span class="gt-ellipsis">{{.Milestone.Name}}</span>
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
-							{{svg .Project.IconName 14}}{{.Project.Title}}
+						<a class="project flex-text-inline tw-max-w-[300px]" href="{{.Project.Link ctx}}">
+							{{svg .Project.IconName 14}}
+							<span class="gt-ellipsis">{{.Project.Title}}</span>
 						</a>
 					{{end}}
 					{{if .Ref}}
-						<a class="ref flex-text-inline" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
-							{{svg "octicon-git-branch" 14}}{{index $.IssueRefEndNames .ID}}
+						<a class="ref flex-text-inline tw-max-w-[300px]" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
+							{{svg "octicon-git-branch" 14}}
+							<span class="gt-ellipsis">{{index $.IssueRefEndNames .ID}}</span>
 						</a>
 					{{end}}
 					{{$tasks := .GetTasks}}
