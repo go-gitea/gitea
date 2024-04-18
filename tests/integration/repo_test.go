@@ -28,7 +28,7 @@ func TestViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+	noDescription := htmlDoc.doc.Find(".repo-description").Children()
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
@@ -191,7 +191,7 @@ func TestViewAsRepoAdmin(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+		noDescription := htmlDoc.doc.Find(".repo-description").Children()
 		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
@@ -211,7 +211,7 @@ func TestViewFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -230,7 +230,7 @@ func TestBlameFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -249,7 +249,7 @@ func TestViewRepoDirectory(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
