@@ -50,7 +50,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likly a
+  // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likely a
   // non-critical event from the browser. We log them but don't show them to users. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
   // - https://github.com/mozilla-mobile/firefox-ios/issues/10817

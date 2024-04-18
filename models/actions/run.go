@@ -241,7 +241,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 
 // InsertRun inserts a run
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
-	ctx, commiter, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
