@@ -13,5 +13,5 @@ func AddConfidentialClientColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
 		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`
 	}
 
-	return x.Sync(new(OAuth2Application))
+	return x.Table("oauth2_application").Sync(new(OAuth2Application))
 }
