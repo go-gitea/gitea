@@ -9,7 +9,7 @@
 				{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.tags"}}
 			</div>
 		</h4>
-		{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
+		{{$canReadReleases := $.Permission.CanRead ctx.Consts.RepoUnitTypeReleases}}
 		<div class="ui attached table segment">
 			<table class="ui very basic striped fixed table single line" id="tags-table">
 				<tbody class="tag-list">
@@ -24,7 +24,7 @@
 									{{end}}
 								</h3>
 								<div class="download tw-flex tw-items-center">
-									{{if $.Permission.CanRead $.UnitTypeCode}}
+									{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 										{{if .CreatedUnix}}
 											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
 										{{end}}
@@ -40,7 +40,7 @@
 											<a class="tw-mr-2 muted" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.new_release"}}</a>
 										{{end}}
 
-										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
+										{{if (and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) $release.IsTag)}}
 											<a class="ui delete-button tw-mr-2 muted" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
 												{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.delete_tag"}}
 											</a>
@@ -62,7 +62,7 @@
 	</div>
 </div>
 
-{{if $.Permission.CanWrite $.UnitTypeCode}}
+{{if $.Permission.CanWrite ctx.Consts.RepoUnitTypeCode}}
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}

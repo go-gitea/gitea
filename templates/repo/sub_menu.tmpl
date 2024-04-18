@@ -1,14 +1,14 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
 <div class="ui segments repository-summary tw-mt-1 tw-mb-0">
 	<div class="ui segment sub-menu repository-menu">
-		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
+		{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
 			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">
 				{{svg "octicon-history"}} <b>{{ctx.Locale.PrettyNumber .CommitsCount}}</b> {{ctx.Locale.TrN .CommitsCount "repo.commit" "repo.commits"}}
 			</a>
 			<a class="item muted {{if .PageIsBranches}}active{{end}}" href="{{.RepoLink}}/branches">
 				{{svg "octicon-git-branch"}} <b>{{ctx.Locale.PrettyNumber .BranchesCount}}</b> {{ctx.Locale.TrN .BranchesCount "repo.branch" "repo.branches"}}
 			</a>
-			{{if $.Permission.CanRead $.UnitTypeCode}}
+			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 				<a class="item muted {{if .PageIsTagList}}active{{end}}" href="{{.RepoLink}}/tags">
 					{{svg "octicon-tag"}} <b>{{ctx.Locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
 				</a>
@@ -20,7 +20,7 @@
 			</span>
 		{{end}}
 	</div>
-	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
+	{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
 	<div class="ui segment sub-menu language-stats-details tw-hidden">
 		{{range .LanguageStats}}
 		<div class="item">

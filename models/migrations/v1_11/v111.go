@@ -336,7 +336,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			if err != nil {
 				return false, err
 			}
-			if perm.UnitsMode == nil {
+			if len(perm.UnitsMode) == 0 {
 				for _, u := range perm.Units {
 					if u.Type == UnitTypeCode {
 						return AccessModeWrite <= perm.AccessMode, nil
