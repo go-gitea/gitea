@@ -430,7 +430,6 @@ td .commit-summary {
   padding: 0 !important;
 }
 
-.non-diff-file-content .attached.segment,
 .non-diff-file-content .pdfobject {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
@@ -2282,6 +2281,7 @@ tbody.commit-list {
 .author-wrapper {
   max-width: 180px;
   align-self: center;
+  white-space: nowrap;
 }
 
 /* in the commit list, messages can wrap so we can use inline */
