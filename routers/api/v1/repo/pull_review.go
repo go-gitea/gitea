@@ -888,18 +888,13 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
 	}
-	review, pr, isWrong := prepareSingleReview(ctx)
+	review, _, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
 	}
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
 		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
-		return
-	}
-
-	if pr.Issue.IsClosed {
-		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
 		return
 	}
 

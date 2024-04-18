@@ -271,7 +271,6 @@ func SubmitReview(ctx *context.Context) {
 		}
 		return
 	}
-
 	ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
 
