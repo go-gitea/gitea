@@ -36,7 +36,7 @@ func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 	}
 
 	got := []ExpectedOAuth2Application{}
-	if err := x.Table("o_auth2_application").Select("id, confidential_client").Find(&got); !assert.NoError(t, err) {
+	if err := x.Table("oauth2_application").Select("id, confidential_client").Find(&got); !assert.NoError(t, err) {
 		return
 	}
 
