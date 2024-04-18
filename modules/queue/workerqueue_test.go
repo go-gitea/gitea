@@ -250,6 +250,7 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 
 func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {
 	defer test.MockVariableValue(&workerIdleDuration, 10*time.Millisecond)()
+	defer mockBackoffDuration(10 * time.Millisecond)()
 
 	handler := func(items ...int) (unhandled []int) {
 		time.Sleep(50 * time.Millisecond)
