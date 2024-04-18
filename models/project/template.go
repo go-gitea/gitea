@@ -25,7 +25,7 @@ const (
 	TemplateTypeBugTriage
 )
 
-// GetTemplateConfigs retrieves the template configs of configurations project boards could have
+// GetTemplateConfigs retrieves the template configs of configurations project columns could have
 func GetTemplateConfigs() []TemplateConfig {
 	return []TemplateConfig{
 		{TemplateTypeNone, "repo.projects.type.none"},
