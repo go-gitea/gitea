@@ -55,6 +55,10 @@ export function queryElemSiblings(el, selector) {
   return Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector));
 }
 
+export function queryElems(selector, fn) {
+  return applyElemsCallback(document.querySelectorAll(selector), fn);
+}
+
 export function onDomReady(cb) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
