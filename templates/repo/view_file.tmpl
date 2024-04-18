@@ -11,7 +11,7 @@
 	{{end}}
 
 	{{if not .ReadmeInList}}
-		<div id="repo-file-commit-box" class="ui top attached header list-header tw-mb-4 tw-flex tw-justify-between">
+		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 tw-flex tw-justify-between">
 			<div class="latest-commit">
 				{{template "repo/latest_commit" .}}
 			</div>
@@ -84,7 +84,7 @@
 			{{end}}
 		</div>
 	</h4>
-	<div class="ui attached table unstackable segment">
+	<div class="ui bottom attached table unstackable segment">
 		{{if not (or .IsMarkup .IsRenderedHTML)}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		{{end}}
