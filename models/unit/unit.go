@@ -191,16 +191,13 @@ type Unit struct {
 	NameKey       string
 	URI           string
 	DescKey       string
-	Idx           int
+	Priority      int
 	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
 }
 
 // IsLessThan compares order of two units
 func (u Unit) IsLessThan(unit Unit) bool {
-	if (u.Type == TypeExternalTracker || u.Type == TypeExternalWiki) && unit.Type != TypeExternalTracker && unit.Type != TypeExternalWiki {
-		return false
-	}
-	return u.Idx < unit.Idx
+	return u.Priority < unit.Priority
 }
 
 // MaxPerm returns the max perms of this unit
@@ -236,7 +233,7 @@ var (
 		"repo.ext_issues",
 		"/issues",
 		"repo.ext_issues.desc",
-		1,
+		101,
 		perm.AccessModeRead,
 	}
 
@@ -272,7 +269,7 @@ var (
 		"repo.ext_wiki",
 		"/wiki",
 		"repo.ext_wiki.desc",
-		4,
+		102,
 		perm.AccessModeRead,
 	}
 

@@ -388,7 +388,8 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-manifest-nuspec
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
@@ -431,7 +432,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	_, _, err := packages_service.CreatePackageAndAddFile(
+	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -457,6 +458,33 @@ func UploadPackage(ctx *context.Context) {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	nuspecBuf, err := packages_module.CreateHashedBufferFromReaderWithSize(np.NuspecContent, np.NuspecContent.Len())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer nuspecBuf.Close()
+
+	_, err = packages_service.AddFileToPackageVersionInternal(
+		ctx,
+		pv,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: strings.ToLower(fmt.Sprintf("%s.nuspec", np.ID)),
+			},
+			Data: nuspecBuf,
+		},
+	)
+	if err != nil {
+		switch err {
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
