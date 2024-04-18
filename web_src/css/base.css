@@ -496,7 +496,8 @@ img.ui.avatar,
 
 /* add horizontal margin to elements that are outside of .flex-container or .ui.container */
 .page-content > .flash-message {
-  margin: 0 var(--page-margin-x);
+  margin-left: var(--page-margin-x);
+  margin-right: var(--page-margin-x);
 }
 
 .ui.form .fields.error .field textarea,
