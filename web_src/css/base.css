@@ -494,7 +494,7 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-/* add horizontal margin to elements that are outside of any container */
+/* add horizontal margin to elements that are outside of .flex-container or .ui.container */
 .page-content > .flash-message {
   margin: 0 var(--page-margin-x);
 }
