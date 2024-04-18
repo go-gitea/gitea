@@ -17,7 +17,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -382,11 +381,6 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
-	if reviewType == issues_model.ReviewTypeApprove {
-		automerge.MergeScheduledPullRequest(pr)
-	}
-
 	// convert response
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
@@ -477,11 +471,6 @@ func SubmitPullReview(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "SubmitReview", err)
 		}
 		return
-	}
-
-	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
-	if review.Type == issues_model.ReviewTypeApprove {
-		automerge.MergeScheduledPullRequest(pr)
 	}
 
 	// convert response
@@ -914,7 +903,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		return
 	}
 
-	comm, err := pull_service.DismissReview(ctx, review.ID, ctx.Repo.Repository.ID, msg, ctx.Doer, isDismiss, dismissPriors)
+	_, err := pull_service.DismissReview(ctx, review.ID, ctx.Repo.Repository.ID, msg, ctx.Doer, isDismiss, dismissPriors)
 	if err != nil {
 		if pull_service.IsErrDismissRequestOnClosedPR(err) {
 			ctx.Error(http.StatusForbidden, "", err)
@@ -923,9 +912,6 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return
 	}
-
-	// as reviews could have blocked a pending automerge let's recheck
-	automerge.MergeScheduledPullRequest(comm.Issue.PullRequest)
 
 	if review, err = issues_model.GetReviewByID(ctx, review.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
