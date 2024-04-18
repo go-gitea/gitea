@@ -112,6 +112,10 @@ export async function createMonaco(textarea, filename, editorOpts) {
     ...other,
   });
 
+  monaco.editor.addKeybindingRules([
+    {keybinding: monaco.KeyCode.Enter, command: null}, // disable enter from accepting code completion
+  ]);
+
   const model = editor.getModel();
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue({preserveBOM: true});
