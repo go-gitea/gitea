@@ -868,7 +868,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if err := UpdateIssueNumComments(ctx, opts.Issue.ID); err != nil {
 			return err
 		}
 		fallthrough
@@ -1148,8 +1148,8 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if comment.Type == CommentTypeComment {
-		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
+	if comment.Type == CommentTypeComment || comment.Type == CommentTypeReview {
+		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
 			return err
 		}
 	}
@@ -1266,6 +1266,26 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
+func CountCommentsBuilder(issueID int64) *builder.Builder {
+	return builder.Select("count(*)").From("comment").Where(builder.Eq{
+		"issue_id": issueID,
+	}.And(builder.Or(
+		builder.Eq{"type": CommentTypeComment},
+		builder.Eq{"type": CommentTypeReview},
+		builder.Eq{"type": CommentTypeCode},
+	)).And(builder.Neq{
+		"invalidated": true,
+	}))
+}
+
+func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
+	_, err := db.GetEngine(ctx).
+		SetExpr("num_comments", CountCommentsBuilder(issueID)).
+		ID(issueID).
+		Update(new(Issue))
+	return err
+}
+
 // InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	if len(comments) == 0 {
@@ -1298,8 +1318,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	}
 
 	for _, issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
-			issueID, CommentTypeComment, issueID); err != nil {
+		if err := UpdateIssueNumComments(ctx, issueID); err != nil {
 			return err
 		}
 	}
