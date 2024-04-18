@@ -9,8 +9,8 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
@@ -898,8 +898,8 @@
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required maxlength="100">
+						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+						<input name="repo_name" required maxlength="100">
 					</div>
 
 					<div class="text right actions">
@@ -929,8 +929,8 @@
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required>
+						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+						<input name="repo_name" required>
 					</div>
 
 					<div class="text right actions">
@@ -961,8 +961,8 @@
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" required>
 				</div>
 				<div class="required field">
 					<label for="new_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
@@ -1031,8 +1031,8 @@
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" required>
 				</div>
 
 				<div class="text right actions">
