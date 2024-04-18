@@ -1128,15 +1128,6 @@ ALLOW_DATA_URI_IMAGES = true
 
 - `DEFAULT_UI_LOCATION`：在 UI 上的默认时间位置，以便我们可以在 UI 上显示正确的用户时间。例如：Asia/Shanghai
 
-## 任务 (`task`)
-
-任务队列配置已移动到 `queue.task`。然而，以下配置值仍保留以确保向后兼容：
-
-- `QUEUE_TYPE`：**channel**：任务队列类型，可以是 `channel` 或 `redis`。
-- `QUEUE_LENGTH`：**1000**：任务队列长度，仅在 `QUEUE_TYPE` 为 `channel` 时可用。
-- `QUEUE_CONN_STR`：**redis://127.0.0.1:6379/0**：任务队列连接字符串，仅在 `QUEUE_TYPE` 为 `redis` 时可用。
-  如果 redis 需要密码，使用 `redis://123@127.0.0.1:6379/0` 或 `redis+cluster://123@127.0.0.1:6379/0`。
-
 ## 迁移 (`migrations`)
 
 - `MAX_ATTEMPTS`：**3**：每次 http/https 请求的最大尝试次数（用于迁移）。
