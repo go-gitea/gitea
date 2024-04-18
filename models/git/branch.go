@@ -423,7 +423,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		Archived:   optional.Some(false),
 	}
 	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
-	if opts.Repo == opts.BaseRepo {
+	if opts.Repo.ID == opts.BaseRepo.ID {
 		// should also include the base repo's branches
 		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})
 	} else {
