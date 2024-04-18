@@ -8,7 +8,7 @@
 		<div class="repo-description">
 			<div id="repo-desc" class="gt-word-break tw-text-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
-				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
+				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
