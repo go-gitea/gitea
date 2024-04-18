@@ -207,10 +207,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
 				Actor:           user12,
 				CommitAfterUnix: 1489927670,
-				ListOptions: db.ListOptions{
-					PageSize: 10,
-					Page:     1,
-				},
+				MaxCount:        10,
 			},
 			count: 2,
 			want:  []string{"new-commit", "org25/org_fork_repo62:org-fork-new-commit"},
@@ -223,10 +220,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
 				Actor:           user13,
 				CommitAfterUnix: 1489927670,
-				ListOptions: db.ListOptions{
-					PageSize: 10,
-					Page:     1,
-				},
+				MaxCount:        10,
 			},
 			count: 2,
 			want:  []string{"user13/repo11:user-fork-new-commit", "same-name-branch-in-pr"},

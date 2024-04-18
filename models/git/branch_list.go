@@ -90,9 +90,6 @@ type FindBranchOptions struct {
 	CommitBeforeUnix   int64
 	OrderBy            string
 	Keyword            string
-
-	// find branch by pull request
-	PullRequestCond builder.Cond
 }
 
 func (opts FindBranchOptions) ToConds() builder.Cond {
@@ -129,10 +126,6 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 	}
 	if opts.CommitBeforeUnix != 0 {
 		cond = cond.And(builder.Lte{"branch.commit_time": opts.CommitBeforeUnix})
-	}
-
-	if opts.PullRequestCond != nil {
-		cond = cond.And(opts.PullRequestCond)
 	}
 
 	return cond

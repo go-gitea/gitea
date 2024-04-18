@@ -393,11 +393,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 type FindRecentlyPushedNewBranchesOptions struct {
-	db.ListOptions
 	Actor           *user_model.User
 	Repo            *repo_model.Repository
 	BaseRepo        *repo_model.Repository
 	CommitAfterUnix int64
+	MaxCount        int
 }
 
 type RecentlyPushedNewBranch struct {
@@ -432,15 +432,6 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 	}
 	repoIDs := builder.Select("id").From("repository").Where(repoCond)
 
-	// find branches which have already created PRs
-	prBranchIDs := builder.Select("branch.id").From("branch").
-		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
-		Where(builder.And(
-			builder.Eq{"pull_request.base_repo_id": opts.BaseRepo.ID},
-			builder.Eq{"pull_request.base_branch": opts.BaseRepo.DefaultBranch},
-			builder.In("pull_request.head_repo_id", repoIDs),
-		))
-
 	if opts.CommitAfterUnix == 0 {
 		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
@@ -450,11 +441,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		return nil, err
 	}
 
-	if opts.ListOptions.PageSize == 0 {
-		opts.ListOptions.PageSize = 2
-		opts.ListOptions.Page = 1
-	}
-
+	// find all related branches, these branches may already created PRs, we will check later
 	branches, err := db.Find[Branch](ctx, FindBranchOptions{
 		RepoCond:        builder.In("branch.repo_id", repoIDs),
 		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
@@ -462,30 +449,48 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		IsDeletedBranch: optional.Some(false),
 		CommitAfterUnix: opts.CommitAfterUnix,
 		OrderBy:         "branch.updated_unix DESC",
-		// should not use branch name here, because if there are branches with same name in different repos,
-		// we can not detect them correctly
-		PullRequestCond: builder.NotIn("branch.id", prBranchIDs),
-		ListOptions:     opts.ListOptions,
+		ListOptions:     db.ListOptionsAll,
 	})
 	if err != nil {
 		return nil, err
 	}
-	if err := BranchList(branches).LoadRepo(ctx); err != nil {
-		return nil, err
-	}
 
 	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
-	for _, branch := range branches {
-		branchDisplayName := branch.Name
-		if branch.Repo.ID != opts.BaseRepo.ID && branch.Repo.ID != opts.Repo.ID {
-			branchDisplayName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchDisplayName)
-		}
-		newBranches = append(newBranches, &RecentlyPushedNewBranch{
-			BranchDisplayName: branchDisplayName,
-			BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
-			BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
-			CommitTime:        branch.CommitTime,
-		})
+	if opts.MaxCount == 0 {
+		// by default we display 2 recently pushed new branch
+		opts.MaxCount = 2
 	}
+	for _, branch := range branches {
+		// whether branch have already created PR
+		count, err := db.GetEngine(ctx).Table("pull_request").
+			// we should not only use branch name here, because if there are branches with same name in other repos,
+			// we can not detect them correctly
+			Where(builder.Eq{"head_repo_id": branch.RepoID, "head_branch": branch.Name}).Count()
+		if err != nil {
+			return nil, err
+		}
+
+		// if no PR, we add to the result
+		if count == 0 {
+			if err := branch.LoadRepo(ctx); err != nil {
+				return nil, err
+			}
+
+			branchDisplayName := branch.Name
+			if branch.Repo.ID != opts.BaseRepo.ID && branch.Repo.ID != opts.Repo.ID {
+				branchDisplayName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchDisplayName)
+			}
+			newBranches = append(newBranches, &RecentlyPushedNewBranch{
+				BranchDisplayName: branchDisplayName,
+				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
+				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
+				CommitTime:        branch.CommitTime,
+			})
+		}
+		if len(newBranches) == opts.MaxCount {
+			break
+		}
+	}
+
 	return newBranches, nil
 }
