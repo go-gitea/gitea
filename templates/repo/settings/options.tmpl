@@ -9,8 +9,8 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
@@ -317,7 +317,9 @@
 					</div>
 				</div>
 
-				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeWiki) (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeExternalWiki)}}
+				{{$isInternalWikiEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeWiki}}
+				{{$isExternalWikiEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalWiki}}
+				{{$isWikiEnabled := or $isInternalWikiEnabled $isExternalWikiEnabled}}
 				{{$isWikiGlobalDisabled := ctx.Consts.RepoUnitTypeWiki.UnitGlobalDisabled}}
 				{{$isExternalWikiGlobalDisabled := ctx.Consts.RepoUnitTypeExternalWiki.UnitGlobalDisabled}}
 				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}
@@ -331,21 +333,33 @@
 				<div class="field{{if not $isWikiEnabled}} disabled{{end}}" id="wiki_box">
 					<div class="field">
 						<div class="ui radio checkbox{{if $isWikiGlobalDisabled}} disabled{{end}}"{{if $isWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeExternalWiki)}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="false" data-context="#internal_wiki_box" data-target="#external_wiki_box" {{if $isInternalWikiEnabled}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
-					<div class="inline field tw-pl-4">
-						<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
-						<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+					<div id="internal_wiki_box" class="field tw-pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
+						<div class="inline field">
+							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
+							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
+						</div>
+						<div class="inline field">
+							{{$unitInternalWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
+							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
+							<select name="default_wiki_everyone_access" class="ui dropdown">
+								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
+								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
+								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
+								<option value="write" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
+							</select>
+						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeExternalWiki}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-context="#internal_wiki_box" data-target="#external_wiki_box" {{if $isExternalWikiEnabled}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+					<div id="external_wiki_box" class="field tw-pl-4 {{if not $isExternalWikiEnabled}}disabled{{end}}">
 						<label for="external_wiki_url">{{ctx.Locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{ctx.Locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -884,8 +898,8 @@
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required maxlength="100">
+						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+						<input name="repo_name" required maxlength="100">
 					</div>
 
 					<div class="text right actions">
@@ -915,8 +929,8 @@
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required>
+						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+						<input name="repo_name" required>
 					</div>
 
 					<div class="text right actions">
@@ -947,8 +961,8 @@
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" required>
 				</div>
 				<div class="required field">
 					<label for="new_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
@@ -1017,8 +1031,8 @@
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required>
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" required>
 				</div>
 
 				<div class="text right actions">
