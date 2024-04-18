@@ -208,7 +208,7 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 	return err
 }
 
-// GetColumns fetches all boards related to a project
+// GetColumns fetches all columns related to a project
 func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
 	columns := make([]*Column, 0, 5)
 
