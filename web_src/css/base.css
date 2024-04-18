@@ -702,10 +702,6 @@ input:-webkit-autofill:active,
   text-align: right !important;
 }
 
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
 .ui .text.italic {
   font-style: italic;
 }
