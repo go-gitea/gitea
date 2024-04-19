@@ -374,6 +374,7 @@ a.label,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
+  white-space: nowrap;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -388,6 +389,12 @@ a.label,
 
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
+}
+
+.ui.dropdown > .text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
