@@ -14,6 +14,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHasAnyUnitAccess(t *testing.T) {
+	perm := Permission{}
+	assert.False(t, perm.HasAnyUnitAccess())
+
+	perm = Permission{
+		units: []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
+	}
+	assert.False(t, perm.HasAnyUnitAccess())
+	assert.False(t, perm.HasAnyUnitAccessOrEveryoneAccess())
+
+	perm = Permission{
+		units:              []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
+		everyoneAccessMode: map[unit.Type]perm_model.AccessMode{unit.TypeIssues: perm_model.AccessModeRead},
+	}
+	assert.False(t, perm.HasAnyUnitAccess())
+	assert.True(t, perm.HasAnyUnitAccessOrEveryoneAccess())
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeRead,
+		units:      []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
+	}
+	assert.True(t, perm.HasAnyUnitAccess())
+
+	perm = Permission{
+		unitsMode: map[unit.Type]perm_model.AccessMode{unit.TypeWiki: perm_model.AccessModeRead},
+	}
+	assert.True(t, perm.HasAnyUnitAccess())
+}
+
 func TestApplyEveryoneRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
@@ -40,8 +69,8 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 		},
 	}
 	applyEveryoneRepoPermission(&user_model.User{ID: 1}, &perm)
-	assert.True(t, perm.CanRead(unit.TypeWiki))
-	assert.False(t, perm.CanWrite(unit.TypeWiki)) // because there is no unit mode, so the everyone-mode is used as the unit's access mode
+	// it should work the same as "EveryoneAccessMode: none" because the default AccessMode should be applied to units
+	assert.True(t, perm.CanWrite(unit.TypeWiki))
 
 	perm = Permission{
 		units: []*repo_model.RepoUnit{
