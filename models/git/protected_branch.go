@@ -364,7 +364,6 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	protectBranch.WhitelistUserIDs = whitelist
 
 	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushWhitelistUserIDs, opts.ForcePushUserIDs)
-	log.Info("%v", whitelist, err)
 	if err != nil {
 		return err
 	}
