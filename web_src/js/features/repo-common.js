@@ -29,7 +29,9 @@ async function onDownloadArchive(e) {
 }
 
 export function initRepoArchiveLinks() {
-  queryElems('a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
+  for (const el of document.querySelectorAll('a.archive-link[href]') {
+    el.addEventListener('click', onDownloadArchive);
+  }
 }
 
 export function initRepoCloneLink() {
