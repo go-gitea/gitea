@@ -69,6 +69,10 @@ export function queryElemChildren(parent, selector = '*', fn) {
   return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
+export function queryElems(selector, fn) {
+  return applyElemsCallback(document.querySelectorAll(selector), fn);
+}
+
 export function onDomReady(cb) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
