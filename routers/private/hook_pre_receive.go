@@ -311,7 +311,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			if isForcePush {
 				log.Warn("Forbidden: User %d is not allowed to force-push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, private.Response{
-					UserMsg: fmt.Sprintf("Not allowued to force-push to protected branch %s", branchName),
+					UserMsg: fmt.Sprintf("Not allowed to force-push to protected branch %s", branchName),
 				})
 				return
 			}
