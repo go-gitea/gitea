@@ -10,7 +10,7 @@
 			{{- if $description -}}
 				{{- $description | RenderCodeBlock -}}
 			{{- else if .IsRepositoryAdmin -}}
-				<span class="no-description text italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>
+				<span class="no-description tw-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>
 			{{- end -}}
 			{{- if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end -}}
 		</div>
