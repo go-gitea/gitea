@@ -176,14 +176,15 @@ func (p *Permission) LogString() string {
 }
 
 func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
-	if user != nil && user.ID > 0 {
-		for _, u := range perm.units {
+	if user == nil || user.ID <= 0 {
+		return
+	}
+	for _, u := range perm.units {
+		if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.everyoneAccessMode[u.Type] {
 			if perm.everyoneAccessMode == nil {
 				perm.everyoneAccessMode = make(map[unit.Type]perm_model.AccessMode)
 			}
-			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.everyoneAccessMode[u.Type] {
-				perm.everyoneAccessMode[u.Type] = u.EveryoneAccessMode
-			}
+			perm.everyoneAccessMode[u.Type] = u.EveryoneAccessMode
 		}
 	}
 }
