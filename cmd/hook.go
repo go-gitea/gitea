@@ -448,21 +448,24 @@ Gitea or set your environment appropriately.`, "")
 
 func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 	for _, res := range results {
-		if !res.Message {
-			continue
-		}
-
-		fmt.Fprintln(os.Stderr, "")
-		if res.Create {
-			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
-			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-		} else {
-			fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-		}
-		fmt.Fprintln(os.Stderr, "")
-		os.Stderr.Sync()
+		hookPrintResult(res.Message, res.Create, res.Branch, res.URL)
 	}
+}
+
+func hookPrintResult(output, isCreate bool, branch, url string) {
+	if !output {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "")
+	if isCreate {
+		fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
+		fmt.Fprintf(os.Stderr, "  %s\n", url)
+	} else {
+		fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
+		fmt.Fprintf(os.Stderr, "  %s\n", url)
+	}
+	fmt.Fprintln(os.Stderr, "")
+	os.Stderr.Sync()
 }
 
 func pushOptions() map[string]string {
@@ -690,6 +693,12 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 	err = writeFlushPktLine(ctx, os.Stdout)
+
+	if err == nil {
+		for _, res := range resp.Results {
+			hookPrintResult(res.ShouldShowMessage, res.IsCreatePR, res.HeadBranch, res.URL)
+		}
+	}
 
 	return err
 }

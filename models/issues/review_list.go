@@ -38,12 +38,11 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIDs := container.Set[int64]{}
-	for i := 0; i < len(reviews); i++ {
-		issueIDs.Add(reviews[i].IssueID)
-	}
+	issueIDs := container.FilterSlice(reviews, func(review *Review) (int64, bool) {
+		return review.IssueID, true
+	})
 
-	issues, err := GetIssuesByIDs(ctx, issueIDs.Values())
+	issues, err := GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		return err
 	}

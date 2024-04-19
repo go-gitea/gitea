@@ -572,7 +572,7 @@
 			</form>
 		{{end}}
 
-		<button class="tw-mt-1 fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
+		<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock">
 			{{if .Issue.IsLocked}}
 				{{svg "octicon-key"}}
 				{{ctx.Locale.Tr "repo.issues.unlock"}}

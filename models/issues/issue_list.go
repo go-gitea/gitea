@@ -21,16 +21,15 @@ type IssueList []*Issue
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		if issue.Repo == nil {
-			repoIDs.Add(issue.RepoID)
+			return issue.RepoID, true
 		}
 		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
-			repoIDs.Add(issue.PullRequest.HeadRepoID)
+			return issue.PullRequest.HeadRepoID, true
 		}
-	}
-	return repoIDs.Values()
+		return 0, false
+	})
 }
 
 // LoadRepositories loads issues' all repositories
@@ -74,11 +73,9 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
-	posterIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		posterIDs.Add(issue.PosterID)
-	}
-	return posterIDs.Values()
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.PosterID, true
+	})
 }
 
 func (issues IssueList) loadPosters(ctx context.Context) error {
@@ -193,11 +190,9 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	ids := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		ids.Add(issue.MilestoneID)
-	}
-	return ids.Values()
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.MilestoneID, true
+	})
 }
 
 func (issues IssueList) loadMilestones(ctx context.Context) error {

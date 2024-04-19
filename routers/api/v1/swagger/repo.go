@@ -421,3 +421,9 @@ type swaggerRepoTasksList struct {
 	// in:body
 	Body api.ActionTaskResponse `json:"body"`
 }
+
+// swagger:response Compare
+type swaggerCompare struct {
+	// in:body
+	Body api.Compare `json:"body"`
+}
