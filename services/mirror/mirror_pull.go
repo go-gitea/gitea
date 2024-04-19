@@ -13,6 +13,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -30,10 +31,15 @@ const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
+	u, err := giturl.Parse(addr)
+	if err != nil {
+		return fmt.Errorf("invalid addr: %v", err)
+	}
+
 	remoteName := m.GetRemoteName()
 	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
-	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -70,7 +76,9 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 	}
 
-	m.Repo.OriginalURL = addr
+	// erase authentication before storing in database
+	u.User = nil
+	m.Repo.OriginalURL = u.String()
 	return repo_model.UpdateRepositoryCols(ctx, m.Repo, "original_url")
 }
 

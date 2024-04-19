@@ -1,4 +1,4 @@
-<div class="flex-list">
+<div class="flex-list run-list">
 	{{if not .Runs}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
@@ -28,14 +28,14 @@
 			</div>
 			<div class="flex-item-trailing">
 				{{if .RefLink}}
-					<a class="ui label tw-px-1 tw-mx-0" href="{{.RefLink}}">{{.PrettyRef}}</a>
+					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}">{{.PrettyRef}}</a>
 				{{else}}
-					<span class="ui label tw-px-1 tw-mx-0">{{.PrettyRef}}</span>
+					<span class="ui label run-list-ref gt-ellipsis">{{.PrettyRef}}</span>
 				{{end}}
-			</div>
-			<div class="run-list-item-right">
-				<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
-				<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+				<div class="run-list-item-right">
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
+					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+				</div>
 			</div>
 		</div>
 	{{end}}

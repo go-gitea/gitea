@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {initFomanticApiPatch} from './fomantic/api.js';
 import {initAriaCheckboxPatch} from './fomantic/checkbox.js';
+import {initAriaFormFieldPatch} from './fomantic/form.js';
 import {initAriaDropdownPatch} from './fomantic/dropdown.js';
 import {initAriaModalPatch} from './fomantic/modal.js';
 import {initFomanticTransition} from './fomantic/transition.js';
@@ -27,6 +28,7 @@ export function initGiteaFomantic() {
 
   // Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
   initAriaCheckboxPatch();
+  initAriaFormFieldPatch();
   initAriaDropdownPatch();
   initAriaModalPatch();
 }
