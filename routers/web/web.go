@@ -54,10 +54,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	// GzipMinSize represents min size to compress for the body size of response
-	GzipMinSize = 1400
-)
+const GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -1115,7 +1112,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/cancel", repo.MigrateCancelPost)
 		})
 	},
-		reqSignIn, context.RepoAssignment, context.RepoRef(), reqRepoAdmin,
+		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
@@ -1613,6 +1610,7 @@ func registerRoutes(m *web.Route) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "GlobalNotFound"))
 		ctx.NotFound("", nil)
 	})
 }
