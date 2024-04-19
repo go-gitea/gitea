@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: pipx install poetry
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,7 +42,6 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: pip install poetry
       - run: make deps-py
       - run: make deps-frontend
       - run: make lint-templates
@@ -52,11 +52,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: pipx install poetry
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: poetry
-      - run: pip install poetry
       - run: make deps-py
       - run: make lint-yaml
 
