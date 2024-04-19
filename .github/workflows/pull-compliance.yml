@@ -35,6 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: poetry
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -54,6 +55,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: poetry
       - run: pip install poetry
       - run: make deps-py
       - run: make lint-yaml
