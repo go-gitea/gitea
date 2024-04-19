@@ -11,12 +11,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
-	// premigration
-	type OAuth2Application struct {
-		ID int64
-	}
+// premigration
+type OAuth2Application struct {
+	ID int64
+}
 
+func (OAuth2Application) TableName() string {
+	return "oauth2_application"
+}
+
+func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 	// Prepare and load the testing database
 	x, deferable := base.PrepareTestEnv(t, 0, new(OAuth2Application))
 	defer deferable()
