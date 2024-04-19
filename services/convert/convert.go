@@ -183,7 +183,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 // ToActionTask convert a actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_model.ActionTask) *api.ActionTask {
 	if err := t.LoadAttributes(ctx); err != nil {
-		log.Warn("LoadAttributes of ActionTask: %v", err)
+		panic(fmt.Sprintf("failed to execute ActionTask.LoadAttributes(): %v", err))
 	}
 
 	return &api.ActionTask{

@@ -9,6 +9,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -52,18 +53,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	page := ctx.FormInt("page")
-	limit := convert.ToCorrectPageSize(ctx.FormInt("limit"))
-
-	opts := actions_model.FindTaskOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: limit,
-		},
-		Status:      actions_model.StatusUnknown, // Unknown means all
-		IDOrderDesc: true,
-	}
+	opts := utils.GetListOptions(ctx)
 
 	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
