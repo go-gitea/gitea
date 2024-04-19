@@ -35,7 +35,7 @@ const (
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound("EnableKanbanBoard", nil)
+		ctx.NotFound("EnableProjects", nil)
 		return
 	}
 }

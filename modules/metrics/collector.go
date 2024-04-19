@@ -147,8 +147,8 @@ func NewCollector() Collector {
 			nil, nil,
 		),
 		ProjectColumns: prometheus.NewDesc(
-			namespace+"projects_boards",
-			"Number of project boards",
+			namespace+"projects_boards", // TODO: change the key name will affect the consume's result history
+			"Number of project columns",
 			nil, nil,
 		),
 		PublicKeys: prometheus.NewDesc(
