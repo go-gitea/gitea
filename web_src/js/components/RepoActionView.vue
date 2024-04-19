@@ -388,7 +388,7 @@ export function initRepositoryActionView() {
         </button>
       </div>
       <div class="action-commit-summary">
-        <a class="muted" :href="run.workflowLink">{{ run.workflowID }}</a>:
+        <a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:
         <div v-if="run.isSchedule">
           {{ locale.scheduled }}
         </div>
