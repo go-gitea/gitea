@@ -47,10 +47,19 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
 		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeNone},
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
 	applyEveryoneRepoPermission(nil, &perm)
+	assert.False(t, perm.CanRead(unit.TypeWiki))
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeNone,
+		units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
+		},
+	}
+	applyEveryoneRepoPermission(&user_model.User{ID: 0}, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
