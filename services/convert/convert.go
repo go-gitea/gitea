@@ -106,7 +106,6 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	return branch, nil
 }
 
-
 // getWhitelistEntities returns the names of the entities that are in the whitelist
 func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
 	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
@@ -135,7 +134,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
-  	forcePushWhitelistUsernames := getWhitelistEntities(readers, bp.ForcePushWhitelistUserIDs)
+	forcePushWhitelistUsernames := getWhitelistEntities(readers, bp.ForcePushWhitelistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 
@@ -145,7 +144,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
-  	forcePushWhitelistTeams := getWhitelistEntities(teamReaders, bp.ForcePushWhitelistTeamIDs)
+	forcePushWhitelistTeams := getWhitelistEntities(teamReaders, bp.ForcePushWhitelistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
