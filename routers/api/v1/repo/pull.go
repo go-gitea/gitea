@@ -1085,8 +1085,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	log.Info("Base branch: %s", baseBranch)
 	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
 	// Check if base branch is valid.
-	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound("IsBranchExist")
+	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) && !ctx.Repo.GitRepo.IsTagExist(baseBranch) {
+		ctx.NotFound("IsBranchExist && IsTagExist")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -1149,7 +1149,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// Check if head branch is valid.
-	if !headGitRepo.IsBranchExist(headBranch) {
+	if !headGitRepo.IsBranchExist(headBranch) && !headGitRepo.IsTagExist(headBranch) {
 		headGitRepo.Close()
 		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
