@@ -242,7 +242,8 @@ func Routes() *web.Route {
 
 	if setting.EnableGzip {
 		// random jitter is recommended by: https://pkg.go.dev/github.com/klauspost/compress/gzhttp#readme-breach-mitigation
-		wrapper, err := gzhttp.NewWrapper(gzhttp.RandomJitter(32, 0, false), gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6)) // 6 is a good general tradeoff between speed, CPU usage, and compression
+		 // compression level 6 is the gzip default and a good general tradeoff between speed, CPU usage, and compression
+		wrapper, err := gzhttp.NewWrapper(gzhttp.RandomJitter(32, 0, false), gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6))
 		if err != nil {
 			log.Fatal("gzhttp.NewWrapper failed: %v", err)
 		}
