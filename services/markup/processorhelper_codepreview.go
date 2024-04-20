@@ -87,7 +87,6 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	lineCodes := make([]string, 0, lineCount)
 	for i := opts.LineStart; i <= opts.LineStop; i++ {
 		line, err := reader.ReadString('\n')
-
 		if err != nil && line == "" {
 			break
 		}
