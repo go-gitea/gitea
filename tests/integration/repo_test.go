@@ -28,11 +28,9 @@ func TestViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	noDescription := htmlDoc.doc.Find(".repo-description").Children()
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
-	assert.True(t, noDescription.HasClass("no-description"))
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
@@ -175,30 +173,6 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
-}
-
-// TestViewAsRepoAdmin tests PR #2167
-func TestViewAsRepoAdmin(t *testing.T) {
-	for user, expectedNoDescription := range map[string]bool{
-		"user2": true,
-		"user4": false,
-	} {
-		defer tests.PrepareTestEnv(t)()
-
-		session := loginUser(t, user)
-
-		req := NewRequest(t, "GET", "/user2/repo1.git")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		noDescription := htmlDoc.doc.Find(".repo-description").Children()
-		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
-		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
-
-		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
-		assert.True(t, repoTopics.HasClass("repo-topic"))
-		assert.True(t, repoSummary.HasClass("repository-menu"))
-	}
 }
 
 // TestViewFileInRepo repo description, topics and summary should not be displayed when viewing a file

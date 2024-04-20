@@ -7,12 +7,8 @@
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="repo-description gt-word-break">
 			{{- $description := .Repository.DescriptionHTML ctx -}}
-			{{- if $description -}}
-				{{- $description | RenderCodeBlock -}}
-			{{- else if .IsRepositoryAdmin -}}
-				<span class="no-description tw-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>
-			{{- end -}}
-			{{- if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end -}}
+			{{if $description}}{{$description | RenderCodeBlock}}{{end}}
+			{{if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
 		</div>
 		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
 			{{/* it should match the code in issue-home.js */}}
