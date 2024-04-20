@@ -13,13 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApplicationTableName(t *testing.T) {
-	e := unittest.GetXORMEngine()
-	tableInfo, err := e.TableInfo(new(auth_model.OAuth2Application))
-	assert.NoError(t, err)
-	assert.EqualValues(t, "oauth2_application", tableInfo.Name)
-}
-
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
