@@ -243,7 +243,7 @@ func Routes() *web.Route {
 	if setting.EnableGzip {
 		wrapper, err := gzhttp.NewWrapper(gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6)) // 6 is a good general tradeoff between speed, CPU usage, and compression
 		if err != nil {
-			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+			log.Fatal("gzhttp.NewWrapper failed: %v", err)
 		}
 		mid = append(mid, wrapper)
 	}
