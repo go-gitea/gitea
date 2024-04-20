@@ -387,7 +387,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	// In case the new owner would not have sufficient access to the repo, give access rights for read
-	hasAccess, err := access_model.HasAccess(ctx, newOwner.ID, repo)
+	hasAccess, err := access_model.HasAnyUnitAccess(ctx, newOwner.ID, repo)
 	if err != nil {
 		return err
 	}
