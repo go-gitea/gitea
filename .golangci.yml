@@ -47,27 +47,37 @@ linters-settings:
     errorCode: 1
     warningCode: 1
     rules:
+      - name: atomic
+      - name: bare-return
       - name: blank-imports
+      - name: constant-logical-expr
       - name: context-as-argument
       - name: context-keys-type
       - name: dot-imports
+      - name: duplicated-imports
+      - name: empty-lines
+      - name: error-naming
       - name: error-return
       - name: error-strings
-      - name: error-naming
+      - name: errorf
       - name: exported
+      - name: identical-branches
       - name: if-return
       - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
+      - name: indent-error-flow
+      - name: modifies-value-receiver
       - name: package-comments
       - name: range
       - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: string-of-int
+      - name: superfluous-else
       - name: time-naming
+      - name: unconditional-recursion
       - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: duplicated-imports
-      - name: modifies-value-receiver
+      - name: unreachable-code
+      - name: var-declaration
+      - name: var-naming
   gofumpt:
     extra-rules: true
   depguard:

@@ -217,7 +217,6 @@ func SearchIssues(ctx *context.APIContext) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {

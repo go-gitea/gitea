@@ -1061,7 +1061,6 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		isSameRepo = true
 		headUser = ctx.Repo.Owner
 		headBranch = headInfos[0]
-
 	} else if len(headInfos) == 2 {
 		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
 		if err != nil {
@@ -1075,7 +1074,6 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headBranch = headInfos[1]
 		// The head repository can also point to the same repo
 		isSameRepo = ctx.Repo.Owner.ID == headUser.ID
-
 	} else {
 		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
