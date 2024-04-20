@@ -4,7 +4,6 @@
 package web
 
 import (
-	"compress/gzip"
 	gocontext "context"
 	"net/http"
 	"strings"
