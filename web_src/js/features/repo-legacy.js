@@ -4,6 +4,7 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
   initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
+  initIssueProjectBoardSelector,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -182,7 +183,7 @@ export function initRepoCommentForm() {
 
       // TODO: Which thing should be done for choosing review requests
       // to make chosen items be shown on time here?
-      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify' || selector === 'select-issue-project-board') {
         return false;
       }
 
@@ -222,7 +223,7 @@ export function initRepoCommentForm() {
         $(this).find('.octicon-check').addClass('tw-invisible');
       });
 
-      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify' || selector === 'select-issue-project-board') {
         return false;
       }
 
@@ -394,6 +395,7 @@ export function initRepository() {
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+    initIssueProjectBoardSelector();
 
     initRepoPullRequestMergeForm();
     initRepoPullRequestCommitStatus();

@@ -1204,6 +1204,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
+				m.Post("/move_project_board/{boardID}", repo.MoveBoardForIssue)
 			}, context.RepoMustNotBeArchived())
 
 			m.Group("/{index}", func() {

@@ -2044,6 +2044,17 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
+	canWriteProjects := ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteProjects
+
+	if canWriteProjects && issue.Project != nil {
+		ctx.Data["ProjectBoards"], err = issue.Project.GetBoards(ctx)
+		if err != nil {
+			ctx.ServerError("Project.GetBoards", err)
+			return
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

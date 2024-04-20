@@ -69,7 +69,7 @@ func (Board) TableName() string {
 }
 
 // NumIssues return counter of all issues assigned to the board
-func (b *Board) NumIssues(ctx context.Context) int {
+func (b *Board) NumIssues(ctx context.Context) (int64, error) {
 	c, err := db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", b.ProjectID).
 		And("project_board_id=?", b.ID).
@@ -77,9 +77,9 @@ func (b *Board) NumIssues(ctx context.Context) int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
-		return 0
+		return 0, err
 	}
-	return int(c)
+	return c, nil
 }
 
 func init() {
@@ -214,6 +214,19 @@ func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrProjectBoardNotExist{BoardID: boardID}
+	}
+
+	return board, nil
+}
+
+// GetBoard fetches the current default board of a project
+func GetDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
+	board := new(Board)
+	has, err := db.GetEngine(ctx).Where("project_id = ? AND `default` = ?", projectID, true).Get(board)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectBoardNotExist{BoardID: -1}
 	}
 
 	return board, nil

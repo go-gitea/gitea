@@ -574,6 +574,72 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+// MoveBoardForIssue move a issue to other board
+func MoveBoardForIssue(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.ServerError("GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if err := issue.LoadProject(ctx); err != nil {
+		ctx.ServerError("LoadProject", err)
+		return
+	}
+	if issue.Project == nil {
+		ctx.NotFound("Project not found", nil)
+		return
+	}
+
+	if err = issue.LoadProjectIssue(ctx); err != nil {
+		ctx.ServerError("LoadProjectIssue", err)
+		return
+	}
+
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("ProjectBoardNotExist", nil)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+		return
+	}
+
+	if board.ProjectID != issue.Project.ID {
+		ctx.NotFound("BoardNotInProject", nil)
+		return
+	}
+
+	err = project_model.MoveIssueToBoardTail(ctx, issue.ProjectIssue, board)
+	if err != nil {
+		ctx.NotFound("MoveIssueToBoardTail", nil)
+		return
+	}
+
+	issue.Repo = ctx.Repo.Repository
+
+	ctx.JSONRedirect(issue.HTMLURL())
+}
+
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.Context) {
 	if ctx.Doer == nil {
