@@ -374,8 +374,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	// Check access.
-	if !ctx.Repo.Permission.HasAccess() {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
