@@ -11,7 +11,7 @@
 	{{end}}
 
 	{{if not .ReadmeInList}}
-		<div id="repo-file-commit-box" class="ui top attached header list-header tw-mb-4 tw-flex tw-justify-between">
+		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 tw-flex tw-justify-between">
 			<div class="latest-commit">
 				{{template "repo/latest_commit" .}}
 			</div>
@@ -84,7 +84,7 @@
 			{{end}}
 		</div>
 	</h4>
-	<div class="ui attached table unstackable segment">
+	<div class="ui bottom attached table unstackable segment">
 		{{if not (or .IsMarkup .IsRenderedHTML)}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		{{end}}
@@ -129,7 +129,7 @@
 					</tbody>
 				</table>
 				<div class="code-line-menu tippy-target">
-					{{if $.Permission.CanRead $.UnitTypeIssues}}
+					{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 						<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
 					{{end}}
 					<a class="item view_git_blame" role="menuitem" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.view_git_blame"}}</a>
