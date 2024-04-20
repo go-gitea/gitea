@@ -245,9 +245,7 @@ func Routes() *web.Route {
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		mid = append(mid, func(h http.Handler) http.Handler {
-			return wrapper(h)
-		})
+		mid = append(mid, wrapper)
 	}
 
 	if setting.Service.EnableCaptcha {
