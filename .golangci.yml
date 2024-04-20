@@ -100,40 +100,21 @@ issues:
   max-same-issues: 0
   exclude-dirs: [node_modules, public, web_src]
   exclude-rules:
-    # Exclude some linters from running on tests files.
     - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
-        - unparam
-        - staticcheck
+      linters: [gocyclo, errcheck, dupl, gosec, unparam, staticcheck]
     - path: models/migrations/v
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
+      linters: [gocyclo, errcheck, dupl, gosec]
     - path: cmd
-      linters:
-        - forbidigo
-    - linters:
-        - dupl
-      text: "webhook"
-    - linters:
-        - gocritic
-      text: "`ID' should not be capitalized"
-    - linters:
-        - unused
-        - deadcode
-      text: "swagger"
-    - linters:
-        - staticcheck
-      text: "argument x is overwritten before first use"
+      linters: [forbidigo]
+    - text: "webhook"
+      linters: [dupl]
+    - text: "`ID' should not be capitalized"
+      linters: [gocritic]
+    - text: "swagger"
+      linters: [unused, deadcode]
+    - text: "argument x is overwritten before first use"
+      linters: [staticcheck]
     - text: "commentFormatting: put a space between `//` and comment text"
-      linters:
-        - gocritic
+      linters: [gocritic]
     - text: "exitAfterDefer:"
-      linters:
-        - gocritic
+      linters: [gocritic]
