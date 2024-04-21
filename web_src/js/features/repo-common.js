@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {hideElem, queryElems, showElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
 import {sleep} from '../utils.js';
@@ -9,7 +9,7 @@ async function onDownloadArchive(e) {
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
   const el = e.target.closest('a.archive-link[href]');
   const targetLoading = el.closest('.ui.dropdown') ?? el;
-  targetLoading.classList.add('is-loading', 'loading-icon-2px');
+  targetLoading.classList.add('is-loading', 'small-loading-icon');
   try {
     for (let tryCount = 0; ;tryCount++) {
       const response = await POST(el.href);
@@ -24,12 +24,12 @@ async function onDownloadArchive(e) {
     console.error(e);
     showErrorToast(`Failed to download the archive: ${e}`, {duration: 2500});
   } finally {
-    targetLoading.classList.remove('is-loading', 'loading-icon-2px');
+    targetLoading.classList.remove('is-loading', 'small-loading-icon');
   }
 }
 
 export function initRepoArchiveLinks() {
-  for (const el of document.querySelectorAll('a.archive-link[href]') {
+  for (const el of document.querySelectorAll('a.archive-link[href]')) {
     el.addEventListener('click', onDownloadArchive);
   }
 }
