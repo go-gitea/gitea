@@ -102,6 +102,18 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RootData"] = ctx.Data
+	tmplCtx["Consts"] = map[string]any{
+		"RepoUnitTypeCode":            unit.TypeCode,
+		"RepoUnitTypeIssues":          unit.TypeIssues,
+		"RepoUnitTypePullRequests":    unit.TypePullRequests,
+		"RepoUnitTypeReleases":        unit.TypeReleases,
+		"RepoUnitTypeWiki":            unit.TypeWiki,
+		"RepoUnitTypeExternalWiki":    unit.TypeExternalWiki,
+		"RepoUnitTypeExternalTracker": unit.TypeExternalTracker,
+		"RepoUnitTypeProjects":        unit.TypeProjects,
+		"RepoUnitTypePackages":        unit.TypePackages,
+		"RepoUnitTypeActions":         unit.TypeActions,
+	}
 	return tmplCtx
 }
 

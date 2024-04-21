@@ -30,7 +30,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 )
 
-func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName string) {
+func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64) {
 	if sourceID == 0 {
 		return
 	}
@@ -47,7 +47,6 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 
 	u.LoginType = source.Type
 	u.LoginSource = source.ID
-	u.LoginName = loginName
 }
 
 // CreateUser create a user
@@ -83,12 +82,13 @@ func CreateUser(ctx *context.APIContext) {
 		Passwd:             form.Password,
 		MustChangePassword: true,
 		LoginType:          auth.Plain,
+		LoginName:          form.LoginName,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
 	}
 
-	parseAuthSource(ctx, u, form.SourceID, form.LoginName)
+	parseAuthSource(ctx, u, form.SourceID)
 	if ctx.Written() {
 		return
 	}

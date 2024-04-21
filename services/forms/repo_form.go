@@ -134,6 +134,7 @@ type RepoSettingForm struct {
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	DefaultWikiBranch                     string
+	DefaultWikiEveryoneAccess             string
 	ExternalWikiURL                       string
 	EnableIssues                          bool
 	EnableExternalTracker                 bool

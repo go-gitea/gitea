@@ -130,11 +130,11 @@ func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
 	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.String()
+			m[u.NameKey] = t.AccessMode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.String()
+			m[u.Unit().NameKey] = u.AccessMode.ToString()
 		}
 	}
 	return m
@@ -174,23 +174,27 @@ func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	return err
 }
 
-// UnitEnabled returns if the team has the given unit type enabled
+// UnitEnabled returns true if the team has the given unit type enabled
 func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
-// UnitAccessMode returns if the team has the given unit type enabled
+// UnitAccessMode returns the access mode for the given unit type, "none" for non-existent units
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
+	accessMode, _ := t.UnitAccessModeEx(ctx, tp)
+	return accessMode
+}
+
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return unit.AccessMode
+	for _, u := range t.Units {
+		if u.Type == tp {
+			return u.AccessMode, true
 		}
 	}
-	return perm.AccessModeNone
+	return perm.AccessModeNone, false
 }
 
 // IsUsableTeamName tests if a name could be as team name

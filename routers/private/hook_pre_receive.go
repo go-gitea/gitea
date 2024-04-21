@@ -481,11 +481,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			})
 			return false
 		}
-		ctx.userPerm.Units = ctx.Repo.Repository.Units
-		ctx.userPerm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
-		for _, u := range ctx.Repo.Repository.Units {
-			ctx.userPerm.UnitsMode[u.Type] = ctx.userPerm.AccessMode
-		}
+		ctx.userPerm.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.userPerm.AccessMode)
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
