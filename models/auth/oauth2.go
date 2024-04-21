@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -294,7 +295,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 		return nil, err
 	}
 	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID mismatch")
+		return nil, errors.New("UID mismatch")
 	}
 	builtinApps := BuiltinApplications()
 	if _, builtin := builtinApps[app.ClientID]; builtin {
