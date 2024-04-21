@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard feeds">
 	{{template "user/dashboard/navbar" .}}
+	{{template "base/alert" .}}
 	<div class="ui container flex-container">
-		{{template "base/alert" .}}
 		<div class="flex-container-main">
 			{{template "user/heatmap" .}}
 			{{template "user/dashboard/feeds" .}}
