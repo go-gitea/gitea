@@ -27,6 +27,9 @@ linters:
 run:
   timeout: 10m
 
+output:
+  sort-results: true
+
 linters-settings:
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
