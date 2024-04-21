@@ -48,16 +48,13 @@ import (
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
-	"github.com/NYTimes/gziphandler"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	// GzipMinSize represents min size to compress for the body size of response
-	GzipMinSize = 1400
-)
+const GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -244,11 +241,13 @@ func Routes() *web.Route {
 	var mid []any
 
 	if setting.EnableGzip {
-		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
+		// random jitter is recommended by: https://pkg.go.dev/github.com/klauspost/compress/gzhttp#readme-breach-mitigation
+		// compression level 6 is the gzip default and a good general tradeoff between speed, CPU usage, and compression
+		wrapper, err := gzhttp.NewWrapper(gzhttp.RandomJitter(32, 0, false), gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6))
 		if err != nil {
-			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+			log.Fatal("gzhttp.NewWrapper failed: %v", err)
 		}
-		mid = append(mid, h)
+		mid = append(mid, wrapper)
 	}
 
 	if setting.Service.EnableCaptcha {
@@ -261,7 +260,7 @@ func Routes() *web.Route {
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
-	routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -1115,7 +1114,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/cancel", repo.MigrateCancelPost)
 		})
 	},
-		reqSignIn, context.RepoAssignment, context.RepoRef(), reqRepoAdmin,
+		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
@@ -1613,6 +1612,7 @@ func registerRoutes(m *web.Route) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "GlobalNotFound"))
 		ctx.NotFound("", nil)
 	})
 }
