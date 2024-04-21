@@ -231,8 +231,8 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 
 func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifers []*ReviewRequestNotifier) {
 	for _, reviewNotifer := range reviewNotifers {
-		if reviewNotifer.Reviwer != nil {
-			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifer.Reviwer, reviewNotifer.IsAdd, reviewNotifer.Comment)
+		if reviewNotifer.Reviewer != nil {
+			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifer.Reviewer, reviewNotifer.IsAdd, reviewNotifer.Comment)
 		} else if reviewNotifer.ReviewTeam != nil {
 			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifer.ReviewTeam, reviewNotifer.IsAdd, reviewNotifer.Comment); err != nil {
 				log.Error("teamReviewRequestNotify: %v", err)

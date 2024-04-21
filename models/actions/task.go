@@ -220,7 +220,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if err != nil {
 		return nil, false, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	e := db.GetEngine(ctx)
 
@@ -322,7 +322,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	task.Job = job
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, false, err
 	}
 
@@ -351,7 +351,7 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 	if err != nil {
 		return nil, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	e := db.GetEngine(ctx)
 
@@ -412,7 +412,7 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		}
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, err
 	}
 
