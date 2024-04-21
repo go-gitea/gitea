@@ -20,6 +20,8 @@ type User struct {
 	// the user's authentication sign-in name.
 	// default: empty
 	LoginName string `json:"login_name"`
+	// The ID of the user's Authentication Source
+	SourceID int64 `json:"source_id"`
 	// the user's full name
 	FullName string `json:"full_name"`
 	// swagger:strfmt email
@@ -131,11 +133,4 @@ type UserBadge struct {
 type UserBadgeOption struct {
 	// example: ["badge1","badge2"]
 	BadgeSlugs []string `json:"badge_slugs" binding:"Required"`
-}
-
-// BadgeList
-// swagger:response BadgeList
-type BadgeList struct {
-	// in:body
-	Body []Badge `json:"body"`
 }

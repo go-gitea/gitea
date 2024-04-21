@@ -6,19 +6,19 @@
 			{{end}}
 		</div>
 	{{end}}
-	<div class="content gt-p-0 tw-w-full">
-		<div class="gt-df gt-items-start">
+	<div class="content tw-p-0 tw-w-full">
+		<div class="tw-flex tw-items-start">
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
 			</div>
 			<a class="issue-card-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
-				<a role="button" class="issue-card-unpin muted gt-df gt-ac" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
+				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
 		</div>
-		<div class="meta gt-my-2">
+		<div class="meta tw-my-1">
 			<span class="text light grey muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
 				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
@@ -32,40 +32,40 @@
 			</span>
 		</div>
 		{{if .MilestoneID}}
-		<div class="meta gt-my-2">
+		<div class="meta tw-my-1">
 			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
-				{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
-				<span class="gt-vm">{{.Milestone.Name}}</span>
+				{{svg "octicon-milestone" 16 "tw-mr-1 tw-align-middle"}}
+				<span class="tw-align-middle">{{.Milestone.Name}}</span>
 			</a>
 		</div>
 		{{end}}
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}
-		<div class="meta gt-my-2">
+		<div class="meta tw-my-1">
 			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
-				<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
-				<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
+				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
+				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 			</a>
 		</div>
 		{{end}}
 		{{end}}
 		{{$tasks := .GetTasks}}
 		{{if gt $tasks 0}}
-			<div class="meta gt-my-2">
-				{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
-				<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
+			<div class="meta tw-my-1">
+				{{svg "octicon-checklist" 16 "tw-mr-1 tw-align-middle"}}
+				<span class="tw-align-middle">{{.GetTasksDone}} / {{$tasks}}</span>
 			</div>
 		{{end}}
 	</div>
 
 	{{if or .Labels .Assignees}}
-	<div class="extra content labels-list gt-p-0 gt-pt-2">
+	<div class="extra content labels-list tw-p-0 tw-pt-1">
 		{{range .Labels}}
-			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
+			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
 		{{end}}
 		<div class="right floated">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini tw-mr-2"}}</a>
 			{{end}}
 		</div>
 	</div>

@@ -126,7 +126,7 @@ func timeSinceUnix(then, now time.Time, _ translation.Locale) template.HTML {
 	}
 
 	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
-	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
+	htm := fmt.Sprintf(`<relative-time prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
 		attrs, then.Format(time.RFC3339), friendlyText)
 	return template.HTML(htm)
 }
@@ -134,7 +134,7 @@ func timeSinceUnix(then, now time.Time, _ translation.Locale) template.HTML {
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 	if setting.UI.PreferredTimestampTense == "absolute" {
-		return DateTime("full", then, `class="time-since"`)
+		return DateTime("full", then)
 	}
 	return timeSinceUnix(then, time.Now(), lang)
 }

@@ -43,7 +43,8 @@ func TestRender_Commits(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
 			Links: markup.Links{
-				Base: markup.TestRepoURL,
+				AbsolutePrefix: true,
+				Base:           markup.TestRepoURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -96,7 +97,8 @@ func TestRender_CrossReferences(t *testing.T) {
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			Links: markup.Links{
-				Base: setting.AppSubURL,
+				AbsolutePrefix: true,
+				Base:           setting.AppSubURL,
 			},
 			Metas: localMetas,
 		}, input)
@@ -425,6 +427,10 @@ func TestRender_ShortLinks(t *testing.T) {
 	otherImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+Other.jpg")
 	encodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+%23.jpg")
 	notencodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
+	renderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "markdown_file.md")
+	unrenderableFileURL := util.URLJoin(tree, "file.zip")
+	unrenderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "file.zip")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -479,6 +485,14 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Link]] [[Other Link]] [[Link?]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[markdown_file.md]]",
+		`<p><a href="`+renderableFileURL+`" rel="nofollow">markdown_file.md</a></p>`,
+		`<p><a href="`+renderableFileURLWiki+`" rel="nofollow">markdown_file.md</a></p>`)
+	test(
+		"[[file.zip]]",
+		`<p><a href="`+unrenderableFileURL+`" rel="nofollow">file.zip</a></p>`,
+		`<p><a href="`+unrenderableFileURLWiki+`" rel="nofollow">file.zip</a></p>`)
 	test(
 		"[[Link #.jpg]]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`,
@@ -588,7 +602,8 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		err := markup.PostProcess(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
-				Base: "https://example.com",
+				AbsolutePrefix: true,
+				Base:           "https://example.com",
 			},
 			Metas: localMetas,
 		}, strings.NewReader(input), &res)

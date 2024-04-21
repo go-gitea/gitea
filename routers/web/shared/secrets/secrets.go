@@ -9,8 +9,8 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	secret_service "code.gitea.io/gitea/services/secrets"
@@ -38,7 +38,7 @@ func SetSecretsContext(ctx *context.Context, owner *user_model.User, repo *repo_
 func PerformSecretsPost(ctx *context.Context, doer, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	s, _, err := secret_service.CreateOrUpdateSecret(ctx, doer, owner, repo, form.Name, actions.ReserveLineBreakForTextarea(form.Data))
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, doer, owner, repo, form.Name, util.ReserveLineBreakForTextarea(form.Data))
 	if err != nil {
 		log.Error("CreateOrUpdateSecret failed: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))

@@ -359,7 +359,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
@@ -482,15 +482,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	switch {
 	case isRepresentableAsText:
+		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
 		if fInfo.st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 			ctx.Data["CanCopyContent"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
-		}
-
-		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
-			ctx.Data["IsFileTooLarge"] = true
-			break
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
@@ -606,6 +606,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
+		// TODO: this logic seems strange, it duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
+		// maybe for this case, the file is a binary file, and shouldn't be rendered?
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
@@ -682,7 +684,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
-	if len(ctx.Repo.Units) > 0 {
+	if ctx.Repo.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
@@ -719,12 +721,13 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 
 		var firstUnit *unit_model.Unit
-		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == unit_model.TypeCode {
+		for _, repoUnitType := range ctx.Repo.Permission.ReadableUnitTypes() {
+			if repoUnitType == unit_model.TypeCode {
+				// we are doing this check in "code" unit related pages, so if the code unit is readable, no need to do any further redirection
 				return
 			}
 
-			unit, ok := unit_model.Units[repoUnit.Type]
+			unit, ok := unit_model.Units[repoUnitType]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
@@ -899,7 +902,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := repo_model.FindTopics(ctx, &repo_model.FindTopicOptions{
+	topics, err := db.Find[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -919,9 +922,9 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-open-with-%s", schema), 16, "gt-mr-3")
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "tw-mr-2")
 		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16, "gt-mr-3") // TODO: it could support user's customized icon in the future
+			iconHTML = svg.RenderHTML("gitea-git", 16, "tw-mr-2") // TODO: it could support user's customized icon in the future
 		}
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,
@@ -998,6 +1001,8 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
+	checkOutdatedBranch(ctx)
+
 	checkCitationFile(ctx, entry)
 	if ctx.Written() {
 		return
@@ -1062,6 +1067,31 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+func checkOutdatedBranch(ctx *context.Context) {
+	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+		return
+	}
+
+	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if err != nil {
+		log.Error("GetBranch: %v", err)
+		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+		return
+	}
+
+	if dbBranch.CommitID != commit.ID.String() {
+		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
+	}
 }
 
 // RenderUserCards render a page show users according the input template

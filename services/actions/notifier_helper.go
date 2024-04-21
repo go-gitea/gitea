@@ -78,6 +78,11 @@ func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event we
 	}
 }
 
+func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
+	// the doer here will be ignored as we force using action user when handling schedules
+	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
+}
+
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 	input.Doer = doer
 	return input
@@ -117,7 +122,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 		return nil
 	}
-	if input.Repo.IsEmpty {
+	if input.Repo.IsEmpty || input.Repo.IsArchived {
 		return nil
 	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
@@ -157,7 +162,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if skipWorkflowsForCommit(input, commit) {
+	if skipWorkflows(input, commit) {
 		return nil
 	}
 
@@ -223,8 +228,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
-func skipWorkflowsForCommit(input *notifyInput, commit *git.Commit) bool {
-	// skip workflow runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
+func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
+	// skip workflow runs with a configured skip-ci string in commit message or pr title if the event is push or pull_request(_sync)
 	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 	skipWorkflowEvents := []webhook_module.HookEventType{
 		webhook_module.HookEventPush,
@@ -233,6 +238,10 @@ func skipWorkflowsForCommit(input *notifyInput, commit *git.Commit) bool {
 	}
 	if slices.Contains(skipWorkflowEvents, input.Event) {
 		for _, s := range setting.Actions.SkipWorkflowStrings {
+			if input.PullRequest != nil && strings.Contains(input.PullRequest.Issue.Title, s) {
+				log.Debug("repo %s: skipped run for pr %v because of %s string", input.Repo.RepoPath(), input.PullRequest.Issue.ID, s)
+				return true
+			}
 			if strings.Contains(commit.CommitMessage, s) {
 				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
 				return true
@@ -296,23 +305,34 @@ func handleWorkflows(
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content)
+		if err := run.LoadAttributes(ctx); err != nil {
+			log.Error("LoadAttributes: %v", err)
+			continue
+		}
+
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
 
-		// cancel running jobs if the event is push
-		if run.Event == webhook_module.HookEventPush {
-			// cancel running jobs of the same workflow
-			if err := actions_model.CancelRunningJobs(
+		// cancel running jobs if the event is push or pull_request_sync
+		if run.Event == webhook_module.HookEventPush ||
+			run.Event == webhook_module.HookEventPullRequestSync {
+			if err := actions_model.CancelPreviousJobs(
 				ctx,
 				run.RepoID,
 				run.Ref,
 				run.WorkflowID,
 				run.Event,
 			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
+				log.Error("CancelPreviousJobs: %v", err)
 			}
 		}
 
@@ -470,7 +490,7 @@ func handleSchedules(
 			RepoID:        input.Repo.ID,
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
-			TriggerUserID: input.Doer.ID,
+			TriggerUserID: user_model.ActionsUserID,
 			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
@@ -486,6 +506,10 @@ func handleSchedules(
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
 func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	if repo.IsEmpty || repo.IsArchived {
+		return nil
+	}
+
 	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
@@ -506,12 +530,9 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	}
 
 	// We need a notifyInput to call handleSchedules
-	// Here we use the commit author as the Doer of the notifyInput
-	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
-	if err != nil {
-		return fmt.Errorf("get user by email: %w", err)
-	}
-	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+	// if repo is a mirror, commit author maybe an external user,
+	// so we use action user as the Doer of the notifyInput
+	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

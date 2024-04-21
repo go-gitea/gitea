@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -563,7 +564,28 @@ var migrations = []Migration{
 	// v288 -> v289
 	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
 	// v289 -> v290
-	NewMigration("Add audit_event table", v1_22.AddAuditEventTable),
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
+	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
+	// v291 -> v292
+	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v292 -> v293
+	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
+	// v293 -> v294
+	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+
+	// Gitea 1.22.0 ends at 294
+
+	// v294 -> v295
+	NewMigration("Add unique index for project issue table", v1_23.AddUniqueIndexForProjectIssue),
+	// v295 -> v296
+	NewMigration("Add commit status summary table", v1_23.AddCommitStatusSummary),
+	// v296 -> v297
+	NewMigration("Add missing field of commit status summary table", v1_23.AddCommitStatusSummary2),
+	// v297 -> v298
+	NewMigration("Add everyone_access_mode for repo_unit", v1_23.AddRepoUnitEveryoneAccessMode),
+	// v298 -> v299
+	NewMigration("Add audit_event table", v1_23.AddAuditEventTable),
 }
 
 // GetCurrentDBVersion returns the current db version

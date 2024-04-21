@@ -3,25 +3,16 @@
 
 package v1_22 //nolint
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID            int64  `xorm:"pk autoincr"`
-		Action        string `xorm:"INDEX NOT NULL"`
-		ActorID       int64  `xorm:"INDEX NOT NULL"`
-		ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType    string `xorm:"NOT NULL"`
-		TargetID      int64  `xorm:"NOT NULL"`
-		Message       string
-		IPAddress     string
-		TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+func AddDefaultWikiBranch(x *xorm.Engine) error {
+	type Repository struct {
+		ID                int64
+		DefaultWikiBranch string
 	}
-
-	return x.Sync(&AuditEvent{})
+	if err := x.Sync(&Repository{}); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE `repository` SET default_wiki_branch = 'master' WHERE (default_wiki_branch IS NULL) OR (default_wiki_branch = '')")
+	return err
 }

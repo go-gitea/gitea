@@ -7,6 +7,7 @@ package contexttest
 import (
 	gocontext "context"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -36,7 +37,7 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	req := &http.Request{Method: method, URL: requestURL, Form: url.Values{}}
+	req := &http.Request{Method: method, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
 	req = req.WithContext(middleware.WithContextData(req.Context()))
 	return req
 }
@@ -62,6 +63,7 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	base.Locale = &translation.MockLocale{}
 
 	ctx := context.NewWebContext(base, opt.Render, nil)
+	ctx.AppendContextValue(context.WebContextKey, ctx)
 	ctx.PageData = map[string]any{}
 	ctx.Data["PageStartTime"] = time.Now()
 	chiCtx := chi.NewRouteContext()

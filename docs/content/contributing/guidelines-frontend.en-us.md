@@ -47,7 +47,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
 10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
 11. Custom event names are recommended to use `ce-` prefix.
-12. Gitea's tailwind-style CSS classes use `gt-` prefix (`gt-relative`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
+12. Prefer using Tailwind CSS which is available via `tw-` prefix, e.g. `tw-relative`. Gitea's helper CSS classes use `gt-` prefix (`gt-word-break`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
 13. Avoid inline scripts & styles as much as possible, it's recommended to put JS code into JS files and use CSS classes. If inline scripts & styles are unavoidable, explain the reason why it can't be avoided.
 
 ### Accessibility / ARIA
@@ -118,7 +118,7 @@ However, there are still some special cases, so the current guideline is:
 ### Show/Hide Elements
 
 * Vue components are recommended to use `v-if` and `v-show` to show/hide elements.
-* Go template code should use Gitea's `.gt-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.gt-hidden`'s comment.
+* Go template code should use `.tw-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.tw-hidden`'s comment.
 
 ### Styles and Attributes in Go HTML Template
 

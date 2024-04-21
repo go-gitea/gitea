@@ -22,11 +22,13 @@ const (
 	OAuth2UsernameNickname OAuth2UsernameType = "nickname"
 	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name
 	OAuth2UsernameEmail OAuth2UsernameType = "email"
+	// OAuth2UsernameEmail username of oauth2 preferred_username field will be used as gitea name
+	OAuth2UsernamePreferredUsername OAuth2UsernameType = "preferred_username"
 )
 
 func (username OAuth2UsernameType) isValid() bool {
 	switch username {
-	case OAuth2UsernameUserid, OAuth2UsernameNickname, OAuth2UsernameEmail:
+	case OAuth2UsernameUserid, OAuth2UsernameNickname, OAuth2UsernameEmail, OAuth2UsernamePreferredUsername:
 		return true
 	}
 	return false
@@ -118,6 +120,10 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
+	if sec.HasKey("DEFAULT_APPLICATIONS") && sec.Key("DEFAULT_APPLICATIONS").String() == "" {
+		OAuth2.DefaultApplications = nil
+	}
+
 	// Handle the rename of ENABLE to ENABLED
 	deprecatedSetting(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
 	if sec.HasKey("ENABLE") && !sec.HasKey("ENABLED") {
@@ -168,7 +174,7 @@ func GetGeneralTokenSigningSecret() []byte {
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
-			log.Warn("OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
+			logStartupProblem(1, log.WARN, "OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
 			return jwtSecret
 		}
 		return *generalSigningSecret.Load()

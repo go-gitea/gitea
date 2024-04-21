@@ -1,15 +1,13 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard feeds">
 	{{template "user/dashboard/navbar" .}}
-	<div class="ui container">
+	<div class="ui container flex-container">
 		{{template "base/alert" .}}
-		<div class="ui mobile reversed stackable grid">
-			<div class="ui container ten wide column">
-				{{template "user/heatmap" .}}
-				{{template "user/dashboard/feeds" .}}
-			</div>
-			{{template "user/dashboard/repolist" .}}
+		<div class="flex-container-main">
+			{{template "user/heatmap" .}}
+			{{template "user/dashboard/feeds" .}}
 		</div>
+		{{template "user/dashboard/repolist" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

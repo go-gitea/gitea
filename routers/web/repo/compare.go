@@ -35,6 +35,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -185,21 +186,10 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
-// CompareInfo represents the collected results from ParseCompareInfo
-type CompareInfo struct {
-	HeadUser         *user_model.User
-	HeadRepo         *repo_model.Repository
-	HeadGitRepo      *git.Repository
-	CompareInfo      *git.CompareInfo
-	BaseBranch       string
-	HeadBranch       string
-	DirectComparison bool
-}
-
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) *CompareInfo {
+func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	baseRepo := ctx.Repo.Repository
-	ci := &CompareInfo{}
+	ci := &common.CompareInfo{}
 
 	fileOnly := ctx.FormBool("file-only")
 
@@ -576,7 +566,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 // PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
-	ci *CompareInfo,
+	ci *common.CompareInfo,
 	whitespaceBehavior git.TrustedCmdArgs,
 ) bool {
 	var (
@@ -697,10 +687,8 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	defer gitRepo.Close()
 
 	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: repo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		RepoID:          repo.ID,
+		ListOptions:     db.ListOptionsAll,
 		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
@@ -754,10 +742,8 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ci.HeadRepo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		RepoID:          ci.HeadRepo.ID,
+		ListOptions:     db.ListOptionsAll,
 		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
@@ -979,6 +965,9 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 			Content:  " " + lineText,
 		}
 		diffLines = append(diffLines, diffLine)
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
 }

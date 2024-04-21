@@ -9,8 +9,8 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{ctx.Locale.Tr "username"}}
-						<span class="text red gt-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
+						<span class="text red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
@@ -106,7 +106,7 @@
 						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
-				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
+				<div class="field tw-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
@@ -119,7 +119,7 @@
 					</div>
 				</div>
 
-				<div class="inline field gt-pl-4">
+				<div class="inline field tw-pl-4">
 					<label for="new-avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>

@@ -89,10 +89,6 @@
   text-align: center;
 }
 
-.organization.options input {
-  min-width: 300px;
-}
-
 .page-content.organization .org-avatar {
   margin-right: 15px;
 }

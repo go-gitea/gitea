@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -324,8 +325,9 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 
 	// Add initial creator to organization and owner team.
 	if err = db.Insert(ctx, &OrgUser{
-		UID:   owner.ID,
-		OrgID: org.ID,
+		UID:      owner.ID,
+		OrgID:    org.ID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}); err != nil {
 		return fmt.Errorf("insert org-user relation: %w", err)
 	}
@@ -406,6 +408,8 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&TeamInvite{OrgID: org.ID},
 		&secret_model.Secret{OwnerID: org.ID},
 		&user_model.Blocking{BlockerID: org.ID},
+		&actions_model.ActionRunner{OwnerID: org.ID},
+		&actions_model.ActionRunnerToken{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -220,7 +219,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplResetPassword, nil)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
 			ctx.ServerError("UpdateAuth", err)
@@ -303,7 +301,6 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplMustChangePassword, &form)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
@@ -314,9 +311,9 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 

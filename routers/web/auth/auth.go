@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
@@ -25,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -124,9 +124,21 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	return nil
 }
 
+func RedirectAfterLogin(ctx *context.Context) {
+	redirectTo := ctx.FormString("redirect_to")
+	if redirectTo == "" {
+		redirectTo = ctx.GetSiteCookie("redirect_to")
+	}
+	middleware.DeleteRedirectToCookie(ctx.Resp)
+	nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
+	if setting.LandingPageURL == setting.LandingPageLogin {
+		nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+	}
+	ctx.RedirectToCurrentSite(redirectTo, nextRedirectTo)
+}
+
 func CheckAutoLogin(ctx *context.Context) bool {
-	// Check auto-login
-	isSucceed, err := autoSignIn(ctx)
+	isSucceed, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
 		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
 			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
@@ -139,17 +151,10 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	} else {
-		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
-		if setting.LandingPageURL == setting.LandingPageLogin {
-			nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
-		}
-		ctx.RedirectToFirst(redirectTo, nextRedirectTo)
+		RedirectAfterLogin(ctx)
 		return true
 	}
 
@@ -161,6 +166,11 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	if CheckAutoLogin(ctx) {
+		return
+	}
+
+	if ctx.IsSigned {
+		RedirectAfterLogin(ctx)
 		return
 	}
 
@@ -359,10 +369,10 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
-			ctx.RedirectToFirst(redirectTo)
+			ctx.RedirectToCurrentSite(redirectTo)
 		}
 		return redirectTo
 	}
@@ -377,6 +387,13 @@ func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
 		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
+	case setting.OAuth2UsernamePreferredUsername:
+		preferredUsername, exists := gothUser.RawData["preferred_username"]
+		if exists {
+			return user_model.NormalizeUserName(preferredUsername.(string))
+		} else {
+			return "", fmt.Errorf("preferred_username is missing in received user data but configured as username source for user_id %q. Check if OPENID_CONNECT_SCOPES contains profile", gothUser.UserID)
+		}
 	case setting.OAuth2UsernameNickname:
 		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
@@ -806,7 +823,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 

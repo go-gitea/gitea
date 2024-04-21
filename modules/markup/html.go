@@ -171,6 +171,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
+	codePreviewPatternProcessor,
 	fullHashPatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,
@@ -609,7 +610,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
 			if mentionOrgAndTeam[0][1:] == ctx.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -620,7 +621,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		mentionedUsername := mention[1:]
 
 		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
-			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "mention"))
 			node = node.NextSibling.NextSibling
 		} else {
 			node = node.NextSibling
@@ -708,7 +709,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 
 		name += tail
 		image := false
-		switch ext := filepath.Ext(link); ext {
+		ext := filepath.Ext(link)
+		switch ext {
 		// fast path: empty string, ignore
 		case "":
 			// leave image as false
@@ -766,11 +768,26 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		} else {
 			if !absoluteLink {
+				var base string
 				if ctx.IsWiki {
-					link = util.URLJoin(ctx.Links.WikiLink(), link)
+					switch ext {
+					case "":
+						// no file extension, create a regular wiki link
+						base = ctx.Links.WikiLink()
+					default:
+						// we have a file extension:
+						// return a regular wiki link if it's a renderable file (extension),
+						// raw link otherwise
+						if Type(link) != "" {
+							base = ctx.Links.WikiLink()
+						} else {
+							base = ctx.Links.WikiRawLink()
+						}
+					}
 				} else {
-					link = util.URLJoin(ctx.Links.SrcLink(), link)
+					base = ctx.Links.SrcLink()
 				}
+				link = util.URLJoin(base, link)
 			}
 			childNode.Type = html.TextNode
 			childNode.Data = name
@@ -898,9 +915,9 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 				path = "pulls"
 			}
 			if ref.Owner == "" {
-				link = createLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
 			} else {
-				link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
 			}
 		}
 
@@ -939,7 +956,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		link := createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
@@ -1166,7 +1183,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		link := util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		link := util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling

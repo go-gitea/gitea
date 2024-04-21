@@ -603,6 +603,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	var w *webhook.Webhook
 	if orCtx.Repo != nil {
@@ -671,12 +672,7 @@ func TestWebhook(ctx *context.Context) {
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
-		objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
-		if err != nil {
-			ctx.Flash.Error("GetObjectFormatOfRepo: " + err.Error())
-			ctx.Status(http.StatusInternalServerError)
-			return
-		}
+		objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 		commit = &git.Commit{
 			ID:            objectFormat.EmptyObjectID(),
 			Author:        ghost.NewGitSig(),

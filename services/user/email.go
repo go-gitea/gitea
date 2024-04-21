@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/services/audit"
 )
 
-func AddOrSetPrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, emailStr string) error {
+// AdminAddOrSetPrimaryEmailAddress is used by admins to add or set a user's primary email address
+func AdminAddOrSetPrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, emailStr string) error {
 	if strings.EqualFold(u.Email, emailStr) {
 		return nil
 	}
 
-	if err := user_model.ValidateEmail(emailStr); err != nil {
+	if err := user_model.ValidateEmailForAdmin(emailStr); err != nil {
 		return err
 	}
 

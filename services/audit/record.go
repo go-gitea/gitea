@@ -354,7 +354,7 @@ func RecordOrganizationTeamRemove(ctx context.Context, doer *user_model.User, or
 }
 
 func RecordOrganizationTeamPermission(ctx context.Context, doer *user_model.User, org *organization_model.Organization, team *organization_model.Team) {
-	record(ctx, audit_model.OrganizationTeamPermission, doer, org, team, "Changed permission of team %s/%s to %s.", org.Name, team.Name, team.AccessMode.String())
+	record(ctx, audit_model.OrganizationTeamPermission, doer, org, team, "Changed permission of team %s/%s to %s.", org.Name, team.Name, team.AccessMode.ToString())
 }
 
 func RecordOrganizationTeamMemberAdd(ctx context.Context, doer *user_model.User, org *organization_model.Organization, team *organization_model.Team, member *user_model.User) {
@@ -439,7 +439,7 @@ func RecordRepositoryCollaboratorAdd(ctx context.Context, doer *user_model.User,
 }
 
 func RecordRepositoryCollaboratorAccess(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, collaborator *user_model.User, accessMode perm_model.AccessMode) {
-	record(ctx, audit_model.RepositoryCollaboratorAccess, doer, repo, collaborator, "Changed access mode of collaborator %s of repository %s to %s.", collaborator.Name, repo.FullName(), accessMode.String())
+	record(ctx, audit_model.RepositoryCollaboratorAccess, doer, repo, collaborator, "Changed access mode of collaborator %s of repository %s to %s.", collaborator.Name, repo.FullName(), accessMode.ToString())
 }
 
 func RecordRepositoryCollaboratorRemove(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, collaborator *user_model.User) {
