@@ -102,20 +102,38 @@ issues:
   exclude-case-sensitive: true
   exclude-rules:
     - path: _test\.go
-      linters: [gocyclo, errcheck, dupl, gosec, unparam, staticcheck]
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - unparam
+        - staticcheck
     - path: models/migrations/v
-      linters: [gocyclo, errcheck, dupl, gosec]
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
     - path: cmd
-      linters: [forbidigo]
+      linters:
+        - forbidigo
     - text: "webhook"
-      linters: [dupl]
+      linters:
+        - dupl
     - text: "`ID' should not be capitalized"
-      linters: [gocritic]
+      linters:
+        - gocritic
     - text: "swagger"
-      linters: [unused, deadcode]
+      linters:
+        - unused
+        - deadcode
     - text: "argument x is overwritten before first use"
-      linters: [staticcheck]
+      linters:
+        - staticcheck
     - text: "commentFormatting: put a space between `//` and comment text"
-      linters: [gocritic]
+      linters:
+        - gocritic
     - text: "exitAfterDefer:"
-      linters: [gocritic]
+      linters:
+        - gocritic
