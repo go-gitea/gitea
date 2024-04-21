@@ -36,7 +36,7 @@ func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch
 type ReviewRequestNotifier struct {
 	Comment    *issues_model.Comment
 	IsAdd      bool
-	Reviewer    *user_model.User
+	Reviewer   *user_model.User
 	ReviewTeam *org_model.Team
 }
 
@@ -124,8 +124,8 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 				return nil, err
 			}
 			notifiers = append(notifiers, &ReviewRequestNotifier{
-				Comment: comment,
-				IsAdd:   true,
+				Comment:  comment,
+				IsAdd:    true,
 				Reviewer: u,
 			})
 		}
