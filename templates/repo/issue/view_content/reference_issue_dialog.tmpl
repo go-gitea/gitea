@@ -5,25 +5,23 @@
 	<div class="content tw-text-left">
 		<form class="ui form form-fetch-action" action="{{printf "%s/issues/new" .Repository.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="ui segment content">
-				<div class="field">
-					<span class="text"><strong>{{ctx.Locale.Tr "repository"}}</strong></span>
-					<div class="ui search normal selection dropdown issue_reference_repository_search">
-						<div class="default text">{{.Repository.FullName}}</div>
-						<div class="menu"></div>
-					</div>
+			<div class="field">
+				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
+				<div class="ui search selection dropdown issue_reference_repository_search">
+					<div class="default text">{{.Repository.FullName}}</div>
+					<div class="menu"></div>
 				</div>
-				<div class="field">
-					<span class="text"><strong>{{ctx.Locale.Tr "repo.milestones.title"}}</strong></span>
-					<input name="title" value="" autofocus required maxlength="255" autocomplete="off">
-				</div>
-				<div class="field">
-					<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.reference_issue.body"}}</strong></span>
-					<textarea name="content" class="form-control"></textarea>
-				</div>
-				<div class="text right">
-					<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>
-				</div>
+			</div>
+			<div class="field">
+				<label><strong>{{ctx.Locale.Tr "repo.milestones.title"}}</strong></label>
+				<input name="title" value="" autofocus required maxlength="255" autocomplete="off">
+			</div>
+			<div class="field">
+				<label><strong>{{ctx.Locale.Tr "repo.issues.reference_issue.body"}}</strong></label>
+				<textarea name="content" class="form-control"></textarea>
+			</div>
+			<div class="text right">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>
 			</div>
 		</form>
 	</div>
