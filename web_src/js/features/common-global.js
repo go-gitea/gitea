@@ -47,8 +47,8 @@ export function initFootLanguageMenu() {
 
 export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
-    const ieQuickSubmitEnter = ((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter');
-    if (ieQuickSubmitEnter && e.target.matches('textarea')) {
+    const isQuickSubmitEnter = ((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter');
+    if (isQuickSubmitEnter && e.target.matches('textarea')) {
       e.preventDefault();
       handleGlobalEnterQuickSubmit(e.target);
     }
