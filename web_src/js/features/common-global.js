@@ -46,10 +46,11 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
+  document.addEventListener('keydown', (e) => {
+    const isQuickSubmitEnter = ((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter');
+    if (isQuickSubmitEnter && e.target.matches('textarea')) {
+      e.preventDefault();
       handleGlobalEnterQuickSubmit(e.target);
-      return false;
     }
   });
 }
