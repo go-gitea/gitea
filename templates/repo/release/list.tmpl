@@ -9,8 +9,8 @@
 				{{$release := $info.Release}}
 				<li class="ui grid">
 					<div class="ui four wide column meta">
-						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead $.UnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
-						{{if and $release.Sha1 ($.Permission.CanRead $.UnitTypeCode)}}
+						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
+						{{if and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 							<a class="muted tw-font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha $release.Sha1}}</a>
 							{{template "repo/branch_dropdown" dict "root" $ "release" $release}}
 						{{end}}
@@ -53,7 +53,7 @@
 							{{if $release.CreatedUnix}}
 								<span class="time">{{TimeSinceUnix $release.CreatedUnix ctx.Locale}}</span>
 							{{end}}
-							{{if and (not $release.IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
+							{{if and (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>
 							{{end}}
 						</p>
@@ -66,7 +66,7 @@
 								{{ctx.Locale.Tr "repo.release.downloads"}}
 							</summary>
 							<ul class="list">
-								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
+								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 									<li>
 										<a class="archive-link" href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 									</li>
@@ -99,7 +99,7 @@
 	</div>
 </div>
 
-{{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
+{{if (and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) .PageIsTagList)}}
 	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}

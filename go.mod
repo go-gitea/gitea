@@ -16,7 +16,6 @@ require (
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/alecthomas/chroma/v2 v2.13.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
@@ -67,7 +66,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.17.7
+	github.com/klauspost/compress v1.17.8
 	github.com/klauspost/cpuid/v2 v2.2.7
 	github.com/lib/pq v1.10.9
 	github.com/markbates/goth v1.79.0

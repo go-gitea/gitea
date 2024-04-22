@@ -287,9 +287,10 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
-		Where(opts.ToConds()).
+		Select("package_version.*").
 		Table("package_version").
-		Join("INNER", "package", "package.id = package_version.package_id")
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(opts.ToConds())
 
 	opts.configureOrderBy(sess)
 
@@ -304,19 +305,18 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 
 // SearchLatestVersions gets the latest version of every package matching the search options
 func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
-	cond := opts.ToConds().
-		And(builder.Expr("pv2.id IS NULL"))
-
-	joinCond := builder.Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))")
-	if opts.IsInternal.Has() {
-		joinCond = joinCond.And(builder.Eq{"pv2.is_internal": opts.IsInternal.Value()})
-	}
+	in := builder.
+		Select("MAX(package_version.id)").
+		From("package_version").
+		InnerJoin("package", "package.id = package_version.package_id").
+		Where(opts.ToConds()).
+		GroupBy("package_version.package_id")
 
 	sess := db.GetEngine(ctx).
+		Select("package_version.*").
 		Table("package_version").
-		Join("LEFT", "package_version pv2", joinCond).
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond)
+		Where(builder.In("package_version.id", in))
 
 	opts.configureOrderBy(sess)
 
