@@ -18,7 +18,7 @@ func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(oAuth2Application))
+	x, deferable := base.PrepareTestEnv(t, 0, new(oauth2Application))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
