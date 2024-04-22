@@ -86,6 +86,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		// Unsupported sort type for search
 		searchOpt.SortBy = SortByUpdatedDesc
 	case "latest":
+		fallthrough
 	default:
 		searchOpt.SortBy = SortByCreatedDesc
 	}
