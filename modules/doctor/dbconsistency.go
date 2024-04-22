@@ -164,12 +164,6 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Fixer:        actions_model.FixRunnersWithoutBelongingRepo,
 			FixedMessage: "Removed",
 		},
-		{
-			Name:         "Topics with empty repository count",
-			Counter:      repo_model.CountOrphanedTopics,
-			Fixer:        repo_model.DeleteOrphanedTopics,
-			FixedMessage: "Removed",
-		},
 	}
 
 	// TODO: function to recalc all counters
