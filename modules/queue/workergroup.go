@@ -63,6 +63,8 @@ func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T], flushCh
 	// TODO: the logic could be improved in the future, to avoid a data-race between "doStartNewWorker" and "workerNum"
 	// The root problem is that if we skip "doStartNewWorker" here, the "workerNum" might be decreased by other workers later
 	// So ideally, it should check whether there are enough workers by some approaches, and start new workers if necessary.
+	// This data-race is not serious, as long as a new worker will be started soon to make sure there are enough workers,
+	// so no need to hugely refactor at the moment.
 	q.workerNumMu.Lock()
 	noWorker := q.workerNum == 0
 	if full || noWorker {
@@ -136,6 +138,14 @@ func (q *WorkerPoolQueue[T]) basePushForShutdown(items ...T) bool {
 	return true
 }
 
+func resetIdleTicker(t *time.Ticker, dur time.Duration) {
+	t.Reset(dur)
+	select {
+	case <-t.C:
+	default:
+	}
+}
+
 // doStartNewWorker starts a new worker for the queue, the worker reads from worker's channel and handles the items.
 func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 	wp.wg.Add(1)
@@ -145,8 +155,6 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 
 		log.Debug("Queue %q starts new worker", q.GetName())
 		defer log.Debug("Queue %q stops idle worker", q.GetName())
-
-		atomic.AddInt32(&q.workerStartedCounter, 1) // Only increase counter, used for debugging
 
 		t := time.NewTicker(workerIdleDuration)
 		defer t.Stop()
@@ -169,11 +177,7 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 				}
 				q.doWorkerHandle(batch)
 				// reset the idle ticker, and drain the tick after reset in case a tick is already triggered
-				t.Reset(workerIdleDuration)
-				select {
-				case <-t.C:
-				default:
-				}
+				resetIdleTicker(t, workerIdleDuration) // key code for TestWorkerPoolQueueWorkerIdleReset
 			case <-t.C:
 				q.workerNumMu.Lock()
 				keepWorking = q.workerNum <= 1 // keep the last worker running
