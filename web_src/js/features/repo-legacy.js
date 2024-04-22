@@ -183,7 +183,7 @@ export function initRepoCommentForm() {
 
       // TODO: Which thing should be done for choosing review requests
       // to make chosen items be shown on time here?
-      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify' || selector === 'select-issue-project-board') {
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
         return false;
       }
 
@@ -223,7 +223,7 @@ export function initRepoCommentForm() {
         $(this).find('.octicon-check').addClass('tw-invisible');
       });
 
-      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify' || selector === 'select-issue-project-board') {
+      if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
         return false;
       }
 
