@@ -131,11 +131,7 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 	}
 	run.Repo = repo
 
-	if err := run.Repo.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return run.Repo.LoadAttributes(ctx)
 }
 
 func (run *ActionRun) Duration() time.Duration {
