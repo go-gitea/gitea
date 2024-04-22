@@ -347,7 +347,6 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
-
 		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
