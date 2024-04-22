@@ -300,11 +300,6 @@ func handleWorkflows(
 			run.NeedApproval = need
 		}
 
-		if err := run.LoadAttributes(ctx); err != nil {
-			log.Error("LoadAttributes: %v", err)
-			continue
-		}
-
 		vars, err := actions_model.GetVariablesOfRun(ctx, run)
 		if err != nil {
 			log.Error("GetVariablesOfRun: %v", err)

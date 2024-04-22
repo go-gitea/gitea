@@ -120,6 +120,24 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+func (run *ActionRun) LoadRepo(ctx context.Context) error {
+	if run == nil || run.Repo != nil {
+		return nil
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	if err != nil {
+		return err
+	}
+	run.Repo = repo
+
+	if err := run.Repo.LoadAttributes(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (run *ActionRun) Duration() time.Duration {
 	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
