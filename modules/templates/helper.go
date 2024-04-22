@@ -262,5 +262,8 @@ func UserThemeName(user *user_model.User) string {
 	if user == nil || user.Theme == "" {
 		return setting.UI.DefaultTheme
 	}
-	return util.Iif(webtheme.IsThemeAvailable(user.Theme), user.Theme, setting.UI.DefaultTheme)
+	if webtheme.IsThemeAvailable(user.Theme) {
+		return user.Theme
+	}
+	return setting.UI.DefaultTheme
 }
