@@ -702,27 +702,11 @@ input:-webkit-autofill:active,
   text-align: right !important;
 }
 
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.italic {
-  font-style: italic;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.ui .text.thin {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.middle {
-  vertical-align: middle;
 }
 
 .ui .message.flash-message {
