@@ -374,8 +374,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	// Check access.
-	if !ctx.Repo.Permission.HasAccess() {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -383,7 +382,6 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		ctx.NotFound("no access right", nil)
 		return
 	}
-	ctx.Data["HasAccess"] = true
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
@@ -1050,21 +1048,5 @@ func GitHookService() func(ctx *Context) {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}
-	}
-}
-
-// UnitTypes returns a middleware to set unit types to context variables.
-func UnitTypes() func(ctx *Context) {
-	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = unit_model.TypeCode
-		ctx.Data["UnitTypeIssues"] = unit_model.TypeIssues
-		ctx.Data["UnitTypePullRequests"] = unit_model.TypePullRequests
-		ctx.Data["UnitTypeReleases"] = unit_model.TypeReleases
-		ctx.Data["UnitTypeWiki"] = unit_model.TypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
-		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
-		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }

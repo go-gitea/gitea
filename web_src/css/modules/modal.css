@@ -10,6 +10,10 @@
   top: 1.2em;
 }
 
+.ui.modal > .close.inside {
+  color: inherit;
+}
+
 .ui.modal > .close.icon[height="16"] {
   top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
   color: var(--color-text-dark);

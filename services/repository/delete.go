@@ -374,7 +374,7 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 		return fmt.Errorf("GetTeamMembers: %w", err)
 	}
 	for _, member := range teamMembers {
-		has, err := access_model.HasAccess(ctx, member.ID, repo)
+		has, err := access_model.HasAnyUnitAccess(ctx, member.ID, repo)
 		if err != nil {
 			return err
 		} else if has {

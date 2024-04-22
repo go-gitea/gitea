@@ -87,7 +87,6 @@ function initRepoDiffConversationForm() {
         el.classList.add('tw-invisible');
       }
       $newConversationHolder.find('.dropdown').dropdown();
-      initCompReactionSelector($newConversationHolder);
     } catch (error) {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
