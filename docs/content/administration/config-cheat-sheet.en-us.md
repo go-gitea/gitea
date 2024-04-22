@@ -608,9 +608,10 @@ And the following unique queues:
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
   - `userid` - use the userid / sub attribute
-  - `nickname` - use the nickname attribute
+  - `nickname` - use the nickname
+  - `preferred_username` - use the preferred_username
   - `email` - use the username part of the email attribute
-  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+  - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
     - the characters in the set `['´\x60]` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
@@ -1196,14 +1197,6 @@ in this mapping or the filetype using heuristics.
 ## Time (`time`)
 
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
-
-## Task (`task`)
-
-Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
-
-- `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
-- `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **redis://127.0.0.1:6379/0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `redis://123@127.0.0.1:6379/0` or `redis+cluster://123@127.0.0.1:6379/0`.
 
 ## Migrations (`migrations`)
 

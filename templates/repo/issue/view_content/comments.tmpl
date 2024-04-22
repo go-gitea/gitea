@@ -53,7 +53,7 @@
 						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						</div>
@@ -74,7 +74,7 @@
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -173,11 +173,11 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels $.Context ctx.Locale .AddedLabels $.RepoLink) (RenderLabels $.Context ctx.Locale .RemovedLabels $.RepoLink) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{end}}
 					</span>
 				</div>
@@ -427,7 +427,7 @@
 							<div class="comment-header-right actions tw-flex tw-items-center">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 									{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 								{{end}}
 							</div>
@@ -448,7 +448,7 @@
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						{{end}}
 					</div>
 				</div>

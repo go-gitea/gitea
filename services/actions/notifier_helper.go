@@ -78,6 +78,11 @@ func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event we
 	}
 }
 
+func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
+	// the doer here will be ignored as we force using action user when handling schedules
+	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
+}
+
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 	input.Doer = doer
 	return input
@@ -293,12 +298,14 @@ func handleWorkflows(
 			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusWaiting,
 		}
-		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
+
+		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+		if err != nil {
 			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
 			continue
-		} else {
-			run.NeedApproval = need
 		}
+
+		run.NeedApproval = need
 
 		if err := run.LoadAttributes(ctx); err != nil {
 			log.Error("LoadAttributes: %v", err)
@@ -485,7 +492,7 @@ func handleSchedules(
 			RepoID:        input.Repo.ID,
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
-			TriggerUserID: input.Doer.ID,
+			TriggerUserID: user_model.ActionsUserID,
 			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
@@ -525,12 +532,9 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	}
 
 	// We need a notifyInput to call handleSchedules
-	// Here we use the commit author as the Doer of the notifyInput
-	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
-	if err != nil {
-		return fmt.Errorf("get user by email: %w", err)
-	}
-	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+	// if repo is a mirror, commit author maybe an external user,
+	// so we use action user as the Doer of the notifyInput
+	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

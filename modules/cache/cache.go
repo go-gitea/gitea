@@ -4,149 +4,75 @@
 package cache
 
 import (
-	"fmt"
 	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-
-	mc "gitea.com/go-chi/cache"
-
-	_ "gitea.com/go-chi/cache/memcache" // memcache plugin for cache
 )
 
-var conn mc.Cache
-
-func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
-	return mc.NewCacher(mc.Options{
-		Adapter:       cacheConfig.Adapter,
-		AdapterConfig: cacheConfig.Conn,
-		Interval:      cacheConfig.Interval,
-	})
-}
+var defaultCache StringCache
 
 // Init start cache service
 func Init() error {
-	var err error
-
-	if conn == nil {
-		if conn, err = newCache(setting.CacheService.Cache); err != nil {
+	if defaultCache == nil {
+		c, err := NewStringCache(setting.CacheService.Cache)
+		if err != nil {
 			return err
 		}
-		if err = conn.Ping(); err != nil {
+		for i := 0; i < 10; i++ {
+			if err = c.Ping(); err == nil {
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		if err != nil {
 			return err
 		}
+		defaultCache = c
 	}
-
-	return err
+	return nil
 }
 
 // GetCache returns the currently configured cache
-func GetCache() mc.Cache {
-	return conn
+func GetCache() StringCache {
+	return defaultCache
 }
 
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
+	if defaultCache == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-
-	cached := conn.Get(key)
-
-	if cached == nil {
+	cached, exist := defaultCache.Get(key)
+	if !exist {
 		value, err := getFunc()
 		if err != nil {
 			return value, err
 		}
-		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
+		return value, defaultCache.Put(key, value, setting.CacheService.TTLSeconds())
 	}
-
-	if value, ok := cached.(string); ok {
-		return value, nil
-	}
-
-	if stringer, ok := cached.(fmt.Stringer); ok {
-		return stringer.String(), nil
-	}
-
-	return fmt.Sprintf("%s", cached), nil
-}
-
-// GetInt returns key value from cache with callback when no key exists in cache
-func GetInt(key string, getFunc func() (int, error)) (int, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
-		return getFunc()
-	}
-
-	cached := conn.Get(key)
-
-	if cached == nil {
-		value, err := getFunc()
-		if err != nil {
-			return value, err
-		}
-
-		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
-	}
-
-	switch v := cached.(type) {
-	case int:
-		return v, nil
-	case string:
-		value, err := strconv.Atoi(v)
-		if err != nil {
-			return 0, err
-		}
-		return value, nil
-	default:
-		value, err := getFunc()
-		if err != nil {
-			return value, err
-		}
-		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
-	}
+	return cached, nil
 }
 
 // GetInt64 returns key value from cache with callback when no key exists in cache
 func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
-		return getFunc()
+	s, err := GetString(key, func() (string, error) {
+		v, err := getFunc()
+		return strconv.FormatInt(v, 10), err
+	})
+	if err != nil {
+		return 0, err
 	}
-
-	cached := conn.Get(key)
-
-	if cached == nil {
-		value, err := getFunc()
-		if err != nil {
-			return value, err
-		}
-
-		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
+	if s == "" {
+		return 0, nil
 	}
-
-	switch v := conn.Get(key).(type) {
-	case int64:
-		return v, nil
-	case string:
-		value, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return value, nil
-	default:
-		value, err := getFunc()
-		if err != nil {
-			return value, err
-		}
-
-		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
-	}
+	return strconv.ParseInt(s, 10, 64)
 }
 
 // Remove key from cache
 func Remove(key string) {
-	if conn == nil {
+	if defaultCache == nil {
 		return
 	}
-	_ = conn.Delete(key)
+	_ = defaultCache.Delete(key)
 }

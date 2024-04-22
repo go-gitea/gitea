@@ -41,7 +41,7 @@
 		{{else}}
 			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
-		<div class="tw-ml-2">
+		<div class="tw-ml-2 tw-flex-1 tw-break-anywhere">
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}

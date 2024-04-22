@@ -377,7 +377,7 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -386,8 +386,8 @@ export function initRepositoryActionView() {
         <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
         {{ run.commit.localePushedBy }}
         <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        <span class="ui label" v-if="run.commit.shortSHA">
-          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
+          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -426,8 +426,8 @@ export function initRepositoryActionView() {
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-left">
-            <h3 class="job-info-header-title">
+          <div class="job-info-header-left gt-ellipsis">
+            <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
             </h3>
             <p class="job-info-header-detail">
@@ -503,6 +503,7 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .action-info-summary-title {
@@ -513,12 +514,21 @@ export function initRepositoryActionView() {
   font-size: 20px;
   margin: 0 0 0 8px;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .action-commit-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  margin: 0 0 0 28px;
+  margin-left: 28px;
+}
+
+@media (max-width: 767.98px) {
+  .action-commit-summary {
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }
 
 /* ================ */
@@ -531,6 +541,14 @@ export function initRepositoryActionView() {
   top: 12px;
   max-height: 100vh;
   overflow-y: auto;
+  background: var(--color-body);
+  z-index: 2; /* above .job-info-header */
+}
+
+@media (max-width: 767.98px) {
+  .action-view-left {
+    position: static; /* can not sticky because multiple jobs would overlap into right view */
+  }
 }
 
 .job-artifacts-title {
@@ -692,7 +710,9 @@ export function initRepositoryActionView() {
   position: sticky;
   top: 0;
   height: 60px;
-  z-index: 1;
+  z-index: 1; /* above .job-step-container */
+  background: var(--color-console-bg);
+  border-radius: 3px;
 }
 
 .job-info-header:has(+ .job-step-container) {
@@ -708,6 +728,10 @@ export function initRepositoryActionView() {
 .job-info-header .job-info-header-detail {
   color: var(--color-console-fg-subtle);
   font-size: 12px;
+}
+
+.job-info-header-left {
+  flex: 1;
 }
 
 .job-step-container {
@@ -730,7 +754,7 @@ export function initRepositoryActionView() {
 
 .job-step-container .job-step-summary.step-expandable:hover {
   color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
+  background: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -748,17 +772,15 @@ export function initRepositoryActionView() {
   top: 60px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .action-view-body {
     flex-direction: column;
   }
   .action-view-left, .action-view-right {
     width: 100%;
   }
-
   .action-view-left {
     max-width: none;
-    overflow-y: hidden;
   }
 }
 </style>

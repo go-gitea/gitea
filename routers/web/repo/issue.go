@@ -933,7 +933,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 					}
 				}
 			}
-
 		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
@@ -1681,7 +1680,6 @@ func ViewIssue(ctx *context.Context) {
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
 			}
-
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
@@ -2179,7 +2177,7 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, issue))
+	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, ctx.Doer, issue))
 }
 
 // UpdateIssueTitle change issue's title
@@ -2610,7 +2608,6 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
@@ -2709,7 +2706,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
@@ -2879,7 +2876,7 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func BatchDeleteIssues(ctx *context.Context) {
@@ -2994,7 +2991,6 @@ func NewComment(ctx *context.Context) {
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
-
 			// Duplication and conflict check should apply to reopen pull request.
 			var pr *issues_model.PullRequest
 
@@ -3318,7 +3314,6 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3425,7 +3420,6 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})

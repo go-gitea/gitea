@@ -310,12 +310,12 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
