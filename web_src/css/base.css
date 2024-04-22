@@ -391,12 +391,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.dropdown > .text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
 .ui.dropdown > .text > .img {
   margin-left: 0;
@@ -499,6 +493,12 @@ img.ui.avatar,
    to compensate here */
 .page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
+}
+
+/* add horizontal margin to elements that are outside top-level of .flex-container or .ui.container */
+.page-content > .flash-message {
+  margin-left: var(--page-margin-x);
+  margin-right: var(--page-margin-x);
 }
 
 .ui.form .fields.error .field textarea,
