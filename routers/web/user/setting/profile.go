@@ -319,7 +319,13 @@ func Repos(ctx *context.Context) {
 func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
-	ctx.Data["AllThemes"] = webtheme.GetAvailableThemes()
+
+	allThemes := webtheme.GetAvailableThemes()
+	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
+		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
+		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
+	}
+	ctx.Data["AllThemes"] = allThemes
 
 	var hiddenCommentTypes *big.Int
 	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)

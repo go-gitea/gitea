@@ -10,34 +10,20 @@
 				<div class="item">
 					{{ctx.Locale.Tr "settings.theme_desc"}}
 				</div>
-
-			<form class="ui form" action="{{.Link}}/theme" method="post">
-				{{.CsrfTokenHtml}}
+				<form class="ui form" action="{{.Link}}/theme" method="post">
+					{{.CsrfTokenHtml}}
 					<div class="field">
 						<label for="ui">{{ctx.Locale.Tr "settings.ui"}}</label>
-						<div class="ui selection dropdown" id="ui">
-							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">
-								{{range $i,$a := .AllThemes}}
-									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
-								{{end}}
-							</div>
-
-							<div class="menu">
-							{{range $i,$a := .AllThemes}}
-								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
-									{{$a}}
-								</div>
+						<select name="theme" class="ui dropdown">
+							{{range $theme := .AllThemes}}
+							<option value="{{$theme}}" {{Iif (eq $.SignedUser.Theme $theme) "selected"}}>{{$theme}}</option>
 							{{end}}
-							</div>
-						</div>
+						</select>
 					</div>
-
-				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
-				</div>
-			</form>
+					<div class="field">
+						<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
+					</div>
+				</form>
 			</div>
 		</div>
 

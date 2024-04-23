@@ -4,6 +4,7 @@
 package webtheme
 
 import (
+	"sort"
 	"strings"
 	"sync"
 
@@ -23,6 +24,9 @@ func initThemes() {
 	availableThemes = nil
 	defer func() {
 		availableThemesSet = container.SetOf(availableThemes...)
+		if !availableThemesSet.Contains(setting.UI.DefaultTheme) {
+			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
+		}
 	}()
 	cssFiles, err := public.AssetFS().ListFiles("/assets/css")
 	if err != nil {
@@ -52,8 +56,9 @@ func initThemes() {
 	} else {
 		availableThemes = foundThemes
 	}
+	sort.Strings(availableThemes)
 	if len(availableThemes) == 0 {
-		log.Error("No theme candidate, but gitea requires there should be at least one usable theme")
+		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
 		availableThemes = []string{setting.UI.DefaultTheme}
 	}
 }
