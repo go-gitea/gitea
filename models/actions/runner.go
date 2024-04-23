@@ -270,7 +270,7 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	// Only affect action runners were a owner ID is set, as actions runners
 	// could also be created on a repository.
 	return db.GetEngine(ctx).Table("action_runner").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where("`action_runner`.owner_id != ?", 0).
 		And(builder.IsNull{"`user`.id"}).
 		Count(new(ActionRunner))
@@ -279,9 +279,31 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 func FixRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	subQuery := builder.Select("`action_runner`.id").
 		From("`action_runner`").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where(builder.Neq{"`action_runner`.owner_id": 0}).
 		And(builder.IsNull{"`user`.id"})
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func CountRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Table("action_runner").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where("`action_runner`.repo_id != ?", 0).
+		And(builder.IsNull{"`repository`.id"}).
+		Count(new(ActionRunner))
+}
+
+func FixRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	subQuery := builder.Select("`action_runner`.id").
+		From("`action_runner`").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where(builder.Neq{"`action_runner`.repo_id": 0}).
+		And(builder.IsNull{"`repository`.id"})
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
 	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {

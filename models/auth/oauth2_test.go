@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//////////////////// Application
-
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
