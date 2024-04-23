@@ -350,6 +350,8 @@ Match User git
   AuthorizedKeysCommand /usr/bin/docker exec -i gitea /usr/local/bin/gitea keys -c /etc/gitea/app.ini -e git -u %u -t %t -k %k
 ```
 
+For this to work, the user `git` has to be allowed to run the `docker` cli command. Please read through the [security considerations](https://docs.docker.com/engine/security/#docker-daemon-attack-surface) of providing non-root linux users access to the docker daemon.
+
 (From 1.16.0 you will not need to set the `-c /etc/gitea/app.ini` option.)
 
 All that is left to do is restart the SSH server:
