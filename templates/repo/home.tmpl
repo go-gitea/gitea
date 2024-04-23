@@ -46,7 +46,7 @@
 		{{$l := Eval $n "-" 1}}
 		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
+			<div class="repo-button-row-left tw-flex tw-flex-1 tw-items-center tw-gap-2">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -66,7 +66,7 @@
 				{{end}}
 
 				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-					<button class="ui dropdown basic compact jump button tw-mr-1"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+					<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						{{ctx.Locale.Tr "repo.editor.add_file"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
@@ -104,14 +104,14 @@
 					</span>
 				{{end}}
 
-				<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
-					<div class="ui small action input">
-						<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+				<form class="tw-flex tw-flex-1" class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
+					<div class="ui small action input tw-flex-1">
+						<input name="q" value="{{.Keyword}}" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 						{{template "shared/search/button"}}
 					</div>
 				</form>
 			</div>
-			<div class="tw-flex tw-items-center">
+			<div class="repo-button-row-right tw-flex tw-flex-1 tw-items-center">
 				<!-- Only show clone panel in repository home page -->
 				{{if $isHomepage}}
 					<div class="clone-panel ui action tiny input">
