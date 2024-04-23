@@ -143,13 +143,13 @@
   --color-grey-light: #818f9e;
   --color-gold: #b1983b;
   --color-white: #ffffff;
-  --color-diff-added-linenum-bg: #2b492b;
+  --color-diff-added-linenum-bg: #274227;
   --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-moved-row-bg: #818044;
   --color-diff-moved-row-border: #bcca6f;
-  --color-diff-removed-linenum-bg: #502525;
+  --color-diff-removed-linenum-bg: #482121;
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
   --color-diff-removed-word-bg: #6f3333;
