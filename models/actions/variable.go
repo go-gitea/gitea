@@ -100,6 +100,11 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
 	variables := map[string]string{}
 
+	if err := run.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return nil, err
+	}
+
 	// Org / User level
 	ownerVariables, err := FindVariables(ctx, FindVariablesOpts{OwnerID: run.Repo.OwnerID})
 	if err != nil {
