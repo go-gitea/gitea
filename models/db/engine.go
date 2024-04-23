@@ -227,7 +227,6 @@ func NamesToBean(names ...string) ([]any, error) {
 	// Need to map provided names to beans...
 	beanMap := make(map[string]any)
 	for _, bean := range tables {
-
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
 		beanMap[strings.ToLower(x.TableName(bean))] = bean
 		beanMap[strings.ToLower(x.TableName(bean, true))] = bean

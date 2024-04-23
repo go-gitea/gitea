@@ -170,7 +170,6 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 			// the owner of a private repo needs to be explicitly added.
 			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
 		}
-
 	} else {
 		// This is a "public" repository:
 		// Any user that has read access, is a watcher or organization member can be requested to review
