@@ -391,12 +391,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.dropdown > .text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
 .ui.dropdown > .text > .img {
   margin-left: 0;
@@ -702,27 +696,11 @@ input:-webkit-autofill:active,
   text-align: right !important;
 }
 
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.italic {
-  font-style: italic;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.ui .text.thin {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.middle {
-  vertical-align: middle;
 }
 
 .ui .message.flash-message {

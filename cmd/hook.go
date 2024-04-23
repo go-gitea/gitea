@@ -465,7 +465,7 @@ func hookPrintResult(output, isCreate bool, branch, url string) {
 		fmt.Fprintf(os.Stderr, "  %s\n", url)
 	}
 	fmt.Fprintln(os.Stderr, "")
-	os.Stderr.Sync()
+	_ = os.Stderr.Sync()
 }
 
 func pushOptions() map[string]string {
