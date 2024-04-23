@@ -217,19 +217,6 @@ func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 	return board, nil
 }
 
-// GetBoard fetches the current default board of a project
-func GetDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
-	board := new(Board)
-	has, err := db.GetEngine(ctx).Where("project_id = ? AND `default` = ?", projectID, true).Get(board)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrProjectBoardNotExist{BoardID: -1}
-	}
-
-	return board, nil
-}
-
 // UpdateBoard updates a project board
 func UpdateBoard(ctx context.Context, board *Board) error {
 	var fieldToUpdate []string

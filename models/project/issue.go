@@ -69,11 +69,6 @@ func (issue *ProjectIssue) LoadProjectBoard(ctx context.Context) error {
 
 	var err error
 
-	if issue.ProjectBoardID == 0 {
-		issue.ProjectBoard, err = GetDefaultBoard(ctx, issue.ProjectID)
-		return err
-	}
-
 	issue.ProjectBoard, err = GetBoard(ctx, issue.ProjectBoardID)
 	return err
 }
