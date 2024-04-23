@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -200,6 +201,8 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		panic(fmt.Sprintf("failed to execute ActionTask.LoadAttributes(): %v", err))
 	}
 
+	url := fmt.Sprintf("%s%s", setting.AppURL, t.GetRunLink())
+
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -210,7 +213,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          t.GetRunLink(),
+		URL:          url,
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),

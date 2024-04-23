@@ -53,9 +53,12 @@ func ListActionTasks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	opts := utils.GetListOptions(ctx)
 
-	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
+	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
+
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
 		return
