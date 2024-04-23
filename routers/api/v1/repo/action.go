@@ -51,11 +51,9 @@ func ListActionsSecrets(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	opts := &secret_model.FindSecretsOptions{
-		OwnerID:     owner.ID,
 		RepoID:      repo.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	}
