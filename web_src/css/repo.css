@@ -2572,8 +2572,8 @@ tbody.commit-list {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split .add-code .lines-num:nth-child(1),
-.code-diff-split .del-code .lines-num:nth-child(5) {
+.code-diff-split .add-code .lines-num.lines-num-old,
+.code-diff-split .del-code .lines-num.lines-num-new {
   background: var(--color-diff-inactive);
 }
 
