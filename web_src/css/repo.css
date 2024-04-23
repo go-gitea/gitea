@@ -157,19 +157,9 @@
   left: auto !important;
 }
 
-.repository.file.list .repo-description {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 5px;
+.repository .repo-description {
+  font-size: 16px;
   margin-bottom: 5px;
-}
-
-@media (max-width: 767.98px) {
-  .repository.file.list .repo-description {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 .commit-summary {
@@ -1080,8 +1070,8 @@ td .commit-summary {
   clear: none;
 }
 
-.repository .comment.form .content .form::before,
-.repository .comment.form .content .form::after {
+.repository .comment.form .content .segment::before,
+.repository .comment.form .content .segment::after {
   right: 100%;
   top: 20px;
   border: solid transparent;
@@ -1092,13 +1082,13 @@ td .commit-summary {
   pointer-events: none;
 }
 
-.repository .comment.form .content .form::before {
+.repository .comment.form .content .segment::before {
   border-right-color: var(--color-secondary);
   border-width: 9px;
   margin-top: -9px;
 }
 
-.repository .comment.form .content .form::after {
+.repository .comment.form .content .segment::after {
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;

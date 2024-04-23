@@ -728,7 +728,6 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	}
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
-
 		teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
 		for _, t := range opts.TeamReviewers {
 			var teamReviewer *organization.Team

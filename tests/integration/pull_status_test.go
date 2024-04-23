@@ -71,7 +71,6 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
-
 			// Call API to add status for commit
 			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
 				State:       status,

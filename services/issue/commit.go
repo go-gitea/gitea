@@ -118,7 +118,6 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 		var refIssue *issues_model.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
-
 			// issue is from another repo
 			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
 				refRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Name)
@@ -189,15 +188,15 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 					continue
 				}
 			}
-			close := ref.Action == references.XRefActionCloses
-			if close && len(ref.TimeLog) > 0 {
+			isClosed := ref.Action == references.XRefActionCloses
+			if isClosed && len(ref.TimeLog) > 0 {
 				if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
 					return err
 				}
 			}
-			if close != refIssue.IsClosed {
+			if isClosed != refIssue.IsClosed {
 				refIssue.Repo = refRepo
-				if err := ChangeStatus(ctx, refIssue, doer, c.Sha1, close); err != nil {
+				if err := ChangeStatus(ctx, refIssue, doer, c.Sha1, isClosed); err != nil {
 					return err
 				}
 			}

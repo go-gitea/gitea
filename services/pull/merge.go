@@ -231,9 +231,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
-		close := ref.RefAction == references.XRefActionCloses
-		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, close); err != nil {
+		isClosed := ref.RefAction == references.XRefActionCloses
+		if isClosed != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, isClosed); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
