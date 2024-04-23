@@ -98,13 +98,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-		if err != nil {
-			return err
-		}
-		run.Repo = repo
+	if err := run.LoadRepo(ctx); err != nil {
+		return err
 	}
+
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -117,6 +114,19 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		run.TriggerUser = u
 	}
 
+	return nil
+}
+
+func (run *ActionRun) LoadRepo(ctx context.Context) error {
+	if run == nil || run.Repo != nil {
+		return nil
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	if err != nil {
+		return err
+	}
+	run.Repo = repo
 	return nil
 }
 
