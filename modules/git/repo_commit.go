@@ -251,18 +251,18 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		return nil, err
 	}
 
-	len := objectFormat.FullLength()
+	length := objectFormat.FullLength()
 	commits := []*Commit{}
-	shaline := make([]byte, len+1)
+	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if err != nil || n < len {
+		if err != nil || n < length {
 			if err == io.EOF {
 				err = nil
 			}
 			return commits, err
 		}
-		objectID, err := NewIDFromString(string(shaline[0:len]))
+		objectID, err := NewIDFromString(string(shaline[0:length]))
 		if err != nil {
 			return nil, err
 		}
