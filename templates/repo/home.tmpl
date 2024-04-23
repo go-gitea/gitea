@@ -104,7 +104,7 @@
 					</span>
 				{{end}}
 
-				<form class="tw-flex tw-flex-1" class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
+				<form class="ignore-dirty tw-flex tw-flex-1" action="{{.RepoLink}}/search" method="get">
 					<div class="ui small action input tw-flex-1">
 						<input name="q" value="{{.Keyword}}" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 						{{template "shared/search/button"}}
