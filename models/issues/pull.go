@@ -467,14 +467,6 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	pr.HasMerged = true
 	sess := db.GetEngine(ctx)
 
-	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
-		return false, err
-	}
-
-	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
-		return false, err
-	}
-
 	pr.Issue = nil
 	if err := pr.LoadIssue(ctx); err != nil {
 		return false, err
