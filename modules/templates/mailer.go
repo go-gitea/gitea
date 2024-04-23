@@ -84,9 +84,8 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			if err = buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content); err != nil {
 				if firstRun {
 					log.Fatal("Failed to parse mail template, err: %v", err)
-				} else {
-					log.Error("Failed to parse mail template, err: %v", err)
 				}
+				log.Error("Failed to parse mail template, err: %v", err)
 			}
 		}
 	}

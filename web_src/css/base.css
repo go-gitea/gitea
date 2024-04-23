@@ -495,12 +495,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-/* add horizontal margin to elements that are outside top-level of .flex-container or .ui.container */
-.page-content > .flash-message {
-  margin-left: var(--page-margin-x);
-  margin-right: var(--page-margin-x);
-}
-
 .ui.form .fields.error .field textarea,
 .ui.form .fields.error .field select,
 .ui.form .fields.error .field input:not([type]),
@@ -702,27 +696,11 @@ input:-webkit-autofill:active,
   text-align: right !important;
 }
 
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.italic {
-  font-style: italic;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.ui .text.thin {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.middle {
-  vertical-align: middle;
 }
 
 .ui .message.flash-message {

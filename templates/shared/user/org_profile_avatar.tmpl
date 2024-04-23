@@ -4,7 +4,7 @@
 			<div class="column">
 				<div class="ui header tw-flex tw-items-center gt-word-break">
 					{{ctx.AvatarUtils.Avatar . 100}}
-					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
+					<span class="text grey"><a class="muted" href="{{.HomeLink}}">{{.DisplayName}}</a></span>
 					<span class="org-visibility">
 						{{if .Visibility.IsLimited}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .Visibility.IsPrivate}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
