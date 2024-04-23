@@ -1044,10 +1044,10 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 			// diff --git a/b b/b b/b b/b b/b b/b
 			//
 			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
-			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
-			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
-				curFile.OldName = old[2:]
-				curFile.Name = old[2:]
+			newPart, oldPart := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(newPart) > 2 && len(oldPart) > 2 && newPart[2:] == oldPart[2:] {
+				curFile.OldName = oldPart[2:]
+				curFile.Name = oldPart[2:]
 			}
 		}
 	}
@@ -1181,7 +1181,6 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
 		if checker != nil {

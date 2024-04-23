@@ -156,7 +156,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				!strings.EqualFold(usr.Email, su.Mail) ||
 				usr.FullName != fullName ||
 				!usr.IsActive {
-
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.authSource.Name, usr.Name)
 
 				opts := &user_service.UpdateOptions{

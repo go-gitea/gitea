@@ -145,7 +145,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-
 		searchType := esMultiMatchTypePhrasePrefix
 		if options.IsFuzzyKeyword {
 			searchType = esMultiMatchTypeBestFields

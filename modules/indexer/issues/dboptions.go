@@ -68,7 +68,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	searchOpt.Paginator = opts.Paginator
 
 	switch opts.SortType {
-	case "":
+	case "", "latest":
 		searchOpt.SortBy = SortByCreatedDesc
 	case "oldest":
 		searchOpt.SortBy = SortByCreatedAsc
@@ -86,7 +86,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.SortBy = SortByDeadlineDesc
 	case "priority", "priorityrepo", "project-column-sorting":
 		// Unsupported sort type for search
-		searchOpt.SortBy = SortByUpdatedDesc
+		fallthrough
 	default:
 		searchOpt.SortBy = SortByUpdatedDesc
 	}
