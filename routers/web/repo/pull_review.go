@@ -318,7 +318,6 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 	updatedFiles := make(map[string]pull_model.ViewedState, len(data.Files))
 	for file, viewed := range data.Files {
-
 		// Only unviewed and viewed are possible, has-changed can not be set from the outside
 		state := pull_model.Unviewed
 		if viewed {
