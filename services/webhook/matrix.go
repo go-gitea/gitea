@@ -179,7 +179,6 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 		if i < len(p.Commits)-1 {
 			text += "<br>"
 		}
-
 	}
 
 	return m.newPayload(text, p.Commits...)

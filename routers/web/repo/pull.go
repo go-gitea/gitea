@@ -443,7 +443,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	}
 
 	if pb != nil && pb.EnableStatusCheck {
-
 		var missingRequiredChecks []string
 		for _, requiredContext := range pb.StatusCheckContexts {
 			contextFound := false
@@ -646,7 +645,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	// Validate the given commit sha to show (if any passed)
 	if willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-
 		foundStartCommit := len(specifiedStartCommit) == 0
 		foundEndCommit := len(specifiedEndCommit) == 0
 
@@ -974,7 +972,6 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
 			return
-
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(issue.Link())
