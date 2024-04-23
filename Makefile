@@ -397,11 +397,11 @@ lint-md: node_modules
 
 .PHONY: lint-spell
 lint-spell:
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
 lint-spell-fix:
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go:
