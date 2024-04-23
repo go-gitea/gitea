@@ -90,14 +90,12 @@ func DeleteVariable(ctx context.Context, id int64) error {
 }
 
 func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
-	if run.Repo == nil {
-		if err := run.LoadRepo(ctx); err != nil {
-			log.Error("LoadRepo: %v", err)
-			return nil, err
-		}
-	}
-
 	variables := map[string]string{}
+
+	if err := run.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return nil, err
+	}
 
 	// Global
 	globalVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{})

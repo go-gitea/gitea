@@ -98,13 +98,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-		if err != nil {
-			return err
-		}
-		run.Repo = repo
+	if err := run.LoadRepo(ctx); err != nil {
+		return err
 	}
+
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -130,8 +127,7 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 		return err
 	}
 	run.Repo = repo
-
-	return run.Repo.LoadAttributes(ctx)
+	return nil
 }
 
 func (run *ActionRun) Duration() time.Duration {
