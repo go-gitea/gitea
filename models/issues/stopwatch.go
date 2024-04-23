@@ -29,20 +29,6 @@ func (err ErrIssueStopwatchNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
-type ErrIssueStopwatchAlreadyExist struct {
-	UserID  int64
-	IssueID int64
-}
-
-func (err ErrIssueStopwatchAlreadyExist) Error() string {
-	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
-}
-
-func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
 	ID          int64              `xorm:"pk autoincr"`

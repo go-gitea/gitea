@@ -51,7 +51,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				if err != nil {
 					// Some servers do not support ecdsa format.
 					if !strings.Contains(err.Error(), "line 1 too long:") {
-						assert.Fail(t, "%v", err)
+						assert.FailNow(t, "%v", err)
 					}
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
@@ -60,7 +60,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 			t.Run("SSHParseKeyNative", func(t *testing.T) {
 				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
 				if err != nil {
-					assert.Fail(t, "%v", err)
+					assert.FailNow(t, "%v", err)
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
 				assert.EqualValues(t, tc.length, lengthK)

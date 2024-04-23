@@ -14,16 +14,16 @@
 					<div class="breadcrumb-divider">:</div>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
 					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input type="hidden" id="tree_path" name="tree_path" value="" required>
+					<input type="hidden" name="tree_path" value="__dummy_for_EditRepoFileForm.TreePath(Required)__">
 					<input id="file-name" type="hidden" value="diff.patch">
 				</div>
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-patch"
+					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>

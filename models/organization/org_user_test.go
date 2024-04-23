@@ -39,7 +39,7 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
-	is, err := organization.IsPublicMembership(orgID, user.ID)
+	is, err := organization.IsPublicMembership(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -123,7 +123,7 @@ func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bo
 	assert.NoError(t, err)
 	members, _, err := org.GetMembers(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, organization.IsUserOrgOwner(members, orgID))
+	assert.Equal(t, expected, organization.IsUserOrgOwner(db.DefaultContext, members, orgID))
 }
 
 func TestAddOrgUser(t *testing.T) {
@@ -134,7 +134,7 @@ func TestAddOrgUser(t *testing.T) {
 		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers++
 		}
-		assert.NoError(t, organization.AddOrgUser(orgID, userID))
+		assert.NoError(t, organization.AddOrgUser(db.DefaultContext, orgID, userID))
 		ou := &organization.OrgUser{OrgID: orgID, UID: userID}
 		unittest.AssertExistsAndLoadBean(t, ou)
 		assert.Equal(t, isPublic, ou.IsPublic)

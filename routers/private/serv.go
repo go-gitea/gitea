@@ -14,11 +14,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -33,7 +33,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results := private.KeyAndOwner{}
 
-	key, err := asymkey_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -132,7 +132,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(owner.ID, results.RepoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
@@ -184,7 +184,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Get the Public Key represented by the keyID
-	key, err := asymkey_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusNotFound, private.Response{
@@ -297,7 +297,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 		} else {
 			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.SupportProcReceive && unitType == unit.TypeCode {
+			if git.DefaultFeatures.SupportProcReceive && unitType == unit.TypeCode {
 				mode = perm.AccessModeRead
 			}
 

@@ -1,19 +1,27 @@
+.repository.wiki .wiki-pages-list tr:hover {
+  background-color: var(--color-hover);
+}
+
 .repository.wiki .wiki-pages-list .wiki-git-entry {
   margin-left: 10px;
   display: none;
 }
 
-.repository.wiki .wiki-pages-list td:hover .wiki-git-entry {
+.repository.wiki .wiki-pages-list tr:hover .wiki-git-entry {
   display: inline-block;
 }
 
 .repository.wiki .markup {
   overflow: visible;
-  min-height: 340px;
+}
+
+.repository.wiki .markup[data-tab-panel="markdown-previewer"] {
+  min-height: 340px; /* This height matches the markdown editor's height */
 }
 
 .repository.wiki .wiki-content-parts .markup {
   border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
   padding: 1em;
   margin-top: 1em;
   font-size: 1em;
@@ -51,7 +59,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
+  .repository.wiki .clone-panel #repo-clone-url {
     width: 160px;
   }
   .repository.wiki .wiki-content-main.with-sidebar,

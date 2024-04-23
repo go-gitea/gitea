@@ -284,7 +284,7 @@ syntax and shouldn't be touched without fully understanding these components.
 
 Google Analytics, Matomo (previously Piwik), and other analytics services can be added to Gitea. To add the tracking code, refer to the `Other additions to the page` section of this document, and add the JavaScript to the `$GITEA_CUSTOM/templates/custom/header.tmpl` file.
 
-## Customizing gitignores, labels, licenses, locales, and readmes.
+## Customizing gitignores, labels, licenses, locales, and readmes
 
 Place custom files in corresponding sub-folder under `custom/options`.
 
@@ -370,7 +370,8 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
+The built-in themes are `gitea-light`, `gitea-dark`, and `gitea-auto` (which automatically adapts to OS settings).
+
 The default theme can be changed via `DEFAULT_THEME` in the [ui](administration/config-cheat-sheet.md#ui-ui) section of `app.ini`.
 
 Gitea also has support for user themes, which means every user can select which theme should be used.
@@ -380,11 +381,11 @@ To make a custom theme available to all users:
 
 1. Add a CSS file to `$GITEA_CUSTOM/public/assets/css/theme-<theme-name>.css`.
   The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
-2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`, or leave `THEMES` empty to allow all themes.
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
-The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/theme-arc-green.css).
+The default theme sources can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes).
 
 If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
 This allows Gitea to adjust the Monaco code editor's theme accordingly.

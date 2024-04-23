@@ -1,6 +1,6 @@
 name: Web Interface Bug Report
 description: Something doesn't look quite as it should?  Report it here!
-labels: ["kind/bug", "kind/ui"]
+labels: ["type/bug", "topic/ui"]
 body:
   - type: markdown
     attributes:

@@ -27,7 +27,7 @@ const (
 type RepoIndexerStatus struct { //revive:disable-line:exported
 	ID          int64           `xorm:"pk autoincr"`
 	RepoID      int64           `xorm:"INDEX(s)"`
-	CommitSha   string          `xorm:"VARCHAR(40)"`
+	CommitSha   string          `xorm:"VARCHAR(64)"`
 	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 
@@ -36,14 +36,14 @@ func init() {
 }
 
 // GetUnindexedRepos returns repos which do not have an indexer status
-func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
+func GetUnindexedRepos(ctx context.Context, indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)
 	cond := builder.Cond(builder.IsNull{
 		"repo_indexer_status.id",
 	}).And(builder.Eq{
 		"repository.is_empty": false,
 	})
-	sess := db.GetEngine(db.DefaultContext).Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
+	sess := db.GetEngine(ctx).Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
 	if maxRepoID > 0 {
 		cond = builder.And(cond, builder.Lte{
 			"repository.id": maxRepoID,

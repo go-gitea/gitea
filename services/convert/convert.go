@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -105,32 +106,45 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	return branch, nil
 }
 
+// getWhitelistEntities returns the names of the entities that are in the whitelist
+func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
+	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
+	whitelistNames := make([]string, 0)
+	for _, entity := range entities {
+		switch v := any(entity).(type) {
+		case *user_model.User:
+			if whitelistUserIDsSet.Contains(v.ID) {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		case *organization.Team:
+			if whitelistUserIDsSet.Contains(v.ID) {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		}
+	}
+
+	return whitelistNames
+}
+
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.WhitelistUserIDs)
+func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
+	readers, err := access_model.GetRepoReaders(ctx, repo)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
+		log.Error("GetRepoReaders: %v", err)
 	}
-	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.MergeWhitelistUserIDs)
+
+	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
-	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.ApprovalsWhitelistUserIDs)
-	if err != nil {
-		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
-	}
-	pushWhitelistTeams, err := organization.GetTeamNamesByID(bp.WhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
-	}
-	mergeWhitelistTeams, err := organization.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
-	}
-	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
-	}
+
+	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
@@ -158,6 +172,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api
 		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
 		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:         bp.DismissStaleApprovals,
+		IgnoreStaleApprovals:          bp.IgnoreStaleApprovals,
 		RequireSignedCommits:          bp.RequireSignedCommits,
 		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
@@ -308,40 +323,38 @@ func ToTeam(ctx context.Context, team *organization.Team, loadOrg ...bool) (*api
 
 // ToTeams convert models.Team list to api.Team list
 func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
-	if len(teams) == 0 || teams[0] == nil {
-		return nil, nil
-	}
-
 	cache := make(map[int64]*api.Organization)
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		if err := teams[i].LoadUnits(ctx); err != nil {
+	apiTeams := make([]*api.Team, 0, len(teams))
+	for _, t := range teams {
+		if err := t.LoadUnits(ctx); err != nil {
 			return nil, err
 		}
 
-		apiTeams[i] = &api.Team{
-			ID:                      teams[i].ID,
-			Name:                    teams[i].Name,
-			Description:             teams[i].Description,
-			IncludesAllRepositories: teams[i].IncludesAllRepositories,
-			CanCreateOrgRepo:        teams[i].CanCreateOrgRepo,
-			Permission:              teams[i].AccessMode.String(),
-			Units:                   teams[i].GetUnitNames(),
-			UnitsMap:                teams[i].GetUnitsMap(),
+		apiTeam := &api.Team{
+			ID:                      t.ID,
+			Name:                    t.Name,
+			Description:             t.Description,
+			IncludesAllRepositories: t.IncludesAllRepositories,
+			CanCreateOrgRepo:        t.CanCreateOrgRepo,
+			Permission:              t.AccessMode.ToString(),
+			Units:                   t.GetUnitNames(),
+			UnitsMap:                t.GetUnitsMap(),
 		}
 
 		if loadOrgs {
-			apiOrg, ok := cache[teams[i].OrgID]
+			apiOrg, ok := cache[t.OrgID]
 			if !ok {
-				org, err := organization.GetOrgByID(ctx, teams[i].OrgID)
+				org, err := organization.GetOrgByID(ctx, t.OrgID)
 				if err != nil {
 					return nil, err
 				}
 				apiOrg = ToOrganization(ctx, org)
-				cache[teams[i].OrgID] = apiOrg
+				cache[t.OrgID] = apiOrg
 			}
-			apiTeams[i].Organization = apiOrg
+			apiTeam.Organization = apiOrg
 		}
+
+		apiTeams = append(apiTeams, apiTeam)
 	}
 	return apiTeams, nil
 }

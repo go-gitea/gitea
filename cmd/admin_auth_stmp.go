@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -156,7 +155,7 @@ func runAddSMTP(c *cli.Context) error {
 		smtpConfig.Auth = "PLAIN"
 	}
 
-	return auth_model.CreateSource(&auth_model.Source{
+	return auth_model.CreateSource(ctx, &auth_model.Source{
 		Type:     auth_model.SMTP,
 		Name:     c.String("name"),
 		IsActive: active,
@@ -166,7 +165,7 @@ func runAddSMTP(c *cli.Context) error {
 
 func runUpdateSMTP(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()
@@ -176,7 +175,7 @@ func runUpdateSMTP(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -197,5 +196,5 @@ func runUpdateSMTP(c *cli.Context) error {
 
 	source.Cfg = smtpConfig
 
-	return auth_model.UpdateSource(source)
+	return auth_model.UpdateSource(ctx, source)
 }

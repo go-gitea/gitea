@@ -13,11 +13,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
@@ -43,12 +44,12 @@ func fatalTestError(fmtStr string, args ...any) {
 }
 
 // InitSettings initializes config provider and load common settings for tests
-func InitSettings(extraConfigs ...string) {
+func InitSettings() {
 	if setting.CustomConf == "" {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
@@ -145,13 +146,11 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
+	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(db.DefaultContext); err != nil {
-		fatalTestError("models.Init: %v\n", err)
-	}
-
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 // ___________.__                                         .__        __
@@ -31,9 +32,7 @@ import (
 // checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
 func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
-	has, err := db.GetByBean(ctx, &PublicKey{
-		Fingerprint: fingerprint,
-	})
+	has, err := db.Exist[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 	if err != nil {
 		return err
 	} else if has {
@@ -77,23 +76,14 @@ func calcFingerprintNative(publicKeyContent string) (string, error) {
 // CalcFingerprint calculate public key's fingerprint
 func CalcFingerprint(publicKeyContent string) (string, error) {
 	// Call the method based on configuration
-	var (
-		fnName, fp string
-		err        error
-	)
-	if setting.SSH.StartBuiltinServer {
-		fnName = "calcFingerprintNative"
-		fp, err = calcFingerprintNative(publicKeyContent)
-	} else {
-		fnName = "calcFingerprintSSHKeygen"
-		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
-	}
+	useNative := setting.SSH.KeygenPath == ""
+	calcFn := util.Iif(useNative, calcFingerprintNative, calcFingerprintSSHKeygen)
+	fp, err := calcFn(publicKeyContent)
 	if err != nil {
 		if IsErrKeyUnableVerify(err) {
-			log.Info("%s", publicKeyContent)
 			return "", err
 		}
-		return "", fmt.Errorf("%s: %w", fnName, err)
+		return "", fmt.Errorf("CalcFingerprint(%s): %w", util.Iif(useNative, "native", "ssh-keygen"), err)
 	}
 	return fp, nil
 }

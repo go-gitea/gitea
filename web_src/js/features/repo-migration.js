@@ -1,38 +1,42 @@
-import $ from 'jquery';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
-const $service = $('#service_type');
-const $user = $('#auth_username');
-const $pass = $('#auth_password');
-const $token = $('#auth_token');
-const $mirror = $('#mirror');
-const $lfs = $('#lfs');
-const $lfsSettings = $('#lfs_settings');
-const $lfsEndpoint = $('#lfs_endpoint');
-const $items = $('#migrate_items').find('input[type=checkbox]');
+const service = document.getElementById('service_type');
+const user = document.getElementById('auth_username');
+const pass = document.getElementById('auth_password');
+const token = document.getElementById('auth_token');
+const mirror = document.getElementById('mirror');
+const lfs = document.getElementById('lfs');
+const lfsSettings = document.getElementById('lfs_settings');
+const lfsEndpoint = document.getElementById('lfs_endpoint');
+const items = document.querySelectorAll('#migrate_items input[type=checkbox]');
 
 export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
 
-  $user.on('input', () => {checkItems(false)});
-  $pass.on('input', () => {checkItems(false)});
-  $token.on('input', () => {checkItems(true)});
-  $mirror.on('change', () => {checkItems(true)});
-  $('#lfs_settings_show').on('click', () => { showElem($lfsEndpoint); return false });
-  $lfs.on('change', setLFSSettingsVisibility);
+  user?.addEventListener('input', () => {checkItems(false)});
+  pass?.addEventListener('input', () => {checkItems(false)});
+  token?.addEventListener('input', () => {checkItems(true)});
+  mirror?.addEventListener('change', () => {checkItems(true)});
+  document.getElementById('lfs_settings_show')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showElem(lfsEndpoint);
+  });
+  lfs?.addEventListener('change', setLFSSettingsVisibility);
 
-  const $cloneAddr = $('#clone_addr');
-  $cloneAddr.on('change', () => {
-    const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+  const cloneAddr = document.getElementById('clone_addr');
+  cloneAddr?.addEventListener('change', () => {
+    const repoName = document.getElementById('repo_name');
+    if (cloneAddr.value && !repoName?.value) { // Only modify if repo_name input is blank
+      repoName.value = cloneAddr.value.match(/^(.*\/)?((.+?)(\.git)?)$/)[3];
     }
   });
 }
 
 function checkAuth() {
-  const serviceType = $service.val();
+  if (!service) return;
+  const serviceType = Number(service.value);
 
   checkItems(serviceType !== 1);
 }
@@ -40,24 +44,26 @@ function checkAuth() {
 function checkItems(tokenAuth) {
   let enableItems;
   if (tokenAuth) {
-    enableItems = $token.val() !== '';
+    enableItems = token?.value !== '';
   } else {
-    enableItems = $user.val() !== '' || $pass.val() !== '';
+    enableItems = user?.value !== '' || pass?.value !== '';
   }
-  if (enableItems && $service.val() > 1) {
-    if ($mirror.is(':checked')) {
-      $items.not('[name="wiki"]').attr('disabled', true);
-      $items.filter('[name="wiki"]').attr('disabled', false);
+  if (enableItems && Number(service?.value) > 1) {
+    if (mirror?.checked) {
+      for (const item of items) {
+        item.disabled = item.name !== 'wiki';
+      }
       return;
     }
-    $items.attr('disabled', false);
+    for (const item of items) item.disabled = false;
   } else {
-    $items.attr('disabled', true);
+    for (const item of items) item.disabled = true;
   }
 }
 
 function setLFSSettingsVisibility() {
-  const visible = $lfs.is(':checked');
-  toggleElem($lfsSettings, visible);
-  hideElem($lfsEndpoint);
+  if (!lfs) return;
+  const visible = lfs.checked;
+  toggleElem(lfsSettings, visible);
+  hideElem(lfsEndpoint);
 }

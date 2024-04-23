@@ -41,6 +41,8 @@ curl --user your_username:your_password_or_token \
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
 
+You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+
 The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |

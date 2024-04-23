@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
@@ -70,7 +71,15 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
-				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, false)
+				total, res, langs, err := indexer.Search(context.TODO(), &internal.SearchOptions{
+					RepoIDs: kw.RepoIDs,
+					Keyword: kw.Keyword,
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 10,
+					},
+					IsKeywordFuzzy: true,
+				})
 				assert.NoError(t, err)
 				assert.Len(t, kw.IDs, int(total))
 				assert.Len(t, langs, kw.Langs)
@@ -96,11 +105,10 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	idx := bleve.NewIndexer(dir)
 	_, err := idx.Init(context.Background())
 	if err != nil {
-		assert.Fail(t, "Unable to create bleve indexer Error: %v", err)
 		if idx != nil {
 			idx.Close()
 		}
-		return
+		assert.FailNow(t, "Unable to create bleve indexer Error: %v", err)
 	}
 	defer idx.Close()
 
@@ -118,11 +126,10 @@ func TestESIndexAndSearch(t *testing.T) {
 
 	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
 	if _, err := indexer.Init(context.Background()); err != nil {
-		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
 		if indexer != nil {
 			indexer.Close()
 		}
-		return
+		assert.FailNow(t, "Unable to init ES indexer Error: %v", err)
 	}
 
 	defer indexer.Close()

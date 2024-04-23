@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/services/context"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
@@ -26,7 +26,7 @@ func IssueStopwatch(c *context.Context) {
 		showSuccessMessage = true
 	}
 
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
@@ -50,7 +50,7 @@ func CancelStopwatch(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}

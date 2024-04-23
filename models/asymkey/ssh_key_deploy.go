@@ -48,8 +48,8 @@ func (key *DeployKey) AfterLoad() {
 }
 
 // GetContent gets associated public key content.
-func (key *DeployKey) GetContent() error {
-	pkey, err := GetPublicKeyByID(key.KeyID)
+func (key *DeployKey) GetContent(ctx context.Context) error {
+	pkey, err := GetPublicKeyByID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	}
@@ -106,15 +106,15 @@ func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint st
 }
 
 // HasDeployKey returns true if public key is a deploy key of given repository.
-func HasDeployKey(keyID, repoID int64) bool {
-	has, _ := db.GetEngine(db.DefaultContext).
+func HasDeployKey(ctx context.Context, keyID, repoID int64) bool {
+	has, _ := db.GetEngine(ctx).
 		Where("key_id = ? AND repo_id = ?", keyID, repoID).
 		Get(new(DeployKey))
 	return has
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
+func AddDeployKey(ctx context.Context, repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
 	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
@@ -125,30 +125,28 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = perm.AccessModeWrite
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
 
-	pkey := &PublicKey{
-		Fingerprint: fingerprint,
-	}
-	has, err := db.GetByBean(ctx, pkey)
+	pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 	if err != nil {
 		return nil, err
-	}
-
-	if has {
+	} else if exist {
 		if pkey.Type != KeyTypeDeploy {
 			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
 		}
 	} else {
 		// First time use this deploy key.
-		pkey.Mode = accessMode
-		pkey.Type = KeyTypeDeploy
-		pkey.Content = content
-		pkey.Name = name
+		pkey = &PublicKey{
+			Fingerprint: fingerprint,
+			Mode:        accessMode,
+			Type:        KeyTypeDeploy,
+			Content:     content,
+			Name:        name,
+		}
 		if err = addKey(ctx, pkey); err != nil {
 			return nil, fmt.Errorf("addKey: %w", err)
 		}
@@ -164,11 +162,10 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
-	key := new(DeployKey)
-	has, err := db.GetEngine(ctx).ID(id).Get(key)
+	key, exist, err := db.GetByID[DeployKey](ctx, id)
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrDeployKeyNotExist{id, 0, 0}
 	}
 	return key, nil
@@ -176,14 +173,10 @@ func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
-	key := &DeployKey{
-		KeyID:  keyID,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, key)
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": keyID, "repo_id": repoID})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
 	return key, nil
@@ -197,8 +190,8 @@ func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
 }
 
 // UpdateDeployKeyCols updates deploy key information in the specified columns.
-func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).Cols(cols...).Update(key)
+func UpdateDeployKeyCols(ctx context.Context, key *DeployKey, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(key.ID).Cols(cols...).Update(key)
 	return err
 }
 
@@ -210,7 +203,7 @@ type ListDeployKeysOptions struct {
 	Fingerprint string
 }
 
-func (opt ListDeployKeysOptions) toCond() builder.Cond {
+func (opt ListDeployKeysOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opt.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opt.RepoID})
@@ -222,24 +215,4 @@ func (opt ListDeployKeysOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"fingerprint": opt.Fingerprint})
 	}
 	return cond
-}
-
-// ListDeployKeys returns a list of deploy keys matching the provided arguments.
-func ListDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-
-		keys := make([]*DeployKey, 0, opts.PageSize)
-		return keys, sess.Find(&keys)
-	}
-
-	keys := make([]*DeployKey, 0, 5)
-	return keys, sess.Find(&keys)
-}
-
-// CountDeployKeys returns count deploy keys matching the provided arguments.
-func CountDeployKeys(opts *ListDeployKeysOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&DeployKey{})
 }

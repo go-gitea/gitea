@@ -21,7 +21,7 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 			return nil, err
 		}
 
-		if permission.HasAccess() {
+		if permission.HasAnyUnitAccess() {
 			repo = ToRepo(ctx, pd.Repository, permission)
 		}
 	}
@@ -35,6 +35,7 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 		Name:       pd.Package.Name,
 		Version:    pd.Version.Version,
 		CreatedAt:  pd.Version.CreatedUnix.AsTime(),
+		HTMLURL:    pd.VersionHTMLURL(),
 	}, nil
 }
 

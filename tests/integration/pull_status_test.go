@@ -12,6 +12,9 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +56,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusError,
 			api.CommitStatusFailure,
 			api.CommitStatusSuccess,
+			api.CommitStatusWarning,
 		}
 
 		statesIcons := map[api.CommitStatusState]string{
@@ -60,13 +64,13 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusSuccess: "octicon-check",
 			api.CommitStatusError:   "gitea-exclamation",
 			api.CommitStatusFailure: "octicon-x",
+			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
-
 			// Call API to add status for commit
 			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
 				State:       status,
@@ -75,7 +79,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				Context:     "testci",
 			}))
 
-			req = NewRequestf(t, "GET", "/user1/repo1/pulls/1/commits")
+			req = NewRequest(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)
 
@@ -88,6 +92,10 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			assert.True(t, ok)
 			assert.Contains(t, cls, statesIcons[status])
 		}
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
+		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
+		assert.EqualValues(t, api.CommitStatusWarning, css.State)
 	})
 }
 
@@ -96,9 +104,9 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.Creat
 		req := NewRequestWithJSON(
 			t,
 			http.MethodPost,
-			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
+			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, commitID),
 			data,
-		)
+		).AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return

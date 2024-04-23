@@ -16,8 +16,8 @@ import (
 	"github.com/markbates/goth"
 )
 
-func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +44,12 @@ func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model
 
 // LinkAccountToUser link the gothUser to the user
 func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := user_model.LinkExternalToUser(ctx, user, externalLoginUser); err != nil {
 		return err
 	}
 
@@ -71,13 +71,13 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+	return user_model.UpdateExternalUserByExternalID(ctx, externalLoginUser)
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID

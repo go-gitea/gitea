@@ -17,9 +17,14 @@ menu:
 
 # Template Repositories
 
-Gitea `1.11.0` and above includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.
+Gitea (starting with version `1.11.0`) supports creating template repositories
+which can be used to generate repositories based on the template, complete with
+variable expansion of certain pre-defined variables.
 
-To tell Gitea which files to expand, you must include a `template` file inside the `.gitea` directory of the template repository.
+All files in the template repository are included in a generated repository from the
+template except for the `.gitea/template` file. The `.gitea/template` file tells
+Gitea which files are subject to the variable expansion when creating a
+repository from the template.
 
 Gitea uses [gobwas/glob](https://github.com/gobwas/glob) for its glob syntax. It closely resembles a traditional `.gitignore`, however there may be slight differences.
 
@@ -28,7 +33,7 @@ Gitea uses [gobwas/glob](https://github.com/gobwas/glob) for its glob syntax. It
 All paths are relative to the base of the repository
 
 ```gitignore
-# All .go files, anywhere in the repository
+# Expand all .go files, anywhere in the repository
 **.go
 
 # All text files in the text directory
@@ -40,8 +45,6 @@ a/b/c/d.json
 # Batch files in both upper or lower case can be matched
 **.[bB][aA][tT]
 ```
-
-**NOTE:** The `template` file will be removed from the `.gitea` directory when a repository is generated from the template.
 
 ## Variable Expansion
 

@@ -104,40 +104,40 @@ func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Lo
 
 			trName := field.Tag.Get("locale")
 			if len(trName) == 0 {
-				trName = l.Tr("form." + field.Name)
+				trName = l.TrString("form." + field.Name)
 			} else {
-				trName = l.Tr(trName)
+				trName = l.TrString(trName)
 			}
 
 			switch errs[0].Classification {
 			case binding.ERR_REQUIRED:
-				data["ErrorMsg"] = trName + l.Tr("form.require_error")
+				data["ErrorMsg"] = trName + l.TrString("form.require_error")
 			case binding.ERR_ALPHA_DASH:
-				data["ErrorMsg"] = trName + l.Tr("form.alpha_dash_error")
+				data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_error")
 			case binding.ERR_ALPHA_DASH_DOT:
-				data["ErrorMsg"] = trName + l.Tr("form.alpha_dash_dot_error")
+				data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_dot_error")
 			case validation.ErrGitRefName:
-				data["ErrorMsg"] = trName + l.Tr("form.git_ref_name_error")
+				data["ErrorMsg"] = trName + l.TrString("form.git_ref_name_error")
 			case binding.ERR_SIZE:
-				data["ErrorMsg"] = trName + l.Tr("form.size_error", GetSize(field))
+				data["ErrorMsg"] = trName + l.TrString("form.size_error", GetSize(field))
 			case binding.ERR_MIN_SIZE:
-				data["ErrorMsg"] = trName + l.Tr("form.min_size_error", GetMinSize(field))
+				data["ErrorMsg"] = trName + l.TrString("form.min_size_error", GetMinSize(field))
 			case binding.ERR_MAX_SIZE:
-				data["ErrorMsg"] = trName + l.Tr("form.max_size_error", GetMaxSize(field))
+				data["ErrorMsg"] = trName + l.TrString("form.max_size_error", GetMaxSize(field))
 			case binding.ERR_EMAIL:
-				data["ErrorMsg"] = trName + l.Tr("form.email_error")
+				data["ErrorMsg"] = trName + l.TrString("form.email_error")
 			case binding.ERR_URL:
-				data["ErrorMsg"] = trName + l.Tr("form.url_error", errs[0].Message)
+				data["ErrorMsg"] = trName + l.TrString("form.url_error", errs[0].Message)
 			case binding.ERR_INCLUDE:
-				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
+				data["ErrorMsg"] = trName + l.TrString("form.include_error", GetInclude(field))
 			case validation.ErrGlobPattern:
-				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
+				data["ErrorMsg"] = trName + l.TrString("form.glob_pattern_error", errs[0].Message)
 			case validation.ErrRegexPattern:
-				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
+				data["ErrorMsg"] = trName + l.TrString("form.regex_pattern_error", errs[0].Message)
 			case validation.ErrUsername:
-				data["ErrorMsg"] = trName + l.Tr("form.username_error")
+				data["ErrorMsg"] = trName + l.TrString("form.username_error")
 			case validation.ErrInvalidGroupTeamMap:
-				data["ErrorMsg"] = trName + l.Tr("form.invalid_group_team_map_error", errs[0].Message)
+				data["ErrorMsg"] = trName + l.TrString("form.invalid_group_team_map_error", errs[0].Message)
 			default:
 				msg := errs[0].Classification
 				if msg != "" && errs[0].Message != "" {
@@ -146,7 +146,7 @@ func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Lo
 
 				msg += errs[0].Message
 				if msg == "" {
-					msg = l.Tr("form.unknown_error")
+					msg = l.TrString("form.unknown_error")
 				}
 				data["ErrorMsg"] = trName + ": " + msg
 			}

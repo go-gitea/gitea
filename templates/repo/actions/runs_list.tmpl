@@ -1,18 +1,18 @@
-<div class="flex-list">
-	{{if eq (len .Runs) 0}}
-	<div class="empty center">
+<div class="flex-list run-list">
+	{{if not .Runs}}
+	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
 		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
 	{{end}}
 	{{range .Runs}}
-		<div class="flex-item gt-ac">
+		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
 			<div class="flex-item-main">
 				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-					{{- .Title -}}
+					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
 				</a>
 				<div class="flex-item-body">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:
@@ -28,14 +28,14 @@
 			</div>
 			<div class="flex-item-trailing">
 				{{if .RefLink}}
-					<a class="ui label gt-px-2 gt-mx-0" href="{{.RefLink}}">{{.PrettyRef}}</a>
+					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}">{{.PrettyRef}}</a>
 				{{else}}
-					<span class="ui label gt-px-2 gt-mx-0">{{.PrettyRef}}</span>
+					<span class="ui label run-list-ref gt-ellipsis">{{.PrettyRef}}</span>
 				{{end}}
-			</div>
-			<div class="run-list-item-right">
-				<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
-				<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+				<div class="run-list-item-right">
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
+					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+				</div>
 			</div>
 		</div>
 	{{end}}

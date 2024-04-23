@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	gohtml "html"
+	"html/template"
 	"io"
 	"path/filepath"
 	"strings"
@@ -55,7 +56,7 @@ func NewContext() {
 }
 
 // Code returns a HTML version of code string with chroma syntax highlighting classes and the matched lexer name
-func Code(fileName, language, code string) (string, string) {
+func Code(fileName, language, code string) (output template.HTML, lexerName string) {
 	NewContext()
 
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
@@ -65,7 +66,7 @@ func Code(fileName, language, code string) (string, string) {
 	}
 
 	if len(code) > sizeLimit {
-		return code, ""
+		return template.HTML(template.HTMLEscapeString(code)), ""
 	}
 
 	var lexer chroma.Lexer
@@ -102,13 +103,11 @@ func Code(fileName, language, code string) (string, string) {
 		cache.Add(fileName, lexer)
 	}
 
-	lexerName := formatLexerName(lexer.Config().Name)
-
-	return CodeFromLexer(lexer, code), lexerName
+	return CodeFromLexer(lexer, code), formatLexerName(lexer.Config().Name)
 }
 
 // CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
-func CodeFromLexer(lexer chroma.Lexer, code string) string {
+func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -120,23 +119,23 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
-		return code
+		return template.HTML(template.HTMLEscapeString(code))
 	}
 	// style not used for live site but need to pass something
 	err = formatter.Format(htmlw, githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
-		return code
+		return template.HTML(template.HTMLEscapeString(code))
 	}
 
 	_ = htmlw.Flush()
 	// Chroma will add newlines for certain lexers in order to highlight them properly
 	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
-	return strings.TrimSuffix(htmlbuf.String(), "\n")
+	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
 }
 
 // File returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func File(fileName, language string, code []byte) ([]string, string, error) {
+func File(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	NewContext()
 
 	if len(code) > sizeLimit {
@@ -183,14 +182,14 @@ func File(fileName, language string, code []byte) ([]string, string, error) {
 	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
 	htmlBuf := &bytes.Buffer{}
 
-	lines := make([]string, 0, len(tokensLines))
+	lines := make([]template.HTML, 0, len(tokensLines))
 	for _, tokens := range tokensLines {
 		iterator = chroma.Literator(tokens...)
 		err = formatter.Format(htmlBuf, githubStyles, iterator)
 		if err != nil {
 			return nil, "", fmt.Errorf("can't format code: %w", err)
 		}
-		lines = append(lines, htmlBuf.String())
+		lines = append(lines, template.HTML(htmlBuf.String()))
 		htmlBuf.Reset()
 	}
 
@@ -198,9 +197,9 @@ func File(fileName, language string, code []byte) ([]string, string, error) {
 }
 
 // PlainText returns non-highlighted HTML for code
-func PlainText(code []byte) []string {
+func PlainText(code []byte) []template.HTML {
 	r := bufio.NewReader(bytes.NewReader(code))
-	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
+	m := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
 	for {
 		content, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
@@ -210,7 +209,7 @@ func PlainText(code []byte) []string {
 		if content == "" && err == io.EOF {
 			break
 		}
-		s := gohtml.EscapeString(content)
+		s := template.HTML(gohtml.EscapeString(content))
 		m = append(m, s)
 	}
 	return m

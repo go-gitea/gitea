@@ -27,13 +27,14 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"xorm.io/builder"
 )
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -41,39 +42,41 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
-	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
-	if err != nil {
-		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
-	}
-
-	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
-	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
-	}
-
-	// In case is a organization.
-	org, err := user_model.GetUserByID(ctx, uid)
-	if err != nil {
-		return err
-	}
-
-	repo := &repo_model.Repository{OwnerID: uid}
+	repo := &repo_model.Repository{}
 	has, err := sess.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
 		return repo_model.ErrRepoNotExist{
 			ID:        repoID,
-			UID:       uid,
 			OwnerName: "",
 			Name:      "",
 		}
 	}
 
+	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
+	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
+	}
+
+	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
+	}
+
+	// In case owner is a organization, we have to change repo specific teams
+	// if ignoreOrgTeams is not true
+	var org *user_model.User
+	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
+		if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
+			return err
+		}
+	}
+
 	// Delete Deploy Keys
-	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %w", err)
 	}
@@ -89,13 +92,12 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	} else if cnt != 1 {
 		return repo_model.ErrRepoNotExist{
 			ID:        repoID,
-			UID:       uid,
 			OwnerName: "",
 			Name:      "",
 		}
 	}
 
-	if org.IsOrganization() {
+	if org != nil && org.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
 			return err
@@ -161,6 +163,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		&actions_model.ActionScheduleSpec{RepoID: repoID},
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
+		&actions_model.ActionRunnerToken{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -192,7 +195,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		}
 	}
 
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", repo.OwnerID); err != nil {
 		return err
 	}
 
@@ -276,7 +279,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}
@@ -364,24 +367,26 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 		}
 	}
 
-	teamUsers, err := organization.GetTeamUsersByTeamID(ctx, t.ID)
+	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+		TeamID: t.ID,
+	})
 	if err != nil {
-		return fmt.Errorf("getTeamUsersByTeamID: %w", err)
+		return fmt.Errorf("GetTeamMembers: %w", err)
 	}
-	for _, teamUser := range teamUsers {
-		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
+	for _, member := range teamMembers {
+		has, err := access_model.HasAnyUnitAccess(ctx, member.ID, repo)
 		if err != nil {
 			return err
 		} else if has {
 			continue
 		}
 
-		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, member.ID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -421,4 +426,31 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 	}
 
 	return committer.Commit()
+}
+
+// DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
+func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
+	for {
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			Private: true,
+			OwnerID: owner.ID,
+			Actor:   owner,
+		})
+		if err != nil {
+			return fmt.Errorf("GetUserRepositories: %w", err)
+		}
+		if len(repos) == 0 {
+			break
+		}
+		for _, repo := range repos {
+			if err := DeleteRepositoryDirectly(ctx, owner, repo.ID); err != nil {
+				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
+			}
+		}
+	}
+	return nil
 }

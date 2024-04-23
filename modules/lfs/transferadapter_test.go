@@ -62,10 +62,9 @@ func TestBasicTransferAdapter(t *testing.T) {
 			json.NewEncoder(payload).Encode(er)
 
 			return &http.Response{StatusCode: http.StatusNotFound, Body: io.NopCloser(payload)}
-		} else {
-			t.Errorf("Unknown test case: %s", url)
-			return nil
 		}
+		t.Errorf("Unknown test case: %s", url)
+		return nil
 	}
 
 	hc := &http.Client{Transport: RoundTripFunc(roundTripHandler)}

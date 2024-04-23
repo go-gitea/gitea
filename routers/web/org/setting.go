@@ -7,7 +7,6 @@ package org
 import (
 	"net/http"
 	"net/url"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -15,13 +14,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -71,60 +71,57 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-	nameChanged := org.Name != form.Name
 
-	// Check if organization name has been changed.
-	if nameChanged {
-		err := org_service.RenameOrganization(ctx, org, form.Name)
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
-			return
-		case db.IsErrNameReserved(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			return
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			return
-		case err != nil:
-			ctx.ServerError("org_service.RenameOrganization", err)
+	if org.Name != form.Name {
+		if err := user_service.RenameUser(ctx, org.AsUser(), form.Name); err != nil {
+			if user_model.IsErrUserAlreadyExist(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
+			} else if db.IsErrNameReserved(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			} else if db.IsErrNamePatternNotAllowed(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			} else {
+				ctx.ServerError("RenameUser", err)
+			}
 			return
 		}
 
-		// reset ctx.org.OrgLink with new name
-		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
-		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
+		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(org.Name)
 	}
 
-	// In case it's just a case change.
-	org.Name = form.Name
-	org.LowerName = strings.ToLower(form.Name)
+	if form.Email != "" {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+			return
+		}
+	}
 
+	opts := &user_service.UpdateOptions{
+		FullName:                  optional.Some(form.FullName),
+		Description:               optional.Some(form.Description),
+		Website:                   optional.Some(form.Website),
+		Location:                  optional.Some(form.Location),
+		Visibility:                optional.Some(form.Visibility),
+		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
+	}
 	if ctx.Doer.IsAdmin {
-		org.MaxRepoCreation = form.MaxRepoCreation
+		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
 	}
 
-	org.FullName = form.FullName
-	org.Email = form.Email
-	org.Description = form.Description
-	org.Website = form.Website
-	org.Location = form.Location
-	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
+	visibilityChanged := org.Visibility != form.Visibility
 
-	visibilityChanged := form.Visibility != org.Visibility
-	org.Visibility = form.Visibility
-
-	if err := user_model.UpdateUser(ctx, org.AsUser(), false); err != nil {
+	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {
@@ -160,7 +157,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser()); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
@@ -180,7 +177,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -215,7 +212,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
+	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
 		return
@@ -233,7 +230,7 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))

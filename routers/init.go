@@ -9,7 +9,6 @@ import (
 	"runtime"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -45,6 +45,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
@@ -72,7 +73,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
-	if err := system.AppState.Get(runtimeState); err != nil {
+	if err := system.AppState.Get(ctx, runtimeState); err != nil {
 		return err
 	}
 
@@ -93,9 +94,9 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_service.RewriteAllPublicKeys)
 
-		return system.AppState.Set(runtimeState)
+		return system.AppState.Set(ctx, runtimeState)
 	}
 	return nil
 }
@@ -118,10 +119,10 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
-	mustInit(cache.NewContext)
+	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInit(archiver.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
@@ -136,7 +137,9 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
-	mustInit(oauth2.Init)
+	mustInitCtx(ctx, oauth2.Init)
+
+	mustInit(release_service.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
@@ -195,6 +198,8 @@ func NormalRoutes() *web.Route {
 		// TODO: this prefix should be generated with a token string with runner ?
 		prefix = "/api/actions_pipeline"
 		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
+		prefix = actions_router.ArtifactV4RouteBase
+		r.Mount(prefix, actions_router.ArtifactsV4Routes(prefix))
 	}
 
 	return r

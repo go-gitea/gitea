@@ -7,7 +7,7 @@ export default {
   props: {
     item: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -37,7 +37,7 @@ export default {
   >
     <!-- file -->
     <SvgIcon name="octicon-file"/>
-    <span class="gt-ellipsis gt-f1">{{ item.name }}</span>
+    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
   </a>
   <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
@@ -58,11 +58,15 @@ a, a:hover {
 }
 
 .sub-items {
-  padding-left: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 13px;
+  border-left: 1px solid var(--color-secondary);
 }
 
-.item-file {
-  margin-left: 20px;
+.sub-items .item-file {
+  padding-left: 18px;
 }
 
 .item-file.selected {
@@ -80,7 +84,7 @@ a, a:hover {
   display: flex;
   align-items: center;
   gap: 0.25em;
-  padding: 2px;
+  padding: 3px 6px;
 }
 
 .item-file:hover,

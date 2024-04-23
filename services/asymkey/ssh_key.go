@@ -13,7 +13,7 @@ import (
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
 func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err error) {
-	key, err := asymkey_model.GetPublicKeyByID(id)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	}
 	defer committer.Close()
 
-	if err = asymkey_model.DeletePublicKeys(dbCtx, id); err != nil {
+	if _, err = db.DeleteByID[asymkey_model.PublicKey](dbCtx, id); err != nil {
 		return err
 	}
 
@@ -43,8 +43,8 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
-		return asymkey_model.RewriteAllPrincipalKeys(ctx)
+		return RewriteAllPrincipalKeys(ctx)
 	}
 
-	return asymkey_model.RewriteAllPublicKeys(ctx)
+	return RewriteAllPublicKeys(ctx)
 }

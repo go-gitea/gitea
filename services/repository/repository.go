@@ -62,7 +62,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	if err := DeleteRepositoryDirectly(ctx, doer, repo.OwnerID, repo.ID); err != nil {
+	if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
 		return err
 	}
 

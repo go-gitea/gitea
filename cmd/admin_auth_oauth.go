@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -183,7 +184,7 @@ func runAddOauth(c *cli.Context) error {
 		}
 	}
 
-	return auth_model.CreateSource(&auth_model.Source{
+	return auth_model.CreateSource(ctx, &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
@@ -193,7 +194,7 @@ func runAddOauth(c *cli.Context) error {
 
 func runUpdateOauth(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()
@@ -203,7 +204,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -294,5 +295,5 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return auth_model.UpdateSource(source)
+	return auth_model.UpdateSource(ctx, source)
 }

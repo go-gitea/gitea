@@ -26,7 +26,7 @@ Agit 允许在推送代码到远程仓库时创建 PR（合并请求）。
 下面的示例说明了这一点：
 
 ```shell
-git push origin HEAD:refs/for/master
+git push origin HEAD:refs/for/main
 ```
 
 该命令的结构如下：
@@ -42,8 +42,8 @@ git push origin HEAD:refs/for/master
   - `description`：PR 的描述
   - `force-push`：确认强制更新目标分支
 
-下面是另一个高级示例，用于创建一个以 `topic`、`title` 和 `description` 为参数的新 PR，目标分支是 `master`：
+下面是另一个高级示例，用于创建一个以 `topic`、`title` 和 `description` 为参数的新 PR，目标分支是 `main`：
 
 ```shell
-git push origin HEAD:refs/for/master -o topic="Topic of my PR" -o title="Title of the PR" -o description="# The PR Description\nThis can be **any** markdown content.\n- [x] Ok"
+git push origin HEAD:refs/for/main -o topic="Topic of my PR" -o title="Title of the PR" -o description="# The PR Description\nThis can be **any** markdown content.\n- [x] Ok"
 ```

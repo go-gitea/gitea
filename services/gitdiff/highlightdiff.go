@@ -93,10 +93,10 @@ func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	highlightCodeA, _ := highlight.Code(filename, language, codeA)
 	highlightCodeB, _ := highlight.Code(filename, language, codeB)
 
-	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
-	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
+	convertedCodeA := hcd.convertToPlaceholders(string(highlightCodeA))
+	convertedCodeB := hcd.convertToPlaceholders(string(highlightCodeB))
 
-	diffs := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
+	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
 
 	for i := range diffs {

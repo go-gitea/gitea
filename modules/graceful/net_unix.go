@@ -129,33 +129,21 @@ func getProvidedFDs() (savedErr error) {
 	return savedErr
 }
 
-// CloseProvidedListeners closes all unused provided listeners.
-func CloseProvidedListeners() error {
+// closeProvidedListeners closes all unused provided listeners.
+func closeProvidedListeners() {
 	mutex.Lock()
 	defer mutex.Unlock()
-	var returnableError error
 	for _, l := range providedListeners {
 		err := l.Close()
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
-			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %w", returnableError, err)
-			} else {
-				returnableError = err
-			}
 		}
 	}
 	providedListeners = []net.Listener{}
-
-	return returnableError
 }
 
-// DefaultGetListener obtains a listener for the local network address. The network must be
-// a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
-// returns an provided net.Listener for the matching network and address, or
-// creates a new one using net.Listen. This function can be replaced by changing the
-// GetListener variable at the top of this file, for example to listen on an onion service using
-// github.com/cretz/bine
+// DefaultGetListener obtains a listener for the stream-oriented local network address:
+// "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 func DefaultGetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
 	defer GetManager().InformCleanup()

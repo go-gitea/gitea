@@ -1,4 +1,4 @@
-<div class="four wide column">
+<div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
 		<div class="header item">{{ctx.Locale.Tr "org.settings"}}</div>
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.OrgLink}}/settings">
@@ -17,6 +17,9 @@
 			{{ctx.Locale.Tr "settings.applications"}}
 		</a>
 		{{end}}
+		<a class="{{if .PageIsSettingsBlockedUsers}}active {{end}}item" href="{{.OrgLink}}/settings/blocked_users">
+			{{ctx.Locale.Tr "user.block.list"}}
+		</a>
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{.OrgLink}}/settings/packages">
 			{{ctx.Locale.Tr "packages.title"}}
