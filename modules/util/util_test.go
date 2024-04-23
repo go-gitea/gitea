@@ -121,9 +121,9 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	int, err := CryptoRandomInt(255)
-	assert.True(t, int >= 0)
-	assert.True(t, int <= 255)
+	randInt, err := CryptoRandomInt(255)
+	assert.True(t, randInt >= 0)
+	assert.True(t, randInt <= 255)
 	assert.NoError(t, err)
 }
 

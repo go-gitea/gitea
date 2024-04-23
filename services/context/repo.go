@@ -825,7 +825,6 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 	case RepoRefBranch:
 		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
-
 			// check if ref is HEAD
 			parts := strings.Split(path, "/")
 			if parts[0] == headRefName {
@@ -968,7 +967,6 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-
 			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.TagName = refName

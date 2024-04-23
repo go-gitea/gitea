@@ -144,7 +144,6 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 
 			var task *actions.ActionTask
 			if err == nil {
-
 				task, err = actions.GetTaskByID(req.Context(), tID)
 				if err != nil {
 					log.Error("Error runner api getting task by ID: %v", err)
