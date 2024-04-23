@@ -1075,6 +1075,7 @@ func Routes() *web.Route {
 				}, reqToken())
 				m.Group("/actions", func() {
 					m.Group("/secrets", func() {
+						m.Get("", reqToken(), reqOwner(), repo.ListActionsSecrets)
 						m.Combo("/{secretname}").
 							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
 							Delete(reqToken(), reqOwner(), repo.DeleteSecret)

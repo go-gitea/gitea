@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	secret_model "code.gitea.io/gitea/models/secret"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -17,6 +18,65 @@ import (
 	"code.gitea.io/gitea/services/context"
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
+
+// ListActionsSecrets list an repo's actions secrets
+func ListActionsSecrets(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
+	// ---
+	// summary: List an repo's actions secrets
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/SecretList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	owner := ctx.Repo.Owner
+	repo := ctx.Repo.Repository
+
+	opts := &secret_model.FindSecretsOptions{
+		OwnerID:     owner.ID,
+		RepoID:      repo.ID,
+		ListOptions: utils.GetListOptions(ctx),
+	}
+
+	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	apiSecrets := make([]*api.Secret, len(secrets))
+	for k, v := range secrets {
+		apiSecrets[k] = &api.Secret{
+			Name:    v.Name,
+			Created: v.CreatedUnix.AsTime(),
+		}
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiSecrets)
+}
 
 // create or update one secret of the repository
 func CreateOrUpdateSecret(ctx *context.APIContext) {
