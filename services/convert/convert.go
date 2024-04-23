@@ -201,7 +201,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		panic(fmt.Sprintf("failed to execute ActionTask.LoadAttributes(): %v", err))
 	}
 
-	url := fmt.Sprintf("%s%s", setting.AppURL, t.GetRunLink())
+	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
 
 	return &api.ActionTask{
 		ID:           t.ID,
