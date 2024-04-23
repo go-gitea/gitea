@@ -151,12 +151,12 @@ func UploadBinaryPackageFile(ctx *context.Context) {
 }
 
 func uploadPackageFile(ctx *context.Context, compositeKey string, properties map[string]string) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
