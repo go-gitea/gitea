@@ -95,7 +95,7 @@
 						so do not show it when viewing file or directory to avoid misleading users (it doesn't search in a directory) */}}
 					<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="ui small action input">
-							<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+							<input name="q" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 							{{template "shared/search/button"}}
 						</div>
 					</form>
