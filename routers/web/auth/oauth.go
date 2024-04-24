@@ -966,7 +966,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			if len(missingFields) > 0 {
 				log.Error(`OAuth2 auto registration (ENABLE_AUTO_REGISTRATION) is enabled but OAuth2 provider %q doesn't return required fields: %s. `+
-					`Suggest to: disable auto registration, or make OPENID_CONNECT_SCOPES (for OpenIDConnect) / Authentication Source Scopes (for Admin panel) to request all required fields.`,
+					`Suggest to: disable auto registration, or make OPENID_CONNECT_SCOPES (for OpenIDConnect) / Authentication Source Scopes (for Admin panel) to request all required fields, and the fields shouldn't be empty.`,
 					authSource.Name, strings.Join(missingFields, ","))
 				// The RawData is the only way to pass the missing fields to the another page at the moment, other ways all have various problems:
 				// by session or cookie: difficult to clean or reset; by URL: could be injected with uncontrollable content; by ctx.Flash: the link_account page is a mess ...
