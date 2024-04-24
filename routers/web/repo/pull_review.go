@@ -264,6 +264,8 @@ func SubmitReview(ctx *context.Context) {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		} else if pull_service.IsSubmitReviewOnClosedPR(err) {
+			ctx.Error(http.StatusForbidden)
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}

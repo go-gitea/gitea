@@ -43,6 +43,23 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
+// ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
+type ErrSubmitReviewOnClosedPR struct{}
+
+// IsSubmitReviewOnClosedPR checks if an error is an ErrSubmitReviewOnClosedPR.
+func IsSubmitReviewOnClosedPR(err error) bool {
+	_, ok := err.(ErrSubmitReviewOnClosedPR)
+	return ok
+}
+
+func (err ErrSubmitReviewOnClosedPR) Error() string {
+	return "can't submit review for a closed or merged PR"
+}
+
+func (err ErrSubmitReviewOnClosedPR) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
 func checkInvalidation(ctx context.Context, c *issues_model.Comment, doer *user_model.User, repo *git.Repository, branch string) error {
@@ -293,6 +310,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
+		if issue.IsClosed || pr.HasMerged {
+			return nil, nil, ErrSubmitReviewOnClosedPR{}
+		}
+
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err
