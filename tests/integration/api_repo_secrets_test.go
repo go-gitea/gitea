@@ -37,7 +37,7 @@ func TestAPIRepoSecrets(t *testing.T) {
 		}{
 			{
 				Name:           "",
-				ExpectedStatus: http.StatusNotFound,
+				ExpectedStatus: http.StatusMethodNotAllowed,
 			},
 			{
 				Name:           "-",
