@@ -6,39 +6,52 @@
 	<div class="content">
 		<form id="runWorkflowDispatchForm" class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="ui inline field required">
+			<div class="ui field required">
 				<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
-				<div class="ui floating dropdown icon button mini">
+				<div class="ui filter dropdown button select-branch">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
 					{{svg "octicon-git-branch"}}
-					<span class="text tw-text-13">{{index .Branches 0}}</span>
+					<span class="text branch-name gt-ellipsis">{{index .Branches 0}}</span>
 					<div class="menu">
-						<div class="ui icon search input">
+						<div class="ui icon search input tw-w-auto">
 							<i class="search icon">{{svg "octicon-search" 16 "search icon"}}</i>
 							<input type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}">
 						</div>
-						<div class="scrolling menu">
-							<div class="header">
-								{{svg "octicon-git-branch"}}
-								{{ctx.Locale.Tr "repo.branches"}}
+						<div class="header">
+							<div class="ui grid">
+								<div class="two column row">
+									<a class="reference column muted" href="#" data-target="#branch-list">
+										<span class="text black">
+											{{svg "octicon-git-branch" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.branches"}}
+										</span>
+									</a>
+									<a class="reference column muted" href="#" data-target="#tag-list">
+										<span class="text">
+											{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.tags"}}
+										</span>
+									</a>
+								</div>
 							</div>
-							{{range $key, $item := .Branches}}
-							<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
+						</div>
+						<div class="branch-tag-divider"></div>
+						<div id="branch-list" class="scrolling menu reference-list-menu">
+							{{range .Branches}}
+								<div class="item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
+							{{else}}
+								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
 							{{end}}
-							<div class="divider"></div>
-							<div class="header">
-								{{svg "octicon-tag"}}
-								{{ctx.Locale.Tr "repo.tags"}}
-							</div>
-							{{range $key, $item := .Tags}}
-							<div class="item" data-value="refs/tags/{{.}}">{{.}}</div>
+						</div>
+						<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
+							{{range .Tags}}
+								<div class="item" data-value="refs/tags/{{.}}" title="{{.}}">{{.}}</div>
+							{{else}}
+								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
 							{{end}}
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<div class="divider"></div>
 			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
 				{{if eq .Type "choice"}}

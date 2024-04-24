@@ -43,6 +43,50 @@ function reloadConfirmDraftComment() {
   window.location.reload();
 }
 
+// code specific to the issue branch selector
+export function initBranchSelectorIssue() {
+  const $selectBranch = $('.ui.issue-select-branch');
+  if (!$selectBranch.length) return;
+  const $branchMenu = $selectBranch.find('.reference-list-menu');
+  const $isNewIssue = $branchMenu.hasClass('new-issue');
+  $branchMenu.find('.item:not(.no-select)').on('click', async function () {
+    const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
+    $($(this).data('id-selector')).val(selectedValue);
+    if ($isNewIssue) {
+      $selectBranch.find('.ui .branch-name').text($(this).data('name'));
+      return;
+    }
+
+    if (editMode === 'true') {
+      const form = document.getElementById('update_issueref_form');
+      const params = new URLSearchParams();
+      params.append('ref', selectedValue);
+      try {
+        await POST(form.getAttribute('action'), {data: params});
+        window.location.reload();
+      } catch (error) {
+        console.error(error);
+      }
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
+    }
+  });
+}
+
+// code for all branch selectors
+export function initBranchSelectorTabs() {
+  const $selectBranch = $('.ui.select-branch');
+  if (!$selectBranch.length) return;
+  $selectBranch.find('.reference.column').on('click', function () {
+    hideElem($selectBranch.find('.scrolling.reference-list-menu'));
+    $selectBranch.find('.reference .text').removeClass('black');
+    showElem($($(this).data('target')));
+    $(this).find('.text').addClass('black');
+    return false;
+  });
+}
+
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
   if (!$commentForm.length) return;
@@ -54,44 +98,6 @@ export function initRepoCommentForm() {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor($commentForm);
   }
-
-  function initBranchSelector() {
-    const $selectBranch = $('.ui.select-branch');
-    const $branchMenu = $selectBranch.find('.reference-list-menu');
-    const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', async function () {
-      const selectedValue = $(this).data('id');
-      const editMode = $('#editing_mode').val();
-      $($(this).data('id-selector')).val(selectedValue);
-      if ($isNewIssue) {
-        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
-        return;
-      }
-
-      if (editMode === 'true') {
-        const form = document.getElementById('update_issueref_form');
-        const params = new URLSearchParams();
-        params.append('ref', selectedValue);
-        try {
-          await POST(form.getAttribute('action'), {data: params});
-          window.location.reload();
-        } catch (error) {
-          console.error(error);
-        }
-      } else if (editMode === '') {
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
-      }
-    });
-    $selectBranch.find('.reference.column').on('click', function () {
-      hideElem($selectBranch.find('.scrolling.reference-list-menu'));
-      $selectBranch.find('.reference .text').removeClass('black');
-      showElem($($(this).data('target')));
-      $(this).find('.text').addClass('black');
-      return false;
-    });
-  }
-
-  initBranchSelector();
 
   // List submits
   function initListSubmits(selector, outerSelector) {

@@ -2810,14 +2810,14 @@ tbody.commit-list {
 }
 
 /* Branch tag selector - TODO: Merge this into the same selector on repo page */
-.repository .issue-content .issue-content-right  .ui.grid .column.row {
+.select-branch  .ui.grid .column.row {
   padding: 10px;
   padding-bottom: 0;
 }
-.repository .issue-content .issue-content-right  .ui.grid .column.muted {
+.select-branch  .ui.grid .column.muted {
   padding: 0;
 }
-.repository .issue-content .issue-content-right  .ui.grid .column.muted .text {
+.select-branch  .ui.grid .column.muted .text {
   display: inline-block;
   padding: 10px;
   width: 100%;
@@ -2825,16 +2825,16 @@ tbody.commit-list {
   border: 1px solid transparent;
   border-bottom: none;
 }
-.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
+.select-branch .ui.grid .column.muted .text.black {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
-.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
-  border-top: none;
+.select-branch .scrolling.menu {
+  border-top: none !important;
 }
-.repository .issue-content .issue-content-right .branch-tag-divider {
+.select-branch .branch-tag-divider {
   margin-top: -1px;
   border-top: 1px solid var(--color-secondary);
 }
