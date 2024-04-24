@@ -93,6 +93,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -835,6 +836,34 @@ func Routes() *web.Route {
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
+	addActionsRoutes := func(
+		m *web.Route,
+		reqChecker func(ctx *context.APIContext),
+		act actions.API,
+	) {
+		m.Group("/actions", func() {
+			m.Group("/secrets", func() {
+				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqChecker, act.DeleteSecret)
+			})
+
+			m.Group("/variables", func() {
+				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Combo("/{variablename}").
+					Get(reqToken(), reqChecker, act.GetVariable).
+					Delete(reqToken(), reqChecker, act.DeleteVariable).
+					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+			})
+
+			m.Group("/runners", func() {
+				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+			})
+		})
+	}
+
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -1073,20 +1102,10 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				actionsGroup(
+				addActionsRoutes(
 					m,
 					reqOwner(),
-					actionAPI{
-						repo.ListActionsSecrets,
-						repo.CreateOrUpdateSecret,
-						repo.DeleteSecret,
-						repo.ListVariables,
-						repo.GetVariable,
-						repo.DeleteVariable,
-						repo.CreateVariable,
-						repo.UpdateVariable,
-						repo.GetRegistrationToken,
-					},
+					repo.NewAction(),
 				)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1455,20 +1474,10 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			actionsGroup(
+			addActionsRoutes(
 				m,
 				reqOrgOwnership(),
-				actionAPI{
-					org.ListActionsSecrets,
-					org.CreateOrUpdateSecret,
-					org.DeleteSecret,
-					org.ListVariables,
-					org.GetVariable,
-					org.DeleteVariable,
-					org.CreateVariable,
-					org.UpdateVariable,
-					org.GetRegistrationToken,
-				},
+				org.NewAction(),
 			)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1583,47 +1592,6 @@ func Routes() *web.Route {
 	}, sudo())
 
 	return m
-}
-
-// actionAPI is a struct that holds the actions API
-type actionAPI struct {
-	ListActionsSecrets   func(ctx *context.APIContext)
-	CreateOrUpdateSecret func(ctx *context.APIContext)
-	DeleteSecret         func(ctx *context.APIContext)
-	ListVariables        func(ctx *context.APIContext)
-	GetVariable          func(ctx *context.APIContext)
-	DeleteVariable       func(ctx *context.APIContext)
-	CreateVariable       func(ctx *context.APIContext)
-	UpdateVariable       func(ctx *context.APIContext)
-	GetRegistrationToken func(ctx *context.APIContext)
-}
-
-func actionsGroup(
-	m *web.Route,
-	reqChecker func(ctx *context.APIContext),
-	act actionAPI,
-) {
-	m.Group("/actions", func() {
-		m.Group("/secrets", func() {
-			m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
-			m.Combo("/{secretname}").
-				Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-				Delete(reqToken(), reqChecker, act.DeleteSecret)
-		})
-
-		m.Group("/variables", func() {
-			m.Get("", reqToken(), reqChecker, act.ListVariables)
-			m.Combo("/{variablename}").
-				Get(reqToken(), reqChecker, act.GetVariable).
-				Delete(reqToken(), reqChecker, act.DeleteVariable).
-				Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
-				Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
-		})
-
-		m.Group("/runners", func() {
-			m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
-		})
-	})
 }
 
 func securityHeaders() func(http.Handler) http.Handler {

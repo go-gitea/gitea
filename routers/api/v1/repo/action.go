@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
@@ -20,7 +21,7 @@ import (
 )
 
 // ListActionsSecrets list an repo's actions secrets
-func ListActionsSecrets(ctx *context.APIContext) {
+func (a *Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
 	// ---
 	// summary: List an repo's actions secrets
@@ -77,7 +78,7 @@ func ListActionsSecrets(ctx *context.APIContext) {
 }
 
 // create or update one secret of the repository
-func CreateOrUpdateSecret(ctx *context.APIContext) {
+func (a *Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/secrets/{secretname} repository updateRepoSecret
 	// ---
 	// summary: Create or Update a secret value in a repository
@@ -140,7 +141,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 }
 
 // DeleteSecret delete one secret of the repository
-func DeleteSecret(ctx *context.APIContext) {
+func (a *Action) DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteRepoSecret
 	// ---
 	// summary: Delete a secret in a repository
@@ -191,7 +192,7 @@ func DeleteSecret(ctx *context.APIContext) {
 }
 
 // GetVariable get a repo-level variable
-func GetVariable(ctx *context.APIContext) {
+func (a *Action) GetVariable(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables/{variablename} repository getRepoVariable
 	// ---
 	// summary: Get a repo-level variable
@@ -244,7 +245,7 @@ func GetVariable(ctx *context.APIContext) {
 }
 
 // DeleteVariable delete a repo-level variable
-func DeleteVariable(ctx *context.APIContext) {
+func (a *Action) DeleteVariable(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/variables/{variablename} repository deleteRepoVariable
 	// ---
 	// summary: Delete a repo-level variable
@@ -293,7 +294,7 @@ func DeleteVariable(ctx *context.APIContext) {
 }
 
 // CreateVariable create a repo-level variable
-func CreateVariable(ctx *context.APIContext) {
+func (a *Action) CreateVariable(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/actions/variables/{variablename} repository createRepoVariable
 	// ---
 	// summary: Create a repo-level variable
@@ -360,7 +361,7 @@ func CreateVariable(ctx *context.APIContext) {
 }
 
 // UpdateVariable update a repo-level variable
-func UpdateVariable(ctx *context.APIContext) {
+func (a *Action) UpdateVariable(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/variables/{variablename} repository updateRepoVariable
 	// ---
 	// summary: Update a repo-level variable
@@ -427,7 +428,7 @@ func UpdateVariable(ctx *context.APIContext) {
 }
 
 // ListVariables list repo-level variables
-func ListVariables(ctx *context.APIContext) {
+func (a *Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables repository getRepoVariablesList
 	// ---
 	// summary: Get repo-level variables list
@@ -480,4 +481,38 @@ func ListVariables(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
+}
+
+// GetRegistrationToken returns the token to register repo runners
+func (a *Action) GetRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repository repoGetRunnerRegistrationToken
+	// ---
+	// summary: Get a repository's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
+}
+
+var _ actions_service.API = new(Action)
+
+type Action struct{}
+
+// NewAction creates a new Action service
+func NewAction() actions_service.API {
+	return &Action{}
 }
