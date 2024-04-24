@@ -484,6 +484,7 @@ ol.ui.list li,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
+  white-space: nowrap;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
