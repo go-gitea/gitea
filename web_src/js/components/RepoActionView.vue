@@ -388,16 +388,16 @@ export function initRepositoryActionView() {
         </button>
       </div>
       <div class="action-commit-summary">
-        <a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:
-        <div v-if="run.isSchedule">
+        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <template v-if="run.isSchedule">
           {{ locale.scheduled }}
-        </div>
-        <div v-else>
+        </template>
+        <template v-else>
           {{ locale.commit }}
           <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
           {{ locale.pushedBy }}
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        </div>
+        </template>
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
           <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
