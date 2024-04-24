@@ -46,7 +46,7 @@ func TestPullCompare(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
+		resp = testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
 		// the max value on issue_index.yml for repo_id=1 is 5
 		req = NewRequest(t, "GET", "/user2/repo1/pulls/6/files")
