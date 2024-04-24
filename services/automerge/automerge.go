@@ -287,6 +287,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 
 	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
 		log.Error("pull_service.Merge: %v", err)
+		// FIXME: if merge failed, we should display some error message to the pull request page.
 		return
 	}
 }
