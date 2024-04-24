@@ -21,7 +21,7 @@ import (
 )
 
 // ListActionsSecrets list an organization's actions secrets
-func (a *Action) ListActionsSecrets(ctx *context.APIContext) {
+func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/secrets organization orgListActionsSecrets
 	// ---
 	// summary: List an organization's actions secrets
@@ -71,7 +71,7 @@ func (a *Action) ListActionsSecrets(ctx *context.APIContext) {
 }
 
 // create or update one secret of the organization
-func (a *Action) CreateOrUpdateSecret(ctx *context.APIContext) {
+func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
 	// summary: Create or Update a secret value in an organization
@@ -126,7 +126,7 @@ func (a *Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 }
 
 // DeleteSecret delete one secret of the organization
-func (a *Action) DeleteSecret(ctx *context.APIContext) {
+func (Action) DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteOrgSecret
 	// ---
 	// summary: Delete a secret in an organization
@@ -170,7 +170,7 @@ func (a *Action) DeleteSecret(ctx *context.APIContext) {
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 // GetRegistrationToken returns the token to register org runners
-func (a *Action) GetRegistrationToken(ctx *context.APIContext) {
+func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/runners/registration-token organization orgGetRunnerRegistrationToken
 	// ---
 	// summary: Get an organization's actions runner registration token
@@ -190,7 +190,7 @@ func (a *Action) GetRegistrationToken(ctx *context.APIContext) {
 }
 
 // ListVariables list org-level variables
-func (a *Action) ListVariables(ctx *context.APIContext) {
+func (Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/variables organization getOrgVariablesList
 	// ---
 	// summary: Get an org-level variables list
@@ -242,7 +242,7 @@ func (a *Action) ListVariables(ctx *context.APIContext) {
 }
 
 // GetVariable get an org-level variable
-func (a *Action) GetVariable(ctx *context.APIContext) {
+func (Action) GetVariable(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/variables/{variablename} organization getOrgVariable
 	// ---
 	// summary: Get an org-level variable
@@ -291,7 +291,7 @@ func (a *Action) GetVariable(ctx *context.APIContext) {
 }
 
 // DeleteVariable delete an org-level variable
-func (a *Action) DeleteVariable(ctx *context.APIContext) {
+func (Action) DeleteVariable(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org}/actions/variables/{variablename} organization deleteOrgVariable
 	// ---
 	// summary: Delete an org-level variable
@@ -335,7 +335,7 @@ func (a *Action) DeleteVariable(ctx *context.APIContext) {
 }
 
 // CreateVariable create an org-level variable
-func (a *Action) CreateVariable(ctx *context.APIContext) {
+func (Action) CreateVariable(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/actions/variables/{variablename} organization createOrgVariable
 	// ---
 	// summary: Create an org-level variable
@@ -399,7 +399,7 @@ func (a *Action) CreateVariable(ctx *context.APIContext) {
 }
 
 // UpdateVariable update an org-level variable
-func (a *Action) UpdateVariable(ctx *context.APIContext) {
+func (Action) UpdateVariable(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/variables/{variablename} organization updateOrgVariable
 	// ---
 	// summary: Update an org-level variable
@@ -464,9 +464,10 @@ func (a *Action) UpdateVariable(ctx *context.APIContext) {
 
 var _ actions_service.API = new(Action)
 
+// Action implements actions_service.API
 type Action struct{}
 
 // NewAction creates a new Action service
 func NewAction() actions_service.API {
-	return &Action{}
+	return Action{}
 }

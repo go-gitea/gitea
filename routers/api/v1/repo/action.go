@@ -21,7 +21,7 @@ import (
 )
 
 // ListActionsSecrets list an repo's actions secrets
-func (a *Action) ListActionsSecrets(ctx *context.APIContext) {
+func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
 	// ---
 	// summary: List an repo's actions secrets
@@ -78,7 +78,7 @@ func (a *Action) ListActionsSecrets(ctx *context.APIContext) {
 }
 
 // create or update one secret of the repository
-func (a *Action) CreateOrUpdateSecret(ctx *context.APIContext) {
+func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/secrets/{secretname} repository updateRepoSecret
 	// ---
 	// summary: Create or Update a secret value in a repository
@@ -141,7 +141,7 @@ func (a *Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 }
 
 // DeleteSecret delete one secret of the repository
-func (a *Action) DeleteSecret(ctx *context.APIContext) {
+func (Action) DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteRepoSecret
 	// ---
 	// summary: Delete a secret in a repository
@@ -192,7 +192,7 @@ func (a *Action) DeleteSecret(ctx *context.APIContext) {
 }
 
 // GetVariable get a repo-level variable
-func (a *Action) GetVariable(ctx *context.APIContext) {
+func (Action) GetVariable(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables/{variablename} repository getRepoVariable
 	// ---
 	// summary: Get a repo-level variable
@@ -245,7 +245,7 @@ func (a *Action) GetVariable(ctx *context.APIContext) {
 }
 
 // DeleteVariable delete a repo-level variable
-func (a *Action) DeleteVariable(ctx *context.APIContext) {
+func (Action) DeleteVariable(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/variables/{variablename} repository deleteRepoVariable
 	// ---
 	// summary: Delete a repo-level variable
@@ -294,7 +294,7 @@ func (a *Action) DeleteVariable(ctx *context.APIContext) {
 }
 
 // CreateVariable create a repo-level variable
-func (a *Action) CreateVariable(ctx *context.APIContext) {
+func (Action) CreateVariable(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/actions/variables/{variablename} repository createRepoVariable
 	// ---
 	// summary: Create a repo-level variable
@@ -361,7 +361,7 @@ func (a *Action) CreateVariable(ctx *context.APIContext) {
 }
 
 // UpdateVariable update a repo-level variable
-func (a *Action) UpdateVariable(ctx *context.APIContext) {
+func (Action) UpdateVariable(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/variables/{variablename} repository updateRepoVariable
 	// ---
 	// summary: Update a repo-level variable
@@ -428,7 +428,7 @@ func (a *Action) UpdateVariable(ctx *context.APIContext) {
 }
 
 // ListVariables list repo-level variables
-func (a *Action) ListVariables(ctx *context.APIContext) {
+func (Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables repository getRepoVariablesList
 	// ---
 	// summary: Get repo-level variables list
@@ -484,7 +484,7 @@ func (a *Action) ListVariables(ctx *context.APIContext) {
 }
 
 // GetRegistrationToken returns the token to register repo runners
-func (a *Action) GetRegistrationToken(ctx *context.APIContext) {
+func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repository repoGetRunnerRegistrationToken
 	// ---
 	// summary: Get a repository's actions runner registration token
@@ -510,9 +510,10 @@ func (a *Action) GetRegistrationToken(ctx *context.APIContext) {
 
 var _ actions_service.API = new(Action)
 
+// Action implements actions_service.API
 type Action struct{}
 
 // NewAction creates a new Action service
 func NewAction() actions_service.API {
-	return &Action{}
+	return Action{}
 }
