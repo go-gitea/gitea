@@ -58,7 +58,6 @@ func ListActionTasks(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	})
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
 		return
