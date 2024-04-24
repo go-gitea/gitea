@@ -46,8 +46,8 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 // ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
 type ErrSubmitReviewOnClosedPR struct{}
 
-// IsSubmitReviewOnClosedPR checks if an error is an ErrSubmitReviewOnClosedPR.
-func IsSubmitReviewOnClosedPR(err error) bool {
+// IsErrSubmitReviewOnClosedPR checks if an error is an ErrSubmitReviewOnClosedPR.
+func IsErrSubmitReviewOnClosedPR(err error) bool {
 	_, ok := err.(ErrSubmitReviewOnClosedPR)
 	return ok
 }
