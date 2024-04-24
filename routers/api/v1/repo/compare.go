@@ -16,7 +16,7 @@ import (
 
 // CompareDiff compare two branches or commits
 func CompareDiff(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/compare/{basehead} Get commit comparison information
+	// swagger:operation GET /repos/{owner}/{repo}/compare/{basehead} repository repoCompareDiff
 	// ---
 	// summary: Get commit comparison information
 	// produces:
