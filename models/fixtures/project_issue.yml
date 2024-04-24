@@ -8,7 +8,7 @@
   id: 2
   issue_id: 2
   project_id: 1
-  project_board_id: 0 # no board assigned
+  project_board_id: 5
 
 -
   id: 3

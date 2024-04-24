@@ -1662,9 +1662,13 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
-		} else if comment.Type == issues_model.CommentTypeProject {
+		} else if comment.Type == issues_model.CommentTypeProject || comment.Type == issues_model.CommentTypeProjectBoard {
 			if err = comment.LoadProject(ctx); err != nil {
 				ctx.ServerError("LoadProject", err)
+				return
+			}
+			if err = comment.LoadProjectBoard(); err != nil {
+				ctx.ServerError("LoadProjectBoard", err)
 				return
 			}
 

@@ -247,7 +247,7 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 		return nil, err
 	}
 
-	defaultB, err := p.getDefaultBoard(ctx)
+	defaultB, err := p.GetDefaultBoard(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -255,8 +255,8 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	return append([]*Board{defaultB}, boards...), nil
 }
 
-// getDefaultBoard return default board and ensure only one exists
-func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
+// GetDefaultBoard return default board and ensure only one exists
+func (p *Project) GetDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).

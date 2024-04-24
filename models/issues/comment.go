@@ -220,6 +220,13 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
+// CommentProjectBoardExtendData extend data of CommentTypeProjectBoard,
+// will be store in `Comment.Content` as json format
+type CommentProjectBoardExtendData struct {
+	FromBoardTitle string
+	ToBoardTitle   string
+}
+
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64            `xorm:"pk autoincr"`
@@ -301,6 +308,8 @@ type Comment struct {
 	NewCommit   string                              `xorm:"-"`
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
+
+	ProjectBoard *CommentProjectBoardExtendData `xorm:"-"`
 }
 
 func init() {
@@ -537,6 +546,15 @@ func (c *Comment) LoadProject(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (c *Comment) LoadProjectBoard() error {
+	if c.Type != CommentTypeProjectBoard || c.ProjectBoard != nil {
+		return nil
+	}
+
+	c.ProjectBoard = &CommentProjectBoardExtendData{}
+	return json.Unmarshal([]byte(c.Content), c.ProjectBoard)
 }
 
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
@@ -828,6 +846,15 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		IsForcePush:      opts.IsForcePush,
 		Invalidated:      opts.Invalidated,
 	}
+	if comment.Type == CommentTypeProjectBoard {
+		extDataJSON, err := json.Marshal(opts.ProjectBoard)
+		if err != nil {
+			return nil, err
+		}
+		comment.Content = string(extDataJSON)
+		comment.ProjectBoard = opts.ProjectBoard
+	}
+
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
 	}
@@ -1007,6 +1034,8 @@ type CreateCommentOptions struct {
 	RefIsPull        bool
 	IsForcePush      bool
 	Invalidated      bool
+
+	ProjectBoard *CommentProjectBoardExtendData
 }
 
 // GetCommentByID returns the comment by given ID.

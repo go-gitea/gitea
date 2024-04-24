@@ -68,6 +68,10 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 			assert.Equal(t, int64(400), issue.TotalTrackedTime)
 			assert.NotNil(t, issue.Project)
 			assert.Equal(t, int64(1), issue.Project.ID)
+			assert.NotNil(t, issue.ProjectIssue)
+			assert.Equal(t, int64(1), issue.ProjectIssue.IssueID)
+			assert.NotNil(t, issue.ProjectIssue.ProjectBoard)
+			assert.Equal(t, int64(1), issue.ProjectIssue.ProjectBoard.ID)
 		} else {
 			assert.Nil(t, issue.Project)
 		}

@@ -28,6 +28,23 @@ func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	return err
 }
 
+func (issue *Issue) LoadProjectIssue(ctx context.Context) (err error) {
+	if issue.Project == nil {
+		return nil
+	}
+
+	if issue.ProjectIssue != nil {
+		return nil
+	}
+
+	issue.ProjectIssue, err = project_model.GetProjectIssueByIssueID(ctx, issue.ID)
+	if err != nil {
+		return err
+	}
+
+	return issue.ProjectIssue.LoadProjectBoard(ctx)
+}
+
 func (issue *Issue) projectID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
@@ -107,6 +124,7 @@ func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.Use
 
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
+	newBoardID := int64(0)
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
@@ -121,6 +139,12 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
 			return fmt.Errorf("issue's repository is not the same as project's repository")
 		}
+
+		newBoard, err := newProject.GetDefaultBoard(ctx)
+		if err != nil {
+			return err
+		}
+		newBoardID = newBoard.ID
 	}
 
 	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
@@ -141,7 +165,8 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 	}
 
 	return db.Insert(ctx, &project_model.ProjectIssue{
-		IssueID:   issue.ID,
-		ProjectID: newProjectID,
+		IssueID:        issue.ID,
+		ProjectID:      newProjectID,
+		ProjectBoardID: newBoardID,
 	})
 }

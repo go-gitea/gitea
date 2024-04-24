@@ -226,13 +226,14 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	projectMaps := make(map[int64]*project_model.Project, len(issues))
 	left := len(issueIDs)
 
 	type projectWithIssueID struct {
 		*project_model.Project `xorm:"extends"`
-		IssueID                int64
+		ProjectIssue           *project_model.ProjectIssue `xorm:"extends"`
 	}
+
+	projectMaps := make(map[int64]*projectWithIssueID, len(issues))
 
 	for left > 0 {
 		limit := db.DefaultMaxInSize
@@ -243,7 +244,7 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 		projects := make([]*projectWithIssueID, 0, limit)
 		err := db.GetEngine(ctx).
 			Table("project").
-			Select("project.*, project_issue.issue_id").
+			Select("project.*, project_issue.*").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
 			In("project_issue.issue_id", issueIDs[:limit]).
 			Find(&projects)
@@ -251,14 +252,20 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 			return err
 		}
 		for _, project := range projects {
-			projectMaps[project.IssueID] = project.Project
+			projectMaps[project.ProjectIssue.IssueID] = project
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ID]
+		item, exist := projectMaps[issue.ID]
+		if !exist {
+			continue
+		}
+
+		issue.Project = item.Project
+		issue.ProjectIssue = item.ProjectIssue
 	}
 	return nil
 }
@@ -554,6 +561,10 @@ func (issues IssueList) LoadAttributes(ctx context.Context) error {
 		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 
+	if err := issues.LoadProjectIssueBoards(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadProjectIssueBoards: %w", err)
+	}
+
 	if err := issues.loadAssignees(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadAssignees: %w", err)
 	}
@@ -620,6 +631,63 @@ func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
 		for _, issue := range issues {
 			if issue.ID == issueUser.IssueID {
 				issue.IsRead = issueUser.IsRead
+			}
+		}
+	}
+
+	return nil
+}
+
+func (issues IssueList) getProjectIssueBoardIDs() []int64 {
+	boardIDmap := make(map[int64]bool, 5)
+
+	for _, issue := range issues {
+		if issue.ProjectIssue != nil {
+			boardIDmap[issue.ProjectIssue.ProjectBoardID] = true
+		}
+	}
+
+	bordIDs := make([]int64, 0, len(boardIDmap))
+	for id := range boardIDmap {
+		bordIDs = append(bordIDs, id)
+	}
+
+	return bordIDs
+}
+
+func (issues IssueList) LoadProjectIssueBoards(ctx context.Context) error {
+	boardIDs := issues.getProjectIssueBoardIDs()
+	if len(boardIDs) == 0 {
+		return nil
+	}
+
+	boardMaps := make(map[int64]*project_model.Board, len(boardIDs))
+	left := len(boardIDs)
+	for left > 0 {
+		limit := db.DefaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		err := db.GetEngine(ctx).
+			In("id", boardIDs[:limit]).
+			Find(&boardMaps)
+		if err != nil {
+			return err
+		}
+		left -= limit
+		boardIDs = boardIDs[limit:]
+	}
+
+	for _, issue := range issues {
+		if issue.ProjectIssue != nil {
+			board, exist := boardMaps[issue.ProjectIssue.ProjectBoardID]
+			if exist {
+				issue.ProjectIssue.ProjectBoard = board
+			} else {
+				issue.ProjectIssue.ProjectBoard = &project_model.Board{
+					ID:    -1,
+					Title: "Deleted",
+				}
 			}
 		}
 	}
