@@ -36,11 +36,6 @@
   gap: 0.25em;
 }
 
-.repo-buttons .ui.labeled.button > .label:hover {
-  color: var(--color-primary-light-2);
-  background: var(--color-light);
-}
-
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
   color: var(--color-text-dark);
@@ -66,4 +61,13 @@
 
 .repo-buttons .ui.labeled.button.disabled > .button {
   pointer-events: none !important;
+}
+
+@media (max-width: 767.98px) {
+  .repo-buttons .ui.button,
+  .repo-buttons .ui.label {
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0;
+  }
 }
