@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import imageminZopfli from 'imagemin-zopfli'; // eslint-disable-line i/no-unresolved
-import {loadSVGFromString, Canvas, Rect, util} from 'fabric/node'; // eslint-disable-line i/no-unresolved
+import imageminZopfli from 'imagemin-zopfli';
+import {loadSVGFromString, Canvas, Rect, util} from 'fabric/node';
 import {optimize} from 'svgo';
 import {readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
