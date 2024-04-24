@@ -162,12 +162,6 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	// Removing an auto merge pull and ignore if not exist
-	// FIXME: is this the correct point to do this? Shouldn't this be after IsMergeStyleAllowed?
-	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-		return err
-	}
-
 	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
@@ -184,17 +178,31 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	pr.MergedCommitID, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	mergeCtx, cancel, err := doMerge(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Removing an auto merge pull and ignore if not exist
+		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+			return err
+		}
 
-	if _, err := pr.SetMerged(ctx); err != nil {
-		log.Error("SetMerged %-v: %v", pr, err)
+		pr.MergedCommitID = mergeCtx.mergeCommitID
+		pr.MergedUnix = timeutil.TimeStampNow()
+		pr.Merger = doer
+		pr.MergerID = doer.ID
+		if _, err := pr.SetMerged(ctx); err != nil {
+			log.Error("SetMerged %-v: %v", pr, err)
+			return err
+		}
+
+		_, err := doPush(ctx, mergeCtx, pr, doer)
+		return err
+	}); err != nil {
+		return err
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -244,62 +252,82 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	return nil
 }
 
-// doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+func doMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (*mergeContext, context.CancelFunc, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Merge commits.
+	switch mergeStyle {
+	case repo_model.MergeStyleMerge:
+		if err := doMergeStyleMerge(mergeCtx, message); err != nil {
+			cancel()
+			return nil, nil, err
+		}
+	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:
+		if err := doMergeStyleRebase(mergeCtx, mergeStyle, message); err != nil {
+			cancel()
+			return nil, nil, err
+		}
+	case repo_model.MergeStyleSquash:
+		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
+			cancel()
+			return nil, nil, err
+		}
+	case repo_model.MergeStyleFastForwardOnly:
+		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
+			cancel()
+			return nil, nil, err
+		}
+	default:
+		cancel()
+		return nil, nil, models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+	}
+
+	// OK we should cache our current head and origin/headbranch
+	mergeCtx.mergeHeadSHA, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
+	if err != nil {
+		cancel()
+		return nil, nil, fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
+	}
+	mergeCtx.mergeBaseSHA, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+baseBranch)
+	if err != nil {
+		cancel()
+		return nil, nil, fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
+	}
+	mergeCtx.mergeCommitID, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, baseBranch)
+	if err != nil {
+		cancel()
+		return nil, nil, fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
+	}
+
+	return mergeCtx, cancel, nil
+}
+
+// doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+	mergeCtx, cancel, err := doMerge(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
 
-	// Merge commits.
-	switch mergeStyle {
-	case repo_model.MergeStyleMerge:
-		if err := doMergeStyleMerge(mergeCtx, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:
-		if err := doMergeStyleRebase(mergeCtx, mergeStyle, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleSquash:
-		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleFastForwardOnly:
-		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
-			return "", err
-		}
-	default:
-		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
-	}
+	return doPush(ctx, mergeCtx, pr, doer)
+}
 
-	// OK we should cache our current head and origin/headbranch
-	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
-	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
-	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+baseBranch)
-	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
-	}
-	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, baseBranch)
-	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
-	}
-
+func doPush(ctx context.Context, mergeCtx *mergeContext, pr *issues_model.PullRequest, doer *user_model.User) (string, error) {
 	// Now it's questionable about where this should go - either after or before the push
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.mergeHeadSHA, mergeCtx.mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.LoadOwner(ctx)
+	err := pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository in %-v: %v", pr.HeadRepo.OwnerID, pr, err)
@@ -344,7 +372,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	mergeCtx.outbuf.Reset()
 	mergeCtx.errbuf.Reset()
 
-	return mergeCommitID, nil
+	return mergeCtx.mergeCommitID, nil
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
