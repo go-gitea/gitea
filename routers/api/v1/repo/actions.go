@@ -68,7 +68,12 @@ func ListActionTasks(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
-		res.Entries[i] = convert.ToActionTask(ctx, ctx.Repo.Repository, tasks[i])
+		convertedTask, err := convert.ToActionTask(ctx, ctx.Repo.Repository, tasks[i])
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
+			return
+		}
+		res.Entries[i] = convertedTask
 	}
 
 	ctx.JSON(http.StatusOK, &res)

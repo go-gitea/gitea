@@ -196,9 +196,9 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 }
 
 // ToActionTask convert a actions_model.ActionTask to an api.ActionTask
-func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_model.ActionTask) *api.ActionTask {
+func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_model.ActionTask) (*api.ActionTask, error) {
 	if err := t.LoadAttributes(ctx); err != nil {
-		panic(fmt.Sprintf("failed to execute ActionTask.LoadAttributes(): %v", err))
+		return nil, err
 	}
 
 	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
@@ -217,7 +217,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
-	}
+	}, nil
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
