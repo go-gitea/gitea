@@ -50,8 +50,8 @@ func TestPullCompare(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
-		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
-		issueIndex := unittest.AssertExistsAndLoadBean(t, &issues_model.IssueIndex{GroupID: repoForked.ID})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		issueIndex := unittest.AssertExistsAndLoadBean(t, &issues_model.IssueIndex{GroupID: repo1.ID}, unittest.OrderBy("group_id ASC"))
 		prFilesURL := fmt.Sprintf("/user2/repo1/pulls/%d/files", issueIndex.MaxIndex)
 		req = NewRequest(t, "GET", prFilesURL)
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -59,6 +59,7 @@ func TestPullCompare(t *testing.T) {
 		editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
 		assert.Greater(t, editButtonCount, 0, "Expected to find a button to edit a file in the PR diff view but there were none")
 
+		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// delete the head repository and revisit the PR diff view
