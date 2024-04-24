@@ -40,7 +40,7 @@ textarea,
 
 /* fix fomantic small dropdown having inconsistent padding with input */
 .ui.small.selection.dropdown {
-  padding: .67857143em 3.2em .67857143em 1em;
+  padding: .67857143em 1.6em .67857143em 1em;
 }
 
 input:hover,

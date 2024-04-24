@@ -102,6 +102,18 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RootData"] = ctx.Data
+	tmplCtx["Consts"] = map[string]any{
+		"RepoUnitTypeCode":            unit.TypeCode,
+		"RepoUnitTypeIssues":          unit.TypeIssues,
+		"RepoUnitTypePullRequests":    unit.TypePullRequests,
+		"RepoUnitTypeReleases":        unit.TypeReleases,
+		"RepoUnitTypeWiki":            unit.TypeWiki,
+		"RepoUnitTypeExternalWiki":    unit.TypeExternalWiki,
+		"RepoUnitTypeExternalTracker": unit.TypeExternalTracker,
+		"RepoUnitTypeProjects":        unit.TypeProjects,
+		"RepoUnitTypePackages":        unit.TypePackages,
+		"RepoUnitTypeActions":         unit.TypeActions,
+	}
 	return tmplCtx
 }
 
@@ -218,6 +230,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
+// If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
 func (ctx *Context) HasError() bool {
 	hasErr, ok := ctx.Data["HasError"]
 	if !ok {

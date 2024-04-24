@@ -65,7 +65,7 @@
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.template"}}</label>
-						<div id="repo_template_search" class="ui search normal selection dropdown">
+						<div id="repo_template_search" class="ui search selection dropdown">
 							<input type="hidden" id="repo_template" name="repo_template" value="{{.repo_template}}">
 							<div class="default text">{{.repo_template_name}}</div>
 							<div class="menu">
@@ -119,7 +119,7 @@
 					<div id="non_template">
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
-							<div class="ui search normal selection dropdown">
+							<div class="ui search selection dropdown">
 								<input type="hidden" name="issue_labels" value="{{.issueLabels}}">
 								<div class="default text">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
@@ -135,7 +135,7 @@
 
 						<div class="inline field">
 							<label>.gitignore</label>
-							<div class="ui multiple search normal selection dropdown">
+							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="gitignores" value="{{.gitignores}}">
 								<div class="default text">{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}</div>
 								<div class="menu">

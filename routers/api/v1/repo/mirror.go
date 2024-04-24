@@ -180,7 +180,6 @@ func ListPushMirrors(ctx *context.APIContext) {
 		if err == nil {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
-
 	}
 	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(count)

@@ -357,7 +357,6 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
-
 		}
 		return filepath.SkipDir
 	}); err != nil {

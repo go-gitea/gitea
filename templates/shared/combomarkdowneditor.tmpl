@@ -45,7 +45,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @" suffix="">
-			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}}>{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
 			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {

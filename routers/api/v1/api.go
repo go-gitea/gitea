@@ -209,11 +209,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
 				return
 			}
-			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
-			for _, u := range ctx.Repo.Repository.Units {
-				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
-			}
+			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
@@ -222,7 +218,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.HasAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() {
 			ctx.NotFound()
 			return
 		}
@@ -416,7 +412,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.HasAccess() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
