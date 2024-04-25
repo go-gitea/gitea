@@ -1,7 +1,7 @@
 {{with .Issue}}
 	{{if eq $.Page.Project.CardType 1}}{{/* Images and Text*/}}
-		{{$attachmentIDs := index $.Page.issuesAttachmentMap .ID}}
-		{{if $attachmentIDs}}
+		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
+		{{if $attachments}}
 		<div class="card-attachment-images">
 			{{range $attachmentIDs}}
 				<img src="{{.DownloadURL}}" alt="{{.Name}}" />
