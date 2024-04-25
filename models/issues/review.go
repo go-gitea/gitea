@@ -345,11 +345,9 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 				return nil, err
 			}
 		}
-
 	} else if opts.ReviewerTeam != nil {
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
-
 	} else {
 		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}

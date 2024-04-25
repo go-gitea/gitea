@@ -934,7 +934,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 					}
 				}
 			}
-
 		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
@@ -1682,7 +1681,6 @@ func ViewIssue(ctx *context.Context) {
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
 			}
-
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
@@ -2665,7 +2663,6 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
@@ -3049,7 +3046,6 @@ func NewComment(ctx *context.Context) {
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
-
 			// Duplication and conflict check should apply to reopen pull request.
 			var pr *issues_model.PullRequest
 
