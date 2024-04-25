@@ -40,12 +40,12 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
 
 function createContext(imageAfter, imageBefore) {
   const sizeAfter = {
-    width: imageAfter && imageAfter.width || 0,
-    height: imageAfter && imageAfter.height || 0,
+    width: imageAfter?.width || 0,
+    height: imageAfter?.height || 0,
   };
   const sizeBefore = {
-    width: imageBefore && imageBefore.width || 0,
-    height: imageBefore && imageBefore.height || 0,
+    width: imageBefore?.width || 0,
+    height: imageBefore?.height || 0,
   };
   const maxSize = {
     width: Math.max(sizeBefore.width, sizeAfter.width),
