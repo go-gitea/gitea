@@ -158,7 +158,7 @@ func NewBoard(ctx context.Context, board *Board) error {
 
 	var maxSorting int8
 	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
-	Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
+		Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
 		return err
 	}
 	if maxSorting > 0 {
