@@ -153,7 +153,8 @@
 
 .ui.attached.segment:has(+ .ui[class*="top attached"].header),
 .ui.attached.segment:last-child,
-.ui.segment:has(+ .ui.segment:not(.attached)) {
+.ui.segment:has(+ .ui.segment:not(.attached)),
+.ui.attached.segment:has( + .ui.modal) {
   border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
 
