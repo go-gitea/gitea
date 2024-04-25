@@ -140,7 +140,7 @@ func (b *Base) JSON(status int, content any) {
 // JSON render content as JSON
 func (b *Base) HTMLString(status int, html string) {
 	b.Resp.Header().Set("Content-Type", "text/html;charset=utf-8")
-	b.Resp.WriteHeader(status);
+	b.Resp.WriteHeader(status)
 	b.Resp.Write([]byte(html))
 }
 
