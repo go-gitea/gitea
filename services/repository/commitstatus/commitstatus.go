@@ -39,12 +39,10 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 	if ok && statusStr != "" {
 		var cv commitStatusCacheValue
 		err := json.Unmarshal([]byte(statusStr), &cv)
-		if err == nil && cv.State != "" {
+		if err == nil {
 			return &cv
 		}
-		if err != nil {
-			log.Warn("getCommitStatusCache: json.Unmarshal failed: %v", err)
-		}
+		log.Warn("getCommitStatusCache: json.Unmarshal failed: %v", err)
 	}
 	return nil
 }
@@ -126,13 +124,20 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 // FindReposLastestCommitStatuses loading repository default branch latest combinded commit status with cache
 func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Repository) ([]*git_model.CommitStatus, error) {
 	results := make([]*git_model.CommitStatus, len(repos))
+	allCached := true
 	for i, repo := range repos {
 		if cv := getCommitStatusCache(repo.ID, repo.DefaultBranch); cv != nil {
 			results[i] = &git_model.CommitStatus{
 				State:     api.CommitStatusState(cv.State),
 				TargetURL: cv.TargetURL,
 			}
+		} else {
+			allCached = false
 		}
+	}
+
+	if allCached {
+		return results, nil
 	}
 
 	// collect the latest commit of each repo
@@ -158,7 +163,7 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 	for i, repo := range repos {
 		if results[i] == nil {
 			results[i] = git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
-			if results[i].State != "" {
+			if results[i] != nil {
 				if err := updateCommitStatusCache(repo.ID, repo.DefaultBranch, results[i].State, results[i].TargetURL); err != nil {
 					log.Error("updateCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 				}
