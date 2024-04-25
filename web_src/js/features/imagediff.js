@@ -135,7 +135,7 @@ export function initImageDiff() {
         const boundsInfoAfterHeight = container.querySelector('.bounds-info-after .bounds-info-height');
         if (boundsInfoAfterHeight) {
           boundsInfoAfterHeight.textContent = `${sizes.imageAfter.naturalHeight}px`;
-          boundsInfoAfterHeight?.classList.toggle('green', heightChanged);
+          boundsInfoAfterHeight.classList.toggle('green', heightChanged);
         }
       }
 
