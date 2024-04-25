@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {contrastColor} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
-import tinycolor from 'tinycolor2';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
