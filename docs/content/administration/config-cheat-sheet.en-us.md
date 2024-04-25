@@ -612,7 +612,7 @@ And the following unique queues:
   - `email` - use the username part of the email attribute
   - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
-    - the characters in the set `['´\x60]` are removed
+    - the characters in the set ```['´`]``` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
