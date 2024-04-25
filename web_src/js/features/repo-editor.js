@@ -7,7 +7,7 @@ import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
+  const $tabMenu = $form.find('.repo-editor-menu');
   $tabMenu.find('.item').tab();
   const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
   if ($previewTab.length) {

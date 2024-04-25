@@ -420,7 +420,7 @@ func DiffPreviewPost(ctx *context.Context) {
 	}
 
 	if diff.NumFiles == 0 {
-		ctx.PlainText(http.StatusOK, ctx.Locale.TrString("repo.editor.no_changes_to_show"))
+		ctx.PlainText(http.StatusOK, `<div class="tw-p-6">` + ctx.Locale.TrString("repo.editor.no_changes_to_show") + `</div>`)
 		return
 	}
 	ctx.Data["File"] = diff.Files[0]
