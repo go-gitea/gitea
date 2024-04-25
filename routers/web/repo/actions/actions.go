@@ -145,7 +145,6 @@ func List(ctx *context.Context) {
 			if workflow.Entry.Name() == workflowID {
 				curWorkflow = wf
 			}
-
 		}
 	}
 	ctx.Data["workflows"] = workflows
