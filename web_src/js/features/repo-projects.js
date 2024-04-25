@@ -71,7 +71,7 @@ async function initRepoProjectSortable() {
       };
 
       try {
-        await POST(`${mainBoard.getAttribute('data-url')}`, {
+        await POST(mainBoard.getAttribute('data-url'), {
           data: columnSorting,
         });
       } catch (error) {
