@@ -28,13 +28,18 @@ const (
 )
 
 type ThemeMetaInfo struct {
-	FileName           string
-	InternalName       string
-	DisplayName        string
-	PreferColorSchemes container.Set[string]
+	FileName     string
+	InternalName string
+	DisplayName  string
 }
 
 func parseThemeMetaInfoToMap(cssContent string) map[string]string {
+	/*
+		The theme meta info is stored in the CSS file's variables of `gitea-theme-meta-info` element,
+		which is a privately defined and is only used by backend to extract the meta info.
+		Not using ":root" because it is difficult to parse various ":root" blocks when importing other files,
+		it is difficult to control the overriding, and it's difficult to avoid user's customized overridden styles.
+	*/
 	metaInfoContent := cssContent
 	if pos := strings.LastIndex(metaInfoContent, "gitea-theme-meta-info"); pos >= 0 {
 		metaInfoContent = metaInfoContent[pos:]
@@ -69,20 +74,6 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	return m
 }
 
-// @media (prefers-color-scheme: dark)
-func parseThemePreferColorSchemes(cssContent string) container.Set[string] {
-	re := regexp.MustCompile(`@media\s*\(\s*prefers-color-scheme\s*:\s*([-\w]+)\s*\)`)
-	matched := re.FindAllStringSubmatch(cssContent, -1)
-	if len(matched) == 0 {
-		return nil
-	}
-	schemes := container.Set[string]{}
-	for _, m := range matched {
-		schemes.Add(m[1])
-	}
-	return schemes
-}
-
 func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
 	themeInfo := &ThemeMetaInfo{
 		FileName:     fileName,
@@ -98,7 +89,6 @@ func defaultThemeMetaInfoByInternalName(fileName string) *ThemeMetaInfo {
 
 func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	themeInfo := defaultThemeMetaInfoByFileName(fileName)
-	themeInfo.PreferColorSchemes = parseThemePreferColorSchemes(cssContent)
 	m := parseThemeMetaInfoToMap(cssContent)
 	if m == nil {
 		return themeInfo
