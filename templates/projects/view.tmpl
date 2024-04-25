@@ -72,7 +72,7 @@
 						<div class="ui small circular grey label project-column-issue-count">
 							{{.NumIssues ctx}}
 						</div>
-						<span class="project-column-title-label">{{.Title}}</span>
+						<span class="project-column-title-label">{{.Title}}{{if .Default}}{{svg "octicon-star"}}{{end}}</span>
 					</div>
 					{{if $canWriteProject}}
 						<div class="ui dropdown jump item">
@@ -90,7 +90,7 @@
 										data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
 										data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
 										data-url="{{$.Link}}/{{.ID}}/default">
-										{{svg "octicon-pin"}}
+										{{svg "octicon-star"}}
 										{{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
 									<a class="item show-modal button show-delete-project-column-modal"
