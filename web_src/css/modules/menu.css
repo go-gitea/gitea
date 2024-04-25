@@ -403,7 +403,7 @@
   background: var(--color-body);
   border-top-width: 1px;
   border-color: var(--color-secondary);
-  font-weight: var(--font-weight-medium);
+  color: var(--color-text-dark);
   margin-bottom: -1px;
   border-radius: 0.28571429rem 0.28571429rem 0 0 !important;
 }
