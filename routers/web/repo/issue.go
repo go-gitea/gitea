@@ -3149,13 +3149,10 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	oldContent := comment.Content
-	comment.Content = ctx.FormString("content")
-	if len(comment.Content) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"content": "",
-		})
-		return
-	}
+	newContent := ctx.FormString("content")
+
+	// allow to save empty content
+	comment.Content = newContent
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
@@ -3178,21 +3175,27 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	content, err := markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Ctx:     ctx,
-	}, comment.Content)
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
+	var renderedContent template.HTML
+	if comment.Content != "" {
+		renderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Links: markup.Links{
+				Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, comment.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	} else {
+		contentEmpty := fmt.Sprintf(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+		renderedContent = template.HTML(contentEmpty)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":     content,
+		"content":     renderedContent,
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
