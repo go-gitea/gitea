@@ -137,7 +137,7 @@ func (b *Base) JSON(status int, content any) {
 	}
 }
 
-// JSON render content as JSON
+// HTMLString renders string as HTML
 func (b *Base) HTMLString(status int, html string) {
 	b.Resp.Header().Set("Content-Type", "text/html;charset=utf-8")
 	b.Resp.WriteHeader(status)
