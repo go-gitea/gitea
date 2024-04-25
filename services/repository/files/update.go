@@ -208,7 +208,6 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
 			opts.LastCommitID = lastCommitID.String()
-
 		}
 
 		for _, file := range opts.Files {
@@ -360,7 +359,6 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 					Path: file.Options.treePath,
 				}
 			}
-
 		}
 	}
 

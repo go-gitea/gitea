@@ -274,14 +274,12 @@ func newDiscordRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
-
 	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
 		return "rejected", nil
 	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
-
 	default:
 		return "", errors.New("unknown event type")
 	}
