@@ -106,3 +106,30 @@ func (b *Board) removeIssues(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
 	return err
 }
+
+// MoveColumnsOnProject moves or keeps issues in a column and sorts them inside that column
+func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+
+		columnIDs := make([]int64, 0, len(sortedColumnIDs))
+		for _, columnID := range sortedColumnIDs {
+			columnIDs = append(columnIDs, columnID)
+		}
+		count, err := sess.Table(new(Board)).Where("project_id=?", project.ID).In("id", columnIDs).Count()
+		if err != nil {
+			return err
+		}
+		if int(count) != len(sortedColumnIDs) {
+			return fmt.Errorf("all issues have to be added to a project first")
+		}
+
+		for sorting, columnID := range sortedColumnIDs {
+			_, err = sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

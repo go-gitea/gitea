@@ -242,17 +242,11 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 // GetBoards fetches all boards related to a project
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
-
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 
-	defaultB, err := p.getDefaultBoard(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]*Board{defaultB}, boards...), nil
+	return boards, nil
 }
 
 // getDefaultBoard return default board and ensure only one exists
@@ -315,4 +309,13 @@ func UpdateBoardSorting(ctx context.Context, bs BoardList) error {
 		}
 		return nil
 	})
+}
+
+func GetColumnsByIDs(ctx context.Context, columnsIDs []int64) (BoardList, error) {
+	columns := make([]*Board, 0, 5)
+	if err := db.GetEngine(ctx).In("id", columnsIDs).OrderBy("sorting").Find(&columns); err != nil {
+		return nil, err
+	}
+
+	return columns, nil
 }

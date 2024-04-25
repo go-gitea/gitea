@@ -63,17 +63,20 @@ async function initRepoProjectSortable() {
     delay: 500,
     onSort: async () => {
       boardColumns = mainBoard.getElementsByClassName('project-column');
-      for (let i = 0; i < boardColumns.length; i++) {
-        const column = boardColumns[i];
-        if (parseInt(column.getAttribute('data-sorting')) !== i) {
-          try {
-            const bgColor = column.style.backgroundColor; // will be rgb() string
-            const color = bgColor ? tinycolor(bgColor).toHexString() : '';
-            await PUT(column.getAttribute('data-url'), {data: {sorting: i, color}});
-          } catch (error) {
-            console.error(error);
-          }
-        }
+
+      const columnSorting = {
+        columns: Array.from(boardColumns, (column, i) => ({
+          columnID: parseInt(column.getAttribute('data-id')),
+          sorting: i,
+        })),
+      };
+
+      try {
+        await POST(`${mainBoard.getAttribute('data-url')}`, {
+          data: columnSorting,
+        });
+      } catch (error) {
+        console.error(error);
       }
     },
   });

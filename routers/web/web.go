@@ -999,6 +999,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("/move", org.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
