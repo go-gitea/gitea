@@ -3,7 +3,7 @@
 		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
 		{{if $attachments}}
 		<div class="card-attachment-images">
-			{{range $attachmentIDs}}
+			{{range $attachments}}
 				<img src="{{.DownloadURL}}" alt="{{.Name}}" />
 			{{end}}
 		</div>
