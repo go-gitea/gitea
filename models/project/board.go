@@ -156,6 +156,15 @@ func NewBoard(ctx context.Context, board *Board) error {
 		return fmt.Errorf("bad color code: %s", board.Color)
 	}
 
+	var maxSorting int8
+	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
+	Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
+		return err
+	}
+	if maxSorting > 0 {
+		board.Sorting = maxSorting
+	}
+
 	_, err := db.GetEngine(ctx).Insert(board)
 	return err
 }
