@@ -360,10 +360,10 @@ lint: lint-frontend lint-backend lint-spell
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css
+lint-frontend: lint-js lint-css lint-js-misc
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix
+lint-frontend-fix: lint-js-fix lint-css-fix lint-js-misc
 
 .PHONY: lint-backend
 lint-backend: lint-go lint-go-vet lint-editorconfig
@@ -378,6 +378,10 @@ lint-js: node_modules
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
 	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES) --fix
+
+.PHONY: lint-js-misc
+lint-js-misc: node_modules
+	node tools/lint-lockfiles.js
 
 .PHONY: lint-css
 lint-css: node_modules

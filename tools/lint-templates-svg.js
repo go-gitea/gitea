@@ -17,7 +17,7 @@ for (const file of fastGlob.sync(fileURLToPath(new URL('../templates/**/*.tmpl',
   const content = readFileSync(file, 'utf8');
   for (const [_, name] of content.matchAll(/svg ["'`]([^"'`]+)["'`]/g)) {
     if (!knownSvgs.has(name)) {
-      console.info(`SVG "${name}" not found, used in ${relative(rootPath, file)}`);
+      console.info(`${relative(rootPath, file)}: SVG "${name}" not found`);
       hadErrors = true;
     }
   }
