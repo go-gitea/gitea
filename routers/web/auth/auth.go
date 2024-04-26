@@ -382,17 +382,17 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	return setting.AppSubURL + "/"
 }
 
-func getUserName(gothUser *goth.User) (string, error) {
+// extractUserNameFromOAuth2 tries to extract a normalized username from the given OAuth2 user.
+// It returns ("", nil) if the required field doesn't exist.
+func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
-		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
+		return user_model.NormalizeUserName(gothUser.Email)
 	case setting.OAuth2UsernamePreferredUsername:
-		preferredUsername, exists := gothUser.RawData["preferred_username"]
-		if exists {
-			return user_model.NormalizeUserName(preferredUsername.(string))
-		} else {
-			return "", fmt.Errorf("preferred_username is missing in received user data but configured as username source for user_id %q. Check if OPENID_CONNECT_SCOPES contains profile", gothUser.UserID)
+		if preferredUsername, ok := gothUser.RawData["preferred_username"].(string); ok {
+			return user_model.NormalizeUserName(preferredUsername)
 		}
+		return "", nil
 	case setting.OAuth2UsernameNickname:
 		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
