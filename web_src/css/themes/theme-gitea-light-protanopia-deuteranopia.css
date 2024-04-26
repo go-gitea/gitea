@@ -1,0 +1,11 @@
+@import "./theme-gitea-light.css";
+
+/* red/green colorblind-friendly colors */
+/* from GitHub: --diffBlob-addition-*, --diffBlob-deletion-*, etc */
+:root {
+  --color-diff-added-word-bg: #54aeff66;
+  --color-diff-added-row-bg: #ddf4ff80;
+
+  --color-diff-removed-word-bg: #ffb77c80;
+  --color-diff-removed-row-bg: #fff1e580;
+}
