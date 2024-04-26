@@ -138,7 +138,7 @@
 					</div>
 					{{template "repo/cite/cite_modal" .}}
 				{{end}}
-				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home) */}}
+				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 						{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 					</a>
