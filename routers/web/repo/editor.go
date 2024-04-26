@@ -420,10 +420,10 @@ func DiffPreviewPost(ctx *context.Context) {
 	}
 
 	if diff.NumFiles == 0 {
-		ctx.HTMLString(http.StatusOK, `<div class="tw-p-6">`+ctx.Locale.TrString("repo.editor.no_changes_to_show")+`</div>`)
-		return
+		ctx.Data["File"] = nil
+	} else {
+		ctx.Data["File"] = diff.Files[0]
 	}
-	ctx.Data["File"] = diff.Files[0]
 
 	ctx.HTML(http.StatusOK, tplEditDiffPreview)
 }

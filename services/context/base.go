@@ -137,15 +137,6 @@ func (b *Base) JSON(status int, content any) {
 	}
 }
 
-// HTMLString renders string as HTML
-func (b *Base) HTMLString(status int, html string) {
-	b.Resp.Header().Set("Content-Type", "text/html;charset=utf-8")
-	b.Resp.WriteHeader(status)
-	if _, err := b.Resp.Write([]byte(html)); err != nil {
-		log.Error("Render HTMLString failed: %v", err)
-	}
-}
-
 // RemoteAddr returns the client machine ip address
 func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
