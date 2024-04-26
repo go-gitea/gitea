@@ -76,7 +76,7 @@
 			{{ctx.Locale.Tr "admin.dashboard.system_status"}}
 		</h4>
 		{{/* TODO: make these stats work in multi-server deployments, likely needs per-server stats in DB */}}
-		<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".tw-hidden" class="ui attached table segment">
+		<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".hidden-loading-indicator" class="ui attached table segment">
 			{{template "admin/system_status" .}}
 		</div>
 	</div>
