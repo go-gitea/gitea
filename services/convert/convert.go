@@ -207,7 +207,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		ID:           t.ID,
 		Name:         t.Job.Name,
 		HeadBranch:   t.Job.Run.PrettyRef(),
-		HeadSha:      t.Job.CommitSHA,
+		HeadSHA:      t.Job.CommitSHA,
 		RunNumber:    t.Job.Run.Index,
 		Event:        t.Job.Run.TriggerEvent,
 		DisplayTitle: t.Job.Run.Title,
