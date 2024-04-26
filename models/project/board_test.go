@@ -19,7 +19,7 @@ func TestGetDefaultBoard(t *testing.T) {
 	assert.NoError(t, err)
 
 	// check if default board was added
-	board, err := projectWithoutDefault.getDefaultBoard(db.DefaultContext)
+	board, err := projectWithoutDefault.GetDefaultBoard(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(5), board.ProjectID)
 	assert.Equal(t, "Uncategorized", board.Title)
@@ -28,7 +28,7 @@ func TestGetDefaultBoard(t *testing.T) {
 	assert.NoError(t, err)
 
 	// check if multiple defaults were removed
-	board, err = projectWithMultipleDefaults.getDefaultBoard(db.DefaultContext)
+	board, err = projectWithMultipleDefaults.GetDefaultBoard(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(6), board.ProjectID)
 	assert.Equal(t, int64(9), board.ID)
