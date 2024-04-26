@@ -419,9 +419,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	if diff.NumFiles == 0 {
-		ctx.Data["File"] = nil
-	} else {
+	if diff.NumFiles != 0 {
 		ctx.Data["File"] = diff.Files[0]
 	}
 
