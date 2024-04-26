@@ -13,7 +13,8 @@
   overflow-y: auto;
   justify-content: center;
   padding: 8px 0;
-  transition: opacity 1s ease;
+  animation: fadein;
+  animation-duration: .2s;
   user-select: none;
 }
 
