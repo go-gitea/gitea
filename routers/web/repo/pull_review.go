@@ -265,7 +265,7 @@ func SubmitReview(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else if pull_service.IsErrSubmitReviewOnClosedPR(err) {
-			ctx.Error(http.StatusUnprocessableEntity)
+			ctx.Status(http.StatusUnprocessableEntity)
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
