@@ -13,8 +13,8 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
+func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed, isMergePull bool) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed, isMergePull)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) && closed {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
