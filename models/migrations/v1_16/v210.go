@@ -43,11 +43,6 @@ func RemigrateU2FCredentials(x *xorm.Engine) error {
 		if err != nil {
 			return err
 		}
-	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
-		if err != nil {
-			return err
-		}
 	case schemas.MSSQL:
 		// This column has an index on it. I could write all of the code to attempt to change the index OR
 		// I could just use recreate table.

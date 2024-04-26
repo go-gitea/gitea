@@ -74,6 +74,13 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
 }
 
+func (run *ActionRun) WorkflowLink() string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
+}
+
 // RefLink return the url of run's ref
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
@@ -154,6 +161,10 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
+func (run *ActionRun) IsSchedule() bool {
+	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {

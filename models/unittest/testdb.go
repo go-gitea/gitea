@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
@@ -106,6 +107,7 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
+	setting.IsInTesting = true
 	setting.AppURL = "https://try.gitea.io/"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
@@ -148,6 +150,9 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 
 	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
 
+	if err = cache.Init(); err != nil {
+		fatalTestError("cache.Init: %v\n", err)
+	}
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
