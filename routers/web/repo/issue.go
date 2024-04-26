@@ -3080,13 +3080,6 @@ func NewComment(ctx *context.Context) {
 						}
 						return
 					}
-				} else {
-					if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-						ctx.ServerError("CreateOrStopIssueStopwatch", err)
-						return
-					}
-
-					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
 		}

@@ -1153,13 +1153,6 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-		ctx.ServerError("stopTimerIfAvailable", err)
-		return
-	}
-
-	log.Trace("Pull request merged: %d", pr.ID)
-
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when other pr use this branch as head branch
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
@@ -1207,16 +1200,6 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	}
 	ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_canceled_schedule"))
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-}
-
-func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {
-	if issues_model.StopwatchExists(ctx, user.ID, issue.ID) {
-		if err := issues_model.CreateOrStopIssueStopwatch(ctx, user, issue); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // CompareAndPullRequestPost response for creating pull request
