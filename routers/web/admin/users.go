@@ -202,6 +202,11 @@ func NewUserPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	if !user_model.IsEmailDomainAllowed(u.Email) {
+		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
+	}
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -270,9 +275,7 @@ func ViewUser(ctx *context.Context) {
 	}
 
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
@@ -295,9 +298,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:    db.ListOptionsAll,
 		UserID:         u.ID,
 		IncludePrivate: true,
 	})
@@ -402,7 +403,6 @@ func EditUserPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplUserEdit, &form)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
 		default:
@@ -424,6 +424,9 @@ func EditUserPost(ctx *context.Context) {
 				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
 			}
 			return
+		}
+		if !user_model.IsEmailDomainAllowed(form.Email) {
+			ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", form.Email))
 		}
 	}
 

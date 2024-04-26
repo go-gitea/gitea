@@ -110,7 +110,6 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 					Reason:         "gpg.error.no_committer_account",
 				}
 			}
-
 		}
 	}
 
@@ -139,13 +138,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 		}
 	}
 
-	keyID := ""
-	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
-		keyID = fmt.Sprintf("%X", *sig.IssuerKeyId)
-	}
-	if keyID == "" && sig.IssuerFingerprint != nil && len(sig.IssuerFingerprint) > 0 {
-		keyID = fmt.Sprintf("%X", sig.IssuerFingerprint[12:20])
-	}
+	keyID := tryGetKeyIDFromSignature(sig)
 	defaultReason := NoKeyFound
 
 	// First check if the sig has a keyID and if so just look at that

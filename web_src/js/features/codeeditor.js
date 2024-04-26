@@ -80,7 +80,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
     rules: [
       {
         background: getColor('--color-code-bg'),
-      }
+      },
     ],
     colors: {
       'editor.background': getColor('--color-code-bg'),
@@ -98,7 +98,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
       'input.foreground': getColor('--color-input-text'),
       'scrollbar.shadow': getColor('--color-shadow'),
       'progressBar.background': getColor('--color-primary'),
-    }
+    },
   });
 
   // Quick fix: https://github.com/microsoft/monaco-editor/issues/2962
@@ -111,6 +111,10 @@ export async function createMonaco(textarea, filename, editorOpts) {
     language,
     ...other,
   });
+
+  monaco.editor.addKeybindingRules([
+    {keybinding: monaco.KeyCode.Enter, command: null}, // disable enter from accepting code completion
+  ]);
 
   const model = editor.getModel();
   model.onDidChangeContent(() => {

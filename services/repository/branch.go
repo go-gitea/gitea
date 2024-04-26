@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -119,17 +120,15 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 
 // getDivergenceFromCache gets the divergence from cache
 func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
-	data := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
+	data, ok := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
 	res := git.DivergeObject{
 		Ahead:  -1,
 		Behind: -1,
 	}
-	s, ok := data.([]byte)
-	if !ok || len(s) == 0 {
+	if !ok || data == "" {
 		return &res, false
 	}
-
-	if err := json.Unmarshal(s, &res); err != nil {
+	if err := json.Unmarshal(util.UnsafeStringToBytes(data), &res); err != nil {
 		log.Error("json.UnMarshal failed: %v", err)
 		return &res, false
 	}
@@ -141,7 +140,7 @@ func putDivergenceFromCache(repoID int64, branchName string, divergence *git.Div
 	if err != nil {
 		return err
 	}
-	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), bs, 30*24*60*60)
+	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), util.UnsafeBytesToString(bs), 30*24*60*60)
 }
 
 func DelDivergenceFromCache(repoID int64, branchName string) error {
@@ -158,10 +157,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
-	divergence := &git.DivergeObject{
-		Ahead:  -1,
-		Behind: -1,
-	}
+	var divergence *git.DivergeObject
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
@@ -178,6 +174,11 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 				}
 			}
 		}
+	}
+
+	if divergence == nil {
+		// tolerate the error that we cannot get divergence
+		divergence = &git.DivergeObject{Ahead: -1, Behind: -1}
 	}
 
 	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
@@ -318,11 +319,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 		for i, branchName := range branchNames {
 			commitID := commitIDs[i]
 			branch, exist := branchMap[branchName]
-			if exist && branch.CommitID == commitID {
+			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
 			}
 
-			commit, err := getCommit(branchName)
+			commit, err := getCommit(commitID)
 			if err != nil {
 				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
 			}
@@ -408,14 +409,14 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				log.Error("DeleteCronTaskByRepo: %v", err)
 			}
 			// cancel running cron jobs of this repository and delete old schedules
-			if err := actions_model.CancelRunningJobs(
+			if err := actions_model.CancelPreviousJobs(
 				ctx,
 				repo.ID,
 				from,
 				"",
 				webhook_module.HookEventSchedule,
 			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
+				log.Error("CancelPreviousJobs: %v", err)
 			}
 
 			err2 = gitrepo.SetDefaultBranch(ctx, repo, to)
@@ -573,14 +574,14 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
 		// cancel running cron jobs of this repository and delete old schedules
-		if err := actions_model.CancelRunningJobs(
+		if err := actions_model.CancelPreviousJobs(
 			ctx,
 			repo.ID,
 			oldDefaultBranchName,
 			"",
 			webhook_module.HookEventSchedule,
 		); err != nil {
-			log.Error("CancelRunningJobs: %v", err)
+			log.Error("CancelPreviousJobs: %v", err)
 		}
 
 		if err := gitrepo.SetDefaultBranch(ctx, repo, newBranchName); err != nil {

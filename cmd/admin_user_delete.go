@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -42,7 +43,7 @@ var microcmdUserDelete = &cli.Command{
 
 func runDeleteUser(c *cli.Context) error {
 	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
-		return fmt.Errorf("You must provide the id, username or email of a user to delete")
+		return errors.New("You must provide the id, username or email of a user to delete")
 	}
 
 	ctx, cancel := installSignals()

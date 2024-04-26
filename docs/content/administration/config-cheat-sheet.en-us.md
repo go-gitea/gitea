@@ -214,10 +214,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: Set the default theme for the Gitea installation.
+- `DEFAULT_THEME`: **gitea-auto**: Set the default theme for the Gitea installation, custom themes could be provided by "{CustomPath}/public/assets/css/theme-*.css".
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
-  regardless of the value of `DEFAULT_THEME`.
+- `THEMES`: **_empty_**: All available themes by "{CustomPath}/public/assets/css/theme-*.css". Allow users select personalized themes.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
@@ -522,13 +521,17 @@ And the following unique queues:
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
+  - `deletion`: User cannot delete their own account.
+  - `manage_ssh_keys`: User cannot configure ssh keys.
+  - `manage_gpg_keys`: User cannot configure gpg keys.
 
 ## Security (`security`)
 
 - `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This key is VERY IMPORTANT, if you lost it, the data encrypted by it (like 2FA secret) can't be decrypted anymore.
 - `SECRET_KEY_URI`: **_empty_**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
-- `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
+- `LOGIN_REMEMBER_DAYS`: **31**: How long to remember that a user is logged in before requiring relogin (in days).
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
@@ -590,7 +593,7 @@ And the following unique queues:
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**: Allow authentication in via OpenID.
+- `ENABLE_OPENID_SIGNIN`: **true**: Allow authentication in via OpenID.
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**: Allow registering via OpenID.
 - `WHITELISTED_URIS`: **_empty_**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to permit.
@@ -604,11 +607,12 @@ And the following unique queues:
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
   - `userid` - use the userid / sub attribute
-  - `nickname` - use the nickname attribute
+  - `nickname` - use the nickname
+  - `preferred_username` - use the preferred_username
   - `email` - use the username part of the email attribute
-  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+  - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
-    - the characters in the set `['´\x60]` are removed
+    - the characters in the set ```['´`]``` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
@@ -832,7 +836,7 @@ Default templates for project boards:
 ## Issue and pull request attachments (`attachment`)
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.
-- `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+- `ALLOWED_TYPES`: **.cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `MAX_SIZE`: **2048**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
@@ -1193,14 +1197,6 @@ in this mapping or the filetype using heuristics.
 
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
-## Task (`task`)
-
-Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
-
-- `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
-- `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **redis://127.0.0.1:6379/0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `redis://123@127.0.0.1:6379/0` or `redis+cluster://123@127.0.0.1:6379/0`.
-
 ## Migrations (`migrations`)
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
@@ -1406,7 +1402,7 @@ PROXY_HOSTS = *.github.com
 - `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
 - `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
 - `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
-- `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message to skip executing the corresponding actions workflow
+- `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message or PR title to skip executing the corresponding actions workflow
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
 For example, `uses: actions/checkout@v4` means `https://github.com/actions/checkout@v4` since the value of `DEFAULT_ACTIONS_URL` is `github`.
@@ -1425,5 +1421,6 @@ Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-ser
 
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
+- `SHOW_FOOTER_POWERED_BY`: **true**: Show the "powered by" text in the footer.
 - `ENABLE_SITEMAP`: **true**: Generate sitemap.
 - `ENABLE_FEED`: **true**: Enable/Disable RSS/Atom feed.

@@ -1,6 +1,6 @@
 {{$avatarLink := (.RelAvatarLink ctx)}}
 {{if $avatarLink}}
-	<img class="ui avatar gt-vm" src="{{$avatarLink}}" width="24" height="24" alt="{{.FullName}}">
+	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="24" height="24" alt="{{.FullName}}">
 {{else if $.IsMirror}}
 	{{svg "octicon-mirror" 24}}
 {{else if $.IsFork}}

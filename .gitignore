@@ -58,7 +58,7 @@ cpu.out
 /data
 /indexers
 /log
-/public/img/avatar
+/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -77,7 +77,6 @@ cpu.out
 /public/assets/css
 /public/assets/fonts
 /public/assets/licenses.txt
-/public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
@@ -94,6 +93,9 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+
+# Files and folders that were previously generated
+/public/assets/img/webpack
 
 # Snapcraft
 /gitea_a*.txt

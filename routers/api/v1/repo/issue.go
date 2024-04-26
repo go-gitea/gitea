@@ -217,7 +217,6 @@ func SearchIssues(ctx *context.APIContext) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
@@ -269,28 +268,28 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = &ctxUserID
+			searchOpt.PosterID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = &ctxUserID
+			searchOpt.AssigneeID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("mentioned") {
-			searchOpt.MentionID = &ctxUserID
+			searchOpt.MentionID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("review_requested") {
-			searchOpt.ReviewRequestedID = &ctxUserID
+			searchOpt.ReviewRequestedID = optional.Some(ctxUserID)
 		}
 		if ctx.FormBool("reviewed") {
-			searchOpt.ReviewedID = &ctxUserID
+			searchOpt.ReviewedID = optional.Some(ctxUserID)
 		}
 	}
 
@@ -311,7 +310,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(total), limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // ListIssues list the issues of a repository
@@ -368,7 +367,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: Only show items which were created by the the given user
+	//   description: Only show items which were created by the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
@@ -502,10 +501,10 @@ func ListIssues(ctx *context.APIContext) {
 		SortBy:    issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
-		searchOpt.UpdatedAfterUnix = &since
+		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = &before
+		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 	if len(labelIDs) == 1 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
@@ -526,13 +525,13 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = &createdByID
+		searchOpt.PosterID = optional.Some(createdByID)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = &assignedByID
+		searchOpt.AssigneeID = optional.Some(assignedByID)
 	}
 	if mentionedByID > 0 {
-		searchOpt.MentionID = &mentionedByID
+		searchOpt.MentionID = optional.Some(mentionedByID)
 	}
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
@@ -548,7 +547,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(total), listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
@@ -614,7 +613,7 @@ func GetIssue(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 // CreateIssue create an issue of a repository
@@ -737,7 +736,7 @@ func CreateIssue(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 // EditIssue modify an issue of a repository
@@ -872,10 +871,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 	if form.State != nil {
 		if issue.IsPull {
-			if pr, err := issue.GetPullRequest(ctx); err != nil {
+			if err := issue.LoadPullRequest(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 				return
-			} else if pr.HasMerged {
+			}
+			if issue.PullRequest.HasMerged {
 				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
 				return
 			}
@@ -910,7 +910,7 @@ func EditIssue(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
 func DeleteIssue(ctx *context.APIContext) {
