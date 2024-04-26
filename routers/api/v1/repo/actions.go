@@ -50,7 +50,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "409":
-	//     "$ref": "#/responses/error"
+	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -68,7 +68,7 @@ func ListActionTasks(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
-		convertedTask, err := convert.ToActionTask(ctx, ctx.Repo.Repository, tasks[i])
+		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
 			return
