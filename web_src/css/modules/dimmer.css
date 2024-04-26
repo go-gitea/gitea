@@ -2,6 +2,7 @@
 
 .ui.dimmer {
   position: fixed;
+  display: none;
   top: 0;
   left: 0;
   right: 0;
@@ -12,6 +13,8 @@
   overflow-y: auto;
   justify-content: center;
   padding: 8px 0;
+  transition: opacity 1s ease;
+  user-select: none;
 }
 
 .ui.active.dimmer {
@@ -21,5 +24,5 @@
 
 .ui.dimmer > * {
   position: static;
-  margin: auto !important;
+  margin: auto 0 !important;
 }
