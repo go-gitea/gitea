@@ -226,7 +226,6 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 
 			// Submit a reject review on the PR.
 			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "reject", http.StatusUnprocessableEntity)
-
 		})
 	})
 }
@@ -239,8 +238,8 @@ func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pul
 		"type":      reviewType,
 	}
 
-	submitUrl := path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
-	req := NewRequestWithValues(t, "POST", submitUrl, options)
+	submitURL := path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
+	req := NewRequestWithValues(t, "POST", submitURL, options)
 	return session.MakeRequest(t, req, expectedSubmitStatus)
 }
 
@@ -249,13 +248,13 @@ func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	closeUrl := path.Join(owner, repo, "issues", issueNumber, "comments")
+	closeURL := path.Join(owner, repo, "issues", issueNumber, "comments")
 
 	options := map[string]string{
 		"_csrf":  htmlDoc.GetCSRF(),
 		"status": "close",
 	}
 
-	req = NewRequestWithValues(t, "POST", closeUrl, options)
+	req = NewRequestWithValues(t, "POST", closeURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
 }
