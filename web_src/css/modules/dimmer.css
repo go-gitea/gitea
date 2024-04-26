@@ -13,7 +13,7 @@
   overflow-y: auto;
   justify-content: center;
   padding: 8px 0;
-  animation: fadein;
+  animation-name: fadein;
   animation-duration: .2s;
   user-select: none;
 }
