@@ -44,6 +44,9 @@ const sfc = {
         canApprove: false,
         canRerun: false,
         done: false,
+        workflowID: '',
+        workflowLink: '',
+        isSchedule: false,
         jobs: [
           // {
           //   id: 0,
@@ -338,10 +341,13 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      rerun_all: el.getAttribute('data-locale-rerun-all'),
+      scheduled: el.getAttribute('data-locale-runs-scheduled'),
+      commit: el.getAttribute('data-locale-runs-commit'),
+      pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
-      rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
@@ -382,10 +388,16 @@ export function initRepositoryActionView() {
         </button>
       </div>
       <div class="action-commit-summary">
-        {{ run.commit.localeCommit }}
-        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        {{ run.commit.localePushedBy }}
-        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <template v-if="run.isSchedule">
+          {{ locale.scheduled }}
+        </template>
+        <template v-else>
+          {{ locale.commit }}
+          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+          {{ locale.pushedBy }}
+          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+        </template>
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
           <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
