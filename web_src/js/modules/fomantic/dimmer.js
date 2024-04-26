@@ -20,8 +20,7 @@ export function initFomanticDimmer() {
       this._dimmer.classList.remove('active');
       hideElem(this._dimmer);
       document.body.classList.remove('tw-overflow-hidden');
-    } else {
-      return this;
     }
+    return this;
   };
 }
