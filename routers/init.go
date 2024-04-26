@@ -5,6 +5,7 @@ package routers
 
 import (
 	"context"
+	"net/http"
 	"reflect"
 	"runtime"
 
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/routing"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -202,5 +204,9 @@ func NormalRoutes() *web.Route {
 		r.Mount(prefix, actions_router.ArtifactsV4Routes(prefix))
 	}
 
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		routing.UpdateFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))
+		http.NotFound(w, req)
+	})
 	return r
 }
