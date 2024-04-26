@@ -17,7 +17,7 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// If 0, then it has not been added to a specific board in the project
+	// If this should not be zero from 1.22. If it's zero, it will not be displayed on UI and maybe result in errors.
 	ProjectBoardID int64 `xorm:"INDEX"`
 
 	// the sorting order on the board
@@ -102,8 +102,8 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 	})
 }
 
-func (b *Board) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
+func (b *Board) moveIssuesToDefault(ctx context.Context, defaultBoardID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", defaultBoardID, b.ID)
 	return err
 }
 

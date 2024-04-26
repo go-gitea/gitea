@@ -198,7 +198,17 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return fmt.Errorf("deleteBoardByID: cannot delete default board")
 	}
 
-	if err = board.removeIssues(ctx); err != nil {
+	// move all issues to the default column
+	project, err := GetProjectByID(ctx, board.ProjectID)
+	if err != nil {
+		return err
+	}
+	defaultBoard, err := project.GetDefaultBoard(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = board.moveIssuesToDefault(ctx, defaultBoard.ID); err != nil {
 		return err
 	}
 
@@ -258,8 +268,8 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	return boards, nil
 }
 
-// getDefaultBoard return default board and ensure only one exists
-func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
+// GetDefaultBoard return default board and ensure only one exists
+func (p *Project) GetDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).

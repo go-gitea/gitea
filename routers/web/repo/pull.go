@@ -20,6 +20,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -1332,10 +1333,20 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if projectID > 0 {
 		if !ctx.Repo.CanWrite(unit.TypeProjects) {
-			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
+			log.Error("user hasn't the permission to write to projects")
 			return
 		}
-		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
+		dstProject, err := project_model.GetProjectByID(ctx, projectID)
+		if err != nil {
+			ctx.ServerError("GetProjectByID", err)
+			return
+		}
+		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
+		if err != nil {
+			ctx.ServerError("GetDefaultBoard", err)
+			return
+		}
+		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID, dstDefaultColumn.ID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}

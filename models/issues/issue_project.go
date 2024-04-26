@@ -90,22 +90,16 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 	return issuesMap, nil
 }
 
-// ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+// ChangeProjectAssign changes the project associated with an issue, if newProjectID is 0, the issue is removed from the project
+func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return addUpdateIssueProject(ctx, issue, doer, newProjectID, newColumnID)
+	})
 }
 
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+// addUpdateIssueProject adds or updates the project the default column associated with an issue
+// If newProjectID is 0, the issue is removed from the project
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
 	oldProjectID := issue.projectID(ctx)
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -139,9 +133,25 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 			return err
 		}
 	}
+	if newProjectID == 0 || newColumnID == 0 {
+		return nil
+	}
+
+	var maxSorting int64
+	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+		Where("project_id=?", newProjectID).
+		And("project_board_id=?", newColumnID).
+		Get(&maxSorting); err != nil {
+		return err
+	}
+	if maxSorting > 0 {
+		maxSorting++
+	}
 
 	return db.Insert(ctx, &project_model.ProjectIssue{
-		IssueID:   issue.ID,
-		ProjectID: newProjectID,
+		IssueID:        issue.ID,
+		ProjectID:      newProjectID,
+		ProjectBoardID: newColumnID,
+		Sorting:        maxSorting,
 	})
 }

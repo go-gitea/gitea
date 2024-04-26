@@ -442,6 +442,21 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("id")
+	var dstColumnID int64
+	if projectID > 0 {
+		dstProject, err := project_model.GetProjectByID(ctx, projectID)
+		if err != nil {
+			ctx.ServerError("GetProjectByID", err)
+			return
+		}
+		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
+		if err != nil {
+			ctx.ServerError("GetDefaultBoard", err)
+			return
+		}
+		dstColumnID = dstDefaultColumn.ID
+	}
+
 	for _, issue := range issues {
 		if issue.Project != nil {
 			if issue.Project.ID == projectID {
@@ -449,7 +464,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			}
 		}
 
-		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID, dstColumnID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
