@@ -49,4 +49,9 @@ func TestPassword(t *testing.T) {
 	count, err = client.CheckPassword("paddednotpwned", true)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count)
+
+	gock.New("https://api.pwnedpasswords.com").Get("/range/79082").Times(1).Reply(200).BodyString("FDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0\r\nAFEF386F56EB0B4BE314E07696E5E6E6536:0")
+	count, err = client.CheckPassword("paddednotpwnedzero", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 }
