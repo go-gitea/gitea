@@ -33,7 +33,6 @@ type ObjectFormat interface {
 	ComputeHash(t ObjectType, content []byte) ObjectID
 }
 
-/* SHA1 Type */
 type Sha1ObjectFormatImpl struct{}
 
 var (
@@ -70,14 +69,10 @@ func (h Sha1ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID
 	_, _ = hasher.Write([]byte(" "))
 	_, _ = hasher.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
 	_, _ = hasher.Write([]byte{0})
-
-	// HashSum generates a SHA1 for the provided hash
-	var sha1 Sha1Hash
-	copy(sha1[:], hasher.Sum(nil))
-	return &sha1
+	_, _ = hasher.Write(content)
+	return h.MustID(hasher.Sum(nil))
 }
 
-/* SHA256 Type */
 type Sha256ObjectFormatImpl struct{}
 
 var (
@@ -116,11 +111,8 @@ func (h Sha256ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) Object
 	_, _ = hasher.Write([]byte(" "))
 	_, _ = hasher.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
 	_, _ = hasher.Write([]byte{0})
-
-	// HashSum generates a SHA256 for the provided hash
-	var sha256 Sha1Hash
-	copy(sha256[:], hasher.Sum(nil))
-	return &sha256
+	_, _ = hasher.Write(content)
+	return h.MustID(hasher.Sum(nil))
 }
 
 var (
