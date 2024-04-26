@@ -194,7 +194,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.EqualValues(t, "pulls", elem[3])
-			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, true)
+			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 			// Grab the CSRF token.
 			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))
@@ -210,8 +210,8 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 
 		t.Run("Submit approve/reject review on closed PR", func(t *testing.T) {
 			// Created a closed PR (made by user1) in the upstream repo1.
-			testEditFile(t, user1Session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
+			testEditFileToNewBranch(t, user1Session, "user1", "repo1", "master", "a-test-branch", "README.md", "Hello, World (Editied...again)\n")
+			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "a-test-branch", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.EqualValues(t, "pulls", elem[3])
 			testIssueClose(t, user1Session, elem[1], elem[2], elem[4])
