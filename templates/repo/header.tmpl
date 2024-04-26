@@ -216,6 +216,7 @@
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
+					<span class="item-flex-space"></span>
 					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
