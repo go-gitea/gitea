@@ -1,0 +1,25 @@
+/* These are the remnants of the fomantic dimmer module */
+
+.ui.dimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-overlay-backdrop);
+  opacity: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.ui.active.dimmer {
+  display: flex;
+  opacity: 1;
+}
+
+.ui.dimmer > * {
+  position: static;
+  margin: auto !important;
+}
