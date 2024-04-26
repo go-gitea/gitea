@@ -12,7 +12,7 @@ type ActionTask struct {
 	ID           int64  `json:"id"`
 	Name         string `json:"name"`
 	HeadBranch   string `json:"head_branch"`
-	HeadSha      string `json:"head_sha"`
+	HeadSHA      string `json:"head_sha"`
 	RunNumber    int64  `json:"run_number"`
 	Event        string `json:"event"`
 	DisplayTitle string `json:"display_title"`
