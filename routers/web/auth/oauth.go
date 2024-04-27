@@ -934,7 +934,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	if u == nil {
 		if ctx.Doer != nil {
-			// attach user to already logged in user
+			// attach user to the current signed-in user
 			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
@@ -952,21 +952,30 @@ func SignInOAuthCallback(ctx *context.Context) {
 			if gothUser.Email == "" {
 				missingFields = append(missingFields, "email")
 			}
-			if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname && gothUser.NickName == "" {
-				missingFields = append(missingFields, "nickname")
-			}
-			if len(missingFields) > 0 {
-				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				if authSource.IsOAuth2() && authSource.Cfg.(*oauth2.Source).Provider == "openidConnect" {
-					log.Error("You may need to change the 'OPENID_CONNECT_SCOPES' setting to request all required fields")
-				}
-				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				ctx.ServerError("CreateUser", err)
-				return
-			}
-			uname, err := getUserName(&gothUser)
+			uname, err := extractUserNameFromOAuth2(&gothUser)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
+				return
+			}
+			if uname == "" {
+				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+					missingFields = append(missingFields, "nickname")
+				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+					missingFields = append(missingFields, "preferred_username")
+				} // else: "UserID" and "Email" have been handled above separately
+			}
+			if len(missingFields) > 0 {
+				log.Error(`OAuth2 auto registration (ENABLE_AUTO_REGISTRATION) is enabled but OAuth2 provider %q doesn't return required fields: %s. `+
+					`Suggest to: disable auto registration, or make OPENID_CONNECT_SCOPES (for OpenIDConnect) / Authentication Source Scopes (for Admin panel) to request all required fields, and the fields shouldn't be empty.`,
+					authSource.Name, strings.Join(missingFields, ","))
+				// The RawData is the only way to pass the missing fields to the another page at the moment, other ways all have various problems:
+				// by session or cookie: difficult to clean or reset; by URL: could be injected with uncontrollable content; by ctx.Flash: the link_account page is a mess ...
+				// Since the RawData is for the provider's data, so we need to use our own prefix here to avoid conflict.
+				if gothUser.RawData == nil {
+					gothUser.RawData = make(map[string]any)
+				}
+				gothUser.RawData["__giteaAutoRegMissingFields"] = missingFields
+				showLinkingLogin(ctx, gothUser)
 				return
 			}
 			u = &user_model.User{
