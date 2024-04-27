@@ -29,7 +29,7 @@
     "katex": "0.16.10",
     "license-checker-webpack-plugin": "0.2.1",
     "lightningcss-loader": "2.1.0",
-    "mermaid": "10.6.1",
+    "mermaid": "10.9.0",
     "mini-css-extract-plugin": "2.7.6",
     "minimatch": "9.0.3",
     "monaco-editor": "0.44.0",
