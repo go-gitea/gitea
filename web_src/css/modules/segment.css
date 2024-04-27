@@ -151,6 +151,11 @@
   border-top: none;
 }
 
+.ui.attached.segment:has(+ .ui[class*="top attached"].header),
+.ui.attached.segment:last-child {
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
+}
+
 .ui[class*="top attached"].segment {
   bottom: 0;
   margin-bottom: 0;
