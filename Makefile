@@ -36,6 +36,7 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
+GOPLS_PACKAGE ?= go run golang.org/x/tools/gopls@v0.15
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -428,7 +429,7 @@ lint-go-vet:
 .PHONY: lint-go-gopls
 lint-go-gopls:
 	@echo "Running gopls..."
-	@gopls check $(GO_SOURCES_NO_BINDATA)
+	@$(GO) run $(GOPLS_PACKAGE) check $(GO_SOURCES_NO_BINDATA)
 
 lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
