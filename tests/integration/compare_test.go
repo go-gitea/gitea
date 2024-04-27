@@ -67,7 +67,7 @@ func TestCompareBranches(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	// Inderect compare remove-files-b (head) with add-csv (base) branch
+	// Indirect compare remove-files-b (head) with add-csv (base) branch
 	//
 	//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
 	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b")
@@ -79,7 +79,7 @@ func TestCompareBranches(t *testing.T) {
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 
-	// Inderect compare remove-files-b (head) with remove-files-a (base) branch
+	// Indirect compare remove-files-b (head) with remove-files-a (base) branch
 	//
 	//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
 
@@ -92,7 +92,7 @@ func TestCompareBranches(t *testing.T) {
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 
-	// Inderect compare remove-files-a (head) with remove-files-b (base) branch
+	// Indirect compare remove-files-a (head) with remove-files-b (base) branch
 	//
 	//	'link_hi' and 'test.csv' are deleted
 

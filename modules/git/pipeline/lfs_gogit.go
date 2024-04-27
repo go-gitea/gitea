@@ -7,12 +7,10 @@ package pipeline
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 
@@ -20,23 +18,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
-
-// LFSResult represents commits found using a provided pointer file hash
-type LFSResult struct {
-	Name           string
-	SHA            string
-	Summary        string
-	When           time.Time
-	ParentHashes   []git.ObjectID
-	BranchName     string
-	FullCommitName string
-}
-
-type lfsResultSlice []*LFSResult
-
-func (a lfsResultSlice) Len() int           { return len(a) }
-func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // FindLFSFile finds commits that contain a provided pointer file hash
 func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
@@ -51,7 +32,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 		All:   true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get GoGit CommitsIter. Error: %w", err)
+		return nil, lfsError("failed to get GoGit CommitsIter", err)
 	}
 
 	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
@@ -85,7 +66,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 		return nil
 	})
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("Failure in CommitIter.ForEach: %w", err)
+		return nil, lfsError("failure in CommitIter.ForEach", err)
 	}
 
 	for _, result := range resultsMap {
@@ -156,7 +137,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	select {
 	case err, has := <-errChan:
 		if has {
-			return nil, fmt.Errorf("Unable to obtain name for LFS files. Error: %w", err)
+			return nil, lfsError("unable to obtain name for LFS files", err)
 		}
 	default:
 	}
