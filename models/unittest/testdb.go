@@ -6,7 +6,6 @@ package unittest
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
@@ -46,6 +46,14 @@ func fatalTestError(fmtStr string, args ...any) {
 
 // InitSettings initializes config provider and load common settings for tests
 func InitSettings() {
+	setting.IsInTesting = true
+	log.OsExiter = func(code int) {
+		if code != 0 {
+			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
+			panic(fmt.Errorf("non-zero exit code during testing: %d", code))
+		}
+		os.Exit(0)
+	}
 	if setting.CustomConf == "" {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
@@ -54,7 +62,7 @@ func InitSettings() {
 	setting.LoadCommonSettings()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
-		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
+		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
 	// register the dummy hash algorithm function used in the test fixtures
 	_ = hash.Register("dummy", hash.NewDummyHasher)
