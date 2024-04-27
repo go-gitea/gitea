@@ -807,7 +807,7 @@ func UpdateAllowEdits(ctx context.Context, pr *PullRequest) error {
 
 // Mergeable returns if the pullrequest is mergeable.
 func (pr *PullRequest) Mergeable(ctx context.Context) bool {
-	// If a pull request isn't mergable if it's:
+	// If a pull request isn't mergeable if it's:
 	// - Being conflict checked.
 	// - Has a conflict.
 	// - Received a error while being conflict checked.
