@@ -165,7 +165,7 @@ function updateStopwatchTime(seconds) {
     const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
     if (stopwatch) stopwatch.textContent = dur;
     // refresh the tippy so that the triangle updates to the correct position
-    if (stopwatchTippy.state.isShown) {
+    if (stopwatchTippy?.state.isShown) {
       stopwatchTippy.hide();
       stopwatchTippy.show();
     }
