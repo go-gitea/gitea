@@ -5,12 +5,15 @@ package integration
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"path"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -175,4 +178,83 @@ func TestPullView_CodeOwner(t *testing.T) {
 			unittest.AssertExistsIf(t, true, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
 		})
 	})
+}
+
+func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user1Session := loginUser(t, "user1")
+		user2Session := loginUser(t, "user2")
+
+		// Have user1 create a fork of repo1.
+		testRepoFork(t, user1Session, "user2", "repo1", "user1", "repo1")
+
+		t.Run("Submit approve/reject review on merged PR", func(t *testing.T) {
+			// Create a merged PR (made by user1) in the upstream repo1.
+			testEditFile(t, user1Session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
+			elem := strings.Split(test.RedirectURL(resp), "/")
+			assert.EqualValues(t, "pulls", elem[3])
+			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+
+			// Grab the CSRF token.
+			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))
+			resp = user2Session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			// Submit an approve review on the PR.
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "approve", http.StatusUnprocessableEntity)
+
+			// Submit a reject review on the PR.
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "reject", http.StatusUnprocessableEntity)
+		})
+
+		t.Run("Submit approve/reject review on closed PR", func(t *testing.T) {
+			// Created a closed PR (made by user1) in the upstream repo1.
+			testEditFileToNewBranch(t, user1Session, "user1", "repo1", "master", "a-test-branch", "README.md", "Hello, World (Editied...again)\n")
+			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "a-test-branch", "This is a pull title")
+			elem := strings.Split(test.RedirectURL(resp), "/")
+			assert.EqualValues(t, "pulls", elem[3])
+			testIssueClose(t, user1Session, elem[1], elem[2], elem[4])
+
+			// Grab the CSRF token.
+			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))
+			resp = user2Session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			// Submit an approve review on the PR.
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "approve", http.StatusUnprocessableEntity)
+
+			// Submit a reject review on the PR.
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "reject", http.StatusUnprocessableEntity)
+		})
+	})
+}
+
+func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pullNumber, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
+	options := map[string]string{
+		"_csrf":     csrf,
+		"commit_id": "",
+		"content":   "test",
+		"type":      reviewType,
+	}
+
+	submitURL := path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
+	req := NewRequestWithValues(t, "POST", submitURL, options)
+	return session.MakeRequest(t, req, expectedSubmitStatus)
+}
+
+func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber string) *httptest.ResponseRecorder {
+	req := NewRequest(t, "GET", path.Join(owner, repo, "pulls", issueNumber))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	closeURL := path.Join(owner, repo, "issues", issueNumber, "comments")
+
+	options := map[string]string{
+		"_csrf":  htmlDoc.GetCSRF(),
+		"status": "close",
+	}
+
+	req = NewRequestWithValues(t, "POST", closeURL, options)
+	return session.MakeRequest(t, req, http.StatusOK)
 }
