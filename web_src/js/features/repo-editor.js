@@ -7,9 +7,9 @@ import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.repo-editor-menu');
-  $tabMenu.find('.item').tab();
-  const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
+  const $menu = $form.find('.repo-editor-menu');
+  $menu.find('.item').tab();
+  const $previewTab = $menu.find('a[data-tab="preview"]');
   if ($previewTab.length) {
     $previewTab.on('click', async function () {
       const $this = $(this);
@@ -24,13 +24,17 @@ function initEditPreviewTab($form) {
       const formData = new FormData();
       formData.append('mode', mode);
       formData.append('context', context);
-      formData.append('text', $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val());
+      formData.append('text', $form.find('.tab[data-tab="write"] textarea').val());
       formData.append('file_path', $treePathEl.val());
       try {
         const response = await POST($this.data('url'), {data: formData});
         const data = await response.text();
-        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        renderPreviewPanelContent($previewPanel, data);
+        const $previewPanel = $form.find('.tab[data-tab="preview"]');
+        if ($previewPanel.length) {
+          $previewPanel.html(data);
+          initMarkupContent();
+          attachRefIssueContextPopup($panelPreviewer.find('p .ref-issue'));
+        }
       } catch (error) {
         console.error('Error:', error);
       }
@@ -173,12 +177,4 @@ export function initRepoEditor() {
       }
     });
   })();
-}
-
-export function renderPreviewPanelContent($panelPreviewer, data) {
-  $panelPreviewer.html(data);
-  initMarkupContent();
-
-  const $refIssues = $panelPreviewer.find('p .ref-issue');
-  attachRefIssueContextPopup($refIssues);
 }
