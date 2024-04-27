@@ -213,6 +213,7 @@ help:
 	@echo " - lint-go                          lint go files"
 	@echo " - lint-go-fix                      lint go files and fix issues"
 	@echo " - lint-go-vet                      lint go files with vet"
+	@echo " - lint-go-gopls                    lint go files with gopls"
 	@echo " - lint-js                          lint js files"
 	@echo " - lint-js-fix                      lint js files and fix issues"
 	@echo " - lint-css                         lint css files"
@@ -366,7 +367,7 @@ lint-frontend: lint-js lint-css
 lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-editorconfig
+lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig
 
 .PHONY: lint-backend-fix
 lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
@@ -424,7 +425,11 @@ lint-go-vet:
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
-.PHONY: lint-editorconfig
+.PHONY: lint-go-gopls
+lint-go-gopls:
+	@echo "Running gopls..."
+	@gopls check $(GO_SOURCES_NO_BINDATA)
+
 lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
