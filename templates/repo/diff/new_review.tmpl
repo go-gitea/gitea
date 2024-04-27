@@ -30,8 +30,7 @@
 				{{end}}
 				<div class="divider"></div>
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
-				{{$isOpen := (not (or $.Issue.IsClosed (and $.Issue.IsPull $.Issue.PullRequest.HasMerged)))}}
-				{{if $isOpen}}
+				{{if not $.Issue.IsClosed}}
 					{{if $showSelfTooltip}}
 						<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_approve"}}">
 							<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
@@ -41,7 +40,7 @@
 					{{end}}
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{ctx.Locale.Tr "repo.diff.review.comment"}}</button>
-				{{if $isOpen}}
+				{{if not $.Issue.IsClosed}}
 					{{if $showSelfTooltip}}
 						<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_reject"}}">
 							<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>

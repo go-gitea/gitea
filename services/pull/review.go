@@ -288,10 +288,6 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
-	if issue.IsClosed {
-		return nil, nil, ErrSubmitReviewOnClosedPR
-	}
-
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -301,6 +297,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
+		if issue.IsClosed {
+			return nil, nil, ErrSubmitReviewOnClosedPR
+		}
+
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err
