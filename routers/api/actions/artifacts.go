@@ -301,7 +301,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact comfirm upload artifact.
+// comfirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := validateRunID(ctx)
