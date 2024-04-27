@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+cd "$(dirname -- "${BASH_SOURCE[0]}")" && cd ..
+
 # lint all go files with 'gopls check' and look for lines starting with the
 # current absolute path, indicating a error was found. This is neccessary
 # because the tool does not set non-zero exit code when errors are found.
