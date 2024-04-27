@@ -30,7 +30,7 @@ EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-che
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@db51e79a0e37c572d8b59ae0c58bf2bbbbe53285
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
@@ -397,11 +397,11 @@ lint-md: node_modules
 
 .PHONY: lint-spell
 lint-spell:
-	@go run $(MISSPELL_PACKAGE) -error $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
 lint-spell-fix:
-	@go run $(MISSPELL_PACKAGE) -w $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go:
