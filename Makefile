@@ -428,8 +428,8 @@ lint-go-vet:
 
 .PHONY: lint-go-gopls
 lint-go-gopls:
-	@echo "Running gopls..."
-	@$(GO) run $(GOPLS_PACKAGE) check $(GO_SOURCES_NO_BINDATA)
+	@echo "Running gopls check..."
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
 lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
