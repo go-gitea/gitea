@@ -5,6 +5,8 @@ import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
 
+let stopwatchTippy;
+
 export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
@@ -19,13 +21,14 @@ export function initStopwatch() {
 
   stopwatchEl.removeAttribute('href'); // intended for noscript mode only
 
-  createTippy(stopwatchEl, {
+  stopwatchTippy = createTippy(stopwatchEl, {
     content: stopwatchPopup,
     placement: 'bottom-end',
     trigger: 'click',
     maxWidth: 'none',
     interactive: true,
     hideOnClick: true,
+    theme: 'default',
   });
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
@@ -161,6 +164,9 @@ function updateStopwatchTime(seconds) {
     const delta = Date.now() - start;
     const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
     if (stopwatch) stopwatch.textContent = dur;
+    // refresh the tippy so that the triangle updates to the correct position
+    stopwatchTippy.hide();
+    stopwatchTippy.show();
   };
   updateUi();
   updateTimeIntervalId = setInterval(updateUi, 1000);
