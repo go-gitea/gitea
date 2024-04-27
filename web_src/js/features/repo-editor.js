@@ -31,9 +31,7 @@ function initEditPreviewTab($form) {
         const data = await response.text();
         const $previewPanel = $form.find('.tab[data-tab="preview"]');
         if ($previewPanel.length) {
-          $previewPanel.html(data);
-          initMarkupContent();
-          attachRefIssueContextPopup($panelPreviewer.find('p .ref-issue'));
+          renderPreviewPanelContent($previewPanel, data);
         }
       } catch (error) {
         console.error('Error:', error);
@@ -177,4 +175,12 @@ export function initRepoEditor() {
       }
     });
   })();
+}
+
+export function renderPreviewPanelContent($previewPanel, data) {
+  $previewPanel.html(data);
+  initMarkupContent();
+
+  const $refIssues = $previewPanel.find('p .ref-issue');
+  attachRefIssueContextPopup($refIssues);
 }
