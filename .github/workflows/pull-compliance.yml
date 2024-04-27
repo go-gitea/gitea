@@ -21,7 +21,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
+      - run: make deps-backend deps-tools build
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
