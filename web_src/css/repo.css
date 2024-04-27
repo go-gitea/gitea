@@ -2520,7 +2520,7 @@ tbody.commit-list {
   display: inline-block;
   background-color: var(--color-red);
   height: 12px;
-  width: 40px;
+  width: 44px;
 }
 
 .diff-stats-bar .diff-stats-add-bar {
