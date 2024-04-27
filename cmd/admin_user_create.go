@@ -49,7 +49,7 @@ var microcmdUserCreate = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:               "must-change-password",
-			Usage:              "User must change password after initial login, defaults to true for all users except the first admin user (can be disabled by --must-change-password=false)",
+			Usage:              "User must change password after initial login, defaults to true for all users except the first one (can be disabled by --must-change-password=false)",
 			DisableDefaultText: true,
 		},
 		&cli.IntFlag{
@@ -129,8 +129,8 @@ func runCreateUser(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("IsTableNotEmpty: %w", err)
 		}
-		if !hasUserRecord && isAdmin {
-			// if this is the first admin being created, don't force to change password (keep the old behavior)
+		if !hasUserRecord {
+			// if this is the first one being created, don't force to change password (keep the old behavior)
 			mustChangePassword = false
 		}
 	}

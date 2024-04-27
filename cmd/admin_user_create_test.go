@@ -30,7 +30,7 @@ func TestAdminUserCreate(t *testing.T) {
 		return createCheck{u.IsAdmin, u.MustChangePassword}
 	}
 	reset()
-	assert.Equal(t, createCheck{IsAdmin: false, MustChangePassword: true}, createUser("u", ""), "first non-admin user must change password")
+	assert.Equal(t, createCheck{IsAdmin: false, MustChangePassword: false}, createUser("u", ""), "first non-admin user doesn't need to change password")
 
 	reset()
 	assert.Equal(t, createCheck{IsAdmin: true, MustChangePassword: false}, createUser("u", "--admin"), "first admin user doesn't need to change password")
