@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -44,21 +45,7 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 }
 
 // ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
-type ErrSubmitReviewOnClosedPR struct{}
-
-// IsErrSubmitReviewOnClosedPR checks if an error is an ErrSubmitReviewOnClosedPR.
-func IsErrSubmitReviewOnClosedPR(err error) bool {
-	_, ok := err.(ErrSubmitReviewOnClosedPR)
-	return ok
-}
-
-func (err ErrSubmitReviewOnClosedPR) Error() string {
-	return "can't submit review for a closed or merged PR"
-}
-
-func (err ErrSubmitReviewOnClosedPR) Unwrap() error {
-	return util.ErrPermissionDenied
-}
+var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
@@ -301,6 +288,10 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
+	if issue.IsClosed {
+		return nil, nil, ErrSubmitReviewOnClosedPR
+	}
+
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -310,10 +301,6 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
-		if issue.IsClosed || pr.HasMerged {
-			return nil, nil, ErrSubmitReviewOnClosedPR{}
-		}
-
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err
