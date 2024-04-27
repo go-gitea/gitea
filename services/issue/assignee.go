@@ -229,12 +229,12 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
 }
 
-func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifers []*ReviewRequestNotifier) {
-	for _, reviewNotifer := range reviewNotifers {
-		if reviewNotifer.Reviwer != nil {
-			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifer.Reviwer, reviewNotifer.IsAdd, reviewNotifer.Comment)
-		} else if reviewNotifer.ReviewTeam != nil {
-			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifer.ReviewTeam, reviewNotifer.IsAdd, reviewNotifer.Comment); err != nil {
+func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
+	for _, reviewNotifier := range reviewNotifiers {
+		if reviewNotifier.Reviewer != nil {
+			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
+		} else if reviewNotifier.ReviewTeam != nil {
+			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
 				log.Error("teamReviewRequestNotify: %v", err)
 			}
 		}

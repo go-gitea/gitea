@@ -800,7 +800,6 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
-	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
@@ -813,7 +812,7 @@ func CompareDiff(ctx *context.Context) {
 		// applicable if you have one commit to compare and that commit has a message.
 		// In that case the commit message will be prepend to the template body.
 		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-			// Re-use the same key as that's priortized over the "content" key.
+			// Re-use the same key as that's prioritized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent

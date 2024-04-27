@@ -4,9 +4,7 @@
 package pwn
 
 import (
-	"math/rand"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -17,11 +15,6 @@ import (
 var client = New(WithHTTP(&http.Client{
 	Timeout: time.Second * 2,
 }))
-
-func TestMain(m *testing.M) {
-	rand.Seed(time.Now().Unix())
-	os.Exit(m.Run())
-}
 
 func TestPassword(t *testing.T) {
 	defer gock.Off()
