@@ -7,7 +7,7 @@ cd "$(dirname -- "${BASH_SOURCE[0]}")" && cd ..
 # current absolute path, indicating a error was found. This is neccessary
 # because the tool does not set non-zero exit code when errors are found.
 # ref: https://github.com/golang/go/issues/67078
-ERROR_LINES=$("$GO" run "$GOPLS_PACKAGE" check $@ | grep -E "^$PWD");
+ERROR_LINES=$("$GO" run "$GOPLS_PACKAGE" check $@ 2>/dev/null | grep -E "^$PWD");
 NUM_ERRORS=$(echo "$ERROR_LINES" | wc -l)
 
 if [ "$NUM_ERRORS" -eq "0" ]; then
