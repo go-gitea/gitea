@@ -19,9 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func TestGPGGit(t *testing.T) {
