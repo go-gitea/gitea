@@ -24,8 +24,8 @@ type Comment struct {
 	Updated     time.Time
 	Content     string
 	Reactions   []*Reaction
-	Meta        map[string]interface{} `yaml:"meta,omitempty"` // see models/issues/comment.go for fields in Comment struct
-	OriginalID  int64                  `yaml:"-"`              // ID from the upstream syncing source
+	Meta        map[string]any `yaml:"meta,omitempty"` // see models/issues/comment.go for fields in Comment struct
+	OriginalID  int64          `yaml:"-"`              // ID from the upstream syncing source
 }
 
 // GetExternalName ExternalUserMigrated interface
