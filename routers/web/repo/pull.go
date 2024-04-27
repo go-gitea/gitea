@@ -1327,12 +1327,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 		}
-		return
 	}
 
 	if projectID > 0 {
 		if !ctx.Repo.CanWrite(unit.TypeProjects) {
-			log.Error("user hasn't the permission to write to projects")
+			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
 			return
 		}
 		dstProject, err := project_model.GetProjectByID(ctx, projectID)
