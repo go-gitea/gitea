@@ -435,10 +435,6 @@ a.label,
   box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
-.ui.modal .actions {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
 .ui.comments .comment .text {
   margin: 0;
 }
