@@ -226,9 +226,8 @@ func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreN
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}

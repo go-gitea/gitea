@@ -24,6 +24,8 @@ type Permission struct {
 
 	units     []*repo_model.RepoUnit
 	unitsMode map[unit.Type]perm_model.AccessMode
+
+	everyoneAccessMode map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -36,9 +38,24 @@ func (p *Permission) IsAdmin() bool {
 	return p.AccessMode >= perm_model.AccessModeAdmin
 }
 
-// HasAccess returns true if the current user might have at least read access to any unit of this repository
-func (p *Permission) HasAccess() bool {
-	return len(p.unitsMode) > 0 || p.AccessMode >= perm_model.AccessModeRead
+// HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.
+// It doesn't count the "everyone access mode".
+func (p *Permission) HasAnyUnitAccess() bool {
+	for _, v := range p.unitsMode {
+		if v >= perm_model.AccessModeRead {
+			return true
+		}
+	}
+	return p.AccessMode >= perm_model.AccessModeRead
+}
+
+func (p *Permission) HasAnyUnitAccessOrEveryoneAccess() bool {
+	for _, v := range p.everyoneAccessMode {
+		if v >= perm_model.AccessModeRead {
+			return true
+		}
+	}
+	return p.HasAnyUnitAccess()
 }
 
 // HasUnits returns true if the permission contains attached units
@@ -56,16 +73,16 @@ func (p *Permission) GetFirstUnitRepoID() int64 {
 }
 
 // UnitAccessMode returns current user access mode to the specify unit of the repository
+// It also considers "everyone access mode"
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
-	if p.unitsMode != nil {
-		// if the units map contains the access mode, use it, but admin/owner mode could override it
-		if m, ok := p.unitsMode[unitType]; ok {
-			return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
-		}
+	// if the units map contains the access mode, use it, but admin/owner mode could override it
+	if m, ok := p.unitsMode[unitType]; ok {
+		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
 	// if the units map does not contain the access mode, return the default access mode if the unit exists
+	unitDefaultAccessMode := max(p.AccessMode, p.everyoneAccessMode[unitType])
 	hasUnit := slices.ContainsFunc(p.units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
-	return util.Iif(hasUnit, p.AccessMode, perm_model.AccessModeNone)
+	return util.Iif(hasUnit, unitDefaultAccessMode, perm_model.AccessModeNone)
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
@@ -159,14 +176,15 @@ func (p *Permission) LogString() string {
 }
 
 func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
-	if user != nil && user.ID > 0 {
-		for _, u := range perm.units {
-			if perm.unitsMode == nil {
-				perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	if user == nil || user.ID <= 0 {
+		return
+	}
+	for _, u := range perm.units {
+		if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.everyoneAccessMode[u.Type] {
+			if perm.everyoneAccessMode == nil {
+				perm.everyoneAccessMode = make(map[unit.Type]perm_model.AccessMode)
 			}
-			if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.unitsMode[u.Type] {
-				perm.unitsMode[u.Type] = u.EveryoneAccessMode
-			}
+			perm.everyoneAccessMode[u.Type] = u.EveryoneAccessMode
 		}
 	}
 }
@@ -373,8 +391,8 @@ func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 		perm.CanAccessAny(perm_model.AccessModeRead, unit.TypePullRequests), nil
 }
 
-// HasAccess returns true if user has access to repo
-func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (bool, error) {
+// HasAnyUnitAccess see the comment of "perm.HasAnyUnitAccess"
+func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (bool, error) {
 	var user *user_model.User
 	var err error
 	if userID > 0 {
@@ -387,7 +405,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	if err != nil {
 		return false, err
 	}
-	return perm.HasAccess(), nil
+	return perm.HasAnyUnitAccess(), nil
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.

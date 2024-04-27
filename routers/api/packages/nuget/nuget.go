@@ -594,13 +594,13 @@ func UploadSymbolPackage(ctx *context.Context) {
 func processUploadedFile(ctx *context.Context, expectedType nuget_module.PackageType) (*nuget_module.Package, *packages_module.HashedBuffer, []io.Closer) {
 	closables := make([]io.Closer, 0, 2)
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return nil, nil, closables
 	}
 
-	if close {
+	if needToClose {
 		closables = append(closables, upload)
 	}
 

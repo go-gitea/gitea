@@ -74,6 +74,13 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
 }
 
+func (run *ActionRun) WorkflowLink() string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
+}
+
 // RefLink return the url of run's ref
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
@@ -98,13 +105,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-		if err != nil {
-			return err
-		}
-		run.Repo = repo
+	if err := run.LoadRepo(ctx); err != nil {
+		return err
 	}
+
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -117,6 +121,19 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		run.TriggerUser = u
 	}
 
+	return nil
+}
+
+func (run *ActionRun) LoadRepo(ctx context.Context) error {
+	if run == nil || run.Repo != nil {
+		return nil
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	if err != nil {
+		return err
+	}
+	run.Repo = repo
 	return nil
 }
 
@@ -144,6 +161,10 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
+func (run *ActionRun) IsSchedule() bool {
+	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -48,12 +49,12 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 	// Previous versions would use a cookie path with a trailing /.
 	// These are more specific than cookies without a trailing /, so
 	// we need to delete these if they exist.
-	DeleteLegacySiteCookie(resp, name)
+	deleteLegacySiteCookie(resp, name)
 }
 
-// DeleteLegacySiteCookie deletes the cookie with the given name at the cookie
+// deleteLegacySiteCookie deletes the cookie with the given name at the cookie
 // path with a trailing /, which would unintentionally override the cookie.
-func DeleteLegacySiteCookie(resp http.ResponseWriter, name string) {
+func deleteLegacySiteCookie(resp http.ResponseWriter, name string) {
 	if setting.SessionConfig.CookiePath == "" || strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
 		// If the cookie path ends with /, no legacy cookies will take
 		// precedence, so do nothing.  The exception is that cookies with no
@@ -73,4 +74,12 @@ func DeleteLegacySiteCookie(resp http.ResponseWriter, name string) {
 		SameSite: setting.SessionConfig.SameSite,
 	}
 	resp.Header().Add("Set-Cookie", cookie.String())
+}
+
+func init() {
+	session.BeforeRegenerateSession = append(session.BeforeRegenerateSession, func(resp http.ResponseWriter, _ *http.Request) {
+		// Ensure that a cookie with a trailing slash does not take precedence over
+		// the cookie written by the middleware.
+		deleteLegacySiteCookie(resp, setting.SessionConfig.CookieName)
+	})
 }

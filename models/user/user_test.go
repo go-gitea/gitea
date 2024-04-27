@@ -506,15 +506,16 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		Expected          string
 		IsNormalizedValid bool
 	}{
-		{"test", "test", true},
+		{"name@example.com", "name", true},
+		{"test'`´name", "testname", true},
 		{"Sinéad.O'Connor", "Sinead.OConnor", true},
 		{"Æsir", "AEsir", true},
-		// \u00e9\u0065\u0301
-		{"éé", "ee", true},
+		{"éé", "ee", true}, // \u00e9\u0065\u0301
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
 		{"new😀user", "new😀user", false}, // No plans to support
+		{`"quoted"`, `"quoted"`, false}, // No plans to support
 	}
 	for _, testCase := range testCases {
 		normalizedName, err := user_model.NormalizeUserName(testCase.Input)

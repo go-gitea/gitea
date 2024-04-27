@@ -110,13 +110,11 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 	var items []string
 
 	switch project.BoardType {
-
 	case BoardTypeBugTriage:
 		items = setting.Project.ProjectBoardBugTriageType
 
 	case BoardTypeBasicKanban:
 		items = setting.Project.ProjectBoardBasicKanbanType
-
 	case BoardTypeNone:
 		fallthrough
 	default:

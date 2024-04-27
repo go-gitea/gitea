@@ -1,13 +1,14 @@
 linters:
+  enable-all: false
+  disable-all: true
+  fast: false
   enable:
     - bidichk
-    # - deadcode # deprecated - https://github.com/golangci/golangci-lint/issues/1841
     - depguard
     - dupl
     - errcheck
     - forbidigo
     - gocritic
-    # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - gofumpt
     - gosimple
@@ -17,19 +18,17 @@ linters:
     - nolintlint
     - revive
     - staticcheck
-    # - structcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
     - stylecheck
     - typecheck
     - unconvert
     - unused
-    # - varcheck # deprecated - https://github.com/golangci/golangci-lint/issues/1841
     - wastedassign
-  enable-all: false
-  disable-all: true
-  fast: false
 
 run:
   timeout: 10m
+
+output:
+  sort-results: true
 
 linters-settings:
   stylecheck:
@@ -47,27 +46,37 @@ linters-settings:
     errorCode: 1
     warningCode: 1
     rules:
+      - name: atomic
+      - name: bare-return
       - name: blank-imports
+      - name: constant-logical-expr
       - name: context-as-argument
       - name: context-keys-type
       - name: dot-imports
+      - name: duplicated-imports
+      - name: empty-lines
+      - name: error-naming
       - name: error-return
       - name: error-strings
-      - name: error-naming
+      - name: errorf
       - name: exported
+      - name: identical-branches
       - name: if-return
       - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
+      - name: indent-error-flow
+      - name: modifies-value-receiver
       - name: package-comments
       - name: range
       - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: string-of-int
+      - name: superfluous-else
       - name: time-naming
+      - name: unconditional-recursion
       - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: duplicated-imports
-      - name: modifies-value-receiver
+      - name: unreachable-code
+      - name: var-declaration
+      - name: var-naming
   gofumpt:
     extra-rules: true
   depguard:
@@ -93,8 +102,8 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-dirs: [node_modules, public, web_src]
+  exclude-case-sensitive: true
   exclude-rules:
-    # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - gocyclo
@@ -112,19 +121,19 @@ issues:
     - path: cmd
       linters:
         - forbidigo
-    - linters:
+    - text: "webhook"
+      linters:
         - dupl
-      text: "webhook"
-    - linters:
+    - text: "`ID' should not be capitalized"
+      linters:
         - gocritic
-      text: "`ID' should not be capitalized"
-    - linters:
+    - text: "swagger"
+      linters:
         - unused
         - deadcode
-      text: "swagger"
-    - linters:
+    - text: "argument x is overwritten before first use"
+      linters:
         - staticcheck
-      text: "argument x is overwritten before first use"
     - text: "commentFormatting: put a space between `//` and comment text"
       linters:
         - gocritic

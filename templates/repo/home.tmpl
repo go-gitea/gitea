@@ -5,18 +5,10 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="repo-description">
-			<div id="repo-desc" class="gt-word-break tw-text-16">
-				{{$description := .Repository.DescriptionHTML $.Context}}
-				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
-				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
-			</div>
-			<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
-				<div class="ui small action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
-					{{template "shared/search/button"}}
-				</div>
-			</form>
+		<div class="repo-description gt-word-break">
+			{{- $description := .Repository.DescriptionHTML ctx -}}
+			{{if $description}}{{$description | RenderCodeBlock}}{{end}}
+			{{if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
 		</div>
 		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
 			{{/* it should match the code in issue-home.js */}}
@@ -54,7 +46,7 @@
 		{{$l := Eval $n "-" 1}}
 		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center tw-gap-y-2">
+			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -98,7 +90,16 @@
 						{{ctx.Locale.Tr "repo.use_template"}}
 					</a>
 				{{end}}
-				{{if (not $isHomepage)}}
+				{{if $isHomepage}}
+					{{/* only show the "code search" on the repo home page, it only does global search,
+						so do not show it when viewing file or directory to avoid misleading users (it doesn't search in a directory) */}}
+					<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
+						<div class="ui small action input">
+							<input name="q" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+							{{template "shared/search/button"}}
+						</div>
+					</form>
+				{{else}}
 					<span class="breadcrumb repo-path tw-ml-1">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
@@ -137,7 +138,7 @@
 					</div>
 					{{template "repo/cite/cite_modal" .}}
 				{{end}}
-				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}
+				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 						{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 					</a>
@@ -148,7 +149,7 @@
 			{{template "repo/view_file" .}}
 		{{else if .IsBlame}}
 			{{template "repo/blame" .}}
-		{{else}}
+		{{else}}{{/* IsViewDirectory */}}
 			{{template "repo/view_list" .}}
 		{{end}}
 	</div>

@@ -501,19 +501,19 @@ func GetUserSalt() (string, error) {
 // Note: The set of characters here can safely expand without a breaking change,
 // but characters removed from this set can cause user account linking to break
 var (
-	customCharsReplacement    = strings.NewReplacer("Æ", "AE")
-	removeCharsRE             = regexp.MustCompile(`['´\x60]`)
-	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	replaceCharsHyphenRE      = regexp.MustCompile(`[\s~+]`)
+	customCharsReplacement = strings.NewReplacer("Æ", "AE")
+	removeCharsRE          = regexp.MustCompile("['`´]")
+	transformDiacritics    = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	replaceCharsHyphenRE   = regexp.MustCompile(`[\s~+]`)
 )
 
-// normalizeUserName returns a string with single-quotes and diacritics
-// removed, and any other non-supported username characters replaced with
-// a `-` character
+// NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
+// It returns a string with the single-quotes removed, and any other non-supported username characters are replaced with a `-` character
 func NormalizeUserName(s string) (string, error) {
-	strDiacriticsRemoved, n, err := transform.String(removeDiacriticsTransform, customCharsReplacement.Replace(s))
+	s, _, _ = strings.Cut(s, "@")
+	strDiacriticsRemoved, n, err := transform.String(transformDiacritics, customCharsReplacement.Replace(s))
 	if err != nil {
-		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
+		return "", fmt.Errorf("failed to normalize the string of provided username %q at position %d", s, n)
 	}
 	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
@@ -988,9 +988,8 @@ func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bo
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}
