@@ -449,6 +449,13 @@ func UpdateIssueProject(ctx *context.Context) {
 			ctx.ServerError("GetProjectByID", err)
 			return
 		}
+		if dstProject.OwnerID != ctx.ContextUser.ID {
+			ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"message": fmt.Sprintf("Project[%d] is not in Owner[%d] as expected", dstProject.ID, ctx.ContextUser.ID),
+			})
+			return
+		}
+
 		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
 		if err != nil {
 			ctx.ServerError("GetDefaultBoard", err)
