@@ -1,13 +1,16 @@
 {{with .Issue}}
 	{{if eq $.Page.Project.CardType 1}}{{/* Images and Text*/}}
+		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
+		{{if $attachments}}
 		<div class="card-attachment-images">
-			{{range (index $.Page.issuesAttachmentMap .ID)}}
+			{{range $attachments}}
 				<img src="{{.DownloadURL}}" alt="{{.Name}}" />
 			{{end}}
 		</div>
+		{{end}}
 	{{end}}
-	<div class="content tw-p-0 tw-w-full">
-		<div class="tw-flex tw-items-start">
+	<div class="content tw-w-full">
+		<div class="tw-flex tw-items-start tw-gap-[5px]">
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
 			</div>
@@ -18,7 +21,7 @@
 				</a>
 			{{end}}
 		</div>
-		<div class="meta tw-my-1">
+		<div class="meta">
 			<span class="text light grey muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
 				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
@@ -59,13 +62,15 @@
 	</div>
 
 	{{if or .Labels .Assignees}}
-	<div class="extra content labels-list tw-p-0 tw-pt-1">
-		{{range .Labels}}
-			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
-		{{end}}
-		<div class="right floated">
+	<div class="tw-flex tw-justify-between">
+		<div class="labels-list tw-flex-1">
+			{{range .Labels}}
+				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
+			{{end}}
+		</div>
+		<div class="tw-flex tw-flex-wrap tw-content-start tw-gap-1">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini tw-mr-2"}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
 			{{end}}
 		</div>
 	</div>
