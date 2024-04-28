@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -297,10 +296,6 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	} else if !merged {
 		return false
-	}
-
-	if err = issue_service.ChangeStatus(ctx, pr.Issue, pr.Merger, pr.MergedCommitID, true, true); err != nil {
-		log.Error("ChangeStatus %-v: %v", pr, err)
 	}
 
 	notify_service.MergePullRequest(ctx, merger, pr)

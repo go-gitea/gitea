@@ -193,12 +193,8 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if merged, err := pr.SetMerged(ctx); err != nil {
+	if _, err := pr.SetMerged(ctx); err != nil {
 		log.Error("SetMerged %-v: %v", pr, err)
-	} else if merged {
-		if err = issue_service.ChangeStatus(ctx, pr.Issue, pr.Merger, pr.MergedCommitID, true, true); err != nil {
-			log.Error("ChangeStatus %-v: %v", pr, err)
-		}
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -237,7 +233,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		}
 		isClosed := ref.RefAction == references.XRefActionCloses
 		if isClosed != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, isClosed, false); err != nil {
+			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, isClosed); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
@@ -534,10 +530,6 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return err
 		} else if !merged {
 			return fmt.Errorf("SetMerged failed")
-		} else {
-			if err = issue_service.ChangeStatus(ctx, pr.Issue, pr.Merger, pr.MergedCommitID, true, true); err != nil {
-				log.Error("ChangeStatus %-v: %v", pr, err)
-			}
 		}
 		return nil
 	}); err != nil {

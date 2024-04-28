@@ -119,7 +119,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, isMergePull)
+	return changeIssueStatus(ctx, issue, doer, isClosed, false)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.

@@ -196,7 +196,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 			}
 			if isClosed != refIssue.IsClosed {
 				refIssue.Repo = refRepo
-				if err := ChangeStatus(ctx, refIssue, doer, c.Sha1, isClosed, false); err != nil {
+				if err := ChangeStatus(ctx, refIssue, doer, c.Sha1, isClosed); err != nil {
 					return err
 				}
 			}
