@@ -504,7 +504,7 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return nil, nil
 	}
 	if len(jobs) == 0 {
-		ctx.Error(http.StatusNotFound, err.Error())
+		ctx.Error(http.StatusNotFound)
 		return nil, nil
 	}
 
