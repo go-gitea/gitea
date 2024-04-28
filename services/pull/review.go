@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -42,6 +43,9 @@ func (err ErrDismissRequestOnClosedPR) Error() string {
 func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 	return util.ErrPermissionDenied
 }
+
+// ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
+var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
@@ -293,6 +297,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
+		if issue.IsClosed {
+			return nil, nil, ErrSubmitReviewOnClosedPR
+		}
+
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err

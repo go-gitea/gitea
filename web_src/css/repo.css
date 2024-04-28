@@ -2377,7 +2377,7 @@ tbody.commit-list {
 
 .tag-code,
 .tag-code td,
-.tag-code .blob-excerpt {
+.tag-code.line-expanded {
   background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
@@ -2393,8 +2393,8 @@ tbody.commit-list {
   padding-top: 0 !important;
 }
 
-.blob-excerpt {
-  background-color: var(--color-secondary-alpha-30);
+.line-expanded {
+  background-color: var(--color-secondary-alpha-20);
 }
 
 .issue-keyword {
@@ -2520,7 +2520,7 @@ tbody.commit-list {
   display: inline-block;
   background-color: var(--color-red);
   height: 12px;
-  width: 40px;
+  width: 44px;
 }
 
 .diff-stats-bar .diff-stats-add-bar {
@@ -2553,11 +2553,9 @@ tbody.commit-list {
 
 .code-diff-unified .add-code,
 .code-diff-unified .add-code td,
-.code-diff-split .add-code .lines-num-new,
 .code-diff-split .add-code .lines-type-marker-new,
 .code-diff-split .add-code .lines-escape-new,
 .code-diff-split .add-code .lines-code-new,
-.code-diff-split .del-code .add-code.lines-num-new,
 .code-diff-split .del-code .add-code.lines-type-marker-new,
 .code-diff-split .del-code .add-code.lines-escape-new,
 .code-diff-split .del-code .add-code.lines-code-new {
@@ -2565,15 +2563,31 @@ tbody.commit-list {
   border-color: var(--color-diff-added-row-border);
 }
 
-.code-diff-split .del-code .lines-num-new,
 .code-diff-split .del-code .lines-type-marker-new,
 .code-diff-split .del-code .lines-code-new,
 .code-diff-split .del-code .lines-escape-new,
-.code-diff-split .add-code .lines-num-old,
 .code-diff-split .add-code .lines-escape-old,
 .code-diff-split .add-code .lines-type-marker-old,
 .code-diff-split .add-code .lines-code-old {
   background: var(--color-diff-inactive);
+}
+
+.code-diff-split .add-code .lines-num.lines-num-old,
+.code-diff-split .del-code .lines-num.lines-num-new {
+  background: var(--color-diff-inactive);
+}
+
+.code-diff-unified .del-code .lines-num,
+.code-diff-split .del-code .lines-num {
+  background: var(--color-diff-removed-linenum-bg);
+  color: var(--color-text);
+}
+
+.code-diff-unified .add-code .lines-num,
+.code-diff-split .add-code .lines-num,
+.code-diff-split .del-code .add-code.lines-num {
+  background: var(--color-diff-added-linenum-bg);
+  color: var(--color-text);
 }
 
 .code-diff-split tbody tr td:nth-child(5),

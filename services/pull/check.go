@@ -66,7 +66,7 @@ const (
 	MergeCheckTypeAuto                           // Auto Merge (Scheduled Merge) After Checks Succeed
 )
 
-// CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
+// CheckPullMergable check if the pull mergeable based on all conditions (branch protection, merge options, ...)
 func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {

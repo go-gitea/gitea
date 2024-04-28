@@ -5,9 +5,9 @@ package integration
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
