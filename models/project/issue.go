@@ -17,7 +17,7 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// If this should not be zero from 1.22. If it's zero, it will not be displayed on UI and maybe result in errors.
+	// ProjectBoardID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
 	ProjectBoardID int64 `xorm:"INDEX"`
 
 	// the sorting order on the board
