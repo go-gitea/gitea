@@ -44,7 +44,7 @@ func loadIncomingEmailFrom(rootCfg ConfigProvider) {
 }
 
 func checkReplyToAddress(address string) error {
-	parsed, err := mail.ParseAddress(IncomingEmail.ReplyToAddress)
+	parsed, err := mail.ParseAddress(address)
 	if err != nil {
 		return err
 	}
