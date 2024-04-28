@@ -297,10 +297,10 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	} else if !merged {
 		return false
-	} else {
-		if err = issue_service.ChangeStatus(ctx, pr.Issue, pr.Merger, pr.MergedCommitID, true, true); err != nil {
-			log.Error("ChangeStatus %-v: %v", pr, err)
-		}
+	}
+
+	if err = issue_service.ChangeStatus(ctx, pr.Issue, pr.Merger, pr.MergedCommitID, true, true); err != nil {
+		log.Error("ChangeStatus %-v: %v", pr, err)
 	}
 
 	notify_service.MergePullRequest(ctx, merger, pr)
