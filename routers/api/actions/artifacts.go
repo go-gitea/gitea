@@ -466,14 +466,15 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
-	} else if !exist {
+	}
+	if !exist {
 		log.Error("artifact with ID %d does not exist", artifactID)
 		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {
-		log.Error("Error dismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
-		ctx.Error(http.StatusBadRequest, err.Error())
+		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
