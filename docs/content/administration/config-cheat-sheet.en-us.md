@@ -214,10 +214,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: Set the default theme for the Gitea installation.
+- `DEFAULT_THEME`: **gitea-auto**: Set the default theme for the Gitea installation, custom themes could be provided by "{CustomPath}/public/assets/css/theme-*.css".
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
-  regardless of the value of `DEFAULT_THEME`.
+- `THEMES`: **_empty_**: All available themes by "{CustomPath}/public/assets/css/theme-*.css". Allow users select personalized themes.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
@@ -613,7 +612,7 @@ And the following unique queues:
   - `email` - use the username part of the email attribute
   - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
-    - the characters in the set `['´\x60]` are removed
+    - the characters in the set ```['´`]``` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
@@ -1323,7 +1322,7 @@ Defaultly every storage has their default base path like below
 | actions_log       | actions_log/       |
 | actions_artifacts | actions_artifacts/ |
 
-And bucket, basepath or `SERVE_DIRECT` could be special or overrided, if you want to use a different you can:
+And bucket, basepath or `SERVE_DIRECT` could be special or overridden, if you want to use a different you can:
 
 ```ini
 [storage.actions_log]

@@ -3843,6 +3843,54 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List an repo's actions secrets",
+        "operationId": "repoListActionsSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/SecretList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets/{secretname}": {
       "put": {
         "consumes": [
@@ -5346,12 +5394,10 @@
           "application/json"
         ],
         "tags": [
-          "Get",
-          "commit",
-          "comparison"
+          "repository"
         ],
         "summary": "Get commit comparison information",
-        "operationId": "information",
+        "operationId": "repoCompareDiff",
         "parameters": [
           {
             "type": "string",
@@ -25236,7 +25282,7 @@
       }
     },
     "RegistrationToken": {
-      "description": "RegistrationToken is response related to registeration token",
+      "description": "RegistrationToken is response related to registration token",
       "headers": {
         "token": {
           "type": "string"

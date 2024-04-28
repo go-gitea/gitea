@@ -16,14 +16,10 @@ import (
 type OAuth2UsernameType string
 
 const (
-	// OAuth2UsernameUserid oauth2 userid field will be used as gitea name
-	OAuth2UsernameUserid OAuth2UsernameType = "userid"
-	// OAuth2UsernameNickname oauth2 nickname field will be used as gitea name
-	OAuth2UsernameNickname OAuth2UsernameType = "nickname"
-	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name
-	OAuth2UsernameEmail OAuth2UsernameType = "email"
-	// OAuth2UsernameEmail username of oauth2 preferred_username field will be used as gitea name
-	OAuth2UsernamePreferredUsername OAuth2UsernameType = "preferred_username"
+	OAuth2UsernameUserid            OAuth2UsernameType = "userid"             // use user id (sub) field as gitea's username
+	OAuth2UsernameNickname          OAuth2UsernameType = "nickname"           // use nickname field
+	OAuth2UsernameEmail             OAuth2UsernameType = "email"              // use email field
+	OAuth2UsernamePreferredUsername OAuth2UsernameType = "preferred_username" // use preferred_username field
 )
 
 func (username OAuth2UsernameType) isValid() bool {
@@ -71,8 +67,8 @@ func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
 	OAuth2Client.Username = OAuth2UsernameType(sec.Key("USERNAME").MustString(string(OAuth2UsernameNickname)))
 	if !OAuth2Client.Username.isValid() {
-		log.Warn("Username setting is not valid: '%s', will fallback to '%s'", OAuth2Client.Username, OAuth2UsernameNickname)
 		OAuth2Client.Username = OAuth2UsernameNickname
+		log.Warn("[oauth2_client].USERNAME setting is invalid, falls back to %q", OAuth2Client.Username)
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
 	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingLogin)))
@@ -174,7 +170,7 @@ func GetGeneralTokenSigningSecret() []byte {
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
-			logStartupProblem(1, log.WARN, "OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
+			LogStartupProblem(1, log.WARN, "OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
 			return jwtSecret
 		}
 		return *generalSigningSecret.Load()

@@ -198,7 +198,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				UserMsg: fmt.Sprintf("branch %s is protected from force push", branchName),
 			})
 			return
-
 		}
 	}
 
@@ -360,7 +359,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				})
 				return
 			}
-			log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", ctx.opts.UserID, branchName, repo, pr.Index, err)
+			log.Error("Unable to check if mergeable: protected branch %s in %-v and pr #%d. Error: %v", ctx.opts.UserID, branchName, repo, pr.Index, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unable to get status of pull request %d. Error: %v", ctx.opts.PullRequestID, err),
 			})

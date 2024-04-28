@@ -112,13 +112,18 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 	}
 }
 
-func NewMainApp(version, versionExtra string) *cli.App {
+type AppVersion struct {
+	Version string
+	Extra   string
+}
+
+func NewMainApp(appVer AppVersion) *cli.App {
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.HelpName = "gitea"
 	app.Usage = "A painless self-hosted Git service"
 	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
-	app.Version = version + versionExtra
+	app.Version = appVer.Version + appVer.Extra
 	app.EnableBashCompletion = true
 
 	// these sub-commands need to use config file

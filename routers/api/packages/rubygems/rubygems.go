@@ -197,12 +197,12 @@ func DownloadPackageFile(ctx *context.Context) {
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
