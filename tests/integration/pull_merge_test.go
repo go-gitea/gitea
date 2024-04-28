@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -585,5 +586,64 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 
 		assert.EqualValues(t, "base-pr", targetBranch)
 		assert.EqualValues(t, "Closed", prStatus)
+	})
+}
+
+func TestPullMergeIndexerNotifier(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
+		assert.NoError(t, err)
+		hookTasksLenBefore := len(hookTasks)
+
+		// create a pull request
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
+
+		queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerName: "user2",
+			Name:      "repo1",
+		})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+			RepoID:   repo1.ID,
+			Title:    "Indexer notifier test pull",
+			IsPull:   true,
+			IsClosed: false,
+		})
+
+		// search issues
+		link, _ := url.Parse("/api/v1/repos/issues/search")
+		query := url.Values{}
+		query.Set("state", "open")
+		query.Set("type", "pulls")
+		query.Set("q", "notifier")
+		link.RawQuery = query.Encode()
+		req := NewRequest(t, "GET", link.String())
+		searchIssuesResp := session.MakeRequest(t, req, http.StatusOK)
+		var apiIssuesBefore []*api.Issue
+		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
+		if assert.Len(t, apiIssuesBefore, 1) {
+			assert.Equal(t, issue.ID, apiIssuesBefore[0].ID)
+		}
+
+		// merge the pull request
+		elem := strings.Split(test.RedirectURL(createPullResp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+
+		queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+
+		// search issues again
+		searchIssuesResp = session.MakeRequest(t, req, http.StatusOK)
+		var apiIssuesAfter []*api.Issue
+		DecodeJSON(t, searchIssuesResp, &apiIssuesAfter)
+		assert.Len(t, apiIssuesAfter, 0)
+
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
+		assert.NoError(t, err)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
