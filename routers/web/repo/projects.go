@@ -383,6 +383,10 @@ func UpdateIssueProject(ctx *context.Context) {
 		ctx.ServerError("LoadProjects", err)
 		return
 	}
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
 
 	projectID := ctx.FormInt64("id")
 	var dstColumnID int64
@@ -391,6 +395,12 @@ func UpdateIssueProject(ctx *context.Context) {
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
 			return
+		}
+		for _, issue := range issues {
+			if dstProject.RepoID != ctx.Repo.Repository.ID && dstProject.OwnerID != issue.Repo.OwnerID {
+				ctx.Error(http.StatusBadRequest, "project doesn't belong to the repository")
+				return
+			}
 		}
 		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
 		if err != nil {

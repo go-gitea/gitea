@@ -162,7 +162,7 @@ func NewBoard(ctx context.Context, board *Board) error {
 		return err
 	}
 	if maxSorting > 0 {
-		board.Sorting = maxSorting
+		board.Sorting = maxSorting + 1
 	}
 
 	_, err := db.GetEngine(ctx).Insert(board)

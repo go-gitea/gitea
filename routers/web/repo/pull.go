@@ -1339,6 +1339,10 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.ServerError("GetProjectByID", err)
 			return
 		}
+		if dstProject.RepoID != ctx.Repo.Repository.ID && dstProject.OwnerID != repo.OwnerID {
+			ctx.Error(http.StatusBadRequest, "project doesn't belong to the repository")
+			return
+		}
 		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
 		if err != nil {
 			ctx.ServerError("GetDefaultBoard", err)
