@@ -102,8 +102,11 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 	})
 }
 
-func (b *Board) moveIssuesToDefault(ctx context.Context, defaultBoardID int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", defaultBoardID, b.ID)
+func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, columnID int64) error {
+	if b.ID == columnID {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", columnID, b.ID)
 	return err
 }
 

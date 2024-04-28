@@ -203,12 +203,12 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 	if err != nil {
 		return err
 	}
-	defaultBoard, err := project.GetDefaultBoard(ctx)
+	defaultColumn, err := project.GetDefaultBoard(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err = board.moveIssuesToDefault(ctx, defaultBoard.ID); err != nil {
+	if err = board.moveIssuesToAnotherColumn(ctx, defaultColumn.ID); err != nil {
 		return err
 	}
 
