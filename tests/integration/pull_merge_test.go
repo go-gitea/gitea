@@ -634,6 +634,12 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
+		// check if the issue is closed
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+			ID: issue.ID,
+		})
+		assert.True(t, issue.IsClosed)
+
 		queue.GetManager().FlushAll(context.Background(), 0)
 
 		// search issues again
