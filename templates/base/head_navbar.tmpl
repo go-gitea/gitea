@@ -183,7 +183,7 @@
 		{{end}}
 	</div><!-- end full right menu -->
 
-	{{if and .IsSigned .ActiveStopwatch}}
+	{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
 				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{.ActiveStopwatch.IssueLink}}">
