@@ -186,7 +186,7 @@
 	{{if and .IsSigned .ActiveStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-1 muted" href="{{.ActiveStopwatch.IssueLink}}">
+				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{.ActiveStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
 					<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 				</a>
