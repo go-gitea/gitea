@@ -4,11 +4,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	auth_service "code.gitea.io/gitea/services/auth"
 
 	"github.com/urfave/cli/v2"
@@ -62,7 +64,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth_model.Sources(ctx)
+	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
 	if err != nil {
 		return err
 	}
@@ -90,7 +92,7 @@ func runListAuth(c *cli.Context) error {
 
 func runDeleteAuth(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()

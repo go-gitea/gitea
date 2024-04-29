@@ -45,11 +45,11 @@ export async function renderMermaid() {
       const {svg} = await mermaid.render('mermaid', source);
 
       const iframe = document.createElement('iframe');
-      iframe.classList.add('markup-render', 'gt-invisible');
+      iframe.classList.add('markup-render', 'tw-invisible');
       iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
 
       const mermaidBlock = document.createElement('div');
-      mermaidBlock.classList.add('mermaid-block', 'is-loading', 'gt-hidden');
+      mermaidBlock.classList.add('mermaid-block', 'is-loading', 'tw-hidden');
       mermaidBlock.append(iframe);
 
       const btn = makeCodeCopyButton();
@@ -58,11 +58,11 @@ export async function renderMermaid() {
 
       iframe.addEventListener('load', () => {
         pre.replaceWith(mermaidBlock);
-        mermaidBlock.classList.remove('gt-hidden');
+        mermaidBlock.classList.remove('tw-hidden');
         iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
         setTimeout(() => { // avoid flash of iframe background
           mermaidBlock.classList.remove('is-loading');
-          iframe.classList.remove('gt-invisible');
+          iframe.classList.remove('tw-invisible');
         }, 0);
       });
 

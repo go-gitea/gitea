@@ -5,8 +5,10 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -19,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	uuid "github.com/google/uuid"
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -137,6 +138,11 @@ func (app *OAuth2Application) TableName() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	// OAuth2 requires the redirect URI to be an exact match, no dynamic parts are allowed.
+	// https://stackoverflow.com/questions/55524480/should-dynamic-query-parameters-be-present-in-the-redirection-uri-for-an-oauth2
+	// https://www.rfc-editor.org/rfc/rfc6819#section-5.2.3.3
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-12#section-3.1
 	contains := func(s string) bool {
 		s = strings.TrimSuffix(strings.ToLower(s), "/")
 		for _, u := range app.RedirectURIs {
@@ -243,13 +249,6 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 	return app, nil
 }
 
-// GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
-func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*OAuth2Application, err error) {
-	apps = make([]*OAuth2Application, 0)
-	err = db.GetEngine(ctx).Where("uid = ?", userID).Find(&apps)
-	return apps, err
-}
-
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
 	Name               string
@@ -296,7 +295,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 		return nil, err
 	}
 	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID mismatch")
+		return nil, errors.New("UID mismatch")
 	}
 	builtinApps := BuiltinApplications()
 	if _, builtin := builtinApps[app.ClientID]; builtin {
@@ -370,25 +369,6 @@ func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
 		return err
 	}
 	return committer.Commit()
-}
-
-// ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := db.GetEngine(ctx).
-		Where("uid=?", uid).
-		Desc("id")
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
-		total, err := sess.FindAndCount(&apps)
-		return apps, total, err
-	}
-
-	apps := make([]*OAuth2Application, 0, 5)
-	total, err := sess.FindAndCount(&apps)
-	return apps, total, err
 }
 
 //////////////////////////////////////////////////////
@@ -629,15 +609,6 @@ func (err ErrOAuthApplicationNotFound) Error() string {
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
-}
-
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources(ctx context.Context) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
 }
 
 // GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name

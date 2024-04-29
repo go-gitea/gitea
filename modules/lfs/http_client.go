@@ -168,7 +168,6 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			}
 
 			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
-
 			if err != nil {
 				return err
 			}

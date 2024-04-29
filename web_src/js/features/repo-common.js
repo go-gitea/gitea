@@ -1,47 +1,35 @@
 import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElems, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
+import {sleep} from '../utils.js';
 
-const {csrfToken} = window.config;
+async function onDownloadArchive(e) {
+  e.preventDefault();
+  // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
+  const el = e.target.closest('a.archive-link[href]');
+  const targetLoading = el.closest('.ui.dropdown') ?? el;
+  targetLoading.classList.add('is-loading', 'loading-icon-2px');
+  try {
+    for (let tryCount = 0; ;tryCount++) {
+      const response = await POST(el.href);
+      if (!response.ok) throw new Error(`Invalid server response: ${response.status}`);
 
-function getArchive($target, url, first) {
-  $.ajax({
-    url,
-    type: 'POST',
-    data: {
-      _csrf: csrfToken,
-    },
-    complete(xhr) {
-      if (xhr.status === 200) {
-        if (!xhr.responseJSON) {
-          // XXX Shouldn't happen?
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          return;
-        }
-
-        if (!xhr.responseJSON.complete) {
-          $target.closest('.dropdown').children('i').addClass('loading');
-          // Wait for only three quarters of a second initially, in case it's
-          // quickly archived.
-          setTimeout(() => {
-            getArchive($target, url, false);
-          }, first ? 750 : 2000);
-        } else {
-          // We don't need to continue checking.
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          window.location.href = url;
-        }
-      }
-    },
-  });
+      const data = await response.json();
+      if (data.complete) break;
+      await sleep(Math.min((tryCount + 1) * 750, 2000));
+    }
+    window.location.href = el.href; // the archive is ready, start real downloading
+  } catch (e) {
+    console.error(e);
+    showErrorToast(`Failed to download the archive: ${e}`, {duration: 2500});
+  } finally {
+    targetLoading.classList.remove('is-loading', 'loading-icon-2px');
+  }
 }
 
 export function initRepoArchiveLinks() {
-  $('.archive-link').on('click', function (event) {
-    event.preventDefault();
-    const url = $(this).attr('href');
-    if (!url) return;
-    getArchive($(event.target), url, true);
-  });
+  queryElems('a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
 }
 
 export function initRepoCloneLink() {
@@ -80,14 +68,16 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
+  if (!$dropdown.length) return;
+
   $dropdown.dropdown({
     fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.attr('data-url')) {
-        window.location.href = $choice.attr('data-url');
+      if ($choice[0].getAttribute('data-url')) {
+        window.location.href = $choice[0].getAttribute('data-url');
       }
     },
-    message: {noResults: $dropdown.attr('data-no-results')},
+    message: {noResults: $dropdown[0].getAttribute('data-no-results')},
   });
 }

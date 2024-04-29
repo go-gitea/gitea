@@ -145,25 +145,25 @@ Adds the following fields:
 
 Uses the following fields:
 
-- Group Search Base (optional)
+- Group Search Base DN (optional)
 
   - The LDAP DN used for groups.
   - Example: `ou=group,dc=mydomain,dc=com`
 
-- Group Name Filter (optional)
+- Group Attribute Containing List Of Users (optional)
+  - The attribute of the group object that lists/contains the group members.
+  - Example: `memberUid` or `member`
 
-  - An LDAP filter declaring how to find valid groups in the above DN.
-  - Example: `(|(cn=gitea_users)(cn=admins))`
-
-- User Attribute in Group (optional)
+- User Attribute Listed in Group (optional)
 
   - The user attribute that is used to reference a user in the group object.
   - Example: `uid` if the group objects contains a `member: bender` and the user object contains a `uid: bender`.
   - Example: `dn` if the group object contains a `member: uid=bender,ou=users,dc=planetexpress,dc=com`.
 
-- Group Attribute for User (optional)
-  - The attribute of the group object that lists/contains the group members.
-  - Example: `memberUid` or `member`
+- Verify group membership in LDAP (optional)
+
+  - An LDAP filter declaring how to find valid groups in the above DN.
+  - Example: `(|(cn=gitea_users)(cn=admins))`
 
 ## PAM (Pluggable Authentication Module)
 
@@ -198,7 +198,7 @@ administrative user.
     field is set to `mail.com`, then Gitea will expect the `user email` field
     for an authenticated GIT instance to be `gituser@mail.com`.[^2]
 
-**Note**: PAM support is added via [build-time flags](installation/install-from-source.md#build),
+**Note**: PAM support is added via [build-time flags](installation/from-source.md#build),
 and the official binaries provided do not have this enabled.  PAM requires that
 the necessary libpam dynamic library be available and the necessary PAM
 development headers be accessible to the compiler.

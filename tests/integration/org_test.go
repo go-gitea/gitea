@@ -169,8 +169,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 		Units:                   []string{"repo.code"},
 	}
 
-	req = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), teamToCreate)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), teamToCreate).
+		AddTokenAuth(token)
 
 	var apiTeam api.Team
 
@@ -183,8 +183,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
-	req = NewRequest(t, "PUT",
-		fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", apiTeam.ID, restrictedUser, token))
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", apiTeam.ID, restrictedUser)).
+		AddTokenAuth(token)
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo

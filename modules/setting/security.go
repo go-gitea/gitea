@@ -34,6 +34,7 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	DisableQueryAuthToken              bool
 	CSRFCookieName                     = "_csrf"
 	CSRFCookieHTTPOnly                 = true
 )
@@ -102,7 +103,7 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
 	InstallLock = HasInstallLock(rootCfg)
-	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
+	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(31)
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
@@ -156,5 +157,15 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		if name != "" {
 			PasswordComplexity = append(PasswordComplexity, name)
 		}
+	}
+
+	sectionHasDisableQueryAuthToken := sec.HasKey("DISABLE_QUERY_AUTH_TOKEN")
+
+	// TODO: default value should be true in future releases
+	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+
+	// warn if the setting is set to false explicitly
+	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
+		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
 	}
 }

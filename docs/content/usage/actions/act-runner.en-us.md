@@ -114,11 +114,13 @@ If you cannot see the settings page, please make sure that you have the right pe
 
 The format of the registration token is a random string `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`.
 
-A registration token can also be obtained from the gitea [command-line interface](../../administration/command-line.en-us.md#actions-generate-runner-token):
+A registration token can also be obtained from the gitea [command-line interface](administration/command-line.md#actions-generate-runner-token):
 
 ```
 gitea --config /etc/gitea/app.ini actions generate-runner-token
 ```
+
+Tokens are valid for registering multiple runners, until they are revoked and replaced by a new token using the token reset link in the web interface.
 
 ### Register the runner
 
@@ -268,33 +270,36 @@ The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
 
-## Configuration variable
+## Systemd service
 
-You can create configuration variables on the user, organization and repository level.
-The level of the variable depends on where you created it.
+It is also possible to run act-runner as a [systemd](https://en.wikipedia.org/wiki/Systemd) service. Create an unprivileged `act_runner` user on your system, and the following file in `/etc/systemd/system/act_runner.service`. The paths in `ExecStart` and `WorkingDirectory` may need to be adjusted depending on where you installed the `act_runner` binary, its configuration file, and the home directory of the `act_runner` user.
 
-### Naming conventions
+```ini
+[Unit]
+Description=Gitea Actions runner
+Documentation=https://gitea.com/gitea/act_runner
+After=docker.service
 
-The following rules apply to variable names:
+[Service]
+ExecStart=/usr/local/bin/act_runner daemon --config /etc/act_runner/config.yaml
+ExecReload=/bin/kill -s HUP $MAINPID
+WorkingDirectory=/var/lib/act_runner
+TimeoutSec=0
+RestartSec=10
+Restart=always
+User=act_runner
 
-- Variable names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
+[Install]
+WantedBy=multi-user.target
+```
 
-- Variable names must not start with the `GITHUB_` and `GITEA_` prefix.
+Then:
 
-- Variable names must not start with a number.
+```bash
+# load the new systemd unit file
+sudo systemctl daemon-reload
+# start the service and enable it at boot
+sudo systemctl enable act_runner --now
+```
 
-- Variable names are case-insensitive.
-
-- Variable names must be unique at the level they are created at.
-
-- Variable names must not be `CI`.
-
-### Using variable
-
-After creating configuration variables, they will be automatically filled in the `vars` context.
-They can be accessed through expressions like `{{ vars.VARIABLE_NAME }}` in the workflow.
-
-### Precedence
-
-If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence:
-A repository variable will always be chosen over an organization/user variable.
+If using Docker, the `act_runner` user should also be added to the `docker` group before starting the service. Keep in mind that this effectively gives `act_runner` root access to the system [[1]](https://docs.docker.com/engine/security/#docker-daemon-attack-surface).

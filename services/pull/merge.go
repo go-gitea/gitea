@@ -231,9 +231,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
-		close := ref.RefAction == references.XRefActionCloses
-		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, close); err != nil {
+		isClosed := ref.RefAction == references.XRefActionCloses
+		if isClosed != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, isClosed); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
@@ -265,6 +265,10 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 	case repo_model.MergeStyleSquash:
 		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
+			return "", err
+		}
+	case repo_model.MergeStyleFastForwardOnly:
+		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
 			return "", err
 		}
 	default:
@@ -373,6 +377,13 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 			log.Debug("MergeUnrelatedHistories %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 			return models.ErrMergeUnrelatedHistories{
 				Style:  mergeStyle,
+				StdOut: ctx.outbuf.String(),
+				StdErr: ctx.errbuf.String(),
+				Err:    err,
+			}
+		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
+			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+			return models.ErrMergeDivergingFastForwardOnly{
 				StdOut: ctx.outbuf.String(),
 				StdErr: ctx.errbuf.String(),
 				Err:    err,
@@ -486,7 +497,8 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 		}
 
-		if len(commitID) < git.SHAFullLength {
+		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
+		if len(commitID) != objectFormat.FullLength() {
 			return fmt.Errorf("Wrong commit ID")
 		}
 

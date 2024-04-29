@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-// responseText is used to get the response as text, instead of parsing it as JSON.
-type responseText struct {
+// ResponseText is used to get the response as text, instead of parsing it as JSON.
+type ResponseText struct {
 	Text string
 }
 
@@ -47,9 +47,10 @@ func (re responseError) Error() string {
 // requestJSONResp sends a request to the gitea server and then parses the response.
 // If the status code is not 2xx, or any error occurs, the ResponseExtra.Error field is guaranteed to be non-nil,
 // and the ResponseExtra.UserMsg field will be set to a message for the end user.
+// Caller should check the ResponseExtra.HasError() first to see whether the request fails.
 //
 // * If the "res" is a struct pointer, the response will be parsed as JSON
-// * If the "res" is responseText pointer, the response will be stored as text in it
+// * If the "res" is ResponseText pointer, the response will be stored as text in it
 // * If the "res" is responseCallback pointer, the callback function should set the ResponseExtra fields accordingly
 func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra ResponseExtra) {
 	resp, err := req.Response()
@@ -80,7 +81,7 @@ func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra Respons
 
 	// now, the StatusCode must be 2xx
 	var v any = res
-	if respText, ok := v.(*responseText); ok {
+	if respText, ok := v.(*ResponseText); ok {
 		// get the whole response as a text string
 		bs, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -118,7 +119,7 @@ func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra Respons
 // requestJSONClientMsg sends a request to the gitea server, server only responds text message status=200 with "success" body
 // If the request succeeds (200), the argument clientSuccessMsg will be used as ResponseExtra.UserMsg.
 func requestJSONClientMsg(req *httplib.Request, clientSuccessMsg string) ResponseExtra {
-	_, extra := requestJSONResp(req, &responseText{})
+	_, extra := requestJSONResp(req, &ResponseText{})
 	if extra.HasError() {
 		return extra
 	}

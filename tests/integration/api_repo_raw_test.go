@@ -27,12 +27,14 @@ func TestAPIReposRaw(t *testing.T) {
 		"v1.1",   // Tag
 		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // Commit
 	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md?token="+token, user.Name, ref)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md", user.Name, ref).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
 	}
 	// Test default branch
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/README.md?token="+token, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/README.md", user.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
 }

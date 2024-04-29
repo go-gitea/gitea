@@ -89,16 +89,16 @@ func TestPackageDebian(t *testing.T) {
 							req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 							MakeRequest(t, req, http.StatusUnauthorized)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{})).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", ""))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", "")).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
 							pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeDebian, packageName, packageVersion)
@@ -145,8 +145,8 @@ func TestPackageDebian(t *testing.T) {
 								return seen
 							})
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusConflict)
 						})
 
@@ -162,8 +162,8 @@ func TestPackageDebian(t *testing.T) {
 						t.Run("Packages", func(t *testing.T) {
 							defer tests.PrintCurrentTest(t)()
 
-							req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion2, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion2, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
 							url := fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture)
@@ -243,12 +243,12 @@ func TestPackageDebian(t *testing.T) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion2, architecture))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion2, architecture)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture))

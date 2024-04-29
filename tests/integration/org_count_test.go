@@ -118,7 +118,7 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 			Name: username,
 		})
 
-		orgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
+		orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})

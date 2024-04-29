@@ -5,6 +5,7 @@ package lfs
 
 import (
 	stdCtx "context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -25,15 +26,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/minio/sha256-simd"
 )
 
 // requestContext contain variables from the HTTP request.
@@ -232,7 +232,7 @@ func BatchHandler(ctx *context.Context) {
 					return
 				}
 				if accessible {
-					_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+					_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
 					if err != nil {
 						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 						writeStatus(ctx, http.StatusInternalServerError)
@@ -325,7 +325,7 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
 			return err
 		}
-		_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+		_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
 		return err
 	}
 

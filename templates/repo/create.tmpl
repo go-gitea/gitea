@@ -51,21 +51,21 @@
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
 								<input name="private" type="checkbox" checked readonly>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
 							{{else}}
 								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
 							{{end}}
 						</div>
 						<span class="help">{{ctx.Locale.Tr "repo.visibility_description"}}</span>
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description" placeholder="{{ctx.Locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
+						<textarea id="description" rows="2" name="description" placeholder="{{ctx.Locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.template"}}</label>
-						<div id="repo_template_search" class="ui search normal selection dropdown">
+						<div id="repo_template_search" class="ui search selection dropdown">
 							<input type="hidden" id="repo_template" name="repo_template" value="{{.repo_template}}">
 							<div class="default text">{{.repo_template_name}}</div>
 							<div class="menu">
@@ -73,7 +73,7 @@
 						</div>
 					</div>
 
-					<div id="template_units" class="gt-hidden">
+					<div id="template_units" class="tw-hidden">
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.template.items"}}</label>
 							<div class="ui checkbox">
@@ -119,7 +119,7 @@
 					<div id="non_template">
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
-							<div class="ui search normal selection dropdown">
+							<div class="ui search selection dropdown">
 								<input type="hidden" name="issue_labels" value="{{.issueLabels}}">
 								<div class="default text">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
@@ -135,7 +135,7 @@
 
 						<div class="inline field">
 							<label>.gitignore</label>
-							<div class="ui multiple search normal selection dropdown">
+							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="gitignores" value="{{.gitignores}}">
 								<div class="default text">{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}</div>
 								<div class="menu">
@@ -158,7 +158,7 @@
 									{{end}}
 								</div>
 							</div>
-							<span class="help">{{ctx.Locale.Tr "repo.license_helper_desc" "https://choosealicense.com/" | Str2html}}</span>
+							<span class="help">{{ctx.Locale.Tr "repo.license_helper_desc" "https://choosealicense.com/"}}</span>
 						</div>
 
 						<div class="inline field">
@@ -186,27 +186,17 @@
 							<span class="help">{{ctx.Locale.Tr "repo.default_branch_helper"}}</span>
 						</div>
 						<div class="inline field">
-							<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label>
+							<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
 							<div class="ui selection owner dropdown">
-								<input type="hidden" id="trust_model" name="trust_model" value="default" required>
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.trust_model"}}</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<input type="hidden" id="object_format_name" name="object_format_name" value="{{.DefaultObjectFormat.Name}}" required>
+								<div class="default text">{{.DefaultObjectFormat.Name}}</div>
 								<div class="menu">
-									<div class="item" data-value="default">{{ctx.Locale.Tr "repo.settings.trust_model.default"}}</div>
-									<div class="item" data-value="collaborator">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator"}}</div>
-									<div class="item" data-value="committer">{{ctx.Locale.Tr "repo.settings.trust_model.committer"}}</div>
-									<div class="item" data-value="collaboratorcommitter">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter"}}</div>
+									{{range .SupportedObjectFormats}}
+										<div class="item" data-value="{{.Name}}">{{.Name}}</div>
+									{{end}}
 								</div>
 							</div>
-							<div class="help">
-								{{ctx.Locale.Tr "repo.trust_model_helper"}}
-								<ul>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_collaborator"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_committer"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_collaborator_committer"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_default"}}</li>
-								</ul>
-							</div>
+							<span class="help">{{ctx.Locale.Tr "repo.object_format_helper"}}</span>
 						</div>
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.template"}}</label>
@@ -216,7 +206,6 @@
 							</div>
 						</div>
 					</div>
-
 					<br>
 					<div class="inline field">
 						<label></label>

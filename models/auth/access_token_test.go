@@ -85,7 +85,7 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 
 func TestListAccessTokens(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	tokens, err := auth_model.ListAccessTokens(db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 1})
+	tokens, err := db.Find[auth_model.AccessToken](db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, tokens, 2) {
 		assert.Equal(t, int64(1), tokens[0].UID)
@@ -94,14 +94,14 @@ func TestListAccessTokens(t *testing.T) {
 		assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token B")
 	}
 
-	tokens, err = auth_model.ListAccessTokens(db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 2})
+	tokens, err = db.Find[auth_model.AccessToken](db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 2})
 	assert.NoError(t, err)
 	if assert.Len(t, tokens, 1) {
 		assert.Equal(t, int64(2), tokens[0].UID)
 		assert.Equal(t, "Token A", tokens[0].Name)
 	}
 
-	tokens, err = auth_model.ListAccessTokens(db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 100})
+	tokens, err = db.Find[auth_model.AccessToken](db.DefaultContext, auth_model.ListAccessTokensOptions{UserID: 100})
 	assert.NoError(t, err)
 	assert.Empty(t, tokens)
 }
