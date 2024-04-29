@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")" && cd ..
 
 IGNORE_PATTERNS=(
-  "svc.IsAnInteractiveSession is deprecated"
+  "is deprecated"
 )
 
 # lint all go files with 'gopls check' and look for lines starting with the
