@@ -680,10 +680,6 @@ input:-webkit-autofill:active,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dimmer {
-  background: var(--color-overlay-backdrop);
-}
-
 .ui.dropdown .menu > .header {
   font-size: 0.8em;
 }
