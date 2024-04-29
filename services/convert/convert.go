@@ -67,7 +67,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 			if err != nil {
 				return nil, err
 			}
-			canPush = issues_model.CanMaintainerWriteToBranch(ctx, perms, branchName, user)
+			canPush = issues_model.CanUserWriteToBranch(ctx, perms, repo.ID, branchName, user)
 		}
 
 		return &api.Branch{

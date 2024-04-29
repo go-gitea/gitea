@@ -70,7 +70,7 @@ type Repository struct {
 
 // CanWriteToBranch checks if the branch is writable by the user
 func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User, branch string) bool {
-	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
+	return issues_model.CanUserWriteToBranch(ctx, r.Permission, r.Repository.ID, branch, user)
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.

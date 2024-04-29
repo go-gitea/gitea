@@ -16,6 +16,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -71,7 +72,10 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	if len(prs) == 0 {
 		return nil
 	}
-	issueIDs := prs.GetIssueIDs()
+
+	issueIDs := container.FilterSlice(prs, func(pr *issues_model.PullRequest) (int64, bool) {
+		return pr.IssueID, true
+	})
 
 	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptionsAll,
