@@ -30,7 +30,7 @@ func GetImageCaptcha() *captcha.Captcha {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
 		})
-		cpt.Store = cache.GetCache()
+		cpt.Store = cache.GetCache().ChiCache()
 	})
 	return cpt
 }

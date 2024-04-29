@@ -214,10 +214,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: Set the default theme for the Gitea installation.
+- `DEFAULT_THEME`: **gitea-auto**: Set the default theme for the Gitea installation, custom themes could be provided by `{CustomPath}/public/assets/css/theme-*.css`.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
-  regardless of the value of `DEFAULT_THEME`.
+- `THEMES`: **_empty_**: All available themes by `{CustomPath}/public/assets/css/theme-*.css`. Allow users select personalized themes.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
@@ -608,11 +607,12 @@ And the following unique queues:
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
   - `userid` - use the userid / sub attribute
-  - `nickname` - use the nickname attribute
+  - `nickname` - use the nickname
+  - `preferred_username` - use the preferred_username
   - `email` - use the username part of the email attribute
-  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+  - Note: `nickname`, `preferred_username` and `email` options will normalize input strings using the following criteria:
     - diacritics are removed
-    - the characters in the set `['´\x60]` are removed
+    - the characters in the set ```['´`]``` are removed
     - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
@@ -1197,14 +1197,6 @@ in this mapping or the filetype using heuristics.
 
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
-## Task (`task`)
-
-Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
-
-- `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
-- `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **redis://127.0.0.1:6379/0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `redis://123@127.0.0.1:6379/0` or `redis+cluster://123@127.0.0.1:6379/0`.
-
 ## Migrations (`migrations`)
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
@@ -1330,7 +1322,7 @@ Defaultly every storage has their default base path like below
 | actions_log       | actions_log/       |
 | actions_artifacts | actions_artifacts/ |
 
-And bucket, basepath or `SERVE_DIRECT` could be special or overrided, if you want to use a different you can:
+And bucket, basepath or `SERVE_DIRECT` could be special or overridden, if you want to use a different you can:
 
 ```ini
 [storage.actions_log]

@@ -4,9 +4,8 @@
 package pwn
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -17,11 +16,6 @@ import (
 var client = New(WithHTTP(&http.Client{
 	Timeout: time.Second * 2,
 }))
-
-func TestMain(m *testing.M) {
-	rand.Seed(time.Now().Unix())
-	os.Exit(m.Run())
-}
 
 func TestPassword(t *testing.T) {
 	// Check input error
@@ -81,24 +75,24 @@ func testPassword() string {
 
 	// Set special character
 	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(specialCharSet))
+		random := rand.IntN(len(specialCharSet))
 		password.WriteString(string(specialCharSet[random]))
 	}
 
 	// Set numeric
 	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(numberSet))
+		random := rand.IntN(len(numberSet))
 		password.WriteString(string(numberSet[random]))
 	}
 
 	// Set uppercase
 	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(upperCharSet))
+		random := rand.IntN(len(upperCharSet))
 		password.WriteString(string(upperCharSet[random]))
 	}
 
 	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(allCharSet))
+		random := rand.IntN(len(allCharSet))
 		password.WriteString(string(allCharSet[random]))
 	}
 	inRune := []rune(password.String())

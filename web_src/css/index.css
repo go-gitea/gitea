@@ -11,6 +11,7 @@
 @import "./modules/list.css";
 @import "./modules/segment.css";
 @import "./modules/grid.css";
+@import "./modules/menu.css";
 @import "./modules/message.css";
 @import "./modules/table.css";
 @import "./modules/card.css";
@@ -62,6 +63,7 @@
 @import "./repo/linebutton.css";
 @import "./repo/wiki.css";
 @import "./repo/header.css";
+@import "./repo/reactions.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

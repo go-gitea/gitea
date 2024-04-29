@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -34,6 +35,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":          Iif,
 		"Eval":         Eval,
 		"SafeHTML":     SafeHTML,
 		"HTMLFormat":   HTMLFormat,
@@ -136,12 +138,7 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"ThemeName": func(user *user_model.User) string {
-			if user == nil || user.Theme == "" {
-				return setting.UI.DefaultTheme
-			}
-			return user.Theme
-		},
+		"UserThemeName": UserThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -238,6 +235,17 @@ func DotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
+// Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
+func Iif(condition bool, vals ...any) any {
+	if condition {
+		return vals[0]
+	} else if len(vals) > 1 {
+		return vals[1]
+	}
+	return nil
+}
+
 // Eval the expression and return the result, see the comment of eval.Expr for details.
 // To use this helper function in templates, pass each token as a separate parameter.
 //
@@ -248,4 +256,14 @@ func DotEscape(raw string) string {
 func Eval(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
+}
+
+func UserThemeName(user *user_model.User) string {
+	if user == nil || user.Theme == "" {
+		return setting.UI.DefaultTheme
+	}
+	if webtheme.IsThemeAvailable(user.Theme) {
+		return user.Theme
+	}
+	return setting.UI.DefaultTheme
 }

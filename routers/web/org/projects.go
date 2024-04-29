@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -105,7 +104,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	for _, project := range projects {
-		project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
+		project.RenderedContent = templates.RenderMarkdownToHtml(ctx, project.Description)
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -195,14 +194,15 @@ func NewProjectPost(ctx *context.Context) {
 
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
+		ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
@@ -210,7 +210,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), id))
 }
 
 // DeleteProject delete a project
@@ -372,7 +372,7 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
-	project.RenderedContent = templates.SanitizeHTML(project.Description) // FIXME: is it right? why not render?
+	project.RenderedContent = templates.RenderMarkdownToHtml(ctx, project.Description)
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)

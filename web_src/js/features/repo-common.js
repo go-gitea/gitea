@@ -1,45 +1,35 @@
 import $ from 'jquery';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElems, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
+import {sleep} from '../utils.js';
 
-async function getArchive($target, url, first) {
-  const dropdownBtn = $target[0].closest('.ui.dropdown.button') ?? $target[0].closest('.ui.dropdown.btn');
-
+async function onDownloadArchive(e) {
+  e.preventDefault();
+  // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
+  const el = e.target.closest('a.archive-link[href]');
+  const targetLoading = el.closest('.ui.dropdown') ?? el;
+  targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
-    dropdownBtn.classList.add('is-loading');
-    const response = await POST(url);
-    if (response.status === 200) {
-      const data = await response.json();
-      if (!data) {
-        // XXX Shouldn't happen?
-        dropdownBtn.classList.remove('is-loading');
-        return;
-      }
+    for (let tryCount = 0; ;tryCount++) {
+      const response = await POST(el.href);
+      if (!response.ok) throw new Error(`Invalid server response: ${response.status}`);
 
-      if (!data.complete) {
-        // Wait for only three quarters of a second initially, in case it's
-        // quickly archived.
-        setTimeout(() => {
-          getArchive($target, url, false);
-        }, first ? 750 : 2000);
-      } else {
-        // We don't need to continue checking.
-        dropdownBtn.classList.remove('is-loading');
-        window.location.href = url;
-      }
+      const data = await response.json();
+      if (data.complete) break;
+      await sleep(Math.min((tryCount + 1) * 750, 2000));
     }
-  } catch {
-    dropdownBtn.classList.remove('is-loading');
+    window.location.href = el.href; // the archive is ready, start real downloading
+  } catch (e) {
+    console.error(e);
+    showErrorToast(`Failed to download the archive: ${e}`, {duration: 2500});
+  } finally {
+    targetLoading.classList.remove('is-loading', 'loading-icon-2px');
   }
 }
 
 export function initRepoArchiveLinks() {
-  $('.archive-link').on('click', function (event) {
-    event.preventDefault();
-    const url = this.getAttribute('href');
-    if (!url) return;
-    getArchive($(event.target), url, true);
-  });
+  queryElems('a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
 }
 
 export function initRepoCloneLink() {

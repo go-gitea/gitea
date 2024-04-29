@@ -52,6 +52,9 @@ only use:
 */
 .tw-hidden.tw-hidden { display: none !important; }
 
+/* proposed class from https://github.com/tailwindlabs/tailwindcss/pull/12128 */
+.tw-break-anywhere { overflow-wrap: anywhere !important; }
+
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */
   .not-mobile.not-mobile {

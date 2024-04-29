@@ -144,7 +144,6 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 
 			var task *actions.ActionTask
 			if err == nil {
-
 				task, err = actions.GetTaskByID(req.Context(), tID)
 				if err != nil {
 					log.Error("Error runner api getting task by ID: %v", err)
@@ -302,7 +301,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact comfirm upload artifact.
+// comfirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := validateRunID(ctx)
@@ -467,14 +466,15 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
-	} else if !exist {
+	}
+	if !exist {
 		log.Error("artifact with ID %d does not exist", artifactID)
 		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {
-		log.Error("Error dismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
-		ctx.Error(http.StatusBadRequest, err.Error())
+		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 

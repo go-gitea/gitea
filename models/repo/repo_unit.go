@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,11 +42,12 @@ func (err ErrUnitTypeNotExist) Unwrap() error {
 
 // RepoUnit describes all units of a repository
 type RepoUnit struct { //revive:disable-line:exported
-	ID          int64
-	RepoID      int64              `xorm:"INDEX(s)"`
-	Type        unit.Type          `xorm:"INDEX(s)"`
-	Config      convert.Conversion `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+	ID                 int64
+	RepoID             int64              `xorm:"INDEX(s)"`
+	Type               unit.Type          `xorm:"INDEX(s)"`
+	Config             convert.Conversion `xorm:"TEXT"`
+	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX CREATED"`
+	EveryoneAccessMode perm.AccessMode    `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {

@@ -9,7 +9,6 @@
   font-family: var(--fonts-regular);
   font-weight: var(--font-weight-medium);
   line-height: 1.28571429;
-  text-transform: none;
 }
 
 .ui.header:first-child {
