@@ -56,22 +56,20 @@ func NewIndexer(url, indexerName string) *Indexer {
 	return indexer
 }
 
-var (
-	defaultMapping = &types.TypeMapping{
-		Properties: map[string]types.Property{
-			"repo_id": types.NewLongNumberProperty(),
-			"content": &types.TextProperty{
-				Fields:     make(map[string]types.Property, 0),
-				Meta:       make(map[string]string, 0),
-				Properties: make(map[string]types.Property, 0),
-				TermVector: &termvectoroption.Withpositions,
-			},
-			"commit_id":  types.NewKeywordProperty(),
-			"language":   types.NewKeywordProperty(),
-			"updated_at": types.NewLongNumberProperty(),
+var defaultMapping = &types.TypeMapping{
+	Properties: map[string]types.Property{
+		"repo_id": types.NewLongNumberProperty(),
+		"content": &types.TextProperty{
+			Fields:     make(map[string]types.Property, 0),
+			Meta:       make(map[string]string, 0),
+			Properties: make(map[string]types.Property, 0),
+			TermVector: &termvectoroption.Withpositions,
 		},
-	}
-)
+		"commit_id":  types.NewKeywordProperty(),
+		"language":   types.NewKeywordProperty(),
+		"updated_at": types.NewLongNumberProperty(),
+	},
+}
 
 func (b *Indexer) addUpdate(ctx context.Context, blk *bulk.Bulk, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) error {
 	// Ignore vendored files in code search

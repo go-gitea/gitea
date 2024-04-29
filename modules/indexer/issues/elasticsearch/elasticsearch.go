@@ -47,37 +47,35 @@ func NewIndexer(url, indexerName string) *Indexer {
 	return indexer
 }
 
-var (
-	defaultMapping = &types.TypeMapping{
-		Properties: map[string]types.Property{
-			"id":        types.NewIntegerNumberProperty(),
-			"repo_id":   types.NewIntegerNumberProperty(),
-			"is_public": types.NewBooleanProperty(),
+var defaultMapping = &types.TypeMapping{
+	Properties: map[string]types.Property{
+		"id":        types.NewIntegerNumberProperty(),
+		"repo_id":   types.NewIntegerNumberProperty(),
+		"is_public": types.NewBooleanProperty(),
 
-			"title":    types.NewTextProperty(),
-			"content":  types.NewTextProperty(),
-			"comments": types.NewTextProperty(),
+		"title":    types.NewTextProperty(),
+		"content":  types.NewTextProperty(),
+		"comments": types.NewTextProperty(),
 
-			"is_pull":              types.NewBooleanProperty(),
-			"is_closed":            types.NewBooleanProperty(),
-			"label_ids":            types.NewIntegerNumberProperty(),
-			"no_label":             types.NewBooleanProperty(),
-			"milestone_id":         types.NewIntegerNumberProperty(),
-			"project_id":           types.NewIntegerNumberProperty(),
-			"project_board_id":     types.NewIntegerNumberProperty(),
-			"poster_id":            types.NewIntegerNumberProperty(),
-			"assignee_id":          types.NewIntegerNumberProperty(),
-			"mention_ids":          types.NewIntegerNumberProperty(),
-			"reviewed_ids":         types.NewIntegerNumberProperty(),
-			"review_requested_ids": types.NewIntegerNumberProperty(),
-			"subscriber_ids":       types.NewIntegerNumberProperty(),
-			"updated_unix":         types.NewIntegerNumberProperty(),
-			"created_unix":         types.NewIntegerNumberProperty(),
-			"deadline_unix":        types.NewIntegerNumberProperty(),
-			"comment_count":        types.NewIntegerNumberProperty(),
-		},
-	}
-)
+		"is_pull":              types.NewBooleanProperty(),
+		"is_closed":            types.NewBooleanProperty(),
+		"label_ids":            types.NewIntegerNumberProperty(),
+		"no_label":             types.NewBooleanProperty(),
+		"milestone_id":         types.NewIntegerNumberProperty(),
+		"project_id":           types.NewIntegerNumberProperty(),
+		"project_board_id":     types.NewIntegerNumberProperty(),
+		"poster_id":            types.NewIntegerNumberProperty(),
+		"assignee_id":          types.NewIntegerNumberProperty(),
+		"mention_ids":          types.NewIntegerNumberProperty(),
+		"reviewed_ids":         types.NewIntegerNumberProperty(),
+		"review_requested_ids": types.NewIntegerNumberProperty(),
+		"subscriber_ids":       types.NewIntegerNumberProperty(),
+		"updated_unix":         types.NewIntegerNumberProperty(),
+		"created_unix":         types.NewIntegerNumberProperty(),
+		"deadline_unix":        types.NewIntegerNumberProperty(),
+		"comment_count":        types.NewIntegerNumberProperty(),
+	},
+}
 
 // Index will save the index data
 func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
