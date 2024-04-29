@@ -18,7 +18,7 @@ import (
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree -l` command.
-func ParseTreeEntries(h ObjectFormat, data []byte) ([]*TreeEntry, error) {
+func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 	return parseTreeEntries(data, nil)
 }
 
