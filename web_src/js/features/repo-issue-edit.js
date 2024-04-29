@@ -162,8 +162,8 @@ async function onEditContent(event) {
     editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
     comboMarkdownEditor.attachedDropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
-    editContentZone.querySelector('.cancel.button').addEventListener('click', cancelAndReset);
-    editContentZone.querySelector('.save.button').addEventListener('click', saveAndRefresh);
+    editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
+    editContentZone.querySelector('.ui.primary.button').addEventListener('click', saveAndRefresh);
   }
 
   // Show write/preview tab and copy raw content as needed

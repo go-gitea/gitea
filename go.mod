@@ -16,6 +16,7 @@ require (
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
+	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/alecthomas/chroma/v2 v2.13.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
@@ -53,7 +54,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/google/go-github/v57 v57.0.0
+	github.com/google/go-github/v61 v61.0.0
 	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.1.2
@@ -135,7 +136,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/RoaringBitmap/roaring v1.9.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
