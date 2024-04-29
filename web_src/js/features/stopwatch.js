@@ -17,9 +17,9 @@ export function initStopwatch() {
   }
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
-  const datetime = stopwatchEls[0]?.getAttribute('data-datetime');
-  if (datetime) {
-    updateStopwatchTime(datetime);
+  const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
+  if (seconds) {
+    updateStopwatchTime(seconds);
   }
 
   for (const stopwatchEl of stopwatchEls) {
@@ -137,17 +137,14 @@ function updateStopwatchData(data) {
     document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
     const stopwatchIssue = document.querySelector('.stopwatch-issue');
     if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
-    updateStopwatchTime(secondsToDatetime(seconds));
+    updateStopwatchTime(seconds);
     showElem(btnEl);
   }
   return Boolean(data.length);
 }
 
-function secondsToDatetime(seconds) {
-  return (new Date(Date.now() - seconds * 1000)).toISOString();
-}
-
-function updateStopwatchTime(datetime) {
+function updateStopwatchTime(seconds) {
+  const datetime = (new Date(Date.now() - seconds * 1000)).toISOString();
   for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {
     const existing = parent.querySelector(':scope > relative-time');
     if (existing) {

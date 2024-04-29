@@ -13,16 +13,10 @@
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu item navbar-mobile-right only-mobile">
 			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
-			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-datetime="{{.ActiveStopwatch.Datetime}}">
+			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot">
-						<relative-time
-							format="micro"
-							datetime="{{.ActiveStopwatch.Datetime}}"
-							data-no-tooltip="true"
-						></relative-time>
-					</span>
+					<span class="header-stopwatch-dot"></span>
 				</div>
 			</a>
 			{{end}}
@@ -89,15 +83,10 @@
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
 			{{if and EnableTimetracking .ActiveStopwatch}}
-			<a class="item not-mobile active-stopwatch tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-datetime="{{.ActiveStopwatch.Datetime}}">
+			<a class="item not-mobile active-stopwatch tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot">
-						<relative-time
-							format="micro"
-							datetime="{{.ActiveStopwatch.Datetime}}"
-							data-no-tooltip="true"
-						></relative-time>
+					<span class="header-stopwatch-dot"></relative-time>
 					</span>
 				</div>
 			</a>
