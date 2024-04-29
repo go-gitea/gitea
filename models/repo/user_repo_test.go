@@ -31,14 +31,12 @@ func TestRepoAssignees(t *testing.T) {
 	}
 
 	// do not return deactivated users
-	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	user_model.UpdateUserCols(db.DefaultContext, user15, "is_active")
+	assert.NoError(t, user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 15, IsActive: false}, "is_active"))
 	users, err = repo_model.GetRepoAssignees(db.DefaultContext, repo21)
 	assert.NoError(t, err)
 	if assert.Len(t, users, 3) {
-		assert.ElementsMatch(t, []int64{10, 15, 16, 18}, []int64{users[0].ID, users[1].ID, users[2].ID, users[3].ID})
+		assert.NotContains(t, []int64{users[0].ID, users[1].ID, users[2].ID}, 15)
 	}
-	assert.NotContains(t, []int64{users[0].ID, users[1].ID, users[2].ID}, 15)
 }
 
 func TestRepoGetReviewers(t *testing.T) {
