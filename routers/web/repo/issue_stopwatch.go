@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -100,7 +101,7 @@ func GetActiveStopwatch(ctx *context.Context) {
 		issue.Link(),
 		issue.Repo.FullName(),
 		issue.Index,
-		sw.Seconds() + 1, // ensure time is never zero in ui
+		time.Unix(time.Now().Unix() - sw.Seconds(), 0).Format(time.RFC3339),
 	}
 }
 
@@ -109,5 +110,5 @@ type StopwatchTmplInfo struct {
 	IssueLink  string
 	RepoSlug   string
 	IssueIndex int64
-	Seconds    int64
+	Datetime   string
 }

@@ -1,40 +1,39 @@
-import prettyMilliseconds from 'pretty-ms';
 import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
 
-let stopwatchTippy;
-
 export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
   }
 
-  const stopwatchEl = document.querySelector('.active-stopwatch-trigger');
+  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
   const stopwatchPopup = document.querySelector('.active-stopwatch-popup');
 
-  if (!stopwatchEl || !stopwatchPopup) {
+  if (!stopwatchEls.length || !stopwatchPopup) {
     return;
   }
 
-  stopwatchEl.removeAttribute('href'); // intended for noscript mode only
-
-  stopwatchTippy = createTippy(stopwatchEl, {
-    content: stopwatchPopup,
-    placement: 'bottom-end',
-    trigger: 'click',
-    maxWidth: 'none',
-    interactive: true,
-    hideOnClick: true,
-    theme: 'default',
-  });
-
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
-  const currSeconds = document.querySelector('.stopwatch-time')?.getAttribute('data-seconds');
-  if (currSeconds) {
-    updateStopwatchTime(currSeconds);
+  const datetime = stopwatchEls[0]?.getAttribute('data-datetime');
+  if (datetime) {
+    updateStopwatchTime(datetime);
+  }
+
+  for (const stopwatchEl of stopwatchEls) {
+    stopwatchEl.removeAttribute('href'); // intended for noscript mode only
+
+    createTippy(stopwatchEl, {
+      content: stopwatchPopup.cloneNode(true),
+      placement: 'bottom-end',
+      trigger: 'click',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+      theme: 'default',
+    });
   }
 
   let usingPeriodicPoller = false;
@@ -127,9 +126,8 @@ async function updateStopwatch() {
 
 function updateStopwatchData(data) {
   const watch = data[0];
-  const btnEl = document.querySelector('.active-stopwatch-trigger');
+  const btnEl = document.querySelector('.active-stopwatch');
   if (!watch) {
-    clearStopwatchTimer();
     hideElem(btnEl);
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
@@ -139,37 +137,26 @@ function updateStopwatchData(data) {
     document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
     const stopwatchIssue = document.querySelector('.stopwatch-issue');
     if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
-    updateStopwatchTime(seconds);
+    updateStopwatchTime(secondsToDatetime(seconds));
     showElem(btnEl);
   }
   return Boolean(data.length);
 }
 
-let updateTimeIntervalId = null; // holds setInterval id when active
-function clearStopwatchTimer() {
-  if (updateTimeIntervalId !== null) {
-    clearInterval(updateTimeIntervalId);
-    updateTimeIntervalId = null;
-  }
+function secondsToDatetime(seconds) {
+  return (new Date(Date.now() - seconds * 1000)).toISOString();
 }
-function updateStopwatchTime(seconds) {
-  const secs = parseInt(seconds);
-  if (!Number.isFinite(secs)) return;
 
-  clearStopwatchTimer();
-  const stopwatch = document.querySelector('.stopwatch-time');
-  // TODO: replace with <relative-time> similar to how system status up time is shown
-  const start = Date.now();
-  const updateUi = () => {
-    const delta = Date.now() - start;
-    const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
-    if (stopwatch) stopwatch.textContent = dur;
-    // refresh the tippy so that the triangle updates to the correct position
-    if (stopwatchTippy?.state.isShown) {
-      stopwatchTippy.hide();
-      stopwatchTippy.show();
+function updateStopwatchTime(datetime) {
+  for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {
+    const existing = parent.querySelector(':scope > relative-time');
+    if (existing) {
+      existing.setAttribute('datetime', datetime);
+    } else {
+      const el = document.createElement('relative-time');
+      el.setAttribute('format', 'micro');
+      el.setAttribute('datetime', datetime);
+      parent.append(el);
     }
-  };
-  updateUi();
-  updateTimeIntervalId = setInterval(updateUi, 1000);
+  }
 }
