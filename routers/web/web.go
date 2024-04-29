@@ -1382,12 +1382,12 @@ func registerRoutes(m *web.Route) {
 	}, ignSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 	// end "/{username}/{reponame}/projects"
 
-		m.Group("/actions", func() {
-			m.Get("", actions.List)
-			m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
-			m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
-			m.Post("/global_disable", reqRepoAdmin, actions.DisableGlobalWorkflowFile)
-			m.Post("/global_enable", reqRepoAdmin, actions.EnableGlobalWorkflowFile)
+	m.Group("/actions", func() {
+		m.Get("", actions.List)
+		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
+		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+		m.Post("/global_disable", reqRepoAdmin, actions.DisableGlobalWorkflowFile)
+		m.Post("/global_enable", reqRepoAdmin, actions.EnableGlobalWorkflowFile)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
