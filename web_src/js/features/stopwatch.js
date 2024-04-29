@@ -144,7 +144,7 @@ function updateStopwatchData(data) {
 }
 
 // TODO: This flickers on page load, we could avoid this by making a custom
-// element to render relative time. Feeding a datetime in backend does not work
+// element to render time periods. Feeding a datetime in backend does not work
 // when time zone between server and client differs.
 function updateStopwatchTime(seconds) {
   if (!Number.isFinite(seconds)) return;
