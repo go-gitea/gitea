@@ -96,7 +96,7 @@ export default {
       <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div v-html="renderedLabels" />
+      <div v-html="renderedLabels"/>
     </div>
     <div v-if="!loading && issue === null">
       <p><small>{{ i18nErrorOccurred }}</small></p>
