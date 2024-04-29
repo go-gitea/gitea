@@ -1,6 +1,7 @@
 .issue-card {
   display: flex;
   flex-direction: column;
+  gap: 4px;
   align-items: start;
   border-radius: var(--border-radius);
   padding: 8px 10px;
@@ -17,7 +18,6 @@
 .issue-card-title {
   flex: 1;
   font-size: 14px;
-  margin-left: 4px;
 }
 
 .issue-card.sortable-chosen .issue-card-title {
