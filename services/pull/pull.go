@@ -331,11 +331,10 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		}
 
 		if isSync {
-			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(ctx); err != nil {
+			if err = prs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, prs, repoID, doer, branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
@@ -627,7 +626,7 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 	}
 
 	prs = append(prs, prs2...)
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -657,7 +656,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		if err = prs.LoadAttributes(ctx); err != nil {
 			return err
 		}
 
