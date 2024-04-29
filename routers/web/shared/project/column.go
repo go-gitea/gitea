@@ -4,8 +4,6 @@
 package project
 
 import (
-	"errors"
-
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/json"
@@ -41,32 +39,13 @@ func MoveColumns(ctx *context.Context) {
 		return
 	}
 
-	columnIDs := make([]int64, 0, len(form.Columns))
 	sortedColumnIDs := make(map[int64]int64)
 	for _, column := range form.Columns {
-		columnIDs = append(columnIDs, column.ColumnID)
 		sortedColumnIDs[column.Sorting] = column.ColumnID
-	}
-	movedColumns, err := project_model.GetColumnsByIDs(ctx, columnIDs)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnsByIDs", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if len(movedColumns) != len(form.Columns) {
-		ctx.ServerError("some columns do not exist", errors.New("some columns do not exist"))
-		return
-	}
-
-	for _, column := range movedColumns {
-		if column.ProjectID != project.ID {
-			ctx.ServerError("Some column's projectID is not equal to project's ID", errors.New("Some column's projectID is not equal to project's ID"))
-			return
-		}
 	}
 
 	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.ServerError("MoveColumnsOnProject", err)
+		ctx.NotFoundOrServerError("MoveColumnsOnProject", issues_model.IsErrIssueNotExist, err)
 		return
 	}
 

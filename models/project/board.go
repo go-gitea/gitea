@@ -208,7 +208,7 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return err
 	}
 
-	if err = board.moveIssuesToAnotherColumn(ctx, defaultColumn.ID); err != nil {
+	if err = board.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
 		return err
 	}
 
@@ -330,11 +330,13 @@ func UpdateBoardSorting(ctx context.Context, bs BoardList) error {
 	})
 }
 
-func GetColumnsByIDs(ctx context.Context, columnsIDs []int64) (BoardList, error) {
+func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (BoardList, error) {
 	columns := make([]*Board, 0, 5)
-	if err := db.GetEngine(ctx).In("id", columnsIDs).OrderBy("sorting").Find(&columns); err != nil {
+	if err := db.GetEngine(ctx).
+		Where("project_id =?", projectID).
+		In("id", columnsIDs).
+		OrderBy("sorting").Find(&columns); err != nil {
 		return nil, err
 	}
-
 	return columns, nil
 }

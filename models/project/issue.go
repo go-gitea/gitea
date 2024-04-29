@@ -5,9 +5,11 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -102,34 +104,38 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 	})
 }
 
-func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, columnID int64) error {
-	if b.ID == columnID {
+func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board) error {
+	if b.ID == newColumn.ID {
 		return nil
 	}
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", columnID, b.ID)
+	if b.ProjectID != newColumn.ProjectID {
+		return fmt.Errorf("columns have to be in the same project")
+	}
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", newColumn.ID, b.ID)
 	return err
 }
 
-// MoveColumnsOnProject moves or keeps issues in a column and sorts them inside that column
+// MoveColumnsOnProject moves or keeps column in a project and sorts them inside that column
 func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
-
-		columnIDs := make([]int64, 0, len(sortedColumnIDs))
-		for _, columnID := range sortedColumnIDs {
-			columnIDs = append(columnIDs, columnID)
-		}
-		count, err := sess.Table(new(Board)).Where("project_id=?", project.ID).In("id", columnIDs).Count()
+		columnIDs := container.MapValues(sortedColumnIDs)
+		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
 		if err != nil {
 			return err
 		}
-		if int(count) != len(sortedColumnIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
+		if len(movedColumns) != len(sortedColumnIDs) {
+			return errors.New("some columns do not exist")
+		}
+
+		for _, column := range movedColumns {
+			if column.ProjectID != project.ID {
+				return errors.New("Some column's projectID is not equal to project's ID")
+			}
 		}
 
 		for sorting, columnID := range sortedColumnIDs {
-			_, err = sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID)
-			if err != nil {
+			if _, err := sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID); err != nil {
 				return err
 			}
 		}
