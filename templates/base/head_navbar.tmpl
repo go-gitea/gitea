@@ -84,8 +84,8 @@
 			</a>
 			<div class="active-stopwatch-popup tippy-target">
 				<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-					{{svg "octicon-issue-opened" 16}}
-					<a class="stopwatch-link tw-flex muted" href="{{.ActiveStopwatch.IssueLink}}">
+					<a class="stopwatch-link tw-flex tw-items-center tw-gap-1 muted" href="{{.ActiveStopwatch.IssueLink}}">
+						{{svg "octicon-issue-opened" 16}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 					</a>
 					<span class="ui primary label stopwatch-time" data-seconds="{{.ActiveStopwatch.Seconds}}">
