@@ -54,6 +54,7 @@ These inconsistent layouts should be refactored to simple ones.
 .ui.modal form > .content {
   padding: 1.5em;
   background: var(--color-body);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.modal > .actions,
@@ -63,6 +64,7 @@ These inconsistent layouts should be refactored to simple ones.
   border-color: var(--color-secondary);
   padding: 1rem;
   text-align: right;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.modal .content > .actions {

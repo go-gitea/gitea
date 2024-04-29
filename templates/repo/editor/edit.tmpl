@@ -26,14 +26,14 @@
 				</div>
 			</div>
 			<div class="field">
-				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
+				<div class="ui compact small menu small-menu-items repo-editor-menu">
 					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 					{{if not .IsNewFile}}
 					<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
-				<div class="ui bottom attached active tab segment" data-tab="write">
+				<div class="ui active tab segment tw-rounded" data-tab="write">
 					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
@@ -41,10 +41,10 @@
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
-				<div class="ui bottom attached tab segment markup" data-tab="preview">
+				<div class="ui tab segment markup tw-rounded" data-tab="preview">
 					{{ctx.Locale.Tr "loading"}}
 				</div>
-				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
+				<div class="ui tab segment diff edit-diff" data-tab="diff">
 					<div class="tw-p-16"></div>
 				</div>
 			</div>
