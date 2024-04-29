@@ -30,8 +30,6 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 	createIndex, err := i.Client.Indices.Create(i.VersionedIndexName()).Request(&create.Request{
 		Mappings: i.mapping,
 	}).Do(ctx)
-
-	// .BodyString(i.mapping)
 	if err != nil {
 		return err
 	}
@@ -45,13 +43,6 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 }
 
 func (i *Indexer) initClient() (*elasticsearch.TypedClient, error) {
-	// opts := []elastic.ClientOptionFunc{
-	// 	elastic.SetURL(i.url),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetHealthcheckInterval(10 * time.Second),
-	// 	elastic.SetGzip(false),
-	// }
-
 	cfg := elasticsearch.Config{
 		Addresses: []string{i.url},
 	}
