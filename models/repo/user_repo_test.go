@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,8 +26,19 @@ func TestRepoAssignees(t *testing.T) {
 	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 21})
 	users, err = repo_model.GetRepoAssignees(db.DefaultContext, repo21)
 	assert.NoError(t, err)
-	assert.Len(t, users, 4)
-	assert.ElementsMatch(t, []int64{10, 15, 16, 18}, []int64{users[0].ID, users[1].ID, users[2].ID, users[3].ID})
+	if assert.Len(t, users, 4) {
+		assert.ElementsMatch(t, []int64{10, 15, 16, 18}, []int64{users[0].ID, users[1].ID, users[2].ID, users[3].ID})
+	}
+
+	// do not return deactivated users
+	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+	user_model.UpdateUserCols(db.DefaultContext, user15, "is_active")
+	users, err = repo_model.GetRepoAssignees(db.DefaultContext, repo21)
+	assert.NoError(t, err)
+	if assert.Len(t, users, 3) {
+		assert.ElementsMatch(t, []int64{10, 15, 16, 18}, []int64{users[0].ID, users[1].ID, users[2].ID, users[3].ID})
+	}
+	assert.NotContains(t, []int64{users[0].ID, users[1].ID, users[2].ID}, 15)
 }
 
 func TestRepoGetReviewers(t *testing.T) {
