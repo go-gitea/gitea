@@ -19,7 +19,7 @@ export function initStopwatch() {
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
   const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
   if (seconds) {
-    updateStopwatchTime(seconds);
+    updateStopwatchTime(parseInt(seconds));
   }
 
   for (const stopwatchEl of stopwatchEls) {
@@ -144,6 +144,7 @@ function updateStopwatchData(data) {
 }
 
 function updateStopwatchTime(seconds) {
+  if (!Number.isFinite(seconds)) return;
   const datetime = (new Date(Date.now() - seconds * 1000)).toISOString();
   for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {
     const existing = parent.querySelector(':scope > relative-time');
