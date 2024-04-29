@@ -134,17 +134,17 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		bulkIndexer.Add(ctx, esutil.BulkIndexerItem{
+		err = bulkIndexer.Add(ctx, esutil.BulkIndexerItem{
 			Action:     "delete",
 			Index:      b.inner.VersionedIndexName(),
 			DocumentID: fmt.Sprintf("%d", id),
 		})
+		if err != nil {
+			return err
+		}
 	}
 
-	if err := bulkIndexer.Close(context.Background()); err != nil {
-		return err
-	}
-	return nil
+	return bulkIndexer.Close(ctx)
 }
 
 // Search searches for issues by given conditions.
