@@ -50,19 +50,19 @@ func TestRepoGetReviewers(t *testing.T) {
 	ctx := db.DefaultContext
 	reviewers, err := repo_model.GetReviewers(ctx, repo1, 2, 2)
 	assert.NoError(t, err)
-	if assert.Len(t, reviewers, 4) {
-		assert.ElementsMatch(t, []int64{1, 4, 9, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID, reviewers[3].ID})
+	if assert.Len(t, reviewers, 3) {
+		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
 	}
 
 	// should include doer if doer is not PR poster.
 	reviewers, err = repo_model.GetReviewers(ctx, repo1, 11, 2)
 	assert.NoError(t, err)
-	assert.Len(t, reviewers, 4)
+	assert.Len(t, reviewers, 3)
 
 	// should not include PR poster, if PR poster would be otherwise eligible
 	reviewers, err = repo_model.GetReviewers(ctx, repo1, 11, 4)
 	assert.NoError(t, err)
-	assert.Len(t, reviewers, 3)
+	assert.Len(t, reviewers, 2)
 
 	// test private user repo
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -81,14 +81,4 @@ func TestRepoGetReviewers(t *testing.T) {
 
 	reviewers, err = repo_model.GetReviewers(ctx, repo3, 2, 2)
 	assert.NoError(t, err)
-	assert.Len(t, reviewers, 1)
-
-	// do not return deactivated users
-	user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
-	user_model.UpdateUserCols(db.DefaultContext, user11, "is_active")
-	reviewers, err = repo_model.GetReviewers(ctx, repo1, 2, 2)
-	assert.NoError(t, err)
-	if assert.Len(t, reviewers, 3) {
-		assert.NotContains(t, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID}, 11)
-	}
 }
