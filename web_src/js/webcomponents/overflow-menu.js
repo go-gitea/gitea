@@ -64,7 +64,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
     // move items in tippy back into the menu items for subsequent measurement
     for (const item of this.tippyItems || []) {
-      if (item.getAttribute('data-after-flex-space')) {
+      if (!itemFlexSpace || item.getAttribute('data-after-flex-space')) {
         this.menuItemsEl.append(item);
       } else {
         itemFlexSpace.insertAdjacentElement('beforebegin', item);
