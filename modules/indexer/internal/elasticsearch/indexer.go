@@ -9,22 +9,23 @@ import (
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 )
 
 var _ internal.Indexer = &Indexer{}
 
 // Indexer represents a basic elasticsearch indexer implementation
 type Indexer struct {
-	Client *elastic.Client
+	Client *elasticsearch.TypedClient
 
 	url       string
 	indexName string
 	version   int
-	mapping   string
+	mapping   *types.TypeMapping
 }
 
-func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
+func NewIndexer(url, indexName string, version int, mapping *types.TypeMapping) *Indexer {
 	return &Indexer{
 		url:       url,
 		indexName: indexName,
@@ -48,7 +49,7 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 	}
 	i.Client = client
 
-	exists, err := i.Client.IndexExists(i.VersionedIndexName()).Do(ctx)
+	exists, err := i.Client.Indices.Exists(i.VersionedIndexName()).Do(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -72,11 +73,11 @@ func (i *Indexer) Ping(ctx context.Context) error {
 		return fmt.Errorf("indexer is not initialized")
 	}
 
-	resp, err := i.Client.ClusterHealth().Do(ctx)
+	resp, err := i.Client.Cluster.Health().Do(ctx)
 	if err != nil {
 		return err
 	}
-	if resp.Status != "green" && resp.Status != "yellow" {
+	if resp.Status.Name != "green" && resp.Status.Name != "yellow" {
 		// It's healthy if the status is green, and it's available if the status is yellow,
 		// see https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-health.html
 		return fmt.Errorf("status of elasticsearch cluster is %s", resp.Status)
