@@ -39,12 +39,12 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, fileSize int64, originalFileName string, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
 
-	if err := upload.Verify(buf, originalFileName, allowedTypes); err != nil {
+	if err := upload.Verify(buf, attach.OriginalName, allowedTypes); err != nil {
 		return nil, err
 	}
 

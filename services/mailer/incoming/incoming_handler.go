@@ -87,10 +87,11 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		attachmentIDs := make([]string, 0, len(content.Attachments))
 		if setting.Attachment.Enabled {
 			for _, attachment := range content.Attachments {
-				a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), attachment.Name, &repo_model.Attachment{
-					Name:       attachment.Name,
-					UploaderID: doer.ID,
-					RepoID:     issue.Repo.ID,
+				a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
+					Name:         attachment.Name,
+					OriginalName: attachment.Name,
+					UploaderID:   doer.ID,
+					RepoID:       issue.Repo.ID,
 				})
 				if err != nil {
 					if upload.IsErrFileTypeForbidden(err) {

@@ -45,10 +45,11 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, header.Filename, &repo_model.Attachment{
-		Name:       header.Filename,
-		UploaderID: ctx.Doer.ID,
-		RepoID:     repoID,
+	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
+		Name:         header.Filename,
+		OriginalName: header.Filename,
+		UploaderID:   ctx.Doer.ID,
+		RepoID:       repoID,
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {

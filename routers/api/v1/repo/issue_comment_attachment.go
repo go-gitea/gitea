@@ -186,12 +186,13 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		attachmentName = query
 	}
 
-	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, header.Filename, &repo_model.Attachment{
-		Name:       attachmentName,
-		UploaderID: ctx.Doer.ID,
-		RepoID:     ctx.Repo.Repository.ID,
-		IssueID:    comment.IssueID,
-		CommentID:  comment.ID,
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+		Name:         attachmentName,
+		OriginalName: header.Filename,
+		UploaderID:   ctx.Doer.ID,
+		RepoID:       ctx.Repo.Repository.ID,
+		IssueID:      comment.IssueID,
+		CommentID:    comment.ID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)

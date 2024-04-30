@@ -206,6 +206,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Get uploaded file from request
 	var content io.ReadCloser
+	var originalFileName string
 	var attachmentName string
 	var size int64 = -1
 
@@ -219,13 +220,15 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 		content = file
 		size = header.Size
-		attachmentName = header.Filename
+		originalFileName = header.Filename
+		attachmentName = originalFileName
 		if name := ctx.FormString("name"); name != "" {
 			attachmentName = name
 		}
 	} else {
 		content = ctx.Req.Body
 		attachmentName = ctx.FormString("name")
+		originalFileName = attachmentName
 	}
 
 	if attachmentName == "" {
@@ -234,11 +237,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, attachmentName, &repo_model.Attachment{
-		Name:       attachmentName,
-		UploaderID: ctx.Doer.ID,
-		RepoID:     ctx.Repo.Repository.ID,
-		ReleaseID:  releaseID,
+	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+		Name:         attachmentName,
+		OriginalName: originalFileName,
+		UploaderID:   ctx.Doer.ID,
+		RepoID:       ctx.Repo.Repository.ID,
+		ReleaseID:    releaseID,
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
