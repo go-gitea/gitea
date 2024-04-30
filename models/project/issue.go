@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -115,11 +115,11 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 	return err
 }
 
-// MoveColumnsOnProject moves or keeps column in a project and sorts them inside that column
+// MoveColumnsOnProject sorts columns in a project
 func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
-		columnIDs := container.MapValues(sortedColumnIDs)
+		columnIDs := util.ValuesOfMap(sortedColumnIDs)
 		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
 		if err != nil {
 			return err
