@@ -20,14 +20,13 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	web_types "code.gitea.io/gitea/modules/web/types"
-
-	"gitea.com/go-chi/session"
 )
 
 // Render represents a template render
@@ -154,7 +153,7 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
 			defer baseCleanUp()
-			ctx := NewWebContext(base, rnd, session.GetSession(req))
+			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
@@ -230,6 +229,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
+// If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
 func (ctx *Context) HasError() bool {
 	hasErr, ok := ctx.Data["HasError"]
 	if !ok {

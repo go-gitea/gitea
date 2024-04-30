@@ -159,7 +159,7 @@ func DashboardPost(ctx *context.Context) {
 		switch form.Op {
 		case "sync_repo_branches":
 			go func() {
-				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext(), ctx.Doer.ID); err != nil {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
 					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
 				}
 			}()

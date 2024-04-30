@@ -739,7 +739,7 @@
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
-				{{if .CodeIndexerEnabled}}
+				{{if .IsRepoIndexerEnabled}}
 					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
 					<div class="inline fields">
 						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>

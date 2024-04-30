@@ -98,6 +98,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
       'input.foreground': getColor('--color-input-text'),
       'scrollbar.shadow': getColor('--color-shadow'),
       'progressBar.background': getColor('--color-primary'),
+      'focusBorder': '#0000', // prevent blue border
     },
   });
 
