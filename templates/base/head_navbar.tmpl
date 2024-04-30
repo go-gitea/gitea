@@ -12,6 +12,14 @@
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu item navbar-mobile-right only-mobile">
+			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
+			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
+				<div class="tw-relative">
+					{{svg "octicon-stopwatch"}}
+					<span class="header-stopwatch-dot"></span>
+				</div>
+			</a>
+			{{end}}
 			{{if .IsSigned}}
 			<a id="mobile-notifications-icon" class="item tw-w-auto tw-p-2" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="tw-relative">
@@ -74,41 +82,13 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item tw-mx-0{{if not .ActiveStopwatch}} tw-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}">
+			{{if and EnableTimetracking .ActiveStopwatch}}
+			<a class="item not-mobile active-stopwatch tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
 				</div>
-				<span class="only-mobile tw-ml-2">{{ctx.Locale.Tr "active_stopwatch"}}</span>
 			</a>
-			<div class="active-stopwatch-popup item tippy-target tw-p-2">
-				<div class="tw-flex tw-items-center">
-					<a class="stopwatch-link tw-flex tw-items-center" href="{{.ActiveStopwatch.IssueLink}}">
-						{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
-						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
-						<span class="ui primary label stopwatch-time tw-my-0 tw-mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
-							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
-						</span>
-					</a>
-					<form class="stopwatch-commit" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
-						{{.CsrfTokenHtml}}
-						<button
-							type="submit"
-							class="ui button mini compact basic icon"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
-						>{{svg "octicon-square-fill"}}</button>
-					</form>
-					<form class="stopwatch-cancel" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
-						{{.CsrfTokenHtml}}
-						<button
-							type="submit"
-							class="ui button mini compact basic icon"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
-						>{{svg "octicon-trash"}}</button>
-					</form>
-				</div>
-			</div>
 			{{end}}
 
 			<a class="item not-mobile tw-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
@@ -202,4 +182,33 @@
 			</a>
 		{{end}}
 	</div><!-- end full right menu -->
+
+	{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
+		<div class="active-stopwatch-popup tippy-target">
+			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
+				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{.ActiveStopwatch.IssueLink}}">
+					{{svg "octicon-issue-opened" 16}}
+					<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
+				</a>
+				<div class="tw-flex tw-gap-1">
+					<form class="stopwatch-commit" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
+						{{.CsrfTokenHtml}}
+						<button
+							type="submit"
+							class="ui button mini compact basic icon tw-mr-0"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
+						>{{svg "octicon-square-fill"}}</button>
+					</form>
+					<form class="stopwatch-cancel" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
+						{{.CsrfTokenHtml}}
+						<button
+							type="submit"
+							class="ui button mini compact basic icon tw-mr-0"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
+						>{{svg "octicon-trash"}}</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	{{end}}
 </nav>
