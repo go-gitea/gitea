@@ -139,7 +139,7 @@
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
-		<div class="ui attached segment tw-flex tw-items-center tw-justify-between tw-py-1 commit-header-row tw-flex-wrap {{$class}}">
+		<div class="ui{{if not .Commit.Signature}} bottom{{end}} attached segment tw-flex tw-items-center tw-justify-between tw-py-1 commit-header-row tw-flex-wrap {{$class}}">
 				<div class="tw-flex tw-items-center author">
 					{{if .Author}}
 						{{ctx.AvatarUtils.Avatar .Author 28 "tw-mr-2"}}
