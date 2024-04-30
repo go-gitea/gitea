@@ -158,7 +158,7 @@ function updateStopwatchTime(seconds) {
       el.setAttribute('format', 'micro');
       el.setAttribute('datetime', datetime);
       el.setAttribute('lang', 'en-US');
-      el.setAttribute('data-no-tooltip', 'true');
+      el.setAttribute('title', ''); // make <relative-time> show no title and therefor no tooltip
       parent.append(el);
     }
   }
