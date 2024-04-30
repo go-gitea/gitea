@@ -171,7 +171,14 @@ func NewBoard(ctx context.Context, board *Board) error {
 	}
 
 	if totalColumns > 0 {
-		board.Sorting = int8(totalColumns)
+		var maxSorting int8
+		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
+			Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
+			return err
+		}
+		if maxSorting > 0 {
+			board.Sorting = maxSorting + 1
+		}
 	}
 
 	_, err = db.GetEngine(ctx).Insert(board)
