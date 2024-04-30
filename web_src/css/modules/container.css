@@ -6,38 +6,6 @@
   max-width: 100%;
 }
 
-@media (max-width: 767.98px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: auto;
-    margin-left: 1em;
-    margin-right: 1em;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: 723px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1199.98px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: 933px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-@media (min-width: 1200px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: 1127px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
 .ui.fluid.container {
   width: 100%;
 }

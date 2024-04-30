@@ -585,6 +585,9 @@ var migrations = []Migration{
 	// v297 -> v298
 	NewMigration("Add everyone_access_mode for repo_unit", v1_23.AddRepoUnitEveryoneAccessMode),
 	// v298 -> v299
+	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
+
+	// Gitea 1.22.0-rc1 ends at 299
 	NewMigration("Drop wrongly created table o_auth2_application", v1_23.DropWronglyCreatedTable),
 	// v300 -> v301
 	NewMigration("Add TimeEstimate to issue table", v1_23.AddTimeEstimateColumnToIssueTable),
