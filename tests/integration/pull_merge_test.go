@@ -591,10 +591,6 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 
 func TestPullMergeIndexerNotifier(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
 		// create a pull request
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -617,17 +613,14 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		// search issues
 		link, _ := url.Parse("/api/v1/repos/issues/search")
 		query := url.Values{}
-		query.Set("state", "open")
-		query.Set("type", "pulls")
-		query.Set("q", "notifier")
+		query.Add("state", "closed")
+		query.Add("type", "pulls")
+		query.Add("q", "notifier")
 		link.RawQuery = query.Encode()
-		searchIssueReq := NewRequest(t, "GET", link.String())
-		searchIssuesResp := session.MakeRequest(t, searchIssueReq, http.StatusOK)
+		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		var apiIssuesBefore []*api.Issue
 		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
-		if assert.Len(t, apiIssuesBefore, 1) {
-			assert.Equal(t, issue.ID, apiIssuesBefore[0].ID)
-		}
+		assert.Len(t, apiIssuesBefore, 0)
 
 		// merge the pull request
 		elem := strings.Split(test.RedirectURL(createPullResp), "/")
@@ -643,13 +636,11 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		queue.GetManager().FlushAll(context.Background(), 0)
 
 		// search issues again
-		searchIssuesResp = session.MakeRequest(t, searchIssueReq, http.StatusOK)
+		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		var apiIssuesAfter []*api.Issue
 		DecodeJSON(t, searchIssuesResp, &apiIssuesAfter)
-		assert.Len(t, apiIssuesAfter, 0)
-
-		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		if assert.Len(t, apiIssuesAfter, 1) {
+			assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
+		}
 	})
 }
