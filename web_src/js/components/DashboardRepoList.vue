@@ -251,9 +251,9 @@ const sfc = {
         this.repos = json.data.map((webSearchRepo) => {
           return {
             ...webSearchRepo.repository,
-            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
