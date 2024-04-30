@@ -34,7 +34,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 
 	// Comment on PR to reopen issue #1
 	content = fmt.Sprintf("content2, reopens #%d", itarget.Index)
-	c := testCreateComment(t, 1, 2, pr.ID, content)
+	c := testCreateComment(t, 2, pr.ID, content)
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: c.ID})
 	assert.Equal(t, issues_model.CommentTypeCommentRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
@@ -104,18 +104,18 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
 	rp := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: i1.ID, RefIssueID: pr.Issue.ID, RefCommentID: 0})
 
-	c1 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i2.Index))
+	c1 := testCreateComment(t, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i2.Index))
 	r1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c1.ID})
 
 	// Must be ignored
-	c2 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("mentions #%d", i2.Index))
+	c2 := testCreateComment(t, 2, pr.Issue.ID, fmt.Sprintf("mentions #%d", i2.Index))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c2.ID})
 
 	// Must be superseded by c4/r4
-	c3 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("reopens #%d", i3.Index))
+	c3 := testCreateComment(t, 2, pr.Issue.ID, fmt.Sprintf("reopens #%d", i3.Index))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c3.ID})
 
-	c4 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i3.Index))
+	c4 := testCreateComment(t, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i3.Index))
 	r4 := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c4.ID})
 
 	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
@@ -168,7 +168,7 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *issues
 	return pr
 }
 
-func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *issues_model.Comment {
+func testCreateComment(t *testing.T, doer, issue int64, content string) *issues_model.Comment {
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue})
 	c := &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}

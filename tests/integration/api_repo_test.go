@@ -684,7 +684,9 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	assert.Len(t, reviewers, 4)
+	if assert.Len(t, reviewers, 3) {
+		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	}
 }
 
 func TestAPIRepoGetAssignees(t *testing.T) {

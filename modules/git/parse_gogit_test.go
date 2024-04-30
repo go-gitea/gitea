@@ -67,7 +67,7 @@ func TestParseTreeEntries(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries(Sha1ObjectFormat, []byte(testCase.Input))
+		entries, err := ParseTreeEntries([]byte(testCase.Input))
 		assert.NoError(t, err)
 		if len(entries) > 1 {
 			fmt.Println(testCase.Expected[0].ID)
