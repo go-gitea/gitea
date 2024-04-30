@@ -146,7 +146,7 @@ var commentStrings = []string{
 	"merge_pull",
 	"pull_push",
 	"project",
-	"project_board",
+	"project_board", // FIXME: the name should be project_column
 	"dismiss_review",
 	"change_issue_ref",
 	"pull_scheduled_merge",

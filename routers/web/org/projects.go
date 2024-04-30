@@ -43,7 +43,7 @@ func MustEnableProjects(ctx *context.Context) {
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	ctx.Data["Title"] = ctx.Tr("repo.project_board")
+	ctx.Data["Title"] = ctx.Tr("repo.projects")
 
 	sortType := ctx.FormTrim("sort")
 
