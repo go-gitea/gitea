@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
 import {toggleElem} from '../utils/dom.js';
+import {logoutFromWorker} from '../modules/worker.js';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
@@ -95,7 +96,7 @@ export function initNotificationCount() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = `${appSubUrl}/`;
+        logoutFromWorker();
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
