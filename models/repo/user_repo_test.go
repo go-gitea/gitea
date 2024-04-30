@@ -79,4 +79,5 @@ func TestRepoGetReviewers(t *testing.T) {
 
 	reviewers, err = repo_model.GetReviewers(ctx, repo3, 2, 2)
 	assert.NoError(t, err)
+	assert.Len(t, reviewers, 1)
 }
