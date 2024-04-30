@@ -120,9 +120,9 @@ func StartPullRequestAutoMergeCheck(ctx context.Context, pull *issues_model.Pull
 		log.Error("OpenRepository: %v", err)
 		return
 	}
-	defer gitRepo.Close()
 
 	commitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	gitRepo.Close()
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return
@@ -136,9 +136,9 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	if err != nil {
 		return nil, err
 	}
-	defer gitRepo.Close()
 
 	refs, err := gitRepo.GetRefsBySha(sha, "")
+	gitRepo.Close()
 	if err != nil {
 		return nil, err
 	}
