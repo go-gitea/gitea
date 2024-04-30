@@ -938,6 +938,23 @@ overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
+}
+
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
+}
+
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
 }
