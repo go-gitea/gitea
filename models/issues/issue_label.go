@@ -330,10 +330,10 @@ func FixIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if !issue.isLabelsLoaded && issue.Labels == nil && issue.ID != 0 {
 		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
-		issue.isLabelsLoaded = true
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %w", issue.ID, err)
 		}
+		issue.isLabelsLoaded = true
 	}
 	return nil
 }

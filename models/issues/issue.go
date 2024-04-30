@@ -197,10 +197,10 @@ func (issue *Issue) LoadAttachments(ctx context.Context) (err error) {
 	}
 
 	issue.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
-	issue.isAttachmentsLoaded = true
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByIssueID [%d]: %w", issue.ID, err)
 	}
+	issue.isAttachmentsLoaded = true
 	return nil
 }
 
@@ -306,10 +306,10 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 	if !issue.isMilestoneLoaded && (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
-		issue.isMilestoneLoaded = true
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %w", issue.RepoID, issue.MilestoneID, err)
 		}
+		issue.isMilestoneLoaded = true
 	}
 	return nil
 }

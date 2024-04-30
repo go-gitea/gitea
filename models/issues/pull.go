@@ -294,15 +294,14 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return nil
 	}
 
-	pr.isRequestedReviewersLoaded = true
 	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
 	if err != nil {
 		return err
 	}
-
 	if err = reviews.LoadReviewers(ctx); err != nil {
 		return err
 	}
+	pr.isRequestedReviewersLoaded = true
 	for _, review := range reviews {
 		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
 	}
