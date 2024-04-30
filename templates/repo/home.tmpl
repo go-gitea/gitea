@@ -46,7 +46,7 @@
 		{{$l := Eval $n "-" 1}}
 		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row">
-			<div class="repo-button-row-left tw-flex tw-flex-1 tw-items-center tw-gap-2">
+			<div class="repo-button-row-left">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -113,7 +113,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="repo-button-row-right tw-flex tw-flex-1 tw-items-center">
+			<div class="repo-button-row-right">
 				<!-- Only show clone panel in repository home page -->
 				{{if $isHomepage}}
 					<div class="clone-panel ui action tiny input">

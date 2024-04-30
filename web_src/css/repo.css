@@ -2249,6 +2249,18 @@ td .commit-summary {
   justify-content: space-between;
 }
 
+.repo-button-row-left,
+.repo-button-row-right {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repo-button-row-right {
+  justify-content: flex-end;
+}
+
 @media (max-width: 991px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
