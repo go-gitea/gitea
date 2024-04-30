@@ -134,6 +134,7 @@
   justify-content: center;
   z-index: 1; /* prevent menu button background from overlaying icon */
   user-select: none;
+  white-space: nowrap;
 }
 
 .secondary-nav {

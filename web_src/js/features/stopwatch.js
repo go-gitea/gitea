@@ -157,6 +157,7 @@ function updateStopwatchTime(seconds) {
       const el = document.createElement('relative-time');
       el.setAttribute('format', 'micro');
       el.setAttribute('datetime', datetime);
+      el.setAttribute('lang', 'en-US');
       parent.append(el);
     }
   }
