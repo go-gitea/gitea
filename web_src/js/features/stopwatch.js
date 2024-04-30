@@ -126,9 +126,9 @@ async function updateStopwatch() {
 
 function updateStopwatchData(data) {
   const watch = data[0];
-  const btnEl = document.querySelector('.active-stopwatch');
+  const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {
-    hideElem(btnEl);
+    hideElem(btnEls);
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
@@ -138,7 +138,7 @@ function updateStopwatchData(data) {
     const stopwatchIssue = document.querySelector('.stopwatch-issue');
     if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
     updateStopwatchTime(seconds);
-    showElem(btnEl);
+    showElem(btnEls);
   }
   return Boolean(data.length);
 }
