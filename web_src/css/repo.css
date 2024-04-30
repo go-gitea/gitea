@@ -1586,6 +1586,7 @@ td .commit-summary {
 
 .repository .diff-file-box .file-body.file-code {
   background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .repository .diff-file-box .file-body.file-code .lines-num {
@@ -2382,6 +2383,22 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
+/* fix bottom border radius on diff files */
+.diff-file-body tr.tag-code:last-child {
+  background: none;
+}
+.diff-file-body tr.tag-code:last-child > td {
+  background: var(--color-box-body-highlight);
+}
+.diff-file-body tr.tag-code:last-child td:first-child,
+.diff-file-body tr.tag-code:last-child td:first-child * {
+  border-bottom-left-radius: 3px;
+}
+.diff-file-body tr.tag-code:last-child td:last-child,
+.diff-file-body tr.tag-code:last-child td:last-child * {
+  border-bottom-right-radius: 3px;
+}
+
 .resolved-placeholder {
   font-weight: var(--font-weight-normal) !important;
   border: 1px solid var(--color-secondary) !important;
@@ -2491,6 +2508,7 @@ tbody.commit-list {
 
 .diff-file-header {
   padding: 5px 8px !important;
+  box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
