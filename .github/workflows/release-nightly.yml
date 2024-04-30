@@ -9,8 +9,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  disk-clean:
-    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
     runs-on: nscloud
     steps:
@@ -25,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: make deps-frontend deps-backend
       # xgo build
       - run: make release

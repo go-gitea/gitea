@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -27,6 +28,7 @@ type GrepOptions struct {
 	MaxResultLimit    int
 	ContextLineNumber int
 	IsFuzzy           bool
+	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
 }
 
 func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
@@ -71,10 +73,20 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 			defer stdoutReader.Close()
 
 			isInBlock := false
-			scanner := bufio.NewScanner(stdoutReader)
+			rd := bufio.NewReaderSize(stdoutReader, util.IfZero(opts.MaxLineLength, 16*1024))
 			var res *GrepResult
-			for scanner.Scan() {
-				line := scanner.Text()
+			for {
+				lineBytes, isPrefix, err := rd.ReadLine()
+				if isPrefix {
+					lineBytes = slices.Clone(lineBytes)
+					for isPrefix && err == nil {
+						_, isPrefix, err = rd.ReadLine()
+					}
+				}
+				if len(lineBytes) == 0 && err != nil {
+					break
+				}
+				line := string(lineBytes) // the memory of lineBytes is mutable
 				if !isInBlock {
 					if _ /* ref */, filename, ok := strings.Cut(line, ":"); ok {
 						isInBlock = true
@@ -100,7 +112,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 					res.LineCodes = append(res.LineCodes, lineCode)
 				}
 			}
-			return scanner.Err()
+			return nil
 		},
 	})
 	// git grep exits by cancel (killed), usually it is caused by the limit of results

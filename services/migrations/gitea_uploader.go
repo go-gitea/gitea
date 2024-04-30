@@ -977,25 +977,24 @@ func (g *GiteaLocalUploader) Finish() error {
 }
 
 func (g *GiteaLocalUploader) remapUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {
-	var userid int64
+	var userID int64
 	var err error
 	if g.sameApp {
-		userid, err = g.remapLocalUser(source, target)
+		userID, err = g.remapLocalUser(source)
 	} else {
-		userid, err = g.remapExternalUser(source, target)
+		userID, err = g.remapExternalUser(source)
 	}
-
 	if err != nil {
 		return err
 	}
 
-	if userid > 0 {
-		return target.RemapExternalUser("", 0, userid)
+	if userID > 0 {
+		return target.RemapExternalUser("", 0, userID)
 	}
 	return target.RemapExternalUser(source.GetExternalName(), source.GetExternalID(), g.doer.ID)
 }
 
-func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (int64, error) {
+func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrated) (int64, error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
 		name, err := user_model.GetUserNameByID(g.ctx, source.GetExternalID())
@@ -1013,7 +1012,7 @@ func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrat
 	return userid, nil
 }
 
-func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (userid int64, err error) {
+func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
 		userid, err = user_model.GetUserIDByExternalUserID(g.ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))

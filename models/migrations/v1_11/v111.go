@@ -262,7 +262,6 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		for _, u := range units {
 			var found bool
 			for _, team := range teams {
-
 				var teamU []*TeamUnit
 				var unitEnabled bool
 				err = sess.Where("team_id = ?", team.ID).Find(&teamU)
@@ -331,12 +330,11 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		}
 
 		if !protectedBranch.EnableApprovalsWhitelist {
-
 			perm, err := getUserRepoPermission(sess, baseRepo, reviewer)
 			if err != nil {
 				return false, err
 			}
-			if perm.UnitsMode == nil {
+			if len(perm.UnitsMode) == 0 {
 				for _, u := range perm.Units {
 					if u.Type == UnitTypeCode {
 						return AccessModeWrite <= perm.AccessMode, nil

@@ -36,7 +36,7 @@ func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch
 type ReviewRequestNotifier struct {
 	Comment    *issues_model.Comment
 	IsAdd      bool
-	Reviwer    *user_model.User
+	Reviewer   *user_model.User
 	ReviewTeam *org_model.Team
 }
 
@@ -51,12 +51,12 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 		return nil, err
 	}
 
-	if pr.HeadRepo.IsFork {
-		return nil, nil
-	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
+	}
+
+	if pr.BaseRepo.IsFork {
+		return nil, nil
 	}
 
 	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
@@ -124,9 +124,9 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 				return nil, err
 			}
 			notifiers = append(notifiers, &ReviewRequestNotifier{
-				Comment: comment,
-				IsAdd:   true,
-				Reviwer: u,
+				Comment:  comment,
+				IsAdd:    true,
+				Reviewer: u,
 			})
 		}
 	}

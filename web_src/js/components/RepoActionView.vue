@@ -44,6 +44,9 @@ const sfc = {
         canApprove: false,
         canRerun: false,
         done: false,
+        workflowID: '',
+        workflowLink: '',
+        isSchedule: false,
         jobs: [
           // {
           //   id: 0,
@@ -338,10 +341,13 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      rerun_all: el.getAttribute('data-locale-rerun-all'),
+      scheduled: el.getAttribute('data-locale-runs-scheduled'),
+      commit: el.getAttribute('data-locale-runs-commit'),
+      pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
-      rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
@@ -377,17 +383,23 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
-        {{ run.commit.localeCommit }}
-        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        {{ run.commit.localePushedBy }}
-        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        <span class="ui label" v-if="run.commit.shortSHA">
-          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <template v-if="run.isSchedule">
+          {{ locale.scheduled }}
+        </template>
+        <template v-else>
+          {{ locale.commit }}
+          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+          {{ locale.pushedBy }}
+          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+        </template>
+        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
+          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -426,8 +438,8 @@ export function initRepositoryActionView() {
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-left">
-            <h3 class="job-info-header-title">
+          <div class="job-info-header-left gt-ellipsis">
+            <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
             </h3>
             <p class="job-info-header-detail">
@@ -503,6 +515,7 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .action-info-summary-title {
@@ -513,6 +526,7 @@ export function initRepositoryActionView() {
   font-size: 20px;
   margin: 0 0 0 8px;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .action-commit-summary {
@@ -726,6 +740,10 @@ export function initRepositoryActionView() {
 .job-info-header .job-info-header-detail {
   color: var(--color-console-fg-subtle);
   font-size: 12px;
+}
+
+.job-info-header-left {
+  flex: 1;
 }
 
 .job-step-container {
