@@ -158,6 +158,7 @@ function updateStopwatchTime(seconds) {
       el.setAttribute('format', 'micro');
       el.setAttribute('datetime', datetime);
       el.setAttribute('lang', 'en-US');
+      el.setAttribute('data-no-tooltip', 'true');
       parent.append(el);
     }
   }
