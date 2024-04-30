@@ -6,17 +6,9 @@
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-const filteredErrors = new Set([
-  'getModifierState is not a function', // https://github.com/microsoft/monaco-editor/issues/4325
-]);
-
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
   if (!pageContent) return;
-
-  for (const filteredError of filteredErrors) {
-    if (msg.includes(filteredError)) return;
-  }
 
   // compact the message to a data attribute to avoid too many duplicated messages
   const msgCompact = msg.replace(/\W/g, '').trim();
@@ -50,7 +42,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
-  // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likly a
+  // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likely a
   // non-critical event from the browser. We log them but don't show them to users. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
   // - https://github.com/mozilla-mobile/firefox-ios/issues/10817

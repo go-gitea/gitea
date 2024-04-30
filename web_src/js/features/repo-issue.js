@@ -449,12 +449,10 @@ export function initRepoPullRequestReview() {
           offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
         }
 
-        document.getElementById(`show-outdated-${id}`).classList.add('tw-hidden');
-        document.getElementById(`code-comments-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`code-preview-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`hide-outdated-${id}`).classList.remove('tw-hidden');
+        hideElem(`#show-outdated-${id}`);
+        showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
         // if the comment box is folded, expand it
-        if (ancestorDiffBox.getAttribute('data-folded') === 'true') {
+        if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
 

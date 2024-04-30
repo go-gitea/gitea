@@ -182,17 +182,6 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 使用 [Fail2Ban](administration/fail2ban-setup.md) 监视并阻止基于日志模式的自动登录尝试或其他恶意行为。
 
-## 如何添加/使用自定义主题
-
-Gitea 目前支持三个官方主题，分别是 `gitea-light`、`gitea-dark` 和 `gitea-auto`（根据操作系统设置自动切换前两个主题）。
-要添加自己的主题，目前唯一的方法是提供一个完整的主题（不仅仅是颜色覆盖）。
-
-假设我们的主题是 `arc-blue`（这是一个真实的主题，可以在[此问题](https://github.com/go-gitea/gitea/issues/6011)中找到）
-
-将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/assets/css`文件夹中
-
-通过将`arc-blue`添加到`app.ini`中的`THEMES`列表中，允许用户使用该主题
-
 ## SSHD vs 内建SSH
 
 SSHD是大多数Unix系统上内建的SSH服务器。

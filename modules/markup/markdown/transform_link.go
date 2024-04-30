@@ -4,21 +4,31 @@
 package markdown
 
 import (
+	"path/filepath"
+
 	"code.gitea.io/gitea/modules/markup"
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/text"
 )
 
-func (g *ASTTransformer) transformLink(ctx *markup.RenderContext, v *ast.Link, reader text.Reader) {
+func (g *ASTTransformer) transformLink(ctx *markup.RenderContext, v *ast.Link) {
 	// Links need their href to munged to be a real value
 	link := v.Destination
 	isAnchorFragment := len(link) > 0 && link[0] == '#'
 	if !isAnchorFragment && !markup.IsFullURLBytes(link) {
 		base := ctx.Links.Base
 		if ctx.IsWiki {
-			base = ctx.Links.WikiLink()
+			if filepath.Ext(string(link)) == "" {
+				// This link doesn't have a file extension - assume a regular wiki link
+				base = ctx.Links.WikiLink()
+			} else if markup.Type(string(link)) != "" {
+				// If it's a file type we can render, use a regular wiki link
+				base = ctx.Links.WikiLink()
+			} else {
+				// Otherwise, use a raw link instead
+				base = ctx.Links.WikiRawLink()
+			}
 		} else if ctx.Links.HasBranchInfo() {
 			base = ctx.Links.SrcLink()
 		}

@@ -212,10 +212,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 `{CustomPath}/public/assets/css/theme-*.css` 提供。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
-  而不受DEFAULT_THEME 值的影响。
+- `THEMES`:  **_empty_**: 所有可用的主题（由 `{CustomPath}/public/assets/css/theme-*.css` 提供）。允许用户选择个性化的主题，
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
     这些值可以是表情符号别名（例如：:smile:）或Unicode表情符号。
@@ -1128,15 +1127,6 @@ ALLOW_DATA_URI_IMAGES = true
 
 - `DEFAULT_UI_LOCATION`：在 UI 上的默认时间位置，以便我们可以在 UI 上显示正确的用户时间。例如：Asia/Shanghai
 
-## 任务 (`task`)
-
-任务队列配置已移动到 `queue.task`。然而，以下配置值仍保留以确保向后兼容：
-
-- `QUEUE_TYPE`：**channel**：任务队列类型，可以是 `channel` 或 `redis`。
-- `QUEUE_LENGTH`：**1000**：任务队列长度，仅在 `QUEUE_TYPE` 为 `channel` 时可用。
-- `QUEUE_CONN_STR`：**redis://127.0.0.1:6379/0**：任务队列连接字符串，仅在 `QUEUE_TYPE` 为 `redis` 时可用。
-  如果 redis 需要密码，使用 `redis://123@127.0.0.1:6379/0` 或 `redis+cluster://123@127.0.0.1:6379/0`。
-
 ## 迁移 (`migrations`)
 
 - `MAX_ATTEMPTS`：**3**：每次 http/https 请求的最大尝试次数（用于迁移）。
@@ -1353,5 +1343,6 @@ PROXY_HOSTS = *.github.com
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: 在页脚显示模板执行的时间。
+- `SHOW_FOOTER_POWERED_BY`: **true**: 在页脚显示“由...提供动力”的文本。
 - `ENABLE_SITEMAP`: **true**: 生成sitemap.
 - `ENABLE_FEED`: **true**: 是否启用RSS/Atom

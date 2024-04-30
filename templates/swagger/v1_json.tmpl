@@ -3843,6 +3843,54 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List an repo's actions secrets",
+        "operationId": "repoListActionsSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/SecretList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets/{secretname}": {
       "put": {
         "consumes": [
@@ -5333,6 +5381,49 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequest"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/compare/{basehead}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get commit comparison information",
+        "operationId": "repoCompareDiff",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "compare two branches or commits",
+            "name": "basehead",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Compare"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -18717,6 +18808,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Compare": {
+      "type": "object",
+      "title": "Compare represents a comparison between two commits.",
+      "properties": {
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Commit"
+          },
+          "x-go-name": "Commits"
+        },
+        "total_commits": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCommits"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -24196,6 +24306,12 @@
           "type": "boolean",
           "x-go-name": "Restricted"
         },
+        "source_id": {
+          "description": "The ID of the user's Authentication Source",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SourceID"
+        },
         "starred_repos_count": {
           "type": "integer",
           "format": "int64",
@@ -24676,6 +24792,12 @@
         "items": {
           "$ref": "#/definitions/CommitStatus"
         }
+      }
+    },
+    "Compare": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/Compare"
       }
     },
     "ContentsListResponse": {
@@ -25160,7 +25282,7 @@
       }
     },
     "RegistrationToken": {
-      "description": "RegistrationToken is response related to registeration token",
+      "description": "RegistrationToken is response related to registration token",
       "headers": {
         "token": {
           "type": "string"

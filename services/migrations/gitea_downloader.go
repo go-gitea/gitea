@@ -410,7 +410,6 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
-
 		labels := make([]*base.Label, 0, len(issue.Labels))
 		for i := range issue.Labels {
 			labels = append(labels, g.convertGiteaLabel(issue.Labels[i]))

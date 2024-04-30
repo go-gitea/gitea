@@ -5,7 +5,7 @@ package git
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"time"
 
@@ -148,7 +148,7 @@ func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repositor
 	}
 
 	if !force && u.ID != lock.OwnerID {
-		return nil, fmt.Errorf("user doesn't own lock and force flag is not set")
+		return nil, errors.New("user doesn't own lock and force flag is not set")
 	}
 
 	if _, err := db.GetEngine(dbCtx).ID(id).Delete(new(LFSLock)); err != nil {

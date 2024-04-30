@@ -40,8 +40,9 @@
 			</a>
 			{{end}}
 			{{if .IsOrganizationOwner}}
+			<span class="item-flex-space"></span>
 			<a class="{{if .PageIsOrgSettings}}active {{end}}item" href="{{.OrgLink}}/settings">
-			{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
+				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 			</a>
 			{{end}}
 		</div>

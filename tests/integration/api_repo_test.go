@@ -222,7 +222,7 @@ func TestAPISearchRepo(t *testing.T) {
 					assert.Len(t, repoNames, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
-						hasAccess, err := access_model.HasAccess(db.DefaultContext, userID, r)
+						hasAccess, err := access_model.HasAnyUnitAccess(db.DefaultContext, userID, r)
 						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
 						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
 
@@ -684,7 +684,9 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	assert.Len(t, reviewers, 4)
+	if assert.Len(t, reviewers, 3) {
+		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	}
 }
 
 func TestAPIRepoGetAssignees(t *testing.T) {

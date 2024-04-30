@@ -98,6 +98,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
       'input.foreground': getColor('--color-input-text'),
       'scrollbar.shadow': getColor('--color-shadow'),
       'progressBar.background': getColor('--color-primary'),
+      'focusBorder': '#0000', // prevent blue border
     },
   });
 
@@ -111,6 +112,10 @@ export async function createMonaco(textarea, filename, editorOpts) {
     language,
     ...other,
   });
+
+  monaco.editor.addKeybindingRules([
+    {keybinding: monaco.KeyCode.Enter, command: null}, // disable enter from accepting code completion
+  ]);
 
   const model = editor.getModel();
   model.onDidChangeContent(() => {

@@ -16,6 +16,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -64,7 +65,7 @@ func SettingsCtxData(ctx *context.Context) {
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
-	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
@@ -109,7 +110,7 @@ func SettingsPost(ctx *context.Context) {
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
-	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
 
@@ -476,9 +477,10 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 		} else if form.EnableWiki && !form.EnableExternalWiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeWiki,
-				Config: new(repo_model.UnitConfig),
+				RepoID:             repo.ID,
+				Type:               unit_model.TypeWiki,
+				Config:             new(repo_model.UnitConfig),
+				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultWikiEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite),
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else {

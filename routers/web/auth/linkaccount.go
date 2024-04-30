@@ -48,23 +48,27 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+	gothUser, ok := ctx.Session.Get("linkAccountGothUser").(goth.User)
+	if !ok {
+		// no account in session, so just redirect to the login page, then the user could restart the process
+		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
 
-	gu, _ := gothUser.(goth.User)
-	uname, err := getUserName(&gu)
+	if missingFields, ok := gothUser.RawData["__giteaAutoRegMissingFields"].([]string); ok {
+		ctx.Data["AutoRegistrationFailedPrompt"] = ctx.Tr("auth.oauth_callback_unable_auto_reg", gothUser.Provider, strings.Join(missingFields, ","))
+	}
+
+	uname, err := extractUserNameFromOAuth2(&gothUser)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-	email := gu.Email
+	email := gothUser.Email
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
 
-	if len(email) != 0 {
+	if email != "" {
 		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -73,7 +77,7 @@ func LinkAccount(ctx *context.Context) {
 		if u != nil {
 			ctx.Data["user_exists"] = true
 		}
-	} else if len(uname) != 0 {
+	} else if uname != "" {
 		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)

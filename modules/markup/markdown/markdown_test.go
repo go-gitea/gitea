@@ -466,7 +466,6 @@ func TestColorPreview(t *testing.T) {
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
-
 	}
 
 	negativeTests := []string{
@@ -549,7 +548,6 @@ func TestMathBlock(t *testing.T) {
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
-
 	}
 }
 
@@ -653,9 +651,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/path/file" alt="local image"/></a><br/>
@@ -711,9 +709,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="https://gitea.io/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://gitea.io/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="https://gitea.io/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://gitea.io/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="https://gitea.io/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="https://gitea.io/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/path/file" alt="local image"/></a><br/>
@@ -769,9 +767,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
@@ -829,9 +827,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
@@ -889,9 +887,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
@@ -951,9 +949,9 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/wiki/raw/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
 <a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
