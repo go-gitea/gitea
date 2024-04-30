@@ -39,7 +39,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 		}()
 
-		return updateHeadByRebaseOnToBase(ctx, pr, doer, message)
+		return updateHeadByRebaseOnToBase(ctx, pr, doer)
 	}
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
