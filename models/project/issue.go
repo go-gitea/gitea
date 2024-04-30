@@ -130,7 +130,7 @@ func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs
 
 		for _, column := range movedColumns {
 			if column.ProjectID != project.ID {
-				return errors.New("Some column's projectID is not equal to project's ID")
+				return errors.New("some column's projectID is not equal to project's ID")
 			}
 		}
 

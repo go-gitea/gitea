@@ -150,22 +150,31 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 	return db.Insert(ctx, boards)
 }
 
+// maxProjectColumns max columns allowed in a project, this should not bigger than 127
+// because sorting is int8 in database
+const maxProjectColumns = 20
+
 // NewBoard adds a new project board to a given project
 func NewBoard(ctx context.Context, board *Board) error {
 	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
 		return fmt.Errorf("bad color code: %s", board.Color)
 	}
 
-	var maxSorting int8
-	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
-		Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
+	totalColumns, err := db.GetEngine(ctx).Table("project_board").
+		Where("project_id=?", board.ProjectID).Count()
+	if err != nil {
 		return err
 	}
-	if maxSorting > 0 {
-		board.Sorting = maxSorting + 1
+
+	if totalColumns >= maxProjectColumns {
+		return fmt.Errorf("NewBoard: maximum number of columns reached")
 	}
 
-	_, err := db.GetEngine(ctx).Insert(board)
+	if totalColumns > 0 {
+		board.Sorting = int8(totalColumns)
+	}
+
+	_, err = db.GetEngine(ctx).Insert(board)
 	return err
 }
 
