@@ -206,7 +206,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Get uploaded file from request
 	var content io.ReadCloser
-	var filename string
+	var attachmentName string
 	var size int64 = -1
 
 	if strings.HasPrefix(strings.ToLower(ctx.Req.Header.Get("Content-Type")), "multipart/form-data") {
@@ -219,23 +219,23 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 		content = file
 		size = header.Size
-		filename = header.Filename
+		attachmentName = header.Filename
 		if name := ctx.FormString("name"); name != "" {
-			filename = name
+			attachmentName = name
 		}
 	} else {
 		content = ctx.Req.Body
-		filename = ctx.FormString("name")
+		attachmentName = ctx.FormString("name")
 	}
 
-	if filename == "" {
+	if attachmentName == "" {
 		ctx.Error(http.StatusBadRequest, "CreateReleaseAttachment", "Could not determine name of attachment.")
 		return
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
-		Name:       filename,
+	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, attachmentName, &repo_model.Attachment{
+		Name:       attachmentName,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		ReleaseID:  releaseID,

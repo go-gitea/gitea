@@ -181,13 +181,13 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	filename := header.Filename
+	attachmentName := header.Filename
 	if query := ctx.FormString("name"); query != "" {
-		filename = query
+		attachmentName = query
 	}
 
-	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
-		Name:       filename,
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, header.Filename, &repo_model.Attachment{
+		Name:       attachmentName,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		IssueID:    comment.IssueID,
