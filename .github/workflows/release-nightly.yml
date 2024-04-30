@@ -9,8 +9,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  disk-clean:
-    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
     runs-on: nscloud
     steps:

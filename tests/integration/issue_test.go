@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -573,10 +574,14 @@ func TestGetIssueInfo(t *testing.T) {
 	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repo.Name, issue.Index)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	var respStruct struct {
+		ConvertedIssue api.Issue
+		RenderedLabels template.HTML
+	}
+	DecodeJSON(t, resp, &respStruct)
 
-	assert.EqualValues(t, issue.ID, apiIssue.ID)
+	assert.EqualValues(t, issue.ID, respStruct.ConvertedIssue.ID)
+	assert.Contains(t, string(respStruct.RenderedLabels), `"labels-list"`)
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
