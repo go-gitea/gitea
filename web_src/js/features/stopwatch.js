@@ -2,6 +2,7 @@ import prettyMilliseconds from 'pretty-ms';
 import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {logoutFromWorker} from '../modules/worker.js';
 
 const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
 
@@ -75,7 +76,7 @@ export function initStopwatch() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = `${appSubUrl}/`;
+        logoutFromWorker();
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
