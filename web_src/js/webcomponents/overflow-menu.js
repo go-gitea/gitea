@@ -131,6 +131,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       interactive: true,
       placement: 'bottom-end',
       role: 'menu',
+      theme: 'menu',
       content: this.tippyContent,
       onShow: () => { // FIXME: onShown doesn't work (never be called)
         setTimeout(() => {
