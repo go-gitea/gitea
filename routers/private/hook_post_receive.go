@@ -37,14 +37,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-
-	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
-	var (
-		repo    *repo_model.Repository
-		gitRepo *git.Repository
-	)
-	defer gitRepo.Close() // it's safe to call Close on a nil pointer
-
+	var repo *repo_model.Repository
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
@@ -88,68 +81,16 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if repo != nil && len(updates) > 0 {
-		branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
-		for _, update := range updates {
-			if !update.RefFullName.IsBranch() {
-				continue
-			}
-			if repo == nil {
-				repo = loadRepository(ctx, ownerName, repoName)
-				if ctx.Written() {
-					return
-				}
-				wasEmpty = repo.IsEmpty
-			}
-
-			if update.IsDelRef() {
-				if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
-					log.Error("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err),
-					})
-					return
-				}
-			} else {
-				branchesToSync = append(branchesToSync, update)
-
-				// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
-				pull_service.UpdatePullsRefs(ctx, repo, update)
-			}
-		}
-		if len(branchesToSync) > 0 {
-			var err error
-			gitRepo, err = gitrepo.OpenRepository(ctx, repo)
-			if err != nil {
-				log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
-			}
-
-			var (
-				branchNames = make([]string, 0, len(branchesToSync))
-				commitIDs   = make([]string, 0, len(branchesToSync))
-			)
-			for _, update := range branchesToSync {
-				branchNames = append(branchNames, update.RefFullName.BranchName())
-				commitIDs = append(commitIDs, update.NewCommitID)
-			}
-
-			if err := repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
-			}
+		syncBranches(ctx, updates, repo, opts.UserID)
+		if ctx.Written() {
+			return
 		}
 
 		if err := repo_service.PushUpdates(updates); err != nil {
-			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
+			log.Error("Failed to Update: %s/%s Total Updates: %d, Error: %v", ownerName, repoName, len(updates), err)
 			for i, update := range updates {
 				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
 			}
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
@@ -158,6 +99,76 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	handlePushOptions(ctx, opts, repo, ownerName, repoName)
+	if ctx.Written() {
+		return
+	}
+
+	results := generateCompareLinks(ctx, opts, ownerName, repoName, wasEmpty)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
+		Results:      results,
+		RepoWasEmpty: wasEmpty,
+	})
+}
+
+func syncBranches(ctx *gitea_context.PrivateContext, updates []*repo_module.PushUpdateOptions, repo *repo_model.Repository, pusherID int64) {
+	branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
+	for _, update := range updates {
+		if !update.RefFullName.IsBranch() {
+			continue
+		}
+
+		if update.IsDelRef() {
+			if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
+				log.Error("Failed to add deleted branch: %s/%s Error: %v", repo.OwnerName, repo.Name, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", repo.OwnerName, repo.Name, err),
+				})
+				return
+			}
+		} else {
+			branchesToSync = append(branchesToSync, update)
+
+			// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
+			pull_service.UpdatePullsRefs(ctx, repo, update)
+		}
+	}
+	if len(branchesToSync) == 0 {
+		return
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		log.Error("Failed to open repository: %s/%s Error: %v", repo.OwnerName, repo.Name, err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", repo.OwnerName, repo.Name, err),
+		})
+		return
+	}
+	defer gitRepo.Close()
+
+	var (
+		branchNames = make([]string, 0, len(branchesToSync))
+		commitIDs   = make([]string, 0, len(branchesToSync))
+	)
+	for _, update := range branchesToSync {
+		branchNames = append(branchNames, update.RefFullName.BranchName())
+		commitIDs = append(commitIDs, update.NewCommitID)
+	}
+
+	if err := repo_service.SyncBranchesToDB(ctx, repo.ID, pusherID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Failed to sync branch to DB in repository: %s/%s Error: %v", repo.OwnerName, repo.Name, err),
+		})
+		return
+	}
+}
+
+func handlePushOptions(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, ownerName, repoName string) {
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
@@ -169,7 +180,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				// Error handled in loadRepository
 				return
 			}
-			wasEmpty = repo.IsEmpty
 		}
 
 		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
@@ -217,11 +227,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 		}
 	}
+}
 
+func generateCompareLinks(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, wasEmpty bool) []private.HookPostReceiveBranchResult {
 	results := make([]private.HookPostReceiveBranchResult, 0, len(opts.OldCommitIDs))
-
-	// We have to reload the repo in case its state is changed above
-	repo = nil
+	var repo *repo_model.Repository
 	var baseRepo *repo_model.Repository
 
 	// Now handle the pull request notification trailers
@@ -235,7 +245,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
 				if ctx.Written() {
-					return
+					return nil
 				}
 
 				baseRepo = repo
@@ -247,7 +257,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
 							RepoWasEmpty: wasEmpty,
 						})
-						return
+						return nil
 					}
 					if repo.BaseRepo.AllowsPulls(ctx) {
 						baseRepo = repo.BaseRepo
@@ -259,7 +269,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 						RepoWasEmpty: wasEmpty,
 					})
-					return
+					return nil
 				}
 			}
 
@@ -279,7 +289,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 						"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
 					RepoWasEmpty: wasEmpty,
 				})
-				return
+				return nil
 			}
 
 			if pr == nil {
@@ -302,8 +312,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
-		Results:      results,
-		RepoWasEmpty: wasEmpty,
-	})
+
+	return results
 }
