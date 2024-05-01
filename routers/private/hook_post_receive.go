@@ -104,7 +104,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	results := generateCompareLinks(ctx, opts, ownerName, repoName, wasEmpty)
+	results := generateBranchResults(ctx, opts, repo, ownerName, repoName, wasEmpty)
 	if ctx.Written() {
 		return
 	}
@@ -229,9 +229,8 @@ func handlePushOptions(ctx *gitea_context.PrivateContext, opts *private.HookOpti
 	}
 }
 
-func generateCompareLinks(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, wasEmpty bool) []private.HookPostReceiveBranchResult {
+func generateBranchResults(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, ownerName, repoName string, wasEmpty bool) []private.HookPostReceiveBranchResult {
 	results := make([]private.HookPostReceiveBranchResult, 0, len(opts.OldCommitIDs))
-	var repo *repo_model.Repository
 	var baseRepo *repo_model.Repository
 
 	// Now handle the pull request notification trailers
@@ -240,76 +239,78 @@ func generateCompareLinks(ctx *gitea_context.PrivateContext, opts *private.HookO
 		newCommitID := opts.NewCommitIDs[i]
 
 		// If we've pushed a branch (and not deleted it)
-		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
-			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
-			if repo == nil {
-				repo = loadRepository(ctx, ownerName, repoName)
-				if ctx.Written() {
-					return nil
-				}
+		if !refFullName.IsBranch() || git.IsEmptyCommitID(newCommitID) {
+			continue
+		}
 
-				baseRepo = repo
+		// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
+		if repo == nil {
+			repo = loadRepository(ctx, ownerName, repoName)
+			if ctx.Written() {
+				return nil
+			}
 
-				if repo.IsFork {
-					if err := repo.GetBaseRepo(ctx); err != nil {
-						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
-						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
-							RepoWasEmpty: wasEmpty,
-						})
-						return nil
-					}
-					if repo.BaseRepo.AllowsPulls(ctx) {
-						baseRepo = repo.BaseRepo
-					}
-				}
+			baseRepo = repo
 
-				if !baseRepo.AllowsPulls(ctx) {
-					// We can stop there's no need to go any further
-					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
+			if repo.IsFork {
+				if err := repo.GetBaseRepo(ctx); err != nil {
+					log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
 						RepoWasEmpty: wasEmpty,
 					})
 					return nil
 				}
+				if repo.BaseRepo.AllowsPulls(ctx) {
+					baseRepo = repo.BaseRepo
+				}
 			}
 
-			branch := refFullName.BranchName()
-
-			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
-			if !repo.IsFork && branch == baseRepo.DefaultBranch {
-				results = append(results, private.HookPostReceiveBranchResult{})
-				continue
-			}
-
-			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
-			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf(
-						"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
+			if !baseRepo.AllowsPulls(ctx) {
+				// We can stop there's no need to go any further
+				ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 					RepoWasEmpty: wasEmpty,
 				})
 				return nil
 			}
+		}
 
-			if pr == nil {
-				if repo.IsFork {
-					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
-				}
-				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
-					Create:  true,
-					Branch:  branch,
-					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
-				})
-			} else {
-				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
-					Create:  false,
-					Branch:  branch,
-					URL:     fmt.Sprintf("%s/pulls/%d", baseRepo.HTMLURL(), pr.Index),
-				})
+		branch := refFullName.BranchName()
+
+		// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
+		if !repo.IsFork && branch == baseRepo.DefaultBranch {
+			results = append(results, private.HookPostReceiveBranchResult{})
+			continue
+		}
+
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
+		if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
+			log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf(
+					"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
+				RepoWasEmpty: wasEmpty,
+			})
+			return nil
+		}
+
+		if pr == nil {
+			if repo.IsFork {
+				branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 			}
+			results = append(results, private.HookPostReceiveBranchResult{
+				Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
+				Create:  true,
+				Branch:  branch,
+				URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
+			})
+		} else {
+			results = append(results, private.HookPostReceiveBranchResult{
+				Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
+				Create:  false,
+				Branch:  branch,
+				URL:     fmt.Sprintf("%s/pulls/%d", baseRepo.HTMLURL(), pr.Index),
+			})
 		}
 	}
 
