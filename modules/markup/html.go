@@ -54,7 +54,7 @@ var (
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
 	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
@@ -963,57 +963,63 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+type anyHashPatternResult struct {
+	PosStart  int
+	PosEnd    int
+	FullURL   string
+	CommitID  string
+	SubPath   string
+	QueryHash string
+}
+
+func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
+	m := anyHashPattern.FindStringSubmatchIndex(s)
+	if m == nil {
+		return ret, false
+	}
+
+	ret.PosStart, ret.PosEnd = m[0], m[1]
+	ret.FullURL = s[ret.PosStart:ret.PosEnd]
+	if strings.HasSuffix(ret.FullURL, ".") {
+		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
+		ret.PosEnd--
+		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
+		for i := 0; i < len(m); i++ {
+			m[i] = min(m[i], ret.PosEnd)
+		}
+	}
+
+	ret.CommitID = s[m[2]:m[3]]
+	if m[5] > 0 {
+		ret.SubPath = s[m[4]:m[5]]
+	}
+
+	lastStart, lastEnd := m[len(m)-2], m[len(m)-1]
+	if lastEnd > 0 {
+		ret.QueryHash = s[lastStart:lastEnd][1:]
+	}
+	return ret, true
+}
+
 // fullHashPatternProcessor renders SHA containing URLs
 func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
-	next := node.NextSibling
-	for node != nil && node != next {
-		m := anyHashPattern.FindStringSubmatchIndex(node.Data)
-		if m == nil {
-			return
+	for node != nil {
+		ret, ok := anyHashPatternExtract(node.Data)
+		if !ok {
+			node = node.NextSibling
+			continue
 		}
-
-		urlFull := node.Data[m[0]:m[1]]
-		text := base.ShortSha(node.Data[m[2]:m[3]])
-
-		// 3rd capture group matches a optional path
-		subpath := ""
-		if m[5] > 0 {
-			subpath = node.Data[m[4]:m[5]]
+		text := base.ShortSha(ret.CommitID)
+		if ret.SubPath != "" {
+			text += ret.SubPath
 		}
-
-		// 4th capture group matches a optional url hash
-		hash := ""
-		if m[7] > 0 {
-			hash = node.Data[m[6]:m[7]][1:]
+		if ret.QueryHash != "" {
+			text += " (" + ret.QueryHash + ")"
 		}
-
-		start := m[0]
-		end := m[1]
-
-		// If url ends in '.', it's very likely that it is not part of the
-		// actual url but used to finish a sentence.
-		if strings.HasSuffix(urlFull, ".") {
-			end--
-			urlFull = urlFull[:len(urlFull)-1]
-			if hash != "" {
-				hash = hash[:len(hash)-1]
-			} else if subpath != "" {
-				subpath = subpath[:len(subpath)-1]
-			}
-		}
-
-		if subpath != "" {
-			text += subpath
-		}
-
-		if hash != "" {
-			text += " (" + hash + ")"
-		}
-		replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
 		node = node.NextSibling.NextSibling
 	}
 }
