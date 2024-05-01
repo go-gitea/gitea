@@ -18,7 +18,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -162,12 +161,6 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	// Removing an auto merge pull and ignore if not exist
-	// FIXME: is this the correct point to do this? Shouldn't this be after IsMergeStyleAllowed?
-	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-		return err
-	}
-
 	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
@@ -184,17 +177,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	pr.MergedCommitID, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	pr.MergedCommitID, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, true)
 	if err != nil {
 		return err
-	}
-
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
-
-	if _, err := pr.SetMerged(ctx); err != nil {
-		log.Error("SetMerged %-v: %v", pr, err)
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -245,7 +230,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, isMerge bool) (string, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -318,6 +303,11 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.BaseRepo.Name,
 		pr.ID,
 	)
+	action := ""
+	if isMerge {
+		action = repo_module.PullRequestActionMerge
+	}
+	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPRAction+"="+action)
 	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.

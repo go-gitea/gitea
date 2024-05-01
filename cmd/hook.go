@@ -341,6 +341,7 @@ Gitea or set your environment appropriately.`, "")
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	hookOptions := private.HookOptions{
@@ -350,6 +351,8 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
+		PullRequestID:                   prID,
+		PullRequestAction:               os.Getenv(repo_module.EnvPRAction),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
