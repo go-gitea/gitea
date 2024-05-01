@@ -162,9 +162,56 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	var pusher *user_model.User
+
+	// handle pull request merging, a pull request action should only push 1 commit
+	if opts.PullRequestAction == repo_module.PullRequestActionMerge && len(updates) >= 1 {
+		// Get the pull request
+		pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
+		if err != nil {
+			log.Error("GetPullRequestByID[%d]: %v", opts.PullRequestID, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("GetPullRequestByID[%d]: %v", opts.PullRequestID, err),
+			})
+			return
+		}
+
+		pusher, err = user_model.GetUserByID(ctx, opts.UserID)
+		if err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+
+		pr.MergedCommitID = updates[len(updates)-1].NewCommitID
+		pr.MergedUnix = timeutil.TimeStampNow()
+		pr.Merger = pusher
+		pr.MergerID = opts.UserID
+
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
+			// Removing an auto merge pull and ignore if not exist
+			if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+				return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
+			}
+
+			if _, err := pr.SetMerged(ctx); err != nil {
+				return fmt.Errorf("Failed to SetMerged: %s/%s Error: %v", ownerName, repoName, err)
+			}
+			return nil
+		}); err != nil {
+			log.Error("%v", err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: err.Error(),
+			})
+			return
+		}
+	}
+
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
-	var pusher *user_model.User
+
 	// Handle Push Options
 	if isPrivate.Has() || isTemplate.Has() {
 		// load the repository
@@ -177,14 +224,16 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		var err error
-		pusher, err = user_model.GetUserByID(ctx, opts.UserID)
-		if err != nil {
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-			})
-			return
+		if pusher == nil {
+			var err error
+			pusher, err = user_model.GetUserByID(ctx, opts.UserID)
+			if err != nil {
+				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
 		}
 		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
 		if err != nil {
@@ -221,55 +270,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
-		}
-	}
-
-	// handle pull request merging, a pull request action should only push 1 commit
-	if opts.PullRequestAction == repo_module.PullRequestActionMerge && len(updates) >= 1 {
-		// Get the pull request
-		pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
-		if err != nil {
-			log.Error("GetPullRequestByID[%d]: %v", opts.PullRequestID, err)
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("GetPullRequestByID[%d]: %v", opts.PullRequestID, err),
-			})
-			return
-		}
-
-		// Removing an auto merge pull and ignore if not exist
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-			log.Error("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err),
-			})
-			return
-		}
-
-		if pusher == nil {
-			pusher, err = user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
-			}
-		}
-
-		pr.MergedCommitID = updates[len(updates)-1].NewCommitID
-		pr.MergedUnix = timeutil.TimeStampNow()
-		pr.Merger = pusher
-		pr.MergerID = opts.UserID
-
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			_, err := pr.SetMerged(ctx)
-			return err
-		}); err != nil {
-			log.Error("Failed to SetMerged: %s/%s Error: %v", ownerName, repoName, err)
-			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to SetMerged: %s/%s Error: %v", ownerName, repoName, err),
-			})
-			return
 		}
 	}
 
