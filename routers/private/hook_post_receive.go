@@ -172,7 +172,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
-
 	// Handle Push Options
 	if isPrivate.Has() || isTemplate.Has() {
 		// load the repository
