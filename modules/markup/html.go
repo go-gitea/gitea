@@ -591,17 +591,16 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 
 func mentionProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
-	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
-		// We replace only the first mention; other mentions will be addressed later
-		found, loc := references.FindFirstMentionBytes([]byte(node.Data[start:]))
+	for node != nil {
+		found, loc := references.FindFirstMentionBytes(util.UnsafeStringToBytes(node.Data[start:]))
 		if !found {
-			return
+			node = node.NextSibling
+			start = 0
+			continue
 		}
 		loc.Start += start
 		loc.End += start
 		mention := node.Data[loc.Start:loc.End]
-		var teams string
 		teams, ok := ctx.Metas["teams"]
 		// FIXME: util.URLJoin may not be necessary here:
 		// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
@@ -623,10 +622,10 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
 			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "mention"))
 			node = node.NextSibling.NextSibling
+			start = 0
 		} else {
-			node = node.NextSibling
+			start = loc.End
 		}
-		start = 0
 	}
 }
 
