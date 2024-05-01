@@ -41,6 +41,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
+	// generate updates and put the master/main branch first
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
 
@@ -80,12 +81,22 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	// sync branches to the database, if failed return error to keep branches consistent between disk and database
 	if repo != nil && len(updates) > 0 {
 		syncBranches(ctx, updates, repo, opts.UserID)
 		if ctx.Written() {
 			return
 		}
+	}
 
+	// Handle possible Push Options
+	handlePushOptions(ctx, opts, repo, ownerName, repoName)
+	if ctx.Written() {
+		return
+	}
+
+	// push updates to a queue so some notificactions can be handled async
+	if len(updates) > 0 {
 		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d, Error: %v", ownerName, repoName, len(updates), err)
 			for i, update := range updates {
@@ -99,11 +110,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	handlePushOptions(ctx, opts, repo, ownerName, repoName)
-	if ctx.Written() {
-		return
-	}
-
+	// generate branch results for end user. i.e. Displaying a link to create a PR
 	results := generateBranchResults(ctx, opts, repo, ownerName, repoName, wasEmpty)
 	if ctx.Written() {
 		return
