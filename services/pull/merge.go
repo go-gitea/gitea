@@ -182,6 +182,12 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return err
 	}
 
+	// reload pull request because it has been updated by post receive hook
+	pr, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+	if err != nil {
+		return err
+	}
+
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue %-v: %v", pr, err)
 	}
@@ -311,8 +317,8 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
-	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
-	//       that prevents us from doint the whole merge in one db transaction
+	// This cause an api call to "/api/internal/hook/post-receive/...",
+	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
 	if err := pushCmd.Run(mergeCtx.RunOpts()); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
