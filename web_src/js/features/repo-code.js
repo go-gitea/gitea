@@ -113,6 +113,7 @@ function showLineButton() {
   btn.closest('.code-view').append(menu.cloneNode(true));
 
   createTippy(btn, {
+    theme: 'menu',
     trigger: 'click',
     hideOnClick: true,
     content: menu,
