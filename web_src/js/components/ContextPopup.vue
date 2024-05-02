@@ -104,7 +104,7 @@ export default {
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
-    <div v-if="!loading && issue === null">
+    <div class="tw-flex tw-flex-col tw-gap-2" v-if="!loading && issue === null">
       <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
       <div>{{ i18nErrorMessage }}</div>
     </div>
