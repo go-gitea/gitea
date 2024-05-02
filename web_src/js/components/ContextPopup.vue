@@ -93,7 +93,13 @@ export default {
     <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
     <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
       <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
-      <div><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</div>
+      <div class="flex-text-block">
+        <svg-icon :name="icon" :class="['text', color]"/>
+        <span class="issue-title tw-font-semibold tw-break-anywhere">
+          {{ issue.title }}
+          <span class="index">#{{ issue.number }}</span>
+        </span>
+      </div>
       <div v-if="body">{{ body }}</div>
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-if="issue.labels.length" v-html="renderedLabels"/>
