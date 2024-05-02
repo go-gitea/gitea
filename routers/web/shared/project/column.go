@@ -4,7 +4,6 @@
 package project
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
@@ -45,7 +44,7 @@ func MoveColumns(ctx *context.Context) {
 	}
 
 	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.NotFoundOrServerError("MoveColumnsOnProject", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("MoveColumnsOnProject", err)
 		return
 	}
 
