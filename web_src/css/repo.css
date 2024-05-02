@@ -2828,9 +2828,14 @@ tbody.commit-list {
   max-width: 100%;
 }
 
+.ui.dropdown.branch-selector-dropdown > .menu {
+  margin-top: 4px;
+}
+
 .branch-selector-dropdown .branch-dropdown-button {
   margin: 0;
   max-width: 340px;
+  line-height: var(--line-height-default);
 }
 
 /* FIXME: These media selectors are not ideal (just keep them from old code).
