@@ -119,6 +119,10 @@ jobs:
           MINIO_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - "10000:10000"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
