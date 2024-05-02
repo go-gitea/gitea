@@ -871,6 +871,7 @@ input:-webkit-autofill:active,
 
 .ui.dropdown .scrolling.menu {
   border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
