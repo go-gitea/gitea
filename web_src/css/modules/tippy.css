@@ -28,6 +28,11 @@
   z-index: 1;
 }
 
+/* for vue3-calendar-heatmap's tippy instances */
+.tippy-content:not([data-theme]) {
+  padding: 8px 14px;
+}
+
 /* bare theme, no styling at all, except box-shadow */
 .tippy-box[data-theme="bare"] {
   border: none;
