@@ -6,7 +6,6 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -43,7 +42,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.AccessMode >= perm.AccessModeRead {
+		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
 			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
 	}
