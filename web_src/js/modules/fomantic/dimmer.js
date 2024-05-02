@@ -5,6 +5,7 @@ export function initFomanticDimmer() {
   // stand-in for removed dimmer module
   $.fn.dimmer = function (arg0, arg1) {
     if (arg0 === 'add content') {
+      const $el = arg1;
       const existingDimmer = document.querySelector('body > .ui.dimmer');
       if (existingDimmer) {
         queryElemChildren(existingDimmer, '*', (el) => el.remove());
@@ -14,7 +15,6 @@ export function initFomanticDimmer() {
         this._dimmer.classList.add('ui', 'dimmer');
         document.body.append(this._dimmer);
       }
-      const $el = arg1;
       this._dimmer.append($el[0]);
     } else if (arg0 === 'get dimmer') {
       return $(this._dimmer);
@@ -22,9 +22,9 @@ export function initFomanticDimmer() {
       this._dimmer.classList.add('active');
       document.body.classList.add('tw-overflow-hidden');
     } else if (arg0 === 'hide') {
+      const cb = arg1;
       this._dimmer.classList.remove('active');
       document.body.classList.remove('tw-overflow-hidden');
-      const cb = arg1;
       cb();
     }
     return this;
