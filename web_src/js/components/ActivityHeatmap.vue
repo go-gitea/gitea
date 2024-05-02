@@ -79,5 +79,6 @@ This selector should be replaced by a more specific one if the library adds a CS
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
   border: none;
+  border-radius: var(--border-radius);
 }
 </style>
