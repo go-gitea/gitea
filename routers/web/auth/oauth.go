@@ -470,8 +470,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// Redirect if user already granted access
-	if grant != nil {
+	// Redirect if user already granted access and the application is confidential.
+	// I.e. always require authorization for public clients as recommended by RFC 6749 Section 10.2
+	if app.ConfidentialClient && grant != nil {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
