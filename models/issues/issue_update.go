@@ -449,9 +449,8 @@ func UpdateIssueByAPI(ctx context.Context, issue *Issue, doer *user_model.User) 
 		return nil, err
 	}
 
-	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(
-		"name", "content", "milestone_id", "priority",
-		"deadline_unix", "updated_unix", "is_locked").
+	if _, err := db.GetEngine(ctx).ID(issue.ID).
+		Cols("milestone_id", "priority", "deadline_unix", "updated_unix", "is_locked").
 		Update(issue); err != nil {
 		return nil, err
 	}
