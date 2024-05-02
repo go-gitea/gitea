@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
-	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // SearchIssues searches for issues across the repositories that the user has access to
@@ -887,20 +886,14 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 		}
-		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
-	}
-	statusChangeComment, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
-	if err != nil {
-		if issues_model.IsErrDependenciesLeft(err) {
-			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", api.StateClosed == api.StateType(*form.State)); err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
-		return
-	}
-
-	if statusChangeComment != nil {
-		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values

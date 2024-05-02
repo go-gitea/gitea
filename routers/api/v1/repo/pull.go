@@ -693,19 +693,14 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
 			return
 		}
-		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
-	}
-	statusChangeComment, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
-	if err != nil {
-		if issues_model.IsErrDependenciesLeft(err) {
-			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", api.StateClosed == api.StateType(*form.State)); err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
-		return
-	}
-	if statusChangeComment != nil {
-		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
