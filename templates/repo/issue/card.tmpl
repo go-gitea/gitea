@@ -62,13 +62,13 @@
 	</div>
 
 	{{if or .Labels .Assignees}}
-	<div class="tw-flex tw-justify-between">
-		<div class="labels-list tw-flex-1">
+	<div class="issue-card-bottom">
+		<div class="labels-list">
 			{{range .Labels}}
 				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
 			{{end}}
 		</div>
-		<div class="tw-flex tw-flex-wrap tw-content-start tw-gap-1">
+		<div class="issue-card-assignees">
 			{{range .Assignees}}
 				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
 			{{end}}

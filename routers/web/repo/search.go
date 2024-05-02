@@ -28,6 +28,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["Language"] = language
 	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, tplSearch)
@@ -86,7 +87,6 @@ func Search(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Repo"] = ctx.Repo.Repository
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
