@@ -277,5 +277,5 @@ func (ctx *Context) JSONServerError(msg string, err error) {
 			errorMessage = fmt.Sprintf("%s: %v", errorMessage, err)
 		}
 	}
-	ctx.JSONError(errorMessage)
+	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": errorMessage, "renderFormat": "text"})
 }
