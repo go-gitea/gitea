@@ -115,7 +115,9 @@ export function initRepoProject() {
       } catch (error) {
         console.error(error);
       } finally {
-        projectTitleLabel.textContent = projectTitleInput?.value;
+        if (projectTitleInput?.value !== '') {
+          projectTitleLabel.textContent = projectTitleInput?.value;
+        }
         projectTitleInput.closest('form')?.classList.remove('dirty');
         const dividers = boardColumn.querySelectorAll(':scope > .divider');
         if (projectColorInput.value) {
