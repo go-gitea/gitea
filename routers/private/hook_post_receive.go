@@ -193,7 +193,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			})
 			return
 		}
-
 		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
