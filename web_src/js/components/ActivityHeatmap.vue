@@ -73,12 +73,15 @@ At the moment we could only identify the tooltip by its transition property.
 https://github.com/razorness/vue3-calendar-heatmap/blob/955626176cb5dc3d3ead8120475c2e5e753cc392/src/components/CalendarHeatmap.vue#L202
 This selector should be replaced by a more specific one if the library adds a CSS class.
 */
+[data-tippy-root][style*="transition: transform 0.1s ease-out"] .tippy-box {
+  border: none;
+}
+/* some styles are put on the tippy-content intentionally, otherwise there will be strange animations */
 [data-tippy-root][style*="transition: transform 0.1s ease-out"] .tippy-box .tippy-content {
   transition: none !important;
   padding: 0.5rem 1rem;
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
-  border: none;
   border-radius: var(--border-radius);
 }
 </style>
