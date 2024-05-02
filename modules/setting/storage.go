@@ -315,7 +315,7 @@ func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecTy
 
 	if overrideSec != nil {
 		storage.AzureBlobConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.AzureBlobConfig.ServeDirect)
-		storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(overrideSec, "AZURE_BLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
+		storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(overrideSec, "AZURE_BLOB_BASE_PATH", defaultPath)
 		storage.AzureBlobConfig.Container = ConfigSectionKeyString(overrideSec, "AZURE_BLOB_CONTAINER", storage.AzureBlobConfig.Container)
 	} else {
 		storage.AzureBlobConfig.BasePath = defaultPath

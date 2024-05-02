@@ -28,7 +28,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 )
 
-var _ ObjectStorage = &AzureBlobStorage{}
+var _ Object = &azureBlobObject{}
 
 type azureBlobObject struct {
 	BlobClient *blob.Client
@@ -101,6 +101,8 @@ func (a *azureBlobObject) Stat() (os.FileInfo, error) {
 		*a.ModTime,
 	}, nil
 }
+
+var _ ObjectStorage = &AzureBlobStorage{}
 
 // AzureStorage returns a azure blob storage
 type AzureBlobStorage struct {
