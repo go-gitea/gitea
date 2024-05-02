@@ -72,7 +72,8 @@ export default {
 At the moment we could only identify the tooltip by its transition property.
 https://github.com/razorness/vue3-calendar-heatmap/blob/955626176cb5dc3d3ead8120475c2e5e753cc392/src/components/CalendarHeatmap.vue#L202
 This selector should be replaced by a more specific one if the library adds a CSS class.
-TODO: Remove this after https://github.com/razorness/vue3-calendar-heatmap/pull/34 is merged and released.
+TODO: Remove this after https://github.com/razorness/vue3-calendar-heatmap/pull/34 is merged and released,
+and then all styles could be merged into `.tippy-box` selector.
 */
 [data-tippy-root][style*="transition: transform 0.1s ease-out"] .tippy-box {
   border: none;
