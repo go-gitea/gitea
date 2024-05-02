@@ -194,6 +194,10 @@ func TestAPIEditIssue(t *testing.T) {
 	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 
+	// check comment history
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issueAfter.ID, OldTitle: issueBefore.Title, NewTitle: title})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: issueAfter.ID, ContentText: body, IsFirstCreated: false})
+
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
 	assert.NoError(t, issueAfter.LoadAttributes(db.DefaultContext))
