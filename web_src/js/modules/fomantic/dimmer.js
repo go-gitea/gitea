@@ -3,7 +3,7 @@ import {queryElemChildren} from '../../utils/dom.js';
 
 export function initFomanticDimmer() {
   // stand-in for removed dimmer module
-  $.fn.dimmer = function (arg0, $el) {
+  $.fn.dimmer = function (arg0, arg1) {
     if (arg0 === 'add content') {
       const existingDimmer = document.querySelector('body > .ui.dimmer');
       if (existingDimmer) {
@@ -14,6 +14,7 @@ export function initFomanticDimmer() {
         this._dimmer.classList.add('ui', 'dimmer');
         document.body.append(this._dimmer);
       }
+      const $el = arg1;
       this._dimmer.append($el[0]);
     } else if (arg0 === 'get dimmer') {
       return $(this._dimmer);
@@ -23,6 +24,8 @@ export function initFomanticDimmer() {
     } else if (arg0 === 'hide') {
       this._dimmer.classList.remove('active');
       document.body.classList.remove('tw-overflow-hidden');
+      const cb = arg1;
+      cb();
     }
     return this;
   };
