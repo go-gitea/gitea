@@ -592,7 +592,8 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 
 func mentionProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
-	for node != nil {
+	nodeStop := node.NextSibling
+	for node != nodeStop {
 		found, loc := references.FindFirstMentionBytes(util.UnsafeStringToBytes(node.Data[start:]))
 		if !found {
 			node = node.NextSibling
