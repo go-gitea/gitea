@@ -502,6 +502,7 @@ export function initRepoPullRequestReview() {
   if ($reviewBtn.length && $panel.length) {
     const tippy = createTippy($reviewBtn[0], {
       content: $panel[0],
+      theme: 'default',
       placement: 'bottom',
       trigger: 'click',
       maxWidth: 'none',

@@ -13,6 +13,7 @@
     "@github/text-expander-element": "2.6.1",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@primer/octicons": "19.9.0",
+    "@silverwind/vue3-calendar-heatmap": "2.0.6",
     "add-asset-webpack-plugin": "2.0.1",
     "ansi_up": "6.0.2",
     "asciinema-player": "3.7.1",
@@ -41,7 +42,6 @@
     "postcss": "8.4.38",
     "postcss-loader": "8.1.1",
     "postcss-nesting": "12.1.2",
-    "pretty-ms": "9.0.0",
     "sortablejs": "1.15.2",
     "swagger-ui-dist": "5.17.2",
     "tailwindcss": "3.4.3",
@@ -57,7 +57,6 @@
     "vue-bar-graph": "2.0.0",
     "vue-chartjs": "5.3.1",
     "vue-loader": "17.4.2",
-    "vue3-calendar-heatmap": "2.0.5",
     "webpack": "5.91.0",
     "webpack-cli": "5.1.4",
     "wrap-ansi": "9.0.0"

@@ -680,10 +680,6 @@ input:-webkit-autofill:active,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dimmer {
-  background: var(--color-overlay-backdrop);
-}
-
 .ui.dropdown .menu > .header {
   font-size: 0.8em;
 }
@@ -875,6 +871,7 @@ input:-webkit-autofill:active,
 
 .ui.dropdown .scrolling.menu {
   border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
@@ -940,6 +937,23 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
+}
+
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
 }
 
 overflow-menu .ui.label {

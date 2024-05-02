@@ -212,9 +212,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 "{CustomPath}/public/assets/css/theme-*.css" 提供。
+- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 `{CustomPath}/public/assets/css/theme-*.css` 提供。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **_empty_**: 所有可用的主题（由 "{CustomPath}/public/assets/css/theme-*.css" 提供）。允许用户选择个性化的主题，
+- `THEMES`:  **_empty_**: 所有可用的主题（由 `{CustomPath}/public/assets/css/theme-*.css` 提供）。允许用户选择个性化的主题，
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
     这些值可以是表情符号别名（例如：:smile:）或Unicode表情符号。

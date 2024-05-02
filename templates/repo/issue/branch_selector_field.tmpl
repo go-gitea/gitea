@@ -4,10 +4,12 @@
 <form method="post" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
 	{{$.CsrfTokenHtml}}
 </form>
-{{/* TODO: share this branch selector dropdown with the same in repo page */}}
-<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown tw-max-w-full" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
-	<div class="ui basic small button">
-		<span class="text branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
+<div class="ui dropdown select-branch branch-selector-dropdown {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
+	data-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+	{{if not .Issue}}data-for-new-issue="true"{{end}}
+>
+	<div class="ui button branch-dropdown-button">
+		<span class="text-branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
 	</div>
 	<div class="menu">
@@ -15,26 +17,18 @@
 			<i class="icon">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
-		<div class="header">
-			<div class="ui grid">
-				<div class="two column row">
-					<a class="reference column muted" href="#" data-target="#branch-list">
-						<span class="text black">
-							{{svg "octicon-git-branch" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.branches"}}
-						</span>
-					</a>
-					<a class="reference column muted" href="#" data-target="#tag-list">
-						<span class="text">
-							{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.tags"}}
-						</span>
-					</a>
-				</div>
-			</div>
+		<div class="branch-tag-tab">
+			<a class="branch-tag-item reference column muted active" href="#" data-target="#branch-list">
+				{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
+			</a>
+			<a class="branch-tag-item reference column muted" href="#" data-target="#tag-list">
+				{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
+			</a>
 		</div>
 		<div class="branch-tag-divider"></div>
-		<div id="branch-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}">
-			{{if .Reference}}
-				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+		<div id="branch-list" class="scrolling menu reference-list-menu">
+			{{if or .Reference (not .Issue)}}
+				<div class="item text small" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector" title="{{.}}">{{.}}</div>
@@ -42,9 +36,9 @@
 				<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}} tw-hidden">
-			{{if .Reference}}
-				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+		<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
+			{{if or .Reference (not .Issue)}}
+				<div class="item text small" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>

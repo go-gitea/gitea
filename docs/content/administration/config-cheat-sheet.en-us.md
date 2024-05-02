@@ -214,9 +214,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **gitea-auto**: Set the default theme for the Gitea installation, custom themes could be provided by "{CustomPath}/public/assets/css/theme-*.css".
+- `DEFAULT_THEME`: **gitea-auto**: Set the default theme for the Gitea installation, custom themes could be provided by `{CustomPath}/public/assets/css/theme-*.css`.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`: **_empty_**: All available themes by "{CustomPath}/public/assets/css/theme-*.css". Allow users select personalized themes.
+- `THEMES`: **_empty_**: All available themes by `{CustomPath}/public/assets/css/theme-*.css`. Allow users select personalized themes.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
@@ -492,7 +492,7 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 - `DATADIR`: **queues/common**: Base DataDir for storing level queues. `DATADIR` for individual queues can be set in `queue.name` sections. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
 - `LENGTH`: **100000**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
-- `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. For `redis-cluster` use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
+- `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. If you're running a Redis cluster, use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
 - `SET_NAME`: **_unique**: The suffix that will be added to the default redis and disk queue `set` name for unique queues. Individual queues will default to **`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific `queue.name` section.
 - `MAX_WORKERS`: **(dynamic)**: Maximum number of worker go-routines for the queue. Default value is "CpuNum/2" clipped to between 1 and 10.
@@ -777,11 +777,11 @@ and
 
 ## Cache (`cache`)
 
-- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `redis-cluster`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
+- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
-- `HOST`: **_empty_**: Connection string for `redis`, `redis-cluster` and `memcache`. For `twoqueue` sets configuration for the queue.
+- `HOST`: **_empty_**: Connection string for `redis` and `memcache`. For `twoqueue` sets configuration for the queue.
   - Redis: `redis://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
-  - Redis-cluster `redis+cluster://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
+    - For a Redis cluster: `redis+cluster://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
   - TwoQueue LRU cache: `{"size":50000,"recent_ratio":0.25,"ghost_ratio":0.5}` or `50000` representing the maximum number of objects stored in the cache.
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to -1 disables caching.
@@ -793,7 +793,7 @@ and
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string. Relative paths will be made absolute against _`AppWorkPath`_.
 - `COOKIE_SECURE`:**_empty_**: `true` or `false`. Enable this to force using HTTPS for all session access. If not set, it defaults to `true` if the ROOT_URL is an HTTPS URL.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.

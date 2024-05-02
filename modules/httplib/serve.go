@@ -17,11 +17,14 @@ import (
 	"time"
 
 	charsetModule "code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/klauspost/compress/gzhttp"
 )
 
 type ServeHeaderOptions struct {
@@ -37,6 +40,11 @@ type ServeHeaderOptions struct {
 // ServeSetHeaders sets necessary content serve headers
 func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	header := w.Header()
+
+	skipCompressionExts := container.SetOf(".gz", ".bz2", ".zip", ".xz", ".zst", ".deb", ".apk", ".jar", ".png", ".jpg", ".webp")
+	if skipCompressionExts.Contains(strings.ToLower(path.Ext(opts.Filename))) {
+		w.Header().Add(gzhttp.HeaderNoCompression, "1")
+	}
 
 	contentType := typesniffer.ApplicationOctetStream
 	if opts.ContentType != "" {
