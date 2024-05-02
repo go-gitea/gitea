@@ -67,7 +67,6 @@ body {
   flex-direction: column;
   overflow-x: visible;
   overflow-wrap: break-word;
-  scrollbar-gutter: stable;
 }
 
 textarea {
