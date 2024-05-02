@@ -803,12 +803,19 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	oldTitle := issue.Title
 	if len(form.Title) > 0 {
-		issue.Title = form.Title
+		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ChangeTitle", err)
+			return
+		}
 	}
 	if form.Body != nil {
-		issue.Content = *form.Body
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+			return
+		}
 	}
 	if form.Ref != nil {
 		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
@@ -882,7 +889,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
+	statusChangeComment, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
@@ -890,10 +897,6 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
-	}
-
-	if titleChanged {
-		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {

@@ -432,57 +432,41 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 // UpdateIssueByAPI updates all allowed fields of given issue.
 // If the issue status is changed a statusChangeComment is returned
 // similarly if the title is changed the titleChanged bool is set to true
-func UpdateIssueByAPI(ctx context.Context, issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
+func UpdateIssueByAPI(ctx context.Context, issue *Issue, doer *user_model.User) (statusChangeComment *Comment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	defer committer.Close()
 
 	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, false, fmt.Errorf("loadRepo: %w", err)
+		return nil, fmt.Errorf("loadRepo: %w", err)
 	}
 
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(
 		"name", "content", "milestone_id", "priority",
 		"deadline_unix", "updated_unix", "is_locked").
 		Update(issue); err != nil {
-		return nil, false, err
-	}
-
-	titleChanged = currentIssue.Title != issue.Title
-	if titleChanged {
-		opts := &CreateCommentOptions{
-			Type:     CommentTypeChangeTitle,
-			Doer:     doer,
-			Repo:     issue.Repo,
-			Issue:    issue,
-			OldTitle: currentIssue.Title,
-			NewTitle: issue.Title,
-		}
-		_, err := CreateComment(ctx, opts)
-		if err != nil {
-			return nil, false, fmt.Errorf("createComment: %w", err)
-		}
+		return nil, err
 	}
 
 	if currentIssue.IsClosed != issue.IsClosed {
 		statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 
 	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	return statusChangeComment, titleChanged, committer.Commit()
+	return statusChangeComment, committer.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
