@@ -55,15 +55,25 @@ export default {
 </script>
 <template>
   <div class="total-contributions">
-    {{ locale.contributions_in_the_last_12_months }}
+    {{ locale.textTotalContributions }}
   </div>
   <calendar-heatmap
-    :locale="locale"
-    :no-data-text="locale.no_contributions"
-    :tooltip-unit="locale.contributions"
+    :locale="locale.heatMapLocale"
+    :no-data-text="locale.noDataText"
+    :tooltip-unit="locale.tooltipUnit"
     :end-date="endDate"
     :values="values"
     :range-color="colorRange"
     @day-click="handleDayClick($event)"
   />
 </template>
+<style>
+/* A quick patch for vue3-calendar-heatmap's tooltip padding.
+At the moment we could only identify the tooltip by its transition property.
+https://github.com/razorness/vue3-calendar-heatmap/blob/955626176cb5dc3d3ead8120475c2e5e753cc392/src/components/CalendarHeatmap.vue#L202
+*/
+[data-tippy-root][style*="transition: transform 0.1s ease-out"] .tippy-box .tippy-content {
+  transition: none !important;
+  padding: 0.5em;
+}
+</style>
