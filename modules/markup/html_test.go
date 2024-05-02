@@ -700,7 +700,7 @@ func TestIssue18471(t *testing.T) {
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {

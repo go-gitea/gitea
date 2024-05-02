@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -1006,7 +1007,12 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-	for node != nil {
+	nodeStop := node.NextSibling
+	for node != nodeStop {
+		if node.Type != html.TextNode {
+			node = node.NextSibling
+			continue
+		}
 		ret, ok := anyHashPatternExtract(node.Data)
 		if !ok {
 			node = node.NextSibling
@@ -1028,19 +1034,16 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
-	next := node.NextSibling
-	for node != nil && node != next {
-		m := comparePattern.FindStringSubmatchIndex(node.Data)
-		if m == nil {
-			return
+	nodeStop := node.NextSibling
+	for node != nodeStop {
+		if node.Type != html.TextNode {
+			node = node.NextSibling
+			continue
 		}
-
-		// Ensure that every group (m[0]...m[7]) has a match
-		for i := 0; i < 8; i++ {
-			if m[i] == -1 {
-				return
-			}
+		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
+			node = node.NextSibling
+			continue
 		}
 
 		urlFull := node.Data[m[0]:m[1]]
