@@ -71,6 +71,10 @@
   border-bottom: 1px solid var(--color-secondary);
 }
 
+#release-list .release-entry .detail .download[open] summary {
+  margin-bottom: 10px;
+}
+
 #release-list .download-icon {
   margin-right: .25rem;
   color: var(--color-text-light-1);
