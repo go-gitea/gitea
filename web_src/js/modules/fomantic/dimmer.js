@@ -8,7 +8,7 @@ export function initFomanticDimmer() {
       const $el = arg1;
       const existingDimmer = document.querySelector('body > .ui.dimmer');
       if (existingDimmer) {
-        queryElemChildren(existingDimmer, '*', (el) => el.remove());
+        queryElemChildren(existingDimmer, '*', (el) => el.classList.add('hidden'));
         this._dimmer = existingDimmer;
       } else {
         this._dimmer = document.createElement('div');
