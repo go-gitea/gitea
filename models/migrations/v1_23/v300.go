@@ -15,7 +15,7 @@ type CommentMetaData struct {
 
 func AddCommentMetaDataColumn(x *xorm.Engine) error {
 	type Comment struct {
-		CommentMetaData CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
 
 	return x.Sync(new(Comment))
