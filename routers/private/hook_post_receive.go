@@ -15,6 +15,7 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -162,10 +163,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	var pusher *user_model.User
-
 	// handle pull request merging, a pull request action should push at least 1 commit
-	handlePullRequestMerging(ctx, opts, pusher, ownerName, repoName, updates)
+	handlePullRequestMerging(ctx, opts, ownerName, repoName, updates)
 	if ctx.Written() {
 		return
 	}
@@ -184,17 +183,17 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		if pusher == nil {
-			var err error
-			pusher, err = user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
-			}
+		pusher, err := cache.GetWithContextCache(ctx, contextCachePusherKey, opts.UserID, func() (*user_model.User, error) {
+			return user_model.GetUserByID(ctx, opts.UserID)
+		})
+		if err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
 		}
+
 		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
@@ -323,7 +322,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	})
 }
 
-func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, pusher *user_model.User, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
+const contextCachePusherKey = "hook_post_receive_pusher"
+
+func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
 	// handle pull request merging, a pull request action should only push 1 commit
 	if opts.PullRequestAction == repo_module.PullRequestActionMerge && len(updates) >= 1 {
 		// Get the pull request
@@ -336,15 +337,15 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 			return
 		}
 
-		if pusher == nil {
-			pusher, err = user_model.GetUserByID(ctx, opts.UserID)
-			if err != nil {
-				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
-			}
+		pusher, err := cache.GetWithContextCache(ctx, contextCachePusherKey, opts.UserID, func() (*user_model.User, error) {
+			return user_model.GetUserByID(ctx, opts.UserID)
+		})
+		if err != nil {
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
 		}
 
 		pr.MergedCommitID = updates[len(updates)-1].NewCommitID
