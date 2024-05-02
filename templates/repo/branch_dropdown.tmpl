@@ -69,9 +69,9 @@
 
 <div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui dropdown custom">
-		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex tw-m-0">
-			<span class="text tw-flex tw-items-center tw-mr-1 gt-ellipsis">
+	<div class="ui dropdown custom branch-selector-dropdown">
+		<div class="ui button branch-dropdown-button">
+			<span class="flex-text-block gt-ellipsis">
 				{{if .release}}
 					{{ctx.Locale.Tr "repo.release.compare"}}
 				{{else}}
@@ -84,6 +84,6 @@
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</button>
+		</div>
 	</div>
 </div>
