@@ -132,7 +132,7 @@ export function initRepoProject() {
             divider.style.removeProperty('color');
           }
         }
-        $('.ui.modal').modal('hide');
+        $(modal).modal('hide');
       }
     });
   }
