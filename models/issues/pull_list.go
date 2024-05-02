@@ -63,11 +63,11 @@ func CanUserWriteToBranch(ctx context.Context, p access_model.Permission, headRe
 		return true
 	}
 
-	return canMaintainerWriteToHeadBranch(ctx, p, headRepoID, branch, user)
+	return canMaintainerWriteToHeadBranch(ctx, headRepoID, branch, user)
 }
 
 // canMaintainerWriteToHeadBranch check whether user is a maintainer and could write to the branch
-func canMaintainerWriteToHeadBranch(ctx context.Context, p access_model.Permission, headRepoID int64, branch string, user *user_model.User) bool {
+func canMaintainerWriteToHeadBranch(ctx context.Context, headRepoID int64, branch string, user *user_model.User) bool {
 	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, headRepoID, branch)
 	if err != nil {
 		log.Error("GetUnmergedPullRequestsByHeadInfo: %v", err)
