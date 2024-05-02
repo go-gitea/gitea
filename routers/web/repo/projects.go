@@ -380,11 +380,11 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	if err := issues.LoadProjects(ctx); err != nil {
-		ctx.JSONServerError("Load projects failed", err)
+		ctx.ServerError("LoadProjects", err)
 		return
 	}
 	if _, err := issues.LoadRepositories(ctx); err != nil {
-		ctx.JSONServerError("Load repositories failed", err)
+		ctx.ServerError("LoadProjects", err)
 		return
 	}
 
@@ -393,18 +393,18 @@ func UpdateIssueProject(ctx *context.Context) {
 	if projectID > 0 {
 		dstProject, err := project_model.GetProjectByID(ctx, projectID)
 		if err != nil {
-			ctx.JSONServerError("Get project failed", err)
+			ctx.ServerError("GetProjectByID", err)
 			return
 		}
 		for _, issue := range issues {
 			if dstProject.RepoID != ctx.Repo.Repository.ID && dstProject.OwnerID != issue.Repo.OwnerID {
-				ctx.JSON(http.StatusBadRequest, "project doesn't belong to the repository")
+				ctx.Error(http.StatusBadRequest, "project doesn't belong to the repository")
 				return
 			}
 		}
 		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
 		if err != nil {
-			ctx.JSONServerError("Get default board failed", err)
+			ctx.ServerError("GetDefaultBoard", err)
 			return
 		}
 		dstColumnID = dstDefaultColumn.ID
@@ -418,7 +418,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 
 		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID, dstColumnID); err != nil {
-			ctx.JSONServerError("Change project assign failed", err)
+			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
 	}
@@ -445,16 +445,16 @@ func DeleteProjectBoard(ctx *context.Context) {
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.JSONServerError("Project doesn't exist", err)
+			ctx.NotFound("", nil)
 		} else {
-			ctx.JSONServerError("Get project failed", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
 
 	pb, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.JSONServerError("Get project board failed", err)
+		ctx.ServerError("GetProjectBoard", err)
 		return
 	}
 	if pb.ProjectID != ctx.ParamsInt64(":id") {
@@ -472,7 +472,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 	}
 
 	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
-		ctx.JSONServerError("Delete project board failed", err)
+		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
 
@@ -492,9 +492,9 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.JSONServerError("Project doesn't exist", err)
+			ctx.NotFound("", nil)
 		} else {
-			ctx.JSONServerError("Get project failed", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
@@ -505,7 +505,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		Color:     form.Color,
 		CreatorID: ctx.Doer.ID,
 	}); err != nil {
-		ctx.JSONServerError("create project board failed", err)
+		ctx.ServerError("NewProjectBoard", err)
 		return
 	}
 
@@ -530,16 +530,16 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.JSONServerError("Project doesn't exist", err)
+			ctx.NotFound("", nil)
 		} else {
-			ctx.JSONServerError("Get project failed", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
 		return nil, nil
 	}
 
 	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.JSONServerError("Get project board failed", err)
+		ctx.ServerError("GetProjectBoard", err)
 		return nil, nil
 	}
 	if board.ProjectID != ctx.ParamsInt64(":id") {

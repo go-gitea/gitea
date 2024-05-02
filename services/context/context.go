@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -267,15 +266,4 @@ func (ctx *Context) JSONError(msg any) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", msg))
 	}
-}
-
-func (ctx *Context) JSONServerError(msg string, err error) {
-	errorMessage := msg
-	if err != nil {
-		log.Log(1, log.ERROR, "%s: %v", msg, err)
-		if ctx.Doer != nil && ctx.Doer.IsAdmin {
-			errorMessage = fmt.Sprintf("%s: %v", errorMessage, err)
-		}
-	}
-	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": errorMessage, "renderFormat": "text"})
 }
