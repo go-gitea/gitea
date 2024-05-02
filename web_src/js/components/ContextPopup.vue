@@ -91,16 +91,21 @@ export default {
 <template>
   <div ref="root">
     <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
-    <div v-if="!loading && issue !== null">
-      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
-      <p>{{ body }}</p>
+    <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
+      <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
+      <div><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</div>
+      <div v-if="body">{{ body }}</div>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div v-html="renderedLabels"/>
+      <div class="labels-list-wrapper" v-html="renderedLabels"/>
     </div>
     <div v-if="!loading && issue === null">
-      <p><small>{{ i18nErrorOccurred }}</small></p>
-      <p>{{ i18nErrorMessage }}</p>
+      <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
+      <div>{{ i18nErrorMessage }}</div>
     </div>
   </div>
 </template>
+<style scoped>
+.labels-list-wrapper:has(.labels-list:empty) {
+  display: none;
+}
+</style>
