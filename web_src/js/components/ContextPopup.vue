@@ -96,7 +96,7 @@ export default {
       <div><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</div>
       <div v-if="body">{{ body }}</div>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div v-if="(issue?.labels || []).length" v-html="renderedLabels"/>
+      <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
     <div v-if="!loading && issue === null">
       <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
