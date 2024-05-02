@@ -29,8 +29,11 @@
 }
 
 /* for vue3-calendar-heatmap's tippy instances */
-.tippy-content:not([data-theme]) {
-  padding: 8px 14px;
+.tippy-box:not([data-theme]) {
+  padding: 0.5rem 1rem;
+  background-color: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  border: none;
 }
 
 /* bare theme, no styling at all, except box-shadow */
