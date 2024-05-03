@@ -185,7 +185,7 @@ export function initRepoIssueCommentEdit() {
       editor = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
-      editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
+      editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
     }
     if (editor) {
       if (editor.value()) {

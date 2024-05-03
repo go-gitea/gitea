@@ -414,7 +414,7 @@ export async function handleReply($el) {
   showElem($form);
 
   const $textarea = $form.find('textarea');
-  let editor = getComboMarkdownEditor($textarea);
+  let editor = getComboMarkdownEditor($textarea[0]);
   if (!editor) {
     // FIXME: the initialization of the dropzone is not consistent.
     // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.

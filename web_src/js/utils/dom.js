@@ -260,7 +260,6 @@ export function isElemVisible(element) {
 }
 
 export function getComboMarkdownEditor(el) {
-  if (el?.jquery) el = el[0];
   return el?._giteaComboMarkdownEditor;
 }
 
