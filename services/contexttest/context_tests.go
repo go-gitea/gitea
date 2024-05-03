@@ -94,6 +94,19 @@ func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptes
 	return ctx, resp
 }
 
+func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.GetContextData(req.Context())
+	base.Locale = &translation.MockLocale{}
+	ctx := &context.PrivateContext{Base: base}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
+	chiCtx := chi.NewRouteContext()
+	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	return ctx, resp
+}
+
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	var doer *user_model.User
