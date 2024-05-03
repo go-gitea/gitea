@@ -46,7 +46,7 @@
 		{{$l := Eval $n "-" 1}}
 		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-y-2">
+			<div class="repo-button-row-left">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
@@ -66,7 +66,7 @@
 				{{end}}
 
 				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-					<button class="ui dropdown basic compact jump button tw-mr-1"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+					<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						{{ctx.Locale.Tr "repo.editor.add_file"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
@@ -93,9 +93,9 @@
 				{{if $isHomepage}}
 					{{/* only show the "code search" on the repo home page, it only does global search,
 						so do not show it when viewing file or directory to avoid misleading users (it doesn't search in a directory) */}}
-					<form class="ignore-dirty" action="{{.RepoLink}}/search" method="get">
-						<div class="ui small action input">
-							<input name="q" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+					<form class="ignore-dirty tw-flex tw-flex-1" action="{{.RepoLink}}/search" method="get">
+						<div class="ui small action input tw-flex-1">
+							<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 							{{template "shared/search/button"}}
 						</div>
 					</form>
@@ -113,7 +113,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="tw-flex tw-items-center">
+			<div class="repo-button-row-right">
 				<!-- Only show clone panel in repository home page -->
 				{{if $isHomepage}}
 					<div class="clone-panel ui action tiny input">

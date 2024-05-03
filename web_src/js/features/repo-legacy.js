@@ -57,6 +57,7 @@ export function initRepoCommentForm() {
 
   function initBranchSelector() {
     const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+    if (!elSelectBranch) return;
     const isForNewIssue = elSelectBranch.getAttribute('data-for-new-issue') === 'true';
 
     const $selectBranch = $(elSelectBranch);
