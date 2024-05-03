@@ -13,6 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -77,7 +78,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 
 	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data, ctx.TemplateContext)
-	if err == nil {
+	if err == nil || errors.Is(err, syscall.EPIPE) {
 		return
 	}
 
