@@ -128,15 +128,22 @@
   margin-bottom: 12px;
 }
 
-.repository .clone-panel #repo-clone-url {
-  width: 320px;
-  border-radius: 0;
+.repository .clone-panel {
+  display: flex;
+  flex: 1;
 }
 
-@media (max-width: 991.98px) {
-  .repository .clone-panel #repo-clone-url {
-    width: 200px;
-  }
+.repository.wiki .clone-panel {
+  flex: 0;
+}
+
+.repository.wiki .clone-panel input {
+  width: 20ch;
+}
+
+.repository .clone-panel #repo-clone-url {
+  border-radius: 0;
+  flex: 1;
 }
 
 .repository .ui.action.input.clone-panel > button + button,
@@ -2229,17 +2236,37 @@ td .commit-summary {
 }
 
 .repo-button-row {
-  margin: 10px 0;
+  margin: 8px 0;
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
+}
+
+.repo-button-row-left,
+.repo-button-row-right {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repo-button-row-right {
+  justify-content: flex-end;
+}
+
+@media (max-width: 991px) {
+  .repository:not(.wiki) .repo-button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .repo-button-row .button {
   padding: 6px 10px !important;
   height: 30px;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .repo-button-row .button.dropdown:not(.icon) {
@@ -2248,6 +2275,12 @@ td .commit-summary {
 
 .repo-button-row input {
   height: 30px;
+}
+
+@media (max-width: 600px) {
+  .repo-button-row-left {
+    flex-wrap: wrap;
+  }
 }
 
 tbody.commit-list {
