@@ -352,7 +352,7 @@ Gitea or set your environment appropriately.`, "")
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
-		PullRequestAction:               os.Getenv(repo_module.EnvPRAction),
+		PushTrigger:                     os.Getenv(repo_module.EnvPushTrigger),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)

@@ -54,7 +54,7 @@ type HookOptions struct {
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
 	PullRequestID                   int64
-	PullRequestAction               string
+	PushTrigger                     string
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
 	ActionPerm                      int

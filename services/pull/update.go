@@ -72,7 +72,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		BaseBranch: pr.HeadBranch,
 	}
 
-	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, false)
+	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, "")
 
 	defer func() {
 		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
