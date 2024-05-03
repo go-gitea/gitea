@@ -327,17 +327,13 @@ func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, erro
 	})
 }
 
-// handlePullRequestMerging handle pull request merging, a pull request action should only push 1 commit
+// handlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
 func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
 	if len(updates) == 0 {
 		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 			Err: fmt.Sprintf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID),
 		})
 		return
-	}
-	if len(updates) != 1 && !setting.IsProd {
-		// it shouldn't happen
-		panic(fmt.Sprintf("Pushing a merged PR (pr:%d) should only push 1 commit, but got %d", opts.PullRequestID, len(updates)))
 	}
 
 	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
