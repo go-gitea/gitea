@@ -23,3 +23,18 @@
 .issue-card.sortable-chosen .issue-card-title {
   cursor: inherit;
 }
+
+.issue-card-bottom {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 0.25em;
+}
+
+.issue-card-assignees {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  justify-content: end;
+  flex-wrap: wrap;
+}

@@ -246,9 +246,9 @@ export function initRepoBranchTagSelector(selector) {
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
-  <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex tw-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text tw-flex tw-items-center tw-mr-1 gt-ellipsis">
+  <div class="ui dropdown custom branch-selector-dropdown">
+    <div class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="flex-text-block gt-ellipsis">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
@@ -257,7 +257,7 @@ export default sfc; // activate IDE's Vue plugin
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
-    </button>
+    </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
@@ -317,43 +317,3 @@ export default sfc; // activate IDE's Vue plugin
     </div>
   </div>
 </template>
-<style scoped>
-.branch-tag-tab {
-  padding: 0 10px;
-}
-
-.branch-tag-item {
-  display: inline-block;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-bottom: none;
-}
-
-.branch-tag-item.active {
-  border-color: var(--color-secondary);
-  background: var(--color-menu);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-}
-
-.branch-tag-divider {
-  margin-top: -1px !important;
-  border-top: 1px solid var(--color-secondary);
-}
-
-.scrolling.menu {
-  border-top: none !important;
-}
-
-.menu .item .rss-icon {
-  display: none; /* only show RSS icon on hover */
-}
-
-.menu .item:hover .rss-icon {
-  display: inline-block;
-}
-
-.scrolling.menu .loading-indicator {
-  height: 4em;
-}
-</style>
