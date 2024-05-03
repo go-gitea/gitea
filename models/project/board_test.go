@@ -42,3 +42,59 @@ func TestGetDefaultBoard(t *testing.T) {
 	assert.Equal(t, int64(6), board.ProjectID)
 	assert.False(t, board.Default)
 }
+
+func Test_moveIssuesToAnotherColumn(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	column1 := unittest.AssertExistsAndLoadBean(t, &Board{ID: 1, ProjectID: 1})
+
+	issues, err := column1.GetIssues(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, issues, 1)
+	assert.EqualValues(t, 1, issues[0].ID)
+
+	column2 := unittest.AssertExistsAndLoadBean(t, &Board{ID: 2, ProjectID: 1})
+	issues, err = column2.GetIssues(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, issues, 1)
+	assert.EqualValues(t, 3, issues[0].ID)
+
+	err = column1.moveIssuesToAnotherColumn(db.DefaultContext, column2)
+	assert.NoError(t, err)
+
+	issues, err = column1.GetIssues(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, issues, 0)
+
+	issues, err = column2.GetIssues(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, issues, 2)
+	assert.EqualValues(t, 1, issues[0].ID)
+	assert.EqualValues(t, 3, issues[1].ID)
+}
+
+func Test_MoveColumnsOnProject(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
+	columns, err := project1.GetBoards(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, columns, 3)
+	assert.EqualValues(t, 0, columns[0].Sorting)
+	assert.EqualValues(t, 1, columns[1].Sorting)
+	assert.EqualValues(t, 2, columns[2].Sorting)
+
+	err = MoveColumnsOnProject(db.DefaultContext, project1, map[int64]int64{
+		0: columns[1].ID,
+		1: columns[2].ID,
+		2: columns[0].ID,
+	})
+	assert.NoError(t, err)
+
+	columnsAfter, err := project1.GetBoards(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, columns, 3)
+	assert.EqualValues(t, columns[1].ID, columnsAfter[0].ID)
+	assert.EqualValues(t, columns[2].ID, columnsAfter[1].ID)
+	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
+}

@@ -5,12 +5,14 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -80,6 +82,16 @@ func (b *Board) NumIssues(ctx context.Context) int {
 		return 0
 	}
 	return int(c)
+}
+
+func (b *Board) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
+	issues := make([]*ProjectIssue, 0, 5)
+	if err := db.GetEngine(ctx).Where("project_id=?", b.ProjectID).
+		And("project_board_id=?", b.ID).
+		Find(&issues); err != nil {
+		return nil, err
+	}
+	return issues, nil
 }
 
 func init() {
@@ -355,4 +367,32 @@ func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (
 		return nil, err
 	}
 	return columns, nil
+}
+
+// MoveColumnsOnProject sorts columns in a project
+func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		columnIDs := util.ValuesOfMap(sortedColumnIDs)
+		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
+		if err != nil {
+			return err
+		}
+		if len(movedColumns) != len(sortedColumnIDs) {
+			return errors.New("some columns do not exist")
+		}
+
+		for _, column := range movedColumns {
+			if column.ProjectID != project.ID {
+				return fmt.Errorf("column[%d]'s projectID is not equal to project's ID [%d]", column.ProjectID, project.ID)
+			}
+		}
+
+		for sorting, columnID := range sortedColumnIDs {
+			if _, err := sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
