@@ -4,6 +4,8 @@
 package project
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -97,4 +99,27 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	assert.EqualValues(t, columns[1].ID, columnsAfter[0].ID)
 	assert.EqualValues(t, columns[2].ID, columnsAfter[1].ID)
 	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
+}
+
+func Test_NewBoard(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
+	columns, err := project1.GetBoards(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, columns, 3)
+
+	for i := 0; i < maxProjectColumns-3; i++ {
+		err := NewBoard(db.DefaultContext, &Board{
+			Title:     fmt.Sprintf("board-%d", i+4),
+			ProjectID: project1.ID,
+		})
+		assert.NoError(t, err)
+	}
+	err = NewBoard(db.DefaultContext, &Board{
+		Title:     "board-21",
+		ProjectID: project1.ID,
+	})
+	assert.Error(t, err)
+	assert.True(t, strings.Contains(err.Error(), "maximum number of columns reached"))
 }
