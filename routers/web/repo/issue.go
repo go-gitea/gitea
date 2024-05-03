@@ -1760,8 +1760,8 @@ func ViewIssue(ctx *context.Context) {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
-				// Content before v1.21 did store the formated string instead of seconds,
-				// so "|" is used as delimeter to mark the new format
+				// Content before v1.21 did store the formatted string instead of seconds,
+				// so "|" is used as delimiter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
 					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
@@ -2177,7 +2177,10 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusOK, map[string]any{
+		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
+		"renderedLabels": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
+	})
 }
 
 // UpdateIssueTitle change issue's title
@@ -3149,13 +3152,10 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	oldContent := comment.Content
-	comment.Content = ctx.FormString("content")
-	if len(comment.Content) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"content": "",
-		})
-		return
-	}
+	newContent := ctx.FormString("content")
+
+	// allow to save empty content
+	comment.Content = newContent
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
@@ -3178,21 +3178,27 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	content, err := markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Ctx:     ctx,
-	}, comment.Content)
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
+	var renderedContent template.HTML
+	if comment.Content != "" {
+		renderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Links: markup.Links{
+				Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, comment.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	} else {
+		contentEmpty := fmt.Sprintf(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+		renderedContent = template.HTML(contentEmpty)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":     content,
+		"content":     renderedContent,
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }

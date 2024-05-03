@@ -54,7 +54,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const GzipMinSize = 1400 // min size to compress for the body size of response
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -1612,7 +1612,7 @@ func registerRoutes(m *web.Route) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
-		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "GlobalNotFound"))
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
 		ctx.NotFound("", nil)
 	})
 }

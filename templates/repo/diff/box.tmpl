@@ -235,7 +235,7 @@
 
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
-			<div class="ui comment form">
+			<div class="ui form comment">
 				{{template "shared/combomarkdowneditor" (dict
 					"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
 					"MarkdownPreviewContext" $.RepoLink
@@ -249,7 +249,7 @@
 				{{end}}
 				<div class="text right edit buttons">
 					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-					<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>
 			</div>
 		</template>

@@ -16,7 +16,6 @@ type ObjectID interface {
 	Type() ObjectFormat
 }
 
-/* SHA1 */
 type Sha1Hash [20]byte
 
 func (h *Sha1Hash) String() string {
@@ -40,7 +39,6 @@ func MustIDFromString(hexHash string) ObjectID {
 	return id
 }
 
-/* SHA256 */
 type Sha256Hash [32]byte
 
 func (h *Sha256Hash) String() string {
@@ -54,7 +52,6 @@ func (h *Sha256Hash) IsZero() bool {
 func (h *Sha256Hash) RawValue() []byte { return h[:] }
 func (*Sha256Hash) Type() ObjectFormat { return Sha256ObjectFormat }
 
-/* utility */
 func NewIDFromString(hexHash string) (ObjectID, error) {
 	var theObjectFormat ObjectFormat
 	for _, objectFormat := range SupportedObjectFormats {
