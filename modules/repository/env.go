@@ -34,7 +34,8 @@ const (
 type PushTrigger string
 
 const (
-	PushTriggerPRMergeToBase PushTrigger = "pr-merge-to-base"
+	PushTriggerPRMergeToBase    PushTrigger = "pr-merge-to-base"
+	PushTriggerPRUpdateWithBase PushTrigger = "pr-update-with-base"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push

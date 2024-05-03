@@ -164,9 +164,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	// handle pull request merging, a pull request action should push at least 1 commit
-	handlePullRequestMerging(ctx, opts, ownerName, repoName, updates)
-	if ctx.Written() {
-		return
+	if opts.PushTrigger == repo_module.PushTriggerPRMergeToBase {
+		handlePullRequestMerging(ctx, opts, ownerName, repoName, updates)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
@@ -183,9 +185,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		pusher, err := cache.GetWithContextCache(ctx, contextCachePusherKey, opts.UserID, func() (*user_model.User, error) {
-			return user_model.GetUserByID(ctx, opts.UserID)
-		})
+		pusher, err := loadContextCacheUser(ctx, opts.UserID)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
@@ -321,55 +321,55 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	})
 }
 
-const contextCachePusherKey = "hook_post_receive_pusher"
+func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
+	return cache.GetWithContextCache(ctx, "hook_post_receive_user", id, func() (*user_model.User, error) {
+		return user_model.GetUserByID(ctx, id)
+	})
+}
 
 // handlePullRequestMerging handle pull request merging, a pull request action should only push 1 commit
 func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
-	if opts.PushTrigger != string(repo_module.PushTriggerPRMergeToBase) || len(updates) < 1 {
+	if len(updates) == 0 {
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID),
+		})
 		return
 	}
+	if len(updates) != 1 && !setting.IsProd {
+		// it shouldn't happen
+		panic(fmt.Sprintf("Pushing a merged PR (pr:%d) should only push 1 commit, but got %d", opts.PullRequestID, len(updates)))
+	}
 
-	// Get the pull request
 	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", opts.PullRequestID, err)
-		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-			Err: fmt.Sprintf("GetPullRequestByID[%d]: %v", opts.PullRequestID, err),
-		})
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "GetPullRequestByID failed"})
 		return
 	}
 
-	pusher, err := cache.GetWithContextCache(ctx, contextCachePusherKey, opts.UserID, func() (*user_model.User, error) {
-		return user_model.GetUserByID(ctx, opts.UserID)
-	})
+	pusher, err := loadContextCacheUser(ctx, opts.UserID)
 	if err != nil {
 		log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-			Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-		})
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Load pusher user failed"})
 		return
 	}
 
 	pr.MergedCommitID = updates[len(updates)-1].NewCommitID
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = pusher
-	pr.MergerID = opts.UserID
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	pr.MergerID = pusher.ID
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// Removing an auto merge pull and ignore if not exist
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
 			return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
 		}
-
 		if _, err := pr.SetMerged(ctx); err != nil {
-			return fmt.Errorf("Failed to SetMerged: %s/%s Error: %v", ownerName, repoName, err)
+			return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
 		}
 		return nil
-	}); err != nil {
-		log.Error("%v", err)
-		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-			Err: err.Error(),
-		})
-		return
+	})
+	if err != nil {
+		log.Error("Failed to update PR to merged: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
 	}
 }
