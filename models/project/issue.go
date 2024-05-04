@@ -129,7 +129,7 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 		for i, issue := range issues {
 			issue.ProjectBoardID = newColumn.ID
 			issue.Sorting = int64(maxSorting) + int64(i)
-			if _, err := db.GetEngine(ctx).Cols("project_board_id", "sorting").Update(issue); err != nil {
+			if _, err := db.GetEngine(ctx).ID(issue.ID).Cols("project_board_id", "sorting").Update(issue); err != nil {
 				return err
 			}
 		}
