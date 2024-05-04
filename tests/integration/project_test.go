@@ -58,4 +58,14 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.EqualValues(t, columns[1].ID, columnsAfter[0].ID)
 	assert.EqualValues(t, columns[2].ID, columnsAfter[1].ID)
 	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
+
+	// update the sorting back
+	req = NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/move?_csrf="+htmlDoc.GetCSRF(), map[string]any{
+		"columns": []map[string]any{
+			{"columnID": columns[0].ID, "sorting": 0},
+			{"columnID": columns[1].ID, "sorting": 1},
+			{"columnID": columns[2].ID, "sorting": 2},
+		},
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
 }
