@@ -90,68 +90,63 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 	return issuesMap, nil
 }
 
-// IssueAssignOrRemoveProject changes the project associated with an issue, if newProjectID is 0, the issue is removed from the project
+// IssueAssignOrRemoveProject changes the project associated with an issue
+// If newProjectID is 0, the issue is removed from the project
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return issueAssignOrRemoveProject(ctx, issue, doer, newProjectID, newColumnID)
-	})
-}
+		oldProjectID := issue.projectID(ctx)
 
-// issueAssignOrRemoveProject adds or updates the project the default column associated with an issue
-// If newProjectID is 0, the issue is removed from the project
-func issueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
-	oldProjectID := issue.projectID(ctx)
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	// Only check if we add a new project and not remove it.
-	if newProjectID > 0 {
-		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
-		if err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			return err
 		}
-		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
-			return fmt.Errorf("issue's repository is not the same as project's repository")
+
+		// Only check if we add a new project and not remove it.
+		if newProjectID > 0 {
+			newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+			if err != nil {
+				return err
+			}
+			if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
+				return fmt.Errorf("issue's repository is not the same as project's repository")
+			}
 		}
-	}
 
-	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
-		return err
-	}
-
-	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:         CommentTypeProject,
-			Doer:         doer,
-			Repo:         issue.Repo,
-			Issue:        issue,
-			OldProjectID: oldProjectID,
-			ProjectID:    newProjectID,
-		}); err != nil {
+		if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
 			return err
 		}
-	}
-	if newProjectID == 0 || newColumnID == 0 {
-		return nil
-	}
 
-	var maxSorting int64
-	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
-		Where("project_id=?", newProjectID).
-		And("project_board_id=?", newColumnID).
-		Get(&maxSorting); err != nil {
-		return err
-	}
-	if maxSorting > 0 {
-		maxSorting++
-	}
+		if oldProjectID > 0 || newProjectID > 0 {
+			if _, err := CreateComment(ctx, &CreateCommentOptions{
+				Type:         CommentTypeProject,
+				Doer:         doer,
+				Repo:         issue.Repo,
+				Issue:        issue,
+				OldProjectID: oldProjectID,
+				ProjectID:    newProjectID,
+			}); err != nil {
+				return err
+			}
+		}
+		if newProjectID == 0 || newColumnID == 0 {
+			return nil
+		}
 
-	return db.Insert(ctx, &project_model.ProjectIssue{
-		IssueID:        issue.ID,
-		ProjectID:      newProjectID,
-		ProjectBoardID: newColumnID,
-		Sorting:        maxSorting,
+		var maxSorting int64
+		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+			Where("project_id=?", newProjectID).
+			And("project_board_id=?", newColumnID).
+			Get(&maxSorting); err != nil {
+			return err
+		}
+		if maxSorting > 0 {
+			maxSorting++
+		}
+
+		return db.Insert(ctx, &project_model.ProjectIssue{
+			IssueID:        issue.ID,
+			ProjectID:      newProjectID,
+			ProjectBoardID: newColumnID,
+			Sorting:        maxSorting,
+		})
 	})
 }
