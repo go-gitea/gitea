@@ -1327,6 +1327,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 		}
+		return
 	}
 
 	if projectID > 0 {
