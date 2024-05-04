@@ -110,19 +110,23 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 	}
 
 	var maxSorting int8
-	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+	has, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
 		Where("project_id=?", newColumn.ProjectID).
 		And("project_board_id=?", newColumn.ID).
-		Get(&maxSorting); err != nil {
+		Get(&maxSorting)
+	if err != nil {
 		return err
 	}
-	if maxSorting > 0 {
+	if has {
 		maxSorting++
 	}
 
 	issues, err := b.GetIssues(ctx)
 	if err != nil {
 		return err
+	}
+	if len(issues) == 0 {
+		return nil
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {

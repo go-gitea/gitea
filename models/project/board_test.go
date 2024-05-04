@@ -71,8 +71,10 @@ func Test_moveIssuesToAnotherColumn(t *testing.T) {
 	issues, err = column2.GetIssues(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, issues, 2)
-	assert.EqualValues(t, 1, issues[0].ID)
-	assert.EqualValues(t, 3, issues[1].ID)
+	assert.EqualValues(t, 3, issues[0].ID)
+	assert.EqualValues(t, 0, issues[0].Sorting)
+	assert.EqualValues(t, 1, issues[1].ID)
+	assert.EqualValues(t, 1, issues[1].Sorting)
 }
 
 func Test_MoveColumnsOnProject(t *testing.T) {

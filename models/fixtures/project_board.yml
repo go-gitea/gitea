@@ -31,6 +31,7 @@
   project_id: 4
   title: Done
   creator_id: 2
+  sorting: 0
   created_unix: 1588117528
   updated_unix: 1588117528
 
@@ -49,6 +50,7 @@
   title: Backlog
   creator_id: 2
   default: true
+  sorting: 1
   created_unix: 1588117528
   updated_unix: 1588117528
 
@@ -67,6 +69,7 @@
   title: Backlog
   creator_id: 2
   default: true
+  sorting: 0
   created_unix: 1588117528
   updated_unix: 1588117528
 
@@ -76,5 +79,6 @@
   title: Uncategorized
   creator_id: 2
   default: true
+  sorting: 1
   created_unix: 1588117528
   updated_unix: 1588117528

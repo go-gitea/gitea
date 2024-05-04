@@ -132,13 +132,14 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 
 		var maxSorting int64
-		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+		has, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
 			Where("project_id=?", newProjectID).
 			And("project_board_id=?", newColumnID).
-			Get(&maxSorting); err != nil {
+			Get(&maxSorting)
+		if err != nil {
 			return err
 		}
-		if maxSorting > 0 {
+		if has {
 			maxSorting++
 		}
 

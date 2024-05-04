@@ -88,6 +88,7 @@ func (b *Board) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
 	issues := make([]*ProjectIssue, 0, 5)
 	if err := db.GetEngine(ctx).Where("project_id=?", b.ProjectID).
 		And("project_board_id=?", b.ID).
+		OrderBy("sorting").
 		Find(&issues); err != nil {
 		return nil, err
 	}
@@ -184,11 +185,12 @@ func NewBoard(ctx context.Context, board *Board) error {
 
 	if totalColumns > 0 {
 		var maxSorting int8
-		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
-			Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
+		has, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
+			Where("project_id=?", board.ProjectID).Get(&maxSorting)
+		if err != nil {
 			return err
 		}
-		if maxSorting > 0 {
+		if has {
 			board.Sorting = maxSorting + 1
 		}
 	}
