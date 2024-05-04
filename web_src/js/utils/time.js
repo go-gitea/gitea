@@ -4,8 +4,8 @@ import {getCurrentLocale} from '../utils.js';
 // Returns an array of millisecond-timestamps of start-of-week days (Sundays)
 export function startDaysBetween(startDate, endDate) {
   // Ensure the start date is a Sunday
-  while (startDate.getDay() !== 0) {
-    startDate.setDate(startDate.getDate() + 1);
+  while (startDate.getUTCDay() !== 0) {
+    startDate.setUTCDate(startDate.getUTCDate() + 1);
   }
 
   const start = dayjs(startDate);
