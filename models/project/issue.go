@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -79,11 +80,8 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
+		issueIDs := util.ValuesOfMap(sortedIssueIDs)
 
-		issueIDs := make([]int64, 0, len(sortedIssueIDs))
-		for _, issueID := range sortedIssueIDs {
-			issueIDs = append(issueIDs, issueID)
-		}
 		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
@@ -103,12 +101,38 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 }
 
 func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board) error {
-	if b.ID == newColumn.ID {
-		return nil
-	}
 	if b.ProjectID != newColumn.ProjectID {
 		return fmt.Errorf("columns have to be in the same project")
 	}
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = ? WHERE project_board_id = ? ", newColumn.ID, b.ID)
-	return err
+
+	if b.ID == newColumn.ID {
+		return nil
+	}
+
+	var maxSorting int8
+	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+		Where("project_id=?", newColumn.ProjectID).
+		And("project_board_id=?", newColumn.ID).
+		Get(&maxSorting); err != nil {
+		return err
+	}
+	if maxSorting > 0 {
+		maxSorting++
+	}
+
+	issues, err := b.GetIssues(ctx)
+	if err != nil {
+		return err
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for i, issue := range issues {
+			issue.ProjectBoardID = newColumn.ID
+			issue.Sorting = int64(maxSorting) + int64(i)
+			if _, err := db.GetEngine(ctx).Cols("project_board_id", "sorting").Update(issue); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

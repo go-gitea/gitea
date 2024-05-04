@@ -90,16 +90,16 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 	return issuesMap, nil
 }
 
-// ChangeProjectAssign changes the project associated with an issue, if newProjectID is 0, the issue is removed from the project
-func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
+// IssueAssignOrRemoveProject changes the project associated with an issue, if newProjectID is 0, the issue is removed from the project
+func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return addUpdateIssueProject(ctx, issue, doer, newProjectID, newColumnID)
+		return issueAssignOrRemoveProject(ctx, issue, doer, newProjectID, newColumnID)
 	})
 }
 
-// addUpdateIssueProject adds or updates the project the default column associated with an issue
+// issueAssignOrRemoveProject adds or updates the project the default column associated with an issue
 // If newProjectID is 0, the issue is removed from the project
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
+func issueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
 	oldProjectID := issue.projectID(ctx)
 
 	if err := issue.LoadRepo(ctx); err != nil {

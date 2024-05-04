@@ -50,7 +50,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			if err != nil {
 				return err
 			}
-			if err := issues_model.ChangeProjectAssign(ctx, issue, issue.Poster, projectID, defaultBoard.ID); err != nil {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, defaultBoard.ID); err != nil {
 				return err
 			}
 		}

@@ -1348,7 +1348,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.ServerError("GetDefaultBoard", err)
 			return
 		}
-		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID, dstDefaultColumn.ID); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, dstDefaultColumn.ID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}

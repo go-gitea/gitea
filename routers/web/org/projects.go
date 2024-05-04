@@ -471,7 +471,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			}
 		}
 
-		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID, dstColumnID); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, dstColumnID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
