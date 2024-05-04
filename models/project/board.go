@@ -5,6 +5,7 @@ package project
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -184,14 +185,13 @@ func NewBoard(ctx context.Context, board *Board) error {
 	}
 
 	if totalColumns > 0 {
-		var maxSorting int8
-		has, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
-			Where("project_id=?", board.ProjectID).Get(&maxSorting)
-		if err != nil {
+		var maxSorting sql.NullByte
+		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
+			Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
 			return err
 		}
-		if has {
-			board.Sorting = maxSorting + 1
+		if maxSorting.Valid {
+			board.Sorting = int8(maxSorting.Byte) + 1
 		}
 	}
 

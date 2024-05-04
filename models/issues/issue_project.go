@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -131,23 +132,22 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return nil
 		}
 
-		var maxSorting int64
-		has, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+		var maxSorting sql.NullInt64
+		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
 			Where("project_id=?", newProjectID).
 			And("project_board_id=?", newColumnID).
-			Get(&maxSorting)
-		if err != nil {
+			Get(&maxSorting); err != nil {
 			return err
 		}
-		if has {
-			maxSorting++
+		if maxSorting.Valid {
+			maxSorting.Int64++
 		}
 
 		return db.Insert(ctx, &project_model.ProjectIssue{
 			IssueID:        issue.ID,
 			ProjectID:      newProjectID,
 			ProjectBoardID: newColumnID,
-			Sorting:        maxSorting,
+			Sorting:        maxSorting.Int64,
 		})
 	})
 }
