@@ -29,10 +29,10 @@ export function firstStartDateAfterDate(inputDate) {
   if (!(inputDate instanceof Date)) {
     throw new Error('Invalid date');
   }
-  const dayOfWeek = inputDate.getDay();
+  const dayOfWeek = inputDate.getUTCDay();
   const daysUntilSunday = 7 - dayOfWeek;
   const resultDate = new Date(inputDate.getTime());
-  resultDate.setDate(resultDate.getDate() + daysUntilSunday);
+  resultDate.setUTCDate(resultDate.getUTCDate() + daysUntilSunday);
   return resultDate.valueOf();
 }
 
