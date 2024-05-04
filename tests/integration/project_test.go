@@ -38,7 +38,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.EqualValues(t, 1, columns[1].Sorting)
 	assert.EqualValues(t, 2, columns[2].Sorting)
 
-	sess := loginUser(t, "user1")
+	sess := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/projects/1")
 	resp := sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
