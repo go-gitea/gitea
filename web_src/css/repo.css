@@ -575,6 +575,22 @@ td .commit-summary {
   display: inline-block;
 }
 
+@media (max-width: 767.98px) {
+  .comment.form .issue-content-left .avatar {
+    display: none;
+  }
+  .comment.form .issue-content-left .content {
+    margin-left: 0 !important;
+  }
+  .comment.form .issue-content-left .content::before,
+  .comment.form .issue-content-left .content::after,
+  .comment.form .content .form::before,
+  .comment.form .content .form::after {
+    display: none;
+  }
+}
+
+/* issue title & meta & edit */
 .issue-title-header {
   width: 100%;
   padding-bottom: 4px;
@@ -593,29 +609,7 @@ td .commit-summary {
 
 .repository.view.issue .issue-title-buttons > .ui.button {
   margin: 0;
-}
-
-@media (max-width: 767.98px) {
-  .repository.view.issue .issue-title {
-    flex-direction: column;
-    gap: 0.25em;
-  }
-  .repository.view.issue .issue-title-buttons {
-    width: 100%;
-    justify-content: right;
-  }
-  .comment.form .issue-content-left .avatar {
-    display: none;
-  }
-  .comment.form .issue-content-left .content {
-    margin-left: 0 !important;
-  }
-  .comment.form .issue-content-left .content::before,
-  .comment.form .issue-content-left .content::after,
-  .comment.form .content .form::before,
-  .comment.form .content .form::after {
-    display: none;
-  }
+  height: 35px;
 }
 
 .repository.view.issue .issue-title {
@@ -636,8 +630,19 @@ td .commit-summary {
   padding-right: 0.25rem;
 }
 
+@media (max-width: 767.98px) {
+  .repository.view.issue .issue-title {
+    flex-direction: column;
+  }
+  .repository.view.issue .issue-title-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 .repository.view.issue .issue-title .ui.input {
   width: 100%;
+  height: 35px;
 }
 
 .repository.view.issue .issue-title .ui.input input {
