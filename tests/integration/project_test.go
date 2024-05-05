@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/tests"
 
@@ -33,6 +34,12 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	repoUnit := repo_model.RepoUnit{
+		RepoID: repo4.ID,
+		Type:   unit.TypeProjects,
+	}
+	err := db.Insert(db.DefaultContext, &repoUnit)
+	assert.NoError(t, err)
 
 	project1 := project_model.Project{
 		Title:     "new created project",
@@ -40,7 +47,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 		Type:      project_model.TypeRepository,
 		BoardType: project_model.BoardTypeNone,
 	}
-	err := project_model.NewProject(db.DefaultContext, &project1)
+	err = project_model.NewProject(db.DefaultContext, &project1)
 	assert.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
@@ -80,4 +87,6 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
 
 	assert.NoError(t, project_model.DeleteProjectByID(db.DefaultContext, project1.ID))
+	_, err = db.DeleteByID[repo_model.RepoUnit](db.DefaultContext, repoUnit.ID)
+	assert.NoError(t, err)
 }
