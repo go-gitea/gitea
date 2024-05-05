@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/tests"
 
@@ -33,6 +34,9 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	projectsUnit := repo2.MustGetUnit(db.DefaultContext, unit.TypeProjects)
+	assert.True(t, projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo))
 
 	project1 := project_model.Project{
 		Title:     "new created project",
