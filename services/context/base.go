@@ -234,9 +234,7 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	b.Resp.WriteHeader(status)
-	if _, err := b.Resp.Write(bs); err != nil {
-		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
-	}
+	_, _ = b.Resp.Write(bs)
 }
 
 // PlainTextBytes renders bytes as plain text

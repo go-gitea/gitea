@@ -54,7 +54,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const GzipMinSize = 1400 // min size to compress for the body size of response
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {

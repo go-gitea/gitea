@@ -128,15 +128,22 @@
   margin-bottom: 12px;
 }
 
-.repository .clone-panel #repo-clone-url {
-  width: 320px;
-  border-radius: 0;
+.repository .clone-panel {
+  display: flex;
+  flex: 1;
 }
 
-@media (max-width: 991.98px) {
-  .repository .clone-panel #repo-clone-url {
-    width: 200px;
-  }
+.repository.wiki .clone-panel {
+  flex: 0;
+}
+
+.repository.wiki .clone-panel input {
+  width: 20ch;
+}
+
+.repository .clone-panel #repo-clone-url {
+  border-radius: 0;
+  flex: 1;
 }
 
 .repository .ui.action.input.clone-panel > button + button,
@@ -1586,6 +1593,7 @@ td .commit-summary {
 
 .repository .diff-file-box .file-body.file-code {
   background: var(--color-code-bg);
+  border-radius: var(--border-radius);
 }
 
 .repository .diff-file-box .file-body.file-code .lines-num {
@@ -2194,18 +2202,12 @@ td .commit-summary {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 2.5px;
-}
-
-.labels-list a {
-  display: flex;
-  text-decoration: none;
+  align-items: center;
 }
 
 .labels-list .label {
   padding: 0 6px;
-  margin: 0 !important;
   min-height: 20px;
-  display: inline-flex !important;
   line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
@@ -2234,17 +2236,37 @@ td .commit-summary {
 }
 
 .repo-button-row {
-  margin: 10px 0;
+  margin: 8px 0;
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
+}
+
+.repo-button-row-left,
+.repo-button-row-right {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repo-button-row-right {
+  justify-content: flex-end;
+}
+
+@media (max-width: 991px) {
+  .repository:not(.wiki) .repo-button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .repo-button-row .button {
   padding: 6px 10px !important;
   height: 30px;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .repo-button-row .button.dropdown:not(.icon) {
@@ -2253,6 +2275,12 @@ td .commit-summary {
 
 .repo-button-row input {
   height: 30px;
+}
+
+@media (max-width: 600px) {
+  .repo-button-row-left {
+    flex-wrap: wrap;
+  }
 }
 
 tbody.commit-list {
@@ -2382,6 +2410,22 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
+/* fix bottom border radius on diff files */
+.diff-file-body tr.tag-code:last-child {
+  background: none;
+}
+.diff-file-body tr.tag-code:last-child > td {
+  background: var(--color-box-body-highlight);
+}
+.diff-file-body tr.tag-code:last-child td:first-child,
+.diff-file-body tr.tag-code:last-child td:first-child * {
+  border-bottom-left-radius: 3px;
+}
+.diff-file-body tr.tag-code:last-child td:last-child,
+.diff-file-body tr.tag-code:last-child td:last-child * {
+  border-bottom-right-radius: 3px;
+}
+
 .resolved-placeholder {
   font-weight: var(--font-weight-normal) !important;
   border: 1px solid var(--color-secondary) !important;
@@ -2491,6 +2535,7 @@ tbody.commit-list {
 
 .diff-file-header {
   padding: 5px 8px !important;
+  box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
@@ -2730,23 +2775,6 @@ tbody.commit-list {
   }
 }
 
-.branch-dropdown-button {
-  max-width: 340px;
-  vertical-align: bottom !important;
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .branch-dropdown-button {
-    max-width: 185px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .branch-dropdown-button {
-    max-width: 165px;
-  }
-}
-
 .commit-status-header {
   /* reset the default ".ui.attached.header" styles, to use the outer border */
   border: none !important;
@@ -2823,32 +2851,70 @@ tbody.commit-list {
   max-height: 200px;
 }
 
-/* Branch tag selector - TODO: Merge this into the same selector on repo page */
-.repository .issue-content .issue-content-right  .ui.grid .column.row {
-  padding: 10px;
-  padding-bottom: 0;
+.branch-selector-dropdown {
+  max-width: 100%;
 }
-.repository .issue-content .issue-content-right  .ui.grid .column.muted {
-  padding: 0;
+
+.ui.dropdown.branch-selector-dropdown > .menu {
+  margin-top: 4px;
 }
-.repository .issue-content .issue-content-right  .ui.grid .column.muted .text {
+
+.branch-selector-dropdown .branch-dropdown-button {
+  margin: 0;
+  max-width: 340px;
+  line-height: var(--line-height-default);
+}
+
+/* FIXME: These media selectors are not ideal (just keep them from old code).
+    There are many different pages, some need the max-width while some others don't,
+    they should be tested and improved in the future. */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .branch-selector-dropdown .branch-dropdown-button {
+    max-width: 185px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .branch-selector-dropdown .branch-dropdown-button {
+    max-width: 165px;
+  }
+}
+
+.branch-selector-dropdown .branch-tag-tab {
+  padding: 0 10px;
+}
+
+.branch-selector-dropdown .branch-tag-item {
   display: inline-block;
   padding: 10px;
-  width: 100%;
-  text-align: center;
   border: 1px solid transparent;
   border-bottom: none;
 }
-.repository .issue-content .issue-content-right .ui.grid .column.muted .text.black {
+
+.branch-selector-dropdown .branch-tag-item.active {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
-.repository .issue-content .issue-content-right .ui.dropdown  .scrolling.menu {
-  border-top: none;
-}
-.repository .issue-content .issue-content-right .branch-tag-divider {
-  margin-top: -1px;
+
+.branch-selector-dropdown .branch-tag-divider {
+  margin-top: -1px !important;
   border-top: 1px solid var(--color-secondary);
+}
+
+.branch-selector-dropdown .scrolling.menu {
+  border-top: none !important;
+}
+
+.branch-selector-dropdown .menu .item .rss-icon {
+  visibility: hidden; /* only show RSS icon on hover */
+}
+
+.branch-selector-dropdown .menu .item:hover .rss-icon {
+  visibility: visible;
+}
+
+.branch-selector-dropdown .scrolling.menu .loading-indicator {
+  height: 4em;
 }
