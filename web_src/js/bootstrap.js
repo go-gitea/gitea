@@ -11,7 +11,7 @@ function shouldIgnoreError(err) {
     '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
   ];
   for (const pattern of ignorePatterns) {
-    if (err.stack.includes(pattern)) return true;
+    if (err.stack?.includes(pattern)) return true;
   }
   return false;
 }
