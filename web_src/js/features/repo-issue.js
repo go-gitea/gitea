@@ -7,6 +7,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkd
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
 import {POST, GET} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
 
@@ -602,85 +603,69 @@ export function initRepoIssueWipToggle() {
   });
 }
 
-async function pullrequest_targetbranch_change(update_url) {
-  const targetBranch = $('#pull-target-branch').data('branch');
-  const $branchTarget = $('#branch_target');
-  if (targetBranch === $branchTarget.text()) {
-    window.location.reload();
-    return false;
-  }
-  try {
-    await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
-  } catch (error) {
-    console.error(error);
-  } finally {
-    window.location.reload();
-  }
-}
-
 export function initRepoIssueTitleEdit() {
-  // Edit issue title
-  const $issueTitle = $('#issue-title');
-  const $editInput = $('#edit-title-input input');
+  const issueTitleDisplay = document.querySelector('#issue-title-display');
+  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  if (!issueTitleEditor) return;
 
-  const editTitleToggle = function () {
-    toggleElem($issueTitle);
-    toggleElem('.not-in-edit');
-    toggleElem('#edit-title-input');
-    toggleElem('#pull-desc');
-    toggleElem('#pull-desc-edit');
-    toggleElem('.in-edit');
-    toggleElem('.new-issue-button');
-    document.getElementById('issue-title-wrapper')?.classList.toggle('edit-active');
-    $editInput[0].focus();
-    $editInput[0].select();
-    return false;
-  };
-
-  $('#edit-title').on('click', editTitleToggle);
-  $('#cancel-edit-title').on('click', editTitleToggle);
-  $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
-    const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
-    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
-      $editInput.val($issueTitle.text());
-      await pullrequest_targetbranch_change(pullrequest_target_update_url);
-    } else {
-      try {
-        const params = new URLSearchParams();
-        params.append('title', $editInput.val());
-        const response = await POST(this.getAttribute('data-update-url'), {data: params});
-        const data = await response.json();
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        if (pullrequest_target_update_url) {
-          await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
-        } else {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error(error);
-      }
+  const issueTitleInput = issueTitleEditor.querySelector('input');
+  const oldTitle = issueTitleInput.getAttribute('data-old-title');
+  issueTitleDisplay.querySelector('#issue-title-edit-show').addEventListener('click', () => {
+    hideElem(issueTitleDisplay);
+    hideElem('#pull-desc-display');
+    showElem(issueTitleEditor);
+    showElem('#pull-desc-editor');
+    if (!issueTitleInput.value.trim()) {
+      issueTitleInput.value = oldTitle;
     }
-    return false;
+    issueTitleInput.focus();
+  });
+  issueTitleEditor.querySelector('.ui.cancel.button').addEventListener('click', () => {
+    hideElem(issueTitleEditor);
+    hideElem('#pull-desc-editor');
+    showElem(issueTitleDisplay);
+    showElem('#pull-desc-display');
+  });
+  const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
+  editSaveButton.addEventListener('click', async () => {
+    const prTargetUpdateUrl = editSaveButton.getAttribute('data-target-update-url');
+    const newTitle = issueTitleInput.value.trim();
+    try {
+      if (newTitle && newTitle !== oldTitle) {
+        const resp = await POST(editSaveButton.getAttribute('data-update-url'), {data: new URLSearchParams({title: newTitle})});
+        if (!resp.ok) {
+          throw new Error(`Failed to update issue title: ${resp.statusText}`);
+        }
+      }
+      if (prTargetUpdateUrl) {
+        const newTargetBranch = document.querySelector('#pull-target-branch').getAttribute('data-branch');
+        const oldTargetBranch = document.querySelector('#branch_target').textContent;
+        if (newTargetBranch !== oldTargetBranch) {
+          const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: newTargetBranch})});
+          if (!resp.ok) {
+            throw new Error(`Failed to update PR target branch: ${resp.statusText}`);
+          }
+        }
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      showErrorToast(error.message);
+    }
   });
 }
 
 export function initRepoIssueBranchSelect() {
-  const changeBranchSelect = function () {
-    const $selectionTextField = $('#pull-target-branch');
-
-    const baseName = $selectionTextField.data('basename');
-    const branchNameNew = $(this).data('branch');
-    const branchNameOld = $selectionTextField.data('branch');
-
-    // Replace branch name to keep translation from HTML template
-    $selectionTextField.html($selectionTextField.html().replace(
-      `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`,
-    ));
-    $selectionTextField.data('branch', branchNameNew); // update branch name in setting
-  };
-  $('#branch-select > .item').on('click', changeBranchSelect);
+  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+    const el = e.target.closest('.item[data-branch]');
+    if (!el) return;
+    const pullTargetBranch = document.querySelector('#pull-target-branch');
+    const baseName = pullTargetBranch.getAttribute('data-basename');
+    const branchNameNew = el.getAttribute('data-branch');
+    const branchNameOld = pullTargetBranch.getAttribute('data-branch');
+    pullTargetBranch.textContent = pullTargetBranch.textContent.replace(`${baseName}:${branchNameOld}`, `${baseName}:${branchNameNew}`);
+    pullTargetBranch.setAttribute('data-branch', branchNameNew);
+  });
 }
 
 export function initSingleCommentEditor($commentForm) {
