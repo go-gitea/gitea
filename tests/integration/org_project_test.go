@@ -14,8 +14,12 @@ import (
 func TestOrgProjectAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	oldDisabledRepoUnits := unit_model.DisabledRepoUnits
 	// disable repo project unit
 	unit_model.DisabledRepoUnits = []unit_model.Type{unit_model.TypeProjects}
+	defer func() {
+		unit_model.DisabledRepoUnits = oldDisabledRepoUnits
+	}()
 
 	// repo project, 404
 	req := NewRequest(t, "GET", "/user2/repo1/projects")
