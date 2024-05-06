@@ -5,12 +5,12 @@ package issues
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LoadProject load the project the issue was assigned to
@@ -132,22 +132,22 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return nil
 		}
 
-		var maxSorting sql.NullInt64
-		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+		res := struct {
+			MaxSorting int64
+			IssueCount int64
+		}{}
+		if _, err := db.GetEngine(ctx).Select("max(sorting) as MaxSorting, count(*) as IssueCount").Table("project_issue").
 			Where("project_id=?", newProjectID).
 			And("project_board_id=?", newColumnID).
-			Get(&maxSorting); err != nil {
+			Get(&res); err != nil {
 			return err
 		}
-		if maxSorting.Valid {
-			maxSorting.Int64++
-		}
-
+		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
 			IssueID:        issue.ID,
 			ProjectID:      newProjectID,
 			ProjectBoardID: newColumnID,
-			Sorting:        maxSorting.Int64,
+			Sorting:        newSorting,
 		})
 	})
 }
