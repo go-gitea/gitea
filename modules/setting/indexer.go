@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/gobwas/glob"
 )
 
 // Indexer settings
@@ -30,8 +28,8 @@ var Indexer = struct {
 	RepoConnStr          string
 	RepoIndexerName      string
 	MaxIndexerFileSize   int64
-	IncludePatterns      []glob.Glob
-	ExcludePatterns      []glob.Glob
+	IncludePatterns      []*GlobMatcher
+	ExcludePatterns      []*GlobMatcher
 	ExcludeVendored      bool
 }{
 	IssueType:        "bleve",
@@ -93,12 +91,12 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
-func IndexerGlobFromString(globstr string) []glob.Glob {
-	extarr := make([]glob.Glob, 0, 10)
+func IndexerGlobFromString(globstr string) []*GlobMatcher {
+	extarr := make([]*GlobMatcher, 0, 10)
 	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
-			if g, err := glob.Compile(expr, '.', '/'); err != nil {
+			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {
 				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
