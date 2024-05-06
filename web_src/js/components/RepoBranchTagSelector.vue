@@ -246,7 +246,7 @@ export function initRepoBranchTagSelector(selector) {
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
     <div class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="release">{{ textReleaseCompare }}</template>
@@ -280,7 +280,7 @@ export default sfc; // activate IDE's Vue plugin
           <div class="ui label" v-if="item.name===repoDefaultBranch && mode === 'branches'">
             {{ textDefaultBranchLabel }}
           </div>
-          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon tw-float-right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
+          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
