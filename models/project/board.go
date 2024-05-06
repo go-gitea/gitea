@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -89,7 +88,7 @@ func (b *Board) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
 	issues := make([]*ProjectIssue, 0, 5)
 	if err := db.GetEngine(ctx).Where("project_id=?", b.ProjectID).
 		And("project_board_id=?", b.ID).
-		OrderBy("sorting").
+		OrderBy("sorting, id").
 		Find(&issues); err != nil {
 		return nil, err
 	}
@@ -173,29 +172,19 @@ func NewBoard(ctx context.Context, board *Board) error {
 	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
 		return fmt.Errorf("bad color code: %s", board.Color)
 	}
-
-	totalColumns, err := db.GetEngine(ctx).Table("project_board").
-		Where("project_id=?", board.ProjectID).Count()
-	if err != nil {
+	res := struct {
+		MaxSorting  int64
+		ColumnCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as MaxSorting, count(*) as ColumnCount").Table("project_board").
+		Where("project_id=?", board.ProjectID).Get(&res); err != nil {
 		return err
 	}
-
-	if totalColumns >= maxProjectColumns {
+	if res.ColumnCount >= maxProjectColumns {
 		return fmt.Errorf("NewBoard: maximum number of columns reached")
 	}
-
-	if totalColumns > 0 {
-		var maxSorting sql.NullByte
-		if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_board").
-			Where("project_id=?", board.ProjectID).Get(&maxSorting); err != nil {
-			return err
-		}
-		if maxSorting.Valid {
-			board.Sorting = int8(maxSorting.Byte) + 1
-		}
-	}
-
-	_, err = db.GetEngine(ctx).Insert(board)
+	board.Sorting = int8(util.Iif(res.MaxSorting > 0, res.MaxSorting+1, 0))
+	_, err := db.GetEngine(ctx).Insert(board)
 	return err
 }
 
@@ -291,7 +280,7 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 // GetBoards fetches all boards related to a project
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
-	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Find(&boards); err != nil {
 		return nil, err
 	}
 
