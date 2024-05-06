@@ -162,10 +162,10 @@ func (p *Project) IsRepositoryProject() bool {
 }
 
 func (p *Project) CanBeAccessedByOwnerRepo(ownerID, repoID int64) bool {
-	if p.Type == TypeOrganization {
-		return p.OwnerID == ownerID && p.RepoID == 0
+	if p.Type == TypeRepository {
+		return p.RepoID == repoID // if a project belongs to a repository, then its OwnerID is 0 and can be ignored
 	}
-	return p.OwnerID == ownerID && p.RepoID == repoID
+	return p.OwnerID == ownerID && p.RepoID == 0
 }
 
 func init() {
