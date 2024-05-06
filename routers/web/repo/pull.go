@@ -20,7 +20,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -1330,28 +1329,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	if projectID > 0 {
-		if !ctx.Repo.CanWrite(unit.TypeProjects) {
-			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
-			return
-		}
-		dstProject, err := project_model.GetProjectByID(ctx, projectID)
-		if err != nil {
-			ctx.ServerError("GetProjectByID", err)
-			return
-		}
-		if dstProject.RepoID != ctx.Repo.Repository.ID && dstProject.OwnerID != repo.OwnerID {
-			ctx.Error(http.StatusBadRequest, "project doesn't belong to the repository")
-			return
-		}
-		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
-		if err != nil {
-			ctx.ServerError("GetDefaultBoard", err)
-			return
-		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, dstDefaultColumn.ID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
-			return
+	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
+			if !errors.Is(err, util.ErrPermissionDenied) {
+				ctx.ServerError("IssueAssignOrRemoveProject", err)
+				return
+			}
 		}
 	}
 

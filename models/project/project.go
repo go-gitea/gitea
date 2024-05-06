@@ -161,6 +161,13 @@ func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
 }
 
+func (p *Project) CanBeAccessedByOwnerRepo(ownerID, repoID int64) bool {
+	if p.Type == TypeOrganization {
+		return p.OwnerID == ownerID && p.RepoID == 0
+	}
+	return p.OwnerID == ownerID && p.RepoID == repoID
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }

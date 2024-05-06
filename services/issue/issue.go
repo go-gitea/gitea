@@ -42,15 +42,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			}
 		}
 		if projectID > 0 {
-			project, err := project_model.GetProjectByID(ctx, projectID)
-			if err != nil {
-				return err
-			}
-			defaultBoard, err := project.GetDefaultBoard(ctx)
-			if err != nil {
-				return err
-			}
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, defaultBoard.ID); err != nil {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, 0); err != nil {
 				return err
 			}
 		}

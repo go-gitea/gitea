@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -107,8 +106,15 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			if err != nil {
 				return err
 			}
-			if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
-				return fmt.Errorf("issue's repository is not the same as project's repository")
+			if newColumnID == 0 {
+				newDefaultColumn, err := newProject.GetDefaultBoard(ctx)
+				if err != nil {
+					return err
+				}
+				newColumnID = newDefaultColumn.ID
+			}
+			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo.ID) {
+				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 		}
 
@@ -128,8 +134,11 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return err
 			}
 		}
-		if newProjectID == 0 || newColumnID == 0 {
+		if newProjectID == 0 {
 			return nil
+		}
+		if newColumnID == 0 {
+			panic("newColumnID must not be zero") // shouldn't happen
 		}
 
 		res := struct {

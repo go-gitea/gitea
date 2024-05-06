@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -389,36 +390,15 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("id")
-	var dstColumnID int64
-	if projectID > 0 {
-		dstProject, err := project_model.GetProjectByID(ctx, projectID)
-		if err != nil {
-			ctx.ServerError("GetProjectByID", err)
-			return
-		}
-		for _, issue := range issues {
-			if dstProject.RepoID != ctx.Repo.Repository.ID && dstProject.OwnerID != issue.Repo.OwnerID {
-				ctx.Error(http.StatusBadRequest, "project doesn't belong to the repository")
-				return
-			}
-		}
-		dstDefaultColumn, err := dstProject.GetDefaultBoard(ctx)
-		if err != nil {
-			ctx.ServerError("GetDefaultBoard", err)
-			return
-		}
-		dstColumnID = dstDefaultColumn.ID
-	}
-
 	for _, issue := range issues {
-		if issue.Project != nil {
-			if issue.Project.ID == projectID {
+		if issue.Project != nil && issue.Project.ID == projectID {
+			continue
+		}
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}
-		}
-
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, dstColumnID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
+			ctx.ServerError("IssueAssignOrRemoveProject", err)
 			return
 		}
 	}
