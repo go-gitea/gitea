@@ -2860,6 +2860,10 @@ tbody.commit-list {
   margin-top: 4px;
 }
 
+.ui.dropdown.branch-selector-dropdown .scrolling.menu {
+  max-width: min(400px, 90vw);
+}
+
 .branch-selector-dropdown .branch-dropdown-button {
   margin: 0;
   max-width: 340px;
@@ -2909,6 +2913,8 @@ tbody.commit-list {
 }
 
 .branch-selector-dropdown .menu .item .rss-icon {
+  position: absolute;
+  right: 4px;
   visibility: hidden; /* only show RSS icon on hover */
 }
 
