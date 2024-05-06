@@ -243,7 +243,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 				},
 			})
 	case string(setting.AzureBlobStorageType):
-		dstStorage, err = storage.NewMinioStorage(
+		dstStorage, err = storage.NewAzureBlobStorage(
 			stdCtx,
 			&setting.Storage{
 				AzureBlobConfig: setting.AzureBlobStorageConfig{
