@@ -176,14 +176,14 @@ func NewBoard(ctx context.Context, board *Board) error {
 		MaxSorting  int64
 		ColumnCount int64
 	}{}
-	if _, err := db.GetEngine(ctx).Select("max(sorting) as MaxSorting, count(*) as ColumnCount").Table("project_board").
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as column_count").Table("project_board").
 		Where("project_id=?", board.ProjectID).Get(&res); err != nil {
 		return err
 	}
 	if res.ColumnCount >= maxProjectColumns {
 		return fmt.Errorf("NewBoard: maximum number of columns reached")
 	}
-	board.Sorting = int8(util.Iif(res.MaxSorting > 0, res.MaxSorting+1, 0))
+	board.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(board)
 	return err
 }

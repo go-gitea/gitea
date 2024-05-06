@@ -113,7 +113,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				}
 				newColumnID = newDefaultColumn.ID
 			}
-			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo.ID) {
+			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 		}
@@ -145,7 +145,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			MaxSorting int64
 			IssueCount int64
 		}{}
-		if _, err := db.GetEngine(ctx).Select("max(sorting) as MaxSorting, count(*) as IssueCount").Table("project_issue").
+		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
 			Where("project_id=?", newProjectID).
 			And("project_board_id=?", newColumnID).
 			Get(&res); err != nil {

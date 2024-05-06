@@ -16,12 +16,8 @@ func MoveColumns(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if project.OwnerID > 0 && project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("InvalidOwnerID", nil)
-		return
-	}
-	if project.RepoID > 0 && project.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("InvalidRepoID", nil)
+	if !project.CanBeAccessedByOwnerRepo(ctx.ContextUser.ID, ctx.Repo.Repository) {
+		ctx.NotFound("CanBeAccessedByOwnerRepo", nil)
 		return
 	}
 

@@ -84,9 +84,9 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	columns, err := project1.GetBoards(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
-	assert.EqualValues(t, 0, columns[0].Sorting)
-	assert.EqualValues(t, 1, columns[1].Sorting)
-	assert.EqualValues(t, 2, columns[2].Sorting)
+	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
+	assert.EqualValues(t, 0, columns[1].Sorting)
+	assert.EqualValues(t, 0, columns[2].Sorting)
 
 	err = MoveColumnsOnProject(db.DefaultContext, project1, map[int64]int64{
 		0: columns[1].ID,
@@ -97,7 +97,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 
 	columnsAfter, err := project1.GetBoards(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Len(t, columns, 3)
+	assert.Len(t, columnsAfter, 3)
 	assert.EqualValues(t, columns[1].ID, columnsAfter[0].ID)
 	assert.EqualValues(t, columns[2].ID, columnsAfter[1].ID)
 	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
