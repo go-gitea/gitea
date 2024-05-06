@@ -112,7 +112,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
-	ctx.Data["GitVersion"] = git.VersionInfo()
+	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
 
 	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath

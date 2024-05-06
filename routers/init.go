@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
@@ -112,7 +113,10 @@ func InitWebInstallPage(ctx context.Context) {
 // InitWebInstalled is for global installed configuration.
 func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
+	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
+	if !git.DefaultFeatures().SupportHashSha256 {
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
+	}
 
 	// Setup i18n
 	translation.InitLocales(ctx)
