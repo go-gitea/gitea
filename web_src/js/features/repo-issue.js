@@ -124,8 +124,8 @@ export function initRepoIssueSidebarList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
