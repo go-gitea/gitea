@@ -342,8 +342,6 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -374,7 +372,6 @@ a.label,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
-  white-space: nowrap;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -1342,7 +1339,11 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
   vertical-align: middle;
-  min-width: 0;
+  min-width: 0; /* make ellipsis work */
+}
+
+.ui.ui.dropdown.selection {
+  min-width: 14em; /* match the default min width */
 }
 
 .ui.dropdown .ui.label .svg {
@@ -1368,4 +1369,17 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+
+.ui.dropdown.ellipsis-items-nowrap > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-items-nowrap > .item,
+.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }

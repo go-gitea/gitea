@@ -124,8 +124,8 @@ export function initRepoIssueSidebarList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -299,23 +299,23 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.getElementById('allow-edits-from-maintainers');
   if (!wrapper) return;
-
-  wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
-    const checked = e.target.checked;
+  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
-    e.target.disabled = true;
     try {
-      const response = await POST(url, {data: {allow_maintainer_edit: checked}});
-      if (!response.ok) {
+      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
+      const data = await resp.json();
+      checkbox.checked = data.allow_maintainer_edit;
     } catch (error) {
+      checkbox.checked = !checkbox.checked;
       console.error(error);
       showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error'));
     } finally {
       wrapper.classList.remove('is-loading');
-      e.target.disabled = false;
     }
   });
 }
