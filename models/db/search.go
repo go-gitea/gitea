@@ -12,8 +12,8 @@ func (s SearchOrderBy) String() string {
 
 // Strings for sorting result
 const (
-	SearchOrderByAlphabetically        SearchOrderBy = "owner_name ASC, name ASC"
-	SearchOrderByAlphabeticallyReverse SearchOrderBy = "owner_name DESC, name DESC"
+	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
+	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
 	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
 	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
 	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
