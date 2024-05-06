@@ -15,4 +15,5 @@ type Milestone struct {
 	Updated     *time.Time `json:"updated"`
 	Closed      *time.Time `json:"closed"`
 	State       string     `json:"state"` // open, closed
+	OriginalID  int64      `json:"-"`     // ID from the upstream syncing source
 }

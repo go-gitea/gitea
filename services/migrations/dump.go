@@ -32,6 +32,7 @@ var _ base.Uploader = &RepositoryDumper{}
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
+	base.NullUploader
 	ctx             context.Context
 	baseDir         string
 	repoOwner       string

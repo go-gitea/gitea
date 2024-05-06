@@ -255,6 +255,34 @@ func AddTopic(ctx context.Context, repoID int64, topicName string) (*Topic, erro
 	return topic, committer.Commit()
 }
 
+func AddTopics(repoID int64, topicNames ...string) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, topicName := range topicNames {
+		if strings.TrimSpace(topicName) == "" {
+			continue
+		}
+
+		_, err := addTopicByNameToRepo(ctx, repoID, topicName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+		Topics: topicNames,
+	}); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 // DeleteTopic removes a topic name from a repository (if it has it)
 func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
 	topic, err := GetRepoTopicByName(ctx, repoID, topicName)
@@ -276,7 +304,7 @@ func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, e
 	return topic, err
 }
 
-// SaveTopics save topics to a repository
+// SaveTopics save topics to a repository (add and delete respective topics)
 func SaveTopics(ctx context.Context, repoID int64, topicNames ...string) error {
 	topics, err := db.Find[Topic](ctx, &FindTopicOptions{
 		RepoID: repoID,

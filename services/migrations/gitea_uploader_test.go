@@ -31,8 +31,10 @@ import (
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
-	// FIXME: Since no accesskey or user/password will trigger rate limit of github, just skip
-	t.Skip()
+	token := os.Getenv("GITHUB_READ_TOKEN")
+	if token == "" {
+		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
+	}
 
 	unittest.PrepareTestEnv(t)
 
@@ -40,7 +42,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	var (
 		ctx        = context.Background()
-		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
+		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)

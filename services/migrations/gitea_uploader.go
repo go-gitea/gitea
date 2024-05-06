@@ -42,6 +42,7 @@ var _ base.Uploader = &GiteaLocalUploader{}
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	base.NullUploader
 	ctx            context.Context
 	doer           *user_model.User
 	repoOwner      string
@@ -132,6 +133,12 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
+		Issues:         opts.Issues,
+		Milestones:     opts.Milestones,
+		Labels:         opts.Labels,
+		Comments:       opts.Comments,
+		PullRequests:   opts.PullRequests,
+		ReleaseAssets:  opts.ReleaseAssets,
 		MirrorInterval: opts.MirrorInterval,
 	}, NewMigrationHTTPTransport())
 
@@ -161,8 +168,7 @@ func (g *GiteaLocalUploader) Close() {
 	}
 }
 
-// CreateTopics creates topics
-func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+func filterTopicsForDB(topics []string) []string {
 	// Ignore topics too long for the db
 	c := 0
 	for _, topic := range topics {
@@ -174,11 +180,16 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		c++
 	}
 	topics = topics[:c]
+	return topics
+}
+
+// CreateTopics creates topics
+func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	topics = filterTopicsForDB(topics)
 	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
 }
 
-// CreateMilestones creates milestones
-func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []*issues_model.Milestone {
 	mss := make([]*issues_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
@@ -210,13 +221,19 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
 			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
 			DeadlineUnix: deadline,
+			OriginalID:   milestone.OriginalID,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
 			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())
 		}
 		mss = append(mss, &ms)
 	}
+	return mss
+}
 
+// CreateMilestones creates milestones
+func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+	mss := g.prepareMilestones(milestones...)
 	err := issues_model.InsertMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
@@ -230,6 +247,17 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
+	lbs := g.convertLabels(labels...)
+	if err := issues_model.NewLabels(g.ctx, lbs...); err != nil {
+		return err
+	}
+	for _, lb := range lbs {
+		g.labels[lb.Name] = lb
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) convertLabels(labels ...*base.Label) []*issues_model.Label {
 	lbs := make([]*issues_model.Label, 0, len(labels))
 	for _, l := range labels {
 		if color, err := label.NormalizeColor(l.Color); err != nil {
@@ -245,21 +273,13 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 			Exclusive:   l.Exclusive,
 			Description: l.Description,
 			Color:       l.Color,
+			OriginalID:  l.OriginalID,
 		})
 	}
-
-	err := issues_model.NewLabels(g.ctx, lbs...)
-	if err != nil {
-		return err
-	}
-	for _, lb := range lbs {
-		g.labels[lb.Name] = lb
-	}
-	return nil
+	return lbs
 }
 
-// CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) prepareReleases(releases ...*base.Release) ([]*repo_model.Release, error) {
 	rels := make([]*repo_model.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
@@ -294,7 +314,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		}
 
 		if err := g.remapUser(release, &rel); err != nil {
-			return err
+			return nil, err
 		}
 
 		// calc NumCommits if possible
@@ -302,12 +322,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
-					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
+					return nil, fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
 				rel.NumCommits, err = commit.CommitsCount()
 				if err != nil {
-					return fmt.Errorf("CommitsCount: %w", err)
+					return nil, fmt.Errorf("CommitsCount: %w", err)
 				}
 			}
 		}
@@ -353,7 +373,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				return err
 			}()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)
@@ -361,17 +381,25 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		rels = append(rels, &rel)
 	}
+	return rels, nil
+}
+
+// CreateReleases creates releases
+func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+	rels, err := g.prepareReleases(releases...)
+	if err != nil {
+		return err
+	}
 
 	return repo_model.InsertReleases(g.ctx, rels...)
 }
 
-// SyncTags syncs releases with tags in the database
+// SyncTags syncs releases with tags in the databases
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repo_module.SyncReleasesWithTags(g.ctx, g.repo, g.gitRepo)
+	return repo_module.SyncReleasesWithTags(g.ctx, g.repo, g.gitRepo, false)
 }
 
-// CreateIssues creates issues
-func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+func (g *GiteaLocalUploader) prepareIssues(issues ...*base.Issue) ([]*issues_model.Issue, error) {
 	iss := make([]*issues_model.Issue, 0, len(issues))
 	for _, issue := range issues {
 		var labels []*issues_model.Label
@@ -421,7 +449,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
-			return err
+			return nil, err
 		}
 
 		if issue.Closed != nil {
@@ -434,34 +462,45 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				return nil, err
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
 		iss = append(iss, &is)
 	}
+	return iss, nil
+}
 
-	if len(iss) > 0 {
-		if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
-			return err
-		}
-
-		for _, is := range iss {
-			g.issues[is.Index] = is
-		}
+// CreateIssues creates issues
+func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+	iss, err := g.prepareIssues(issues...)
+	if err != nil {
+		return err
+	}
+	if len(iss) == 0 {
+		return nil
 	}
 
+	if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
+		return err
+	}
+
+	for _, is := range iss {
+		g.issues[is.Index] = is
+	}
 	return nil
 }
 
-// CreateComments creates comments of issues
-func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+func (g *GiteaLocalUploader) prepareComments(comments ...*base.Comment) ([]*issues_model.Comment, error) {
 	cms := make([]*issues_model.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
-			return fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
+			// ignore comments for non existent issues
+			// It can happen when a comment belongs to a pull request, but the pull request is not imported
+			log.Warn("Ignoring comment for non existent issue %d", comment.IssueIndex)
+			continue
 		}
 
 		if comment.Created.IsZero() {
@@ -480,6 +519,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
+			OriginalID:  comment.OriginalID,
 		}
 
 		switch cm.Type {
@@ -515,7 +555,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		if err := g.remapUser(comment, &cm); err != nil {
-			return err
+			return nil, err
 		}
 
 		// add reactions
@@ -525,12 +565,21 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				return nil, err
 			}
 			cm.Reactions = append(cm.Reactions, &res)
 		}
 
 		cms = append(cms, &cm)
+	}
+	return cms, nil
+}
+
+// CreateComments creates comments of issues
+func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+	cms, err := g.prepareComments(comments...)
+	if err != nil {
+		return err
 	}
 
 	if len(cms) == 0 {
@@ -539,20 +588,28 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	return issues_model.InsertIssueComments(g.ctx, cms)
 }
 
-// CreatePullRequests creates pull requests
-func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*issues_model.PullRequest, error) {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
 	for _, pr := range prs {
-		gpr, err := g.newPullRequest(pr)
+		gpr, err := g.getPullRequest(pr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if err := g.remapUser(pr, gpr.Issue); err != nil {
-			return err
+			return nil, err
 		}
 
 		gprs = append(gprs, gpr)
+	}
+	return gprs, nil
+}
+
+// CreatePullRequests creates pull requests
+func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+	gprs, err := g.preparePullRequests(prs...)
+	if err != nil {
+		return err
 	}
 	if err := issues_model.InsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
@@ -717,7 +774,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	return head, nil
 }
 
-func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
+func (g *GiteaLocalUploader) getPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
 	var labels []*issues_model.Label
 	for _, label := range pr.Labels {
 		lb, ok := g.labels[label.Name]
@@ -834,14 +891,13 @@ func convertReviewState(state string) issues_model.ReviewType {
 	}
 }
 
-// CreateReviews create pull request reviews of currently migrated issues
-func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_model.Review, error) {
 	cms := make([]*issues_model.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
-			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
+			return nil, fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
 		}
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
@@ -854,10 +910,11 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			Official:    review.Official,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+			OriginalID:  review.OriginalID,
 		}
 
 		if err := g.remapUser(review, &cm); err != nil {
-			return err
+			return nil, err
 		}
 
 		cms = append(cms, &cm)
@@ -868,12 +925,12 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			var err error
 			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(g.ctx, issue.ID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			g.prCache[issue.ID] = pr
 		}
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
+			// No merge base -> no basis for any patches
 			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
 			continue
 		}
@@ -937,14 +994,119 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			if err := g.remapUser(review, &c); err != nil {
-				return err
+				return nil, err
 			}
 
 			cm.Comments = append(cm.Comments, &c)
 		}
 	}
 
+	return cms, nil
+}
+
+// CreateReviews create pull request reviews of currently migrated issues
+func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+	cms, err := g.prepareReviews(reviews...)
+	if err != nil {
+		return err
+	}
+
 	return issues_model.InsertReviews(g.ctx, cms)
+}
+
+// UpdateTopics updates topics
+func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
+	topics = filterTopicsForDB(topics)
+	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
+}
+
+func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
+	mss := g.prepareMilestones(milestones...)
+	err := issues_model.UpdateMilestones(g.ctx, mss...)
+	if err != nil {
+		return err
+	}
+
+	for _, ms := range mss {
+		g.milestones[ms.Name] = ms.ID
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
+	lbs := g.convertLabels(labels...)
+	if err := issues_model.UpdateLabelsByRepoID(g.ctx, g.repo.ID, lbs...); err != nil {
+		return err
+	}
+	for _, lb := range lbs {
+		g.labels[lb.Name] = lb
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) PatchReleases(releases ...*base.Release) error {
+	// TODO: needs performance improvement
+	rels, err := g.prepareReleases(releases...)
+	if err != nil {
+		return err
+	}
+
+	return repo_model.UpsertReleases(g.ctx, rels...)
+}
+
+func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
+	iss, err := g.prepareIssues(issues...)
+	if err != nil {
+		return err
+	}
+	if len(iss) == 0 {
+		return nil
+	}
+
+	if err := issues_model.UpsertIssues(g.ctx, iss...); err != nil {
+		return err
+	}
+
+	for _, is := range iss {
+		g.issues[is.Index] = is
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
+	cms, err := g.prepareComments(comments...)
+	if err != nil {
+		return err
+	}
+
+	if len(cms) == 0 {
+		return nil
+	}
+	return issues_model.UpsertIssueComments(g.ctx, cms)
+}
+
+func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
+	gprs, err := g.preparePullRequests(prs...)
+	if err != nil {
+		return err
+	}
+	if err := issues_model.UpsertPullRequests(g.ctx, gprs...); err != nil {
+		return err
+	}
+	for _, pr := range gprs {
+		g.issues[pr.Issue.Index] = pr.Issue
+		pull.AddToTaskQueue(g.ctx, pr)
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) PatchReviews(reviews ...*base.Review) error {
+	cms, err := g.prepareReviews(reviews...)
+	if err != nil {
+		return err
+	}
+
+	return issues_model.UpsertReviews(g.ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

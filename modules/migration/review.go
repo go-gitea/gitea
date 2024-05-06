@@ -42,6 +42,7 @@ type Review struct {
 	CreatedAt    time.Time `yaml:"created_at"`
 	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments     []*ReviewComment
+	OriginalID   int64 // ID from the upstream syncing source
 }
 
 // GetExternalName ExternalUserMigrated interface
@@ -52,16 +53,17 @@ func (r *Review) GetExternalID() int64 { return r.ReviewerID }
 
 // ReviewComment represents a review comment
 type ReviewComment struct {
-	ID        int64
-	InReplyTo int64 `yaml:"in_reply_to"`
-	Content   string
-	TreePath  string `yaml:"tree_path"`
-	DiffHunk  string `yaml:"diff_hunk"`
-	Position  int
-	Line      int
-	CommitID  string `yaml:"commit_id"`
-	PosterID  int64  `yaml:"poster_id"`
-	Reactions []*Reaction
-	CreatedAt time.Time `yaml:"created_at"`
-	UpdatedAt time.Time `yaml:"updated_at"`
+	ID         int64
+	InReplyTo  int64 `yaml:"in_reply_to"`
+	Content    string
+	TreePath   string `yaml:"tree_path"`
+	DiffHunk   string `yaml:"diff_hunk"`
+	Position   int
+	Line       int
+	CommitID   string `yaml:"commit_id"`
+	PosterID   int64  `yaml:"poster_id"`
+	Reactions  []*Reaction
+	CreatedAt  time.Time `yaml:"created_at"`
+	UpdatedAt  time.Time `yaml:"updated_at"`
+	OriginalID int64     // ID from the upstream syncing source
 }

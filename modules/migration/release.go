@@ -37,6 +37,7 @@ type Release struct {
 	Assets          []*ReleaseAsset
 	Created         time.Time
 	Published       time.Time
+	OriginalID      int64 `yaml:"-"` // ID from the upstream syncing source
 }
 
 // GetExternalName ExternalUserMigrated interface
