@@ -71,9 +71,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	case "leastupdate":
 		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
+		orderBy = "owner_name DESC, name DESC"
 	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
+		orderBy = "owner_name ASC, name ASC"
 	case "reversesize":
 		orderBy = db.SearchOrderBySizeReverse
 	case "size":
