@@ -383,7 +383,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		cmdApply.AddArguments("--ignore-whitespace")
 	}
 	is3way := false
-	if git.CheckGitVersionAtLeast("2.32.0") == nil {
+	if git.DefaultFeatures().CheckVersionAtLeast("2.32.0") {
 		cmdApply.AddArguments("--3way")
 		is3way = true
 	}
