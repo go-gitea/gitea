@@ -1143,7 +1143,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}

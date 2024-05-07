@@ -19,7 +19,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 import {initRepoIssueCommentEdit} from './repo-issue-edit.js';
 
@@ -56,16 +56,20 @@ export function initRepoCommentForm() {
   }
 
   function initBranchSelector() {
-    const $selectBranch = $('.ui.select-branch');
+    const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+    if (!elSelectBranch) return;
+    const isForNewIssue = elSelectBranch.getAttribute('data-for-new-issue') === 'true';
+
+    const $selectBranch = $(elSelectBranch);
     const $branchMenu = $selectBranch.find('.reference-list-menu');
-    const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', async function () {
-      const selectedValue = $(this).data('id');
+    $branchMenu.find('.item:not(.no-select)').on('click', async function (e) {
+      e.preventDefault();
+      const selectedValue = $(this).data('id'); // eg: "refs/heads/my-branch"
       const editMode = $('#editing_mode').val();
       $($(this).data('id-selector')).val(selectedValue);
-      if ($isNewIssue) {
-        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
-        return;
+      if (isForNewIssue) {
+        elSelectBranch.querySelector('.text-branch-name').textContent = this.getAttribute('data-name');
+        return; // only update UI&form, do not send request/reload
       }
 
       if (editMode === 'true') {
@@ -84,9 +88,9 @@ export function initRepoCommentForm() {
     });
     $selectBranch.find('.reference.column').on('click', function () {
       hideElem($selectBranch.find('.scrolling.reference-list-menu'));
-      $selectBranch.find('.reference .text').removeClass('black');
-      showElem($($(this).data('target')));
-      $(this).find('.text').addClass('black');
+      showElem(this.getAttribute('data-target'));
+      queryElemChildren(this.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+      this.classList.add('active');
       return false;
     });
   }
