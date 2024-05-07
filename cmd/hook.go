@@ -220,10 +220,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	supportProcReceive := false
-	if git.CheckGitVersionAtLeast("2.29") == nil {
-		supportProcReceive = true
-	}
+	supportProcReceive := git.DefaultFeatures().SupportProcReceive
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -497,7 +494,7 @@ Gitea or set your environment appropriately.`, "")
 		return nil
 	}
 
-	if git.CheckGitVersionAtLeast("2.29") != nil {
+	if !git.DefaultFeatures().SupportProcReceive {
 		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 
