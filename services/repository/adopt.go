@@ -195,6 +195,10 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 	defer gitRepo.Close()
 
+	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranches: %w", err)
+	}
+
 	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
