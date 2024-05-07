@@ -32,7 +32,7 @@ func IsRelativeURL(s string) bool {
 	return err == nil && urlIsRelative(s, u)
 }
 
-func guessRequestScheme(req *http.Request) string {
+func guessRequestScheme(req *http.Request, def string) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
 	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
 		return s
@@ -49,21 +49,12 @@ func guessRequestScheme(req *http.Request) string {
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
 		return util.Iif(s == "on", "https", "http")
 	}
-	if req.TLS != nil {
-		return "https"
-	}
-	return "http"
+	return def
 }
 
-func guessRequestHost(req *http.Request) string {
+func guessForwardedHost(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-	if s := req.Header.Get("X-Forwarded-Host"); s != "" {
-		return s
-	}
-	if req.Host != "" {
-		return req.Host // Golang: the Host header is promoted to the Request.Host field and removed from the Header map.
-	}
-	return ""
+	return req.Header.Get("X-Forwarded-Host")
 }
 
 // GuessCurrentAppURL tries to guess the current full URL by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
@@ -72,8 +63,13 @@ func GuessCurrentAppURL(ctx context.Context) string {
 	if !ok {
 		return setting.AppURL
 	}
-	if host := guessRequestHost(req); host != "" {
-		return guessRequestScheme(req) + "://" + host + setting.AppSubURL + "/"
+	if host := guessForwardedHost(req); host != "" {
+		// if it is behind a reverse proxy, use "https" as default scheme in case the site admin forgets to set the correct forwarded-protocol headers
+		return guessRequestScheme(req, "https") + "://" + host + setting.AppSubURL + "/"
+	} else if req.Host != "" {
+		// if it is not behind a reverse proxy, use the scheme from config options, meanwhile use "https" as much as possible
+		defaultScheme := util.Iif(setting.Protocol == "http", "http", "https")
+		return guessRequestScheme(req, defaultScheme) + "://" + req.Host + setting.AppSubURL + "/"
 	}
 	return setting.AppURL
 }

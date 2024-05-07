@@ -40,6 +40,7 @@ func TestIsRelativeURL(t *testing.T) {
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.Protocol, "http")()
 	defer test.MockVariableValue(&setting.AppURL, "http://the-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 
@@ -60,7 +61,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 			"X-Forwarded-Host": {"forwarded-host"},
 		},
 	})
-	assert.Equal(t, "http://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "https://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
