@@ -585,7 +585,7 @@ func GetByID(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
-	} else if !permission.HasAccess() {
+	} else if !permission.HasAnyUnitAccess() {
 		ctx.NotFound()
 		return
 	}
@@ -1084,7 +1084,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	// update MirrorInterval
 	if opts.MirrorInterval != nil {
-
 		// MirrorInterval should be a duration
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {

@@ -2,13 +2,13 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}
 	</div>
-	<div class="content tw-text-left">
-		<form class="ui form form-fetch-action" action="{{printf "%s/issues/new" .Repository.Link}}" method="post">
+	<div class="content">
+		<form class="ui form form-fetch-action" action="{{.Repository.Link}}/issues/new" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
-				<div class="ui search selection dropdown issue_reference_repository_search">
-					<div class="default text">{{.Repository.FullName}}</div>
+				<div class="ui search selection dropdown issue_reference_repository_search ellipsis-items-nowrap">
+					<div class="default text gt-ellipsis">{{.Repository.FullName}}</div>
 					<div class="menu"></div>
 				</div>
 			</div>
@@ -18,7 +18,7 @@
 			</div>
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repo.issues.reference_issue.body"}}</strong></label>
-				<textarea name="content" class="form-control"></textarea>
+				<textarea name="content"></textarea>
 			</div>
 			<div class="text right">
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>

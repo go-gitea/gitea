@@ -164,7 +164,7 @@ func TestPackagePyPI(t *testing.T) {
 		nodes := htmlDoc.doc.Find("a").Nodes
 		assert.Len(t, nodes, 2)
 
-		hrefMatcher := regexp.MustCompile(fmt.Sprintf(`%s/files/%s/%s/test\..+#sha256-%s`, root, regexp.QuoteMeta(packageName), regexp.QuoteMeta(packageVersion), hashSHA256))
+		hrefMatcher := regexp.MustCompile(fmt.Sprintf(`%s/files/%s/%s/test\..+#sha256=%s`, root, regexp.QuoteMeta(packageName), regexp.QuoteMeta(packageVersion), hashSHA256))
 
 		for _, a := range nodes {
 			for _, att := range a.Attr {

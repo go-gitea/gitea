@@ -53,7 +53,7 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 			if setting.Database.Type.IsMySQL() {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
 			} else if setting.Database.Type.IsMSSQL() {
-				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] VARCHAR(64)", alts[0], alts[1]))
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] NVARCHAR(64)", alts[0], alts[1]))
 			} else {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
 			}

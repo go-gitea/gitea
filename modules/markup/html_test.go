@@ -124,6 +124,11 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+
+	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
@@ -695,7 +700,7 @@ func TestIssue18471(t *testing.T) {
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {
