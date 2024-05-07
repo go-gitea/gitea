@@ -243,6 +243,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return "", err
 	}
 	defer cancel()
+
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
