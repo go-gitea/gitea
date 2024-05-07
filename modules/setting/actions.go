@@ -14,11 +14,12 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		LogStorage            *Storage // how the created logs should be stored
-		ArtifactStorage       *Storage // how the created artifacts should be stored
-		ArtifactRetentionDays int64    `ini:"ARTIFACT_RETENTION_DAYS"`
 		Enabled               bool
 		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
+		LogStorage            *Storage          // how the created logs should be stored
+		ArtifactStorage       *Storage          // how the created artifacts should be stored
+		ArtifactRetentionDays int64             `ini:"ARTIFACT_RETENTION_DAYS"`
+		ArtifactRootURL       string            `ini:"ARTIFACT_ROOT_URL"`
 		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
