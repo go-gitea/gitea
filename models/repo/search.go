@@ -7,24 +7,26 @@ import "code.gitea.io/gitea/models/db"
 
 // Strings for sorting result
 const (
+	// only used for repos
 	SearchOrderByAlphabetically        db.SearchOrderBy = "owner_name ASC, name ASC"
 	SearchOrderByAlphabeticallyReverse db.SearchOrderBy = "owner_name DESC, name DESC"
-	SearchOrderByLeastUpdated          db.SearchOrderBy = db.SearchOrderByLeastUpdated
-	SearchOrderByRecentUpdated         db.SearchOrderBy = db.SearchOrderByRecentUpdated
-	SearchOrderByOldest                db.SearchOrderBy = db.SearchOrderByOldest
-	SearchOrderByNewest                db.SearchOrderBy = db.SearchOrderByNewest
-	SearchOrderBySize                  db.SearchOrderBy = db.SearchOrderBySize
-	SearchOrderBySizeReverse           db.SearchOrderBy = db.SearchOrderBySizeReverse
-	SearchOrderByID                    db.SearchOrderBy = db.SearchOrderByID
-	SearchOrderByIDReverse             db.SearchOrderBy = db.SearchOrderByIDReverse
-	SearchOrderByStars                 db.SearchOrderBy = db.SearchOrderByStars
-	SearchOrderByStarsReverse          db.SearchOrderBy = db.SearchOrderByStarsReverse
-	SearchOrderByForks                 db.SearchOrderBy = db.SearchOrderByForks
-	SearchOrderByForksReverse          db.SearchOrderBy = db.SearchOrderByForksReverse
-	SearchOrderByGitSize               db.SearchOrderBy = db.SearchOrderByGitSize
-	SearchOrderByGitSizeReverse        db.SearchOrderBy = db.SearchOrderByGitSizeReverse
-	SearchOrderByLFSSize               db.SearchOrderBy = db.SearchOrderByLFSSize
-	SearchOrderByLFSSizeReverse        db.SearchOrderBy = db.SearchOrderByLFSSizeReverse
+	SearchOrderBySize                  db.SearchOrderBy = "size ASC"
+	SearchOrderBySizeReverse           db.SearchOrderBy = "size DESC"
+	SearchOrderByGitSize               db.SearchOrderBy = "git_size ASC"
+	SearchOrderByGitSizeReverse        db.SearchOrderBy = "git_size DESC"
+	SearchOrderByLFSSize               db.SearchOrderBy = "lfs_size ASC"
+	SearchOrderByLFSSizeReverse        db.SearchOrderBy = "lfs_size DESC"
+	// alias as also used elsewhere
+	SearchOrderByLeastUpdated  db.SearchOrderBy = db.SearchOrderByLeastUpdated
+	SearchOrderByRecentUpdated db.SearchOrderBy = db.SearchOrderByRecentUpdated
+	SearchOrderByOldest        db.SearchOrderBy = db.SearchOrderByOldest
+	SearchOrderByNewest        db.SearchOrderBy = db.SearchOrderByNewest
+	SearchOrderByID            db.SearchOrderBy = db.SearchOrderByID
+	SearchOrderByIDReverse     db.SearchOrderBy = db.SearchOrderByIDReverse
+	SearchOrderByStars         db.SearchOrderBy = db.SearchOrderByStars
+	SearchOrderByStarsReverse  db.SearchOrderBy = db.SearchOrderByStarsReverse
+	SearchOrderByForks         db.SearchOrderBy = db.SearchOrderByForks
+	SearchOrderByForksReverse  db.SearchOrderBy = db.SearchOrderByForksReverse
 )
 
 // SearchOrderByMap represents all possible search order
