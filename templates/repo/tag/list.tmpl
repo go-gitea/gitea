@@ -4,6 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
+		{{if .Releases}}
 		<h4 class="ui top attached header">
 			<div class="five wide column tw-flex tw-items-center">
 				{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.tags"}}
@@ -57,6 +58,7 @@
 				</tbody>
 			</table>
 		</div>
+		{{end}}
 
 		{{template "base/paginate" .}}
 	</div>

@@ -103,17 +103,10 @@
     width: 50%;
     min-height: 48px;
   }
+  #navbar #mobile-stopwatch-icon,
   #navbar #mobile-notifications-icon {
     margin-right: 6px !important;
   }
-}
-
-#navbar a.item .notification_count {
-  color: var(--color-nav-bg);
-  padding: 0 3.75px;
-  font-size: 12px;
-  line-height: 12px;
-  font-weight: var(--font-weight-bold);
 }
 
 #navbar a.item:hover .notification_count,
@@ -123,6 +116,11 @@
 
 #navbar a.item .notification_count,
 #navbar a.item .header-stopwatch-dot {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
   background: var(--color-primary);
   border: 2px solid var(--color-nav-bg);
   position: absolute;
@@ -135,6 +133,8 @@
   align-items: center;
   justify-content: center;
   z-index: 1; /* prevent menu button background from overlaying icon */
+  user-select: none;
+  white-space: nowrap;
 }
 
 .secondary-nav {
