@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -36,6 +37,39 @@ func TestIsRelativeURL(t *testing.T) {
 	for _, s := range abs {
 		assert.False(t, IsRelativeURL(s), "abs = %q", s)
 	}
+}
+
+func TestMakeAbsoluteURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://the-host/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+
+	ctx := context.Background()
+	assert.Equal(t, "http://the-host/sub/", MakeAbsoluteURL(ctx, ""))
+	assert.Equal(t, "http://the-host/sub/foo", MakeAbsoluteURL(ctx, "foo"))
+	assert.Equal(t, "http://the-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
+
+	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+		Host: "user-host",
+	})
+	assert.Equal(t, "http://user-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+
+	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host": {"forwarded-host"},
+		},
+	})
+	assert.Equal(t, "http://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+
+	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host":  {"forwarded-host"},
+			"X-Forwarded-Proto": {"https"},
+		},
+	})
+	assert.Equal(t, "https://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 }
 
 func TestIsCurrentGiteaSiteURL(t *testing.T) {
@@ -75,4 +109,14 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 	assert.False(t, IsCurrentGiteaSiteURL(ctx, "\\\\"))
 	assert.False(t, IsCurrentGiteaSiteURL(ctx, "http://localhost"))
 	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000?key=val"))
+
+	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host":  {"forwarded-host"},
+			"X-Forwarded-Proto": {"https"},
+		},
+	})
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000"))
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "https://forwarded-host"))
 }
