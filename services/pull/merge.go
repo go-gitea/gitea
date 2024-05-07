@@ -247,47 +247,96 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
 		if err := doMergeStyleMerge(mergeCtx, message); err != nil {
-			cancel()
 			return "", err
 		}
 	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:
 		if err := doMergeStyleRebase(mergeCtx, mergeStyle, message); err != nil {
-			cancel()
 			return "", err
 		}
 	case repo_model.MergeStyleSquash:
 		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
-			cancel()
 			return "", err
 		}
 	case repo_model.MergeStyleFastForwardOnly:
 		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
-			cancel()
 			return "", err
 		}
 	default:
-		cancel()
 		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
 	// OK we should cache our current head and origin/headbranch
-	mergeCtx.mergeHeadSHA, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
+	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
 	if err != nil {
-		cancel()
 		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
-	mergeCtx.mergeBaseSHA, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+baseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+baseBranch)
 	if err != nil {
-		cancel()
 		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 	}
-	mergeCtx.mergeCommitID, err = git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, baseBranch)
+	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, baseBranch)
 	if err != nil {
-		cancel()
 		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
 	}
 
-	return mergeCtx.mergeCommitID, nil
+	// Now it's questionable about where this should go - either after or before the push
+	// I think in the interests of data safety - failures to push to the lfs should prevent
+	// the merge as you can always remerge.
+	if setting.LFS.StartServer {
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+			return "", err
+		}
+	}
+
+	var headUser *user_model.User
+	err = pr.HeadRepo.LoadOwner(ctx)
+	if err != nil {
+		if !user_model.IsErrUserNotExist(err) {
+			log.Error("Can't find user: %d for head repository in %-v: %v", pr.HeadRepo.OwnerID, pr, err)
+			return "", err
+		}
+		log.Warn("Can't find user: %d for head repository in %-v - defaulting to doer: %s - %v", pr.HeadRepo.OwnerID, pr, doer.Name, err)
+		headUser = doer
+	} else {
+		headUser = pr.HeadRepo.Owner
+	}
+
+	mergeCtx.env = repo_module.FullPushingEnvironment(
+		headUser,
+		doer,
+		pr.BaseRepo,
+		pr.BaseRepo.Name,
+		pr.ID,
+	)
+
+	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
+	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+
+	// Push back to upstream.
+	// This cause an api call to "/api/internal/hook/post-receive/...",
+	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
+	if err := pushCmd.Run(mergeCtx.RunOpts()); err != nil {
+		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
+			return "", &git.ErrPushOutOfDate{
+				StdOut: mergeCtx.outbuf.String(),
+				StdErr: mergeCtx.errbuf.String(),
+				Err:    err,
+			}
+		} else if strings.Contains(mergeCtx.errbuf.String(), "! [remote rejected]") {
+			err := &git.ErrPushRejected{
+				StdOut: mergeCtx.outbuf.String(),
+				StdErr: mergeCtx.errbuf.String(),
+				Err:    err,
+			}
+			err.GenerateMessage()
+			return "", err
+		}
+		return "", fmt.Errorf("git push: %s", mergeCtx.errbuf.String())
+	}
+	mergeCtx.outbuf.Reset()
+	mergeCtx.errbuf.Reset()
+
+	return mergeCommitID, nil
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {

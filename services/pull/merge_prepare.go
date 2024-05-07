@@ -25,14 +25,11 @@ import (
 
 type mergeContext struct {
 	*prContext
-	doer          *user_model.User
-	sig           *git.Signature
-	committer     *git.Signature
-	signKeyID     string // empty for no-sign, non-empty to sign
-	env           []string
-	mergeHeadSHA  string
-	mergeBaseSHA  string
-	mergeCommitID string
+	doer      *user_model.User
+	sig       *git.Signature
+	committer *git.Signature
+	signKeyID string // empty for no-sign, non-empty to sign
+	env       []string
 }
 
 func (ctx *mergeContext) RunOpts() *git.RunOpts {
