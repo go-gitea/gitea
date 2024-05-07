@@ -448,6 +448,10 @@ textarea:focus,
   }
 }
 
+.ui.form .field > .selection.dropdown {
+  min-width: 14em; /* matches the default min width */
+}
+
 .new.webhook form .help {
   margin-left: 25px;
 }
