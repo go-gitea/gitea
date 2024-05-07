@@ -3997,6 +3997,66 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/tasks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's action tasks",
+        "operationId": "ListActionTasks",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, default maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TasksList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/variables": {
       "get": {
         "produces": [
@@ -7418,6 +7478,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -8036,6 +8099,9 @@
           },
           "404": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
@@ -17953,6 +18019,89 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionTask": {
+      "description": "ActionTask represents a ActionTask",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "display_title": {
+          "type": "string",
+          "x-go-name": "DisplayTitle"
+        },
+        "event": {
+          "type": "string",
+          "x-go-name": "Event"
+        },
+        "head_branch": {
+          "type": "string",
+          "x-go-name": "HeadBranch"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSHA"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "run_number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunNumber"
+        },
+        "run_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "RunStartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "workflow_id": {
+          "type": "string",
+          "x-go-name": "WorkflowID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionTaskResponse": {
+      "description": "ActionTaskResponse returns a ActionTask",
+      "type": "object",
+      "properties": {
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "workflow_runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionTask"
+          },
+          "x-go-name": "Entries"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ActionVariable": {
       "description": "ActionVariable return value of the query API",
       "type": "object",
@@ -25407,6 +25556,12 @@
         "items": {
           "$ref": "#/definitions/Tag"
         }
+      }
+    },
+    "TasksList": {
+      "description": "TasksList",
+      "schema": {
+        "$ref": "#/definitions/ActionTaskResponse"
       }
     },
     "Team": {

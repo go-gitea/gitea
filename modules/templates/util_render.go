@@ -121,29 +121,25 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 // RenderLabel renders a label
 // locale is needed due to an import cycle with our context providing the `Tr` function
 func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
-	var (
-		archivedCSSClass string
-		textColor        = util.ContrastColor(label.Color)
-		labelScope       = label.ExclusiveScope()
-	)
-
-	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+	var extraCSSClasses string
+	textColor := util.ContrastColor(label.Color)
+	labelScope := label.ExclusiveScope()
+	descriptionText := emoji.ReplaceAliases(label.Description)
 
 	if label.IsArchived() {
-		archivedCSSClass = "archived-label"
-		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
+		extraCSSClasses = "archived-label"
+		descriptionText = fmt.Sprintf("(%s) %s", locale.TrString("archived"), descriptionText)
 	}
 
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label %s' style='color: %s !important; background-color: %s !important;' data-tooltip-content title='%s'>%s</div>",
-			archivedCSSClass, textColor, label.Color, description, RenderEmoji(ctx, label.Name))
-		return template.HTML(s)
+		return HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, RenderEmoji(ctx, label.Name))
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(ctx, labelScope)
-	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
+	scopeHTML := RenderEmoji(ctx, labelScope)
+	itemHTML := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
@@ -171,14 +167,13 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label %s scope-parent' data-tooltip-content title='%s'>"+
-		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"</span>",
-		archivedCSSClass, description,
-		textColor, scopeColor, scopeText,
-		textColor, itemColor, itemText)
-	return template.HTML(s)
+	return HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`</span>`,
+		extraCSSClasses, descriptionText,
+		textColor, scopeColor, scopeHTML,
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors

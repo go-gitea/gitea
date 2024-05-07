@@ -6,13 +6,20 @@
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-export function showGlobalErrorMessage(msg) {
-  const pageContent = document.querySelector('.page-content');
-  if (!pageContent) return;
+function shouldIgnoreError(err) {
+  const ignorePatterns = [
+    '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
+  ];
+  for (const pattern of ignorePatterns) {
+    if (err.stack?.includes(pattern)) return true;
+  }
+  return false;
+}
 
-  // compact the message to a data attribute to avoid too many duplicated messages
-  const msgCompact = msg.replace(/\W/g, '').trim();
-  let msgDiv = pageContent.querySelector(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
+export function showGlobalErrorMessage(msg) {
+  const msgContainer = document.querySelector('.page-content') ?? document.body;
+  const msgCompact = msg.replace(/\W/g, '').trim(); // compact the message to a data attribute to avoid too many duplicated messages
+  let msgDiv = msgContainer.querySelector(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
     el.innerHTML = `<div class="ui container negative message center aligned js-global-error tw-mt-[15px] tw-whitespace-pre-line"></div>`;
@@ -23,7 +30,7 @@ export function showGlobalErrorMessage(msg) {
   msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
   msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
   msgDiv.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
-  pageContent.prepend(msgDiv);
+  msgContainer.prepend(msgDiv);
 }
 
 /**
@@ -52,10 +59,12 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
     if (runModeIsProd) return;
   }
 
-  // If the error stack trace does not include the base URL of our script assets, it likely came
-  // from a browser extension or inline script. Do not show such errors in production.
-  if (err instanceof Error && !err.stack?.includes(assetBaseUrl) && runModeIsProd) {
-    return;
+  if (err instanceof Error) {
+    // If the error stack trace does not include the base URL of our script assets, it likely came
+    // from a browser extension or inline script. Do not show such errors in production.
+    if (!err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
+    // Ignore some known errors that are unable to fix
+    if (shouldIgnoreError(err)) return;
   }
 
   let msg = err?.message ?? message;

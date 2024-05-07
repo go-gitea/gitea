@@ -114,7 +114,7 @@ export default {
           const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
+          const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
           total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;

@@ -47,10 +47,18 @@ export function initFootLanguageMenu() {
 
 export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
-    const isQuickSubmitEnter = ((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter');
-    if (isQuickSubmitEnter && e.target.matches('textarea')) {
-      e.preventDefault();
-      handleGlobalEnterQuickSubmit(e.target);
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }

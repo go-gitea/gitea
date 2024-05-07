@@ -234,9 +234,7 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	b.Resp.WriteHeader(status)
-	if _, err := b.Resp.Write(bs); err != nil {
-		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
-	}
+	_, _ = b.Resp.Write(bs)
 }
 
 // PlainTextBytes renders bytes as plain text
@@ -256,7 +254,7 @@ func (b *Base) Redirect(location string, status ...int) {
 		code = status[0]
 	}
 
-	if strings.HasPrefix(location, "http://") || strings.HasPrefix(location, "https://") || strings.HasPrefix(location, "//") {
+	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
 		// 1. the first request to "/my-path" contains cookie
 		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
