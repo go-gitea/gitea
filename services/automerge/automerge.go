@@ -88,8 +88,8 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	})
 }
 
-// StartPullRequestAutoMergeCheckBySHA start an automerge check task for repository and SHA
-func StartPullRequestAutoMergeCheckBySHA(ctx context.Context, sha string, repo *repo_model.Repository) error {
+// StartPRCheckAndAutoMergeBySHA start an automerge check and auto merge task for all pull requests of repository and SHA
+func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_model.Repository) error {
 	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *issues_model.PullRequest) bool {
 		return !pr.HasMerged && pr.CanAutoMerge()
 	})
@@ -104,8 +104,8 @@ func StartPullRequestAutoMergeCheckBySHA(ctx context.Context, sha string, repo *
 	return nil
 }
 
-// StartPullRequestAutoMergeCheck start an automerge check task for a pull request
-func StartPullRequestAutoMergeCheck(ctx context.Context, pull *issues_model.PullRequest) {
+// StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
+func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
 	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
 		return
 	}
