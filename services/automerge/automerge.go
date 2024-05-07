@@ -222,7 +222,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		return
 	}
 	if headCommitID != sha {
-		log.Warn("Head commit id of auto merge %-v does not match sha [%s]", pr, sha)
+		log.Warn("Head commit id of auto merge %-v does not match sha [%s], it may means the head branch has been updated. Just ignore this request because a new request expected in the queue", pr, sha)
 		return
 	}
 
