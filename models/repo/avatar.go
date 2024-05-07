@@ -9,10 +9,10 @@ import (
 	"image/png"
 	"io"
 	"net/url"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -86,11 +86,5 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 
 // AvatarLink returns a link to the repository's avatar.
 func (repo *Repository) AvatarLink(ctx context.Context) string {
-	link := repo.relAvatarLink(ctx)
-	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
-	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-	}
-	// otherwise, return the link as it is
-	return link
+	return httplib.MakeAbsoluteURL(ctx, repo.relAvatarLink(ctx))
 }

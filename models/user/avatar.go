@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -91,11 +91,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 
 // AvatarLink returns the full avatar link with http host
 func (u *User) AvatarLink(ctx context.Context) string {
-	link := u.AvatarLinkWithSize(ctx, 0)
-	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
-	}
-	return link
+	return httplib.MakeAbsoluteURL(ctx, u.AvatarLinkWithSize(ctx, 0))
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data
