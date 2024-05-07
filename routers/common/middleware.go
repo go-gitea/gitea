@@ -36,7 +36,7 @@ func ProtocolMiddlewares() (handlers []any) {
 				}
 			}()
 			req = req.WithContext(middleware.WithContextData(req.Context()))
-			req = req.WithContext(go_context.WithValue(req.Context(), httplib.HttpRequestContextKey, req))
+			req = req.WithContext(go_context.WithValue(req.Context(), httplib.RequestContextKey, req))
 			next.ServeHTTP(resp, req)
 		})
 	})

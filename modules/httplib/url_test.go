@@ -49,12 +49,12 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	assert.Equal(t, "http://the-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
 
-	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 	})
 	assert.Equal(t, "http://user-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 
-	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host": {"forwarded-host"},
@@ -62,7 +62,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	})
 	assert.Equal(t, "http://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 
-	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host":  {"forwarded-host"},
@@ -110,7 +110,7 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 	assert.False(t, IsCurrentGiteaSiteURL(ctx, "http://localhost"))
 	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000?key=val"))
 
-	ctx = context.WithValue(ctx, HttpRequestContextKey, &http.Request{
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host":  {"forwarded-host"},

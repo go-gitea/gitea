@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-type httpRequestContextKeyStruct struct{}
+type RequestContextKeyStruct struct{}
 
-var HttpRequestContextKey = httpRequestContextKeyStruct{}
+var RequestContextKey = RequestContextKeyStruct{}
 
 func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
@@ -32,7 +32,7 @@ func IsRelativeURL(s string) bool {
 	return err == nil && urlIsRelative(s, u)
 }
 
-func guessHttpRequestScheme(req *http.Request) string {
+func guessRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
 	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
 		return s
@@ -55,7 +55,7 @@ func guessHttpRequestScheme(req *http.Request) string {
 	return "http"
 }
 
-func guessHttpRequestHost(req *http.Request) string {
+func guessRequestHost(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
 	if s := req.Header.Get("X-Forwarded-Host"); s != "" {
 		return s
@@ -68,12 +68,12 @@ func guessHttpRequestHost(req *http.Request) string {
 
 // GuessCurrentAppURL tries to guess the current full URL by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
 func GuessCurrentAppURL(ctx context.Context) string {
-	req, ok := ctx.Value(HttpRequestContextKey).(*http.Request)
+	req, ok := ctx.Value(RequestContextKey).(*http.Request)
 	if !ok {
 		return setting.AppURL
 	}
-	if host := guessHttpRequestHost(req); host != "" {
-		return guessHttpRequestScheme(req) + "://" + host + setting.AppSubURL + "/"
+	if host := guessRequestHost(req); host != "" {
+		return guessRequestScheme(req) + "://" + host + setting.AppSubURL + "/"
 	}
 	return setting.AppURL
 }

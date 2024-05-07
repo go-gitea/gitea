@@ -89,7 +89,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
-// AvatarLink returns the full avatar link with http host
+// AvatarLink returns the full avatar url with http host. TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (u *User) AvatarLink(ctx context.Context) string {
 	return httplib.MakeAbsoluteURL(ctx, u.AvatarLinkWithSize(ctx, 0))
 }
