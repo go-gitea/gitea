@@ -136,9 +136,9 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	refs, err := gitRepo.GetRefsBySha(sha, "")
-	gitRepo.Close()
 	if err != nil {
 		return nil, err
 	}
