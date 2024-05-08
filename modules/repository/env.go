@@ -25,9 +25,17 @@ const (
 	EnvKeyID        = "GITEA_KEY_ID" // public key ID
 	EnvDeployKeyID  = "GITEA_DEPLOY_KEY_ID"
 	EnvPRID         = "GITEA_PR_ID"
+	EnvPushTrigger  = "GITEA_PUSH_TRIGGER"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"
 	EnvActionPerm   = "GITEA_ACTION_PERM"
+)
+
+type PushTrigger string
+
+const (
+	PushTriggerPRMergeToBase    PushTrigger = "pr-merge-to-base"
+	PushTriggerPRUpdateWithBase PushTrigger = "pr-update-with-base"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push

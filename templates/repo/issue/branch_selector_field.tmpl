@@ -1,12 +1,8 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
-<input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}">
-<form method="post" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
-	{{$.CsrfTokenHtml}}
-</form>
-<div class="ui dropdown select-branch branch-selector-dropdown {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
+<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-items-nowrap {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
 	data-no-results="{{ctx.Locale.Tr "no_results_found"}}"
-	{{if not .Issue}}data-for-new-issue="true"{{end}}
+	{{if and .Issue (or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}data-url-update-issueref="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref"{{end}}
 >
 	<div class="ui button branch-dropdown-button">
 		<span class="text-branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
