@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -110,15 +109,16 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 		return nil
 	}
 
-	var maxSorting sql.NullByte
-	if _, err := db.GetEngine(ctx).Select("Max(sorting)").Table("project_issue").
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+		Table("project_issue").
 		Where("project_id=?", newColumn.ProjectID).
 		And("project_board_id=?", newColumn.ID).
-		Get(&maxSorting); err != nil {
+		Get(&res); err != nil {
 		return err
-	}
-	if maxSorting.Valid {
-		maxSorting.Byte++
 	}
 
 	issues, err := b.GetIssues(ctx)
@@ -129,10 +129,11 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 		return nil
 	}
 
+	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for i, issue := range issues {
 			issue.ProjectBoardID = newColumn.ID
-			issue.Sorting = int64(maxSorting.Byte) + int64(i)
+			issue.Sorting = nextSorting + int64(i)
 			if _, err := db.GetEngine(ctx).ID(issue.ID).Cols("project_board_id", "sorting").Update(issue); err != nil {
 				return err
 			}
