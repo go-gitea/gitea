@@ -368,7 +368,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(ctx, redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToCurrentSite(redirectTo)
