@@ -388,6 +388,7 @@ It could add theme meta information into the custom theme CSS file to provide mo
 
 If a custom theme is a dark theme, please set the global css variable `--is-dark-theme: true` in the `:root` block.
 This allows Gitea to adjust the Monaco code editor's theme accordingly.
+An "auto" theme could be implemented by using "theme-gitea-auto.css" as a reference.
 
 ```css
 gitea-theme-meta-info {

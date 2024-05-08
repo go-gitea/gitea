@@ -49,7 +49,11 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 (
 \s*(--[-\w]+)
 \s*:
-\s*("(\\"|[^"])*")
+\s*(
+("(\\"|[^"])*")
+|('(\\'|[^'])*')
+|([^'";]+)
+)
 \s*;
 \s*
 )
@@ -66,9 +70,13 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	m := map[string]string{}
 	for _, item := range matchedItems {
 		v := item[3]
-		v = strings.TrimPrefix(v, "\"")
-		v = strings.TrimSuffix(v, "\"")
-		v = strings.ReplaceAll(v, `\"`, `"`)
+		if strings.HasPrefix(v, `"`) {
+			v = strings.TrimSuffix(strings.TrimPrefix(v, `"`), `"`)
+			v = strings.ReplaceAll(v, `\"`, `"`)
+		} else if strings.HasPrefix(v, `'`) {
+			v = strings.TrimSuffix(strings.TrimPrefix(v, `'`), `'`)
+			v = strings.ReplaceAll(v, `\'`, `'`)
+		}
 		m[item[2]] = v
 	}
 	return m
