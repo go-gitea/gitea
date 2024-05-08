@@ -17,13 +17,13 @@ import (
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree -l` command.
-func ParseTreeEntries(objectFormat ObjectFormat, data []byte) ([]*TreeEntry, error) {
-	return parseTreeEntries(objectFormat, data, nil)
+func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
+	return parseTreeEntries(data, nil)
 }
 
 var sepSpace = []byte{' '}
 
-func parseTreeEntries(objectFormat ObjectFormat, data []byte, ptree *Tree) ([]*TreeEntry, error) {
+func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	var err error
 	entries := make([]*TreeEntry, 0, bytes.Count(data, []byte{'\n'})+1)
 	for pos := 0; pos < len(data); {

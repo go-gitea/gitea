@@ -15,7 +15,7 @@ import (
 )
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
-	if !git.DefaultFeatures.SupportProcReceive {
+	if !git.DefaultFeatures().SupportProcReceive {
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}

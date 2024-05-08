@@ -90,17 +90,17 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return err
 	}
 
-	var reviewNotifers []*ReviewRequestNotifier
+	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
 		var err error
-		reviewNotifers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
 		if err != nil {
 			log.Error("PullRequestCodeOwnersReview: %v", err)
 		}
 	}
 
 	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
-	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	return nil
 }

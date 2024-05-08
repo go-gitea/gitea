@@ -97,7 +97,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, err
 	}
 
-	overrideSec := getStorageOverrideSection(rootCfg, targetSec, sec, tp, name)
+	overrideSec := getStorageOverrideSection(rootCfg, sec, tp, name)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	switch targetType {
@@ -189,7 +189,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 }
 
 // getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
-func getStorageOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
+func getStorageOverrideSection(rootConfig ConfigProvider, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
 		return nil
 	}
