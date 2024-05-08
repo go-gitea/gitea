@@ -597,7 +597,8 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
 
-		queue.GetManager().FlushAll(context.Background(), 0)
+		assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 0))
+		time.Sleep(time.Second)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerName: "user2",
@@ -610,13 +611,15 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 			IsClosed: false,
 		})
 
-		// search issues
+		// build the request for searching issues
 		link, _ := url.Parse("/api/v1/repos/issues/search")
 		query := url.Values{}
 		query.Add("state", "closed")
 		query.Add("type", "pulls")
 		query.Add("q", "notifier")
 		link.RawQuery = query.Encode()
+
+		// search issues
 		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		var apiIssuesBefore []*api.Issue
 		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
@@ -633,7 +636,8 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		})
 		assert.True(t, issue.IsClosed)
 
-		queue.GetManager().FlushAll(context.Background(), 0)
+		assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 0))
+		time.Sleep(time.Second)
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
