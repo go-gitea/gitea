@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"html"
 	"io"
+	"net/url"
 	"regexp"
 	"strconv"
 
@@ -39,8 +40,6 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(`tw-flex tw-justify-center tw-items-center tw-py-4 tw-text-14`)},
-		{Element: "a", AllowAttr: "href", Regexp: regexp.MustCompile(``)},
 	}
 }
 
@@ -134,10 +133,19 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 
 	// Check if maxRows or maxSize is reached, and if true, warn.
 	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
-		locale := ctx.Ctx.Value(translation.ContextKey).(translation.Locale)
+		warn := `<table class="data-table"><tr><td>`
+		raw_link := ` <a href="` + ctx.Links.RawLink() + `/` + url.PathEscape(ctx.RelativePath) + `">`
 
-		// Construct the HTML string
-		warn := `<div class="tw-flex tw-justify-center tw-items-center tw-py-4 tw-text-14"><div>` + locale.TrString("repo.file_too_large") + ` <a class="source" href="` + ctx.Links.RawLink() + `/` + ctx.RelativePath + `">` + locale.TrString("repo.file_view_raw") + `</a></div></div>`
+		// Try to get the user translation
+		if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
+			warn += locale.TrString("repo.file_too_large")
+			raw_link += locale.TrString("repo.file_view_raw")
+		} else {
+			warn += "The file is too large to be shown."
+			raw_link += "View Raw"
+		}
+
+		warn += raw_link + `</a></td></tr></table>`
 
 		// Write the HTML string to the output
 		if _, err := tmpBlock.WriteString(warn); err != nil {
