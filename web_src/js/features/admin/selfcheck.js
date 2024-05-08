@@ -4,7 +4,7 @@ import {POST} from '../../modules/fetch.js';
 const {appSubUrl} = window.config;
 
 export async function initAdminSelfCheck() {
-  const elCheckByFrontend = document.querySelector('.page-content.admin .self-check-by-frontend');
+  const elCheckByFrontend = document.querySelector('#self-check-by-frontend');
   if (!elCheckByFrontend) return;
 
   const elContent = document.querySelector('.page-content.admin .admin-setting-content');
