@@ -426,7 +426,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 
-		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "unprotected-file-*", ""))
+		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "", "unprotected-file-*"))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "unprotected-file-")
 			assert.NoError(t, err)
