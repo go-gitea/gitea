@@ -29,7 +29,7 @@ func TestParseThemeMetaInfo(t *testing.T) {
 	// the meta in imported themes should be ignored to avoid incorrect overriding
 	m = parseThemeMetaInfoToMap(`
 @media (prefers-color-scheme: dark) { gitea-theme-meta-info { --k1: foo; } }
-@media (prefers-color-scheme: dark) { gitea-theme-meta-info { --k1: bar; } }
+@media (prefers-color-scheme: light) { gitea-theme-meta-info { --k1: bar; } }
 gitea-theme-meta-info {
 	--k2: real;
 }`)
