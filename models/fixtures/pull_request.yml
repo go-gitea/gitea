@@ -121,7 +121,7 @@
 -
   id: 11
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 23
   index: 2
   head_repo_id: 10
@@ -134,7 +134,7 @@
 -
   id: 12
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 24
   index: 3
   head_repo_id: 10
@@ -160,7 +160,7 @@
 -
   id: 14
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 26
   index: 5
   head_repo_id: 10
@@ -186,7 +186,7 @@
 -
   id: 16
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 28
   index: 1
   head_repo_id: 11
