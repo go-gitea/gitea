@@ -312,6 +312,9 @@ func (issues IssueList) LoadAssignees(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Assignees = assignees[issue.ID]
+		if len(issue.Assignees) > 0 {
+			issue.Assignee = issue.Assignees[0]
+		}
 		issue.isAssigneeLoaded = true
 	}
 	return nil

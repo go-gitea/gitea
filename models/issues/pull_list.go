@@ -174,7 +174,7 @@ func (prs PullRequestList) LoadRepositories(ctx context.Context) error {
 	if err := db.GetEngine(ctx).
 		In("id", repoIDs).
 		Find(&reposMap); err != nil {
-		return fmt.Errorf("find issues: %w", err)
+		return fmt.Errorf("find repos: %w", err)
 	}
 	for _, pr := range prs {
 		if pr.BaseRepo == nil {

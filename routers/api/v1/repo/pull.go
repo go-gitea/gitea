@@ -118,7 +118,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	apiPrs := make([]*api.PullRequest, len(prs))
 	// NOTE: load repository first, so that issue.Repo will be filled with pr.BaseRepo
 	if err := prs.LoadRepositories(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
 	}
 	issueList, err := prs.LoadIssues(ctx)
