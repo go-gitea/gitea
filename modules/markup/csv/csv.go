@@ -5,7 +5,6 @@ package markup
 
 import (
 	"bufio"
-	"code.gitea.io/gitea/modules/util"
 	"html"
 	"io"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func init() {
