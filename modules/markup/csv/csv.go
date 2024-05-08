@@ -5,9 +5,9 @@ package markup
 
 import (
 	"bufio"
+	"code.gitea.io/gitea/modules/util"
 	"html"
 	"io"
-	"net/url"
 	"regexp"
 	"strconv"
 
@@ -134,18 +134,18 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 	// Check if maxRows or maxSize is reached, and if true, warn.
 	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
 		warn := `<table class="data-table"><tr><td>`
-		raw_link := ` <a href="` + ctx.Links.RawLink() + `/` + url.PathEscape(ctx.RelativePath) + `">`
+		rawLink := ` <a href="` + ctx.Links.RawLink() + `/` + util.PathEscapeSegments(ctx.RelativePath) + `">`
 
 		// Try to get the user translation
 		if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
 			warn += locale.TrString("repo.file_too_large")
-			raw_link += locale.TrString("repo.file_view_raw")
+			rawLink += locale.TrString("repo.file_view_raw")
 		} else {
 			warn += "The file is too large to be shown."
-			raw_link += "View Raw"
+			rawLink += "View Raw"
 		}
 
-		warn += raw_link + `</a></td></tr></table>`
+		warn += rawLink + `</a></td></tr></table>`
 
 		// Write the HTML string to the output
 		if _, err := tmpBlock.WriteString(warn); err != nil {
