@@ -22,7 +22,7 @@ export function showGlobalErrorMessage(msg, msgType = 'error') {
   let msgDiv = msgContainer.querySelector(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
-    el.innerHTML = `<div class="ui container js-global-error tw-my-4"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
+    el.innerHTML = `<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
     msgDiv = el.childNodes[0];
   }
   // merge duplicated messages into "the message (count)" format
