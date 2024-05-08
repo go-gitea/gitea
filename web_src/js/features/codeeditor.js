@@ -102,10 +102,6 @@ export async function createMonaco(textarea, filename, editorOpts) {
     },
   });
 
-  // Quick fix: https://github.com/microsoft/monaco-editor/issues/2962
-  monaco.languages.register({id: 'vs.editor.nullLanguage'});
-  monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
-
   const editor = monaco.editor.create(container, {
     value: textarea.value,
     theme: 'gitea',
