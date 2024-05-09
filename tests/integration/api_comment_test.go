@@ -155,7 +155,7 @@ func TestAPIGetComment(t *testing.T) {
 	DecodeJSON(t, resp, &apiComment)
 
 	assert.NoError(t, comment.LoadPoster(db.DefaultContext))
-	expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
+	expect := convert.ToAPIComment(db.DefaultContext, repo, comment, nil)
 
 	assert.Equal(t, expect.ID, apiComment.ID)
 	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)

@@ -20,7 +20,7 @@ func TestRelease_ToRelease(t *testing.T) {
 	release1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
 	release1.LoadAttributes(db.DefaultContext)
 
-	apiRelease := ToAPIRelease(db.DefaultContext, repo1, release1)
+	apiRelease := ToAPIRelease(db.DefaultContext, repo1, release1, nil)
 	assert.NotNil(t, apiRelease)
 	assert.EqualValues(t, 1, apiRelease.ID)
 	assert.EqualValues(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1", apiRelease.URL)

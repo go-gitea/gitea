@@ -1436,7 +1436,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	apiCommits := make([]*api.Commit, 0, limit)
 	for i := start; i < start+limit; i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache,
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, ctx.Doer,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,

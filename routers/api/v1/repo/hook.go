@@ -185,7 +185,7 @@ func TestHook(ctx *context.APIContext) {
 		Commits:      []*api.PayloadCommit{commit},
 		TotalCommits: 1,
 		HeadCommit:   commit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}, ctx.Doer),
 		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 	}); err != nil {

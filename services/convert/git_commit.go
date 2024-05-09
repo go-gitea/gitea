@@ -88,7 +88,7 @@ func ParseCommitOptions(ctx *ctx.APIContext) ToCommitOptions {
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, opts ToCommitOptions) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, doer *user_model.User, opts ToCommitOptions) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -103,13 +103,13 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 	}
 
 	if ok {
-		apiAuthor = ToUser(ctx, cacheAuthor, nil)
+		apiAuthor = ToUser(ctx, cacheAuthor, doer)
 	} else {
 		author, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(ctx, author, nil)
+			apiAuthor = ToUser(ctx, author, doer)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -125,13 +125,13 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 	}
 
 	if ok {
-		apiCommitter = ToUser(ctx, cacheCommitter, nil)
+		apiCommitter = ToUser(ctx, cacheCommitter, doer)
 	} else {
 		committer, err := user_model.GetUserByEmail(ctx, commit.Committer.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(ctx, committer, nil)
+			apiCommitter = ToUser(ctx, committer, doer)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}
