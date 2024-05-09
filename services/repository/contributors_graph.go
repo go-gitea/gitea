@@ -220,7 +220,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	return extendedCommitStats, nil
 }
 
-var errSyntax error = errors.New("syntax error occurred")
+var errSyntax = errors.New("syntax error occurred")
 
 func parseCoAuthorTrailerValue(value string) (email, name string, err error) {
 	value = strings.TrimSpace(value)
