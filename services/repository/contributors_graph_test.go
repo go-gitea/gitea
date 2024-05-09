@@ -173,5 +173,4 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		}, data["total"])
 	})
-
 }
