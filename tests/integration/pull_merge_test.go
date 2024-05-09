@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -585,5 +586,65 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 
 		assert.EqualValues(t, "base-pr", targetBranch)
 		assert.EqualValues(t, "Closed", prStatus)
+	})
+}
+
+func TestPullMergeIndexerNotifier(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// create a pull request
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
+
+		assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 0))
+		time.Sleep(time.Second)
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
+			OwnerName: "user2",
+			Name:      "repo1",
+		})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+			RepoID:   repo1.ID,
+			Title:    "Indexer notifier test pull",
+			IsPull:   true,
+			IsClosed: false,
+		})
+
+		// build the request for searching issues
+		link, _ := url.Parse("/api/v1/repos/issues/search")
+		query := url.Values{}
+		query.Add("state", "closed")
+		query.Add("type", "pulls")
+		query.Add("q", "notifier")
+		link.RawQuery = query.Encode()
+
+		// search issues
+		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+		var apiIssuesBefore []*api.Issue
+		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
+		assert.Len(t, apiIssuesBefore, 0)
+
+		// merge the pull request
+		elem := strings.Split(test.RedirectURL(createPullResp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+
+		// check if the issue is closed
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+			ID: issue.ID,
+		})
+		assert.True(t, issue.IsClosed)
+
+		assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 0))
+		time.Sleep(time.Second)
+
+		// search issues again
+		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+		var apiIssuesAfter []*api.Issue
+		DecodeJSON(t, searchIssuesResp, &apiIssuesAfter)
+		if assert.Len(t, apiIssuesAfter, 1) {
+			assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
+		}
 	})
 }
