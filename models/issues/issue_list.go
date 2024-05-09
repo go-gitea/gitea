@@ -72,18 +72,16 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 	return repo_model.ValuesRepository(repoMaps), nil
 }
 
-func (issues IssueList) getPosterIDs() []int64 {
-	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
-		return issue.PosterID, issue.Poster == nil
-	})
-}
-
 func (issues IssueList) LoadPosters(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	posterMaps, err := getPosters(ctx, issues.getPosterIDs())
+	posterIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.PosterID, issue.Poster == nil && issue.PosterID > 0
+	})
+
+	posterMaps, err := getPostersByIDs(ctx, posterIDs)
 	if err != nil {
 		return err
 	}
@@ -94,7 +92,7 @@ func (issues IssueList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-func getPosters(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
+func getPostersByIDs(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
