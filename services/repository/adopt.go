@@ -76,7 +76,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			return fmt.Errorf("getRepositoryByID: %w", err)
 		}
 
-		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch, doer); err != nil {
+		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("adoptRepository: %w", err)
 		}
 
@@ -107,7 +107,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repository, defaultBranch string, doer *user_model.User) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repository, defaultBranch string) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
