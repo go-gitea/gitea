@@ -137,7 +137,7 @@
 								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="force_push_whitelist_teams" value="{{.force_push_whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 										{{range .Teams}}
 											<div class="item" data-value="{{.ID}}">
