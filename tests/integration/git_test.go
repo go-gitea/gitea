@@ -395,8 +395,18 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
 		})
 
-		// Set up permissions for force push
+		// Set up permissions for force push but not normal push
 		t.Run("SetupForcePushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", "", baseCtx.Username, "")
+		})
+
+		// Try to force push without normal push permissions, which should fail
+		t.Run("ForcePushWithoutNormalPermissions", func(t *testing.T) {
+			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
+		})
+
+		// Set up permissions for normal and force push (both are required to force push)
+		t.Run("SetupNormalAndForcePushPermissions", func(t *testing.T) {
 			doProtectBranch(ctx, "protected", baseCtx.Username, baseCtx.Username, "")
 		})
 
