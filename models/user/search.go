@@ -65,7 +65,19 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Sess
 			builder.Like{"LOWER(full_name)", lowerKeyword},
 		)
 		if opts.SearchByEmail {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+			var emailCond builder.Cond
+			emailCond = builder.Like{"LOWER(email)", lowerKeyword}
+			if opts.Actor == nil {
+				emailCond = emailCond.And(builder.Eq{"keep_email_private": false})
+			} else if !opts.Actor.IsAdmin {
+				emailCond = emailCond.And(
+					builder.Or(
+						builder.Eq{"keep_email_private": false},
+						builder.Eq{"id": opts.Actor.ID},
+					),
+				)
+			}
+			keywordCond = keywordCond.Or(emailCond)
 		}
 
 		cond = cond.And(keywordCond)
