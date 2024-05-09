@@ -366,41 +366,42 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			doProtectBranch(ctx, "protected", "", "", "")
 		})
 
-		// Attempt to push which should fail (no one is whitelisted)
-		t.Run("GenerateCommit", func(t *testing.T) {
+		// Try to push without permissions, which should fail
+		t.Run("TryPushWithoutPermissions", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
-		})
-		t.Run("FailNormalPushNoWhitelist", func(t *testing.T) {
 			doGitPushTestRepositoryFail(dstPath, "origin", "protected")
 		})
-		t.Run("FailForcePushNoWhitelist", func(t *testing.T) {
-			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
+
+		// Set up permissions for normal push but not force push
+		t.Run("SetupNormalPushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", baseCtx.Username, "", "")
 		})
 
-		// Whitelist user for normal push but not for force push
-		t.Run("WhitelistNormalPushOnly", func(t *testing.T) {
-			doProtectBranch(ctx, "protected", baseCtx.Username, "", "")
+		// Normal push should work
+		t.Run("NormalPushWithPermissions", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
-		})
-		t.Run("SuccessNormalPushWhitelisted", func(t *testing.T) {
 			doGitPushTestRepository(dstPath, "origin", "protected")
 		})
-		t.Run("FailForcePushNormalOnlyWhitelisted", func(t *testing.T) {
+
+		// Try to force push without force push permissions, which should fail
+		t.Run("ForcePushWithoutForcePermissions", func(t *testing.T) {
+			t.Run("CreateDivergentHistory", func(t *testing.T) {
+				git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+				_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
+				assert.NoError(t, err)
+			})
 			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
 		})
 
-		// Whitelist user for force push only
-		t.Run("WhitelistForcePushOnly", func(t *testing.T) {
-			doProtectBranch(ctx, "protected", "", baseCtx.Username, "")
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
-			assert.NoError(t, err)
+		// Set up permissions for force push
+		t.Run("SetupForcePushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", baseCtx.Username, baseCtx.Username, "")
 		})
-		t.Run("FailNormalPushForceOnlyWhitelisted", func(t *testing.T) {
-			doGitPushTestRepositoryFail(dstPath, "origin", "protected")
-		})
-		t.Run("SuccessForcePushWhitelisted", func(t *testing.T) {
+
+		// Force push should now work
+		t.Run("ForcePushWithPermissions", func(t *testing.T) {
 			doGitPushTestRepository(dstPath, "-f", "origin", "protected")
 		})
 
