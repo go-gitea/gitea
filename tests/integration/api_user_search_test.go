@@ -109,3 +109,19 @@ func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
 	DecodeJSON(t, resp, &results)
 	assert.Empty(t, results.Data)
 }
+
+func TestAPIUserSearchByEmail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	query := "user2@example.com"
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var results SearchResults
+	DecodeJSON(t, resp, &results)
+	assert.Equal(t, 1, len(results.Data))
+	assert.Equal(t, query, results.Data[0].Email)
+}
