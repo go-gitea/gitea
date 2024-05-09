@@ -36,9 +36,12 @@ type Package struct {
 	Metadata *Metadata
 }
 
+// https://getcomposer.org/doc/04-schema.md
+
 // Metadata represents the metadata of a Composer package
 type Metadata struct {
 	Description string            `json:"description,omitempty"`
+	Readme      string            `json:"readme,omitempty"`
 	Keywords    []string          `json:"keywords,omitempty"`
 	Comments    Comments          `json:"_comments,omitempty"`
 	Homepage    string            `json:"homepage,omitempty"`
@@ -124,14 +127,14 @@ func ParsePackage(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			return ParseComposerFile(f)
+			return ParseComposerFile(archive, f)
 		}
 	}
 	return nil, ErrMissingComposerFile
 }
 
 // ParseComposerFile parses a composer.json file to retrieve the metadata of a Composer package
-func ParseComposerFile(r io.Reader) (*Package, error) {
+func ParseComposerFile(archive *zip.Reader, r io.Reader) (*Package, error) {
 	var cj struct {
 		Name    string `json:"name"`
 		Version string `json:"version"`
@@ -158,6 +161,18 @@ func ParseComposerFile(r io.Reader) (*Package, error) {
 
 	if cj.Type == "" {
 		cj.Type = "library"
+	}
+
+	if cj.Readme == "" {
+		cj.Readme = "README.md"
+	}
+	f, err := archive.Open(cj.Readme)
+	if err == nil {
+		buf, _ := io.ReadAll(f)
+		cj.Readme = string(buf)
+		_ = f.Close()
+	} else {
+		cj.Readme = ""
 	}
 
 	return &Package{
