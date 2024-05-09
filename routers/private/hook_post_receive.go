@@ -4,20 +4,25 @@
 package private
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	timeutil "code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -158,6 +163,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	// handle pull request merging, a pull request action should push at least 1 commit
+	if opts.PushTrigger == repo_module.PushTriggerPRMergeToBase {
+		handlePullRequestMerging(ctx, opts, ownerName, repoName, updates)
+		if ctx.Written() {
+			return
+		}
+	}
+
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
@@ -172,7 +185,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+		pusher, err := loadContextCacheUser(ctx, opts.UserID)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
@@ -306,4 +319,53 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		Results:      results,
 		RepoWasEmpty: wasEmpty,
 	})
+}
+
+func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
+	return cache.GetWithContextCache(ctx, "hook_post_receive_user", id, func() (*user_model.User, error) {
+		return user_model.GetUserByID(ctx, id)
+	})
+}
+
+// handlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
+func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
+	if len(updates) == 0 {
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID),
+		})
+		return
+	}
+
+	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
+	if err != nil {
+		log.Error("GetPullRequestByID[%d]: %v", opts.PullRequestID, err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "GetPullRequestByID failed"})
+		return
+	}
+
+	pusher, err := loadContextCacheUser(ctx, opts.UserID)
+	if err != nil {
+		log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Load pusher user failed"})
+		return
+	}
+
+	pr.MergedCommitID = updates[len(updates)-1].NewCommitID
+	pr.MergedUnix = timeutil.TimeStampNow()
+	pr.Merger = pusher
+	pr.MergerID = pusher.ID
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		// Removing an auto merge pull and ignore if not exist
+		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+			return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
+		}
+		if _, err := pr.SetMerged(ctx); err != nil {
+			return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("Failed to update PR to merged: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
+	}
 }
