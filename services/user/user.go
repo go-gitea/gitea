@@ -37,12 +37,13 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	// Non-local users are not allowed to change their username.
-	if !u.IsOrganization() && !u.IsLocal() {
-		return user_model.ErrUserIsNotLocal{
-			UID:  u.ID,
-			Name: u.Name,
-		}
-	}
+	// BLENDER: allow renaming local users.
+	//if !u.IsOrganization() && !u.IsLocal() {
+	//	return user_model.ErrUserIsNotLocal{
+	//		UID:  u.ID,
+	//		Name: u.Name,
+	//	}
+	//}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
 		return err
