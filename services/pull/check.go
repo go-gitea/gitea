@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -44,17 +45,58 @@ var (
 )
 
 // AddToTaskQueue adds itself to pull request test task queue.
-func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
+func setStatusChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
 	err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
-		return
+		return false
 	}
+	return true
+}
+
+func addToTaskQueue(pr *issues_model.PullRequest) {
 	log.Trace("Adding %-v to the test pull requests queue", pr)
-	err = prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
+	err := prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
+	}
+}
+
+func checkPRUpdate(ctx context.Context, pr *issues_model.PullRequest) bool {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return false
+	}
+	if pr.Issue.UpdatedUnix.AddDuration(24*time.Hour) < timeutil.TimeStampNow() {
+		log.Trace("Delaying %-v patch checking because it was not updated recently", pr)
+		return false
+	}
+
+	return true
+}
+
+func AddToTaskQueueOnView(ctx context.Context, pr *issues_model.PullRequest) {
+	if pr.Status == issues_model.PullRequestStatusChecking {
+		addToTaskQueue(pr)
+	}
+}
+
+func AddToTaskQueueOnBaseUpdate(ctx context.Context, pr *issues_model.PullRequest) {
+	// Blender: don't immediately check PRs older than a week, instead check when
+	// the page is loaded.
+	if !setStatusChecking(ctx, pr) {
+		return
+	}
+	if !checkPRUpdate(ctx, pr) {
+		return
+	}
+
+	addToTaskQueue(pr)
+}
+
+func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
+	if setStatusChecking(ctx, pr) {
+		addToTaskQueue(pr)
 	}
 }
 
@@ -316,6 +358,13 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
+			pr, err := issues_model.GetPullRequestByID(ctx, prID)
+			if err != nil {
+				continue
+			}
+			if !checkPRUpdate(ctx, pr) {
+				continue
+			}
 			log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
 			if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
 				log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
