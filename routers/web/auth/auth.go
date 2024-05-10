@@ -160,11 +160,36 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
+// BLENDER: always use OAuth unless ?noredirect=true is set
+func checkForceOAuth(ctx *context.Context) bool {
+	// Check if authentication is forced to OAuth
+	if ctx.FormBool("noredirect") {
+		return false
+	}
+
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	if err != nil {
+		return false
+	}
+
+	for _, provider := range oauth2Providers {
+		ctx.Redirect(setting.AppSubURL + "/user/oauth2/" + provider.Name())
+		return true
+	}
+
+	return false
+}
+
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	if CheckAutoLogin(ctx) {
+		return
+	}
+
+	// BLENDER: Check if authentication is forced to OAuth
+	if checkForceOAuth(ctx) {
 		return
 	}
 
