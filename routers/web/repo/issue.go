@@ -348,13 +348,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 
+	// Disabled by Sybren (2023-01-24) to speed up rendering of the issues page.
+	// See https://github.com/go-gitea/gitea/issues/22586 for more info.
+	//
 	// Get assignees.
-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
-	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
-		return
-	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	// assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
+	// if err != nil {
+	// 	ctx.ServerError("GetRepoAssignees", err)
+	// 	return
+	// }
+	// ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {

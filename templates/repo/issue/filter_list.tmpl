@@ -145,6 +145,10 @@
 	</div>
 </div>
 
+{{- /*
+BLENDER: disabled by Sybren to speed up page rendering of the issue page
+See https://github.com/go-gitea/gitea/issues/22586
+
 <!-- Assignee -->
 <div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 	<span class="text">
@@ -166,6 +170,8 @@
 		{{end}}
 	</div>
 </div>
+
+*/ -}}
 
 {{if .IsSigned}}
 	<!-- Type -->
