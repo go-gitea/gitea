@@ -2349,12 +2349,8 @@ tbody.commit-list {
 .commit-body {
   margin: 0.25em 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   line-height: initial;
-}
-
-/* PR-comment */
-.repository .timeline-item .commit-body {
-  margin-left: 45px;
 }
 
 .git-notes.top {
