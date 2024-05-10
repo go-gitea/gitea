@@ -19,7 +19,7 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 
 	type CommitStatus struct {
 		ID          int64
-		ContextHash string `xorm:"VARCHAR(40) index"`
+		ContextHash string `xorm:"char(40) index"`
 	}
 
 	type RepoArchiver struct {
