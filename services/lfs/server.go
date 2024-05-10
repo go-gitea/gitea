@@ -246,6 +246,26 @@ func BatchHandler(ctx *context.Context) {
 			responseObject = buildObjectResponse(rc, p, false, !exists, err)
 		} else {
 			var err *lfs_module.ObjectError
+
+			if exists && meta == nil {
+				accessible, accessibleErr := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
+				if accessibleErr != nil {
+					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+					writeStatus(ctx, http.StatusInternalServerError)
+					return
+				}
+				if accessible {
+					_, newMetaObjErr := git_model.NewLFSMetaObject(ctx, repository.ID, p)
+					if newMetaObjErr != nil {
+						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+						writeStatus(ctx, http.StatusInternalServerError)
+						return
+					}
+				} else {
+					exists = false
+				}
+			}
+
 			if !exists || meta == nil {
 				err = &lfs_module.ObjectError{
 					Code:    http.StatusNotFound,
