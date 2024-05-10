@@ -54,6 +54,37 @@ func GetStarredRepos(ctx context.Context, opts *StarredReposOptions) ([]*Reposit
 	return db.Find[Repository](ctx, opts)
 }
 
+type PinnedReposOptions struct {
+	db.ListOptions
+	PinnerID    int64
+	RepoOwnerID int64
+}
+
+func (opts *PinnedReposOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"repo_pin.uid": opts.PinnerID,
+	}
+	if opts.RepoOwnerID != 0 {
+		cond = cond.And(builder.Eq{
+			"repository.owner_id": opts.RepoOwnerID,
+		})
+	}
+	return cond
+}
+
+func (opts *PinnedReposOptions) ToJoins() []db.JoinFunc {
+	return []db.JoinFunc{
+		func(e db.Engine) error {
+			e.Join("INNER", "repo_pin", "`repository`.id=`repo_pin`.repo_id")
+			return nil
+		},
+	}
+}
+
+func GetPinnedRepos(ctx context.Context, opts *PinnedReposOptions) (RepositoryList, error) {
+	return db.Find[Repository](ctx, opts)
+}
+
 type WatchedReposOptions struct {
 	db.ListOptions
 	WatcherID      int64
