@@ -25,18 +25,18 @@
 		<div class="divider"></div>
 		<a class="{{if .AllLabels}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
 		<a class="{{if .NoLabel}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
-		{{$previousExclusiveScope := "_no_scope"}}
+		{{$previousScope := "_no_scope"}}
 		{{range .Labels}}
-			{{$exclusiveScope := .ExclusiveScope}}
-			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+			{{$scope := .Scope}}
+			{{if and (ne $previousScope $scope)}}
 				<div class="divider"></div>
 			{{end}}
-			{{$previousExclusiveScope = $exclusiveScope}}
+			{{$previousScope = $scope}}
 			<a class="item label-filter-item tw-flex tw-items-center" {{if .IsArchived}}data-is-archived{{end}} href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
 				{{if .IsExcluded}}
 					{{svg "octicon-circle-slash"}}
 				{{else if .IsSelected}}
-					{{if $exclusiveScope}}
+					{{if .ExclusiveScope}}
 						{{svg "octicon-dot-fill"}}
 					{{else}}
 						{{svg "octicon-check"}}

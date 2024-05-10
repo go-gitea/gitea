@@ -22,15 +22,15 @@
 				<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
 					{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
 				</div>
-				{{$previousExclusiveScope := "_no_scope"}}
+				{{$previousScope := "_no_scope"}}
 				{{range .Labels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+					{{$scope := .Scope}}
+					{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
 						<div class="divider"></div>
 					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
+					{{$previousScope = $scope}}
 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if .ExclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
 						{{template "repo/issue/labels/label_archived" .}}
 					</div>
 				{{end}}
