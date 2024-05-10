@@ -66,7 +66,7 @@ export default {
       'xl': '12px',
       '2xl': '16px',
       '3xl': '24px',
-      'full': '99999px',
+      'full': '99999px', // TODO: use calc(infinity * 1px)
     },
     fontFamily: {
       sans: 'var(--fonts-regular)',
