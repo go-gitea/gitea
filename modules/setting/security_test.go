@@ -7,18 +7,15 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/test"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGeneralWebSecret(t *testing.T) {
-	osExiter := test.MockedOsExiter{}
-	defer test.MockVariableValue(&log.OsExiter, osExiter.Exit)()
 	assert.Nil(t, GeneralWebSecretBytes)
-	_ = GetGeneralTokenSigningSecret()
-	assert.Equal(t, 1, osExiter.FetchCode())
+	auto1 := GetGeneralTokenSigningSecret()
+	auto2 := GetGeneralTokenSigningSecret()
+	assert.Len(t, auto1, 32)
+	assert.Equal(t, auto1, auto2)
 
 	tmpFile := t.TempDir() + "/app.ini"
 	_ = os.WriteFile(tmpFile, []byte("[security]\nINSTALL_LOCK=true"), 0o644)
@@ -26,6 +23,7 @@ func TestGeneralWebSecret(t *testing.T) {
 	loadSecurityFrom(cfg)
 	generated := GeneralWebSecretBytes
 	assert.Len(t, generated, 32)
+	assert.NotEqual(t, auto1, generated)
 
 	cfg, _ = NewConfigProviderFromFile(tmpFile)
 	GeneralWebSecretBytes = nil

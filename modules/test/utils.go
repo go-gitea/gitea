@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RedirectURL returns the redirect URL of a http response.
@@ -39,21 +38,4 @@ func MockVariableValue[T any](p *T, v T) (reset func()) {
 	old := *p
 	*p = v
 	return func() { *p = old }
-}
-
-type MockedOsExiter struct {
-	exitCode int
-	called   bool
-}
-
-func (m *MockedOsExiter) Exit(code int) {
-	m.called = true
-	m.exitCode = code
-}
-
-func (m *MockedOsExiter) FetchCode() int {
-	c := util.Iif(m.called, m.exitCode, -1)
-	m.exitCode = 0
-	m.called = false
-	return c
 }

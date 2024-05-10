@@ -198,7 +198,12 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 func GetGeneralTokenSigningSecret() []byte {
 	if len(GeneralWebSecretBytes) == 0 {
-		log.Fatal("GeneralWebSecretBytes is empty")
+		// FIXME: it shouldn't happen in production. At the moment only some tests are using the secret without initializing it.
+		LogStartupProblem(1, log.ERROR, "General web secret is not properly initialized, unable to use a persistent secret, a new one is generated, which is not persistent between restarts and cluster nodes")
+		GeneralWebSecretBytes, _, _ = generate.NewGeneralWebSecretWithBase64()
+		if len(GeneralWebSecretBytes) == 0 {
+			panic("Failed to generate a new GeneralWebSecretBytes") // impossible to happen
+		}
 	}
 	return GeneralWebSecretBytes
 }
