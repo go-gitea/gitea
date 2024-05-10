@@ -9,12 +9,14 @@ import (
 	"net/http"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -221,6 +223,16 @@ func SelfCheck(ctx *context.Context) {
 		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
 	}
 	ctx.HTML(http.StatusOK, tplSelfCheck)
+}
+
+func SelfCheckPost(ctx *context.Context) {
+	var problems []string
+	frontendAppURL := ctx.FormString("location_origin") + setting.AppSubURL + "/"
+	ctxAppURL := httplib.GuessCurrentAppURL(ctx)
+	if !strings.HasPrefix(ctxAppURL, frontendAppURL) {
+		problems = append(problems, ctx.Locale.TrString("admin.self_check.location_origin_mismatch", frontendAppURL, ctxAppURL))
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"problems": problems})
 }
 
 func CronTasks(ctx *context.Context) {
