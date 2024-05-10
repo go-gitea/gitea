@@ -1,0 +1,62 @@
+<div class="ui three stackable cards">
+	{{range .PinnedRepos}}
+		<div class="ui card">
+			<div class="content">
+				<div class="header">
+					<div class="flex-item tw-items-center">
+						<div class="flex-item-main">
+							<a class="name" href="{{.Link}}">
+								{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
+							</a>
+						</div>
+						<div class="flex-item-trailing">
+							{{if .IsArchived}}
+								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+							{{end}}
+							{{if .IsTemplate}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private_template"}}</span>
+								{{end}}
+							{{else}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+								{{end}}
+							{{end}}
+							{{if .IsFork}}
+								{{svg "octicon-repo-forked"}}
+							{{else if .IsMirror}}
+								{{svg "octicon-mirror"}}
+							{{end}}
+						</div>
+					</div>
+				</div>
+				<div class="extra content">
+					<div class="metas df ac">
+						{{if .PrimaryLanguage}}
+						<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
+						{{end}}
+						{{if not $.DisableStars}}
+						<span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
+						{{end}}
+						<span class="text grey df ac mr-3">{{svg "octicon-git-branch" 16 "mr-3"}}{{.NumForks}}</span>
+					</div>
+				</div>
+				<div class="description">
+					{{$description := .DescriptionHTML $.Context}}
+					{{if $description}}<p>{{$description}}</p>{{end}}
+					{{if .Topics}}
+					<div class="ui tags">
+						{{range .Topics}}
+						{{if ne . ""}}
+						<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">
+							<div class="ui small label topic">{{.}}</div>
+						</a>
+						{{end}}
+						{{end}}
+					</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
+</div>

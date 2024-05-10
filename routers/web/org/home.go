@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -101,9 +102,11 @@ func Home(ctx *context.Context) {
 	ctx.Data["IsPrivate"] = private
 
 	var (
-		repos []*repo_model.Repository
-		count int64
-		err   error
+		repos       []*repo_model.Repository
+		count       int64
+		pinnedRepos []*repo_model.Repository
+		pinnedCount int64
+		err         error
 	)
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -139,8 +142,19 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	// Get pinned repos
+	pinnedRepos, err = user_service.GetUserPinnedRepos(ctx, org.AsUser(), ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserPinnedRepos", err)
+		return
+	}
+
+	pinnedCount = int64(len(pinnedRepos))
+
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
+	ctx.Data["PinnedRepos"] = pinnedRepos
+	ctx.Data["PinnedTotal"] = pinnedCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull

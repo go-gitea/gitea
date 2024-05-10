@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -104,10 +105,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	pagingNum := setting.UI.User.RepoPagingNum
 	topicOnly := ctx.FormBool("topic")
 	var (
-		repos   []*repo_model.Repository
-		count   int64
-		total   int
-		orderBy db.SearchOrderBy
+		repos       []*repo_model.Repository
+		pinnedRepos []*repo_model.Repository
+		count       int64
+		pinnedCount int64
+		total       int
+		orderBy     db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -312,9 +315,19 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 
 		total = int(count)
+
+		pinnedRepos, err = user_service.GetUserPinnedRepos(ctx, ctx.ContextUser, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserPinnedRepos", err)
+			return
+		}
+
+		pinnedCount = int64(len(pinnedRepos))
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
+	ctx.Data["PinnedRepos"] = pinnedRepos
+	ctx.Data["PinnedCount"] = pinnedCount
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
