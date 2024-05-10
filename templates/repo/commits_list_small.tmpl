@@ -13,13 +13,12 @@
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
-		<span class="tw-flex-1 gt-ellipsis tw-font-mono{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</span>
+		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{.Summary}}">
+			{{- RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+		</span>
 
 		{{if IsMultilineCommitMessage .Message}}
-			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
-		{{end}}
-		{{if IsMultilineCommitMessage .Message}}
-			<pre class="commit-body tw-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</pre>
+			<button class="ui button ellipsis-button show-panel toggle" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
 		{{end}}
 
 		<span class="shabox tw-flex tw-items-center">
@@ -47,5 +46,10 @@
 			</a>
 		</span>
 	</div>
+	{{if IsMultilineCommitMessage .Message}}
+	<pre class="commit-body tw-ml-[33px] tw-hidden" data-singular-commit-body-for="{{$tag}}">
+		{{- RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+	</pre>
+	{{end}}
 {{end}}
 </div>
