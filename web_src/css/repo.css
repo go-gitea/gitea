@@ -2349,7 +2349,7 @@ tbody.commit-list {
 .commit-body {
   margin: 0.25em 0;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: initial;
 }
 
