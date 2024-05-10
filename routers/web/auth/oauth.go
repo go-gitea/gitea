@@ -1161,6 +1161,17 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
+		// BLENDER: remember login for Blender ID.
+		// A proper OAuth implementation would check how long the access token is
+		// valid depending on the provider, but since this is only for Blender ID
+		// we can just set days in the Gitea config.
+		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("CreateAuthTokenForUserID", err)
+			return
+		}
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
 
