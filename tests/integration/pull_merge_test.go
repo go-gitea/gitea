@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/pull"
-	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -693,7 +692,7 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update the pull request, then it should be merged automatically
-		err = pull_service.Update(db.DefaultContext, pr, user1, "update for auto merge", false)
+		err = pull.Update(db.DefaultContext, pr, user1, "update for auto merge", false)
 		assert.NoError(t, err)
 
 		// realod pr again
