@@ -58,32 +58,27 @@ export function initRepoCommentForm() {
   function initBranchSelector() {
     const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
     if (!elSelectBranch) return;
-    const isForNewIssue = elSelectBranch.getAttribute('data-for-new-issue') === 'true';
 
+    const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
     const $selectBranch = $(elSelectBranch);
     const $branchMenu = $selectBranch.find('.reference-list-menu');
     $branchMenu.find('.item:not(.no-select)').on('click', async function (e) {
       e.preventDefault();
-      const selectedValue = $(this).data('id'); // eg: "refs/heads/my-branch"
-      const editMode = $('#editing_mode').val();
-      $($(this).data('id-selector')).val(selectedValue);
-      if (isForNewIssue) {
-        elSelectBranch.querySelector('.text-branch-name').textContent = this.getAttribute('data-name');
-        return; // only update UI&form, do not send request/reload
-      }
-
-      if (editMode === 'true') {
-        const form = document.getElementById('update_issueref_form');
-        const params = new URLSearchParams();
-        params.append('ref', selectedValue);
+      const selectedValue = this.getAttribute('data-id'); // eg: "refs/heads/my-branch"
+      const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
+      if (urlUpdateIssueRef) {
+        // for existing issue, send request to update issue ref, and reload page
         try {
-          await POST(form.getAttribute('action'), {data: params});
+          await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: selectedValue})});
           window.location.reload();
         } catch (error) {
           console.error(error);
         }
-      } else if (editMode === '') {
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
+      } else {
+        // for new issue, only update UI&form, do not send request/reload
+        const selectedHiddenSelector = this.getAttribute('data-id-selector');
+        document.querySelector(selectedHiddenSelector).value = selectedValue;
+        elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {

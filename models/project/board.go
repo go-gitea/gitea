@@ -5,12 +5,14 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -82,6 +84,17 @@ func (b *Board) NumIssues(ctx context.Context) int {
 	return int(c)
 }
 
+func (b *Board) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
+	issues := make([]*ProjectIssue, 0, 5)
+	if err := db.GetEngine(ctx).Where("project_id=?", b.ProjectID).
+		And("project_board_id=?", b.ID).
+		OrderBy("sorting, id").
+		Find(&issues); err != nil {
+		return nil, err
+	}
+	return issues, nil
+}
+
 func init() {
 	db.RegisterModel(new(Board))
 }
@@ -150,12 +163,27 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 	return db.Insert(ctx, boards)
 }
 
+// maxProjectColumns max columns allowed in a project, this should not bigger than 127
+// because sorting is int8 in database
+const maxProjectColumns = 20
+
 // NewBoard adds a new project board to a given project
 func NewBoard(ctx context.Context, board *Board) error {
 	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
 		return fmt.Errorf("bad color code: %s", board.Color)
 	}
-
+	res := struct {
+		MaxSorting  int64
+		ColumnCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as column_count").Table("project_board").
+		Where("project_id=?", board.ProjectID).Get(&res); err != nil {
+		return err
+	}
+	if res.ColumnCount >= maxProjectColumns {
+		return fmt.Errorf("NewBoard: maximum number of columns reached")
+	}
+	board.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(board)
 	return err
 }
@@ -189,7 +217,17 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return fmt.Errorf("deleteBoardByID: cannot delete default board")
 	}
 
-	if err = board.removeIssues(ctx); err != nil {
+	// move all issues to the default column
+	project, err := GetProjectByID(ctx, board.ProjectID)
+	if err != nil {
+		return err
+	}
+	defaultColumn, err := project.GetDefaultBoard(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = board.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
 		return err
 	}
 
@@ -242,21 +280,15 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 // GetBoards fetches all boards related to a project
 func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
-
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, false).OrderBy("sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Find(&boards); err != nil {
 		return nil, err
 	}
 
-	defaultB, err := p.getDefaultBoard(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]*Board{defaultB}, boards...), nil
+	return boards, nil
 }
 
-// getDefaultBoard return default board and ensure only one exists
-func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
+// GetDefaultBoard return default board and ensure only one exists
+func (p *Project) GetDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).
@@ -310,6 +342,45 @@ func UpdateBoardSorting(ctx context.Context, bs BoardList) error {
 			if _, err := db.GetEngine(ctx).ID(bs[i].ID).Cols(
 				"sorting",
 			).Update(bs[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (BoardList, error) {
+	columns := make([]*Board, 0, 5)
+	if err := db.GetEngine(ctx).
+		Where("project_id =?", projectID).
+		In("id", columnsIDs).
+		OrderBy("sorting").Find(&columns); err != nil {
+		return nil, err
+	}
+	return columns, nil
+}
+
+// MoveColumnsOnProject sorts columns in a project
+func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		columnIDs := util.ValuesOfMap(sortedColumnIDs)
+		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
+		if err != nil {
+			return err
+		}
+		if len(movedColumns) != len(sortedColumnIDs) {
+			return errors.New("some columns do not exist")
+		}
+
+		for _, column := range movedColumns {
+			if column.ProjectID != project.ID {
+				return fmt.Errorf("column[%d]'s projectID is not equal to project's ID [%d]", column.ProjectID, project.ID)
+			}
+		}
+
+		for sorting, columnID := range sortedColumnIDs {
+			if _, err := sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID); err != nil {
 				return err
 			}
 		}

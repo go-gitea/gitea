@@ -64,7 +64,7 @@
 </div>
 
 <div id="project-board">
-	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
+	<div class="board {{if .CanWriteProjects}}sortable{{end}}"{{if .CanWriteProjects}} data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="ui segment project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
