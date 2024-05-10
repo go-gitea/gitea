@@ -60,6 +60,7 @@
 						{{svg "octicon-rss" 16}}
 					</a>
 					{{end}}
+					{{template "repo/pin_unpin" $}}
 					{{template "repo/watch_unwatch" $}}
 					{{if not $.DisableStars}}
 					{{template "repo/star_unstar" $}}

@@ -1,0 +1,30 @@
+<div class="ui buttons">
+	<form hx-boost="true" hx-target="this" method="post" action="{{$.RepoLink}}/action/{{if .IsPinningRepo}}unpin{{else}}pin{{end}}">
+		<div class="ui labeled item" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.pin_guest_user"}}"{{end}}>
+			{{$buttonText := ctx.Locale.Tr "repo.pin"}}
+			{{if $.IsPinningRepo}}{{$buttonText = ctx.Locale.Tr "repo.unpin"}}{{end}}
+			<button type="submit" class="ui compact small basic button"{{if or (not $.IsSigned) (and (not $.IsPinningRepo) (not .CanPinRepo))}} disabled{{end}} aria-label="{{$buttonText}}">
+				{{if $.IsPinningRepo}}{{svg "octicon-custom-pin-off"}}{{else}}{{svg "octicon-pin"}}{{end}}
+				<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+			</button>
+		</div>
+	</form>
+
+	{{if .CanUserPinToOrg}}
+	<div class="ui floating dropdown icon button">
+		<i class="dropdown icon"></i>
+		<div class="compact menu">
+			<form hx-boost="true" hx-target="this" method="post" action="{{$.RepoLink}}/action/{{if .IsOrgPinningRepo}}unpin{{else}}pin{{end}}-org">
+				<div class="ui labeled button item" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.pin_guest_user"}}"{{end}}>
+					{{$buttonText = ctx.Locale.Tr "repo.pin-org" .Owner.Name}}
+					{{if $.IsOrgPinningRepo}}{{$buttonText = ctx.Locale.Tr "repo.unpin-org" .Owner.Name}}{{end}}
+					<button type="submit" class="ui compact small basic button"{{if or (not $.IsSigned) (and (not $.IsOrgPinningRepo) (not .CanOrgPinRepo))}} disabled{{end}} aria-label="{{$buttonText}}">
+						{{if $.IsOrgPinningRepo}}{{svg "octicon-custom-pin-off"}}{{else}}{{svg "octicon-pin"}}{{end}}
+						<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{{end}}
+</div>

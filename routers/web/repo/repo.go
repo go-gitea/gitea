@@ -36,6 +36,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -321,6 +322,14 @@ func Action(ctx *context.Context) {
 		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unstar":
 		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
+	case "pin":
+		err = user_service.PinRepo(ctx, ctx.Doer, ctx.Repo.Repository, true, false)
+	case "unpin":
+		err = user_service.PinRepo(ctx, ctx.Doer, ctx.Repo.Repository, false, false)
+	case "pin-org":
+		err = user_service.PinRepo(ctx, ctx.Doer, ctx.Repo.Repository, true, true)
+	case "unpin-org":
+		err = user_service.PinRepo(ctx, ctx.Doer, ctx.Repo.Repository, false, true)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
