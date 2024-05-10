@@ -39,9 +39,12 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
+		// --no-write-commit-graph works around issue with commit-graph-chain.lock files that should not be there.
+		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-write-commit-graph", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
 		if err == nil {
 			base = tmpBaseName
+		} else {
+			logger.Trace("GetMergeBase failed to git fetch. Error: %v", err)
 		}
 	}
 
