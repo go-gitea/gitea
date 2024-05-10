@@ -53,6 +53,7 @@ func renderCommitRights(ctx *context.Context) bool {
 	}
 	ctx.Data["CanCommitToBranch"] = canCommitToBranch
 	ctx.Data["CanCreatePullRequest"] = ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) || canCreateBasePullRequest(ctx)
+	ctx.Data["IsForkDefaultBranch"] = canCreateBasePullRequest(ctx) && ctx.Repo.BranchName == ctx.Repo.Repository.BaseRepo.DefaultBranch
 
 	return canCommitToBranch.CanCommitToBranch
 }
@@ -184,7 +185,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	if canCommit {
+	if canCommit && !canCreateBasePullRequest(ctx) {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
@@ -443,7 +444,7 @@ func DeleteFile(ctx *context.Context) {
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	if canCommit {
+	if canCommit && !canCreateBasePullRequest(ctx) {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
@@ -608,7 +609,7 @@ func UploadFile(ctx *context.Context) {
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	if canCommit {
+	if canCommit && !canCreateBasePullRequest(ctx) {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
