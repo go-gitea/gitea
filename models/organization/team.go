@@ -272,3 +272,19 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
 	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
 	return err
 }
+
+// Avoid notifying large teams accidentally
+func FilterLargeTeams(teams []*Team, err error) ([]*Team, error) {
+	if err != nil {
+		return nil, err
+	}
+
+	var smallTeams []*Team
+	for _, team := range teams {
+		if team.NumMembers <= 10 {
+			smallTeams = append(smallTeams, team)
+		}
+	}
+
+	return smallTeams, nil
+}
