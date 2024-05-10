@@ -17,7 +17,8 @@ var (
 	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
-	InternalToken                      string // internal access token
+	InternalToken                      string // internal access token is used by Gitea cli to communicate with Gitea server
+	GeneralWebSecretBytes              []byte // general web secret is used for signing or encrypting web related contents (CSRF token, JWT token, validation, etc)
 	LogInRememberDays                  int
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
@@ -85,18 +86,36 @@ func loadSecret(sec ConfigSection, uriKey, verbatimKey string) string {
 func generateSaveInternalToken(rootCfg ConfigProvider) {
 	token, err := generate.NewInternalToken()
 	if err != nil {
-		log.Fatal("Error generate internal token: %v", err)
+		log.Fatal("Failed to generate internal token: %v", err)
 	}
 
 	InternalToken = token
 	saveCfg, err := rootCfg.PrepareSaving()
 	if err != nil {
-		log.Fatal("Error saving internal token: %v", err)
+		log.Fatal("Failed to save internal token: %v", err)
 	}
 	rootCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
 	saveCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
 	if err = saveCfg.Save(); err != nil {
-		log.Fatal("Error saving internal token: %v", err)
+		log.Fatal("Failed to save internal token: %v", err)
+	}
+}
+
+func generateSaveGeneralWebSecret(rootCfg ConfigProvider) {
+	secretBytes, secretString, err := generate.NewGeneralWebSecretWithBase64()
+	if err != nil {
+		log.Fatal("Failed to generate general web secret: %v", err)
+	}
+
+	GeneralWebSecretBytes = secretBytes
+	saveCfg, err := rootCfg.PrepareSaving()
+	if err != nil {
+		log.Fatal("Failed to save general web secret: %v", err)
+	}
+	rootCfg.Section("security").Key("GENERAL_WEB_SECRET").SetValue(secretString)
+	saveCfg.Section("security").Key("GENERAL_WEB_SECRET").SetValue(secretString)
+	if err = saveCfg.Save(); err != nil {
+		log.Fatal("Failed to save general web secret: %v", err)
 	}
 }
 
@@ -147,6 +166,13 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		generateSaveInternalToken(rootCfg)
 	}
 
+	var err error
+	generalWebSecret := loadSecret(sec, "GENERAL_WEB_SECRET_URI", "GENERAL_WEB_SECRET")
+	GeneralWebSecretBytes, err = generate.DecodeGeneralWebSecretBase64(generalWebSecret)
+	if InstallLock && err != nil {
+		generateSaveGeneralWebSecret(rootCfg)
+	}
+
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
 		cfgdata = []string{"off"}
@@ -168,4 +194,11 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
 		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
 	}
+}
+
+func GetGeneralTokenSigningSecret() []byte {
+	if len(GeneralWebSecretBytes) == 0 {
+		log.Fatal("GeneralWebSecretBytes is empty")
+	}
+	return GeneralWebSecretBytes
 }

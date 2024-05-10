@@ -368,8 +368,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login, **custom**\]. Where custom would instead be any URL such as "/org/repo" or even `https://anotherwebsite.com`
 - `LFS_START_SERVER`: **false**: Enables Git LFS support.
 - `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)s/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
-- `LFS_JWT_SECRET`: **_empty_**: LFS authentication secret, change this a unique string.
-- `LFS_JWT_SECRET_URI`: **_empty_**: Instead of defining LFS_JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/lfs_jwt_secret`)
 - `LFS_HTTP_AUTH_EXPIRY`: **24h**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCKS_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
@@ -556,6 +554,8 @@ And the following unique queues:
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **_empty_**: Instead of defining INTERNAL_TOKEN in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
+- `GENERAL_WEB_SECRET`: **\<random at every install if no uri set\>**: A general secret used for signing or encrypting web related contents (CSRF token, JWT token, validation, etc).
+- `GENERAL_WEB_SECRET_URI`: **_empty_**: Instead of defining GENERAL_WEB_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the general web secret (example value: `file:/etc/gitea/genearl_web_secret`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, pbkdf2_v1, pbkdf2_hi, scrypt, bcrypt\], argon2 and scrypt will spend significant amounts of memory.
   - Note: The default parameters for `pbkdf2` hashing have changed - the previous settings are available as `pbkdf2_v1` but are not recommended.
   - The hash functions may be tuned by using `$` after the algorithm:
@@ -1121,8 +1121,6 @@ This section only does "set" config, a removed config key from this section won'
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKENS`: **false**: Check if refresh token has already been used
 - `JWT_SIGNING_ALGORITHM`: **RS256**: Algorithm used to sign OAuth2 tokens. Valid values: \[`HS256`, `HS384`, `HS512`, `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`\]
-- `JWT_SECRET`: **_empty_**: OAuth2 authentication secret for access and refresh tokens, change this to a unique string. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `HS256`, `HS384` or `HS512`.
-- `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
 - `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager, tea**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.

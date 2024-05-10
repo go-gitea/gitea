@@ -39,23 +39,29 @@ func NewInternalToken() (string, error) {
 	return internalToken, nil
 }
 
-const defaultJwtSecretLen = 32
+func DecodeGeneralWebSecretBase64(src string) ([]byte, error) {
+	return decodeGeneralSecretBase64(src, 32)
+}
 
-// DecodeJwtSecretBase64 decodes a base64 encoded jwt secret into bytes, and check its length
-func DecodeJwtSecretBase64(src string) ([]byte, error) {
+func NewGeneralWebSecretWithBase64() ([]byte, string, error) {
+	return newGeneralSecretWithBase64(32)
+}
+
+// decodeGeneralSecretBase64 decodes a base64 encoded secret into bytes, and check its length
+func decodeGeneralSecretBase64(src string, length int) ([]byte, error) {
 	encoding := base64.RawURLEncoding
 	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
 	if n, err := encoding.Decode(decoded, []byte(src)); err != nil {
 		return nil, err
-	} else if n != defaultJwtSecretLen {
-		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, defaultJwtSecretLen)
+	} else if n != length {
+		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, length)
 	}
-	return decoded[:defaultJwtSecretLen], nil
+	return decoded[:length], nil
 }
 
-// NewJwtSecretWithBase64 generates a jwt secret with its base64 encoded value intended to be used for saving into config file
-func NewJwtSecretWithBase64() ([]byte, string, error) {
-	bytes := make([]byte, defaultJwtSecretLen)
+// newGeneralSecretWithBase64 generates a secret with its base64 encoded value intended to be used for saving into config file
+func newGeneralSecretWithBase64(length int) ([]byte, string, error) {
+	bytes := make([]byte, length)
 	_, err := io.ReadFull(rand.Reader, bytes)
 	if err != nil {
 		return nil, "", err

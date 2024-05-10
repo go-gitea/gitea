@@ -330,11 +330,11 @@ menu:
   - `secret`:
     - 选项:
       - `INTERNAL_TOKEN`: 用于内部 API 调用身份验证的令牌。
-      - `JWT_SECRET`: 用于 LFS 和 OAUTH2 JWT 身份验证的密钥（LFS_JWT_SECRET 是此选项的别名，用于向后兼容）。
+      - `GENERAL_WEB_SECRET`: 用于签名或者加密 web 内容（例如 JWT、CSRF、验证等）的通用密钥。
       - `SECRET_KEY`: 全局密钥。
     - 示例:
       - `gitea generate secret INTERNAL_TOKEN`
-      - `gitea generate secret JWT_SECRET`
+      - `gitea generate secret GENERAL_WEB_SECRET`
       - `gitea generate secret SECRET_KEY`
 
 ### keys

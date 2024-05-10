@@ -350,11 +350,11 @@ for automatic deployments.
   - `secret`:
     - Options:
       - `INTERNAL_TOKEN`: Token used for an internal API call authentication.
-      - `JWT_SECRET`: LFS & OAUTH2 JWT authentication secret (LFS_JWT_SECRET is aliased to this option for backwards compatibility).
+      - `GENERAL_WEB_SECRET`: A general secret used for signing or encrypting web related contents (CSRF token, JWT token, validation, etc).
       - `SECRET_KEY`: Global secret key.
     - Examples:
       - `gitea generate secret INTERNAL_TOKEN`
-      - `gitea generate secret JWT_SECRET`
+      - `gitea generate secret GENERAL_WEB_SECRET`
       - `gitea generate secret SECRET_KEY`
 
 ### keys

@@ -277,7 +277,7 @@ func runServ(c *cli.Context) error {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		tokenString, err := token.SignedString(setting.GetGeneralTokenSigningSecret())
 		if err != nil {
 			return fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
 		}

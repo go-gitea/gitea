@@ -409,12 +409,6 @@ func SubmitInstall(ctx *context.Context) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
-		var lfsJwtSecret string
-		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
-			return
-		}
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -479,6 +473,15 @@ func SubmitInstall(ctx *context.Context) {
 			return
 		}
 		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
+	}
+
+	if len(setting.GeneralWebSecretBytes) == 0 {
+		_, generalWebSecret, err := generate.NewGeneralWebSecretWithBase64()
+		if err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("GENERAL_WEB_SECRET").SetValue(generalWebSecret)
 	}
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted

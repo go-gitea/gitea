@@ -6,9 +6,7 @@ package setting
 import (
 	"math"
 	"path/filepath"
-	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -130,50 +128,7 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
-	jwtSecretBase64 := loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
-
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
-
-	if InstallLock {
-		jwtSecretBytes, err := generate.DecodeJwtSecretBase64(jwtSecretBase64)
-		if err != nil {
-			jwtSecretBytes, jwtSecretBase64, err = generate.NewJwtSecretWithBase64()
-			if err != nil {
-				log.Fatal("error generating JWT secret: %v", err)
-			}
-			saveCfg, err := rootCfg.PrepareSaving()
-			if err != nil {
-				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
-			}
-			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
-			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
-			if err := saveCfg.Save(); err != nil {
-				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
-			}
-		}
-		generalSigningSecret.Store(&jwtSecretBytes)
-	}
-}
-
-// generalSigningSecret is used as container for a []byte value
-// instead of an additional mutex, we use CompareAndSwap func to change the value thread save
-var generalSigningSecret atomic.Pointer[[]byte]
-
-func GetGeneralTokenSigningSecret() []byte {
-	old := generalSigningSecret.Load()
-	if old == nil || len(*old) == 0 {
-		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
-		if err != nil {
-			log.Fatal("Unable to generate general JWT secret: %s", err.Error())
-		}
-		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
-			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
-			LogStartupProblem(1, log.WARN, "OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
-			return jwtSecret
-		}
-		return *generalSigningSecret.Load()
-	}
-	return *old
 }

@@ -355,8 +355,6 @@ menu:
 - `LANDING_PAGE`: **home**：未经身份验证用户的登录页面 \[home, explore, organizations, login, **custom**]。其中 custom 可以是任何 URL，例如 "/org/repo" 或甚至是 `https://anotherwebsite.com`。
 - `LFS_START_SERVER`: **false**：启用 Git LFS 支持。
 - `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)s/lfs**：默认的 LFS 内容路径（如果它在本地存储中）。**已弃用**，请使用 `[lfs]` 中的设置。
-- `LFS_JWT_SECRET`: **_empty_**：LFS 身份验证密钥，将其更改为唯一的字符串。
-- `LFS_JWT_SECRET_URI`: **_empty_**：代替在配置中定义 LFS_JWT_SECRET，可以使用此配置选项为 Gitea 提供包含密钥的文件的路径（示例值：`file:/etc/gitea/lfs_jwt_secret`）。
 - `LFS_HTTP_AUTH_EXPIRY`: **24h**：LFS 身份验证的有效期，以 time.Duration 表示，超过此期限的推送可能会失败。
 - `LFS_MAX_FILE_SIZE`: **0**：允许的最大 LFS 文件大小（以字节为单位，设置为 0 为无限制）。
 - `LFS_LOCKS_PAGING_NUM`: **50**：每页返回的最大 LFS 锁定数。
@@ -1051,8 +1049,6 @@ Gitea 创建以下非唯一队列：
 - `REFRESH_TOKEN_EXPIRATION_TIME`：**730**：OAuth2刷新令牌的生命周期，以小时为单位。
 - `INVALIDATE_REFRESH_TOKENS`：**false**：检查刷新令牌是否已被使用。
 - `JWT_SIGNING_ALGORITHM`：**RS256**：用于签署OAuth2令牌的算法。有效值：[`HS256`，`HS384`，`HS512`，`RS256`，`RS384`，`RS512`，`ES256`，`ES384`，`ES512`]。
-- `JWT_SECRET`：**_empty_**：OAuth2访问和刷新令牌的身份验证密钥，请将其更改为唯一的字符串。仅当`JWT_SIGNING_ALGORITHM`设置为`HS256`，`HS384`或`HS512`时才需要此设置。
-- `JWT_SECRET_URI`：**_empty_**：可以使用此配置选项，而不是在配置中定义`JWT_SECRET`，以向Gitea提供包含密钥的文件的路径（示例值：`file:/etc/gitea/oauth2_jwt_secret`）。
 - `JWT_SIGNING_PRIVATE_KEY_FILE`：**jwt/private.pem**：用于签署OAuth2令牌的私钥文件路径。路径相对于`APP_DATA_PATH`。仅当`JWT_SIGNING_ALGORITHM`设置为`RS256`，`RS384`，`RS512`，`ES256`，`ES384`或`ES512`时才需要此设置。文件必须包含PKCS8格式的RSA或ECDSA私钥。如果不存在密钥，则将为您创建一个4096位密钥。
 - `MAX_TOKEN_LENGTH`：**32767**：从OAuth2提供者接受的令牌/cookie的最大长度。
 - `DEFAULT_APPLICATIONS`：**git-credential-oauth，git-credential-manager, tea**：在启动时预注册用于某些服务的OAuth应用程序。有关可用选项列表，请参阅[OAuth2文档](/development/oauth2-provider.md)。

@@ -29,7 +29,7 @@ var (
 		Usage: "Generate a secret token",
 		Subcommands: []*cli.Command{
 			microcmdGenerateInternalToken,
-			microcmdGenerateLfsJwtSecret,
+			microcmdGenerateGeneralWebSecret,
 			microcmdGenerateSecretKey,
 		},
 	}
@@ -40,17 +40,16 @@ var (
 		Action: runGenerateInternalToken,
 	}
 
-	microcmdGenerateLfsJwtSecret = &cli.Command{
-		Name:    "JWT_SECRET",
-		Aliases: []string{"LFS_JWT_SECRET"},
-		Usage:   "Generate a new JWT_SECRET",
-		Action:  runGenerateLfsJwtSecret,
-	}
-
 	microcmdGenerateSecretKey = &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
+	}
+
+	microcmdGenerateGeneralWebSecret = &cli.Command{
+		Name:   "GENERAL_WEB_SECRET",
+		Usage:  "Generate a new GENERAL_WEB_SECRET",
+		Action: runGenerateGeneralWebSecret,
 	}
 )
 
@@ -69,18 +68,15 @@ func runGenerateInternalToken(c *cli.Context) error {
 	return nil
 }
 
-func runGenerateLfsJwtSecret(c *cli.Context) error {
-	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
+func runGenerateGeneralWebSecret(c *cli.Context) error {
+	_, webSecretBase64, err := generate.NewGeneralWebSecretWithBase64()
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%s", jwtSecretBase64)
-
+	fmt.Printf("%s", webSecretBase64)
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		fmt.Printf("\n")
 	}
-
 	return nil
 }
 

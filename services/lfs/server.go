@@ -556,7 +556,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return setting.LFS.JWTSecretBytes, nil
+		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	if err != nil {
 		return nil, nil
