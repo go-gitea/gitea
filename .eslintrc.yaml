@@ -804,7 +804,7 @@ rules:
   unicorn/prefer-set-has: [0]
   unicorn/prefer-set-size: [2]
   unicorn/prefer-spread: [0]
-  unicorn/prefer-string-raw: [2]
+  unicorn/prefer-string-raw: [0]
   unicorn/prefer-string-replace-all: [0]
   unicorn/prefer-string-slice: [0]
   unicorn/prefer-string-starts-ends-with: [2]
