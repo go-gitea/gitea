@@ -13,7 +13,7 @@
   margin: 0 0.5rem !important;
   padding: 0.5rem !important;
   width: 320px;
-  height: calc(100vh - 450px);
+  height: calc(100vh - 225px);
   min-height: 60vh;
   flex: 0 0 auto;
   overflow: visible;

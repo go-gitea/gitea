@@ -37,4 +37,6 @@
   gap: 0.25em;
   justify-content: end;
   flex-wrap: wrap;
+  float: right;
+  margin-left: 0.5em;
 }
