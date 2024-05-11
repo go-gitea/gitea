@@ -104,7 +104,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
 		repo.OwnerName, repo.Name, issue.Index)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
-		Labels: []int64{1, 2},
+		Labels: []any{1, 2},
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
@@ -127,7 +127,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
 		owner.Name, repo.Name, issue.Index)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
-		Labels: []int64{label.ID},
+		Labels: []any{label.ID},
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
