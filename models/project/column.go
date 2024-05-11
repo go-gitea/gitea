@@ -71,10 +71,10 @@ func (c *Column) NumIssues(ctx context.Context) int {
 	return int(total)
 }
 
-func (b *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
+func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
 	issues := make([]*ProjectIssue, 0, 5)
-	if err := db.GetEngine(ctx).Where("project_id=?", b.ProjectID).
-		And("project_board_id=?", b.ID).
+	if err := db.GetEngine(ctx).Where("project_id=?", c.ProjectID).
+		And("project_board_id=?", c.ID).
 		OrderBy("sorting, id").
 		Find(&issues); err != nil {
 		return nil, err

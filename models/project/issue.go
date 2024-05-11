@@ -100,12 +100,12 @@ func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueI
 	})
 }
 
-func (b *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
-	if b.ProjectID != newColumn.ProjectID {
+func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
+	if c.ProjectID != newColumn.ProjectID {
 		return fmt.Errorf("columns have to be in the same project")
 	}
 
-	if b.ID == newColumn.ID {
+	if c.ID == newColumn.ID {
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func (b *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return err
 	}
 
-	issues, err := b.GetIssues(ctx)
+	issues, err := c.GetIssues(ctx)
 	if err != nil {
 		return err
 	}

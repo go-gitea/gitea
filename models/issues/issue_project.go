@@ -110,7 +110,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 			if newColumnID == 0 {
-				newDefaultColumn, err := newProject.GetDefaultBoard(ctx)
+				newDefaultColumn, err := newProject.GetDefaultColumn(ctx)
 				if err != nil {
 					return err
 				}
@@ -153,10 +153,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
-			IssueID:        issue.ID,
-			ProjectID:      newProjectID,
-			ProjectBoardID: newColumnID,
-			Sorting:        newSorting,
+			IssueID:         issue.ID,
+			ProjectID:       newProjectID,
+			ProjectColumnID: newColumnID,
+			Sorting:         newSorting,
 		})
 	})
 }

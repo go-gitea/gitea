@@ -389,8 +389,8 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
-// DeleteProjectBoard allows for the deletion of a project board
-func DeleteProjectBoard(ctx *context.Context) {
+// DeleteProjectColumn allows for the deletion of a project column
+func DeleteProjectColumn(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
