@@ -159,7 +159,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 						// There should be an empty line before we read the commit stats line.
 						break
 					}
-					coAuthorEmail, coAuthorName, err := parseCoAuthorTrailerValue(line)
+					coAuthorName, coAuthorEmail, err := parseCoAuthorTrailerValue(line)
 					if err != nil {
 						continue
 					}
@@ -222,27 +222,29 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 
 var errSyntax = errors.New("syntax error occurred")
 
-func parseCoAuthorTrailerValue(value string) (email, name string, err error) {
+func parseCoAuthorTrailerValue(value string) (name, email string, err error) {
 	value = strings.TrimSpace(value)
 	if !strings.HasSuffix(value, ">") {
 		return "", "", errSyntax
 	}
-	if openEmailBracketIdx := strings.LastIndex(value, "<"); openEmailBracketIdx == -1 {
+
+	closedBracketIdx := len(value) - 1
+	openEmailBracketIdx := strings.LastIndex(value, "<")
+	if openEmailBracketIdx == -1 {
 		return "", "", errSyntax
 	}
 
-	parts := strings.Split(value, "<")
-	if len(parts) < 2 {
-		return "", "", errSyntax
-	}
-
-	email = strings.TrimRight(parts[1], ">")
+	email = value[openEmailBracketIdx+1 : closedBracketIdx]
 	if _, err := mail.ParseAddress(email); err != nil {
 		return "", "", err
 	}
-	name = strings.TrimSpace(parts[0])
 
-	return email, name, nil
+	name = strings.TrimSpace(value[:openEmailBracketIdx])
+	if len(name) == 0 {
+		return "", "", errSyntax
+	}
+
+	return name, email, nil
 }
 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {

@@ -88,7 +88,6 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		}, data["total"])
 	})
-
 	t.Run("generate contributor stats with co-authored commit", func(t *testing.T) {
 		mockCache, err := cache.NewStringCache(setting.Cache{})
 		assert.NoError(t, err)
