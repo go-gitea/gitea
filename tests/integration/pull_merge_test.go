@@ -724,7 +724,12 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 		assert.NoError(t, err)
+		masterCommitID, err := baseGitRepo.GetRefCommitID("master")
+		assert.NoError(t, err)
 		baseGitRepo.Close()
+		defer func() {
+			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+		}()
 
 		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     api.CommitStatusSuccess,
@@ -799,7 +804,12 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 		assert.NoError(t, err)
+		masterCommitID, err := baseGitRepo.GetRefCommitID("master")
+		assert.NoError(t, err)
 		baseGitRepo.Close()
+		defer func() {
+			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+		}()
 
 		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     api.CommitStatusSuccess,
