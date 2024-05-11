@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -652,6 +654,21 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 	})
 }
 
+func testResetRepo(t *testing.T, repoPath, branch, commitID string) {
+	f, err := os.OpenFile(filepath.Join(repoPath, "refs", "heads", branch), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	assert.NoError(t, err)
+	defer f.Close()
+	_, err = f.WriteString(commitID + "\n")
+	assert.NoError(t, err)
+
+	repo, err := git.OpenRepository(context.Background(), repoPath)
+	assert.NoError(t, err)
+	defer repo.Close()
+	id, err := repo.GetBranchCommitID(branch)
+	assert.NoError(t, err)
+	assert.EqualValues(t, commitID, id)
+}
+
 func TestPullAutoMergeAfterUpdated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
@@ -663,7 +680,7 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 			testDeleteRepository(t, session, "user1", forkedName)
 		}()
 		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
-		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
+		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Test Update Auto Merge")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
@@ -673,8 +690,19 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 			HeadRepoID: forkedRepo.ID,
 			HeadBranch: "master",
 		})
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.EqualValues(t, "Test Update Auto Merge", pr.Issue.Title)
 
+		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		assert.NoError(t, err)
+		previousCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		baseGitRepo.Close()
+		assert.NoError(t, err)
+		// add a new file for base repository, so the pull request needs to be updated
 		testCreateFile(t, session, "user2", "repo1", "master", "README-1.md", "Hello, World (Edited - 2)\n")
+		defer func() {
+			testResetRepo(t, baseRepo.RepoPath(), "master", previousCommitID)
+		}()
 
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "")
@@ -695,10 +723,13 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 		err = pull.Update(db.DefaultContext, pr, user1, "update for auto merge", false)
 		assert.NoError(t, err)
 
+		time.Sleep(5 * time.Second)
 		// realod pr again
-		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 		assert.True(t, pr.HasMerged)
 		assert.NotEmpty(t, pr.MergedCommitID)
+
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
 
@@ -766,8 +797,10 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.NoError(t, err)
 
 		// realod pr again
-		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 		assert.True(t, pr.HasMerged)
 		assert.NotEmpty(t, pr.MergedCommitID)
+
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
