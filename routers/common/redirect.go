@@ -17,7 +17,7 @@ func FetchRedirectDelegate(resp http.ResponseWriter, req *http.Request) {
 	// The typical page is "issue comment" page. The backend responds "/owner/repo/issues/1#comment-2",
 	// then frontend needs this delegate to redirect to the new location with hash correctly.
 	redirect := req.PostFormValue("redirect")
-	if !httplib.IsCurrentGiteaSiteURL(redirect) {
+	if !httplib.IsCurrentGiteaSiteURL(req.Context(), redirect) {
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}

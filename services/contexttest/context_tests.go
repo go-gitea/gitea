@@ -39,7 +39,7 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	req := &http.Request{Method: method, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
+	req := &http.Request{Method: method, Host: requestURL.Host, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
 	req = req.WithContext(middleware.WithContextData(req.Context()))
 	return req
 }
@@ -89,6 +89,19 @@ func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptes
 	ctx := &context.APIContext{Base: base}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
+	chiCtx := chi.NewRouteContext()
+	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	return ctx, resp
+}
+
+func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.GetContextData(req.Context())
+	base.Locale = &translation.MockLocale{}
+	ctx := &context.PrivateContext{Base: base}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp

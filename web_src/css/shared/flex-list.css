@@ -59,7 +59,7 @@
   color: var(--color-text);
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
-  word-break: break-word;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 
@@ -74,7 +74,7 @@
   flex-wrap: wrap;
   gap: .25rem;
   color: var(--color-text-light-2);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .flex-item .flex-item-body a {
