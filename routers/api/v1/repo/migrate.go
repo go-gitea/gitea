@@ -17,7 +17,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -26,6 +25,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -180,7 +180,7 @@ func Migrate(ctx *context.APIContext) {
 		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
@@ -207,7 +207,7 @@ func Migrate(ctx *context.APIContext) {
 	}()
 
 	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer, repoOwner.Name, opts, nil); err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func Migrate(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err error) {
 	switch {
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")

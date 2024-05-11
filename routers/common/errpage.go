@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/services/context"
 )
 
 const tplStatus500 base.TplName = "status/500"
@@ -35,20 +36,18 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 	httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
 	w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-	data := middleware.GetContextData(req.Context())
-	if data["locale"] == nil {
-		data = middleware.CommonTemplateContextData()
-		data["locale"] = middleware.Locale(w, req)
-	}
+	tmplCtx := context.TemplateContext{}
+	tmplCtx["Locale"] = middleware.Locale(w, req)
+	ctxData := middleware.GetContextData(req.Context())
 
 	// This recovery handler could be called without Gitea's web context, so we shouldn't touch that context too much.
 	// Otherwise, the 500-page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic.
-	user, _ := data[middleware.ContextDataKeySignedUser].(*user_model.User)
+	user, _ := ctxData[middleware.ContextDataKeySignedUser].(*user_model.User)
 	if !setting.IsProd || (user != nil && user.IsAdmin) {
-		data["ErrorMsg"] = "PANIC: " + combinedErr
+		ctxData["ErrorMsg"] = "PANIC: " + combinedErr
 	}
 
-	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, string(tplStatus500), data, nil)
+	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, string(tplStatus500), ctxData, tmplCtx)
 	if err != nil {
 		log.Error("Error occurs again when rendering error page: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

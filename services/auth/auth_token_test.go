@@ -37,14 +37,14 @@ func TestCheckAuthToken(t *testing.T) {
 	})
 
 	t.Run("Expired", func(t *testing.T) {
-		timeutil.Set(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+		timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 
 		at, token, err := CreateAuthTokenForUserID(db.DefaultContext, 2)
 		assert.NoError(t, err)
 		assert.NotNil(t, at)
 		assert.NotEmpty(t, token)
 
-		timeutil.Unset()
+		timeutil.MockUnset()
 
 		at2, err := CheckAuthToken(db.DefaultContext, at.ID+":"+token)
 		assert.ErrorIs(t, err, ErrAuthTokenExpired)
@@ -83,15 +83,15 @@ func TestCheckAuthToken(t *testing.T) {
 func TestRegenerateAuthToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	timeutil.Set(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
-	defer timeutil.Unset()
+	timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.MockUnset()
 
 	at, token, err := CreateAuthTokenForUserID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 	assert.NotNil(t, at)
 	assert.NotEmpty(t, token)
 
-	timeutil.Set(time.Date(2023, 1, 1, 0, 0, 1, 0, time.UTC))
+	timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 1, 0, time.UTC))
 
 	at2, token2, err := RegenerateAuthToken(db.DefaultContext, at)
 	assert.NoError(t, err)

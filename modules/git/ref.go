@@ -44,7 +44,7 @@ func SanitizeRefPattern(name string) string {
 type Reference struct {
 	Name   string
 	repo   *Repository
-	Object SHA1 // The id of this commit object
+	Object ObjectID // The id of this commit object
 	Type   string
 }
 
@@ -184,7 +184,7 @@ func (ref RefName) RefGroup() string {
 }
 
 // RefType returns the simple ref type of the reference, e.g. branch, tag
-// It's differrent from RefGroup, which is using the name of the directory under .git/refs
+// It's different from RefGroup, which is using the name of the directory under .git/refs
 // Here we using branch but not heads, using tag but not tags
 func (ref RefName) RefType() string {
 	var refType string
@@ -205,7 +205,7 @@ func RefURL(repoURL, ref string) string {
 		return repoURL + "/src/branch/" + refName
 	case refFullName.IsTag():
 		return repoURL + "/src/tag/" + refName
-	case !IsValidSHAPattern(ref):
+	case !Sha1ObjectFormat.IsValid(ref):
 		// assume they mean a branch
 		return repoURL + "/src/branch/" + refName
 	default:

@@ -87,8 +87,8 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
-		req = addTokenAuthHeader(req, token)
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion))).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
@@ -119,23 +119,23 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("UploadExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
-		req = addTokenAuthHeader(req, token)
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion))).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename))
-		req = addTokenAuthHeader(req, token)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		b, _ := base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename))
-		req = addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
+			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, b, resp.Body.Bytes())
@@ -149,12 +149,12 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, "does-not-exist"))
-		req = addTokenAuthHeader(req, token)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, "does-not-exist")).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", root)
-		req = addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", root).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result npm.PackageMetadata
@@ -184,8 +184,8 @@ func TestPackageNpm(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		test := func(t *testing.T, status int, tag, version string) {
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, tag), strings.NewReader(`"`+version+`"`))
-			req = addTokenAuthHeader(req, token)
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, tag), strings.NewReader(`"`+version+`"`)).
+				AddTokenAuth(token)
 			MakeRequest(t, req, status)
 		}
 
@@ -199,8 +199,8 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("ListTags", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", tagsRoot)
-		req = addTokenAuthHeader(req, token)
+		req := NewRequest(t, "GET", tagsRoot).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result map[string]string
@@ -216,8 +216,8 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("PackageMetadataDistTags", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", root)
-		req = addTokenAuthHeader(req, token)
+		req := NewRequest(t, "GET", root).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result npm.PackageMetadata
@@ -234,8 +234,8 @@ func TestPackageNpm(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		test := func(t *testing.T, status int, tag string) {
-			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s", tagsRoot, tag))
-			req = addTokenAuthHeader(req, token)
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s", tagsRoot, tag)).
+				AddTokenAuth(token)
 			MakeRequest(t, req, status)
 		}
 
@@ -279,15 +279,15 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy")))
-		req = addTokenAuthHeader(req, token)
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy"))).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "PUT", root+"/-rev/dummy")
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "PUT", root+"/-rev/dummy")
-		req = addTokenAuthHeader(req, token)
+		req = NewRequest(t, "PUT", root+"/-rev/dummy").
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 
 		t.Run("Version", func(t *testing.T) {
@@ -300,8 +300,8 @@ func TestPackageNpm(t *testing.T) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
-			req = addTokenAuthHeader(req, token)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename)).
+				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 
 			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
@@ -319,8 +319,8 @@ func TestPackageNpm(t *testing.T) {
 			req := NewRequest(t, "DELETE", root+"/-rev/dummy")
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", root+"/-rev/dummy")
-			req = addTokenAuthHeader(req, token)
+			req = NewRequest(t, "DELETE", root+"/-rev/dummy").
+				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 
 			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)

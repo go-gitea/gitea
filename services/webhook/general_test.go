@@ -303,6 +303,36 @@ func repositoryTestPayload() *api.RepositoryPayload {
 	}
 }
 
+func packageTestPayload() *api.PackagePayload {
+	return &api.PackagePayload{
+		Action: api.HookPackageCreated,
+		Sender: &api.User{
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
+		},
+		Repository: nil,
+		Organization: &api.User{
+			UserName:  "org1",
+			AvatarURL: "http://localhost:3000/org1/avatar",
+		},
+		Package: &api.Package{
+			Owner: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Repository: nil,
+			Creator: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Type:    "container",
+			Name:    "GiteaContainer",
+			Version: "latest",
+			HTMLURL: "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest",
+		},
+	}
+}
+
 func TestGetIssuesPayloadInfo(t *testing.T) {
 	p := issueTestPayload()
 

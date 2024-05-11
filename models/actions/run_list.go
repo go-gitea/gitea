@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -18,19 +19,15 @@ type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.TriggerUserID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.TriggerUserID, true
+	})
 }
 
 func (runs RunList) GetRepoIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.RepoID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.RepoID, true
+	})
 }
 
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
@@ -71,11 +68,12 @@ type FindRunOptions struct {
 	WorkflowID    string
 	Ref           string // the commit/tag/… that caused this workflow
 	TriggerUserID int64
+	TriggerEvent  webhook_module.HookEventType
 	Approved      bool // not util.OptionalBool, it works only when it's true
 	Status        []Status
 }
 
-func (opts FindRunOptions) toConds() builder.Cond {
+func (opts FindRunOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -98,21 +96,14 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.Ref != "" {
 		cond = cond.And(builder.Eq{"ref": opts.Ref})
 	}
+	if opts.TriggerEvent != "" {
+		cond = cond.And(builder.Eq{"trigger_event": opts.TriggerEvent})
+	}
 	return cond
 }
 
-func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var runs RunList
-	total, err := e.Desc("id").FindAndCount(&runs)
-	return runs, total, err
-}
-
-func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
+func (opts FindRunOptions) ToOrders() string {
+	return "`id` DESC"
 }
 
 type StatusInfo struct {

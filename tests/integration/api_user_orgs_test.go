@@ -74,8 +74,8 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 	if len(userDoer) != 0 {
 		token = getUserToken(t, userDoer, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
 	}
-	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs", userCheck)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
@@ -95,7 +95,8 @@ func TestMyOrgs(t *testing.T) {
 
 	normalUsername := "user2"
 	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
-	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
+	req = NewRequest(t, "GET", "/api/v1/user/orgs").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)

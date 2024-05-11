@@ -24,26 +24,30 @@ func init() {
 }
 
 // StarRepo or unstar repository.
-func StarRepo(ctx context.Context, userID, repoID int64, star bool) error {
+func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	staring := IsStaring(ctx, userID, repoID)
+	staring := IsStaring(ctx, doer.ID, repo.ID)
 
 	if star {
+		if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
+			return user_model.ErrBlockedUser
+		}
+
 		if staring {
 			return nil
 		}
 
-		if err := db.Insert(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
+		if err := db.Insert(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repo.ID); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", doer.ID); err != nil {
 			return err
 		}
 	} else {
@@ -51,13 +55,13 @@ func StarRepo(ctx context.Context, userID, repoID int64, star bool) error {
 			return nil
 		}
 
-		if _, err := db.DeleteByBean(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
+		if _, err := db.DeleteByBean(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repo.ID); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", doer.ID); err != nil {
 			return err
 		}
 	}

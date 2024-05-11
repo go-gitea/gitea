@@ -59,7 +59,7 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
 	if len(ifNoneMatch) > 0 {
 		for _, item := range strings.Split(ifNoneMatch, ",") {
-			item = strings.TrimSpace(item)
+			item = strings.TrimPrefix(strings.TrimSpace(item), "W/") // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#directives
 			if item == etag {
 				return true
 			}

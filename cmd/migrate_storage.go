@@ -34,7 +34,7 @@ var CmdMigrateStorage = &cli.Command{
 			Name:    "type",
 			Aliases: []string{"t"},
 			Value:   "",
-			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts",
 		},
 		&cli.StringFlag{
 			Name:    "storage",
@@ -110,6 +110,9 @@ func migrateLFS(ctx context.Context, dstStorage storage.ObjectStorage) error {
 
 func migrateAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, user *user_model.User) error {
+		if user.CustomAvatarRelativePath() == "" {
+			return nil
+		}
 		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
 		return err
 	})
@@ -117,6 +120,9 @@ func migrateAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error
 
 func migrateRepoAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, repo *repo_model.Repository) error {
+		if repo.CustomAvatarRelativePath() == "" {
+			return nil
+		}
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
 		return err
 	})
@@ -150,6 +156,13 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 		}
 		p := task.LogFilename
 		_, err := storage.Copy(dstStorage, p, storage.Actions, p)
+		return err
+	})
+}
+
+func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
+		_, err := storage.Copy(dstStorage, artifact.ArtifactPath, storage.ActionsArtifacts, artifact.ArtifactPath)
 		return err
 	})
 }
@@ -217,13 +230,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 	}
 
 	migratedMethods := map[string]func(context.Context, storage.ObjectStorage) error{
-		"attachments":    migrateAttachments,
-		"lfs":            migrateLFS,
-		"avatars":        migrateAvatars,
-		"repo-avatars":   migrateRepoAvatars,
-		"repo-archivers": migrateRepoArchivers,
-		"packages":       migratePackages,
-		"actions-log":    migrateActionsLog,
+		"attachments":       migrateAttachments,
+		"lfs":               migrateLFS,
+		"avatars":           migrateAvatars,
+		"repo-avatars":      migrateRepoAvatars,
+		"repo-archivers":    migrateRepoArchivers,
+		"packages":          migratePackages,
+		"actions-log":       migrateActionsLog,
+		"actions-artifacts": migrateActionsArtifacts,
 	}
 
 	tp := strings.ToLower(ctx.String("type"))

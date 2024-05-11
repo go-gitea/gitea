@@ -414,3 +414,16 @@ type swaggerRepoNewIssuePinsAllowed struct {
 	// in:body
 	Body api.NewIssuePinsAllowed `json:"body"`
 }
+
+// TasksList
+// swagger:response TasksList
+type swaggerRepoTasksList struct {
+	// in:body
+	Body api.ActionTaskResponse `json:"body"`
+}
+
+// swagger:response Compare
+type swaggerCompare struct {
+	// in:body
+	Body api.Compare `json:"body"`
+}

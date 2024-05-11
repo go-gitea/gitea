@@ -38,7 +38,7 @@ type CommitStatus struct {
 	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	TargetURL   string                 `xorm:"TEXT"`
 	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"char(40) index"`
+	ContextHash string                 `xorm:"VARCHAR(64) index"`
 	Context     string                 `xorm:"TEXT"`
 	Creator     *user_model.User       `xorm:"-"`
 	CreatorID   int64
@@ -114,7 +114,8 @@ WHEN NOT MATCHED
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if !git.IsValidSHAPattern(sha) {
+	_, err := git.NewIDFromString(sha)
+	if err != nil {
 		return 0, git.ErrInvalidSHA{SHA: sha}
 	}
 
@@ -194,7 +195,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.commitstatus." + status.State.String())
+	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
@@ -220,57 +221,42 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
 	db.ListOptions
+	RepoID   int64
+	SHA      string
 	State    string
 	SortType string
 }
 
-// GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize <= 0 {
-		opts.Page = setting.ItemsPerPage
+func (opts *CommitStatusOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"repo_id": opts.RepoID,
+		"sha":     opts.SHA,
 	}
 
-	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.Count(new(CommitStatus))
-	if err != nil {
-		log.Error("Count PRs: %v", err)
-		return nil, maxResults, err
-	}
-
-	statuses := make([]*CommitStatus, 0, opts.PageSize)
-	findSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	findSession = db.SetSessionPagination(findSession, opts)
-	sortCommitStatusesSession(findSession, opts.SortType)
-	return statuses, maxResults, findSession.Find(&statuses)
-}
-
-func listCommitStatusesStatement(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
-		sess.And("state = ?", opts.State)
+		cond = cond.And(builder.Eq{
+			"state": opts.State,
+		})
 	}
-	return sess
+
+	return cond
 }
 
-func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
-	switch sortType {
+func (opts *CommitStatusOptions) ToOrders() string {
+	switch opts.SortType {
 	case "oldest":
-		sess.Asc("created_unix")
+		return "created_unix ASC"
 	case "recentupdate":
-		sess.Desc("updated_unix")
+		return "updated_unix DESC"
 	case "leastupdate":
-		sess.Asc("updated_unix")
+		return "updated_unix ASC"
 	case "leastindex":
-		sess.Desc("index")
+		return "`index` DESC"
 	case "highestindex":
-		sess.Asc("index")
+		return "`index` ASC"
 	default:
-		sess.Desc("created_unix")
+		return "created_unix DESC"
 	}
 }
 
@@ -284,61 +270,70 @@ type CommitStatusIndex struct {
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	ids := make([]int64, 0, 10)
-	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
-		Where("repo_id = ?", repoID).And("sha = ?", sha).
-		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc")
+	getBase := func() *xorm.Session {
+		return db.GetEngine(ctx).Table(&CommitStatus{}).
+			Where("repo_id = ?", repoID).And("sha = ?", sha)
+	}
+	indices := make([]int64, 0, 10)
+	sess := getBase().Select("max( `index` ) as `index`").
+		GroupBy("context_hash").OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
-	count, err := sess.FindAndCount(&ids)
+	count, err := sess.FindAndCount(&indices)
 	if err != nil {
 		return nil, count, err
 	}
-	statuses := make([]*CommitStatus, 0, len(ids))
-	if len(ids) == 0 {
+	statuses := make([]*CommitStatus, 0, len(indices))
+	if len(indices) == 0 {
 		return statuses, count, nil
 	}
-	return statuses, count, db.GetEngine(ctx).In("id", ids).Find(&statuses)
+	return statuses, count, getBase().And(builder.In("`index`", indices)).Find(&statuses)
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHAs map[int64]string, listOptions db.ListOptions) (map[int64][]*CommitStatus, error) {
+func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map[int64][]*CommitStatus, error) {
 	type result struct {
-		ID     int64
+		Index  int64
 		RepoID int64
+		SHA    string
 	}
 
-	results := make([]result, 0, len(repoIDsToLatestCommitSHAs))
+	results := make([]result, 0, len(repoSHAs))
 
-	sess := db.GetEngine(ctx).Table(&CommitStatus{})
+	getBase := func() *xorm.Session {
+		return db.GetEngine(ctx).Table(&CommitStatus{})
+	}
 
 	// Create a disjunction of conditions for each repoID and SHA pair
-	conds := make([]builder.Cond, 0, len(repoIDsToLatestCommitSHAs))
-	for repoID, sha := range repoIDsToLatestCommitSHAs {
-		conds = append(conds, builder.Eq{"repo_id": repoID, "sha": sha})
+	conds := make([]builder.Cond, 0, len(repoSHAs))
+	for _, repoSHA := range repoSHAs {
+		conds = append(conds, builder.Eq{"repo_id": repoSHA.RepoID, "sha": repoSHA.SHA})
 	}
-	sess = sess.Where(builder.Or(conds...)).
-		Select("max( id ) as id, repo_id").
-		GroupBy("context_hash, repo_id").OrderBy("max( id ) desc")
-
-	sess = db.SetSessionPagination(sess, &listOptions)
+	sess := getBase().Where(builder.Or(conds...)).
+		Select("max( `index` ) as `index`, repo_id, sha").
+		GroupBy("context_hash, repo_id, sha").OrderBy("max( `index` ) desc")
 
 	err := sess.Find(&results)
 	if err != nil {
 		return nil, err
 	}
 
-	ids := make([]int64, 0, len(results))
 	repoStatuses := make(map[int64][]*CommitStatus)
-	for _, result := range results {
-		ids = append(ids, result.ID)
-	}
 
-	statuses := make([]*CommitStatus, 0, len(ids))
-	if len(ids) > 0 {
-		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+	if len(results) > 0 {
+		statuses := make([]*CommitStatus, 0, len(results))
+
+		conds = make([]builder.Cond, 0, len(results))
+		for _, result := range results {
+			cond := builder.Eq{
+				"`index`": result.Index,
+				"repo_id": result.RepoID,
+				"sha":     result.SHA,
+			}
+			conds = append(conds, cond)
+		}
+		err = getBase().Where(builder.Or(conds...)).Find(&statuses)
 		if err != nil {
 			return nil, err
 		}
@@ -355,42 +350,43 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 // GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
 func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
 	type result struct {
-		ID  int64
-		Sha string
+		Index int64
+		SHA   string
 	}
 
+	getBase := func() *xorm.Session {
+		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
+	}
 	results := make([]result, 0, len(commitIDs))
 
-	sess := db.GetEngine(ctx).Table(&CommitStatus{})
-
-	// Create a disjunction of conditions for each repoID and SHA pair
 	conds := make([]builder.Cond, 0, len(commitIDs))
 	for _, sha := range commitIDs {
 		conds = append(conds, builder.Eq{"sha": sha})
 	}
-	sess = sess.Where(builder.Eq{"repo_id": repoID}.And(builder.Or(conds...))).
-		Select("max( id ) as id, sha").
-		GroupBy("context_hash, sha").OrderBy("max( id ) desc")
+	sess := getBase().And(builder.Or(conds...)).
+		Select("max( `index` ) as `index`, sha").
+		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
 
 	err := sess.Find(&results)
 	if err != nil {
 		return nil, err
 	}
 
-	ids := make([]int64, 0, len(results))
 	repoStatuses := make(map[string][]*CommitStatus)
-	for _, result := range results {
-		ids = append(ids, result.ID)
-	}
 
-	statuses := make([]*CommitStatus, 0, len(ids))
-	if len(ids) > 0 {
-		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+	if len(results) > 0 {
+		statuses := make([]*CommitStatus, 0, len(results))
+
+		conds = make([]builder.Cond, 0, len(results))
+		for _, result := range results {
+			conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
+		}
+		err = getBase().And(builder.Or(conds...)).Find(&statuses)
 		if err != nil {
 			return nil, err
 		}
 
-		// Group the statuses by repo ID
+		// Group the statuses by commit
 		for _, status := range statuses {
 			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 		}
@@ -402,28 +398,22 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
 func FindRepoRecentCommitStatusContexts(ctx context.Context, repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
-	ids := make([]int64, 0, 10)
+
+	var contexts []string
 	if err := db.GetEngine(ctx).Table("commit_status").
-		Where("repo_id = ?", repoID).
-		And("updated_unix >= ?", start).
-		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc").
-		Find(&ids); err != nil {
+		Where("repo_id = ?", repoID).And("updated_unix >= ?", start).
+		Cols("context").Distinct().Find(&contexts); err != nil {
 		return nil, err
 	}
 
-	contexts := make([]string, 0, len(ids))
-	if len(ids) == 0 {
-		return contexts, nil
-	}
-	return contexts, db.GetEngine(ctx).Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+	return contexts, nil
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *repo_model.Repository
 	Creator      *user_model.User
-	SHA          string
+	SHA          git.ObjectID
 	CommitStatus *CommitStatus
 }
 
@@ -438,10 +428,6 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	if _, err := git.NewIDFromString(opts.SHA); err != nil {
-		return fmt.Errorf("NewCommitStatus[%s, %s]: invalid sha: %w", repoPath, opts.SHA, err)
-	}
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
@@ -449,7 +435,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	defer committer.Close()
 
 	// Get the next Status Index
-	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA)
+	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA.String())
 	if err != nil {
 		return fmt.Errorf("generate commit status index failed: %w", err)
 	}
@@ -457,7 +443,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
-	opts.CommitStatus.SHA = opts.SHA
+	opts.CommitStatus.SHA = opts.SHA.String()
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 	opts.CommitStatus.Index = idx

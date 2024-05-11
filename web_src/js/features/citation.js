@@ -1,8 +1,9 @@
 import $ from 'jquery';
+import {getCurrentLocale} from '../utils.js';
 
 const {pageData} = window.config;
 
-const initInputCitationValue = async ($citationCopyApa, $citationCopyBibtex) => {
+async function initInputCitationValue(citationCopyApa, citationCopyBibtex) {
   const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
@@ -14,47 +15,62 @@ const initInputCitationValue = async ($citationCopyApa, $citationCopyBibtex) => 
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];
   const citationFormatter = new Cite(citationFileContent);
-  const lang = document.documentElement.lang || 'en-US';
+  const lang = getCurrentLocale() || 'en-US';
   const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
   const bibtexOutput = citationFormatter.format('bibtex', {lang});
-  $citationCopyBibtex.attr('data-text', bibtexOutput);
-  $citationCopyApa.attr('data-text', apaOutput);
-};
+  citationCopyBibtex.setAttribute('data-text', bibtexOutput);
+  citationCopyApa.setAttribute('data-text', apaOutput);
+}
 
-export function initCitationFileCopyContent() {
+export async function initCitationFileCopyContent() {
   const defaultCitationFormat = 'apa'; // apa or bibtex
 
   if (!pageData.citationFileContent) return;
 
-  const $citationCopyApa = $('#citation-copy-apa');
-  const $citationCopyBibtex = $('#citation-copy-bibtex');
-  const $inputContent = $('#citation-copy-content');
+  const citationCopyApa = document.getElementById('citation-copy-apa');
+  const citationCopyBibtex = document.getElementById('citation-copy-bibtex');
+  const inputContent = document.getElementById('citation-copy-content');
 
-  if ((!$citationCopyApa.length && !$citationCopyBibtex.length) || !$inputContent.length) return;
+  if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
+
   const updateUi = () => {
     const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
-    const copyContent = (isBibtex ? $citationCopyBibtex : $citationCopyApa).attr('data-text');
-
-    $inputContent.val(copyContent);
-    $citationCopyBibtex.toggleClass('primary', isBibtex);
-    $citationCopyApa.toggleClass('primary', !isBibtex);
+    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text');
+    inputContent.value = copyContent;
+    citationCopyBibtex.classList.toggle('primary', isBibtex);
+    citationCopyApa.classList.toggle('primary', !isBibtex);
   };
-  initInputCitationValue($citationCopyApa, $citationCopyBibtex).then(updateUi);
 
-  $citationCopyApa.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'apa');
-    updateUi();
-  });
-  $citationCopyBibtex.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'bibtex');
-    updateUi();
-  });
+  document.getElementById('cite-repo-button')?.addEventListener('click', async (e) => {
+    const dropdownBtn = e.target.closest('.ui.dropdown.button');
+    dropdownBtn.classList.add('is-loading');
 
-  $inputContent.on('click', () => {
-    $inputContent.trigger('select');
-  });
+    try {
+      try {
+        await initInputCitationValue(citationCopyApa, citationCopyBibtex);
+      } catch (e) {
+        console.error(`initCitationFileCopyContent error: ${e}`, e);
+        return;
+      }
+      updateUi();
 
-  $('#cite-repo-button').on('click', () => {
+      citationCopyApa.addEventListener('click', () => {
+        localStorage.setItem('citation-copy-format', 'apa');
+        updateUi();
+      });
+
+      citationCopyBibtex.addEventListener('click', () => {
+        localStorage.setItem('citation-copy-format', 'bibtex');
+        updateUi();
+      });
+
+      inputContent.addEventListener('click', () => {
+        inputContent.select();
+      });
+    } finally {
+      dropdownBtn.classList.remove('is-loading');
+    }
+
     $('#cite-repo-modal').modal('show');
   });
 }

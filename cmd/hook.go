@@ -31,8 +31,8 @@ var (
 	// CmdHook represents the available hooks sub-command.
 	CmdHook = &cli.Command{
 		Name:        "hook",
-		Usage:       "Delegate commands to corresponding Git hooks",
-		Description: "This should only be called by Git",
+		Usage:       "(internal) Should only be called by Git",
+		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Subcommands: []*cli.Command{
 			subcmdHookPreReceive,
@@ -220,10 +220,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	supportProcReceive := false
-	if git.CheckGitVersionAtLeast("2.29") == nil {
-		supportProcReceive = true
-	}
+	supportProcReceive := git.DefaultFeatures().SupportProcReceive
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -341,6 +338,7 @@ Gitea or set your environment appropriately.`, "")
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	hookOptions := private.HookOptions{
@@ -350,6 +348,8 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
+		PullRequestID:                   prID,
+		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -376,7 +376,9 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = git.RefName(fields[2])
-		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+
+		commitID, _ := git.NewIDFromString(newCommitIDs[count])
+		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
 			masterPushed = true
 		}
 		count++
@@ -446,21 +448,24 @@ Gitea or set your environment appropriately.`, "")
 
 func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 	for _, res := range results {
-		if !res.Message {
-			continue
-		}
-
-		fmt.Fprintln(os.Stderr, "")
-		if res.Create {
-			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
-			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-		} else {
-			fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-		}
-		fmt.Fprintln(os.Stderr, "")
-		os.Stderr.Sync()
+		hookPrintResult(res.Message, res.Create, res.Branch, res.URL)
 	}
+}
+
+func hookPrintResult(output, isCreate bool, branch, url string) {
+	if !output {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "")
+	if isCreate {
+		fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
+		fmt.Fprintf(os.Stderr, "  %s\n", url)
+	} else {
+		fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
+		fmt.Fprintf(os.Stderr, "  %s\n", url)
+	}
+	fmt.Fprintln(os.Stderr, "")
+	_ = os.Stderr.Sync()
 }
 
 func pushOptions() map[string]string {
@@ -492,7 +497,7 @@ Gitea or set your environment appropriately.`, "")
 		return nil
 	}
 
-	if git.CheckGitVersionAtLeast("2.29") != nil {
+	if !git.DefaultFeatures().SupportProcReceive {
 		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 
@@ -669,7 +674,8 @@ Gitea or set your environment appropriately.`, "")
 		if err != nil {
 			return err
 		}
-		if rs.OldOID != git.EmptySHA {
+		commitID, _ := git.NewIDFromString(rs.OldOID)
+		if !commitID.IsZero() {
 			err = writeDataPktLine(ctx, os.Stdout, []byte("option old-oid "+rs.OldOID))
 			if err != nil {
 				return err
@@ -687,6 +693,12 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 	err = writeFlushPktLine(ctx, os.Stdout)
+
+	if err == nil {
+		for _, res := range resp.Results {
+			hookPrintResult(res.ShouldShowMessage, res.IsCreatePR, res.HeadBranch, res.URL)
+		}
+	}
 
 	return err
 }

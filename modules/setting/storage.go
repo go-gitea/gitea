@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // StorageType is a type of Storage
@@ -96,7 +97,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, err
 	}
 
-	overrideSec := getStorageOverrideSection(rootCfg, targetSec, sec, tp, name)
+	overrideSec := getStorageOverrideSection(rootCfg, sec, tp, name)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	switch targetType {
@@ -188,7 +189,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 }
 
 // getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
-func getStorageOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
+func getStorageOverrideSection(rootConfig ConfigProvider, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
 		return nil
 	}
@@ -239,6 +240,8 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		}
 	}
 
+	checkOverlappedPath("[storage."+name+"].PATH", storage.Path)
+
 	return &storage, nil
 }
 
@@ -249,14 +252,24 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		return nil, fmt.Errorf("map minio config failed: %v", err)
 	}
 
-	if storage.MinioConfig.BasePath == "" {
-		storage.MinioConfig.BasePath = name + "/"
+	var defaultPath string
+	if storage.MinioConfig.BasePath != "" {
+		if tp == targetSecIsStorage || tp == targetSecIsDefault {
+			defaultPath = strings.TrimSuffix(storage.MinioConfig.BasePath, "/") + "/" + name + "/"
+		} else {
+			defaultPath = storage.MinioConfig.BasePath
+		}
+	}
+	if defaultPath == "" {
+		defaultPath = name + "/"
 	}
 
 	if overrideSec != nil {
 		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
-		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
+		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", defaultPath)
 		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+	} else {
+		storage.MinioConfig.BasePath = defaultPath
 	}
 	return &storage, nil
 }
