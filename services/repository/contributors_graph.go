@@ -229,17 +229,17 @@ func parseCoAuthorTrailerValue(value string) (name, email string, err error) {
 	}
 
 	closedBracketIdx := len(value) - 1
-	openEmailBracketIdx := strings.LastIndex(value, "<")
-	if openEmailBracketIdx == -1 {
+	openBracketIdx := strings.LastIndex(value, "<")
+	if openBracketIdx == -1 {
 		return "", "", errSyntax
 	}
 
-	email = value[openEmailBracketIdx+1 : closedBracketIdx]
+	email = value[openBracketIdx+1 : closedBracketIdx]
 	if _, err := mail.ParseAddress(email); err != nil {
 		return "", "", err
 	}
 
-	name = strings.TrimSpace(value[:openEmailBracketIdx])
+	name = strings.TrimSpace(value[:openBracketIdx])
 	if len(name) == 0 {
 		return "", "", errSyntax
 	}
