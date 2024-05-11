@@ -309,7 +309,8 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, close
 		Locale:    middleware.Locale(resp, req),
 		Data:      middleware.GetContextData(req.Context()),
 	}
-	b.AppendContextValue(translation.ContextKey, b.Locale)
 	b.Req = b.Req.WithContext(b)
+	b.AppendContextValue(translation.ContextKey, b.Locale)
+	b.AppendContextValue(httplib.RequestContextKey, b.Req)
 	return b, b.cleanUp
 }

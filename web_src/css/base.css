@@ -730,6 +730,7 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
   padding: 5px 10px;
+  flex-shrink: 0;
 }
 
 .ui .sha.label .shortsha {
