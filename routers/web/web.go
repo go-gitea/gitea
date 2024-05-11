@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -54,7 +55,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const GzipMinSize = 1400 // min size to compress for the body size of response
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -685,6 +686,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
+		m.Post("/self_check", admin.SelfCheckPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -999,6 +1001,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
+					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
@@ -1354,6 +1357,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
 				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
+				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
 				m.Get("/edit", repo.RenderEditProject)

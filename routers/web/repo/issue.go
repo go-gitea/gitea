@@ -2177,7 +2177,10 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusOK, map[string]any{
+		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
+		"renderedLabels": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
+	})
 }
 
 // UpdateIssueTitle change issue's title
