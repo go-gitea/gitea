@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -669,7 +670,7 @@ func testResetRepo(t *testing.T, repoPath, branch, commitID string) {
 	assert.EqualValues(t, commitID, id)
 }
 
-func TestPullAutoMergeAfterUpdated(t *testing.T) {
+func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1")
@@ -680,7 +681,7 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 			testDeleteRepository(t, session, "user1", forkedName)
 		}()
 		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
-		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Test Update Auto Merge")
+		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
@@ -690,27 +691,26 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 			HeadRepoID: forkedRepo.ID,
 			HeadBranch: "master",
 		})
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
-		assert.EqualValues(t, "Test Update Auto Merge", pr.Issue.Title)
 
-		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
-		assert.NoError(t, err)
-		previousCommitID, err := baseGitRepo.GetBranchCommitID("master")
-		baseGitRepo.Close()
-		assert.NoError(t, err)
-		// add a new file for base repository, so the pull request needs to be updated
-		testCreateFile(t, session, "user2", "repo1", "master", "README-1.md", "Hello, World (Edited - 2)\n")
-		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", previousCommitID)
-		}()
+		// add protected branch for commit status
+		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		// Change master branch to protected
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"_csrf":                 csrf,
+			"rule_name":             "master",
+			"enable_push":           "true",
+			"enable_status_check":   "true",
+			"status_check_contexts": "gitea/actions",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "")
+		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
 		assert.NoError(t, err)
 		assert.True(t, scheduled)
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "")
+		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
 		assert.Error(t, err)
 		assert.False(t, scheduled)
 
@@ -719,11 +719,22 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 		assert.Empty(t, pr.MergedCommitID)
 
-		// update the pull request, then it should be merged automatically
-		err = pull.Update(db.DefaultContext, pr, user1, "update for auto merge", false)
+		// update commit status to success, then it should be merged automatically
+		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		assert.NoError(t, err)
+		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+		assert.NoError(t, err)
+		baseGitRepo.Close()
+
+		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
+			State:     api.CommitStatusSuccess,
+			TargetURL: "https://gitea.com",
+			Context:   "gitea/actions",
+		})
 		assert.NoError(t, err)
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
+
 		// realod pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 		assert.True(t, pr.HasMerged)
@@ -733,7 +744,7 @@ func TestPullAutoMergeAfterUpdated(t *testing.T) {
 	})
 }
 
-func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
+func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1")
@@ -763,17 +774,18 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
-			"status_check_contexts": `["gitea/actions"]`,
+			"status_check_contexts": "gitea/actions",
+			"required_approvals":    "1",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "")
+		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
 		assert.NoError(t, err)
 		assert.True(t, scheduled)
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "")
+		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
 		assert.Error(t, err)
 		assert.False(t, scheduled)
 
@@ -795,6 +807,22 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			Context:   "gitea/actions",
 		})
 		assert.NoError(t, err)
+
+		time.Sleep(2 * time.Second)
+
+		// reload pr again
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.False(t, pr.HasMerged)
+		assert.Empty(t, pr.MergedCommitID)
+
+		// approve the PR from non-author
+		approveSession := loginUser(t, "user2")
+		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
+		resp := approveSession.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+
+		time.Sleep(2 * time.Second)
 
 		// realod pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
