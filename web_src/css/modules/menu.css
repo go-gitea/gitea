@@ -358,6 +358,7 @@
 }
 
 .ui.vertical.menu .active.item {
+  background: var(--color-active);
   border-radius: 0;
 }
 .ui.vertical.menu > .active.item:first-child {
