@@ -150,7 +150,7 @@ export default {
     'declaration-property-unit-allowed-list': null,
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
     'declaration-property-value-allowed-list': null,
-    'declaration-property-value-disallowed-list': null,
+    'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'declaration-property-value-no-unknown': true,
     'font-family-name-quotes': 'always-where-recommended',
     'font-family-no-duplicate-names': true,
