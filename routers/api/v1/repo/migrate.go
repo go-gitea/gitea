@@ -5,6 +5,7 @@ package repo
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/services/task"
 	"errors"
 	"fmt"
 	"net/http"
@@ -185,6 +186,12 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	opts.MigrateToRepoID = repo.ID
+
+	err = task.MigrateRepository(ctx, ctx.Doer, repoOwner, opts)
+	if err != nil {
+		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		return
+	}
 
 	defer func() {
 		if e := recover(); e != nil {
