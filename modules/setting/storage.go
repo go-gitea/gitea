@@ -6,8 +6,11 @@ package setting
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -52,6 +55,15 @@ type MinioStorageConfig struct {
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
 }
 
+func (cfg *MinioStorageConfig) ToShadow() {
+	if cfg.AccessKeyID != "" {
+		cfg.AccessKeyID = "******"
+	}
+	if cfg.SecretAccessKey != "" {
+		cfg.SecretAccessKey = "******"
+	}
+}
+
 // MinioStorageConfig represents the configuration for a minio storage
 type AzureBlobStorageConfig struct {
 	Endpoint    string `ini:"AZURE_BLOB_ENDPOINT" json:",omitempty"`
@@ -60,6 +72,26 @@ type AzureBlobStorageConfig struct {
 	Container   string `ini:"AZURE_BLOB_CONTAINER" json:",omitempty"`
 	BasePath    string `ini:"AZURE_BLOB_BASE_PATH" json:",omitempty"`
 	ServeDirect bool   `ini:"SERVE_DIRECT"`
+}
+
+func (cfg AzureBlobStorageConfig) ConnectionString() string {
+	u, err := url.Parse(cfg.Endpoint)
+	if err != nil {
+		log.Fatal("parse endpoint %s failed: %v", cfg.Endpoint, err)
+		return ""
+	}
+
+	return fmt.Sprintf("DefaultEndpointsProtocol=%s;AccountName=%s;AccountKey=%s;EndpointSuffix=%s",
+		u.Scheme, cfg.AccountName, cfg.AccountKey, u.Host)
+}
+
+func (cfg *AzureBlobStorageConfig) ToShadow() {
+	if cfg.AccountKey != "" {
+		cfg.AccountKey = "******"
+	}
+	if cfg.AccountName != "" {
+		cfg.AccountName = "******"
+	}
 }
 
 // Storage represents configuration of storages
@@ -73,12 +105,8 @@ type Storage struct {
 
 func (storage *Storage) ToShadowCopy() Storage {
 	shadowStorage := *storage
-	if shadowStorage.MinioConfig.AccessKeyID != "" {
-		shadowStorage.MinioConfig.AccessKeyID = "******"
-	}
-	if shadowStorage.MinioConfig.SecretAccessKey != "" {
-		shadowStorage.MinioConfig.SecretAccessKey = "******"
-	}
+	shadowStorage.MinioConfig.ToShadow()
+	shadowStorage.AzureBlobConfig.ToShadow()
 	return shadowStorage
 }
 
