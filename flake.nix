@@ -1,16 +1,15 @@
 {
-  # Override nixpkgs to use the latest set of node packages
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/master";
-  inputs.systems.url = "github:nix-systems/default";
-
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-23.11";
+  };
   outputs =
     {
       self,
       nixpkgs,
       flake-utils,
-      systems,
+      ...
     }:
-    flake-utils.lib.eachSystem (import systems) (
+    flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -25,11 +24,11 @@
             gnutar
 
             # frontend
-            nodejs
+            nodejs_20
             nodePackages.npm
 
             # backend
-            go
+            go_1_20
             gofumpt
             golangci-lint
           ];
