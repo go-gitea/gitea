@@ -658,9 +658,9 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 func testResetRepo(t *testing.T, repoPath, branch, commitID string) {
 	f, err := os.OpenFile(filepath.Join(repoPath, "refs", "heads", branch), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	assert.NoError(t, err)
-	defer f.Close()
 	_, err = f.WriteString(commitID + "\n")
 	assert.NoError(t, err)
+	f.Close()
 
 	repo, err := git.OpenRepository(context.Background(), repoPath)
 	assert.NoError(t, err)
