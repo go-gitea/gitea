@@ -410,7 +410,7 @@ td .commit-summary {
 }
 
 .repository.file.list .non-diff-file-content .plain-text pre {
-  word-break: break-word;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
@@ -2256,6 +2256,10 @@ td .commit-summary {
   justify-content: flex-end;
 }
 
+.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
+  flex-grow: 0;
+}
+
 @media (max-width: 991px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
@@ -2349,12 +2353,8 @@ tbody.commit-list {
 .commit-body {
   margin: 0.25em 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   line-height: initial;
-}
-
-/* PR-comment */
-.repository .timeline-item .commit-body {
-  margin-left: 45px;
 }
 
 .git-notes.top {
