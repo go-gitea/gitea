@@ -246,6 +246,8 @@ func CreateRelease(ctx *context.APIContext) {
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, ""); err != nil {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
+			} else if models.IsErrProtectedTagName(err) {
+				ctx.Error(http.StatusMethodNotAllowed, "ProtectedTagName", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}

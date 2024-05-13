@@ -1,0 +1,8 @@
+-
+  id: 1
+  repo_id: 4
+  name_pattern: /v.+/
+  allowlist_user_i_ds: []
+  allowlist_team_i_ds: []
+  created_unix: 1715596037
+  updated_unix: 1715596037
