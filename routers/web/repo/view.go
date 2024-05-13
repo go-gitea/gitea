@@ -51,7 +51,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	files_service "code.gitea.io/gitea/services/repository/files"
-	user_services "code.gitea.io/gitea/services/user"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/nektos/act/pkg/model"
 
@@ -1180,13 +1180,13 @@ func Forks(ctx *context.Context) {
 
 func loadPinData(ctx *context.Context) error {
 	// First, cleanup any pins that are no longer valid
-	err := user_services.CleanupPins(ctx, ctx.Doer)
+	err := user_service.CleanupPins(ctx, ctx.Doer)
 	if err != nil {
 		return err
 	}
 
 	ctx.Data["IsPinningRepo"] = repo_model.IsPinned(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	ctx.Data["CanPinRepo"] = user_services.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
+	ctx.Data["CanPinRepo"] = user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
 
 	if ctx.Repo.Repository.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Repo.Repository.Owner)
@@ -1199,7 +1199,7 @@ func loadPinData(ctx *context.Context) error {
 		if isAdmin {
 			ctx.Data["CanUserPinToOrg"] = true
 			ctx.Data["IsOrgPinningRepo"] = repo_model.IsPinned(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
-			ctx.Data["CanOrgPinRepo"] = user_services.CanPin(ctx, ctx.Repo.Repository.Owner, ctx.Repo.Repository)
+			ctx.Data["CanOrgPinRepo"] = user_service.CanPin(ctx, ctx.Repo.Repository.Owner, ctx.Repo.Repository)
 		}
 	}
 

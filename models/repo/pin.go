@@ -20,7 +20,7 @@ type Pin struct {
 
 // TableName sets the table name for the pin struct
 func (s *Pin) TableName() string {
-	return "repo_pin"
+	return "repository_pin"
 }
 
 func init() {

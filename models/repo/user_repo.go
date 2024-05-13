@@ -62,7 +62,7 @@ type PinnedReposOptions struct {
 
 func (opts *PinnedReposOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{
-		"repo_pin.uid": opts.PinnerID,
+		"repository_pin.uid": opts.PinnerID,
 	}
 	if opts.RepoOwnerID != 0 {
 		cond = cond.And(builder.Eq{
@@ -75,7 +75,7 @@ func (opts *PinnedReposOptions) ToConds() builder.Cond {
 func (opts *PinnedReposOptions) ToJoins() []db.JoinFunc {
 	return []db.JoinFunc{
 		func(e db.Engine) error {
-			e.Join("INNER", "repo_pin", "`repository`.id=`repo_pin`.repo_id")
+			e.Join("INNER", "repository_pin", "`repository`.id=`repository_pin`.repo_id")
 			return nil
 		},
 	}
