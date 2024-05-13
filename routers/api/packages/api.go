@@ -46,15 +46,12 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				scopeMatched := false
 				var err error
 				if accessMode == perm.AccessModeRead {
-					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage, auth_model.AccessTokenScopeWritePackage)
 					if err != nil {
 						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
 						return
 					}
-				}
-				// If accessMode is write,
-				// Or request read but has write permission so that not matches the read permission above
-				if accessMode == perm.AccessModeWrite || !scopeMatched {
+				} else if accessMode == perm.AccessModeWrite {
 					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
 					if err != nil {
 						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
