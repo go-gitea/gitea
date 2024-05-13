@@ -247,7 +247,7 @@ func CreateRelease(ctx *context.APIContext) {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
 			} else if models.IsErrProtectedTagName(err) {
-				ctx.Error(http.StatusMethodNotAllowed, "ProtectedTagName", err)
+				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}
@@ -403,7 +403,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	}
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)

@@ -176,7 +176,7 @@ func TestAPICreateProtectedTagRelease(t *testing.T) {
 		IsPrerelease: false,
 		Target:       commit.ID.String(),
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusMethodNotAllowed)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
