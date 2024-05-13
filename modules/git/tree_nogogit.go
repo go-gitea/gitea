@@ -78,7 +78,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	var err error
-	t.entries, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -102,7 +102,7 @@ func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 	}
 
 	var err error
-	t.entriesRecursive, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entriesRecursive, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesRecursiveParsed = true
 	}

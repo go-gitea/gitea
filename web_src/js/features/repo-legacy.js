@@ -3,7 +3,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor,
+  initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -15,22 +15,18 @@ import {
 import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
-import {createDropzone} from './dropzone.js';
-import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
-import {hideElem, showElem} from '../utils/dom.js';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {attachRefIssueContextPopup} from './contextpopup.js';
-
-const {csrfToken} = window.config;
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
+import {POST} from '../modules/fetch.js';
+import {initRepoIssueCommentEdit} from './repo-issue-edit.js';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function reloadConfirmDraftComment() {
   const commentTextareas = [
-    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit-content-zone:not(.tw-hidden) textarea'),
     document.querySelector('#comment-form textarea'),
   ];
   for (const textarea of commentTextareas) {
@@ -49,9 +45,7 @@ function reloadConfirmDraftComment() {
 
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
-  if ($commentForm.length === 0) {
-    return;
-  }
+  if (!$commentForm.length) return;
 
   if ($commentForm.find('.field.combo-editor-dropzone').length) {
     // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
@@ -62,30 +56,36 @@ export function initRepoCommentForm() {
   }
 
   function initBranchSelector() {
-    const $selectBranch = $('.ui.select-branch');
-    const $branchMenu = $selectBranch.find('.reference-list-menu');
-    const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', function () {
-      const selectedValue = $(this).data('id');
-      const editMode = $('#editing_mode').val();
-      $($(this).data('id-selector')).val(selectedValue);
-      if ($isNewIssue) {
-        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
-        return;
-      }
+    const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+    if (!elSelectBranch) return;
 
-      if (editMode === 'true') {
-        const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrfToken, ref: selectedValue}, () => window.location.reload());
-      } else if (editMode === '') {
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
+    const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
+    const $selectBranch = $(elSelectBranch);
+    const $branchMenu = $selectBranch.find('.reference-list-menu');
+    $branchMenu.find('.item:not(.no-select)').on('click', async function (e) {
+      e.preventDefault();
+      const selectedValue = this.getAttribute('data-id'); // eg: "refs/heads/my-branch"
+      const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
+      if (urlUpdateIssueRef) {
+        // for existing issue, send request to update issue ref, and reload page
+        try {
+          await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: selectedValue})});
+          window.location.reload();
+        } catch (error) {
+          console.error(error);
+        }
+      } else {
+        // for new issue, only update UI&form, do not send request/reload
+        const selectedHiddenSelector = this.getAttribute('data-id-selector');
+        document.querySelector(selectedHiddenSelector).value = selectedValue;
+        elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
       hideElem($selectBranch.find('.scrolling.reference-list-menu'));
-      $selectBranch.find('.reference .text').removeClass('black');
-      showElem($($(this).data('target')));
-      $(this).find('.text').addClass('black');
+      showElem(this.getAttribute('data-target'));
+      queryElemChildren(this.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+      this.classList.add('active');
       return false;
     });
   }
@@ -131,19 +131,19 @@ export function initRepoCommentForm() {
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
 
-      const clickedItem = $(this);
-      const scope = $(this).attr('data-scope');
+      const clickedItem = this; // eslint-disable-line unicorn/no-this-assignment
+      const scope = this.getAttribute('data-scope');
 
       $(this).parent().find('.item').each(function () {
         if (scope) {
           // Enable only clicked item for scoped labels
-          if ($(this).attr('data-scope') !== scope) {
+          if (this.getAttribute('data-scope') !== scope) {
             return true;
           }
-          if (!$(this).is(clickedItem) && !$(this).hasClass('checked')) {
+          if (this !== clickedItem && !$(this).hasClass('checked')) {
             return true;
           }
-        } else if (!$(this).is(clickedItem)) {
+        } else if (this !== clickedItem) {
           // Toggle for other labels
           return true;
         }
@@ -189,15 +189,15 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('gt-hidden');
+          $($(this).data('id-selector')).removeClass('tw-hidden');
         } else {
-          $($(this).data('id-selector')).addClass('gt-hidden');
+          $($(this).data('id-selector')).addClass('tw-hidden');
         }
       });
-      if (listIds.length === 0) {
-        $noSelect.removeClass('gt-hidden');
+      if (!listIds.length) {
+        $noSelect.removeClass('tw-hidden');
       } else {
-        $noSelect.addClass('gt-hidden');
+        $noSelect.addClass('tw-hidden');
       }
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
@@ -226,9 +226,9 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.item').each(function () {
-        $(this).addClass('gt-hidden');
+        $(this).addClass('tw-hidden');
       });
-      $noSelect.removeClass('gt-hidden');
+      $noSelect.removeClass('tw-hidden');
       $($(this).parent().data('id')).val('');
     });
   }
@@ -264,11 +264,11 @@ export function initRepoCommentForm() {
 
       let icon = '';
       if (input_id === '#milestone_id') {
-        icon = svg('octicon-milestone', 18, 'gt-mr-3');
+        icon = svg('octicon-milestone', 18, 'tw-mr-2');
       } else if (input_id === '#project_id') {
-        icon = svg('octicon-project', 18, 'gt-mr-3');
+        icon = svg('octicon-project', 18, 'tw-mr-2');
       } else if (input_id === '#assignee_id') {
-        icon = `<img class="ui avatar image gt-mr-3" alt="avatar" src=${$(this).data('avatar')}>`;
+        icon = `<img class="ui avatar image tw-mr-2" alt="avatar" src=${$(this).data('avatar')}>`;
       }
 
       $list.find('.selected').html(`
@@ -278,7 +278,7 @@ export function initRepoCommentForm() {
         </a>
       `);
 
-      $(`.ui${select_id}.list .no-select`).addClass('gt-hidden');
+      $(`.ui${select_id}.list .no-select`).addClass('tw-hidden');
       $(input_id).val($(this).data('id'));
     });
     $menu.find('.no-select.item').on('click', function () {
@@ -299,7 +299,7 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.selected').html('');
-      $list.find('.no-select').removeClass('gt-hidden');
+      $list.find('.no-select').removeClass('tw-hidden');
       $(input_id).val('');
     });
   }
@@ -310,164 +310,8 @@ export function initRepoCommentForm() {
   selectItem('.select-assignee', '#assignee_id');
 }
 
-async function onEditContent(event) {
-  event.preventDefault();
-
-  const $segment = $(this).closest('.header').next();
-  const $editContentZone = $segment.find('.edit-content-zone');
-  const $renderContent = $segment.find('.render-content');
-  const $rawContent = $segment.find('.raw-content');
-
-  let comboMarkdownEditor;
-
-  const setupDropzone = async ($dropzone) => {
-    if ($dropzone.length === 0) return null;
-
-    let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
-    let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-    const dz = await createDropzone($dropzone[0], {
-      url: $dropzone.attr('data-upload-url'),
-      headers: {'X-Csrf-Token': csrfToken},
-      maxFiles: $dropzone.attr('data-max-file'),
-      maxFilesize: $dropzone.attr('data-max-size'),
-      acceptedFiles: (['*/*', ''].includes($dropzone.attr('data-accepts'))) ? null : $dropzone.attr('data-accepts'),
-      addRemoveLinks: true,
-      dictDefaultMessage: $dropzone.attr('data-default-message'),
-      dictInvalidFileType: $dropzone.attr('data-invalid-input-type'),
-      dictFileTooBig: $dropzone.attr('data-file-too-big'),
-      dictRemoveFile: $dropzone.attr('data-remove-file'),
-      timeout: 0,
-      thumbnailMethod: 'contain',
-      thumbnailWidth: 480,
-      thumbnailHeight: 480,
-      init() {
-        this.on('success', (file, data) => {
-          file.uuid = data.uuid;
-          fileUuidDict[file.uuid] = {submitted: false};
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $dropzone.find('.files').append(input);
-        });
-        this.on('removedfile', (file) => {
-          if (disableRemovedfileEvent) return;
-          $(`#${file.uuid}`).remove();
-          if ($dropzone.attr('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
-            $.post($dropzone.attr('data-remove-url'), {
-              file: file.uuid,
-              _csrf: csrfToken,
-            });
-          }
-        });
-        this.on('submit', () => {
-          $.each(fileUuidDict, (fileUuid) => {
-            fileUuidDict[fileUuid].submitted = true;
-          });
-        });
-        this.on('reload', () => {
-          $.getJSON($editContentZone.attr('data-attachment-url'), (data) => {
-            // do not trigger the "removedfile" event, otherwise the attachments would be deleted from server
-            disableRemovedfileEvent = true;
-            dz.removeAllFiles(true);
-            $dropzone.find('.files').empty();
-            fileUuidDict = {};
-            disableRemovedfileEvent = false;
-
-            for (const attachment of data) {
-              const imgSrc = `${$dropzone.attr('data-link-url')}/${attachment.uuid}`;
-              dz.emit('addedfile', attachment);
-              dz.emit('thumbnail', attachment, imgSrc);
-              dz.emit('complete', attachment);
-              dz.files.push(attachment);
-              fileUuidDict[attachment.uuid] = {submitted: true};
-              $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
-              const input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
-              $dropzone.find('.files').append(input);
-            }
-          });
-        });
-      },
-    });
-    dz.emit('reload');
-    return dz;
-  };
-
-  const cancelAndReset = (dz) => {
-    showElem($renderContent);
-    hideElem($editContentZone);
-    if (dz) {
-      dz.emit('reload');
-    }
-  };
-
-  const saveAndRefresh = (dz) => {
-    showElem($renderContent);
-    hideElem($editContentZone);
-    $.post($editContentZone.attr('data-update-url'), {
-      _csrf: csrfToken,
-      content: comboMarkdownEditor.value(),
-      context: $editContentZone.attr('data-context'),
-      files: dz.files.map((file) => file.uuid),
-    }, (data) => {
-      if (!data.content) {
-        $renderContent.html($('#no-content').html());
-        $rawContent.text('');
-      } else {
-        $renderContent.html(data.content);
-        $rawContent.text(comboMarkdownEditor.value());
-
-        const refIssues = $renderContent.find('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
-      }
-      const $content = $segment;
-      if (!$content.find('.dropzone-attachments').length) {
-        if (data.attachments !== '') {
-          $content.append(`<div class="dropzone-attachments"></div>`);
-          $content.find('.dropzone-attachments').replaceWith(data.attachments);
-        }
-      } else if (data.attachments === '') {
-        $content.find('.dropzone-attachments').remove();
-      } else {
-        $content.find('.dropzone-attachments').replaceWith(data.attachments);
-      }
-      if (dz) {
-        dz.emit('submit');
-        dz.emit('reload');
-      }
-      initMarkupContent();
-      initCommentContent();
-    });
-  };
-
-  if (!$editContentZone.html()) {
-    $editContentZone.html($('#issue-comment-editor-template').html());
-    comboMarkdownEditor = await initComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
-
-    const $dropzone = $editContentZone.find('.dropzone');
-    const dz = await setupDropzone($dropzone);
-    $editContentZone.find('.cancel.button').on('click', (e) => {
-      e.preventDefault();
-      cancelAndReset(dz);
-    });
-    $editContentZone.find('.save.button').on('click', (e) => {
-      e.preventDefault();
-      saveAndRefresh(dz);
-    });
-  } else {
-    comboMarkdownEditor = getComboMarkdownEditor($editContentZone.find('.combo-markdown-editor'));
-  }
-
-  // Show write/preview tab and copy raw content as needed
-  showElem($editContentZone);
-  hideElem($renderContent);
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value($rawContent.text());
-  }
-  comboMarkdownEditor.focus();
-}
-
 export function initRepository() {
-  if ($('.page-content.repository').length === 0) {
-    return;
-  }
+  if (!$('.page-content.repository').length) return;
 
   initRepoBranchTagSelector('.js-branch-tag-selector');
 
@@ -516,7 +360,7 @@ export function initRepository() {
       const gitignores = $('input[name="gitignores"]').val();
       const license = $('input[name="license"]').val();
       if (gitignores || license) {
-        $('input[name="auto_init"]').prop('checked', true);
+        document.querySelector('input[name="auto_init"]').checked = true;
       }
     });
   }
@@ -548,7 +392,7 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
-    initCompReactionSelector($(document));
+    initCompReactionSelector();
 
     initRepoPullRequestMergeForm();
     initRepoPullRequestCommitStatus();
@@ -568,34 +412,4 @@ export function initRepository() {
   }
 
   initUnicodeEscapeButton();
-}
-
-function initRepoIssueCommentEdit() {
-  // Edit issue or comment content
-  $(document).on('click', '.edit-content', onEditContent);
-
-  // Quote reply
-  $(document).on('click', '.quote-reply', async function (event) {
-    event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
-    const content = `> ${quote}\n\n`;
-    let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
-      const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
-      editor = await handleReply($replyBtn);
-    } else {
-      // for normal issue/comment page
-      editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
-    }
-    if (editor) {
-      if (editor.value()) {
-        editor.value(`${editor.value()}\n\n${content}`);
-      } else {
-        editor.value(content);
-      }
-      editor.focus();
-      editor.moveCursorToEnd();
-    }
-  });
 }

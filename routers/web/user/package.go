@@ -82,7 +82,7 @@ func ListPackages(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
 	}
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
@@ -125,8 +125,8 @@ func ListPackages(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Query")
-	pager.AddParam(ctx, "type", "PackageType")
+	pager.AddParamString("q", query)
+	pager.AddParamString("type", packageType)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -276,7 +276,7 @@ func ViewPackageVersion(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		hasRepositoryAccess = permission.HasAccess()
+		hasRepositoryAccess = permission.HasAnyUnitAccess()
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 

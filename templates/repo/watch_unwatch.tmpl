@@ -3,8 +3,8 @@
 		{{$buttonText := ctx.Locale.Tr "repo.watch"}}
 		{{if $.IsWatchingRepo}}{{$buttonText = ctx.Locale.Tr "repo.unwatch"}}{{end}}
 		<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}} aria-label="{{$buttonText}}">
-			{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed"}}{{else}}{{svg "octicon-eye"}}{{end}}
-			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+			{{svg "octicon-eye"}}
+			<span aria-hidden="true">{{$buttonText}}</span>
 		</button>
 		<a hx-boost="false" class="ui basic label" href="{{.RepoLink}}/watchers">
 			{{CountFmt .Repository.NumWatches}}

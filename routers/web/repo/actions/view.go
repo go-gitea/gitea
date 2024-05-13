@@ -67,6 +67,9 @@ type ViewResponse struct {
 			CanRerun          bool       `json:"canRerun"`
 			CanDeleteArtifact bool       `json:"canDeleteArtifact"`
 			Done              bool       `json:"done"`
+			WorkflowID        string     `json:"workflowID"`
+			WorkflowLink      string     `json:"workflowLink"`
+			IsSchedule        bool       `json:"isSchedule"`
 			Jobs              []*ViewJob `json:"jobs"`
 			Commit            ViewCommit `json:"commit"`
 		} `json:"run"`
@@ -90,12 +93,10 @@ type ViewJob struct {
 }
 
 type ViewCommit struct {
-	LocaleCommit   string     `json:"localeCommit"`
-	LocalePushedBy string     `json:"localePushedBy"`
-	ShortSha       string     `json:"shortSHA"`
-	Link           string     `json:"link"`
-	Pusher         ViewUser   `json:"pusher"`
-	Branch         ViewBranch `json:"branch"`
+	ShortSha string     `json:"shortSHA"`
+	Link     string     `json:"link"`
+	Pusher   ViewUser   `json:"pusher"`
+	Branch   ViewBranch `json:"branch"`
 }
 
 type ViewUser struct {
@@ -151,6 +152,9 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
+	resp.State.Run.WorkflowID = run.WorkflowID
+	resp.State.Run.WorkflowLink = run.WorkflowLink()
+	resp.State.Run.IsSchedule = run.IsSchedule()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
@@ -172,12 +176,10 @@ func ViewPost(ctx *context_module.Context) {
 		Link: run.RefLink(),
 	}
 	resp.State.Run.Commit = ViewCommit{
-		LocaleCommit:   ctx.Locale.TrString("actions.runs.commit"),
-		LocalePushedBy: ctx.Locale.TrString("actions.runs.pushed_by"),
-		ShortSha:       base.ShortSha(run.CommitSHA),
-		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
-		Pusher:         pusher,
-		Branch:         branch,
+		ShortSha: base.ShortSha(run.CommitSHA),
+		Link:     fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
+		Pusher:   pusher,
+		Branch:   branch,
 	}
 
 	var task *actions_model.ActionTask
@@ -303,12 +305,25 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	if jobIndexStr != "" {
-		jobs = []*actions_model.ActionRunJob{job}
+	if jobIndexStr == "" { // rerun all jobs
+		for _, j := range jobs {
+			// if the job has needs, it should be set to "blocked" status to wait for other jobs
+			shouldBlock := len(j.Needs) > 0
+			if err := rerunJob(ctx, j, shouldBlock); err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+		ctx.JSON(http.StatusOK, struct{}{})
+		return
 	}
 
-	for _, j := range jobs {
-		if err := rerunJob(ctx, j); err != nil {
+	rerunJobs := actions_service.GetAllRerunJobs(job, jobs)
+
+	for _, j := range rerunJobs {
+		// jobs other than the specified one should be set to "blocked" status
+		shouldBlock := j.JobID != job.JobID
+		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -317,7 +332,7 @@ func Rerun(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) error {
+func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
 	if !status.IsDone() {
 		return nil
@@ -325,6 +340,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) erro
 
 	job.TaskID = 0
 	job.Status = actions_model.StatusWaiting
+	if shouldBlock {
+		job.Status = actions_model.StatusBlocked
+	}
 	job.Started = 0
 	job.Stopped = 0
 
@@ -486,7 +504,7 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return nil, nil
 	}
 	if len(jobs) == 0 {
-		ctx.Error(http.StatusNotFound, err.Error())
+		ctx.Error(http.StatusNotFound)
 		return nil, nil
 	}
 
@@ -628,7 +646,6 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	writer := zip.NewWriter(ctx.Resp)
 	defer writer.Close()
 	for _, art := range artifacts {
-
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())

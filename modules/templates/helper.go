@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -34,11 +35,12 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":          Iif,
 		"Eval":         Eval,
 		"SafeHTML":     SafeHTML,
 		"HTMLFormat":   HTMLFormat,
 		"HTMLEscape":   HTMLEscape,
-		"QueryEscape":  url.QueryEscape,
+		"QueryEscape":  QueryEscape,
 		"JSEscape":     JSEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -53,13 +55,13 @@ func NewFuncMap() template.FuncMap {
 		"JsonUtils":   NewJsonUtils,
 
 		// -----------------------------------------------------------------
-		// svg / avatar / icon
+		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
 		"ActionIcon":    ActionIcon,
-
-		"SortArrow": SortArrow,
+		"SortArrow":     SortArrow,
+		"ContrastColor": util.ContrastColor,
 
 		// -----------------------------------------------------------------
 		// time / number / format
@@ -106,6 +108,9 @@ func NewFuncMap() template.FuncMap {
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},
+		"ShowFooterPoweredBy": func() bool {
+			return setting.Other.ShowFooterPoweredBy
+		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
@@ -133,12 +138,7 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"ThemeName": func(user *user_model.User) string {
-			if user == nil || user.Theme == "" {
-				return setting.UI.DefaultTheme
-			}
-			return user.Theme
-		},
+		"UserThemeName": UserThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -226,9 +226,24 @@ func JSEscapeSafe(s string) template.HTML {
 	return template.HTML(template.JSEscapeString(s))
 }
 
+func QueryEscape(s string) template.URL {
+	return template.URL(url.QueryEscape(s))
+}
+
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
 func DotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
+}
+
+// Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
+func Iif(condition bool, vals ...any) any {
+	if condition {
+		return vals[0]
+	} else if len(vals) > 1 {
+		return vals[1]
+	}
+	return nil
 }
 
 // Eval the expression and return the result, see the comment of eval.Expr for details.
@@ -241,4 +256,14 @@ func DotEscape(raw string) string {
 func Eval(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
+}
+
+func UserThemeName(user *user_model.User) string {
+	if user == nil || user.Theme == "" {
+		return setting.UI.DefaultTheme
+	}
+	if webtheme.IsThemeAvailable(user.Theme) {
+		return user.Theme
+	}
+	return setting.UI.DefaultTheme
 }

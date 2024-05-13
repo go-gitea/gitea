@@ -63,24 +63,60 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
+func (repos RepositoryList) LoadUnits(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	// Load units.
+	units := make([]*RepoUnit, 0, len(repos)*6)
+	if err := db.GetEngine(ctx).
+		In("repo_id", repos.IDs()).
+		Find(&units); err != nil {
+		return fmt.Errorf("find units: %w", err)
+	}
+
+	unitsMap := make(map[int64][]*RepoUnit, len(repos))
+	for _, unit := range units {
+		if !unit.Type.UnitGlobalDisabled() {
+			unitsMap[unit.RepoID] = append(unitsMap[unit.RepoID], unit)
+		}
+	}
+
+	for _, repo := range repos {
+		repo.Units = unitsMap[repo.ID]
+	}
+
+	return nil
+}
+
+func (repos RepositoryList) IDs() []int64 {
+	repoIDs := make([]int64, len(repos))
+	for i := range repos {
+		repoIDs[i] = repos[i].ID
+	}
+	return repoIDs
+}
+
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
 
-	set := make(container.Set[int64])
+	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
+		return repo.OwnerID, true
+	})
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
 	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
+	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", set.Values()).
+		In("id", userIDs).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %w", err)
 	}

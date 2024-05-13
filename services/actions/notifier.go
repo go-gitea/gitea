@@ -49,7 +49,7 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).WithPayload(&api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}).Notify(withMethod(ctx, "NewIssue"))
@@ -89,7 +89,7 @@ func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 		WithPayload(&api.IssuePayload{
 			Action:     api.HookIssueEdited,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -127,7 +127,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 	}
 	apiIssue := &api.IssuePayload{
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}
@@ -229,7 +229,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		WithPayload(&api.IssuePayload{
 			Action:     action,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -293,7 +293,7 @@ func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, commen
 
 	payload := &api.IssueCommentPayload{
 		Action:     action,
-		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, comment.Issue),
 		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
 		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
@@ -515,6 +515,12 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	commitID, _ := git.NewIDFromString(opts.NewCommitID)
+	if commitID.IsZero() {
+		log.Trace("new commitID is empty")
+		return
+	}
+
 	ctx = withMethod(ctx, "PushCommits")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
@@ -547,9 +553,9 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
+		WithRef(refFullName.String()).
 		WithPayload(&api.CreatePayload{
-			Ref:     refFullName.ShortName(),
+			Ref:     refFullName.String(),
 			Sha:     refID,
 			RefType: refFullName.RefType(),
 			Repo:    apiRepo,
@@ -566,7 +572,7 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
 		WithPayload(&api.DeletePayload{
-			Ref:        refFullName.ShortName(),
+			Ref:        refFullName.String(),
 			RefType:    refFullName.RefType(),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
@@ -623,6 +629,10 @@ func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.Us
 }
 
 func (n *actionsNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if rel.IsTag {
+		// has sent same action in `PushCommits`, so skip it.
+		return
+	}
 	ctx = withMethod(ctx, "DeleteRelease")
 	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }

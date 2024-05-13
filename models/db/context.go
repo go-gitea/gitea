@@ -120,6 +120,16 @@ func (c *halfCommitter) Close() error {
 
 // TxContext represents a transaction Context,
 // it will reuse the existing transaction in the parent context or create a new one.
+// Some tips to use:
+//
+//	1 It's always recommended to use `WithTx` in new code instead of `TxContext`, since `WithTx` will handle the transaction automatically.
+//	2. To maintain the old code which uses `TxContext`:
+//	  a. Always call `Close()` before returning regardless of whether `Commit()` has been called.
+//	  b. Always call `Commit()` before returning if there are no errors, even if the code did not change any data.
+//	  c. Remember the `Committer` will be a halfCommitter when a transaction is being reused.
+//	     So calling `Commit()` will do nothing, but calling `Close()` without calling `Commit()` will rollback the transaction.
+//	     And all operations submitted by the caller stack will be rollbacked as well, not only the operations in the current function.
+//	  d. It doesn't mean rollback is forbidden, but always do it only when there is an error, and you do want to rollback.
 func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	if sess, ok := inTransaction(parentCtx); ok {
 		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil

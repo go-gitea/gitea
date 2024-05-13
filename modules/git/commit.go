@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -25,14 +26,14 @@ type Commit struct {
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
-	Signature     *CommitGPGSignature
+	Signature     *CommitSignature
 
 	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache
 }
 
-// CommitGPGSignature represents a git commit signature part.
-type CommitGPGSignature struct {
+// CommitSignature represents a git commit signature part.
+type CommitSignature struct {
 	Signature string
 	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
@@ -396,6 +397,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 			}
 		}
 	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetSubModules scan: %w", err)
+	}
 
 	return c.submoduleCache, nil
 }
@@ -419,7 +423,7 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
 	cmd := NewCommand(c.repo.Ctx, "name-rev")
-	if CheckGitVersionAtLeast("2.13.0") == nil {
+	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
 		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
 	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
@@ -464,7 +468,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 		_, _ = rd.Discard(1)
 	}
 	for {
-		modifier, err := rd.ReadSlice('\x00')
+		modifier, err := rd.ReadString('\x00')
 		if err != nil {
 			if err != io.EOF {
 				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)

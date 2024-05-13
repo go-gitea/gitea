@@ -13,6 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -44,14 +45,14 @@ func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
-// RedirectToFirst redirects to first not empty URL
-func (ctx *Context) RedirectToFirst(location ...string) {
+// RedirectToCurrentSite redirects to first not empty URL which belongs to current site
+func (ctx *Context) RedirectToCurrentSite(location ...string) {
 	for _, loc := range location {
 		if len(loc) == 0 {
 			continue
 		}
 
-		if httplib.IsRiskyRedirectURL(loc) {
+		if !httplib.IsCurrentGiteaSiteURL(ctx, loc) {
 			continue
 		}
 
@@ -77,7 +78,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	}
 
 	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data, ctx.TemplateContext)
-	if err == nil {
+	if err == nil || errors.Is(err, syscall.EPIPE) {
 		return
 	}
 

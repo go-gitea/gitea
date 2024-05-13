@@ -53,11 +53,10 @@ func TestMeilisearchIndexer(t *testing.T) {
 	tests.TestIndexer(t, indexer)
 }
 
-func TestNonFuzzyWorkaround(t *testing.T) {
-	// get unexpected return
-	_, err := nonFuzzyWorkaround(&meilisearch.SearchResponse{
+func TestConvertHits(t *testing.T) {
+	_, err := convertHits(&meilisearch.SearchResponse{
 		Hits: []any{"aa", "bb", "cc", "dd"},
-	}, "bowling", false)
+	})
 	assert.ErrorIs(t, err, ErrMalformedResponse)
 
 	validResponse := &meilisearch.SearchResponse{
@@ -82,14 +81,15 @@ func TestNonFuzzyWorkaround(t *testing.T) {
 			},
 		},
 	}
-
-	// nonFuzzy
-	hits, err := nonFuzzyWorkaround(validResponse, "bowling", false)
-	assert.NoError(t, err)
-	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}}, hits)
-
-	// fuzzy
-	hits, err = nonFuzzyWorkaround(validResponse, "bowling", true)
+	hits, err := convertHits(validResponse)
 	assert.NoError(t, err)
 	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}, {ID: 33}}, hits)
+}
+
+func TestDoubleQuoteKeyword(t *testing.T) {
+	assert.EqualValues(t, "", doubleQuoteKeyword(""))
+	assert.EqualValues(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
 }

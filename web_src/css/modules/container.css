@@ -1,0 +1,21 @@
+/* based on Fomantic UI container module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.container {
+  width: 1280px;
+  max-width: calc(100% - calc(2 * var(--page-margin-x)));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui.fluid.container {
+  width: 100%;
+}
+
+.ui.container.fluid.padded {
+  padding: 0 var(--page-margin-x);
+}
+
+.ui[class*="center aligned"].container {
+  text-align: center;
+}

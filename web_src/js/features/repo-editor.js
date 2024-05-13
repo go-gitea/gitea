@@ -7,30 +7,32 @@ import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
+  const $tabMenu = $form.find('.repo-editor-menu');
   $tabMenu.find('.item').tab();
-  const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
+  const $previewTab = $tabMenu.find('a[data-tab="preview"]');
   if ($previewTab.length) {
     $previewTab.on('click', async function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
       const mode = $this.data('markup-mode') || 'comment';
-      const treePathEl = $form.find('input#tree_path');
-      if (treePathEl.length > 0) {
-        context += treePathEl.val();
+      const $treePathEl = $form.find('input#tree_path');
+      if ($treePathEl.length > 0) {
+        context += $treePathEl.val();
       }
       context = context.substring(0, context.lastIndexOf('/'));
 
       const formData = new FormData();
       formData.append('mode', mode);
       formData.append('context', context);
-      formData.append('text', $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val());
-      formData.append('file_path', treePathEl.val());
+      formData.append('text', $form.find('.tab[data-tab="write"] textarea').val());
+      formData.append('file_path', $treePathEl.val());
       try {
         const response = await POST($this.data('url'), {data: formData});
         const data = await response.text();
-        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        renderPreviewPanelContent($previewPanel, data);
+        const $previewPanel = $form.find('.tab[data-tab="preview"]');
+        if ($previewPanel.length) {
+          renderPreviewPanelContent($previewPanel, data);
+        }
       } catch (error) {
         console.error('Error:', error);
       }
@@ -39,11 +41,9 @@ function initEditPreviewTab($form) {
 }
 
 function initEditorForm() {
-  if ($('.repository .edit.form').length === 0) {
-    return;
-  }
-
-  initEditPreviewTab($('.repository .edit.form'));
+  const $form = $('.repository .edit.form');
+  if (!$form) return;
+  initEditPreviewTab($form);
 }
 
 function getCursorPosition($e) {
@@ -66,23 +66,23 @@ export function initRepoEditor() {
 
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
-      showElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', true);
+      showElem('.quick-pull-branch-name');
+      document.querySelector('.quick-pull-branch-name input').required = true;
     } else {
-      hideElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', false);
+      hideElem('.quick-pull-branch-name');
+      document.querySelector('.quick-pull-branch-name input').required = false;
     }
-    $('#commit-button').text($(this).attr('button_text'));
+    $('#commit-button').text(this.getAttribute('button_text'));
   });
 
   const joinTreePath = ($fileNameEl) => {
     const parts = [];
     $('.breadcrumb span.section').each(function () {
-      const element = $(this);
-      if (element.find('a').length) {
-        parts.push(element.find('a').text());
+      const $element = $(this);
+      if ($element.find('a').length) {
+        parts.push($element.find('a').text());
       } else {
-        parts.push(element.text());
+        parts.push($element.text());
       }
     });
     if ($fileNameEl.val()) parts.push($fileNameEl.val());
@@ -135,13 +135,13 @@ export function initRepoEditor() {
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const $commitButton = $('#commit-button');
+    const commitButton = document.getElementById('commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
     // Disabling the button at the start
     if ($('input[name="page_has_posted"]').val() !== 'true') {
-      $commitButton.prop('disabled', true);
+      commitButton.disabled = true;
     }
 
     // Registering a custom listener for the file path and the file content
@@ -149,9 +149,9 @@ export function initRepoEditor() {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change() {
-        const dirty = $(this).hasClass(dirtyFileClass);
-        $commitButton.prop('disabled', !dirty);
+      change($form) {
+        const dirty = $form[0]?.classList.contains(dirtyFileClass);
+        commitButton.disabled = !dirty;
       },
     });
 
@@ -163,24 +163,24 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
-    $commitButton.on('click', (event) => {
+    commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
-      if ($editArea.val().length === 0) {
+      if (!$editArea.val()) {
         $('#edit-empty-content-modal').modal({
           onApprove() {
             $('.edit.form').trigger('submit');
           },
         }).modal('show');
-        event.preventDefault();
+        e.preventDefault();
       }
     });
   })();
 }
 
-export function renderPreviewPanelContent($panelPreviewer, data) {
-  $panelPreviewer.html(data);
+export function renderPreviewPanelContent($previewPanel, data) {
+  $previewPanel.html(data);
   initMarkupContent();
 
-  const refIssues = $panelPreviewer.find('p .ref-issue');
-  attachRefIssueContextPopup(refIssues);
+  const $refIssues = $previewPanel.find('p .ref-issue');
+  attachRefIssueContextPopup($refIssues);
 }

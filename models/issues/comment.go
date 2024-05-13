@@ -673,7 +673,8 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 	return err
 }
 
-func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
+// LoadReactions loads comment reactions
+func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -689,11 +690,6 @@ func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository
 		return err
 	}
 	return nil
-}
-
-// LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) error {
-	return c.loadReactions(ctx, repo)
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
@@ -1276,10 +1272,9 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		return nil
 	}
 
-	issueIDs := make(container.Set[int64])
-	for _, comment := range comments {
-		issueIDs.Add(comment.IssueID)
-	}
+	issueIDs := container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.IssueID, true
+	})
 
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -1302,7 +1297,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		}
 	}
 
-	for issueID := range issueIDs {
+	for _, issueID := range issueIDs {
 		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
 			issueID, CommentTypeComment, issueID); err != nil {
 			return err

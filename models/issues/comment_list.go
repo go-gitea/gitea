@@ -17,11 +17,9 @@ import (
 type CommentList []*Comment
 
 func (comments CommentList) getPosterIDs() []int64 {
-	posterIDs := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		posterIDs.Add(comment.PosterID)
-	}
-	return posterIDs.Values()
+	return container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+		return c.PosterID, c.PosterID > 0
+	})
 }
 
 // LoadPosters loads posters
@@ -41,20 +39,10 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) getCommentIDs() []int64 {
-	ids := make([]int64, 0, len(comments))
-	for _, comment := range comments {
-		ids = append(ids, comment.ID)
-	}
-	return ids
-}
-
 func (comments CommentList) getLabelIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		ids.Add(comment.LabelID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.LabelID, comment.LabelID > 0
+	})
 }
 
 func (comments CommentList) loadLabels(ctx context.Context) error {
@@ -98,11 +86,9 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 }
 
 func (comments CommentList) getMilestoneIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		ids.Add(comment.MilestoneID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.MilestoneID, comment.MilestoneID > 0
+	})
 }
 
 func (comments CommentList) loadMilestones(ctx context.Context) error {
@@ -139,11 +125,9 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getOldMilestoneIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		ids.Add(comment.OldMilestoneID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.OldMilestoneID, comment.OldMilestoneID > 0
+	})
 }
 
 func (comments CommentList) loadOldMilestones(ctx context.Context) error {
@@ -180,11 +164,9 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getAssigneeIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		ids.Add(comment.AssigneeID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.AssigneeID, comment.AssigneeID > 0
+	})
 }
 
 func (comments CommentList) loadAssignees(ctx context.Context) error {
@@ -235,14 +217,9 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 
 // getIssueIDs returns all the issue ids on this comment list which issue hasn't been loaded
 func (comments CommentList) getIssueIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		if comment.Issue != nil {
-			continue
-		}
-		ids.Add(comment.IssueID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.IssueID, comment.Issue == nil
+	})
 }
 
 // Issues returns all the issues of comments
@@ -309,14 +286,12 @@ func (comments CommentList) LoadIssues(ctx context.Context) error {
 }
 
 func (comments CommentList) getDependentIssueIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
 		if comment.DependentIssue != nil {
-			continue
+			return 0, false
 		}
-		ids.Add(comment.DependentIssueID)
-	}
-	return ids.Values()
+		return comment.DependentIssueID, comment.DependentIssueID > 0
+	})
 }
 
 func (comments CommentList) loadDependentIssues(ctx context.Context) error {
@@ -369,6 +344,35 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
+// getAttachmentCommentIDs only return the comment ids which possibly has attachments
+func (comments CommentList) getAttachmentCommentIDs() []int64 {
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.ID, comment.Type.HasAttachmentSupport()
+	})
+}
+
+// LoadAttachmentsByIssue loads attachments by issue id
+func (comments CommentList) LoadAttachmentsByIssue(ctx context.Context) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	attachments := make([]*repo_model.Attachment, 0, len(comments)/2)
+	if err := db.GetEngine(ctx).Where("issue_id=? AND comment_id>0", comments[0].IssueID).Find(&attachments); err != nil {
+		return err
+	}
+
+	commentAttachmentsMap := make(map[int64][]*repo_model.Attachment, len(comments))
+	for _, attach := range attachments {
+		commentAttachmentsMap[attach.CommentID] = append(commentAttachmentsMap[attach.CommentID], attach)
+	}
+
+	for _, comment := range comments {
+		comment.Attachments = commentAttachmentsMap[comment.ID]
+	}
+	return nil
+}
+
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
@@ -376,16 +380,15 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	}
 
 	attachments := make(map[int64][]*repo_model.Attachment, len(comments))
-	commentsIDs := comments.getCommentIDs()
+	commentsIDs := comments.getAttachmentCommentIDs()
 	left := len(commentsIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "comment", "comment.id = attachment.comment_id").
-			In("comment.id", commentsIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("comment_id", commentsIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
@@ -413,11 +416,9 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 }
 
 func (comments CommentList) getReviewIDs() []int64 {
-	ids := make(container.Set[int64], len(comments))
-	for _, comment := range comments {
-		ids.Add(comment.ReviewID)
-	}
-	return ids.Values()
+	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.ReviewID, comment.ReviewID > 0
+	})
 }
 
 func (comments CommentList) loadReviews(ctx context.Context) error {

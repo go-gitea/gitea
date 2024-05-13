@@ -222,7 +222,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	body, err := markdown.RenderString(&markup.RenderContext{
 		Ctx: ctx,
 		Links: markup.Links{
-			Base: ctx.Issue.Repo.HTMLURL(),
+			AbsolutePrefix: true,
+			Base:           ctx.Issue.Repo.HTMLURL(),
 		},
 		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)
@@ -288,8 +289,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
-	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
+	msgID := generateMessageIDForIssue(ctx.Issue, ctx.Comment, ctx.ActionType)
+	reference := generateMessageIDForIssue(ctx.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
 	if ctx.Comment != nil {
@@ -361,7 +362,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
+func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -386,6 +387,10 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 	}
 
 	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+}
+
+func generateMessageIDForRelease(release *repo_model.Release) string {
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
