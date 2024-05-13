@@ -254,7 +254,7 @@ func (b *Base) Redirect(location string, status ...int) {
 		code = status[0]
 	}
 
-	if strings.HasPrefix(location, "http://") || strings.HasPrefix(location, "https://") || strings.HasPrefix(location, "//") {
+	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
 		// 1. the first request to "/my-path" contains cookie
 		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
@@ -309,7 +309,8 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, close
 		Locale:    middleware.Locale(resp, req),
 		Data:      middleware.GetContextData(req.Context()),
 	}
-	b.AppendContextValue(translation.ContextKey, b.Locale)
 	b.Req = b.Req.WithContext(b)
+	b.AppendContextValue(translation.ContextKey, b.Locale)
+	b.AppendContextValue(httplib.RequestContextKey, b.Req)
 	return b, b.cleanUp
 }

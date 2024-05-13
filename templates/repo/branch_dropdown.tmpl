@@ -69,7 +69,7 @@
 
 <div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui dropdown custom branch-selector-dropdown">
+	<div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
 		<div class="ui button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
 				{{if .release}}

@@ -410,7 +410,7 @@ td .commit-summary {
 }
 
 .repository.file.list .non-diff-file-content .plain-text pre {
-  word-break: break-word;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
@@ -575,34 +575,7 @@ td .commit-summary {
   display: inline-block;
 }
 
-.issue-title-header {
-  width: 100%;
-  padding-bottom: 4px;
-  margin-bottom: 1rem;
-}
-
-.issue-title-meta {
-  display: flex;
-  align-items: center;
-}
-
-.repository.view.issue .issue-title-buttons,
-.repository.view.issue .edit-buttons {
-  display: flex;
-}
-
 @media (max-width: 767.98px) {
-  .repository.view.issue .issue-title {
-    flex-direction: column;
-  }
-  .repository.view.issue .issue-title-buttons,
-  .repository.view.issue .edit-buttons {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .repository.view.issue .edit-buttons {
-    margin-top: .5rem;
-  }
   .comment.form .issue-content-left .avatar {
     display: none;
   }
@@ -617,15 +590,37 @@ td .commit-summary {
   }
 }
 
+/* issue title & meta & edit */
+.issue-title-header {
+  width: 100%;
+  padding-bottom: 4px;
+  margin-bottom: 1rem;
+}
+
+.issue-title-meta {
+  display: flex;
+  align-items: center;
+}
+
+.repository.view.issue .issue-title-buttons {
+  display: flex;
+  gap: 0.5em;
+}
+
+.repository.view.issue .issue-title-buttons > .ui.button {
+  margin: 0;
+  height: 35px;
+}
+
 .repository.view.issue .issue-title {
   display: flex;
   align-items: center;
+  gap: 0.5em;
   margin-bottom: 8px;
+  min-height: 40px; /* avoid layout shift on edit */
 }
 
 .repository.view.issue .issue-title h1 {
-  display: flex;
-  align-items: center;
   flex: 1;
   width: 100%;
   font-weight: var(--font-weight-normal);
@@ -633,14 +628,24 @@ td .commit-summary {
   line-height: 40px;
   margin: 0;
   padding-right: 0.25rem;
-  min-height: 41px; /* avoid layout shift on edit */
 }
 
-.repository.view.issue .issue-title h1 .ui.input {
-  font-size: 0.5em;
+@media (max-width: 767.98px) {
+  .repository.view.issue .issue-title {
+    flex-direction: column;
+  }
+  .repository.view.issue .issue-title-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
-.repository.view.issue .issue-title h1 .ui.input input {
+.repository.view.issue .issue-title .ui.input {
+  width: 100%;
+  height: 35px;
+}
+
+.repository.view.issue .issue-title .ui.input input {
   font-size: 1.5em;
   padding: 2px .5rem;
 }
@@ -651,10 +656,6 @@ td .commit-summary {
 
 .issue-title .label {
   margin-right: 10px;
-}
-
-.issue-title .edit-zone {
-  margin-top: 10px;
 }
 
 .issue-state-label {
@@ -2255,6 +2256,10 @@ td .commit-summary {
   justify-content: flex-end;
 }
 
+.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
+  flex-grow: 0;
+}
+
 @media (max-width: 991px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
@@ -2348,12 +2353,8 @@ tbody.commit-list {
 .commit-body {
   margin: 0.25em 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   line-height: initial;
-}
-
-/* PR-comment */
-.repository .timeline-item .commit-body {
-  margin-left: 45px;
 }
 
 .git-notes.top {
@@ -2859,6 +2860,10 @@ tbody.commit-list {
   margin-top: 4px;
 }
 
+.ui.dropdown.branch-selector-dropdown .scrolling.menu {
+  max-width: min(400px, 90vw);
+}
+
 .branch-selector-dropdown .branch-dropdown-button {
   margin: 0;
   max-width: 340px;
@@ -2908,6 +2913,8 @@ tbody.commit-list {
 }
 
 .branch-selector-dropdown .menu .item .rss-icon {
+  position: absolute;
+  right: 4px;
   visibility: hidden; /* only show RSS icon on hover */
 }
 
