@@ -212,10 +212,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 `{CustomPath}/public/assets/css/theme-*.css` 提供。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
-  而不受DEFAULT_THEME 值的影响。
+- `THEMES`:  **_empty_**: 所有可用的主题（由 `{CustomPath}/public/assets/css/theme-*.css` 提供）。允许用户选择个性化的主题，
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
     这些值可以是表情符号别名（例如：:smile:）或Unicode表情符号。
@@ -507,7 +506,7 @@ Gitea 创建以下非唯一队列：
 - `INSTALL_LOCK`: **false**：控制是否能够访问安装向导页面，设置为 `true` 则禁止访问安装向导页面。
 - `SECRET_KEY`: **\<每次安装时随机生成\>**：全局服务器安全密钥。这个密钥非常重要，如果丢失将无法解密加密的数据（例如 2FA）。
 - `SECRET_KEY_URI`: **_empty_**：与定义 `SECRET_KEY` 不同，此选项可用于使用存储在文件中的密钥（示例值：`file:/etc/gitea/secret_key`）。它不应该像 `SECRET_KEY` 一样容易丢失。
-- `LOGIN_REMEMBER_DAYS`: **7**：Cookie 保存时间，单位为天。
+- `LOGIN_REMEMBER_DAYS`: **31**：在要求重新登录之前，记住用户的登录状态多长时间（以天为单位）。
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**：保存自动登录信息的 Cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**：反向代理认证的 HTTP 头部名称，用于提供用户信息。
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**：反向代理认证的 HTTP 头部名称，用于提供邮箱信息。
@@ -562,7 +561,7 @@ Gitea 创建以下非唯一队列：
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**：允许通过OpenID进行身份验证。
+- `ENABLE_OPENID_SIGNIN`: **true**：允许通过OpenID进行身份验证。
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**：允许通过OpenID进行注册。
 - `WHITELISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于允许访问。
 - `BLACKLISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于阻止访问。
@@ -1128,15 +1127,6 @@ ALLOW_DATA_URI_IMAGES = true
 
 - `DEFAULT_UI_LOCATION`：在 UI 上的默认时间位置，以便我们可以在 UI 上显示正确的用户时间。例如：Asia/Shanghai
 
-## 任务 (`task`)
-
-任务队列配置已移动到 `queue.task`。然而，以下配置值仍保留以确保向后兼容：
-
-- `QUEUE_TYPE`：**channel**：任务队列类型，可以是 `channel` 或 `redis`。
-- `QUEUE_LENGTH`：**1000**：任务队列长度，仅在 `QUEUE_TYPE` 为 `channel` 时可用。
-- `QUEUE_CONN_STR`：**redis://127.0.0.1:6379/0**：任务队列连接字符串，仅在 `QUEUE_TYPE` 为 `redis` 时可用。
-  如果 redis 需要密码，使用 `redis://123@127.0.0.1:6379/0` 或 `redis+cluster://123@127.0.0.1:6379/0`。
-
 ## 迁移 (`migrations`)
 
 - `MAX_ATTEMPTS`：**3**：每次 http/https 请求的最大尝试次数（用于迁移）。
@@ -1353,5 +1343,6 @@ PROXY_HOSTS = *.github.com
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: 在页脚显示模板执行的时间。
+- `SHOW_FOOTER_POWERED_BY`: **true**: 在页脚显示“由...提供动力”的文本。
 - `ENABLE_SITEMAP`: **true**: 生成sitemap.
 - `ENABLE_FEED`: **true**: 是否启用RSS/Atom

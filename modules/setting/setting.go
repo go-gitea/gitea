@@ -230,11 +230,12 @@ func LoadSettingsForInstall() {
 	loadMailerFrom(CfgProvider)
 }
 
-var uniquePaths = make(map[string]string)
+var configuredPaths = make(map[string]string)
 
-func fatalDuplicatedPath(name, p string) {
-	if targetName, ok := uniquePaths[p]; ok && targetName != name {
-		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss.", p, targetName, name)
+func checkOverlappedPath(name, path string) {
+	// TODO: some paths shouldn't overlap (storage.xxx.path), while some could (data path is the base path for storage path)
+	if targetName, ok := configuredPaths[path]; ok && targetName != name {
+		LogStartupProblem(1, log.ERROR, "Configured path %q is used by %q and %q at the same time. The paths must be unique to prevent data loss.", path, targetName, name)
 	}
-	uniquePaths[p] = name
+	configuredPaths[path] = name
 }

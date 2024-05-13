@@ -8,10 +8,10 @@
 		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
-		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
-			<div class="comment-header-left gt-df gt-ac">
+		<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+			<div class="comment-header-left tw-flex tw-items-center">
 				{{if .OriginalAuthor}}
-					<span class="text black gt-font-semibold gt-mr-2">
+					<span class="text black tw-font-semibold tw-mr-1">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -30,7 +30,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="comment-header-right actions gt-df gt-ac">
+			<div class="comment-header-right actions tw-flex tw-items-center">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
 					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
@@ -48,7 +48,7 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" dict "ctxData" $.root "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+				{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
 				{{template "repo/issue/view_content/context_menu" dict "ctxData" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
@@ -60,15 +60,15 @@
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
-			<div class="edit-content-zone gt-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
 			{{if .Attachments}}
 				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
-			{{template "repo/issue/view_content/reactions" dict "ctxData" $.root "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
 		{{end}}
 	</div>
 </div>

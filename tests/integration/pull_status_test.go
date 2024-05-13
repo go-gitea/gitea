@@ -12,6 +12,9 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -68,7 +71,6 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
-
 			// Call API to add status for commit
 			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
 				State:       status,
@@ -90,6 +92,10 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			assert.True(t, ok)
 			assert.Contains(t, cls, statesIcons[status])
 		}
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
+		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
+		assert.EqualValues(t, api.CommitStatusWarning, css.State)
 	})
 }
 

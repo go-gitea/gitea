@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -44,20 +45,17 @@ func RenderFile(ctx *context.Context) {
 	isTextFile := st.IsText()
 
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
+	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
 
 	if markupType := markup.Type(blob.Name()); markupType == "" {
 		if isTextFile {
-			_, err = io.Copy(ctx.Resp, rd)
-			if err != nil {
-				ctx.ServerError("Copy", err)
-			}
-			return
+			_, _ = io.Copy(ctx.Resp, rd)
+		} else {
+			http.Error(ctx.Resp, "Unsupported file type render", http.StatusInternalServerError)
 		}
-		ctx.Error(http.StatusInternalServerError, "Unsupported file type render")
 		return
 	}
 
-	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
 	err = markup.Render(&markup.RenderContext{
 		Ctx:          ctx,
 		RelativePath: ctx.Repo.TreePath,
@@ -71,7 +69,8 @@ func RenderFile(ctx *context.Context) {
 		InStandalonePage: true,
 	}, rd, ctx.Resp)
 	if err != nil {
-		ctx.ServerError("Render", err)
+		log.Error("Failed to render file %q: %v", ctx.Repo.TreePath, err)
+		http.Error(ctx.Resp, "Failed to render file", http.StatusInternalServerError)
 		return
 	}
 }

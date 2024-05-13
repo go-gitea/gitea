@@ -2,7 +2,6 @@ import $ from 'jquery';
 import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
-import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
@@ -19,7 +18,7 @@ const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if ($('.user.signin').length === 0) {
+  if (!$('.user.signin').length) {
     $('form:not(.ignore-dirty)').areYouSure();
   }
 }
@@ -47,10 +46,19 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
-      return false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }
@@ -110,7 +118,7 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`${i18n.network_error} ${e}`);
     }
   }
-  actionElem.classList.remove('is-loading', 'small-loading-icon');
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -122,7 +130,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('small-loading-icon');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
@@ -195,8 +203,6 @@ export function initGlobalCommon() {
   //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
-
-  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
 
@@ -301,8 +307,8 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
+    if (this.getAttribute('data-modal-id')) {
+      filter += `#${this.getAttribute('data-modal-id')}`;
     }
 
     const $dialog = $(`.delete.modal${filter}`);
@@ -335,7 +341,7 @@ export function initGlobalLinkActions() {
           const data = await response.json();
           window.location.href = data.redirect;
         }
-      }
+      },
     }).modal('show');
   }
 
@@ -352,8 +358,7 @@ function initGlobalShowModal() {
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
   $('.show-modal').on('click', function (e) {
     e.preventDefault();
-    const $el = $(this);
-    const modalSelector = $el.attr('data-modal');
+    const modalSelector = this.getAttribute('data-modal');
     const $modal = $(modalSelector);
     if (!$modal.length) {
       throw new Error('no modal for this action');
@@ -374,16 +379,13 @@ function initGlobalShowModal() {
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+      } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const $colorPickers = $modal.find('.color-picker');
-    if ($colorPickers.length > 0) {
-      initCompColorPicker(); // FIXME: this might cause duplicate init
-    }
+
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -406,7 +408,7 @@ export function initGlobalButtons() {
     // a '.show-panel' element can show a panel, by `data-panel="selector"`
     // if it has "toggle" class, it toggles the panel
     e.preventDefault();
-    const sel = $(this).attr('data-panel');
+    const sel = this.getAttribute('data-panel');
     if (this.classList.contains('toggle')) {
       toggleElem(sel);
     } else {
@@ -417,12 +419,12 @@ export function initGlobalButtons() {
   $('.hide-panel').on('click', function (e) {
     // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
-    let sel = $(this).attr('data-panel');
+    let sel = this.getAttribute('data-panel');
     if (sel) {
       hideElem($(sel));
       return;
     }
-    sel = $(this).attr('data-panel-closest');
+    sel = this.getAttribute('data-panel-closest');
     if (sel) {
       hideElem($(this).closest(sel));
       return;
@@ -449,5 +451,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }

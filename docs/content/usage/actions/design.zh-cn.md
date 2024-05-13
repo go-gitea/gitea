@@ -105,7 +105,8 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 ### 连接 3，act runner到互联网
 
 当您使用诸如 `actions/checkout@v4` 的一些Actions时，act runner下载的是脚本，而不是Job容器。
-默认情况下，它从[gitea.com](http://gitea.com/)下载，因此需要访问互联网。
+默认情况下，它从[github.com](http://github.com/)下载，因此需要访问互联网。如果您设置的是 self，
+那么默认将从您的当前Gitea实例下载，那么此步骤不需要连接到互联网。
 它还默认从Docker Hub下载一些Docker镜像，这也需要互联网访问。
 
 然而，互联网访问并不是绝对必需的。

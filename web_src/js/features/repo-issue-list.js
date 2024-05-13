@@ -6,6 +6,7 @@ import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createSortable} from '../modules/sortable.js';
 import {DELETE, POST} from '../modules/fetch.js';
+import {parseDom} from '../utils.js';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector('.issue-checkbox-all');
@@ -93,9 +94,9 @@ function initRepoIssueListAuthorDropdown() {
   const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) return;
 
-  let searchUrl = $searchDropdown.attr('data-search-url');
-  const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+  let searchUrl = $searchDropdown[0].getAttribute('data-search-url');
+  const actionJumpUrl = $searchDropdown[0].getAttribute('data-action-jump-url');
+  const selectedUserId = $searchDropdown[0].getAttribute('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
@@ -108,8 +109,8 @@ function initRepoIssueListAuthorDropdown() {
         // the content is provided by backend IssuePosters handler
         const processedResults = []; // to be used by dropdown to generate menu items
         for (const item of resp.results) {
-          let html = `<img class="ui avatar gt-vm" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
-          if (item.full_name) html += `<span class="search-fullname gt-ml-3">${htmlEscape(item.full_name)}</span>`;
+          let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
+          if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
           processedResults.push({value: item.user_id, name: html});
         }
         resp.results = processedResults;
@@ -129,22 +130,29 @@ function initRepoIssueListAuthorDropdown() {
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    const $menu = $searchDropdown.find('> .menu');
-    $menu.find('> .dynamic-item').remove(); // remove old dynamic items
+    const menu = $searchDropdown.find('> .menu')[0];
+    // remove old dynamic items
+    for (const el of menu.querySelectorAll(':scope > .dynamic-item')) {
+      el.remove();
+    }
 
     const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
     if (newMenuHtml) {
-      const $newMenuItems = $(newMenuHtml);
-      $newMenuItems.addClass('dynamic-item');
+      const newMenuItems = parseDom(newMenuHtml, 'text/html').querySelectorAll('body > div');
+      for (const newMenuItem of newMenuItems) {
+        newMenuItem.classList.add('dynamic-item');
+      }
       const div = document.createElement('div');
       div.classList.add('divider', 'dynamic-item');
-      $menu[0].append(div, ...$newMenuItems);
+      menu.append(div, ...newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
     setTimeout(() => {
-      $menu.find('.item.active, .item.selected').removeClass('active selected');
-      $menu.find(`.item[data-value="${selectedUserId}"]`).addClass('selected');
+      for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
+        el.classList.remove('active', 'selected');
+      }
+      menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
     }, 0);
   };
 }
@@ -188,8 +196,6 @@ async function initIssuePinSort() {
 
   createSortable(pinDiv, {
     group: 'shared',
-    animation: 150,
-    ghostClass: 'card-ghost',
     onEnd: pinMoveEnd,
   });
 }
