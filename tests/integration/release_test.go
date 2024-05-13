@@ -229,12 +229,12 @@ func TestViewTagsList(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	tags := htmlDoc.Find(".tag-list tr")
+	tags := htmlDoc.Find(".tag-list-row-link")
 	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
-		tagNames = append(tagNames, s.Find(".tag a.tw-flex.tw-items-center").Text())
+		tagNames = append(tagNames, s.Text())
 	})
 
 	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
