@@ -16,7 +16,7 @@
 				<tbody class="tag-list">
 					{{range $idx, $release := .Releases}}
 						<tr>
-							<td class="tag">
+							<td class="tag-list-row">
 								<h3 class="release-tag-name tw-mb-2">
 									{{if $canReadReleases}}
 										<a class="tw-flex tw-items-center" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
