@@ -1045,7 +1045,7 @@ func renderHomeCode(ctx *context.Context) {
 
 		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
 			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
-			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
+			baseRepoPerm.CanWrite(unit_model.TypePullRequests) {
 			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, opts)
 			if err != nil {
 				ctx.ServerError("FindRecentlyPushedNewBranches", err)
