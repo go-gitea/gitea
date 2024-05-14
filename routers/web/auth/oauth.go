@@ -540,7 +540,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	if !form.Granted {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            ctx.Session.Get("state").(string),
-			ErrorDescription: "user denied the request",
+			ErrorDescription: "the request is denied",
 			ErrorCode:        ErrorCodeAccessDenied,
 		}, ctx.Session.Get("redirect_uri").(string))
 		return
