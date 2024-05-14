@@ -85,7 +85,7 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
-	lookup := minio.BucketLookupPath
+	lookup := minio.BucketLookupAuto
 	if config.VirtualHost {
 		lookup = minio.BucketLookupDNS
 	}
