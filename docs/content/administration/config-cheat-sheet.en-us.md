@@ -1357,7 +1357,8 @@ MINIO_LOCATION = us-east-1
 ; Minio enabled ssl only available when STORAGE_TYPE is `minio`
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
-MINIO_INSECURE_SKIP_VERIFY = false; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
