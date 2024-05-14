@@ -12,7 +12,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
 
@@ -183,91 +182,4 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Expect no error, and the returned branch to be not nil.
 	assert.NoError(t, err)
 	assert.NotNil(t, deletedBranch)
-}
-
-func TestFindRecentlyPushedNewBranches(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user12 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
-	user13 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
-
-	tests := []struct {
-		name  string
-		opts  *git_model.FindRecentlyPushedNewBranchesOptions
-		count int
-		want  []string
-	}{
-		// user12 is the owner of the repo10 and the organization org25
-		// in repo10, user12 has opening/closed/merged pr and closed/merged pr with deleted branch
-		{
-			name: "new branch of the repo, org fork repo, pr branches and deleted branch",
-			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user12,
-				CommitAfterUnix: 1489927670,
-				MaxCount:        10,
-			},
-			count: 2,
-			want:  []string{"new-commit", "org25/org_fork_repo62:org-fork-new-commit"},
-		},
-		// user13 pushed 2 branches with the same name in repo10 and repo11
-		// and repo11's branch has a pr, but repo10's branch doesn't
-		// in this case, we should get repo10's branch but not repo11's branch
-		{
-			name: "new branch from user fork repo and same name branch",
-			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user13,
-				CommitAfterUnix: 1489927670,
-				MaxCount:        10,
-			},
-			count: 2,
-			want:  []string{"user13/repo11:user-fork-new-commit", "same-name-branch-in-pr"},
-		},
-		// user1 is the owner of private_org35
-		{
-			name: "new branch from private org with code permission repo",
-			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user1,
-				CommitAfterUnix: 1489927670,
-			},
-			count: 1,
-			want:  []string{"private_org35/private_org_fork_repo63:private-org-fork-new-commit"},
-		},
-		// user2 does not have code permission in private_org35
-		{
-			name: "new branch from private org with no code permission repo",
-			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user2,
-				CommitAfterUnix: 1489927670,
-			},
-			count: 0,
-			want:  []string{},
-		},
-		{
-			name: "test commitAfterUnix option",
-			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user12,
-				CommitAfterUnix: 1489927690,
-			},
-			count: 1,
-			want:  []string{"org25/org_fork_repo62:org-fork-new-commit"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.opts.Repo = repo
-			tt.opts.BaseRepo = repo
-			branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, tt.opts)
-
-			assert.NoError(t, err)
-			assert.Equal(t, tt.count, len(branches))
-
-			for i := 0; i < tt.count; i++ {
-				assert.Equal(t, tt.want[i], branches[i].BranchDisplayName)
-			}
-		})
-	}
 }

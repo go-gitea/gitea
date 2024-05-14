@@ -191,7 +191,7 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 1
+  num_repos: 0
   num_members: 1
   includes_all_repositories: false
   can_create_org_repo: true
@@ -254,10 +254,10 @@
 -
   id: 24
   org_id: 35
-  lower_name: team24noreadcode
-  name: team24noreadcode
-  authorize: 0 # no access
-  num_repos: 1
+  lower_name: team24
+  name: team24
+  authorize: 2 # write
+  num_repos: 0
   num_members: 1
-  includes_all_repositories: false
+  includes_all_repositories: true
   can_create_org_repo: false
