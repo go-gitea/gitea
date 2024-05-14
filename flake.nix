@@ -24,8 +24,6 @@
 
             # backend
             go_1_22
-            gofumpt
-            golangci-lint
           ];
         };
       }
