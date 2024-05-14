@@ -46,6 +46,7 @@ func TestUpdateUser(t *testing.T) {
 		DiffViewStyle:                optional.Some("split"),
 		AllowCreateOrganization:      optional.Some(false),
 		EmailNotificationsPreference: optional.Some("disabled"),
+		UINotificationsPreference:    optional.Some("disabled"),
 		SetLastLogin:                 true,
 	}
 	assert.NoError(t, UpdateUser(db.DefaultContext, user, opts))
@@ -68,6 +69,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
 	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
 	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	assert.Equal(t, opts.UINotificationsPreference.Value(), user.UINotificationsPreference)
 
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
@@ -88,6 +90,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
 	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
 	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	assert.Equal(t, opts.UINotificationsPreference.Value(), user.UINotificationsPreference)
 }
 
 func TestUpdateAuth(t *testing.T) {

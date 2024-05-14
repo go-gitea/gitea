@@ -40,29 +40,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{if $.EnableNotifyMail}}
-				<div class="item">
-					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_desc"}}</div>
-					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
-						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="NOTIFICATION">
-						<div class="tw-flex tw-flex-wrap tw-gap-2">
-							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="text"></div>
-								<div class="menu">
-									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</div>
-									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.onmention"}}</div>
-									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
-								</div>
-							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
-						</div>
-					</form>
-				</div>
-				{{end}}
 				{{range .Emails}}
 					<div class="item">
 						{{if not .IsPrimary}}
