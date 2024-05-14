@@ -170,7 +170,6 @@ func prepareBranch(t *testing.T, session *TestSession, repo *repo_model.Reposito
 	// create deleted branch
 	testCreateBranch(t, session, repo.OwnerName, repo.Name, "branch/new-commit", "deleted-branch", http.StatusSeeOther)
 	testUIDeleteBranch(t, session, repo.OwnerName, repo.Name, "deleted-branch")
-
 }
 
 func testCreatePullToDefaultBranch(t *testing.T, session *TestSession, baseRepo, headRepo *repo_model.Repository, headBranch, title string) string {
@@ -213,6 +212,17 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, repo_model.MergeStyleRebaseMerge, true)
 }
 
+func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath string, expected []string) {
+	branches := make([]string, 0, 2)
+	req := NewRequest(t, "GET", repoPath)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
+		branches = append(branches, branch.Text())
+	})
+	assert.Equal(t, expected, branches)
+}
+
 func TestRecentlyPushedNewBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -228,14 +238,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		prepareRepoPR(t, user12Session, user12Session, repo10, repo10)
 
 		// outdated new branch should not be displayed
-		branches := make([]string, 0, 2)
-		req := NewRequest(t, "GET", "user12/repo10")
-		resp := user12Session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
-			branches = append(branches, branch.Text())
-		})
-		assert.Equal(t, []string{"new-commit"}, branches)
+		checkRecentlyPushedNewBranches(t, user12Session, "user12/repo10", []string{"new-commit"})
 
 		// create a fork repo in public org
 		testRepoFork(t, user12Session, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", "new-commit")
@@ -244,14 +247,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 
 		// user12 is the owner of the repo10 and the organization org25
 		// in repo10, user12 has opening/closed/merged pr and closed/merged pr with deleted branch
-		branches = make([]string, 0, 2)
-		req = NewRequest(t, "GET", "user12/repo10")
-		resp = user12Session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
-			branches = append(branches, branch.Text())
-		})
-		assert.Equal(t, []string{"org25/org25_fork_repo10:new-commit", "new-commit"}, branches)
+		checkRecentlyPushedNewBranches(t, user12Session, "user12/repo10", []string{"org25/org25_fork_repo10:new-commit", "new-commit"})
 
 		userForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 		prepareBranch(t, user13Session, userForkRepo)
@@ -265,14 +261,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		// user13 pushed 2 branches with the same name in repo10 and repo11
 		// and repo11's branch has a pr, but repo10's branch doesn't
 		// in this case, we should get repo10's branch but not repo11's branch
-		branches = make([]string, 0, 2)
-		req = NewRequest(t, "GET", "user12/repo10")
-		resp = user13Session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
-			branches = append(branches, branch.Text())
-		})
-		assert.Equal(t, []string{"same-name-branch", "user13/repo11:new-commit"}, branches)
+		checkRecentlyPushedNewBranches(t, user13Session, "user12/repo10", []string{"same-name-branch", "user13/repo11:new-commit"})
 
 		// create a fork repo in private org
 		testRepoFork(t, user1Session, repo10.OwnerName, repo10.Name, "private_org35", "org35_fork_repo10", "new-commit")
@@ -281,20 +270,13 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 
 		// user1 is the owner of private_org35 and no write permission to repo10
 		// so user1 can only see the branch in org35_fork_repo10
-		branches = make([]string, 0, 2)
-		req = NewRequest(t, "GET", "user12/repo10")
-		resp = user1Session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
-			branches = append(branches, branch.Text())
-		})
-		assert.Equal(t, []string{"private_org35/org35_fork_repo10:new-commit"}, branches)
+		checkRecentlyPushedNewBranches(t, user1Session, "user12/repo10", []string{"private_org35/org35_fork_repo10:new-commit"})
 
 		// user2 push a branch in private_org35
 		testCreateBranch(t, user2Session, orgPrivateForkRepo.OwnerName, orgPrivateForkRepo.Name, "branch/new-commit", "user-no-permission", http.StatusSeeOther)
 		// convert write permission to read permission for code unit
 		token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", 24), &api.EditTeamOption{
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", 24), &api.EditTeamOption{
 			Name:     "team24",
 			UnitsMap: map[string]string{"repo.code": "read"},
 		}).AddTokenAuth(token)
@@ -302,13 +284,6 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		teamUnit := unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{TeamID: 24, Type: unit.TypeCode})
 		assert.Equal(t, perm.AccessModeRead, teamUnit.AccessMode)
 		// user2 should not see the branch
-		branches = make([]string, 0, 2)
-		req = NewRequest(t, "GET", "user12/repo10")
-		resp = user2Session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
-			branches = append(branches, branch.Text())
-		})
-		assert.Empty(t, branches)
+		checkRecentlyPushedNewBranches(t, user2Session, "user12/repo10", []string{})
 	})
 }
