@@ -172,4 +172,88 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		}, data["total"])
 	})
+	t.Run("generate contributor stats with commit that has duplicate co-authored lines", func(t *testing.T) {
+		mockCache, err := cache.NewStringCache(setting.Cache{})
+		assert.NoError(t, err)
+		generateContributorStats(nil, mockCache, "key", repo, "branch-with-duplicated-co-author-entries")
+		var data map[string]*ContributorData
+		exist, _ := mockCache.GetJSON("key", &data)
+		assert.True(t, exist)
+		var keys []string
+		for k := range data {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		assert.EqualValues(t, []string{
+			"ethantkoenig@gmail.com",
+			"fizzbuzz@example.com",
+			"foobar@example.com",
+			"jimmy.praet@telenet.be",
+			"jon@allspice.io",
+			"total",
+		}, keys)
+
+		// make sure we can see the author of the commit
+		assert.EqualValues(t, &ContributorData{
+			Name:         "Foo Bar",
+			AvatarLink:   "https://secure.gravatar.com/avatar/0d4907cea9d97688aa7a5e722d742f71?d=identicon",
+			TotalCommits: 1,
+			Weeks: map[int64]*WeekData{
+				1715472000000: {
+					Week:      1715472000000, // sunday 2024-05-12
+					Additions: 1,
+					Deletions: 0,
+					Commits:   1,
+				},
+			},
+		}, data["foobar@example.com"])
+
+		// make sure that we can also see the co-author and that we don't see duplicated additions/deletions/commits
+		assert.EqualValues(t, &ContributorData{
+			Name:         "Fizz Buzz",
+			AvatarLink:   "https://secure.gravatar.com/avatar/474e3516254f43b2337011c4ac4de421?d=identicon",
+			TotalCommits: 1,
+			Weeks: map[int64]*WeekData{
+				1715472000000: {
+					Week:      1715472000000, // sunday 2024-05-12
+					Additions: 1,
+					Deletions: 0,
+					Commits:   1,
+				},
+			},
+		}, data["fizzbuzz@example.com"])
+
+		// let's also make sure we don't duplicate the additions/deletions/commits counts in the overall stats that week
+		assert.EqualValues(t, &ContributorData{
+			Name:         "Total",
+			AvatarLink:   "",
+			TotalCommits: 4,
+			Weeks: map[int64]*WeekData{
+				1715472000000: {
+					Week:      1715472000000, // sunday 2024-05-12
+					Additions: 1,
+					Deletions: 0,
+					Commits:   1,
+				},
+				1511654400000: {
+					Week:      1511654400000, // sunday 2017-11-26
+					Additions: 3,
+					Deletions: 0,
+					Commits:   1,
+				},
+				1607817600000: {
+					Week:      1607817600000, // sunday 2020-12-13
+					Additions: 10,
+					Deletions: 0,
+					Commits:   1,
+				},
+				1624752000000: {
+					Week:      1624752000000, // sunday 2021-06-27
+					Additions: 2,
+					Deletions: 0,
+					Commits:   1,
+				},
+			},
+		}, data["total"])
+	})
 }

@@ -153,6 +153,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 				date := strings.TrimSpace(scanner.Text())
 
 				var coAuthors []*api.CommitUser
+				emailSet := map[string]bool{}
 				for scanner.Scan() {
 					line := scanner.Text()
 					if line == "" {
@@ -163,6 +164,10 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 					if err != nil {
 						continue
 					}
+					if _, exists := emailSet[coAuthorEmail]; exists {
+						continue
+					}
+					emailSet[coAuthorEmail] = true
 					coAuthor := &api.CommitUser{
 						Identity: api.Identity{Name: coAuthorName, Email: coAuthorEmail},
 						Date:     date,
