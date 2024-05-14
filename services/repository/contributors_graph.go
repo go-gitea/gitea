@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/mail"
 	"os"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -159,7 +159,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 						// There should be an empty line before we read the commit stats line.
 						break
 					}
-					coAuthorName, coAuthorEmail, err := parseCoAuthorTrailerValue(line)
+					coAuthorName, coAuthorEmail, err := util.ParseCommitTrailerValueWithAuthor(line)
 					if err != nil {
 						continue
 					}
@@ -218,33 +218,6 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	}
 
 	return extendedCommitStats, nil
-}
-
-var errSyntax = errors.New("syntax error occurred")
-
-func parseCoAuthorTrailerValue(value string) (name, email string, err error) {
-	value = strings.TrimSpace(value)
-	if !strings.HasSuffix(value, ">") {
-		return "", "", errSyntax
-	}
-
-	closedBracketIdx := len(value) - 1
-	openBracketIdx := strings.LastIndex(value, "<")
-	if openBracketIdx == -1 {
-		return "", "", errSyntax
-	}
-
-	email = value[openBracketIdx+1 : closedBracketIdx]
-	if _, err := mail.ParseAddress(email); err != nil {
-		return "", "", err
-	}
-
-	name = strings.TrimSpace(value[:openBracketIdx])
-	if len(name) == 0 {
-		return "", "", errSyntax
-	}
-
-	return name, email, nil
 }
 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
