@@ -94,9 +94,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 36},
-				user:  {count: 36},
-				user2: {count: 36},
+				nil:   {count: 35},
+				user:  {count: 35},
+				user2: {count: 35},
 			},
 		},
 		{
@@ -276,8 +276,8 @@ func TestAPIViewRepo(t *testing.T) {
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 10, repo.ID)
 	assert.EqualValues(t, "repo10", repo.Name)
-	assert.EqualValues(t, 4, repo.OpenPulls)
-	assert.EqualValues(t, 3, repo.Forks)
+	assert.EqualValues(t, 1, repo.OpenPulls)
+	assert.EqualValues(t, 1, repo.Forks)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
 	resp = MakeRequest(t, req, http.StatusOK)

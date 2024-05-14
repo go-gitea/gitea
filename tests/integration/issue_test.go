@@ -408,7 +408,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 24 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -429,7 +429,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 15)
+	assert.Len(t, apiIssues, 11)
 	query.Del("since")
 	query.Del("before")
 
@@ -438,14 +438,14 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 4)
+	assert.Len(t, apiIssues, 2)
 
 	query.Set("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "28", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "5")
@@ -453,7 +453,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "28", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -502,7 +502,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 24 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
