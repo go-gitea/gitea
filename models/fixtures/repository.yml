@@ -282,11 +282,11 @@
   default_branch: master
   num_watches: 0
   num_stars: 0
-  num_forks: 3
+  num_forks: 1
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 6
-  num_closed_pulls: 2
+  num_pulls: 1
+  num_closed_pulls: 0
   num_milestones: 1
   num_closed_milestones: 0
   num_projects: 0
@@ -316,7 +316,7 @@
   num_forks: 0
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 1
+  num_pulls: 0
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0
