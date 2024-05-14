@@ -77,7 +77,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	defer baseGitRepo.Close()
 
-	var reviewNotifers []*issue_service.ReviewRequestNotifier
+	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -137,7 +137,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
 			if err != nil {
 				return err
 			}
@@ -152,7 +152,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
+	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -807,7 +807,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
-
 			}
 			if len(commits) == 0 {
 				break

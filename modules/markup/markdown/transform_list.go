@@ -11,7 +11,6 @@ import (
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/renderer/html"
-	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
 
@@ -50,7 +49,7 @@ func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node 
 	return ast.WalkContinue, nil
 }
 
-func (g *ASTTransformer) transformList(ctx *markup.RenderContext, v *ast.List, reader text.Reader, rc *RenderConfig) {
+func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc *RenderConfig) {
 	if v.HasChildren() {
 		children := make([]ast.Node, 0, v.ChildCount())
 		child := v.FirstChild()

@@ -4,9 +4,7 @@
 package audit
 
 import (
-	"context"
 	"fmt"
-	"net"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	audit_model "code.gitea.io/gitea/models/audit"
@@ -18,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 type TypeDescriptor struct {
@@ -153,15 +150,4 @@ func typeToDescription(val any) TypeDescriptor {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}
-}
-
-func tryGetIPAddress(ctx context.Context) string {
-	if req := middleware.GetContextRequest(ctx); req != nil {
-		host, _, err := net.SplitHostPort(req.RemoteAddr)
-		if err != nil {
-			return req.RemoteAddr
-		}
-		return host
-	}
-	return ""
 }

@@ -135,7 +135,7 @@
 									<form method="post" class="tw-inline-block">
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="mirror-sync">
-										<button class="ui primary tiny button inline text-thin">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
+										<button class="ui primary tiny button inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 									</form>
 								</td>
 							</tr>
@@ -345,7 +345,7 @@
 						<div class="inline field">
 							{{$unitInternalWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
-							<select name="default_wiki_everyone_access" class="ui dropdown">
+							<select name="default_wiki_everyone_access" class="ui selection dropdown">
 								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
 								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
 								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
@@ -739,7 +739,7 @@
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
-				{{if .CodeIndexerEnabled}}
+				{{if .IsRepoIndexerEnabled}}
 					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
 					<div class="inline fields">
 						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>

@@ -18,8 +18,8 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -79,7 +79,7 @@ func TestBuildEvent(t *testing.T) {
 	e := buildEvent(ctx, audit_model.UserCreate, doer, u, u, "")
 	assert.Empty(t, e.IPAddress)
 
-	ctx = middleware.WithContextRequest(ctx, &http.Request{RemoteAddr: "127.0.0.1:1234"})
+	ctx = context.WithValue(ctx, httplib.RequestContextKey, &http.Request{RemoteAddr: "127.0.0.1:1234"})
 
 	e = buildEvent(ctx, audit_model.UserCreate, doer, u, u, "")
 	assert.Equal(t, "127.0.0.1", e.IPAddress)

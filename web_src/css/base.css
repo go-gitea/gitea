@@ -342,8 +342,6 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -374,7 +372,6 @@ a.label,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
-  white-space: nowrap;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -389,12 +386,6 @@ a.label,
 
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
-}
-
-.ui.dropdown > .text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
@@ -686,10 +677,6 @@ input:-webkit-autofill:active,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dimmer {
-  background: var(--color-overlay-backdrop);
-}
-
 .ui.dropdown .menu > .header {
   font-size: 0.8em;
 }
@@ -702,27 +689,11 @@ input:-webkit-autofill:active,
   text-align: right !important;
 }
 
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.italic {
-  font-style: italic;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.ui .text.thin {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.middle {
-  vertical-align: middle;
 }
 
 .ui .message.flash-message {
@@ -759,6 +730,7 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
   padding: 5px 10px;
+  flex-shrink: 0;
 }
 
 .ui .sha.label .shortsha {
@@ -897,6 +869,7 @@ input:-webkit-autofill:active,
 
 .ui.dropdown .scrolling.menu {
   border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
@@ -962,6 +935,23 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
+}
+
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
 }
 
 overflow-menu .ui.label {
@@ -1350,7 +1340,11 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
   vertical-align: middle;
-  min-width: 0;
+  min-width: 0; /* make ellipsis work */
+}
+
+.ui.ui.dropdown.selection {
+  min-width: 14em; /* match the default min width */
 }
 
 .ui.dropdown .ui.label .svg {
@@ -1376,4 +1370,17 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+
+.ui.dropdown.ellipsis-items-nowrap > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-items-nowrap > .item,
+.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }

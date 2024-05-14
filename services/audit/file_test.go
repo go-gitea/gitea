@@ -13,7 +13,7 @@ import (
 	audit_model "code.gitea.io/gitea/models/audit"
 	repository_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/httplib"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +23,7 @@ func TestWriteEventAsJSON(t *testing.T) {
 	m := &repository_model.PushMirror{ID: 4}
 	doer := &user_model.User{ID: 2, Name: "Doer"}
 
-	ctx := middleware.WithContextRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
+	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{RemoteAddr: "127.0.0.1:1234"})
 
 	e := buildEvent(
 		ctx,

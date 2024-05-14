@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -114,7 +115,7 @@ func updateSource(ctx context.Context, source *auth_model.Source) error {
 
 func runDeleteAuth(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()

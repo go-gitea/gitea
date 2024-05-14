@@ -4,11 +4,13 @@
 package common
 
 import (
+	go_context "context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -33,15 +35,8 @@ func ProtocolMiddlewares() (handlers []any) {
 					RenderPanicErrorPage(resp, req, err) // it should never panic
 				}
 			}()
-
-			req = req.WithContext(
-				middleware.WithContextData(
-					middleware.WithContextRequest(
-						req.Context(),
-						req,
-					),
-				),
-			)
+			req = req.WithContext(middleware.WithContextData(req.Context()))
+			req = req.WithContext(go_context.WithValue(req.Context(), httplib.RequestContextKey, req))
 			next.ServeHTTP(resp, req)
 		})
 	})

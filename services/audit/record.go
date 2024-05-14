@@ -18,6 +18,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -40,7 +41,7 @@ func buildEvent(ctx context.Context, action audit_model.Action, actor *user_mode
 		Target:    typeToDescription(target),
 		Message:   fmt.Sprintf(message, v...),
 		Time:      time.Now(),
-		IPAddress: tryGetIPAddress(ctx),
+		IPAddress: httplib.TryGetIPAddress(ctx),
 	}
 }
 

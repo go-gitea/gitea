@@ -39,8 +39,6 @@ import (
 const (
 	unicodeNormalizeName = "unicodeNormalize"
 	maxBatchSize         = 16
-	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
-	fuzzyDenominator = 4
 )
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
@@ -191,7 +189,6 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
 		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
 			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
@@ -246,7 +243,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	phraseQuery.Analyzer = repoIndexerAnalyzer
 	keywordQuery = phraseQuery
 	if opts.IsKeywordFuzzy {
-		phraseQuery.Fuzziness = len(opts.Keyword) / fuzzyDenominator
+		phraseQuery.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
 	}
 
 	if len(opts.RepoIDs) > 0 {
@@ -335,7 +332,6 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		if result, err = b.inner.Indexer.Search(facetRequest); err != nil {
 			return 0, nil, nil, err
 		}
-
 	}
 	languagesFacet := result.Facets["languages"]
 	for _, term := range languagesFacet.Terms.Terms() {
