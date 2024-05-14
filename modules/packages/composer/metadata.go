@@ -6,6 +6,7 @@ package composer
 import (
 	"archive/zip"
 	"io"
+	"path"
 	"regexp"
 	"strings"
 
@@ -127,14 +128,14 @@ func ParsePackage(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			return ParseComposerFile(archive, f)
+			return ParseComposerFile(archive, path.Dir(file.Name), f)
 		}
 	}
 	return nil, ErrMissingComposerFile
 }
 
 // ParseComposerFile parses a composer.json file to retrieve the metadata of a Composer package
-func ParseComposerFile(archive *zip.Reader, r io.Reader) (*Package, error) {
+func ParseComposerFile(archive *zip.Reader, pathPrefix string, r io.Reader) (*Package, error) {
 	var cj struct {
 		Name    string `json:"name"`
 		Version string `json:"version"`
@@ -166,7 +167,7 @@ func ParseComposerFile(archive *zip.Reader, r io.Reader) (*Package, error) {
 	if cj.Readme == "" {
 		cj.Readme = "README.md"
 	}
-	f, err := archive.Open(cj.Readme)
+	f, err := archive.Open(path.Join(pathPrefix, cj.Readme))
 	if err == nil {
 		buf, _ := io.ReadAll(f)
 		cj.Readme = string(buf)

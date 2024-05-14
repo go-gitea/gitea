@@ -342,8 +342,6 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -374,7 +372,6 @@ a.label,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
-  white-space: nowrap;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -493,12 +490,6 @@ img.ui.avatar,
    to compensate here */
 .page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
-}
-
-/* add horizontal margin to elements that are outside top-level of .flex-container or .ui.container */
-.page-content > .flash-message {
-  margin-left: var(--page-margin-x);
-  margin-right: var(--page-margin-x);
 }
 
 .ui.form .fields.error .field textarea,
@@ -686,10 +677,6 @@ input:-webkit-autofill:active,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dimmer {
-  background: var(--color-overlay-backdrop);
-}
-
 .ui.dropdown .menu > .header {
   font-size: 0.8em;
 }
@@ -743,6 +730,7 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
   padding: 5px 10px;
+  flex-shrink: 0;
 }
 
 .ui .sha.label .shortsha {
@@ -881,6 +869,7 @@ input:-webkit-autofill:active,
 
 .ui.dropdown .scrolling.menu {
   border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
@@ -946,6 +935,23 @@ overflow-menu .overflow-menu-items {
 
 overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
+}
+
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
 }
 
 overflow-menu .ui.label {
@@ -1334,7 +1340,11 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
   vertical-align: middle;
-  min-width: 0;
+  min-width: 0; /* make ellipsis work */
+}
+
+.ui.ui.dropdown.selection {
+  min-width: 14em; /* match the default min width */
 }
 
 .ui.dropdown .ui.label .svg {
@@ -1360,4 +1370,17 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+
+.ui.dropdown.ellipsis-items-nowrap > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-items-nowrap > .item,
+.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }

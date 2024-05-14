@@ -98,12 +98,9 @@ export async function createMonaco(textarea, filename, editorOpts) {
       'input.foreground': getColor('--color-input-text'),
       'scrollbar.shadow': getColor('--color-shadow'),
       'progressBar.background': getColor('--color-primary'),
+      'focusBorder': '#0000', // prevent blue border
     },
   });
-
-  // Quick fix: https://github.com/microsoft/monaco-editor/issues/2962
-  monaco.languages.register({id: 'vs.editor.nullLanguage'});
-  monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
   const editor = monaco.editor.create(container, {
     value: textarea.value,
