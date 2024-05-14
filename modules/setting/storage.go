@@ -47,7 +47,7 @@ type MinioStorageConfig struct {
 	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
 	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
-	LookUpType         string `ini:"MINIO_LOOKUP_TYPE"`
+	BucketLookUpType   string `ini:"MINIO_BUCKET_LOOKUP_TYPE"`
 }
 
 // Storage represents configuration of storages
