@@ -36,9 +36,9 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 		if setting.Database.Type.IsMSSQL() {
 			// drop indexes that need to be re-created afterwards
 			droppedIndexes := []string{
-				"DROP INDEX IF EXISTS [IDX_commit_status_context_hash] ON [commit_status]",
-				"DROP INDEX IF EXISTS [UQE_review_state_pull_commit_user] ON [review_state]",
-				"DROP INDEX IF EXISTS [UQE_repo_archiver_s] ON [repo_archiver]",
+				"DROP INDEX [IDX_commit_status_context_hash] ON [commit_status]",
+				"DROP INDEX [UQE_review_state_pull_commit_user] ON [review_state]",
+				"DROP INDEX [UQE_repo_archiver_s] ON [repo_archiver]",
 			}
 			for _, s := range droppedIndexes {
 				_, err := db.Exec(s)

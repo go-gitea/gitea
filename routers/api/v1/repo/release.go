@@ -215,6 +215,9 @@ func CreateRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
@@ -246,6 +249,8 @@ func CreateRelease(ctx *context.APIContext) {
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, ""); err != nil {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
+			} else if models.IsErrProtectedTagName(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}
@@ -386,8 +391,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "405":
-	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
@@ -401,7 +406,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	}
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)

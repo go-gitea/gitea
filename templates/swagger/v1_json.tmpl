@@ -12831,6 +12831,9 @@
           },
           "409": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -12949,8 +12952,8 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
-          "405": {
-            "$ref": "#/responses/empty"
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -13035,8 +13038,8 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
-          "405": {
-            "$ref": "#/responses/empty"
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -13886,6 +13889,9 @@
           "409": {
             "$ref": "#/responses/conflict"
           },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -13978,6 +13984,9 @@
           },
           "409": {
             "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
@@ -21897,12 +21906,9 @@
       "type": "object",
       "properties": {
         "labels": {
-          "description": "list of label IDs",
+          "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names",
           "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
+          "items": {},
           "x-go-name": "Labels"
         }
       },
