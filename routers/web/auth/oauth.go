@@ -536,21 +536,21 @@ func AuthorizeOAuth(ctx *context.Context) {
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
-
-	if !form.Granted {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            ctx.Session.Get("state").(string),
-			ErrorDescription: "the request is denied",
-			ErrorCode:        ErrorCodeAccessDenied,
-		}, ctx.Session.Get("redirect_uri").(string))
-		return
-	}
-
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
+
+	if !form.Granted {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "the request is denied",
+			ErrorCode:        ErrorCodeAccessDenied,
+		}, form.RedirectURI)
+		return
+	}
+
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)

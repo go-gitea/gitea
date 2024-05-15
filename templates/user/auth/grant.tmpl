@@ -29,6 +29,8 @@
 				<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/login/oauth/grant">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
+					<input type="hidden" name="state" value="{{.State}}">
+					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
 					<button type="submit" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
 				</form>
 			</div>
