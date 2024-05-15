@@ -205,7 +205,6 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
 		if err != nil {
 			log.Error("GetDiffShortStat: %v", err)
-			return nil
 		}
 	}
 
