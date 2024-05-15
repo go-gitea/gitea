@@ -41,10 +41,8 @@ linters-settings:
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
   revive:
     ignore-generated-header: false
-    severity: warning
+    severity: error
     confidence: 0.8
-    errorCode: 1
-    warningCode: 1
     rules:
       - name: atomic
       - name: bare-return
