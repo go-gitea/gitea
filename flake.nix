@@ -17,10 +17,16 @@
             git
             git-lfs
             gnumake
+            gnused
             gnutar
+            gzip
 
             # frontend
             nodejs_20
+
+            # templates
+            poetry
+            poetry
 
             # backend
             go_1_22
