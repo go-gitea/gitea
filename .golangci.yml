@@ -40,7 +40,6 @@ linters-settings:
       - ifElseChain
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
   revive:
-    ignore-generated-header: false
     severity: error
     rules:
       - name: atomic
