@@ -138,3 +138,8 @@
 .notifications-item:hover .notifications-updated {
   display: none;
 }
+
+.pin-repo-item {
+  width: calc(33.33333333333333% - 1em) !important;
+  margin: 0.4375em 0.5em !important;
+}
