@@ -12,7 +12,7 @@
 
 	{{if .CanUserPinToOrg}}
 	<div class="ui floating dropdown icon button">
-		<i class="dropdown icon"></i>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="compact menu">
 			<form hx-boost="true" hx-target="this" method="post" action="{{$.RepoLink}}/action/{{if .IsOrgPinningRepo}}unpin{{else}}pin{{end}}-org">
 				<div class="ui labeled button item" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.pin_guest_user"}}"{{end}}>
