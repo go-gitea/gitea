@@ -1029,7 +1029,6 @@ func renderHomeCode(ctx *context.Context) {
 		}
 
 		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
-			Actor:    ctx.Doer,
 			Repo:     ctx.Repo.Repository,
 			BaseRepo: ctx.Repo.Repository,
 		}
@@ -1046,7 +1045,7 @@ func renderHomeCode(ctx *context.Context) {
 		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
 			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
 			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, opts)
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
 				ctx.ServerError("FindRecentlyPushedNewBranches", err)
 				return

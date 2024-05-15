@@ -412,7 +412,6 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 type FindRecentlyPushedNewBranchesOptions struct {
-	Actor           *user_model.User
 	Repo            *repo_model.Repository
 	BaseRepo        *repo_model.Repository
 	CommitAfterUnix int64
@@ -427,13 +426,16 @@ type RecentlyPushedNewBranch struct {
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
-// opts.Actor should not be nil
 // if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branch
-func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+	if doer == nil {
+		return []*RecentlyPushedNewBranch{}, nil
+	}
+
 	// find all related repo ids
 	repoOpts := repo_model.SearchRepoOptions{
-		Actor:      opts.Actor,
+		Actor:      doer,
 		Private:    true,
 		AllPublic:  false, // Include also all public repositories of users and public organisations
 		AllLimited: false, // Include also all public repositories of limited organisations
@@ -441,7 +443,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		ForkFrom:   opts.BaseRepo.ID,
 		Archived:   optional.Some(false),
 	}
-	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
+	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode))
 	if opts.Repo.ID == opts.BaseRepo.ID {
 		// should also include the base repo's branches
 		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})
@@ -464,7 +466,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 	branches, err := db.Find[Branch](ctx, FindBranchOptions{
 		RepoCond:        builder.In("branch.repo_id", repoIDs),
 		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
-		PusherID:        opts.Actor.ID,
+		PusherID:        doer.ID,
 		IsDeletedBranch: optional.Some(false),
 		CommitAfterUnix: opts.CommitAfterUnix,
 		OrderBy:         "branch.updated_unix DESC",
