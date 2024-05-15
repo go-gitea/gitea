@@ -42,7 +42,6 @@ linters-settings:
   revive:
     ignore-generated-header: false
     severity: error
-    confidence: 0.8
     rules:
       - name: atomic
       - name: bare-return
