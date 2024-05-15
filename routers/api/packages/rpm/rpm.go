@@ -133,12 +133,16 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	pri, _, err := rpm_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	hBuf, seek, err := rpm_module.SignPackage(buf, pri)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	if _, err := buf.Seek(seek, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

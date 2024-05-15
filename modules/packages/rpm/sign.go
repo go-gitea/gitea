@@ -10,14 +10,14 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/packages"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/sassoftware/go-rpmutils"
-	"golang.org/x/crypto/openpgp"
 )
 
 func SignPackage(rpm *packages.HashedBuffer, privateKey string) (io.Reader, int64, error) {
 	keyring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader([]byte(privateKey)))
 	if err != nil {
-		// failed to parse  key
+		// failed to parse key
 		return nil, 0, err
 	}
 	entity := keyring[0]
