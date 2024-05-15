@@ -16,22 +16,15 @@
 				<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>
 			</div>
 			<div class="ui attached segment">
-				<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/login/oauth/grant">
+				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
-					<input type="hidden" name="granted" value="true">
 					<input type="hidden" name="state" value="{{.State}}">
 					<input type="hidden" name="scope" value="{{.Scope}}">
 					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" id="authorize-app" value="{{ctx.Locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
-				</form>
-				<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/login/oauth/grant">
-					{{.CsrfTokenHtml}}
-					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
-					<input type="hidden" name="state" value="{{.State}}">
-					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
+					<button type="submit" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
+					<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
 				</form>
 			</div>
 		</div>
