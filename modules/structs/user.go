@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package structs
@@ -19,6 +20,8 @@ type User struct {
 	// the user's authentication sign-in name.
 	// default: empty
 	LoginName string `json:"login_name"`
+	// The ID of the user's Authentication Source
+	SourceID int64 `json:"source_id"`
 	// the user's full name
 	FullName string `json:"full_name"`
 	// swagger:strfmt email
@@ -109,4 +112,27 @@ type RenameUserOption struct {
 type UpdateUserAvatarOption struct {
 	// image must be base64 encoded
 	Image string `json:"image" binding:"Required"`
+}
+
+// Badge represents a user badge
+// swagger:model
+type Badge struct {
+	ID          int64  `json:"id"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	ImageURL    string `json:"image_url"`
+}
+
+// UserBadge represents a user badge
+// swagger:model
+type UserBadge struct {
+	ID      int64 `json:"id"`
+	BadgeID int64 `json:"badge_id"`
+	UserID  int64 `json:"user_id"`
+}
+
+// UserBadgeOption options for link between users and badges
+type UserBadgeOption struct {
+	// example: ["badge1","badge2"]
+	BadgeSlugs []string `json:"badge_slugs" binding:"Required"`
 }

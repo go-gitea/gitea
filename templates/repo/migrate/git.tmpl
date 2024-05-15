@@ -64,10 +64,10 @@
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
 								<input name="private" type="checkbox" checked readonly>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
 							{{else}}
 								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}}</label>
+								<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
 							{{end}}
 						</div>
 					</div>

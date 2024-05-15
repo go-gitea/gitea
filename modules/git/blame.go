@@ -115,6 +115,10 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
+	if r.bufferedReader == nil {
+		return nil
+	}
+
 	err := <-r.done
 	r.bufferedReader = nil
 	_ = r.reader.Close()
@@ -128,7 +132,7 @@ func (r *BlameReader) Close() error {
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
 	var ignoreRevsFile *string
-	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
+	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
 	}
 

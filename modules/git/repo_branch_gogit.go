@@ -7,7 +7,6 @@
 package git
 
 import (
-	"context"
 	"sort"
 	"strings"
 
@@ -93,34 +92,6 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	}
 
 	return branchNames, len(branchData), nil
-}
-
-// WalkReferences walks all the references from the repository
-// refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
-func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
-	repo := RepositoryFromContext(ctx, repoPath)
-	if repo == nil {
-		var err error
-		repo, err = OpenRepository(ctx, repoPath)
-		if err != nil {
-			return 0, err
-		}
-		defer repo.Close()
-	}
-
-	i := 0
-	iter, err := repo.gogitRepo.References()
-	if err != nil {
-		return i, err
-	}
-	defer iter.Close()
-
-	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		err := walkfn(ref.Hash().String(), string(ref.Name()))
-		i++
-		return err
-	})
-	return i, err
 }
 
 // WalkReferences walks all the references from the repository

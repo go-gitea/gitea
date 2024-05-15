@@ -13,11 +13,11 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	cran_model "code.gitea.io/gitea/models/packages/cran"
-	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cran_module "code.gitea.io/gitea/modules/packages/cran"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -151,12 +151,12 @@ func UploadBinaryPackageFile(ctx *context.Context) {
 }
 
 func uploadPackageFile(ctx *context.Context, compositeKey string, properties map[string]string) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 

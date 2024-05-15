@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"html/template"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +49,19 @@ func TestSubjectBodySeparator(t *testing.T) {
 	test("Multiple\n---\n-------\n---\nSeparators",
 		"Multiple\n",
 		"\n-------\n---\nSeparators")
-	test("Insuficient\n--\nSeparators",
+	test("Insufficient\n--\nSeparators",
 		"",
-		"Insuficient\n--\nSeparators")
+		"Insufficient\n--\nSeparators")
+}
+
+func TestJSEscapeSafe(t *testing.T) {
+	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, JSEscapeSafe(`&<>'"`))
+}
+
+func TestHTMLFormat(t *testing.T) {
+	assert.Equal(t, template.HTML("<a>&lt; < 1</a>"), HTMLFormat("<a>%s %s %d</a>", "<", template.HTML("<"), 1))
+}
+
+func TestSanitizeHTML(t *testing.T) {
+	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }

@@ -1,0 +1,143 @@
+{{if len .comments}}
+	{{$comment := index .comments 0}}
+	{{$invalid := $comment.Invalidated}}
+	{{$resolved := $comment.IsResolved}}
+	{{$resolveDoer := $comment.ResolveDoer}}
+	{{$hasReview := and $comment.Review}}
+	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
+	<div class="ui segments conversation-holder">
+		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between">
+			<div class="tw-flex tw-items-center">
+				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 gt-word-break">{{$comment.TreePath}}</a>
+				{{if $invalid}}
+					<span class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
+					</span>
+				{{end}}
+			</div>
+			<div>
+				{{if or $invalid $resolved}}
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
+						{{svg "octicon-unfold" 16 "tw-mr-2"}}
+						{{if $resolved}}
+							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
+						{{end}}
+					</button>
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
+						{{svg "octicon-fold" 16 "tw-mr-2"}}
+						{{if $resolved}}
+							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.review.hide_outdated"}}
+						{{end}}
+					</button>
+				{{end}}
+			</div>
+		</div>
+		{{$diff := (CommentMustAsDiff ctx $comment)}}
+		{{if $diff}}
+			{{$file := (index $diff.Files 0)}}
+			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
+					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
+						<table>
+							<tbody>
+								{{template "repo/diff/section_unified" dict "file" $file "root" $}}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		{{end}}
+		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
+			<div class="ui comments tw-mb-0">
+				{{range .comments}}
+					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+					<div class="comment code-comment" id="{{.HashTag}}">
+						<div class="content comment-container">
+							<div class="header comment-header">
+								<div class="comment-header-left tw-flex tw-items-center">
+									{{if not .OriginalAuthor}}
+										<a class="avatar">
+											{{ctx.AvatarUtils.Avatar .Poster 20}}
+										</a>
+									{{end}}
+									<span class="text grey muted-links">
+										{{if .OriginalAuthor}}
+											<span class="text black">
+												{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+												{{.OriginalAuthor}}
+											</span>
+											{{if $.Repository.OriginalURL}}
+											<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+											{{end}}
+										{{else}}
+											{{template "shared/user/authorlink" .Poster}}
+										{{end}}
+										{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
+									</span>
+								</div>
+								<div class="comment-header-right actions tw-flex tw-items-center">
+									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
+									{{if not $.Repository.IsArchived}}
+										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+										{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+									{{end}}
+								</div>
+							</div>
+							<div class="text comment-content">
+								<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+								{{if .RenderedContent}}
+									{{.RenderedContent}}
+								{{else}}
+									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+								{{end}}
+								</div>
+								<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+								{{if .Attachments}}
+									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+								{{end}}
+							</div>
+							{{$reactions := .Reactions.GroupByType}}
+							{{if $reactions}}
+								{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+			</div>
+			<div class="code-comment-buttons tw-flex tw-items-center tw-flex-wrap tw-mt-2 tw-mb-1 tw-mx-2">
+				<div class="tw-flex-1">
+					{{if $resolved}}
+						<div class="ui grey text">
+							{{svg "octicon-check" 16 "tw-mr-1"}}
+							<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
+						</div>
+					{{end}}
+				</div>
+				<div class="code-comment-buttons-buttons">
+					{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
+						<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+							{{if $resolved}}
+								{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
+							{{else}}
+								{{ctx.Locale.Tr "repo.issues.review.resolve_conversation"}}
+							{{end}}
+						</button>
+					{{end}}
+					{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+						<button class="comment-form-reply ui primary tiny labeled icon button tw-ml-1 tw-mr-0">
+							{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+						</button>
+					{{end}}
+				</div>
+			</div>
+			{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" $comment.ReviewID "root" $ "comment" $comment}}
+		</div>
+	</div>
+{{else}}
+	{{template "repo/diff/conversation_outdated"}}
+{{end}}

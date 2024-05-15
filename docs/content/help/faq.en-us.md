@@ -178,17 +178,6 @@ At some point, a customer or third party needs access to a specific repo and onl
 
 Use [Fail2Ban](administration/fail2ban-setup.md) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
-## How to add/use custom themes
-
-Gitea supports three official themes right now, `gitea-light`, `gitea-dark`, and `gitea-auto` (automatically switches between the previous two depending on operating system settings).
-To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
-
-As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
-
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/assets/css`
-
-Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
-
 ## SSHD vs built-in SSH
 
 SSHD is the built-in SSH server on most Unix systems.
@@ -221,9 +210,11 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Push Hook / Webhook aren't running
+## Push Hook / Webhook / Actions aren't running
 
-If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook and Actions workflows, it's likely that the git hooks are not working.
+
+There are a few possibilities:
 
 1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
 2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
@@ -370,24 +361,6 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
 you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
-
-If you are using MySQL 5, another possible fix is
-
-```mysql
-SET GLOBAL innodb_file_format=Barracuda;
-SET GLOBAL innodb_file_per_table=1;
-SET GLOBAL innodb_large_prefix=1;
-```
-
-## Why Are Emoji Broken On MySQL
-
-Unfortunately MySQL's `utf8` charset does not completely allow all possible UTF-8 characters, in particular Emoji.
-They created a new charset and collation called `utf8mb4` that allows for emoji to be stored but tables which use
-the `utf8` charset, and connections which use the `utf8` charset will not use this.
-
-Please run `gitea doctor convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for each table in the database.
 
 ## Why are Emoji displaying only as placeholders or in monochrome
 

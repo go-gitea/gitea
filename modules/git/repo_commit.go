@@ -142,6 +142,9 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 		cmd.AddArguments("--all")
 	}
 
+	// interpret search string keywords as string instead of regex
+	cmd.AddArguments("--fixed-strings")
+
 	// add remaining keywords from search string
 	// note this is done only for command created above
 	for _, v := range opts.Keywords {
@@ -243,18 +246,23 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 	}()
 
-	len := repo.objectFormat.FullLength()
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	length := objectFormat.FullLength()
 	commits := []*Commit{}
-	shaline := make([]byte, len+1)
+	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if err != nil || n < len {
+		if err != nil || n < length {
 			if err == io.EOF {
 				err = nil
 			}
 			return commits, err
 		}
-		objectID, err := NewIDFromString(string(shaline[0:len]))
+		objectID, err := NewIDFromString(string(shaline[0:length]))
 		if err != nil {
 			return nil, err
 		}
@@ -430,7 +438,7 @@ func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, 
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if CheckGitVersionAtLeast("2.7.0") == nil {
+	if DefaultFeatures().CheckVersionAtLeast("2.7.0") {
 		stdout, _, err := NewCommand(repo.Ctx, "for-each-ref", "--format=%(refname:strip=2)").
 			AddOptionFormat("--count=%d", limit).
 			AddOptionValues("--contains", commit.ID.String(), BranchPrefix).

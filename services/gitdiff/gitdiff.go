@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -153,7 +154,7 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 
 // GetExpandDirection gets DiffLineExpandDirection
 func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
-	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return DiffLineExpandNone
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
@@ -1043,10 +1044,10 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 			// diff --git a/b b/b b/b b/b b/b b/b
 			//
 			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
-			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
-			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
-				curFile.OldName = old[2:]
-				curFile.Name = old[2:]
+			newPart, oldPart := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(newPart) > 2 && len(oldPart) > 2 && newPart[2:] == oldPart[2:] {
+				curFile.OldName = oldPart[2:]
+				curFile.Name = oldPart[2:]
 			}
 		}
 	}
@@ -1142,7 +1143,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}
@@ -1180,42 +1181,30 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
-		gotVendor := false
-		gotGenerated := false
+		isVendored := optional.None[bool]()
+		isGenerated := optional.None[bool]()
 		if checker != nil {
 			attrs, err := checker.CheckPath(diffFile.Name)
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						diffFile.IsVendored = true
-						gotVendor = true
-					} else {
-						gotVendor = vendored == "false"
-					}
-				}
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						diffFile.IsGenerated = true
-						gotGenerated = true
-					} else {
-						gotGenerated = generated == "false"
-					}
-				}
-				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
-				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					diffFile.Language = language
+				isVendored = git.AttributeToBool(attrs, git.AttributeLinguistVendored)
+				isGenerated = git.AttributeToBool(attrs, git.AttributeLinguistGenerated)
+
+				language := git.TryReadLanguageAttribute(attrs)
+				if language.Has() {
+					diffFile.Language = language.Value()
 				}
 			}
 		}
 
-		if !gotVendor {
-			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		if !isVendored.Has() {
+			isVendored = optional.Some(analyze.IsVendor(diffFile.Name))
 		}
-		if !gotGenerated {
-			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		diffFile.IsVendored = isVendored.Value()
+
+		if !isGenerated.Has() {
+			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
+		diffFile.IsGenerated = isGenerated.Value()
 
 		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommitID, opts.AfterCommitID)
 		if tailSection != nil {

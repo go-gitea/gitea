@@ -5,9 +5,12 @@ const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {
-  const $searchUserBox = $('#search-user-box');
-  const allowEmailInput = $searchUserBox.attr('data-allow-email') === 'true';
-  const allowEmailDescription = $searchUserBox.attr('data-allow-email-description');
+  const searchUserBox = document.getElementById('search-user-box');
+  if (!searchUserBox) return;
+
+  const $searchUserBox = $(searchUserBox);
+  const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
+  const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
@@ -17,14 +20,13 @@ export function initCompSearchUserBox() {
         const searchQuery = $searchUserBox.find('input').val();
         const searchQueryUppercase = searchQuery.toUpperCase();
         $.each(response.data, (_i, item) => {
-          let title = item.login;
-          if (item.full_name && item.full_name.length > 0) {
-            title += ` (${htmlEscape(item.full_name)})`;
-          }
           const resultItem = {
-            title,
-            image: item.avatar_url
+            title: item.login,
+            image: item.avatar_url,
           };
+          if (item.full_name) {
+            resultItem.description = htmlEscape(item.full_name);
+          }
           if (searchQueryUppercase === item.login.toUpperCase()) {
             items.unshift(resultItem);
           } else {
@@ -32,18 +34,18 @@ export function initCompSearchUserBox() {
           }
         });
 
-        if (allowEmailInput && items.length === 0 && looksLikeEmailAddressCheck.test(searchQuery)) {
+        if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
-            description: allowEmailDescription
+            description: allowEmailDescription,
           };
           items.push(resultItem);
         }
 
         return {results: items};
-      }
+      },
     },
     searchFields: ['login', 'full_name'],
-    showNoResults: false
+    showNoResults: false,
   });
 }

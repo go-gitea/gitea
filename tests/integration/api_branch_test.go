@@ -139,6 +139,8 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			ExpectedHTTPStatus: http.StatusConflict,
 		},
 		// Trying to create from other branch (not default branch)
+		// ps: it can't test the case-sensitive behavior here: the "BRANCH_2" can't be created by git on a case-insensitive filesystem, it makes the test fail quickly before the database code.
+		// Suppose some users are running Gitea on a case-insensitive filesystem, it seems that it's unable to support case-sensitive branch names.
 		{
 			OldBranch:          "new_branch_from_master_1",
 			NewBranch:          "branch_2",
@@ -150,10 +152,18 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			NewBranch:          "new_branch_from_non_existent",
 			ExpectedHTTPStatus: http.StatusNotFound,
 		},
+		// Trying to create a branch with UTF8
+		{
+			OldBranch:          "master",
+			NewBranch:          "test-👀",
+			ExpectedHTTPStatus: http.StatusCreated,
+		},
 	}
 	for _, test := range testCases {
 		session := ctx.Session
-		testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
+		t.Run(test.NewBranch, func(t *testing.T) {
+			testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
+		})
 	}
 }
 
@@ -168,7 +178,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
 
-	if status == http.StatusCreated {
+	if resp.Result().StatusCode == http.StatusCreated {
 		assert.EqualValues(t, newBranch, branch.Name)
 	}
 

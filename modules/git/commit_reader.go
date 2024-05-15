@@ -49,9 +49,8 @@ readLoop:
 			if len(line) > 0 && line[0] == ' ' {
 				_, _ = signatureSB.Write(line[1:])
 				continue
-			} else {
-				pgpsig = false
 			}
+			pgpsig = false
 		}
 
 		if !message {
@@ -84,7 +83,11 @@ readLoop:
 				commit.Committer = &Signature{}
 				commit.Committer.Decode(data)
 				_, _ = payloadSB.Write(line)
+			case "encoding":
+				_, _ = payloadSB.Write(line)
 			case "gpgsig":
+				fallthrough
+			case "gpgsig-sha256": // FIXME: no intertop, so only 1 exists at present.
 				_, _ = signatureSB.Write(data)
 				_ = signatureSB.WriteByte('\n')
 				pgpsig = true
@@ -95,7 +98,7 @@ readLoop:
 		}
 	}
 	commit.CommitMessage = messageSB.String()
-	commit.Signature = &CommitGPGSignature{
+	commit.Signature = &CommitSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
 	}

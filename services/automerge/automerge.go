@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -111,7 +112,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func handlePull(pullID int64, sha string) {
 		return
 	}
 
-	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 	if err != nil {
 		log.Error("OpenRepository %-v: %v", pr.HeadRepo, err)
 		return
@@ -228,12 +229,12 @@ func handlePull(pullID int64, sha string) {
 		return
 	}
 
-	if err := pull_service.CheckPullMergable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
 		if errors.Is(pull_service.ErrUserNotAllowedToMerge, err) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}
-		log.Error("%-v CheckPullMergable: %v", pr, err)
+		log.Error("%-v CheckPullMergeable: %v", pr, err)
 		return
 	}
 
@@ -246,7 +247,7 @@ func handlePull(pullID int64, sha string) {
 			return
 		}
 
-		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+		baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository %-v: %v", pr.BaseRepo, err)
 			return

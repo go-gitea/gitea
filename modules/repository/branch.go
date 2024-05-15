@@ -5,12 +5,14 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -24,9 +26,9 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		log.Error("OpenRepository[%s]: %w", repo.RepoPath(), err)
+		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
 	}
 	defer gitRepo.Close()
@@ -35,6 +37,15 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
+	objFmt, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return 0, fmt.Errorf("GetObjectFormat: %w", err)
+	}
+	_, err = db.GetEngine(ctx).ID(repo.ID).Update(&repo_model.Repository{ObjectFormatName: objFmt.Name()})
+	if err != nil {
+		return 0, fmt.Errorf("UpdateRepository: %w", err)
+	}
+
 	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)

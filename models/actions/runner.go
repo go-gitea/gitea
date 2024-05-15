@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -97,7 +98,7 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
-	return lang.Tr("actions.runners.status." + r.StatusName())
+	return lang.TrString("actions.runners.status." + r.StatusName())
 }
 
 func (r *ActionRunner) IsOnline() bool {
@@ -159,7 +160,7 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
-	IsOnline      util.OptionalBool
+	IsOnline      optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -186,10 +187,12 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
 
-	if opts.IsOnline.IsTrue() {
-		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
-	} else if opts.IsOnline.IsFalse() {
-		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	if opts.IsOnline.Has() {
+		if opts.IsOnline.Value() {
+			cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		} else {
+			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		}
 	}
 	return cond
 }
@@ -267,7 +270,7 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	// Only affect action runners were a owner ID is set, as actions runners
 	// could also be created on a repository.
 	return db.GetEngine(ctx).Table("action_runner").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where("`action_runner`.owner_id != ?", 0).
 		And(builder.IsNull{"`user`.id"}).
 		Count(new(ActionRunner))
@@ -276,9 +279,31 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 func FixRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	subQuery := builder.Select("`action_runner`.id").
 		From("`action_runner`").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where(builder.Neq{"`action_runner`.owner_id": 0}).
 		And(builder.IsNull{"`user`.id"})
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func CountRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Table("action_runner").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where("`action_runner`.repo_id != ?", 0).
+		And(builder.IsNull{"`repository`.id"}).
+		Count(new(ActionRunner))
+}
+
+func FixRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	subQuery := builder.Select("`action_runner`.id").
+		From("`action_runner`").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where(builder.Neq{"`action_runner`.repo_id": 0}).
+		And(builder.IsNull{"`repository`.id"})
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
 	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {

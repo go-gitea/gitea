@@ -11,20 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/packet"
-	"xorm.io/xorm"
+	"xorm.io/builder"
 )
-
-//   __________________  ________   ____  __.
-//  /  _____/\______   \/  _____/  |    |/ _|____ ___.__.
-// /   \  ___ |     ___/   \  ___  |      <_/ __ <   |  |
-// \    \_\  \|    |   \    \_\  \ |    |  \  ___/\___  |
-//	\______  /|____|    \______  / |____|__ \___  > ____|
-//				 \/                  \/          \/   \/\/
 
 // GPGKey represents a GPG key.
 type GPGKey struct {
@@ -54,12 +46,11 @@ func (key *GPGKey) BeforeInsert() {
 	key.AddedUnix = timeutil.TimeStampNow()
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (key *GPGKey) AfterLoad(session *xorm.Session) {
-	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
-	if err != nil {
-		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
+func (key *GPGKey) LoadSubKeys(ctx context.Context) error {
+	if err := db.GetEngine(ctx).Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey); err != nil {
+		return fmt.Errorf("find Sub GPGkeys[%s]: %v", key.KeyID, err)
 	}
+	return nil
 }
 
 // PaddedKeyID show KeyID padded to 16 characters
@@ -76,20 +67,26 @@ func PaddedKeyID(keyID string) string {
 	return zeros[0:16-len(keyID)] + keyID
 }
 
-// ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
-	sess := db.GetEngine(ctx).Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-	}
-
-	keys := make([]*GPGKey, 0, 2)
-	return keys, sess.Find(&keys)
+type FindGPGKeyOptions struct {
+	db.ListOptions
+	OwnerID        int64
+	KeyID          string
+	IncludeSubKeys bool
 }
 
-// CountUserGPGKeys return number of gpg keys a user own
-func CountUserGPGKeys(ctx context.Context, userID int64) (int64, error) {
-	return db.GetEngine(ctx).Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
+func (opts FindGPGKeyOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if !opts.IncludeSubKeys {
+		cond = cond.And(builder.Eq{"primary_key_id": ""})
+	}
+
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.KeyID != "" {
+		cond = cond.And(builder.Eq{"key_id": opts.KeyID})
+	}
+	return cond
 }
 
 func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, error) {
@@ -101,12 +98,6 @@ func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, e
 		return nil, ErrGPGKeyNotExist{keyID}
 	}
 	return key, nil
-}
-
-// GetGPGKeysByKeyID returns public key by given ID.
-func GetGPGKeysByKeyID(ctx context.Context, keyID string) ([]*GPGKey, error) {
-	keys := make([]*GPGKey, 0, 1)
-	return keys, db.GetEngine(ctx).Where("key_id=?", keyID).Find(&keys)
 }
 
 // GPGKeyToEntity retrieve the imported key and the traducted entity

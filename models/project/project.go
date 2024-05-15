@@ -6,11 +6,13 @@ package project
 import (
 	"context"
 	"fmt"
+	"html/template"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -100,7 +102,7 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent template.HTML `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -159,6 +161,13 @@ func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
 }
 
+func (p *Project) CanBeAccessedByOwnerRepo(ownerID int64, repo *repo_model.Repository) bool {
+	if p.Type == TypeRepository {
+		return repo != nil && p.RepoID == repo.ID // if a project belongs to a repository, then its OwnerID is 0 and can be ignored
+	}
+	return p.OwnerID == ownerID && p.RepoID == 0
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }
@@ -195,7 +204,7 @@ type SearchOptions struct {
 	db.ListOptions
 	OwnerID  int64
 	RepoID   int64
-	IsClosed util.OptionalBool
+	IsClosed optional.Option[bool]
 	OrderBy  db.SearchOrderBy
 	Type     Type
 	Title    string
@@ -206,11 +215,8 @@ func (opts SearchOptions) ToConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	switch opts.IsClosed {
-	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Eq{"is_closed": true})
-	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"is_closed": false})
+	if opts.IsClosed.Has() {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
 	}
 
 	if opts.Type > 0 {

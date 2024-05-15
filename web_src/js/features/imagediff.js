@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
-import {hideElem, loadElem} from '../utils/dom.js';
+import {hideElem, loadElem, queryElemChildren} from '../utils/dom.js';
 import {parseDom} from '../utils.js';
 
 function getDefaultSvgBoundsIfUndefined(text, src) {
@@ -20,57 +20,57 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
     if (img.width > 1 && img.width < MaxSize && img.height > 1 && img.height < MaxSize) {
       return {
         width: img.width,
-        height: img.height
+        height: img.height,
       };
     }
     if (svg.hasAttribute('viewBox')) {
       const viewBox = svg.viewBox.baseVal;
       return {
         width: DefaultSize,
-        height: DefaultSize * viewBox.width / viewBox.height
+        height: DefaultSize * viewBox.width / viewBox.height,
       };
     }
     return {
       width: DefaultSize,
-      height: DefaultSize
+      height: DefaultSize,
     };
   }
   return null;
 }
 
+function createContext(imageAfter, imageBefore) {
+  const sizeAfter = {
+    width: imageAfter?.width || 0,
+    height: imageAfter?.height || 0,
+  };
+  const sizeBefore = {
+    width: imageBefore?.width || 0,
+    height: imageBefore?.height || 0,
+  };
+  const maxSize = {
+    width: Math.max(sizeBefore.width, sizeAfter.width),
+    height: Math.max(sizeBefore.height, sizeAfter.height),
+  };
+
+  return {
+    imageAfter,
+    imageBefore,
+    sizeAfter,
+    sizeBefore,
+    maxSize,
+    ratio: [
+      Math.floor(maxSize.width - sizeAfter.width) / 2,
+      Math.floor(maxSize.height - sizeAfter.height) / 2,
+      Math.floor(maxSize.width - sizeBefore.width) / 2,
+      Math.floor(maxSize.height - sizeBefore.height) / 2,
+    ],
+  };
+}
+
 export function initImageDiff() {
-  function createContext(image1, image2) {
-    const size1 = {
-      width: image1 && image1.width || 0,
-      height: image1 && image1.height || 0
-    };
-    const size2 = {
-      width: image2 && image2.width || 0,
-      height: image2 && image2.height || 0
-    };
-    const max = {
-      width: Math.max(size2.width, size1.width),
-      height: Math.max(size2.height, size1.height)
-    };
-
-    return {
-      image1: $(image1),
-      image2: $(image2),
-      size1,
-      size2,
-      max,
-      ratio: [
-        Math.floor(max.width - size1.width) / 2,
-        Math.floor(max.height - size1.height) / 2,
-        Math.floor(max.width - size2.width) / 2,
-        Math.floor(max.height - size2.height) / 2
-      ]
-    };
-  }
-
   $('.image-diff:not([data-image-diff-loaded])').each(async function() {
     const $container = $(this);
-    $container.attr('data-image-diff-loaded', 'true');
+    this.setAttribute('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
@@ -79,12 +79,12 @@ export function initImageDiff() {
       path: this.getAttribute('data-path-after'),
       mime: this.getAttribute('data-mime-after'),
       $images: $container.find('img.image-after'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-after')
+      $boundsInfo: $container.find('.bounds-info-after'),
     }, {
       path: this.getAttribute('data-path-before'),
       mime: this.getAttribute('data-mime-before'),
       $images: $container.find('img.image-before'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-before')
+      $boundsInfo: $container.find('.bounds-info-before'),
     }];
 
     await Promise.all(imageInfos.map(async (info) => {
@@ -98,8 +98,10 @@ export function initImageDiff() {
         const text = await resp.text();
         const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
         if (bounds) {
-          info.$images.attr('width', bounds.width);
-          info.$images.attr('height', bounds.height);
+          info.$images.each(function() {
+            this.setAttribute('width', bounds.width);
+            this.setAttribute('height', bounds.height);
+          });
           hideElem(info.$boundsInfo);
         }
       }
@@ -108,87 +110,104 @@ export function initImageDiff() {
     const $imagesAfter = imageInfos[0].$images;
     const $imagesBefore = imageInfos[1].$images;
 
-    initSideBySide(createContext($imagesAfter[0], $imagesBefore[0]));
+    initSideBySide(this, createContext($imagesAfter[0], $imagesBefore[0]));
     if ($imagesAfter.length > 0 && $imagesBefore.length > 0) {
       initSwipe(createContext($imagesAfter[1], $imagesBefore[1]));
       initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    $container.find('> .image-diff-tabs').removeClass('is-loading');
+    queryElemChildren(this, '.image-diff-tabs', (el) => el.classList.remove('is-loading'));
 
-    function initSideBySide(sizes) {
+    function initSideBySide(container, sizes) {
       let factor = 1;
-      if (sizes.max.width > (diffContainerWidth - 24) / 2) {
-        factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
+      if (sizes.maxSize.width > (diffContainerWidth - 24) / 2) {
+        factor = (diffContainerWidth - 24) / 2 / sizes.maxSize.width;
       }
 
-      const widthChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalWidth !== sizes.image2[0].naturalWidth;
-      const heightChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalHeight !== sizes.image2[0].naturalHeight;
-      if (sizes.image1.length !== 0) {
-        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
-        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
-      }
-      if (sizes.image2.length !== 0) {
-        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
-        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
+      const widthChanged = sizes.imageAfter && sizes.imageBefore && sizes.imageAfter.naturalWidth !== sizes.imageBefore.naturalWidth;
+      const heightChanged = sizes.imageAfter && sizes.imageBefore && sizes.imageAfter.naturalHeight !== sizes.imageBefore.naturalHeight;
+      if (sizes.imageAfter) {
+        const boundsInfoAfterWidth = container.querySelector('.bounds-info-after .bounds-info-width');
+        if (boundsInfoAfterWidth) {
+          boundsInfoAfterWidth.textContent = `${sizes.imageAfter.naturalWidth}px`;
+          boundsInfoAfterWidth.classList.toggle('green', widthChanged);
+        }
+        const boundsInfoAfterHeight = container.querySelector('.bounds-info-after .bounds-info-height');
+        if (boundsInfoAfterHeight) {
+          boundsInfoAfterHeight.textContent = `${sizes.imageAfter.naturalHeight}px`;
+          boundsInfoAfterHeight.classList.toggle('green', heightChanged);
+        }
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
-      });
-      sizes.image1.parent().css({
-        margin: `10px auto`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
-      });
-      sizes.image2.parent().css({
-        margin: `10px auto`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
-      });
+      if (sizes.imageBefore) {
+        const boundsInfoBeforeWidth = container.querySelector('.bounds-info-before .bounds-info-width');
+        if (boundsInfoBeforeWidth) {
+          boundsInfoBeforeWidth.textContent = `${sizes.imageBefore.naturalWidth}px`;
+          boundsInfoBeforeWidth.classList.toggle('red', widthChanged);
+        }
+        const boundsInfoBeforeHeight = container.querySelector('.bounds-info-before .bounds-info-height');
+        if (boundsInfoBeforeHeight) {
+          boundsInfoBeforeHeight.textContent = `${sizes.imageBefore.naturalHeight}px`;
+          boundsInfoBeforeHeight.classList.add('red', heightChanged);
+        }
+      }
+
+      if (sizes.imageAfter) {
+        const container = sizes.imageAfter.parentNode;
+        sizes.imageAfter.style.width = `${sizes.sizeAfter.width * factor}px`;
+        sizes.imageAfter.style.height = `${sizes.sizeAfter.height * factor}px`;
+        container.style.margin = '10px auto';
+        container.style.width = `${sizes.sizeAfter.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeAfter.height * factor + 2}px`;
+      }
+
+      if (sizes.imageBefore) {
+        const container = sizes.imageBefore.parentNode;
+        sizes.imageBefore.style.width = `${sizes.sizeBefore.width * factor}px`;
+        sizes.imageBefore.style.height = `${sizes.sizeBefore.height * factor}px`;
+        container.style.margin = '10px auto';
+        container.style.width = `${sizes.sizeBefore.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeBefore.height * factor + 2}px`;
+      }
     }
 
     function initSwipe(sizes) {
       let factor = 1;
-      if (sizes.max.width > diffContainerWidth - 12) {
-        factor = (diffContainerWidth - 12) / sizes.max.width;
+      if (sizes.maxSize.width > diffContainerWidth - 12) {
+        factor = (diffContainerWidth - 12) / sizes.maxSize.width;
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
-      });
-      sizes.image1.parent().css({
-        margin: `0px ${sizes.ratio[0] * factor}px`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
-      });
-      sizes.image1.parent().parent().css({
-        padding: `${sizes.ratio[1] * factor}px 0 0 0`,
-        width: sizes.max.width * factor + 2
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
-      });
-      sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
-      });
-      sizes.image2.parent().parent().css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2
-      });
-      $container.find('.diff-swipe').css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 30 /* extra height for inner "position: absolute" elements */,
-      });
+      if (sizes.imageAfter) {
+        const container = sizes.imageAfter.parentNode;
+        const swipeFrame = container.parentNode;
+        sizes.imageAfter.style.width = `${sizes.sizeAfter.width * factor}px`;
+        sizes.imageAfter.style.height = `${sizes.sizeAfter.height * factor}px`;
+        container.style.margin = `0px ${sizes.ratio[0] * factor}px`;
+        container.style.width = `${sizes.sizeAfter.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeAfter.height * factor + 2}px`;
+        swipeFrame.style.padding = `${sizes.ratio[1] * factor}px 0 0 0`;
+        swipeFrame.style.width = `${sizes.maxSize.width * factor + 2}px`;
+      }
+
+      if (sizes.imageBefore) {
+        const container = sizes.imageBefore.parentNode;
+        const swipeFrame = container.parentNode;
+        sizes.imageBefore.style.width = `${sizes.sizeBefore.width * factor}px`;
+        sizes.imageBefore.style.height = `${sizes.sizeBefore.height * factor}px`;
+        container.style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
+        container.style.width = `${sizes.sizeBefore.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeBefore.height * factor + 2}px`;
+        swipeFrame.style.width = `${sizes.maxSize.width * factor + 2}px`;
+        swipeFrame.style.height = `${sizes.maxSize.height * factor + 2}px`;
+      }
+
+      // extra height for inner "position: absolute" elements
+      const swipe = $container.find('.diff-swipe')[0];
+      if (swipe) {
+        swipe.style.width = `${sizes.maxSize.width * factor + 2}px`;
+        swipe.style.height = `${sizes.maxSize.height * factor + 30}px`;
+      }
+
       $container.find('.swipe-bar').on('mousedown', function(e) {
         e.preventDefault();
 
@@ -200,13 +219,9 @@ export function initImageDiff() {
           e2.preventDefault();
 
           const value = Math.max(0, Math.min(e2.clientX - $swipeFrame.offset().left, width));
+          $swipeBar[0].style.left = `${value}px`;
+          $container.find('.swipe-container')[0].style.width = `${$swipeFrame.width() - value}px`;
 
-          $swipeBar.css({
-            left: value
-          });
-          $container.find('.swipe-container').css({
-            width: $swipeFrame.width() - value
-          });
           $(document).on('mouseup.diff-swipe', () => {
             $(document).off('.diff-swipe');
           });
@@ -216,42 +231,41 @@ export function initImageDiff() {
 
     function initOverlay(sizes) {
       let factor = 1;
-      if (sizes.max.width > diffContainerWidth - 12) {
-        factor = (diffContainerWidth - 12) / sizes.max.width;
+      if (sizes.maxSize.width > diffContainerWidth - 12) {
+        factor = (diffContainerWidth - 12) / sizes.maxSize.width;
       }
 
-      sizes.image1.css({
-        width: sizes.size1.width * factor,
-        height: sizes.size1.height * factor
-      });
-      sizes.image2.css({
-        width: sizes.size2.width * factor,
-        height: sizes.size2.height * factor
-      });
-      sizes.image1.parent().css({
-        margin: `${sizes.ratio[1] * factor}px ${sizes.ratio[0] * factor}px`,
-        width: sizes.size1.width * factor + 2,
-        height: sizes.size1.height * factor + 2
-      });
-      sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
-        width: sizes.size2.width * factor + 2,
-        height: sizes.size2.height * factor + 2
-      });
+      if (sizes.imageAfter) {
+        const container = sizes.imageAfter.parentNode;
+        sizes.imageAfter.style.width = `${sizes.sizeAfter.width * factor}px`;
+        sizes.imageAfter.style.height = `${sizes.sizeAfter.height * factor}px`;
+        container.style.margin = `${sizes.ratio[1] * factor}px ${sizes.ratio[0] * factor}px`;
+        container.style.width = `${sizes.sizeAfter.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeAfter.height * factor + 2}px`;
+      }
 
-      // some inner elements are `position: absolute`, so the container's height must be large enough
-      // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
-      sizes.image2.parent().parent().css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2,
-      });
+      if (sizes.imageBefore) {
+        const container = sizes.imageBefore.parentNode;
+        const overlayFrame = container.parentNode;
+        sizes.imageBefore.style.width = `${sizes.sizeBefore.width * factor}px`;
+        sizes.imageBefore.style.height = `${sizes.sizeBefore.height * factor}px`;
+        container.style.margin = `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`;
+        container.style.width = `${sizes.sizeBefore.width * factor + 2}px`;
+        container.style.height = `${sizes.sizeBefore.height * factor + 2}px`;
 
-      const $range = $container.find("input[type='range']");
-      const onInput = () => sizes.image1.parent().css({
-        opacity: $range.val() / 100
-      });
-      $range.on('input', onInput);
-      onInput();
+        // some inner elements are `position: absolute`, so the container's height must be large enough
+        overlayFrame.style.width = `${sizes.maxSize.width * factor + 2}px`;
+        overlayFrame.style.height = `${sizes.maxSize.height * factor + 2}px`;
+      }
+
+      const rangeInput = $container[0].querySelector('input[type="range"]');
+      function updateOpacity() {
+        if (sizes.imageAfter) {
+          sizes.imageAfter.parentNode.style.opacity = `${rangeInput.value / 100}`;
+        }
+      }
+      rangeInput?.addEventListener('input', updateOpacity);
+      updateOpacity();
     }
   });
 }

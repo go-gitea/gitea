@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetGitAllRefs get ref or an list all the refs of a repository

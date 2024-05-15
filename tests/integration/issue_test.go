@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -143,7 +144,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	val := htmlDoc.doc.Find("#issue-title").Text()
+	val := htmlDoc.doc.Find("#issue-title-display").Text()
 	assert.Contains(t, val, title)
 	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
@@ -407,7 +408,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 18 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -444,7 +445,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "5")
@@ -452,7 +453,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -501,7 +502,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 18 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -573,10 +574,14 @@ func TestGetIssueInfo(t *testing.T) {
 	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repo.Name, issue.Index)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	var respStruct struct {
+		ConvertedIssue api.Issue
+		RenderedLabels template.HTML
+	}
+	DecodeJSON(t, resp, &respStruct)
 
-	assert.EqualValues(t, issue.ID, apiIssue.ID)
+	assert.EqualValues(t, issue.ID, respStruct.ConvertedIssue.ID)
+	assert.Contains(t, string(respStruct.RenderedLabels), `"labels-list"`)
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
@@ -606,4 +611,23 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssue)
 
 	assert.EqualValues(t, "2022-04-06", apiIssue.Deadline.Format("2006-01-02"))
+}
+
+func TestIssueReferenceURL(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+
+	req := NewRequest(t, "GET", fmt.Sprintf("%s/issues/%d", repo.FullName(), issue.Index))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	// the "reference" uses relative URLs, then JS code will convert them to absolute URLs for current origin, in case users are using multiple domains
+	ref, _ := htmlDoc.Find(`.timeline-item.comment.first .reference-issue`).Attr("data-reference")
+	assert.EqualValues(t, "/user2/repo1/issues/1#issue-1", ref)
+
+	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.first) .reference-issue`).Attr("data-reference")
+	assert.EqualValues(t, "/user2/repo1/issues/1#issuecomment-2", ref)
 }
