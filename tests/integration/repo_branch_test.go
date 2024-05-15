@@ -273,7 +273,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		checkRecentlyPushedNewBranches(t, user1Session, "user12/repo10", []string{"private_org35/org35_fork_repo10:new-commit"})
 
 		// user2 push a branch in private_org35
-		testCreateBranch(t, user2Session, orgPrivateForkRepo.OwnerName, orgPrivateForkRepo.Name, "branch/new-commit", "user-no-permission", http.StatusSeeOther)
+		testCreateBranch(t, user2Session, orgPrivateForkRepo.OwnerName, orgPrivateForkRepo.Name, "branch/new-commit", "user-read-permission", http.StatusSeeOther)
 		// convert write permission to read permission for code unit
 		token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", 24), &api.EditTeamOption{
@@ -283,7 +283,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 		teamUnit := unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{TeamID: 24, Type: unit.TypeCode})
 		assert.Equal(t, perm.AccessModeRead, teamUnit.AccessMode)
-		// user2 should not see the branch
-		checkRecentlyPushedNewBranches(t, user2Session, "user12/repo10", []string{})
+		// user2 can see the branch as it is created by user2
+		checkRecentlyPushedNewBranches(t, user2Session, "user12/repo10", []string{"private_org35/org35_fork_repo10:user-read-permission"})
 	})
 }
