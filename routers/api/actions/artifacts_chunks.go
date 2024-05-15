@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -222,6 +223,22 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		for _, c := range chunks {
 			if err := st.Delete(c.Path); err != nil {
 				log.Warn("Error deleting chunk: %s, %v", c.Path, err)
+			} else {
+				log.Debug("Delete chunk:%s", c.Path)
+			}
+		}
+		dirName := path.Dir(chunks[0].Path)
+		existFiles := []string{}
+		st.IterateObjects(dirName, func(fpath string, obj storage.Object) error {
+			existFiles = append(existFiles, fpath)
+			return nil
+		})
+		log.Debug("Artifact temp chunks dir %s, files: %d", dirName, len(existFiles))
+		if len(existFiles) == 0 {
+			if err := st.Delete(dirName); err != nil {
+				log.Warn("Error deleting chunk dir: %s, %v", dirName, err)
+			} else {
+				log.Debug("Delete chunk dir:%s", dirName)
 			}
 		}
 	}()
@@ -250,4 +267,8 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}
 
 	return nil
+}
+
+func cleanStorageDirectory(dir string) {
+
 }
