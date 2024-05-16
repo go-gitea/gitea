@@ -29,6 +29,8 @@ run:
 
 output:
   sort-results: true
+  sort-order: [file]
+  show-stats: true
 
 linters-settings:
   stylecheck:
