@@ -35,13 +35,13 @@
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
-			{{if not .UnitIssuesGlobalDisabled}}
+			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{ctx.Locale.Tr "issues"}}</a>
 			{{end}}
-			{{if not .UnitPullsGlobalDisabled}}
+			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
 				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{ctx.Locale.Tr "pull_requests"}}</a>
 			{{end}}
-			{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
+			{{if not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled)}}
 				{{if .ShowMilestonesDashboardPage}}
 					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
 				{{end}}
