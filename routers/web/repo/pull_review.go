@@ -264,6 +264,8 @@ func SubmitReview(ctx *context.Context) {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		} else if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
+			ctx.Status(http.StatusUnprocessableEntity)
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
@@ -277,6 +279,10 @@ func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
 	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
+		if pull_service.IsErrDismissRequestOnClosedPR(err) {
+			ctx.Status(http.StatusForbidden)
+			return
+		}
 		ctx.ServerError("pull_service.DismissReview", err)
 		return
 	}
@@ -314,7 +320,6 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 	updatedFiles := make(map[string]pull_model.ViewedState, len(data.Files))
 	for file, viewed := range data.Files {
-
 		// Only unviewed and viewed are possible, has-changed can not be set from the outside
 		state := pull_model.Unviewed
 		if viewed {

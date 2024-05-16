@@ -2,7 +2,6 @@ import $ from 'jquery';
 import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
-import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
@@ -47,10 +46,19 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
-      return false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }
@@ -110,7 +118,7 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`${i18n.network_error} ${e}`);
     }
   }
-  actionElem.classList.remove('is-loading', 'small-loading-icon');
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -122,7 +130,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('small-loading-icon');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
@@ -195,8 +203,6 @@ export function initGlobalCommon() {
   //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
-
-  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
 
@@ -379,10 +385,7 @@ function initGlobalShowModal() {
         $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const $colorPickers = $modal.find('.color-picker');
-    if ($colorPickers.length > 0) {
-      initCompColorPicker(); // FIXME: this might cause duplicate init
-    }
+
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -448,5 +451,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }

@@ -1,7 +1,7 @@
-<div class="ui attached segment reactions" data-action-url="{{$.ActionURL}}">
+<div class="bottom-reactions" data-action-url="{{$.ActionURL}}">
 {{range $key, $value := .Reactions}}
-	{{$hasReacted := $value.HasUser $.ctxData.SignedUserID}}
-	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not $.ctxData.IsSigned}} disabled{{end}} comment-reaction-button"
+	{{$hasReacted := $value.HasUser ctx.RootData.SignedUserID}}
+	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not ctx.RootData.IsSigned}} disabled{{end}} comment-reaction-button"
 		data-tooltip-content
 		title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
 		aria-label="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
@@ -12,6 +12,6 @@
 	</a>
 {{end}}
 {{if AllowedReactions}}
-	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $.ctxData "ActionURL" .ActionURL}}
+	{{template "repo/issue/view_content/add_reaction" dict "ActionURL" .ActionURL}}
 {{end}}
 </div>

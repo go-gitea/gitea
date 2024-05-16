@@ -13,6 +13,7 @@ import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
 import {initTableSort} from './features/tablesort.js';
+import {initAutoFocusEnd} from './features/autofocus-end.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
@@ -85,6 +86,8 @@ import {initRepoRecentCommits} from './features/recent-commits.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
+import {initColorPickers} from './features/colorpicker.js';
+import {initAdminSelfCheck} from './features/admin/selfcheck.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -122,6 +125,7 @@ onDomReady(() => {
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
+  initAutoFocusEnd();
   initFindFileInRepo();
   initCopyContent();
 
@@ -129,6 +133,7 @@ onDomReady(() => {
   initAdminEmails();
   initAdminUserListSearchForm();
   initAdminConfigs();
+  initAdminSelfCheck();
 
   initDashboardRepoList();
 
@@ -186,4 +191,5 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
+  initColorPickers();
 });

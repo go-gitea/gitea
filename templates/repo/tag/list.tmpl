@@ -4,32 +4,33 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
+		{{if .Releases}}
 		<h4 class="ui top attached header">
 			<div class="five wide column tw-flex tw-items-center">
 				{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.tags"}}
 			</div>
 		</h4>
-		{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
+		{{$canReadReleases := $.Permission.CanRead ctx.Consts.RepoUnitTypeReleases}}
 		<div class="ui attached table segment">
 			<table class="ui very basic striped fixed table single line" id="tags-table">
 				<tbody class="tag-list">
 					{{range $idx, $release := .Releases}}
 						<tr>
-							<td class="tag">
-								<h3 class="release-tag-name tw-mb-2">
+							<td class="tag-list-row">
+								<h3 class="tag-list-row-title tw-mb-2">
 									{{if $canReadReleases}}
-										<a class="tw-flex tw-items-center" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+										<a class="tag-list-row-link tw-flex tw-items-center" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
 									{{else}}
-										<a class="tw-flex tw-items-center" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+										<a class="tag-list-row-link tw-flex tw-items-center" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
 									{{end}}
 								</h3>
 								<div class="download tw-flex tw-items-center">
-									{{if $.Permission.CanRead $.UnitTypeCode}}
+									{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 										{{if .CreatedUnix}}
 											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
 										{{end}}
 
-										<a class="tw-mr-2 gt-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
+										<a class="tw-mr-2 tw-font-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
 
 										{{if not $.DisableDownloadSourceArchives}}
 											<a class="archive-link tw-mr-2 muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-1"}}ZIP</a>
@@ -40,7 +41,7 @@
 											<a class="tw-mr-2 muted" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.new_release"}}</a>
 										{{end}}
 
-										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
+										{{if (and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) $release.IsTag)}}
 											<a class="ui delete-button tw-mr-2 muted" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
 												{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.delete_tag"}}
 											</a>
@@ -57,12 +58,13 @@
 				</tbody>
 			</table>
 		</div>
+		{{end}}
 
 		{{template "base/paginate" .}}
 	</div>
 </div>
 
-{{if $.Permission.CanWrite $.UnitTypeCode}}
+{{if $.Permission.CanWrite ctx.Consts.RepoUnitTypeCode}}
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}

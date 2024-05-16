@@ -62,11 +62,13 @@ func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, 
 		return true
 	}
 
-	if len(p.Units) < 1 {
+	// the code below depends on units to get the repository ID, not ideal but just keep it for now
+	firstUnitRepoID := p.GetFirstUnitRepoID()
+	if firstUnitRepoID == 0 {
 		return false
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, p.Units[0].RepoID, branch)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, firstUnitRepoID, branch)
 	if err != nil {
 		return false
 	}

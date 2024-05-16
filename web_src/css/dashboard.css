@@ -7,7 +7,6 @@
 .dashboard.feeds .context.user.menu .ui.header,
 .dashboard.issues .context.user.menu .ui.header {
   font-size: 1rem;
-  text-transform: none;
 }
 
 .dashboard.feeds .filter.menu,
@@ -26,23 +25,6 @@
 .dashboard.feeds .filter.menu .item .text.truncate,
 .dashboard.issues .filter.menu .item .text.truncate {
   width: 75%;
-}
-
-.dashboard.feeds .filter.menu .item .floating.label,
-.dashboard.issues .filter.menu .item .floating.label {
-  top: 7px;
-  left: 90%;
-  width: 15%;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard.feeds .filter.menu .item .floating.label,
-  .dashboard.issues .filter.menu .item .floating.label {
-    top: 10px;
-    left: auto;
-    width: auto;
-    right: 13px;
-  }
 }
 
 /* Sort */
