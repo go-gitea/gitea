@@ -26,9 +26,7 @@
 		</div>
 		<div class="issue-title-buttons">
 			<button class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-			<button class="ui small primary button"
-							data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title"
-							{{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>
+			<button class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 				{{ctx.Locale.Tr "repo.issues.save"}}
 			</button>
 		</div>
@@ -77,7 +75,7 @@
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					<span id="pull-desc-editor" class="tw-hidden flex-text-block">
+					<span id="pull-desc-editor" class="tw-hidden flex-text-block" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
 						<div class="ui floating filter dropdown">
 							<div class="ui basic small button tw-mr-0">
 								<span class="text">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
