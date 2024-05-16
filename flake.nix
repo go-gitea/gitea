@@ -24,7 +24,7 @@
             # frontend
             nodejs_20
 
-            # templates
+            # linting
             python312
             poetry
 
