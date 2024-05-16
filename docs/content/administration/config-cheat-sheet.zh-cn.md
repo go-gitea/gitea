@@ -1218,6 +1218,10 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
+- `AZURE_BLOB_ENDPOINT`: **_empty_**: Azure Blob 终端点，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。例如：https://accountname.blob.core.windows.net 或 http://127.0.0.1:10000/devstoreaccount1
+- `AZURE_BLOB_ACCOUNT_NAME`: **_empty_**: Azure Blob 账号名，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
+- `AZURE_BLOB_ACCOUNT_KEY`: **_empty_**: Azure Blob 访问密钥，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
+- `AZURE_BLOB_CONTAINER`: **gitea**: Azure Blob 容器名，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
 
 建议的 minio 存储配置如下：
 
