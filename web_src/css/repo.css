@@ -2256,6 +2256,10 @@ td .commit-summary {
   justify-content: flex-end;
 }
 
+.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
+  flex-grow: 0;
+}
+
 @media (max-width: 991px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
