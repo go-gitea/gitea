@@ -30,65 +30,58 @@ import (
 var _ Object = &azureBlobObject{}
 
 type azureBlobObject struct {
-	BlobClient *blob.Client
-	Context    *context.Context
+	blobClient *blob.Client
+	Context    context.Context
 	Name       string
 	Size       int64
 	ModTime    *time.Time
-
-	Offset int64
+	offset     int64
 }
 
-func (a *azureBlobObject) downloadBuffer(p []byte) (int, error) {
-	if a.Offset > a.Size {
+func (a *azureBlobObject) Read(p []byte) (int, error) {
+	// TODO: improve the performance, we can implement another interface, maybe implement io.WriteTo
+	if a.offset >= a.Size {
 		return 0, io.EOF
 	}
-	count := a.Size - a.Offset
-	pl := int64(len(p))
-	if pl > count {
-		p = p[0:count]
-	} else {
-		count = pl
-	}
-	res, err := a.BlobClient.DownloadBuffer(*a.Context, p, &blob.DownloadBufferOptions{
+	count := min(int64(len(p)), a.Size-a.offset)
+
+	res, err := a.blobClient.DownloadBuffer(a.Context, p, &blob.DownloadBufferOptions{
 		Range: blob.HTTPRange{
-			Offset: a.Offset,
+			Offset: a.offset,
 			Count:  count,
 		},
 	})
 	if err != nil {
 		return 0, convertAzureBlobErr(err)
 	}
-	a.Offset += count
+	a.offset += res
 
 	return int(res), nil
 }
 
 func (a *azureBlobObject) Close() error {
+	a.offset = 0
 	return nil
-}
-
-func (a *azureBlobObject) Read(p []byte) (int, error) {
-	c, err := a.downloadBuffer(p)
-	return c, err
 }
 
 func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
+	case io.SeekStart:
+		a.offset = offset
+	case io.SeekCurrent:
+		a.offset += offset
+	case io.SeekEnd:
+		a.offset = a.Size - offset
 	default:
 		return 0, errors.New("Seek: invalid whence")
-	case io.SeekStart:
-		offset += 0
-	case io.SeekCurrent:
-		offset += a.Offset
-	case io.SeekEnd:
-		offset += a.Size
 	}
-	if offset < 0 {
+
+	if a.offset > a.Size {
+		return 0, errors.New("Seek: invalid offset")
+	} else if a.offset < 0 {
 		return 0, errors.New("Seek: invalid offset")
 	}
-	a.Offset = offset
-	return offset, nil
+	return a.offset, nil
 }
 
 func (a *azureBlobObject) Stat() (os.FileInfo, error) {
@@ -103,11 +96,10 @@ var _ ObjectStorage = &AzureBlobStorage{}
 
 // AzureStorage returns a azure blob storage
 type AzureBlobStorage struct {
-	cfg             *setting.AzureBlobStorageConfig
-	ctx             context.Context
-	credential      *azblob.SharedKeyCredential
-	client          *azblob.Client
-	containerClient *container.Client
+	cfg        *setting.AzureBlobStorageConfig
+	ctx        context.Context
+	credential *azblob.SharedKeyCredential
+	client     *azblob.Client
 }
 
 func convertAzureBlobErr(err error) error {
@@ -135,7 +127,7 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
 	}
-	client, err := azblob.NewClientWithSharedKeyCredential(config.Endpoint+"/"+config.AccountName, cred, &azblob.ClientOptions{})
+	client, err := azblob.NewClientWithSharedKeyCredential(config.Endpoint, cred, &azblob.ClientOptions{})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
 	}
@@ -149,11 +141,10 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 	}
 
 	return &AzureBlobStorage{
-		cfg:             &config,
-		ctx:             ctx,
-		credential:      cred,
-		client:          client,
-		containerClient: client.ServiceClient().NewContainerClient(config.Container),
+		cfg:        &config,
+		ctx:        ctx,
+		credential: cred,
+		client:     client,
 	}, nil
 }
 
@@ -181,8 +172,8 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 		return nil, convertAzureBlobErr(err)
 	}
 	return &azureBlobObject{
-		Context:    &a.ctx,
-		BlobClient: blobClient,
+		Context:    a.ctx,
+		blobClient: blobClient,
 		Name:       a.getObjectNameFromPath(path),
 		Size:       *res.ContentLength,
 		ModTime:    res.LastModified,
@@ -191,11 +182,7 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 
 // Save saves a file to azure blob storage
 func (a *AzureBlobStorage) Save(path string, r io.Reader, size int64) (int64, error) {
-	client, err := azblob.NewClientFromConnectionString(a.cfg.ConnectionString(), &azblob.ClientOptions{})
-	if err != nil {
-		return 0, convertAzureBlobErr(err)
-	}
-	_, err = client.UploadStream(
+	_, err := a.client.UploadStream(
 		a.ctx,
 		a.cfg.Container,
 		a.buildAzureBlobPath(path),
@@ -312,8 +299,8 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 				return convertAzureBlobErr(err)
 			}
 			object := &azureBlobObject{
-				Context:    &a.ctx,
-				BlobClient: blobClient,
+				Context:    a.ctx,
+				blobClient: blobClient,
 				Name:       *object.Name,
 				Size:       *object.Properties.ContentLength,
 				ModTime:    object.Properties.LastModified,
@@ -331,8 +318,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 
 // Delete delete a file
 func (a *AzureBlobStorage) getBlobClient(path string) (*blob.Client, error) {
-	// blob.NewClient(blobURL string, cred azcore.TokenCredential, options *blob.ClientOptions)
-	return blob.NewClientFromConnectionString(a.cfg.ConnectionString(), a.cfg.Container, a.buildAzureBlobPath(path), &blob.ClientOptions{})
+	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path)), nil
 }
 
 func init() {
