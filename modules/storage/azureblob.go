@@ -222,7 +222,7 @@ func (a azureBlobFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (a azureBlobFileInfo) Sys() interface{} {
+func (a azureBlobFileInfo) Sys() any {
 	return nil
 }
 
