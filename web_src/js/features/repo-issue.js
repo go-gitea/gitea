@@ -638,8 +638,9 @@ export function initRepoIssueTitleEdit() {
         }
       }
       if (prTargetUpdateUrl) {
-        const newTargetBranch = document.querySelector('#pull-target-branch').getAttribute('data-branch');
-        const oldTargetBranch = document.querySelector('#branch_target').textContent;
+        // merged pr can not edit target branch, so they maybe null
+        const newTargetBranch = document.querySelector('#pull-target-branch')?.getAttribute('data-branch');
+        const oldTargetBranch = document.querySelector('#branch_target')?.textContent;
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: newTargetBranch})});
           if (!resp.ok) {
