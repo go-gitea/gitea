@@ -25,7 +25,7 @@
             nodejs_20
 
             # templates
-            poetry
+            python312
             poetry
 
             # backend
