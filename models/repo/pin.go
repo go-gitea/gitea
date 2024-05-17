@@ -33,33 +33,29 @@ func IsPinned(ctx context.Context, userID, repoID int64) bool {
 }
 
 func PinRepo(ctx context.Context, doer *user_model.User, repo *Repository, pin bool) error {
-	ctx, commiter, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		pinned := IsPinned(ctx, doer.ID, repo.ID)
 
-	defer commiter.Close()
-	pinned := IsPinned(ctx, doer.ID, repo.ID)
+		if pin {
+			// Already pinned, nothing to do
+			if pinned {
+				return nil
+			}
 
-	if pin {
-		// Already pinned, nothing to do
-		if pinned {
-			return nil
+			if err := db.Insert(ctx, &Pin{UID: doer.ID, RepoID: repo.ID}); err != nil {
+				return err
+			}
+		} else {
+			// Not pinned, nothing to do
+			if !pinned {
+				return nil
+			}
+
+			if _, err := db.DeleteByBean(ctx, &Pin{UID: doer.ID, RepoID: repo.ID}); err != nil {
+				return err
+			}
 		}
 
-		if err = db.Insert(ctx, &Pin{UID: doer.ID, RepoID: repo.ID}); err != nil {
-			return err
-		}
-	} else {
-		// Not pinned, nothing to do
-		if !pinned {
-			return nil
-		}
-
-		if _, err = db.DeleteByBean(ctx, &Pin{UID: doer.ID, RepoID: repo.ID}); err != nil {
-			return err
-		}
-	}
-
-	return commiter.Commit()
+		return nil
+	})
 }
