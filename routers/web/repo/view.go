@@ -1186,7 +1186,10 @@ func loadPinData(ctx *context.Context) error {
 	}
 
 	ctx.Data["IsPinningRepo"] = repo_model.IsPinned(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	ctx.Data["CanPinRepo"] = user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
+	ctx.Data["CanPinRepo"], err = user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		return err
+	}
 
 	if ctx.Repo.Repository.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Repo.Repository.Owner)
@@ -1199,7 +1202,10 @@ func loadPinData(ctx *context.Context) error {
 		if isAdmin {
 			ctx.Data["CanUserPinToOrg"] = true
 			ctx.Data["IsOrgPinningRepo"] = repo_model.IsPinned(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
-			ctx.Data["CanOrgPinRepo"] = user_service.CanPin(ctx, ctx.Repo.Repository.Owner, ctx.Repo.Repository)
+			ctx.Data["CanOrgPinRepo"], err = user_service.CanPin(ctx, ctx.Repo.Repository.Owner, ctx.Repo.Repository)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
