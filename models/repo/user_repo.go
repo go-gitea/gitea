@@ -85,6 +85,10 @@ func GetPinnedRepos(ctx context.Context, opts *PinnedReposOptions) (RepositoryLi
 	return db.Find[Repository](ctx, opts)
 }
 
+func CountPinnedRepos(ctx context.Context, opts *PinnedReposOptions) (int64, error) {
+	return db.Count[Repository](ctx, opts)
+}
+
 type WatchedReposOptions struct {
 	db.ListOptions
 	WatcherID      int64

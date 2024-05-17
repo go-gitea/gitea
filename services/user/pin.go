@@ -19,18 +19,18 @@ const maxPins = 6
 // Check if a user have a new pinned repo in it's profile, meaning that it
 // has permissions to pin said repo and also has enough space on the pinned list.
 func CanPin(ctx *context.Context, u *user_model.User, r *repo_model.Repository) (bool, error) {
-	repos, err := repo_model.GetPinnedRepos(*ctx, &repo_model.PinnedReposOptions{
+	count, err := repo_model.CountPinnedRepos(*ctx, &repo_model.PinnedReposOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
 		PinnerID: u.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetPinnedRepos", err)
+		ctx.ServerError("CountPinnedRepos", err)
 		return false, err
 	}
 
-	if len(repos) >= maxPins {
+	if count >= maxPins {
 		return false, nil
 	}
 
