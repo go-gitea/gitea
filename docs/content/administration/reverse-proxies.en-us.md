@@ -43,7 +43,7 @@ If you want Nginx to serve your Gitea instance, add the following `server` secti
 
 And make sure `client_max_body_size` is large enough, otherwise there would be "413 Request Entity Too Large" error when uploading large files.
 
-```
+```nginx
 server {
     ...
     location / {
@@ -63,7 +63,7 @@ server {
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
 
-```
+```nginx
 server {
     ...
     # Note: Trailing slash
@@ -105,7 +105,7 @@ or use a cdn for the static files.
 
 Set `[server] STATIC_URL_PREFIX = /_/static` in your configuration.
 
-```
+```nginx
 server {
     listen 80;
     server_name git.example.com;
@@ -124,7 +124,7 @@ server {
 
 Set `[server] STATIC_URL_PREFIX = http://cdn.example.com/gitea` in your configuration.
 
-```
+```nginx
 # application server running Gitea
 server {
     listen 80;
@@ -136,7 +136,7 @@ server {
 }
 ```
 
-```
+```nginx
 # static content delivery server
 server {
     listen 80;
