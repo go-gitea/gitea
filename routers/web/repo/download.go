@@ -53,8 +53,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 			return nil
 		}
 
-		if (setting.LFS.Storage.MinioConfig.ServeDirect && setting.LFS.Storage.Type == setting.MinioStorageType) ||
-			(setting.LFS.Storage.AzureBlobConfig.ServeDirect && setting.LFS.Storage.Type == setting.AzureBlobStorageType) {
+		if setting.LFS.Storage.ServeDirect() {
 			// If we have a signed url (S3, object storage, blob storage), redirect to this directly.
 			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
 			if u != nil && err == nil {

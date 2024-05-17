@@ -97,6 +97,11 @@ func (storage *Storage) ToShadowCopy() Storage {
 	return shadowStorage
 }
 
+func (storage *Storage) ServeDirect() bool {
+	return (storage.Type == MinioStorageType && storage.MinioConfig.ServeDirect) ||
+		(storage.Type == AzureBlobStorageType && storage.AzureBlobConfig.ServeDirect)
+}
+
 const storageSectionName = "storage"
 
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
