@@ -55,7 +55,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		}
 	}
 	if writtenSize != contentSize {
-		checkErr = errors.Join(checkErr, fmt.Errorf("contentSize not match body size"))
+		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
 	}
 	if checkErr != nil {
 		if err := st.Delete(storagePath); err != nil {

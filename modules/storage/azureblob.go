@@ -182,18 +182,19 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 
 // Save saves a file to azure blob storage
 func (a *AzureBlobStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+	rd := util.NewCountingReader(r)
 	_, err := a.client.UploadStream(
 		a.ctx,
 		a.cfg.Container,
 		a.buildAzureBlobPath(path),
-		r,
+		rd,
 		// TODO: support set block size and concurrency
 		&blockblob.UploadStreamOptions{},
 	)
 	if err != nil {
 		return 0, convertAzureBlobErr(err)
 	}
-	return size, nil
+	return int64(rd.Count()), nil
 }
 
 type azureBlobFileInfo struct {

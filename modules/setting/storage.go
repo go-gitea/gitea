@@ -6,11 +6,8 @@ package setting
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"path/filepath"
 	"strings"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -73,17 +70,6 @@ type AzureBlobStorageConfig struct {
 	Container   string `ini:"AZURE_BLOB_CONTAINER" json:",omitempty"`
 	BasePath    string `ini:"AZURE_BLOB_BASE_PATH" json:",omitempty"`
 	ServeDirect bool   `ini:"SERVE_DIRECT"`
-}
-
-func (cfg AzureBlobStorageConfig) ConnectionString() string {
-	u, err := url.Parse(cfg.Endpoint)
-	if err != nil {
-		log.Fatal("parse endpoint %s failed: %v", cfg.Endpoint, err)
-		return ""
-	}
-
-	return fmt.Sprintf("DefaultEndpointsProtocol=%s;AccountName=%s;AccountKey=%s;EndpointSuffix=%s",
-		u.Scheme, cfg.AccountName, cfg.AccountKey, u.Host)
 }
 
 func (cfg *AzureBlobStorageConfig) ToShadow() {
