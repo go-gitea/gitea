@@ -125,7 +125,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		req := NewRequest(t, "GET", url)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		editTestTitleURL, exists := htmlDoc.doc.Find("#save-edit-title").First().Attr("data-update-url")
+		editTestTitleURL, exists := htmlDoc.doc.Find(".issue-title-buttons button[data-update-url]").First().Attr("data-update-url")
 		assert.True(t, exists, "The template has changed")
 
 		req = NewRequestWithValues(t, "POST", editTestTitleURL, map[string]string{
