@@ -796,6 +796,7 @@ Gitea 创建以下非唯一队列：
 - `MINIO_USE_SSL`: **false**: Minio 启用 SSL，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio 跳过 SSL 验证，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio 校验算法：`default`（适用于 MinIO 或 AWS S3）或 `md5`（适用于 Cloudflare 或 Backblaze）
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 日志 (`log`)
 
@@ -1201,6 +1202,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_BASE_PATH`：**lfs/**：桶上的 Minio 基本路径，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 存储 (`storage`)
 
@@ -1215,6 +1217,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_LOCATION`：**us-east-1**：创建桶的 Minio 位置，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 建议的 minio 存储配置如下：
 
@@ -1236,6 +1239,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 默认情况下，每个存储都有其默认的基本路径，如下所示：
@@ -1282,6 +1287,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ### 存储库归档存储 (`storage.repo-archive`)
@@ -1299,6 +1306,7 @@ MINIO_INSECURE_SKIP_VERIFY = false
 - `MINIO_BASE_PATH`: **repo-archive/**：存储桶上的Minio基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_USE_SSL`: **false**：启用Minio的SSL，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**：跳过Minio的SSL验证，仅在`STORAGE_TYPE`为`minio`时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ### 存储库归档 (`repo-archive`)
 
