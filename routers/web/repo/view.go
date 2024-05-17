@@ -797,6 +797,7 @@ func Home(ctx *context.Context) {
 		err := loadPinData(ctx)
 		if err != nil {
 			ctx.ServerError("loadPinData", err)
+			return
 		}
 	}
 
