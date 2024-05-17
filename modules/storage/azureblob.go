@@ -273,23 +273,6 @@ func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
 	}
 
 	return url.Parse(u)
-
-	// GetSASURL is a generic method built for common use cases. We need to implement it by ourselves
-	/*startTime := time.Now()
-	expiryTime :=
-	qps, err := sas.BlobSignatureValues{
-		ContainerName:      a.cfg.Container,
-		BlobName:           a.buildAzureBlobPath(path),
-		Version:            sas.Version,
-		Permissions:        (&sas.BlobPermissions{Read: true}).String(),
-		StartTime:          startTime.UTC(),
-		ExpiryTime:         expiryTime.UTC(),
-		ContentDisposition: "attachment; filename=\"" + quoteEscaper.Replace(name) + "\"",
-	}.SignWithSharedKey(a.credential)
-	if err != nil {
-		return nil, err
-	}
-	return url.Parse(blobClient.URL() + "?" + qps.Encode())*/
 }
 
 // IterateObjects iterates across the objects in the azureblobstorage
