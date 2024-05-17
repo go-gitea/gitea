@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
+const maxPins = 6
+
 // Check if a user have a new pinned repo in it's profile, meaning that it
 // has permissions to pin said repo and also has enough space on the pinned list.
 func CanPin(ctx *context.Context, u *user_model.User, r *repo_model.Repository) bool {
@@ -27,7 +29,8 @@ func CanPin(ctx *context.Context, u *user_model.User, r *repo_model.Repository) 
 		ctx.ServerError("GetPinnedRepos", err)
 		return false
 	}
-	if len(repos) >= 6 {
+
+	if len(repos) >= maxPins {
 		return false
 	}
 
