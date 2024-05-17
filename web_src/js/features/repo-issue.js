@@ -626,9 +626,12 @@ export function initRepoIssueTitleEdit() {
     showElem(issueTitleDisplay);
     showElem('#pull-desc-display');
   });
+
+  const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
   editSaveButton.addEventListener('click', async () => {
-    const prTargetUpdateUrl = editSaveButton.getAttribute('data-target-update-url');
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
