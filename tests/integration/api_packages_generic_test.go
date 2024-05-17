@@ -164,6 +164,8 @@ func TestPackageGeneric(t *testing.T) {
 					defer func() {
 						setting.Packages.Storage.AzureBlobConfig.ServeDirect = old
 					}()
+
+					setting.Packages.Storage.AzureBlobConfig.ServeDirect = true
 				}
 			}
 
