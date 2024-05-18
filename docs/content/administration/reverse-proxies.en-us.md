@@ -61,22 +61,31 @@ server {
 
 ## Nginx with a sub-path
 
-In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
+In case you already have a site, and you want Gitea to share the domain name,
+you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section
+into the `http` section of `nginx.conf`:
 
 ```nginx
 server {
     ...
-    # Note: Trailing slash
-    location /gitea/ {
+    location /gitea {
+        return 301 $scheme://$host/gitea/;
+    }
+    location ~ ^/(gitea|v2)/ {
         client_max_body_size 512M;
 
-        # make nginx use unescaped URI, keep "%2F" as is
+        # make nginx use unescaped URI, keep "%2F" as-is, remove the "/gitea" sub-path prefix, pass "/v2" as-is.
         rewrite ^ $request_uri;
-        rewrite ^/gitea(/.*) $1 break;
+        rewrite ^(/gitea)?(/.*) $2 break;
         proxy_pass http://127.0.0.1:3000$uri;
 
         # other common HTTP headers, see the "Nginx" config section above
-        proxy_set_header ...
+        proxy_set_header Connection $http_connection;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
