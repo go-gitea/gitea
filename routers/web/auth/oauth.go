@@ -556,14 +556,21 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "cannot create grant for user",
-			ErrorCode:        ErrorCodeServerError,
-		}, form.RedirectURI)
+		handleServerError(ctx, form.State, form.RedirectURI)
 		return
+	}
+	if grant == nil {
+		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+		if err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot create grant for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
 	}
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
