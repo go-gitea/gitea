@@ -68,10 +68,7 @@ into the `http` section of `nginx.conf`:
 ```nginx
 server {
     ...
-    location /gitea {
-        return 301 $scheme://$host/gitea/;
-    }
-    location ~ ^/(gitea|v2)/ {
+    location ~ ^/(gitea|v2)($|/) {
         client_max_body_size 512M;
 
         # make nginx use unescaped URI, keep "%2F" as-is, remove the "/gitea" sub-path prefix, pass "/v2" as-is.
