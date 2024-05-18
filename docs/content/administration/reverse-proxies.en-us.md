@@ -22,7 +22,7 @@ menu:
 1. Set `[server] ROOT_URL = https://git.example.com/` in your `app.ini` file.
 2. Make the reverse-proxy pass `https://git.example.com/foo` to `http://gitea:3000/foo`.
 3. Make sure the reverse-proxy not decode the URI, the request `https://git.example.com/a%2Fb` should be passed as `http://gitea:3000/a%2Fb`.
-4. Make sure `Host` and `X-Fowarded-Proto` headers are correctly passed to Gitea to make sure Gitea sees the real URL being visited.
+4. Make sure `Host` and `X-Fowarded-Proto` headers are correctly passed to Gitea to make Gitea see the real URL being visited.
 
 ### Use a sub-path
 
