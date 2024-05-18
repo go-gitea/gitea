@@ -116,26 +116,56 @@
 			<div class="repo-button-row-right">
 				<!-- Only show clone panel in repository home page -->
 				{{if $isHomepage}}
-					<div class="clone-panel ui action tiny input">
-						{{template "repo/clone_buttons" .}}
-						<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
-							{{svg "octicon-kebab-horizontal"}}
-							<div class="menu">
-								{{if not $.DisableDownloadSourceArchives}}
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+				<div class="clone-panel ui action tiny input">
+					<button class="ui basic small compact jump dropdown icon button primary" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
+						<!-- {{svg "octicon-kebab-horizontal"}} -->
+						<div>
+							{{svg "octicon-code" 16}}
+							<span>Code</span>
+							{{svg "octicon-chevron-down"}}
+						</div>
+						<div class="menu gt-mt-3 clone-panel-content">
+							<div class="ui input">
+								{{svg "octicon-terminal" 16}}
+								<strong id="clone-heading" class="gt-ml-3">Clone</strong>
+							</div>
+							<div class="ui input gt-mb-0">
+								<!-- there is always at least one button (by context/repo.go) -->
+								{{if $.CloneButtonShowHTTPS}}
+								<div class="ui clone tabs" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}" data-description="{{ctx.Locale.Tr "repo.clone_https_description"}}">
+									HTTPS
+								</div>
 								{{end}}
-								{{if .CitiationExist}}
-									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
-								{{end}}
-								{{range .OpenWithEditorApps}}
-									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+								{{if $.CloneButtonShowSSH}}
+								<div class="ui clone tabs" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}" data-description="{{ctx.Locale.Tr "repo.clone_ssh_description"}}">
+									SSH
+								</div>
 								{{end}}
 							</div>
-						</button>
-						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
-					</div>
+							<div class="ui input tiny action gt-mt-4 gt-mb-0">
+								<input id="repo-clone-url" size="30" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
+								<div class="ui basic small compact icon button tooltip" id="clipboard-btn" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{ctx.Locale.Tr "copy_url"}}">
+									{{svg "octicon-copy" 14}}
+								</div>
+							</div>
+							<div id="repo-clone-method-description" class="ui input text tiny grey gt-mt-3"></div>
+							{{range .OpenWithEditorApps}}
+								<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+							{{end}}
+							{{if not $.DisableDownloadSourceArchives}}
+							<div class="ui divider"></div>
+							<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
+							<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
+							<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+							{{end}}
+							{{if .CitiationExist}}
+								<div class="ui divider"></div>
+								<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+							{{end}}
+						</div>
+					</button>
+					{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
+				</div>
 					{{template "repo/cite/cite_modal" .}}
 				{{end}}
 				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
