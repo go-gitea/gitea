@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -728,7 +729,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		if !assert.NoError(t, err) {
 			branches, _, err := baseGitRepo.GetBranchNames(0, 100)
 			assert.NoError(t, err)
-			fmt.Println("----", branches)
+			log.Println("----", branches)
 		}
 		baseGitRepo.Close()
 		defer func() {
