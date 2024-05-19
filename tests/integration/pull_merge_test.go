@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -726,11 +726,11 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 		assert.NoError(t, err)
 		masterCommitID, err := baseGitRepo.GetRefCommitID("master")
-		if !assert.NoError(t, err) {
-			branches, _, err := baseGitRepo.GetBranchNames(0, 100)
-			assert.NoError(t, err)
-			log.Println("----", branches)
-		}
+		assert.NoError(t, err)
+
+		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
+		assert.NoError(t, err)
+		log.Info("Checking---- %v", branches)
 		baseGitRepo.Close()
 		defer func() {
 			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
