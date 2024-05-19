@@ -21,27 +21,27 @@ menu:
 
 1. Set `[server] ROOT_URL = https://git.example.com/` in your `app.ini` file.
 2. Make the reverse-proxy pass `https://git.example.com/foo` to `http://gitea:3000/foo`.
-3. Make sure the reverse-proxy not decode the URI, the request `https://git.example.com/a%2Fb` should be passed as `http://gitea:3000/a%2Fb`.
+3. Make sure the reverse-proxy does not decode the URI. The request `https://git.example.com/a%2Fb` should be passed as `http://gitea:3000/a%2Fb`.
 4. Make sure `Host` and `X-Fowarded-Proto` headers are correctly passed to Gitea to make Gitea see the real URL being visited.
 
 ### Use a sub-path
 
 Usually it's **not recommended** to put Gitea in a sub-path, it's not widely used and may have some issues in rare cases.
 
-If you really need to do so, to make Gitea work with sub-path (eg: `https://common.example.com/gitea/`),
-here are the extra requirements besides the general configuration above:
+To make Gitea work with a sub-path (eg: `https://common.example.com/gitea/`),
+there are some extra requirements besides the general configuration above:
 
 1. Use `[server] ROOT_URL = https://common.example.com/gitea/` in your `app.ini` file.
 2. Make the reverse-proxy pass `https://common.example.com/gitea/foo` to `http://gitea:3000/foo`.
-3. If you'd like to use container registry, the container registry uses a fixed sub-path `/v2` in the root, which is unchangeable and required by container registry standard.
-   - Make reverse-proxy pass `https://common.example.com/v2` to `http://gitea:3000/v2`.
+3. The container registry requires a fixed sub-path `/v2` at the root level which must be configured:
+   - Make the reverse-proxy pass `https://common.example.com/v2` to `http://gitea:3000/v2`.
    - Make sure the URI and headers are also correctly passed (see the general configuration above).
 
 ## Nginx
 
 If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`.
 
-And make sure `client_max_body_size` is large enough, otherwise there would be "413 Request Entity Too Large" error when uploading large files.
+Make sure `client_max_body_size` is large enough, otherwise there would be "413 Request Entity Too Large" error when uploading large files.
 
 ```nginx
 server {
