@@ -30,7 +30,6 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -730,7 +729,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 
 		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
 		assert.NoError(t, err)
-		log.Info("Checking---- %v", branches)
+		assert.EqualValues(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
 		defer func() {
 			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
