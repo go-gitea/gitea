@@ -6,13 +6,7 @@ package arch
 import (
 	"archive/tar"
 	"bufio"
-	"bytes"
-	"compress/gzip"
-	"encoding/hex"
-	"errors"
-	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,20 +14,33 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/klauspost/compress/zstd"
 )
 
 const (
-	PropertyDescription = "arch.description"
-	PropertySignature   = "arch.signature"
+	PropertyRepository   = "arch.repository"
+	PropertyArchitecture = "arch.architecture"
+	PropertySignature    = "arch.signature"
+	PropertyMetadata     = "arch.metadata"
+
+	SettingKeyPrivate = "arch.key.private"
+	SettingKeyPublic  = "arch.key.public"
+
+	RepositoryPackage = "_arch"
+	RepositoryVersion = "_repository"
+
+	AnyArch = "any"
 )
 
 var (
+	ErrMissingPkgInfoFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
+	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
+	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
+
 	// https://man.archlinux.org/man/PKGBUILD.5
-	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
-	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
-	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
-	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
+	namePattern    = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
+	versionPattern = regexp.MustCompile(`\A(?:[0-9]:)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
 )
 
 type Package struct {
@@ -43,90 +50,83 @@ type Package struct {
 	FileMetadata    FileMetadata
 }
 
-// Arch package metadata related to specific version.
-// Version metadata the same across different architectures and distributions.
 type VersionMetadata struct {
-	Base         string   `json:"base"`
-	Description  string   `json:"description"`
-	ProjectURL   string   `json:"project_url"`
-	Groups       []string `json:"groups,omitempty"`
-	Provides     []string `json:"provides,omitempty"`
-	License      []string `json:"license,omitempty"`
-	Depends      []string `json:"depends,omitempty"`
-	OptDepends   []string `json:"opt_depends,omitempty"`
-	MakeDepends  []string `json:"make_depends,omitempty"`
-	CheckDepends []string `json:"check_depends,omitempty"`
-	Backup       []string `json:"backup,omitempty"`
+	Description string   `json:"description,omitempty"`
+	ProjectURL  string   `json:"project_url,omitempty"`
+	Licenses    []string `json:"licenses,omitempty"`
 }
 
-// Metadata related to specific pakcage file.
-// This metadata might vary for different architecture and distribution.
 type FileMetadata struct {
-	CompressedSize int64  `json:"compressed_size"`
-	InstalledSize  int64  `json:"installed_size"`
-	MD5            string `json:"md5"`
-	SHA256         string `json:"sha256"`
-	BuildDate      int64  `json:"build_date"`
-	Packager       string `json:"packager"`
-	Arch           string `json:"arch"`
+	Architecture  string   `json:"architecture"`
+	Base          string   `json:"base,omitempty"`
+	InstalledSize int64    `json:"installed_size,omitempty"`
+	BuildDate     int64    `json:"build_date,omitempty"`
+	Packager      string   `json:"packager,omitempty"`
+	Groups        []string `json:"groups,omitempty"`
+	Provides      []string `json:"provides,omitempty"`
+	Depends       []string `json:"depends,omitempty"`
+	OptDepends    []string `json:"opt_depends,omitempty"`
+	MakeDepends   []string `json:"make_depends,omitempty"`
+	CheckDepends  []string `json:"check_depends,omitempty"`
+	XData         []string `json:"xdata,omitempty"`
+	Backup        []string `json:"backup,omitempty"`
+	Files         []string `json:"files,omitempty"`
 }
 
-// Function that receives arch package archive data and returns it's metadata.
-func ParsePackage(r io.Reader, md5, sha256 []byte, size int64) (*Package, error) {
-	zstd := archiver.NewTarZstd()
-	err := zstd.Open(r, 0)
+// ParsePackage parses an Arch package file
+func ParsePackage(r io.Reader) (*Package, error) {
+	zr, err := zstd.NewReader(r)
 	if err != nil {
 		return nil, err
 	}
-	defer zstd.Close()
+	defer zr.Close()
 
-	var pkg *Package
-	var mtree bool
+	var p *Package
+	files := make([]string, 0, 10)
 
+	tr := tar.NewReader(zr)
 	for {
-		f, err := zstd.Read()
+		hd, err := tr.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
 
-		switch f.Name() {
-		case ".PKGINFO":
-			pkg, err = ParsePackageInfo(f)
+		if hd.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		filename := hd.FileInfo().Name()
+		if filename == ".PKGINFO" {
+			p, err = ParsePackageInfo(tr)
 			if err != nil {
 				return nil, err
 			}
-		case ".MTREE":
-			mtree = true
+		} else if !strings.HasPrefix(filename, ".") {
+			files = append(files, hd.Name)
 		}
 	}
 
-	if pkg == nil {
-		return nil, util.NewInvalidArgumentErrorf(".PKGINFO file not found")
+	if p == nil {
+		return nil, ErrMissingPkgInfoFile
 	}
 
-	if !mtree {
-		return nil, util.NewInvalidArgumentErrorf(".MTREE file not found")
-	}
+	p.FileMetadata.Files = files
 
-	pkg.FileMetadata.CompressedSize = size
-	pkg.FileMetadata.SHA256 = hex.EncodeToString(sha256)
-	pkg.FileMetadata.MD5 = hex.EncodeToString(md5)
-
-	return pkg, nil
+	return p, nil
 }
 
-// Function that accepts reader for .PKGINFO file from package archive,
-// validates all field according to PKGBUILD spec and returns package.
+// ParsePackageInfo parses a .PKGINFO file to retrieve the metadata
+// https://man.archlinux.org/man/PKGBUILD.5
+// https://gitlab.archlinux.org/pacman/pacman/-/blob/master/lib/libalpm/be_package.c#L161
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
+	s := bufio.NewScanner(r)
+	for s.Scan() {
+		line := s.Text()
 
 		if strings.HasPrefix(line, "#") {
 			continue
@@ -144,7 +144,7 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 		case "pkgname":
 			p.Name = value
 		case "pkgbase":
-			p.VersionMetadata.Base = value
+			p.FileMetadata.Base = value
 		case "pkgver":
 			p.Version = value
 		case "pkgdesc":
@@ -154,149 +154,56 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 		case "packager":
 			p.FileMetadata.Packager = value
 		case "arch":
-			p.FileMetadata.Arch = value
-		case "provides":
-			p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, value)
+			p.FileMetadata.Architecture = value
 		case "license":
-			p.VersionMetadata.License = append(p.VersionMetadata.License, value)
+			p.VersionMetadata.Licenses = append(p.VersionMetadata.Licenses, value)
+		case "provides":
+			p.FileMetadata.Provides = append(p.FileMetadata.Provides, value)
 		case "depend":
-			p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, value)
+			p.FileMetadata.Depends = append(p.FileMetadata.Depends, value)
 		case "optdepend":
-			p.VersionMetadata.OptDepends = append(p.VersionMetadata.OptDepends, value)
+			p.FileMetadata.OptDepends = append(p.FileMetadata.OptDepends, value)
 		case "makedepend":
-			p.VersionMetadata.MakeDepends = append(p.VersionMetadata.MakeDepends, value)
+			p.FileMetadata.MakeDepends = append(p.FileMetadata.MakeDepends, value)
 		case "checkdepend":
-			p.VersionMetadata.CheckDepends = append(p.VersionMetadata.CheckDepends, value)
+			p.FileMetadata.CheckDepends = append(p.FileMetadata.CheckDepends, value)
 		case "backup":
-			p.VersionMetadata.Backup = append(p.VersionMetadata.Backup, value)
+			p.FileMetadata.Backup = append(p.FileMetadata.Backup, value)
 		case "group":
-			p.VersionMetadata.Groups = append(p.VersionMetadata.Groups, value)
+			p.FileMetadata.Groups = append(p.FileMetadata.Groups, value)
 		case "builddate":
-			bd, err := strconv.ParseInt(value, 10, 64)
+			date, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return nil, err
 			}
-			p.FileMetadata.BuildDate = bd
+			p.FileMetadata.BuildDate = date
 		case "size":
-			is, err := strconv.ParseInt(value, 10, 64)
+			size, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return nil, err
 			}
-			p.FileMetadata.InstalledSize = is
+			p.FileMetadata.InstalledSize = size
+		case "xdata":
+			p.FileMetadata.XData = append(p.FileMetadata.XData, value)
 		}
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
 	}
 
-	return p, errors.Join(scanner.Err(), ValidatePackageSpec(p))
-}
-
-// Arch package validation according to PKGBUILD specification.
-func ValidatePackageSpec(p *Package) error {
-	if !reName.MatchString(p.Name) {
-		return util.NewInvalidArgumentErrorf("invalid package name")
+	if !namePattern.MatchString(p.Name) {
+		return nil, ErrInvalidName
 	}
-	if !reName.MatchString(p.VersionMetadata.Base) {
-		return util.NewInvalidArgumentErrorf("invalid package base")
+	if !versionPattern.MatchString(p.Version) {
+		return nil, ErrInvalidVersion
 	}
-	if !reVer.MatchString(p.Version) {
-		return util.NewInvalidArgumentErrorf("invalid package version")
-	}
-	if p.FileMetadata.Arch == "" {
-		return util.NewInvalidArgumentErrorf("architecture should be specified")
-	}
-	if p.VersionMetadata.ProjectURL != "" {
-		if !validation.IsValidURL(p.VersionMetadata.ProjectURL) {
-			return util.NewInvalidArgumentErrorf("invalid project URL")
-		}
-	}
-	for _, cd := range p.VersionMetadata.CheckDepends {
-		if !rePkgVer.MatchString(cd) {
-			return util.NewInvalidArgumentErrorf("invalid check dependency: " + cd)
-		}
-	}
-	for _, d := range p.VersionMetadata.Depends {
-		if !rePkgVer.MatchString(d) {
-			return util.NewInvalidArgumentErrorf("invalid dependency: " + d)
-		}
-	}
-	for _, md := range p.VersionMetadata.MakeDepends {
-		if !rePkgVer.MatchString(md) {
-			return util.NewInvalidArgumentErrorf("invalid make dependency: " + md)
-		}
-	}
-	for _, p := range p.VersionMetadata.Provides {
-		if !rePkgVer.MatchString(p) {
-			return util.NewInvalidArgumentErrorf("invalid provides: " + p)
-		}
-	}
-	for _, od := range p.VersionMetadata.OptDepends {
-		if !reOptDep.MatchString(od) {
-			return util.NewInvalidArgumentErrorf("invalid optional dependency: " + od)
-		}
-	}
-	for _, bf := range p.VersionMetadata.Backup {
-		if strings.HasPrefix(bf, "/") {
-			return util.NewInvalidArgumentErrorf("backup file contains leading forward slash")
-		}
-	}
-	return nil
-}
-
-// Create pacman package description file.
-func (p *Package) Desc() string {
-	entries := [40]string{
-		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
-		"NAME", p.Name,
-		"BASE", p.VersionMetadata.Base,
-		"VERSION", p.Version,
-		"DESC", p.VersionMetadata.Description,
-		"GROUPS", strings.Join(p.VersionMetadata.Groups, "\n"),
-		"CSIZE", fmt.Sprintf("%d", p.FileMetadata.CompressedSize),
-		"ISIZE", fmt.Sprintf("%d", p.FileMetadata.InstalledSize),
-		"MD5SUM", p.FileMetadata.MD5,
-		"SHA256SUM", p.FileMetadata.SHA256,
-		"URL", p.VersionMetadata.ProjectURL,
-		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
-		"ARCH", p.FileMetadata.Arch,
-		"BUILDDATE", fmt.Sprintf("%d", p.FileMetadata.BuildDate),
-		"PACKAGER", p.FileMetadata.Packager,
-		"PROVIDES", strings.Join(p.VersionMetadata.Provides, "\n"),
-		"DEPENDS", strings.Join(p.VersionMetadata.Depends, "\n"),
-		"OPTDEPENDS", strings.Join(p.VersionMetadata.OptDepends, "\n"),
-		"MAKEDEPENDS", strings.Join(p.VersionMetadata.MakeDepends, "\n"),
-		"CHECKDEPENDS", strings.Join(p.VersionMetadata.CheckDepends, "\n"),
+	if p.FileMetadata.Architecture == "" {
+		return nil, ErrInvalidArchitecture
 	}
 
-	var buf bytes.Buffer
-	for i := 0; i < 40; i += 2 {
-		if entries[i+1] != "" {
-			fmt.Fprintf(&buf, "%%%s%%\n%s\n\n", entries[i], entries[i+1])
-		}
-	}
-	return buf.String()
-}
-
-// Create pacman database archive based on provided package metadata structs.
-func CreatePacmanDb(entries map[string][]byte) (*bytes.Buffer, error) {
-	var b bytes.Buffer
-
-	gw := gzip.NewWriter(&b)
-	tw := tar.NewWriter(gw)
-
-	for name, content := range entries {
-		header := &tar.Header{
-			Name: name,
-			Size: int64(len(content)),
-			Mode: int64(os.ModePerm),
-		}
-
-		if err := tw.WriteHeader(header); err != nil {
-			return nil, errors.Join(err, tw.Close(), gw.Close())
-		}
-
-		if _, err := tw.Write(content); err != nil {
-			return nil, errors.Join(err, tw.Close(), gw.Close())
-		}
+	if !validation.IsValidURL(p.VersionMetadata.ProjectURL) {
+		p.VersionMetadata.ProjectURL = ""
 	}
 
-	return &b, errors.Join(tw.Close(), gw.Close())
+	return p, nil
 }
