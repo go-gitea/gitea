@@ -26,7 +26,7 @@ func TestPackageGeneric(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	packageName := "te-st_pac.kage"
-	packageVersion := "1.0.3-te st"
+	packageVersion := "1.0.3-test"
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
