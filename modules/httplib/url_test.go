@@ -41,19 +41,19 @@ func TestIsRelativeURL(t *testing.T) {
 
 func TestMakeAbsoluteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.Protocol, "http")()
-	defer test.MockVariableValue(&setting.AppURL, "http://the-host/sub/")()
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 
 	ctx := context.Background()
-	assert.Equal(t, "http://the-host/sub/", MakeAbsoluteURL(ctx, ""))
-	assert.Equal(t, "http://the-host/sub/foo", MakeAbsoluteURL(ctx, "foo"))
-	assert.Equal(t, "http://the-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/sub/", MakeAbsoluteURL(ctx, ""))
+	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "foo"))
+	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 	})
-	assert.Equal(t, "http://user-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
@@ -61,7 +61,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 			"X-Forwarded-Host": {"forwarded-host"},
 		},
 	})
-	assert.Equal(t, "https://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
