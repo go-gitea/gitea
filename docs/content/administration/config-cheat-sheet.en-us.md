@@ -985,7 +985,7 @@ Default templates for project boards:
 
 - `ENABLED`: **true**: Enable deleted branches cleanup.
 - `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
-- `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
+- `NOTICE_ON_SUCCESS`: **false**: Set to true to log a success message.
 - `SCHEDULE`: **@midnight**: Cron syntax for scheduling deleted branches cleanup.
 - `OLDER_THAN`: **24h**: Branches deleted OLDER_THAN ago will be cleaned up.
 
