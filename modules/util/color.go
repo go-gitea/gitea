@@ -1,5 +1,6 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
+
 package util
 
 import (
@@ -8,7 +9,7 @@ import (
 	"strings"
 )
 
-// Get color as RGB values in 0..255 range from the hex color string (with or without #)
+// HexToRBGColor parses color as RGB values in 0..255 range from the hex color string (with or without #)
 func HexToRBGColor(colorString string) (float64, float64, float64) {
 	hexString := colorString
 	if strings.HasPrefix(colorString, "#") {
@@ -35,7 +36,7 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	return r, g, b
 }
 
-// Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
+// GetRelativeLuminance returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
 // Keep this in sync with web_src/js/utils/color.js
 func GetRelativeLuminance(color string) float64 {
 	r, g, b := HexToRBGColor(color)
@@ -46,8 +47,8 @@ func UseLightText(backgroundColor string) bool {
 	return GetRelativeLuminance(backgroundColor) < 0.453
 }
 
-// Given a background color, returns a black or white foreground color that the highest
-// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// ContrastColor returns a black or white foreground color that the highest contrast ratio.
+// In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func ContrastColor(backgroundColor string) string {
 	if UseLightText(backgroundColor) {
