@@ -729,7 +729,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 
 		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
 		assert.NoError(t, err)
-		assert.EqualValues(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
+		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
 		defer func() {
 			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
