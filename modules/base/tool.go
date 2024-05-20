@@ -65,7 +65,7 @@ func VerifyTimeLimitCode(now time.Time, data string, minutes int, code string) b
 
 	startTimeStr := code[:12]
 	aliveTimeStr := code[12:18]
-	aliveTime, _ := strconv.Atoi(aliveTimeStr)
+	aliveTime, _ := strconv.Atoi(aliveTimeStr) // no need to check err, if anything wrong, the following code check will fail soon
 
 	// check code
 	retCode := CreateTimeLimitCode(data, aliveTime, startTimeStr, nil)
