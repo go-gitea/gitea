@@ -68,18 +68,14 @@
 		{{range .Columns}}
 			<div class="ui segment project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
-					<div class="ui large label project-column-title tw-py-1">
-						<div class="ui small circular grey label project-column-issue-count">
-							{{.NumIssues ctx}}
-						</div>
-						<span class="project-column-title-label">{{.Title}}</span>
+					<div class="ui circular label project-column-issue-count">
+						{{.NumIssues ctx}}
 					</div>
+					<div class="project-column-title-label gt-ellipsis">{{.Title}}</div>
 					{{if $canWriteProject}}
-						<div class="ui dropdown jump item">
-							<div class="tw-px-2">
-								{{svg "octicon-kebab-horizontal"}}
-							</div>
-							<div class="menu user-menu">
+						<div class="ui dropdown tw-p-1">
+							{{svg "octicon-kebab-horizontal"}}
+							<div class="menu">
 								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.column.edit"}}
