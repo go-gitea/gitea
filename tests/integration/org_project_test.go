@@ -9,13 +9,15 @@ import (
 	"testing"
 
 	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 )
 
 func TestOrgProjectAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&unit_model.DisabledRepoUnits, append(slices.Clone(unit_model.DisabledRepoUnits), unit_model.TypeProjects))()
+
+	disabledRepoUnits := unit_model.DisabledRepoUnitsGet()
+	unit_model.DisabledRepoUnitsSet(append(slices.Clone(disabledRepoUnits), unit_model.TypeProjects))
+	defer unit_model.DisabledRepoUnitsSet(disabledRepoUnits)
 
 	// repo project, 404
 	req := NewRequest(t, "GET", "/user2/repo1/projects")
