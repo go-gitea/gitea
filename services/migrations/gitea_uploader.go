@@ -107,7 +107,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,
 			GitServiceType: opts.GitServiceType,
-			IsPrivate:      opts.Private,
+			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
