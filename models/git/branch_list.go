@@ -82,7 +82,6 @@ type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
 	ExcludeBranchNames []string
-	PusherID           int64
 	IsDeletedBranch    optional.Option[bool]
 	OrderBy            string
 	Keyword            string
