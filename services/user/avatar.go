@@ -5,8 +5,10 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -48,16 +50,24 @@ func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
 func DeleteAvatar(ctx context.Context, u *user_model.User) error {
 	aPath := u.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
-	if len(u.Avatar) > 0 {
-		if err := storage.Avatars.Delete(aPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %w", aPath, err)
-		}
-	}
 
-	u.UseCustomAvatar = false
-	u.Avatar = ""
-	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("DeleteAvatar: %w", err)
-	}
-	return nil
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		hasAvatar := len(u.Avatar) > 0
+		u.UseCustomAvatar = false
+		u.Avatar = ""
+		if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+			return fmt.Errorf("DeleteAvatar: %w", err)
+		}
+
+		if hasAvatar {
+			if err := storage.Avatars.Delete(aPath); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("failed to remove %s: %w", aPath, err)
+				}
+				log.Warn("Deleting avatar %s but it doesn't exist", aPath)
+			}
+		}
+
+		return nil
+	})
 }
