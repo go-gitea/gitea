@@ -108,6 +108,10 @@ See [Creating an annotation for an error](https://docs.github.com/en/actions/usi
 
 It's ignored by Gitea Actions now.
 
+### Express evlution doesn't support completely
+
+Currently, only `always()` has been supported.
+
 ## Missing UI features
 
 ### Pre and Post steps
