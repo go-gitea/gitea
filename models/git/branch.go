@@ -464,18 +464,17 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 
 	// find all related branches, these branches may already created PRs, we will check later
 	var branches []*Branch
-	cond := FindBranchOptions{
-		PusherID:        doer.ID,
-		IsDeletedBranch: optional.Some(false),
-		CommitAfterUnix: opts.CommitAfterUnix,
-	}.ToConds()
-	cond = cond.And(
-		builder.In("repo_id", repoIDs),
-		// newly created branch have no changes, so skip them
-		builder.Neq{"commit_id": baseBranch.CommitID},
-	)
 	if err := db.GetEngine(ctx).
-		Where(cond).
+		Where(builder.And(
+			builder.Eq{
+				"pusher_id":  doer.ID,
+				"is_deleted": false,
+			},
+			builder.Gte{"commit_time": opts.CommitAfterUnix},
+			builder.In("repo_id", repoIDs),
+			// newly created branch have no changes, so skip them
+			builder.Neq{"commit_id": baseBranch.CommitID},
+		)).
 		OrderBy(db.SearchOrderByRecentUpdated.String()).
 		Find(&branches); err != nil {
 		return nil, err

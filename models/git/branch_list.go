@@ -84,15 +84,12 @@ type FindBranchOptions struct {
 	ExcludeBranchNames []string
 	PusherID           int64
 	IsDeletedBranch    optional.Option[bool]
-	CommitAfterUnix    int64
-	CommitBeforeUnix   int64
 	OrderBy            string
 	Keyword            string
 }
 
 func (opts FindBranchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
@@ -100,25 +97,12 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 	if len(opts.ExcludeBranchNames) > 0 {
 		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
 	}
-
-	if opts.PusherID > 0 {
-		cond = cond.And(builder.Eq{"pusher_id": opts.PusherID})
-	}
-
 	if opts.IsDeletedBranch.Has() {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.Value()})
 	}
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"name", opts.Keyword})
 	}
-
-	if opts.CommitAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"commit_time": opts.CommitAfterUnix})
-	}
-	if opts.CommitBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"commit_time": opts.CommitBeforeUnix})
-	}
-
 	return cond
 }
 
