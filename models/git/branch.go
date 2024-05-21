@@ -468,7 +468,6 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		PusherID:        doer.ID,
 		IsDeletedBranch: optional.Some(false),
 		CommitAfterUnix: opts.CommitAfterUnix,
-		ListOptions:     db.ListOptionsAll,
 	}.ToConds()
 	cond = cond.And(
 		builder.In("repo_id", repoIDs),
