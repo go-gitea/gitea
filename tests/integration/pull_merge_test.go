@@ -808,7 +808,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetRefCommitID("master")
+		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
