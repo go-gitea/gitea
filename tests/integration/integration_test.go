@@ -485,10 +485,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
+// GetCSRF returns CSRF token from body
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// GetCSRFFrom returns CSRF token from body
+func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
+	req := NewRequest(t, "GET", urlStr)
+	session.MakeRequest(t, req, http.StatusOK)
+	return session.GetCookie("_csrf").Value
 }

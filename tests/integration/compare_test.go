@@ -140,7 +140,7 @@ func TestCompareCodeExpand(t *testing.T) {
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session = loginUser(t, user2.Name)
-		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork")
+		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
 		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
 		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
 
