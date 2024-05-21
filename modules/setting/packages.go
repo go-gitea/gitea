@@ -44,9 +44,11 @@ var (
 		LimitSizeRubyGems    int64
 		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
+		RPMSginEnabled       bool
 	}{
 		Enabled:              true,
 		LimitTotalOwnerCount: -1,
+		RPMSginEnabled:       false,
 	}
 )
 
@@ -102,6 +104,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
+	Packages.RPMSginEnabled = sec.Key("RPM_SIGN_ENABLED").MustBool(false)
 	return nil
 }
 

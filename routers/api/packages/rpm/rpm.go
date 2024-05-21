@@ -133,31 +133,19 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	hBuf, seek, err := rpm_module.SignPackage(buf, pri)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if _, err := buf.Seek(seek, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	signBuf, err := packages_module.CreateHashedBufferFromReader(io.MultiReader(hBuf, buf))
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	defer signBuf.Close()
-
-	if _, err := signBuf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+	var signBuf = buf
+	// if rpm sign enabled
+	if setting.Packages.RPMSginEnabled {
+		pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		signBuf, err = rpm_service.SignPackage(buf, pri)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	pck, err := rpm_module.ParsePackage(signBuf)
