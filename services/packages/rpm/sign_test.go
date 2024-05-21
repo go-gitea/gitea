@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/packages"
+
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"

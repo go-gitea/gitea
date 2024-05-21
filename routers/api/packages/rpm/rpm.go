@@ -133,7 +133,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	var signBuf = buf
+	signBuf := buf
 	// if rpm sign enabled
 	if setting.Packages.RPMSginEnabled {
 		pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
