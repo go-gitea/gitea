@@ -26,9 +26,7 @@ func NewNotifier() notify_service.Notifier {
 func (n *automergeNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
 	if review.Type == issues_model.ReviewTypeApprove {
-		if err := StartPRCheckAndAutoMergeBySHA(ctx, review.CommitID, pr.BaseRepo); err != nil {
-			log.Error("StartPullRequestAutoMergeCheckBySHA: %v", err)
-		}
+		StartPRCheckAndAutoMerge(ctx, pr)
 	}
 }
 
