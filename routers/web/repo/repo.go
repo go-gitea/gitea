@@ -248,7 +248,7 @@ func CreatePost(ctx *context.Context) {
 		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
-			Private:         form.Private,
+			Private:         form.Private || setting.Repository.ForcePrivate,
 			GitContent:      form.GitContent,
 			Topics:          form.Topics,
 			GitHooks:        form.GitHooks,
