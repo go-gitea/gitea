@@ -133,7 +133,6 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	signBuf := buf
 	// if rpm sign enabled
 	if setting.Packages.RPMSginEnabled {
 		pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
@@ -141,14 +140,15 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		signBuf, err = rpm_service.SignPackage(buf, pri)
+		buf, err = rpm_service.SignPackage(buf, pri)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			// Not in rpm format, parsing failed.
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
 	}
 
-	pck, err := rpm_module.ParsePackage(signBuf)
+	pck, err := rpm_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -157,7 +157,7 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-	if _, err := signBuf.Seek(0, io.SeekStart); err != nil {
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -186,7 +186,7 @@ func UploadPackageFile(ctx *context.Context) {
 				CompositeKey: group,
 			},
 			Creator: ctx.Doer,
-			Data:    signBuf,
+			Data:    buf,
 			IsLead:  true,
 			Properties: map[string]string{
 				rpm_module.PropertyGroup:        group,
