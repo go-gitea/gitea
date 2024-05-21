@@ -335,6 +335,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TemplateID:       templateRepo.ID,
 		TrustModel:       templateRepo.TrustModel,
 		ObjectFormatName: templateRepo.ObjectFormatName,
+		Status:           repo_model.RepositoryBeingMigrated,
 	}
 
 	if err = repo_module.CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
