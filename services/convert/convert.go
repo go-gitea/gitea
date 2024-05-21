@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -191,6 +193,31 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
 		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
 	}
+}
+
+// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
+	if err := t.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
+
+	return &api.ActionTask{
+		ID:           t.ID,
+		Name:         t.Job.Name,
+		HeadBranch:   t.Job.Run.PrettyRef(),
+		HeadSHA:      t.Job.CommitSHA,
+		RunNumber:    t.Job.Run.Index,
+		Event:        t.Job.Run.TriggerEvent,
+		DisplayTitle: t.Job.Run.Title,
+		Status:       t.Status.String(),
+		WorkflowID:   t.Job.Run.WorkflowID,
+		URL:          url,
+		CreatedAt:    t.Created.AsLocalTime(),
+		UpdatedAt:    t.Updated.AsLocalTime(),
+		RunStartedAt: t.Started.AsLocalTime(),
+	}, nil
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification

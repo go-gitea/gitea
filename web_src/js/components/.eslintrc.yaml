@@ -18,4 +18,5 @@ rules:
   vue/attributes-order: [0]
   vue/html-closing-bracket-spacing: [2, {startTag: never, endTag: never, selfClosingTag: never}]
   vue/max-attributes-per-line: [0]
+  vue/singleline-html-element-content-newline: [0]
   vue-scoped-css/enforce-style-type: [0]

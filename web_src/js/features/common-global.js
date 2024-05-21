@@ -46,10 +46,19 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
-      return false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }
@@ -442,5 +451,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }

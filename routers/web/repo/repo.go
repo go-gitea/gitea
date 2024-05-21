@@ -180,7 +180,7 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
-	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
 	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
@@ -248,7 +248,7 @@ func CreatePost(ctx *context.Context) {
 		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
-			Private:         form.Private,
+			Private:         form.Private || setting.Repository.ForcePrivate,
 			GitContent:      form.GitContent,
 			Topics:          form.Topics,
 			GitHooks:        form.GitHooks,

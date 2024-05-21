@@ -212,10 +212,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 `{CustomPath}/public/assets/css/theme-*.css` 提供。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
-  而不受DEFAULT_THEME 值的影响。
+- `THEMES`:  **_empty_**: 所有可用的主题（由 `{CustomPath}/public/assets/css/theme-*.css` 提供）。允许用户选择个性化的主题，
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
     这些值可以是表情符号别名（例如：:smile:）或Unicode表情符号。
@@ -797,6 +796,7 @@ Gitea 创建以下非唯一队列：
 - `MINIO_USE_SSL`: **false**: Minio 启用 SSL，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio 跳过 SSL 验证，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio 校验算法：`default`（适用于 MinIO 或 AWS S3）或 `md5`（适用于 Cloudflare 或 Backblaze）
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 日志 (`log`)
 
@@ -1128,15 +1128,6 @@ ALLOW_DATA_URI_IMAGES = true
 
 - `DEFAULT_UI_LOCATION`：在 UI 上的默认时间位置，以便我们可以在 UI 上显示正确的用户时间。例如：Asia/Shanghai
 
-## 任务 (`task`)
-
-任务队列配置已移动到 `queue.task`。然而，以下配置值仍保留以确保向后兼容：
-
-- `QUEUE_TYPE`：**channel**：任务队列类型，可以是 `channel` 或 `redis`。
-- `QUEUE_LENGTH`：**1000**：任务队列长度，仅在 `QUEUE_TYPE` 为 `channel` 时可用。
-- `QUEUE_CONN_STR`：**redis://127.0.0.1:6379/0**：任务队列连接字符串，仅在 `QUEUE_TYPE` 为 `redis` 时可用。
-  如果 redis 需要密码，使用 `redis://123@127.0.0.1:6379/0` 或 `redis+cluster://123@127.0.0.1:6379/0`。
-
 ## 迁移 (`migrations`)
 
 - `MAX_ATTEMPTS`：**3**：每次 http/https 请求的最大尝试次数（用于迁移）。
@@ -1211,6 +1202,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_BASE_PATH`：**lfs/**：桶上的 Minio 基本路径，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 存储 (`storage`)
 
@@ -1225,6 +1217,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_LOCATION`：**us-east-1**：创建桶的 Minio 位置，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 建议的 minio 存储配置如下：
 
@@ -1246,6 +1239,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 默认情况下，每个存储都有其默认的基本路径，如下所示：
@@ -1292,6 +1287,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ### 存储库归档存储 (`storage.repo-archive`)
@@ -1309,6 +1306,7 @@ MINIO_INSECURE_SKIP_VERIFY = false
 - `MINIO_BASE_PATH`: **repo-archive/**：存储桶上的Minio基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_USE_SSL`: **false**：启用Minio的SSL，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**：跳过Minio的SSL验证，仅在`STORAGE_TYPE`为`minio`时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ### 存储库归档 (`repo-archive`)
 

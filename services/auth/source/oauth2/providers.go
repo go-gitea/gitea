@@ -182,7 +182,7 @@ func createProvider(providerName string, source *Source) (goth.Provider, error) 
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
-	if err == nil && provider != nil {
+	if provider != nil {
 		provider.SetName(providerName)
 	}
 

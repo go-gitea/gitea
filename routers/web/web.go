@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -48,16 +49,13 @@ import (
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
-	"github.com/NYTimes/gziphandler"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	// GzipMinSize represents min size to compress for the body size of response
-	GzipMinSize = 1400
-)
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -100,14 +98,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
-	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
-		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
-		&auth_service.Session{},
-	)
+	group := auth_service.NewGroup()
+	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
+	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
+
 	if setting.Service.EnableReverseProxyAuth {
-		group.Add(&auth_service.ReverseProxy{})
+		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
+	group.Add(&auth_service.Session{})
 
 	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
@@ -244,11 +242,13 @@ func Routes() *web.Route {
 	var mid []any
 
 	if setting.EnableGzip {
-		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
+		// random jitter is recommended by: https://pkg.go.dev/github.com/klauspost/compress/gzhttp#readme-breach-mitigation
+		// compression level 6 is the gzip default and a good general tradeoff between speed, CPU usage, and compression
+		wrapper, err := gzhttp.NewWrapper(gzhttp.RandomJitter(32, 0, false), gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6))
 		if err != nil {
-			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+			log.Fatal("gzhttp.NewWrapper failed: %v", err)
 		}
-		mid = append(mid, h)
+		mid = append(mid, wrapper)
 	}
 
 	if setting.Service.EnableCaptcha {
@@ -261,7 +261,7 @@ func Routes() *web.Route {
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
-	routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -653,7 +653,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
@@ -686,6 +686,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
+		m.Post("/self_check", admin.SelfCheckPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -1000,6 +1001,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
@@ -1115,7 +1117,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/cancel", repo.MigrateCancelPost)
 		})
 	},
-		reqSignIn, context.RepoAssignment, context.RepoRef(), reqRepoAdmin,
+		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
@@ -1355,6 +1357,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
 				m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
 				m.Get("/edit", repo.RenderEditProject)
@@ -1613,6 +1616,7 @@ func registerRoutes(m *web.Route) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
 		ctx.NotFound("", nil)
 	})
 }

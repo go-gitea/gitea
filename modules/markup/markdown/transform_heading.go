@@ -13,7 +13,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-func (g *ASTTransformer) transformHeading(ctx *markup.RenderContext, v *ast.Heading, reader text.Reader, tocList *[]markup.Header) {
+func (g *ASTTransformer) transformHeading(_ *markup.RenderContext, v *ast.Heading, reader text.Reader, tocList *[]markup.Header) {
 	for _, attr := range v.Attributes() {
 		if _, ok := attr.Value.([]byte); !ok {
 			v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))

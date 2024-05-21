@@ -57,7 +57,7 @@ type Engine interface {
 	SumInt(bean any, columnName string) (res int64, err error)
 	Sync(...any) error
 	Select(string) *xorm.Session
-	SetExpr(column string, expression any) *xorm.Session
+	SetExpr(string, any) *xorm.Session
 	NotIn(string, ...any) *xorm.Session
 	OrderBy(any, ...any) *xorm.Session
 	Exist(...any) (bool, error)
@@ -228,7 +228,6 @@ func NamesToBean(names ...string) ([]any, error) {
 	// Need to map provided names to beans...
 	beanMap := make(map[string]any)
 	for _, bean := range tables {
-
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
 		beanMap[strings.ToLower(x.TableName(bean))] = bean
 		beanMap[strings.ToLower(x.TableName(bean, true))] = bean

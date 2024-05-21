@@ -34,7 +34,7 @@ var CmdMigrateStorage = &cli.Command{
 			Name:    "type",
 			Aliases: []string{"t"},
 			Value:   "",
-			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts",
 		},
 		&cli.StringFlag{
 			Name:    "storage",
@@ -90,6 +90,11 @@ var CmdMigrateStorage = &cli.Command{
 			Name:  "minio-checksum-algorithm",
 			Value: "",
 			Usage: "Minio checksum algorithm (default/md5)",
+		},
+		&cli.StringFlag{
+			Name:  "minio-bucket-lookup-type",
+			Value: "",
+			Usage: "Minio bucket lookup type",
 		},
 	},
 }
@@ -160,6 +165,13 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 	})
 }
 
+func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
+		_, err := storage.Copy(dstStorage, artifact.ArtifactPath, storage.ActionsArtifacts, artifact.ArtifactPath)
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -213,6 +225,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 					UseSSL:             ctx.Bool("minio-use-ssl"),
 					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
 					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+					BucketLookUpType:   ctx.String("minio-bucket-lookup-type"),
 				},
 			})
 	default:
@@ -223,13 +236,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 	}
 
 	migratedMethods := map[string]func(context.Context, storage.ObjectStorage) error{
-		"attachments":    migrateAttachments,
-		"lfs":            migrateLFS,
-		"avatars":        migrateAvatars,
-		"repo-avatars":   migrateRepoAvatars,
-		"repo-archivers": migrateRepoArchivers,
-		"packages":       migratePackages,
-		"actions-log":    migrateActionsLog,
+		"attachments":       migrateAttachments,
+		"lfs":               migrateLFS,
+		"avatars":           migrateAvatars,
+		"repo-avatars":      migrateRepoAvatars,
+		"repo-archivers":    migrateRepoArchivers,
+		"packages":          migratePackages,
+		"actions-log":       migrateActionsLog,
+		"actions-artifacts": migrateActionsArtifacts,
 	}
 
 	tp := strings.ToLower(ctx.String("type"))
