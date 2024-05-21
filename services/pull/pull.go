@@ -49,10 +49,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 
 	// user should be a collaborator or a member of the organization
-	if canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID); err != nil {
-		return err
-	} else if !canCreate {
-		return issues_model.ErrMustCollaborator
+	if !issue.Poster.IsAdmin {
+		if canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID); err != nil {
+			return err
+		} else if !canCreate {
+			return issues_model.ErrMustCollaborator
+		}
 	}
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
