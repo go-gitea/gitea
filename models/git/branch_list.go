@@ -81,9 +81,7 @@ func (branches BranchList) LoadRepo(ctx context.Context) error {
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
-	RepoCond           builder.Cond
 	ExcludeBranchNames []string
-	CommitCond         builder.Cond
 	PusherID           int64
 	IsDeletedBranch    optional.Option[bool]
 	CommitAfterUnix    int64
@@ -98,34 +96,27 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	if opts.RepoCond != nil {
-		cond = cond.And(opts.RepoCond)
-	}
 
 	if len(opts.ExcludeBranchNames) > 0 {
-		cond = cond.And(builder.NotIn("branch.name", opts.ExcludeBranchNames))
-	}
-
-	if opts.CommitCond != nil {
-		cond = cond.And(opts.CommitCond)
+		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
 	}
 
 	if opts.PusherID > 0 {
-		cond = cond.And(builder.Eq{"branch.pusher_id": opts.PusherID})
+		cond = cond.And(builder.Eq{"pusher_id": opts.PusherID})
 	}
 
 	if opts.IsDeletedBranch.Has() {
-		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.Value()})
+		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.Value()})
 	}
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"name", opts.Keyword})
 	}
 
 	if opts.CommitAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"branch.commit_time": opts.CommitAfterUnix})
+		cond = cond.And(builder.Gte{"commit_time": opts.CommitAfterUnix})
 	}
 	if opts.CommitBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"branch.commit_time": opts.CommitBeforeUnix})
+		cond = cond.And(builder.Lte{"commit_time": opts.CommitBeforeUnix})
 	}
 
 	return cond
