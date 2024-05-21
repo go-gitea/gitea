@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -118,6 +119,19 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:master", owner11.Name),
+		Base:  "master",
+		Title: "create a failure pr",
+	}).AddTokenAuth(token)
+	// user should be a collaborator
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// add owner11 to be a collaborator
+	testCtx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AddOwner11AsCollaborator", doAPIAddCollaborator(testCtx, owner11.Name, perm.AccessModeRead))
+
+	// create again
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
 		Title: "create a failure pr",
