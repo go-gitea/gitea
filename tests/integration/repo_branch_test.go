@@ -250,6 +250,8 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		checkRecentlyPushedNewBranches(t, user12Session, "user12/repo10", []string{"org25/org25_fork_repo10:new-commit", "new-commit"})
 
 		userForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+		testCtx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("AddUser13AsCollaborator", doAPIAddCollaborator(testCtx, "user13", perm.AccessModeWrite))
 		prepareBranch(t, user13Session, userForkRepo)
 		prepareRepoPR(t, user13Session, user13Session, repo10, userForkRepo)
 

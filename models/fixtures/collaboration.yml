@@ -63,9 +63,3 @@
   repo_id: 32
   user_id: 10
   mode: 2 # write
-
--
-  id: 12
-  repo_id: 10
-  user_id: 13
-  mode: 2 # write
