@@ -571,7 +571,15 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			}, form.RedirectURI)
 			return
 		}
+	} else if grant.Scope != form.Scope {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "a grant exists with different scope",
+			ErrorCode:        ErrorCodeServerError,
+		}, form.RedirectURI)
+		return
 	}
+
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
