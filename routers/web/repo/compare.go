@@ -931,7 +931,7 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 	ctx.Data["section"] = section
-	ctx.Data["FileNameHash"] = base.EncodeSha1(filePath)
+	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
