@@ -259,7 +259,7 @@ func validateDropdownDefault(position errorPosition, attributes map[string]any) 
 	}
 	defaultValue, ok := v.(int)
 	if !ok {
-		return position.Errorf("'default' should be a int")
+		return position.Errorf("'default' should be an int")
 	}
 
 	options, ok := attributes["options"].([]any)
