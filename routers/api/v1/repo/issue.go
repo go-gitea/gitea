@@ -810,10 +810,15 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, form.Version)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
-			return
+			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
+				return
+			} else {
+				ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+				return
+			}
 		}
 	}
 	if form.Ref != nil {
