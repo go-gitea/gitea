@@ -676,7 +676,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		session := loginUser(t, "user1")
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		forkedName := "repo1-1"
-		testRepoFork(t, session, "user2", "repo1", "user1", forkedName)
+		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
 		defer func() {
 			testDeleteRepository(t, session, "user1", forkedName)
 		}()
@@ -759,7 +759,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		session := loginUser(t, "user1")
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		forkedName := "repo1-2"
-		testRepoFork(t, session, "user2", "repo1", "user1", forkedName)
+		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
 		defer func() {
 			testDeleteRepository(t, session, "user1", forkedName)
 		}()
