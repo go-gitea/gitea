@@ -118,37 +118,22 @@ func TestAPICreatePullSuccess(t *testing.T) {
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
+	opts := &api.CreatePullRequestOption{
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
 		Title: "create a failure pr",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
-}
-
-func TestAPICreatePullCollaboratorSuccess(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
-	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
-
-	session := loginUser(t, "user2")
-	opts := &api.CreatePullRequestOption{
-		Head:  "user13:master",
-		Base:  "master",
-		Title: "create a collaborator pr",
 	}
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
-	// add user2 to be a collaborator
-	testCtx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
-	t.Run("AddUser2AsCollaborator", doAPIAddCollaborator(testCtx, "user2", perm.AccessModeRead))
+	// add owner11 to be a collaborator
+	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AddOwner11AsCollaborator", doAPIAddCollaborator(ctx, owner11.Name, perm.AccessModeRead))
 
 	// create again
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
 func TestAPICreatePullSameRepoSuccess(t *testing.T) {
