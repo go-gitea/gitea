@@ -541,20 +541,45 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
+
+	if !form.Granted {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "the request is denied",
+			ErrorCode:        ErrorCodeAccessDenied,
+		}, form.RedirectURI)
+		return
+	}
+
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		return
+	}
+	if grant == nil {
+		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+		if err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot create grant for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
+	} else if grant.Scope != form.Scope {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
-			ErrorDescription: "cannot create grant for user",
+			ErrorDescription: "a grant exists with different scope",
 			ErrorCode:        ErrorCodeServerError,
 		}, form.RedirectURI)
 		return
 	}
+
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
