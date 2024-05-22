@@ -110,7 +110,7 @@ Gitea Actions目前不支持此功能。
 
 ### 表达式
 
-对于 [表达式](https://docs.github.com/en/actions/learn-github-actions/expressions) , 当前仅 [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) 被支持。
+对于 [表达式](https://docs.github.com/en/actions/learn-github-actions/expressions), 当前仅 [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) 被支持。
 
 ## 缺失的UI功能
 
