@@ -11,8 +11,10 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -150,6 +152,10 @@ func TestPullView_CodeOwner(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
+			// add user5 as the collaborator
+			ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+			t.Run("AddUser5AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user5", perm.AccessModeRead))
+
 			// create a new branch to prepare for pull request
 			_, err = files_service.ChangeRepoFiles(db.DefaultContext, forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch-forked",
@@ -164,7 +170,6 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user5")
-
 			// create a pull request on the forked repository, code reviewers should not be mentioned
 			testPullCreateDirectly(t, session, "user5", "test_codeowner", forkedRepo.DefaultBranch, "", "", "codeowner-basebranch-forked", "Test Pull Request on Forked Repository")
 
