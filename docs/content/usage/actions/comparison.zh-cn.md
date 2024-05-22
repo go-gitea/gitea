@@ -108,9 +108,9 @@ Gitea Actions目前不支持此功能。
 
 Gitea Actions目前不支持此功能。
 
-### 表达式评估目前没有完全支持
+### 表达式
 
-当前，仅支持 `always()` 。
+对于 [表达式](https://docs.github.com/en/actions/learn-github-actions/expressions) , 当前仅 [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) 被支持。
 
 ## 缺失的UI功能
 
