@@ -177,6 +177,10 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
+	// add user3 as the collaborator
+	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AddOwner11AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, owner11.Name, perm.AccessModeRead))
+
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
