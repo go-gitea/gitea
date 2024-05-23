@@ -7,7 +7,7 @@ import "xorm.io/xorm"
 
 func AddVersionToIssue(x *xorm.Engine) error {
 	type Issue struct {
-		Version int `xorm:"NOT NULL DEFAULT 0"`
+		Version int `xorm:"version"`
 	}
 
 	sess := x.NewSession()

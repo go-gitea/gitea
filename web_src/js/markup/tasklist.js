@@ -1,4 +1,5 @@
 import {POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const preventListener = (e) => e.preventDefault();
 
@@ -54,13 +55,21 @@ export function initMarkupTasklist() {
           const editContentZone = container.querySelector('.edit-content-zone');
           const updateUrl = editContentZone.getAttribute('data-update-url');
           const context = editContentZone.getAttribute('data-context');
+          const version = editContentZone.getAttribute('data-version');
 
           const requestBody = new FormData();
           requestBody.append('ignore_attachments', 'true');
           requestBody.append('content', newContent);
           requestBody.append('context', context);
-          await POST(updateUrl, {data: requestBody});
-
+          requestBody.append('version', version);
+          const response = await POST(updateUrl, {data: requestBody});
+          const data = await response.json();
+          if (response.status === 400) {
+            showErrorToast(data.errorMessage);
+            rawContent.textContent = oldContent;
+            return;
+          }
+          editContentZone.setAttribute('data-version', parseInt(version) + 1);
           rawContent.textContent = newContent;
         } catch (err) {
           checkbox.checked = !checkbox.checked;

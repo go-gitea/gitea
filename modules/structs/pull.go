@@ -85,7 +85,6 @@ type CreatePullRequestOption struct {
 // EditPullRequestOption options when modify pull request
 type EditPullRequestOption struct {
 	Title     string   `json:"title"`
-	Version   int      `json:"version"`
 	Body      *string  `json:"body"`
 	Base      string   `json:"base"`
 	Assignee  string   `json:"assignee"`

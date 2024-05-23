@@ -123,7 +123,7 @@ type Issue struct {
 	NumComments      int
 	Ref              string
 	PinOrder         int `xorm:"DEFAULT 0"`
-	Version          int `xorm:"NOT NULL DEFAULT 0"`
+	Version          int `xorm:"version"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
