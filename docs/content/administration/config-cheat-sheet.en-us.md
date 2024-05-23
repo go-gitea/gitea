@@ -1295,7 +1295,7 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
  e.g. https://accountname.blob.core.windows.net or http://127.0.0.1:10000/devstoreaccount1
 - `AZURE_BLOB_ACCOUNT_NAME`: **_empty_**: Azure Blob account name to connect only available when STORAGE_TYPE is `azureblob`
 - `AZURE_BLOB_ACCOUNT_KEY`: **_empty_**: Azure Blob account key to connect only available when STORAGE_TYPE is `azureblob`
-- `AZURE_BLOB_CONTAINER`: **gitea**: Azure Blob container to store the attachments only available when STORAGE_TYPE is `azureblob`
+- `AZURE_BLOB_CONTAINER`: **gitea**: Azure Blob container to store the data only available when STORAGE_TYPE is `azureblob`
 
 The recommended storage configuration for minio like below:
 
