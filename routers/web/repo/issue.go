@@ -2251,7 +2251,11 @@ func UpdateIssueContent(ctx *context.Context) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
 		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-			ctx.JSONError(ctx.Tr("repo.issues.edit.already_changed"))
+			if issue.IsPull {
+				ctx.JSONError(ctx.Tr("repo.pulls.edit.already_changed"))
+			} else {
+				ctx.JSONError(ctx.Tr("repo.issues.edit.already_changed"))
+			}
 		} else {
 			ctx.ServerError("ChangeContent", err)
 		}
@@ -2281,6 +2285,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]any{
 		"content":     content,
+		"version":     issue.Version,
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }

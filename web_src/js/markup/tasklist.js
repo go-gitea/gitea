@@ -66,10 +66,9 @@ export function initMarkupTasklist() {
           const data = await response.json();
           if (response.status === 400) {
             showErrorToast(data.errorMessage);
-            rawContent.textContent = oldContent;
             return;
           }
-          editContentZone.setAttribute('data-version', parseInt(version) + 1);
+          editContentZone.setAttribute('data-version', data.version);
           rawContent.textContent = newContent;
         } catch (err) {
           checkbox.checked = !checkbox.checked;
