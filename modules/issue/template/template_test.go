@@ -375,7 +375,7 @@ body:
     validations:
       required: true
 `,
-			wantErr: "body[0](dropdown): 'default' should be a int",
+			wantErr: "body[0](dropdown): 'default' should be an int",
 		},
 		{
 			name: "dropdown default is out of range",
@@ -398,6 +398,52 @@ body:
       required: true
 `,
 			wantErr: "body[0](dropdown): the value of 'default' is out of range",
+		},
+		{
+			name: "dropdown without default is valid",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+`,
+			want: &api.IssueTemplate{
+				Name:  "test",
+				About: "this is about",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "dropdown",
+						ID:   "1",
+						Attributes: map[string]any{
+							"label":       "Label of dropdown",
+							"description": "Description of dropdown",
+							"multiple":    true,
+							"options": []any{
+								"Option 1 of dropdown",
+								"Option 2 of dropdown",
+								"Option 3 of dropdown",
+							},
+						},
+						Validations: map[string]any{
+							"required": true,
+						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
 		},
 		{
 			name: "valid",
