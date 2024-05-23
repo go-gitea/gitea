@@ -91,6 +91,9 @@ func validateYaml(template *api.IssueTemplate) error {
 			if err := validateOptions(field, idx); err != nil {
 				return err
 			}
+			if err := validateDropdownDefault(position, field.Attributes); err != nil {
+				return err
+			}
 		case api.IssueFormFieldTypeCheckboxes:
 			if err := validateStringItem(position, field.Attributes, false, "description"); err != nil {
 				return err
@@ -246,6 +249,28 @@ func validateBoolItem(position errorPosition, m map[string]any, names ...string)
 			return position.Errorf("'%s' should be a bool", name)
 		}
 	}
+	return nil
+}
+
+func validateDropdownDefault(position errorPosition, attributes map[string]any) error {
+	v, ok := attributes["default"]
+	if !ok {
+		return nil
+	}
+	defaultValue, ok := v.(int)
+	if !ok {
+		return position.Errorf("'default' should be an int")
+	}
+
+	options, ok := attributes["options"].([]any)
+	if !ok {
+		// should not happen
+		return position.Errorf("'options' is required and should be a array")
+	}
+	if defaultValue < 0 || defaultValue >= len(options) {
+		return position.Errorf("the value of 'default' is out of range")
+	}
+
 	return nil
 }
 
