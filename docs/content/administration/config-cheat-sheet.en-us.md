@@ -1279,8 +1279,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact.
 
-- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk, `minio` for s3 compatible object storage service,
-  `azureblob` for azure blob storage service.
+- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk, `minio` for s3 compatible object storage service, `azureblob` for azure blob storage service.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
