@@ -975,11 +975,19 @@ Default templates for project boards:
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
-## Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
+#### Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
 
 - `ENABLED`: **true**: Enable cleanup expired actions assets job.
 - `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
 - `SCHEDULE`: **@midnight** : Cron syntax for the job.
+
+#### Cron - Cleanup Deleted Branches (`cron.deleted_branches_cleanup`)
+
+- `ENABLED`: **true**: Enable deleted branches cleanup.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `NOTICE_ON_SUCCESS`: **false**: Set to true to log a success message.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling deleted branches cleanup.
+- `OLDER_THAN`: **24h**: Branches deleted OLDER_THAN ago will be cleaned up.
 
 ### Extended cron tasks (not enabled by default)
 
