@@ -6,13 +6,14 @@ package integration
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,6 +25,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
+	req := NewRequestWithValues(t, "POST", url, map[string]string{
+		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"commit_choice": "direct",
+		"tree_path":     treePath,
+		"content":       content,
+	})
+	return session.MakeRequest(t, req, http.StatusSeeOther)
+}
 
 func TestEmptyRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -44,9 +56,6 @@ func TestEmptyRepo(t *testing.T) {
 
 func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
 
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
@@ -71,9 +80,6 @@ func TestEmptyRepoAddFile(t *testing.T) {
 
 func TestEmptyRepoUploadFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
 
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
@@ -111,9 +117,6 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 
 func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
 
 	session := loginUser(t, "user30")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)

@@ -12,10 +12,11 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/contexttest"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
@@ -77,7 +78,7 @@ func getDeleteRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	}
 }
 
-func getExpectedFileResponseForRepofilesDelete(u *url.URL) *api.FileResponse {
+func getExpectedFileResponseForRepofilesDelete() *api.FileResponse {
 	// Just returns fields that don't change, i.e. fields with commit SHAs and dates can't be determined
 	return &api.FileResponse{
 		Content: nil,
@@ -262,7 +263,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -299,7 +300,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -335,7 +336,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -386,7 +387,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
@@ -417,7 +418,7 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	t.Run("Delete README.md file", func(t *testing.T) {
 		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
-		expectedFileResponse := getExpectedFileResponseForRepofilesDelete(u)
+		expectedFileResponse := getExpectedFileResponseForRepofilesDelete()
 		assert.NotNil(t, filesResponse)
 		assert.Nil(t, filesResponse.Files[0])
 		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
@@ -459,7 +460,7 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
 		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
-		expectedFileResponse := getExpectedFileResponseForRepofilesDelete(u)
+		expectedFileResponse := getExpectedFileResponseForRepofilesDelete()
 		assert.NotNil(t, filesResponse)
 		assert.Nil(t, filesResponse.Files[0])
 		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)

@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/minio/sha256-simd"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
 )

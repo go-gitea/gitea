@@ -4,16 +4,19 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/attachment"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -154,8 +157,12 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
@@ -190,16 +197,25 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		CommentID:  comment.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
+		}
 		return
 	}
+
 	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
 
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
-		ctx.ServerError("UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+		} else {
+			ctx.ServerError("UpdateComment", err)
+		}
 		return
 	}
 

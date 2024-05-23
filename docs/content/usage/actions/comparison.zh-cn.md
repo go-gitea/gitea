@@ -95,12 +95,6 @@ Gitea Actions目前不支持此功能，如果使用它，结果将始终为空�
 
 ## 缺失的功能
 
-### 变量
-
-请参阅[变量](https://docs.github.com/zh/actions/learn-github-actions/variables)。
-
-目前变量功能正在开发中。
-
 ### 问题匹配器
 
 问题匹配器是一种扫描Actions输出以查找指定正则表达式模式并在用户界面中突出显示该信息的方法。
@@ -113,6 +107,10 @@ Gitea Actions目前不支持此功能。
 请参阅[为错误创建注释](https://docs.github.com/zh/actions/using-workflows/workflow-commands-for-github-actions#example-creating-an-annotation-for-an-error)。
 
 Gitea Actions目前不支持此功能。
+
+### 表达式
+
+对于 [表达式](https://docs.github.com/en/actions/learn-github-actions/expressions), 当前仅 [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) 被支持。
 
 ## 缺失的UI功能
 
@@ -132,7 +130,7 @@ Gitea Actions目前不支持此功能。
 如果你使用 `uses: actions/checkout@v4`，Gitea将会从 https://github.com/actions/checkout.git 下载这个 actions 项目。
 如果你想要从另外一个 Git服务下载actions，你只需要使用绝对URL `uses: https://gitea.com/actions/checkout@v4` 来下载。
 
-如果你的 Gitea 实例是部署在一个互联网限制的网络中，有可以使用绝对地址来下载 actions。你也可以讲配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v4` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
+如果你的 Gitea 实例是部署在一个互联网限制的网络中，也可以使用绝对地址来下载 actions。你也可以将配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v4` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
 
 设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
 

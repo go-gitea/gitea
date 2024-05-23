@@ -24,7 +24,6 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -485,10 +485,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
+// GetCSRF returns CSRF token from body
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// GetCSRFFrom returns CSRF token from body
+func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
+	req := NewRequest(t, "GET", urlStr)
+	session.MakeRequest(t, req, http.StatusOK)
+	return session.GetCookie("_csrf").Value
 }

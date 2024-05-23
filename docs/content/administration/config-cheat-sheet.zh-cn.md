@@ -29,7 +29,7 @@ menu:
 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
 标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
-在下面的默认值中,`$XYZ`代表环境变量`XYZ`的值(详见:`enviroment-to-ini`)。 _`XxYyZz`_是指默认配置的一部分列出的值。这些在 app.ini 文件中不起作用，仅在此处列出作为文档说明。
+在下面的默认值中,`$XYZ`代表环境变量`XYZ`的值(详见:`environment-to-ini`)。 _`XxYyZz`_是指默认配置的一部分列出的值。这些在 app.ini 文件中不起作用，仅在此处列出作为文档说明。
 
 包含`#`或者`;`的变量必须使用引号(`` ` ``或者`""""`)包裹，否则会被解析为注释。
 
@@ -125,7 +125,7 @@ menu:
 - `CLOSE_KEYWORDS`: **close**, **closes**, **closed**, **fix**, **fixes**, **fixed**, **resolve**, **resolves**, **resolved**: 在拉取请求评论中用于自动关闭相关问题的关键词列表。
 - `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: 在拉取请求评论中用于自动重新打开相关问题的
 关键词列表。
-- `DEFAULT_MERGE_STYLE`: **merge**: 设置创建仓库的默认合并方式，可选: `merge`, `rebase`, `rebase-merge`, `squash`
+- `DEFAULT_MERGE_STYLE`: **merge**: 设置创建仓库的默认合并方式，可选: `merge`, `rebase`, `rebase-merge`, `squash`, `fast-forward-only`
 - `DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT`: **50**: 在默认合并消息中，对于`squash`提交，最多包括此数量的提交。设置为 -1 以包括所有提交。
 - `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: 在默认的合并消息中，对于`squash`提交，限制提交消息的大小。设置为 `-1`以取消限制。仅在`POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`为`true`时使用。
 - `DEFAULT_MERGE_MESSAGE_ALL_AUTHORS`: **false**: 在默认合并消息中，对于`squash`提交，遍历所有提交以包括所有作者的`Co-authored-by`，否则仅使用限定列表中的作者。
@@ -212,10 +212,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: 在Gitea安装时候设置的默认主题，自定义的主题可以通过 `{CustomPath}/public/assets/css/theme-*.css` 提供。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
-  而不受DEFAULT_THEME 值的影响。
+- `THEMES`:  **_empty_**: 所有可用的主题（由 `{CustomPath}/public/assets/css/theme-*.css` 提供）。允许用户选择个性化的主题，
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
     这些值可以是表情符号别名（例如：:smile:）或Unicode表情符号。
@@ -497,13 +496,17 @@ Gitea 创建以下非唯一队列：
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**：用户电子邮件通知的默认配置（用户可配置）。选项：enabled、onmention、disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**：禁止普通（非管理员）用户创建组织。
+- `USER_DISABLED_FEATURES`:**_empty_** 禁用的用户特性，当前允许为空或者 `deletion`，`manage_ssh_keys`， `manage_gpg_keys` 未来可以增加更多设置。
+  - `deletion`: 用户不能通过界面或者API删除他自己。
+  - `manage_ssh_keys`: 用户不能通过界面或者API配置SSH Keys。
+  - `manage_gpg_keys`: 用户不能配置 GPG 密钥。
 
 ## 安全性 (`security`)
 
 - `INSTALL_LOCK`: **false**：控制是否能够访问安装向导页面，设置为 `true` 则禁止访问安装向导页面。
 - `SECRET_KEY`: **\<每次安装时随机生成\>**：全局服务器安全密钥。这个密钥非常重要，如果丢失将无法解密加密的数据（例如 2FA）。
 - `SECRET_KEY_URI`: **_empty_**：与定义 `SECRET_KEY` 不同，此选项可用于使用存储在文件中的密钥（示例值：`file:/etc/gitea/secret_key`）。它不应该像 `SECRET_KEY` 一样容易丢失。
-- `LOGIN_REMEMBER_DAYS`: **7**：Cookie 保存时间，单位为天。
+- `LOGIN_REMEMBER_DAYS`: **31**：在要求重新登录之前，记住用户的登录状态多长时间（以天为单位）。
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**：保存自动登录信息的 Cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**：反向代理认证的 HTTP 头部名称，用于提供用户信息。
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**：反向代理认证的 HTTP 头部名称，用于提供邮箱信息。
@@ -558,7 +561,7 @@ Gitea 创建以下非唯一队列：
 
 ## OpenID (`openid`)
 
-- `ENABLE_OPENID_SIGNIN`: **false**：允许通过OpenID进行身份验证。
+- `ENABLE_OPENID_SIGNIN`: **true**：允许通过OpenID进行身份验证。
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**：允许通过OpenID进行注册。
 - `WHITELISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于允许访问。
 - `BLACKLISTED_URIS`: **_empty_**：如果非空，是一组匹配OpenID URI的POSIX正则表达式模式，用于阻止访问。
@@ -778,7 +781,7 @@ Gitea 创建以下非唯一队列：
 ## 工单和合并请求的附件 (`attachment`)
 
 - `ENABLED`: **true**: 是否允许用户上传附件。
-- `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
+- `ALLOWED_TYPES`: **.cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
 - `MAX_SIZE`: **2048**: 附件的最大限制（MB）。
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。
@@ -793,6 +796,7 @@ Gitea 创建以下非唯一队列：
 - `MINIO_USE_SSL`: **false**: Minio 启用 SSL，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio 跳过 SSL 验证，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio 校验算法：`default`（适用于 MinIO 或 AWS S3）或 `md5`（适用于 Cloudflare 或 Backblaze）
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 日志 (`log`)
 
@@ -1043,7 +1047,7 @@ Gitea 创建以下非唯一队列：
 
 ## OAuth2 (`oauth2`)
 
-- `ENABLE`: **true**：启用OAuth2提供者。
+- `ENABLED`: **true**：启用OAuth2提供者。
 - `ACCESS_TOKEN_EXPIRATION_TIME`：**3600**：OAuth2访问令牌的生命周期，以秒为单位。
 - `REFRESH_TOKEN_EXPIRATION_TIME`：**730**：OAuth2刷新令牌的生命周期，以小时为单位。
 - `INVALIDATE_REFRESH_TOKENS`：**false**：检查刷新令牌是否已被使用。
@@ -1124,15 +1128,6 @@ ALLOW_DATA_URI_IMAGES = true
 
 - `DEFAULT_UI_LOCATION`：在 UI 上的默认时间位置，以便我们可以在 UI 上显示正确的用户时间。例如：Asia/Shanghai
 
-## 任务 (`task`)
-
-任务队列配置已移动到 `queue.task`。然而，以下配置值仍保留以确保向后兼容：
-
-- `QUEUE_TYPE`：**channel**：任务队列类型，可以是 `channel` 或 `redis`。
-- `QUEUE_LENGTH`：**1000**：任务队列长度，仅在 `QUEUE_TYPE` 为 `channel` 时可用。
-- `QUEUE_CONN_STR`：**redis://127.0.0.1:6379/0**：任务队列连接字符串，仅在 `QUEUE_TYPE` 为 `redis` 时可用。
-  如果 redis 需要密码，使用 `redis://123@127.0.0.1:6379/0` 或 `redis+cluster://123@127.0.0.1:6379/0`。
-
 ## 迁移 (`migrations`)
 
 - `MAX_ATTEMPTS`：**3**：每次 http/https 请求的最大尝试次数（用于迁移）。
@@ -1207,6 +1202,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_BASE_PATH`：**lfs/**：桶上的 Minio 基本路径，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 存储 (`storage`)
 
@@ -1221,6 +1217,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_LOCATION`：**us-east-1**：创建桶的 Minio 位置，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 建议的 minio 存储配置如下：
 
@@ -1242,6 +1239,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 默认情况下，每个存储都有其默认的基本路径，如下所示：
@@ -1288,6 +1287,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ### 存储库归档存储 (`storage.repo-archive`)
@@ -1305,6 +1306,7 @@ MINIO_INSECURE_SKIP_VERIFY = false
 - `MINIO_BASE_PATH`: **repo-archive/**：存储桶上的Minio基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_USE_SSL`: **false**：启用Minio的SSL，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**：跳过Minio的SSL验证，仅在`STORAGE_TYPE`为`minio`时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ### 存储库归档 (`repo-archive`)
 
@@ -1349,5 +1351,6 @@ PROXY_HOSTS = *.github.com
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: 在页脚显示模板执行的时间。
+- `SHOW_FOOTER_POWERED_BY`: **true**: 在页脚显示“由...提供动力”的文本。
 - `ENABLE_SITEMAP`: **true**: 生成sitemap.
 - `ENABLE_FEED`: **true**: 是否启用RSS/Atom

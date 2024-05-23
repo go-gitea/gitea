@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -87,7 +88,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
 
-			objectFormat, _ := gitRepo.GetObjectFormat()
+			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
 			commits := repository.NewPushCommits()
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
 			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())
@@ -168,7 +169,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -203,7 +204,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	isCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
+	isTagCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
 	if err != nil {
 		return err
 	}
@@ -214,6 +215,12 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	defer committer.Close()
+
+	oldRelease, err := repo_model.GetReleaseByID(ctx, rel.ID)
+	if err != nil {
+		return err
+	}
+	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
 
 	if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 		return err
@@ -290,15 +297,13 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 	}
 
-	if !isCreated {
-		notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
-		return nil
-	}
-
 	if !rel.IsDraft {
+		if !isTagCreated && !isConvertedFromTag {
+			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
+			return nil
+		}
 		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
-
 	return nil
 }
 
@@ -327,10 +332,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 
 		refName := git.RefNameFromTag(rel.TagName)
-		objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
-		if err != nil {
-			return err
-		}
+		objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 		notify_service.PushCommits(
 			ctx, doer, repo,
 			&repository.PushUpdateOptions{
@@ -367,8 +369,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 	}
 
-	notify_service.DeleteRelease(ctx, doer, rel)
-
+	if !rel.IsDraft {
+		notify_service.DeleteRelease(ctx, doer, rel)
+	}
 	return nil
 }
 

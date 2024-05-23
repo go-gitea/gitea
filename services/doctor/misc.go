@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,7 +92,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepository(ctx, repo.RepoPath())
+		r, err := gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			return err
 		}

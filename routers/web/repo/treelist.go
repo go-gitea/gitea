@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/go-enry/go-enry/v2"
 )

@@ -7,9 +7,9 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -46,6 +46,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -72,6 +73,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

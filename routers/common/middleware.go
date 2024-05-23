@@ -4,16 +4,18 @@
 package common
 
 import (
+	go_context "context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
@@ -34,10 +36,12 @@ func ProtocolMiddlewares() (handlers []any) {
 				}
 			}()
 			req = req.WithContext(middleware.WithContextData(req.Context()))
+			req = req.WithContext(go_context.WithValue(req.Context(), httplib.RequestContextKey, req))
 			next.ServeHTTP(resp, req)
 		})
 	})
 
+	// wrap the request and response, use the process context and add it to the process manager
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)

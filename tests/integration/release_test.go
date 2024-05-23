@@ -86,7 +86,7 @@ func TestCreateRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.stable"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.stable"), 4)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
@@ -95,7 +95,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.prerelease"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.prerelease"), 4)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
@@ -104,7 +104,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.draft"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.draft"), 4)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
@@ -124,11 +124,11 @@ func TestCreateReleasePaging(t *testing.T) {
 	}
 	createNewRelease(t, session, "/user2/repo1", "v0.0.12", "v0.0.12", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").Tr("repo.release.draft"), 10)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").TrString("repo.release.draft"), 10)
 
 	// Check that user4 does not see draft and still see 10 latest releases
 	session2 := loginUser(t, "user4")
-	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").Tr("repo.release.stable"), 10)
+	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").TrString("repo.release.stable"), 10)
 }
 
 func TestViewReleaseListNoLogin(t *testing.T) {
@@ -142,7 +142,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	rsp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 5, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -198,7 +198,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 3, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -229,12 +229,12 @@ func TestViewTagsList(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	tags := htmlDoc.Find(".tag-list tr")
+	tags := htmlDoc.Find(".tag-list-row-link")
 	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
-		tagNames = append(tagNames, s.Find(".tag a.gt-df.gt-ac").Text())
+		tagNames = append(tagNames, s.Text())
 	})
 
 	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)

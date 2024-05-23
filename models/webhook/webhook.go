@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -433,7 +434,7 @@ type ListWebhookOptions struct {
 	db.ListOptions
 	RepoID   int64
 	OwnerID  int64
-	IsActive util.OptionalBool
+	IsActive optional.Option[bool]
 }
 
 func (opts ListWebhookOptions) ToConds() builder.Cond {
@@ -444,8 +445,8 @@ func (opts ListWebhookOptions) ToConds() builder.Cond {
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
 	}
-	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
+	if opts.IsActive.Has() {
+		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.Value()})
 	}
 	return cond
 }

@@ -140,7 +140,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 			Provides:   getEntries(rpm.Header, rpmutils.PROVIDENAME, rpmutils.PROVIDEVERSION, rpmutils.PROVIDEFLAGS),
 			Requires:   getEntries(rpm.Header, rpmutils.REQUIRENAME, rpmutils.REQUIREVERSION, rpmutils.REQUIREFLAGS),
-			Conflicts:  getEntries(rpm.Header, 1054 /*rpmutils.CONFLICTNAME*/, 1055 /*rpmutils.CONFLICTVERSION*/, 1053 /*rpmutils.CONFLICTFLAGS*/), // https://github.com/sassoftware/go-rpmutils/pull/24
+			Conflicts:  getEntries(rpm.Header, rpmutils.CONFLICTNAME, rpmutils.CONFLICTVERSION, rpmutils.CONFLICTFLAGS),
 			Obsoletes:  getEntries(rpm.Header, rpmutils.OBSOLETENAME, rpmutils.OBSOLETEVERSION, rpmutils.OBSOLETEFLAGS),
 			Files:      getFiles(rpm.Header),
 			Changelogs: getChangelogs(rpm.Header),

@@ -68,12 +68,13 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 		return
 	}
 
-	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
+	subject := locale.TrString("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]any{
 		"locale":   locale,
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
+		"Link":     rel.HTMLURL(),
 	}
 
 	var mailBody bytes.Buffer
@@ -85,11 +86,11 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 
 	msgs := make([]*Message, 0, len(tos))
 	publisherName := rel.Publisher.DisplayName()
-	relURL := "<" + rel.HTMLURL() + ">"
+	msgID := generateMessageIDForRelease(rel)
 	for _, to := range tos {
 		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
-		msg.SetHeader("Message-ID", relURL)
+		msg.SetHeader("Message-ID", msgID)
 		msgs = append(msgs, msg)
 	}
 

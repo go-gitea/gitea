@@ -9,9 +9,9 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 )
 
 const cacheKeyNodeInfoUsage = "API_NodeInfoUsage"
@@ -29,9 +29,7 @@ func NodeInfo(ctx *context.APIContext) {
 
 	nodeInfoUsage := structs.NodeInfoUsage{}
 	if setting.Federation.ShareUserStatistics {
-		var cached bool
-		nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
-
+		cached, _ := ctx.Cache.GetJSON(cacheKeyNodeInfoUsage, &nodeInfoUsage)
 		if !cached {
 			usersTotal := int(user_model.CountUsers(ctx, nil))
 			now := time.Now()
@@ -53,7 +51,7 @@ func NodeInfo(ctx *context.APIContext) {
 				LocalComments: int(allComments),
 			}
 
-			if err := ctx.Cache.Put(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
+			if err := ctx.Cache.PutJSON(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
 				ctx.InternalServerError(err)
 				return
 			}

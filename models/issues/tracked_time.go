@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -186,8 +187,8 @@ func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 		Issue: issue,
 		Repo:  issue.Repo,
 		Doer:  user,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
@@ -266,8 +267,8 @@ func DeleteIssueUserTimes(ctx context.Context, issue *Issue, user *user_model.Us
 		Issue: issue,
 		Repo:  issue.Repo,
 		Doer:  user,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
@@ -297,8 +298,8 @@ func DeleteTime(ctx context.Context, t *TrackedTime) error {
 		Issue: t.Issue,
 		Repo:  t.Issue.Repo,
 		Doer:  t.User,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
@@ -340,7 +341,7 @@ func GetTrackedTimeByID(ctx context.Context, id int64) (*TrackedTime, error) {
 }
 
 // GetIssueTotalTrackedTime returns the total tracked time for issues by given conditions.
-func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed util.OptionalBool) (int64, error) {
+func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed optional.Option[bool]) (int64, error) {
 	if len(opts.IssueIDs) <= MaxQueryParameters {
 		return getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs)
 	}
@@ -363,7 +364,7 @@ func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed
 	return accum, nil
 }
 
-func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed util.OptionalBool, issueIDs []int64) (int64, error) {
+func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed optional.Option[bool], issueIDs []int64) (int64, error) {
 	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
 		sess := db.GetEngine(ctx).
 			Table("tracked_time").
@@ -378,8 +379,8 @@ func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isC
 	}
 
 	session := sumSession(opts, issueIDs)
-	if !isClosed.IsNone() {
-		session = session.And("issue.is_closed = ?", isClosed.IsTrue())
+	if isClosed.Has() {
+		session = session.And("issue.is_closed = ?", isClosed.Value())
 	}
 	return session.SumInt(new(trackedTime), "tracked_time.time")
 }

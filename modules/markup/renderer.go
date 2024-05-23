@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -33,6 +34,8 @@ type ProcessorHelper struct {
 	IsUsernameMentionable func(ctx context.Context, username string) bool
 
 	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
+
+	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
 }
 
 var DefaultProcessorHelper ProcessorHelper
@@ -82,9 +85,17 @@ type RenderContext struct {
 }
 
 type Links struct {
-	Base       string
-	BranchPath string
-	TreePath   string
+	AbsolutePrefix bool
+	Base           string
+	BranchPath     string
+	TreePath       string
+}
+
+func (l *Links) Prefix() string {
+	if l.AbsolutePrefix {
+		return setting.AppURL
+	}
+	return setting.AppSubURL
 }
 
 func (l *Links) HasBranchInfo() bool {

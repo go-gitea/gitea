@@ -51,13 +51,20 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	case "tree":
 		tree := NewTree(repo, id)
 		tree.ResolvedID = id
-		tree.entries, err = catBatchParseTreeEntries(repo.objectFormat, tree, rd, size)
+		objectFormat, err := repo.GetObjectFormat()
+		if err != nil {
+			return nil, err
+		}
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, size)
 		if err != nil {
 			return nil, err
 		}
 		tree.entriesParsed = true
 		return tree, nil
 	default:
+		if err := DiscardFull(rd, size+1); err != nil {
+			return nil, err
+		}
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}
@@ -66,7 +73,11 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != repo.objectFormat.FullLength() {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+	if len(idStr) != objectFormat.FullLength() {
 		res, err := repo.GetRefCommitID(idStr)
 		if err != nil {
 			return nil, err

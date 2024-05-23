@@ -10,6 +10,10 @@
   top: 1.2em;
 }
 
+.ui.modal > .close.inside {
+  color: inherit;
+}
+
 .ui.modal > .close.icon[height="16"] {
   top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
   color: var(--color-text-dark);
@@ -50,6 +54,7 @@ These inconsistent layouts should be refactored to simple ones.
 .ui.modal form > .content {
   padding: 1.5em;
   background: var(--color-body);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.modal > .actions,
@@ -59,6 +64,7 @@ These inconsistent layouts should be refactored to simple ones.
   border-color: var(--color-secondary);
   padding: 1rem;
   text-align: right;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.modal .content > .actions {

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -287,23 +287,20 @@ func LFSFileGet(ctx *context.Context) {
 
 	st := typesniffer.DetectContentType(buf)
 	ctx.Data["IsTextFile"] = st.IsText()
-	isRepresentableAsText := st.IsRepresentableAsText()
-
-	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
-	case isRepresentableAsText:
-		if st.IsSvgImage() {
-			ctx.Data["IsImageFile"] = true
-		}
-
-		if fileSize >= setting.UI.MaxDisplayFileSize {
+	case st.IsRepresentableAsText():
+		if meta.Size >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		if st.IsSvgImage() {
+			ctx.Data["IsImageFile"] = true
+		}
+
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		// Building code view blocks with line number on server side.
 		escapedContent := &bytes.Buffer{}
@@ -338,6 +335,8 @@ func LFSFileGet(ctx *context.Context) {
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+	default:
+		// TODO: the logic is not the same as "renderFile" in "view.go"
 	}
 	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }
@@ -388,7 +387,7 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+	objectFormat := ctx.Repo.GetObjectFormat()
 	var objectID git.ObjectID
 	if len(sha) == 0 {
 		pointer := lfs.Pointer{Oid: oid, Size: size}

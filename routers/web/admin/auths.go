@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,6 +26,7 @@ import (
 	pam_service "code.gitea.io/gitea/services/auth/source/pam"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	"xorm.io/xorm/convert"
@@ -210,16 +210,16 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi.Source, error) {
 	if util.IsEmptyString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.require_error"))
+		return nil, errors.New(ctx.Locale.TrString("form.SSPISeparatorReplacement") + ctx.Locale.TrString("form.require_error"))
 	}
 	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.alpha_dash_dot_error"))
+		return nil, errors.New(ctx.Locale.TrString("form.SSPISeparatorReplacement") + ctx.Locale.TrString("form.alpha_dash_dot_error"))
 	}
 
 	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
 		ctx.Data["Err_SSPIDefaultLanguage"] = true
-		return nil, errors.New(ctx.Tr("form.lang_select_error"))
+		return nil, errors.New(ctx.Locale.TrString("form.lang_select_error"))
 	}
 
 	return &sspi.Source{

@@ -25,16 +25,19 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -125,7 +128,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, ""}
 		}
 
-		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
+		errTooLarge := errors.New(ctx.Locale.TrString("repo.error.csv.too_large"))
 
 		csvReaderFromCommit := func(ctx *markup.RenderContext, blob *git.Blob) (*csv.Reader, io.Closer, error) {
 			if blob == nil {
@@ -142,7 +145,7 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, err
 			}
 
-			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
 			return csvReader, reader, err
 		}
 
@@ -183,21 +186,10 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
-// CompareInfo represents the collected results from ParseCompareInfo
-type CompareInfo struct {
-	HeadUser         *user_model.User
-	HeadRepo         *repo_model.Repository
-	HeadGitRepo      *git.Repository
-	CompareInfo      *git.CompareInfo
-	BaseBranch       string
-	HeadBranch       string
-	DirectComparison bool
-}
-
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) *CompareInfo {
+func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	baseRepo := ctx.Repo.Repository
-	ci := &CompareInfo{}
+	ci := &common.CompareInfo{}
 
 	fileOnly := ctx.FormBool("file-only")
 
@@ -310,14 +302,14 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
 	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(ci.BaseBranch)
 	baseIsTag := ctx.Repo.GitRepo.IsTagExist(ci.BaseBranch)
-	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
 		// Check if baseBranch is short sha commit hash
 		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(ci.BaseBranch); baseCommit != nil {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
-		} else if ci.BaseBranch == objectFormat.EmptyObjectID().String() {
+		} else if ci.BaseBranch == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 			if isSameRepo {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
 			} else {
@@ -408,7 +400,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepository(ctx, ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -574,7 +566,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 // PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
-	ci *CompareInfo,
+	ci *common.CompareInfo,
 	whitespaceBehavior git.TrustedCmdArgs,
 ) bool {
 	var (
@@ -688,18 +680,16 @@ func PrepareCompareDiff(
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer gitRepo.Close()
 
 	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: repo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		RepoID:          repo.ID,
+		ListOptions:     db.ListOptionsAll,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -752,11 +742,9 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ci.HeadRepo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		RepoID:          ci.HeadRepo.ID,
+		ListOptions:     db.ListOptionsAll,
+		IsDeletedBranch: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
@@ -812,7 +800,6 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
-	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
@@ -825,7 +812,7 @@ func CompareDiff(ctx *context.Context) {
 		// applicable if you have one commit to compare and that commit has a message.
 		// In that case the commit message will be prepend to the template body.
 		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-			// Re-use the same key as that's priortized over the "content" key.
+			// Re-use the same key as that's prioritized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
@@ -876,7 +863,7 @@ func ExcerptBlob(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	if ctx.FormBool("wiki") {
 		var err error
-		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
@@ -944,7 +931,7 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 	ctx.Data["section"] = section
-	ctx.Data["FileNameHash"] = base.EncodeSha1(filePath)
+	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
@@ -977,6 +964,9 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 			Content:  " " + lineText,
 		}
 		diffLines = append(diffLines, diffLine)
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
 }

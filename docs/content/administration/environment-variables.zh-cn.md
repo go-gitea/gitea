@@ -29,9 +29,9 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
 
 * `GOOS`
 * `GOARCH`
-* [`GOPATH`](https://golang.org/cmd/go/#hdr-GOPATH_environment_variable)
+* [`GOPATH`](https://go.dev/cmd/go/#hdr-GOPATH_environment_variable)
 
-您可以在[官方文档](https://golang.org/cmd/go/#hdr-Environment_variables)中查阅这些配置参数的详细信息。
+您可以在[官方文档](https://go.dev/cmd/go/#hdr-Environment_variables)中查阅这些配置参数的详细信息。
 
 ## Gitea 的文件目录
 

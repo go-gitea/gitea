@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
@@ -92,17 +93,32 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return nil, nil, err
+	wikiGitRepo, errGitRepo := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
+	if errGitRepo != nil {
+		ctx.ServerError("OpenRepository", errGitRepo)
+		return nil, nil, errGitRepo
 	}
 
-	commit, err := wikiRepo.GetBranchCommit(wiki_service.DefaultBranch)
-	if err != nil {
-		return wikiRepo, nil, err
+	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
+	if git.IsErrNotExist(errCommit) {
+		// if the default branch recorded in database is out of sync, then re-sync it
+		gitRepoDefaultBranch, errBranch := gitrepo.GetWikiDefaultBranch(ctx, ctx.Repo.Repository)
+		if errBranch != nil {
+			return wikiGitRepo, nil, errBranch
+		}
+		// update the default branch in the database
+		errDb := repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")
+		if errDb != nil {
+			return wikiGitRepo, nil, errDb
+		}
+		ctx.Repo.Repository.DefaultWikiBranch = gitRepoDefaultBranch
+		// retry to get the commit from the correct default branch
+		commit, errCommit = wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	}
-	return wikiRepo, commit, nil
+	if errCommit != nil {
+		return wikiGitRepo, nil, errCommit
+	}
+	return wikiGitRepo, commit, nil
 }
 
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
@@ -315,7 +331,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiRepo, entry
@@ -367,7 +383,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["footerContent"] = ""
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -379,7 +395,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: wiki_service.DefaultBranch,
+			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
 			Page:     page,
 		})
@@ -401,20 +417,17 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 
 func renderEditPage(ctx *context.Context) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if err != nil {
+	defer func() {
 		if wikiRepo != nil {
-			wikiRepo.Close()
+			_ = wikiRepo.Close()
 		}
+	}()
+	if err != nil {
 		if !git.IsErrNotExist(err) {
 			ctx.ServerError("GetBranchCommit", err)
 		}
 		return
 	}
-	defer func() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-	}()
 
 	// get requested pagename
 	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
@@ -583,17 +596,15 @@ func WikiPages(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-		return
-	}
 	defer func() {
 		if wikiRepo != nil {
-			wikiRepo.Close()
+			_ = wikiRepo.Close()
 		}
 	}()
+	if err != nil {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
+		return
+	}
 
 	entries, err := commit.ListEntries()
 	if err != nil {
@@ -713,7 +724,7 @@ func NewWikiPost(ctx *context.Context) {
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.add", form.Title)
+		form.Message = ctx.Locale.TrString("repo.editor.add", form.Title)
 	}
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
@@ -765,7 +776,7 @@ func EditWikiPost(ctx *context.Context) {
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.update", form.Title)
+		form.Message = ctx.Locale.TrString("repo.editor.update", form.Title)
 	}
 
 	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {

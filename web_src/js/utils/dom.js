@@ -22,11 +22,11 @@ function elementsCall(el, func, ...args) {
  */
 function toggleShown(el, force) {
   if (force === true) {
-    el.classList.remove('gt-hidden');
+    el.classList.remove('tw-hidden');
   } else if (force === false) {
-    el.classList.add('gt-hidden');
+    el.classList.add('tw-hidden');
   } else if (force === undefined) {
-    el.classList.toggle('gt-hidden');
+    el.classList.toggle('tw-hidden');
   } else {
     throw new Error('invalid force argument');
   }
@@ -46,9 +46,31 @@ export function toggleElem(el, force) {
 
 export function isElemHidden(el) {
   const res = [];
-  elementsCall(el, (e) => res.push(e.classList.contains('gt-hidden')));
+  elementsCall(el, (e) => res.push(e.classList.contains('tw-hidden')));
   if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
   return res[0];
+}
+
+function applyElemsCallback(elems, fn) {
+  if (fn) {
+    for (const el of elems) {
+      fn(el);
+    }
+  }
+  return elems;
+}
+
+export function queryElemSiblings(el, selector = '*', fn) {
+  return applyElemsCallback(Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector)), fn);
+}
+
+// it works like jQuery.children: only the direct children are selected
+export function queryElemChildren(parent, selector = '*', fn) {
+  return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
+}
+
+export function queryElems(selector, fn) {
+  return applyElemsCallback(document.querySelectorAll(selector), fn);
 }
 
 export function onDomReady(cb) {
@@ -56,6 +78,17 @@ export function onDomReady(cb) {
     document.addEventListener('DOMContentLoaded', cb);
   } else {
     cb();
+  }
+}
+
+// checks whether an element is owned by the current document, and whether it is a document fragment or element node
+// if it is, it means it is a "normal" element managed by us, which can be modified safely.
+export function isDocumentFragmentOrElementNode(el) {
+  try {
+    return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+  } catch {
+    // in case the el is not in the same origin, then the access to nodeType would fail
+    return false;
   }
 }
 
@@ -176,7 +209,7 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
       textarea.removeEventListener('mousemove', onUserResize);
       textarea.removeEventListener('input', resizeToFit);
       textarea.form?.removeEventListener('reset', onFormReset);
-    }
+    },
   };
 }
 
@@ -200,6 +233,7 @@ export function loadElem(el, src) {
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
 export function submitEventSubmitter(e) {
+  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
@@ -214,4 +248,52 @@ export function initSubmitEventPolyfill() {
   console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
   document.body.addEventListener('click', submitEventPolyfillListener);
   document.body.addEventListener('focus', submitEventPolyfillListener);
+}
+
+/**
+ * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+ * Note: This function doesn't account for all possible visibility scenarios.
+ * @param {HTMLElement} element The element to check.
+ * @returns {boolean} True if the element is visible.
+ */
+export function isElemVisible(element) {
+  if (!element) return false;
+
+  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+}
+
+// extract text and images from "paste" event
+export function getPastedContent(e) {
+  const images = [];
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.type?.startsWith('image/')) {
+      images.push(item.getAsFile());
+    }
+  }
+  const text = e.clipboardData?.getData?.('text') ?? '';
+  return {text, images};
+}
+
+// replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
+export function replaceTextareaSelection(textarea, text) {
+  const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
+  const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
+  let success = true;
+
+  textarea.contentEditable = 'true';
+  try {
+    success = document.execCommand('insertText', false, text);
+  } catch {
+    success = false;
+  }
+  textarea.contentEditable = 'false';
+
+  if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
+    success = false;
+  }
+
+  if (!success) {
+    textarea.value = `${before}${text}${after}`;
+    textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
+  }
 }

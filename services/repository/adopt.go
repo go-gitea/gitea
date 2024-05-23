@@ -17,7 +17,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -32,10 +34,6 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
 		}
-	}
-
-	if len(opts.DefaultBranch) == 0 {
-		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
 	repo := &repo_model.Repository{
@@ -78,8 +76,8 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			return fmt.Errorf("getRepositoryByID: %w", err)
 		}
 
-		if err := adoptRepository(ctx, repoPath, doer, repo, opts.DefaultBranch); err != nil {
-			return fmt.Errorf("createDelegateHooks: %w", err)
+		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
+			return fmt.Errorf("adoptRepository: %w", err)
 		}
 
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
@@ -109,7 +107,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, defaultBranch string) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repository, defaultBranch string) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -125,35 +123,41 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 	repo.IsEmpty = false
 
-	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("openRepository: %w", err)
-	}
-	defer gitRepo.Close()
-
 	if len(defaultBranch) > 0 {
 		repo.DefaultBranch = defaultBranch
 
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
-		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
+		repo.DefaultBranch, err = gitrepo.GetDefaultBranch(ctx, repo)
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
 	}
 
+	// Don't bother looking this repo in the context it won't be there
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return fmt.Errorf("openRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
+	}
+
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+		return fmt.Errorf("SyncReleasesWithTags: %w", err)
+	}
+
 	branches, _ := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: repo.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
+		RepoID:          repo.ID,
+		ListOptions:     db.ListOptionsAll,
+		IsDeletedBranch: optional.Some(false),
 	})
 
 	found := false
@@ -186,17 +190,12 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		}
 
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-
 	if err = repo_module.UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
-		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
 	return nil
@@ -357,7 +356,6 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
-
 		}
 		return filepath.SkipDir
 	}); err != nil {

@@ -179,7 +179,7 @@ func TestLDAPUserSignin(t *testing.T) {
 
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
+	assert.Equal(t, u.Email, htmlDoc.Find("#signed-user-email").Text())
 }
 
 func TestLDAPAuthChange(t *testing.T) {
@@ -309,7 +309,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	// all groups the user is a member of, the user filter is modified accordingly inside
 	// the addAuthSourceLDAP based on the value of the groupFilter
 	u := otherLDAPUsers[0]
-	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
+	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
 
 	auth.SyncExternalUsers(context.Background(), true)
 
@@ -362,7 +362,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	addAuthSourceLDAP(t, "", "")
 
 	u := otherLDAPUsers[0]
-	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
+	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
 }
 
 func TestLDAPUserSSHKeySync(t *testing.T) {
@@ -428,9 +428,9 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = models.RemoveTeamMember(db.DefaultContext, team, user.ID)
+			err = models.RemoveTeamMember(db.DefaultContext, team, user)
 			assert.NoError(t, err)
-			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0].ID, user.ID)
+			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0], user)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
@@ -460,7 +460,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	})
 	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
-	err = models.AddTeamMember(db.DefaultContext, team, user.ID)
+	err = models.AddTeamMember(db.DefaultContext, team, user)
 	assert.NoError(t, err)
 	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)

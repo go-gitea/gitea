@@ -4,139 +4,47 @@
 package pwn
 
 import (
-	"errors"
-	"math/rand"
 	"net/http"
-	"os"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/h2non/gock"
+	"github.com/stretchr/testify/assert"
 )
 
 var client = New(WithHTTP(&http.Client{
 	Timeout: time.Second * 2,
 }))
 
-func TestMain(m *testing.M) {
-	rand.Seed(time.Now().Unix())
-	os.Exit(m.Run())
-}
-
 func TestPassword(t *testing.T) {
-	// Check input error
-	_, err := client.CheckPassword("", false)
-	if err == nil {
-		t.Log("blank input should return an error")
-		t.Fail()
-	}
-	if !errors.Is(err, ErrEmptyPassword) {
-		t.Log("blank input should return ErrEmptyPassword")
-		t.Fail()
-	}
+	defer gock.Off()
 
-	// Should fail
-	fail := "password1234"
-	count, err := client.CheckPassword(fail, false)
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	if count == 0 {
-		t.Logf("%s should fail as a password\n", fail)
-		t.Fail()
-	}
+	count, err := client.CheckPassword("", false)
+	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
+	assert.Equal(t, -1, count)
 
-	// Should fail (with padding)
-	failPad := "administrator"
-	count, err = client.CheckPassword(failPad, true)
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	if count == 0 {
-		t.Logf("%s should fail as a password\n", failPad)
-		t.Fail()
-	}
+	gock.New("https://api.pwnedpasswords.com").Get("/range/5c1d8").Times(1).Reply(200).BodyString("EAF2F254732680E8AC339B84F3266ECCBB5:1\r\nFC446EB88938834178CB9322C1EE273C2A7:2")
+	count, err = client.CheckPassword("pwned", false)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 
-	// Checking for a "good" password isn't going to be perfect, but we can give it a good try
-	// with hopefully minimal error. Try five times?
-	var good bool
-	var pw string
-	for idx := 0; idx <= 5; idx++ {
-		pw = testPassword()
-		count, err = client.CheckPassword(pw, false)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if count == 0 {
-			good = true
-			break
-		}
-	}
-	if !good {
-		t.Log("no generated passwords passed. there is a chance this is a fluke")
-		t.Fail()
-	}
+	gock.New("https://api.pwnedpasswords.com").Get("/range/ba189").Times(1).Reply(200).BodyString("FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4")
+	count, err = client.CheckPassword("notpwned", false)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 
-	// Again, but with padded responses
-	good = false
-	for idx := 0; idx <= 5; idx++ {
-		pw = testPassword()
-		count, err = client.CheckPassword(pw, true)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if count == 0 {
-			good = true
-			break
-		}
-	}
-	if !good {
-		t.Log("no generated passwords passed. there is a chance this is a fluke")
-		t.Fail()
-	}
-}
+	gock.New("https://api.pwnedpasswords.com").Get("/range/a1733").Times(1).Reply(200).BodyString("C4CE0F1F0062B27B9E2F41AF0C08218017C:1\r\nFC446EB88938834178CB9322C1EE273C2A7:2\r\nFE81480327C992FE62065A827429DD1318B:0")
+	count, err = client.CheckPassword("paddedpwned", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 
-// Credit to https://golangbyexample.com/generate-random-password-golang/
-// DO NOT USE THIS FOR AN ACTUAL PASSWORD GENERATOR
-var (
-	lowerCharSet   = "abcdedfghijklmnopqrst"
-	upperCharSet   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	specialCharSet = "!@#$%&*"
-	numberSet      = "0123456789"
-	allCharSet     = lowerCharSet + upperCharSet + specialCharSet + numberSet
-)
+	gock.New("https://api.pwnedpasswords.com").Get("/range/5617b").Times(1).Reply(200).BodyString("FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0")
+	count, err = client.CheckPassword("paddednotpwned", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 
-func testPassword() string {
-	var password strings.Builder
-
-	// Set special character
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(specialCharSet))
-		password.WriteString(string(specialCharSet[random]))
-	}
-
-	// Set numeric
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(numberSet))
-		password.WriteString(string(numberSet[random]))
-	}
-
-	// Set uppercase
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(upperCharSet))
-		password.WriteString(string(upperCharSet[random]))
-	}
-
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(allCharSet))
-		password.WriteString(string(allCharSet[random]))
-	}
-	inRune := []rune(password.String())
-	rand.Shuffle(len(inRune), func(i, j int) {
-		inRune[i], inRune[j] = inRune[j], inRune[i]
-	})
-	return string(inRune)
+	gock.New("https://api.pwnedpasswords.com").Get("/range/79082").Times(1).Reply(200).BodyString("FDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0\r\nAFEF386F56EB0B4BE314E07696E5E6E6536:0")
+	count, err = client.CheckPassword("paddednotpwnedzero", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 }
