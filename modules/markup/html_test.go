@@ -556,6 +556,46 @@ func TestRender_RelativeImages(t *testing.T) {
 		`<img src="`+util.URLJoin(rawwiki, "icon.png")+`"/>`)
 }
 
+func TestRender_RelativeVideos(t *testing.T) {
+	setting.AppURL = markup.TestAppURL
+
+	test := func(input, expected, expectedWiki string) {
+		buffer, err := markdown.RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       markup.TestRepoURL,
+				BranchPath: "master",
+			},
+			Metas: localMetas,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err = markdown.RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: markup.TestRepoURL,
+			},
+			Metas:  localMetas,
+			IsWiki: true,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
+	}
+
+	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
+	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
+
+	test(
+		`<video src="Link">`,
+		`<video src="`+util.URLJoin(mediatree, "Link")+`"></video>`,
+		`<video src="`+util.URLJoin(rawwiki, "Link")+`"></video>`)
+
+	test(
+		`<video src="./video.mp4">`,
+		`<video src="`+util.URLJoin(mediatree, "video.mp4")+`"></video>`,
+		`<video src="`+util.URLJoin(rawwiki, "video.mp4")+`"></video>`)
+}
+
 func Test_ParseClusterFuzz(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 

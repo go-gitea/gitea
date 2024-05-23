@@ -407,6 +407,17 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 				attr.Val = camoHandleLink(attr.Val)
 				node.Attr[i] = attr
 			}
+		} else if node.Data == "video" {
+			for i, attr := range node.Attr {
+				if attr.Key != "src" {
+					continue
+				}
+				if len(attr.Val) > 0 && !IsFullURLString(attr.Val) {
+					attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
+				}
+				attr.Val = camoHandleLink(attr.Val)
+				node.Attr[i] = attr
+			}
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
 			procs = emojiProcessors
