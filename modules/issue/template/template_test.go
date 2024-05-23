@@ -356,6 +356,50 @@ body:
 			wantErr: "body[0](checkboxes), option[1]: can not require a hidden checkbox",
 		},
 		{
+			name: "dropdown default is not an integer",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: "def"
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): 'default' should be a int",
+		},
+		{
+			name: "dropdown default is out of range",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: 3
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): the value of 'default' is out of range",
+		},
+		{
 			name: "valid",
 			content: `
 name: Name
@@ -399,6 +443,7 @@ body:
         - Option 1 of dropdown
         - Option 2 of dropdown
         - Option 3 of dropdown
+      default: 1
     validations:
       required: true
   - type: checkboxes
@@ -475,6 +520,7 @@ body:
 								"Option 2 of dropdown",
 								"Option 3 of dropdown",
 							},
+							"default": 1,
 						},
 						Validations: map[string]any{
 							"required": true,
