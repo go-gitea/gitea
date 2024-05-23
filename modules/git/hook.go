@@ -39,7 +39,7 @@ var ErrNotValidHook = errors.New("not a valid Git hook")
 
 // IsValidHookName returns true if given name is a valid Git hook.
 func IsValidHookName(name string) bool {
-	for hn, _ := range GetHookNames() {
+	for hn := range GetHookNames() {
 		if hn == name {
 			return true
 		}
@@ -118,7 +118,6 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 		if err != nil {
 			return nil, err
 		}
-		i++
 	}
 	return hooks, nil
 }
