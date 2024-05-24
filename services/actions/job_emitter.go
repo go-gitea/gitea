@@ -140,7 +140,7 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 			if allSucceed {
 				ret[id] = actions_model.StatusWaiting
 			} else {
-				// Check if the job has an "if" expression
+				// Check if the job has an "if" condition
 				hasIf := false
 				if wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload); len(wfJobs) == 1 {
 					_, wfJob := wfJobs[0].Job()
@@ -148,10 +148,10 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 				}
 
 				if hasIf {
-					// act_runner will check the "if" expression
+					// act_runner will check the "if" condition
 					ret[id] = actions_model.StatusWaiting
 				} else {
-					// If the "if" expression is empty and not all dependent jobs completed successfully,
+					// If the "if" condition is empty and not all dependent jobs completed successfully,
 					// the job should be skipped.
 					ret[id] = actions_model.StatusSkipped
 				}
