@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -1027,15 +1028,26 @@ func renderHomeCode(ctx *context.Context) {
 			return
 		}
 
-		showRecentlyPushedNewBranches := true
-		if ctx.Repo.Repository.IsMirror ||
-			!ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
-			showRecentlyPushedNewBranches = false
+		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
+			Repo:     ctx.Repo.Repository,
+			BaseRepo: ctx.Repo.Repository,
 		}
-		if showRecentlyPushedNewBranches {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if ctx.Repo.Repository.IsFork {
+			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
+		}
+
+		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+
+		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
+			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
+			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
-				ctx.ServerError("GetRecentlyPushedBranches", err)
+				ctx.ServerError("FindRecentlyPushedNewBranches", err)
 				return
 			}
 		}
