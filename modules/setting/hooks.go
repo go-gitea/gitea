@@ -5,7 +5,7 @@ package setting
 
 import (
 	"fmt"
-	"strings"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -18,8 +18,8 @@ var (
 )
 
 func isValidFileName(filename string) error {
-	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
-		return fmt.Errorf("contains path components")
+	if filepath.Base(filename) != filename || filepath.IsAbs(filename) || filename == "." || filename == ".." {
+		return fmt.Errorf("can only contain filenames, not other directories")
 	}
 	return nil
 }
@@ -31,12 +31,12 @@ func loadHooksFrom(rootCfg ConfigProvider) {
 	GitHookPostreceiveName = githooks.Key("GIT_HOOK_POSTRECEIVE_NAME").MustString("post-receive")
 
 	if err := isValidFileName(GitHookPrereceiveName); err != nil {
-		log.Fatal("Invalid git pre-receive hook name (%s): %v", GitHookPrereceiveName, err)
+		log.Fatal("'%s' is an invalid [git.hooks].GIT_HOOK_PRERECEIVE_NAME: %v", GitHookPrereceiveName, err)
 	}
 	if err := isValidFileName(GitHookUpdateName); err != nil {
-		log.Fatal("Invalid git update hook name (%s): %v", GitHookUpdateName, err)
+		log.Fatal("'%s' is an invalid [git.hooks].GIT_HOOK_UPDATE_NAME: %v", GitHookUpdateName, err)
 	}
 	if err := isValidFileName(GitHookPostreceiveName); err != nil {
-		log.Fatal("Invalid git post-receive hook name (%s): %v", GitHookPostreceiveName, err)
+		log.Fatal("'%s' is an invalid [git.hooks].GIT_HOOK_POSTRECEIVE_NAME: %v", GitHookPostreceiveName, err)
 	}
 }
