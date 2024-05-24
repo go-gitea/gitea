@@ -235,7 +235,7 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 }
 
 // ChangeIssueContent changes issue content, as the given user.
-func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string, version int) (err error) {
+func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string, contentVersion int) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -254,9 +254,9 @@ func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User
 	}
 
 	issue.Content = content
-	issue.ContentVersion = version + 1
+	issue.ContentVersion = contentVersion + 1
 
-	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", version).Update(issue)
+	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", contentVersion).Update(issue)
 	if err != nil {
 		return err
 	}
