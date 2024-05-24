@@ -132,15 +132,6 @@ func NewFuncMap() template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
-		"GitHookPrereceiveName": func() string {
-			return setting.GitHookPrereceiveName
-		},
-		"GitHookUpdateName": func() string {
-			return setting.GitHookUpdateName
-		},
-		"GitHookPostreceiveName": func() string {
-			return setting.GitHookPostreceiveName
-		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
