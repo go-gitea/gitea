@@ -168,16 +168,16 @@
 									{{svg "octicon-kebab-horizontal" 18 "icon tw-mx-2"}}
 									<div class="ui menu">
 										{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-											<button class="ui unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button class="ui escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+											<button class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+											<button class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										{{end}}
 										{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 											{{if $file.IsDeleted}}
-												<a class="ui item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 											{{else}}
-												<a class="ui item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 												{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
-													<a class="ui item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
 												{{end}}
 											{{end}}
 										{{end}}
