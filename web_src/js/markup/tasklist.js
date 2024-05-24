@@ -55,20 +55,20 @@ export function initMarkupTasklist() {
           const editContentZone = container.querySelector('.edit-content-zone');
           const updateUrl = editContentZone.getAttribute('data-update-url');
           const context = editContentZone.getAttribute('data-context');
-          const version = editContentZone.getAttribute('data-version');
+          const contentVersion = editContentZone.getAttribute('data-content-version');
 
           const requestBody = new FormData();
           requestBody.append('ignore_attachments', 'true');
           requestBody.append('content', newContent);
           requestBody.append('context', context);
-          requestBody.append('version', version);
+          requestBody.append('content_version', contentVersion);
           const response = await POST(updateUrl, {data: requestBody});
           const data = await response.json();
           if (response.status === 400) {
             showErrorToast(data.errorMessage);
             return;
           }
-          editContentZone.setAttribute('data-version', data.version);
+          editContentZone.setAttribute('data-content-version', data.contentVersion);
           rawContent.textContent = newContent;
         } catch (err) {
           checkbox.checked = !checkbox.checked;

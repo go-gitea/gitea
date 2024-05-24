@@ -2247,7 +2247,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("version")); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("content_version")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
 		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
@@ -2284,9 +2284,9 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":     content,
-		"version":     issue.Version,
-		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
+		"content":        content,
+		"contentVersion": issue.ContentVersion,
+		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }
 

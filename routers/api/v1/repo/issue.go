@@ -810,7 +810,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.Version)
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
 				ctx.Error(http.StatusBadRequest, "ChangeContent", err)

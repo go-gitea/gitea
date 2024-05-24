@@ -109,6 +109,7 @@ type Issue struct {
 	Title            string                 `xorm:"name"`
 	Content          string                 `xorm:"LONGTEXT"`
 	RenderedContent  template.HTML          `xorm:"-"`
+	ContentVersion   int                    `xorm:"NOT NULL DEFAULT 0"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`
@@ -123,7 +124,6 @@ type Issue struct {
 	NumComments      int
 	Ref              string
 	PinOrder         int `xorm:"DEFAULT 0"`
-	Version          int `xorm:"NOT NULL DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 

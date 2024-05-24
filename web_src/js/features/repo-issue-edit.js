@@ -125,7 +125,7 @@ async function onEditContent(event) {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
-        version: editContentZone.getAttribute('data-version'),
+        content_version: editContentZone.getAttribute('data-content-version'),
       });
       for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
 
@@ -135,7 +135,7 @@ async function onEditContent(event) {
         showErrorToast(data.errorMessage);
         return;
       }
-      editContentZone.setAttribute('data-version', data.version);
+      editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
         renderContent.innerHTML = document.getElementById('no-content').innerHTML;
         rawContent.textContent = '';

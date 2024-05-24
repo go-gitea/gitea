@@ -254,9 +254,9 @@ func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User
 	}
 
 	issue.Content = content
-	issue.Version = version + 1
+	issue.ContentVersion = version + 1
 
-	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "version").Where("version = ?", version).Update(issue)
+	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", version).Update(issue)
 	if err != nil {
 		return err
 	}

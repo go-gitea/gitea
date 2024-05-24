@@ -5,9 +5,9 @@ package v1_23 //nolint
 
 import "xorm.io/xorm"
 
-func AddVersionToIssue(x *xorm.Engine) error {
+func AddContentVersionToIssue(x *xorm.Engine) error {
 	type Issue struct {
-		Version int `xorm:"NOT NULL DEFAULT 0"`
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	sess := x.NewSession()
