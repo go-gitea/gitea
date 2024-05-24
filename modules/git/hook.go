@@ -1,4 +1,5 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -15,7 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// hookNames is a list of Git server hooks' name that are supported.
+var hookNames = []string{"pre-receive", "update", "post-receive"}
+
+// hookNames contains the hook name (key) linked with the filename of the resulting hook.
 func GetHookNames() map[string]string {
 	return map[string]string{
 		"pre-receive":  setting.GitHookPrereceiveName,
@@ -53,7 +56,7 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: path.Join(repoPath, "hooks", name+".d", GetHookNames()[name]),
+		path: filepath.Join(repoPath, "hooks", name+".d", GetHookNames()[name]),
 	}
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
 	if isFile(h.path) {
@@ -108,8 +111,6 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 	if !isDir(path.Join(repoPath, "hooks")) {
 		return nil, errors.New("hooks path does not exist")
 	}
-
-	hookNames := []string{"pre-receive", "update", "post-receive"}
 
 	hooks := make([]*Hook, len(GetHookNames()))
 	for i := range hookNames {
