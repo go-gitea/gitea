@@ -96,34 +96,8 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 
-	// By default, use the static credentials
-	creds := credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
-
-	// If the Access Key ID is empty, configure a credentials chain for S3 access
-	if config.AccessKeyID == "" {
-		chain := []credentials.Provider{
-			// configure based upon MINIO_ prefixed environment variables
-			&credentials.EnvMinio{},
-			// configure based upon AWS_ prefixed environment variables
-			&credentials.EnvAWS{},
-			// read credentials from MINIO_SHARED_CREDENTIALS_FILE
-			// environment variable, or default json config files
-			&credentials.FileMinioClient{},
-			// read credentials from AWS_SHARED_CREDENTIALS_FILE
-			// environment variable, or default credentials file
-			&credentials.FileAWSCredentials{},
-			// read IAM role from EC2 metadata endpoint if available
-			&credentials.IAM{
-				Client: &http.Client{
-					Transport: http.DefaultTransport,
-				},
-			},
-		}
-		creds = credentials.NewChainCredentials(chain)
-	}
-
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:        creds,
+		Creds:        buildMinioCredentials(config, credentials.DefaultIAMRoleEndpoint),
 		Secure:       config.UseSSL,
 		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
 		Region:       config.Location,
@@ -188,6 +162,35 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 		p = "" // object store doesn't use slash for root path
 	}
 	return p
+}
+
+func buildMinioCredentials(config setting.MinioStorageConfig, iamEndpoint string) *credentials.Credentials {
+	// If static credentials are provided, use those
+	if config.AccessKeyID != "" {
+		return credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
+	}
+
+	// Otherwise, fallback to a credentials chain for S3 access
+	chain := []credentials.Provider{
+		// configure based upon MINIO_ prefixed environment variables
+		&credentials.EnvMinio{},
+		// configure based upon AWS_ prefixed environment variables
+		&credentials.EnvAWS{},
+		// read credentials from MINIO_SHARED_CREDENTIALS_FILE
+		// environment variable, or default json config files
+		&credentials.FileMinioClient{},
+		// read credentials from AWS_SHARED_CREDENTIALS_FILE
+		// environment variable, or default credentials file
+		&credentials.FileAWSCredentials{},
+		// read IAM role from EC2 metadata endpoint if available
+		&credentials.IAM{
+			Endpoint: iamEndpoint,
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.NewChainCredentials(chain)
 }
 
 // Open opens a file
