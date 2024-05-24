@@ -1,14 +1,15 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
+import {parseDom} from '../utils.js';
 
 // modified from   ./repo-issue-list.js initRepoIssueListAuthorDropdown
 function initUserDropdown() {
-  const $searchDropdown = $('#assigneeDropdown.user-remote-search');
+  const $searchDropdown = $('.user-remote-search');
   if (!$searchDropdown.length) return;
 
-  let searchUrl = $searchDropdown.attr('data-search-url');
-  const actionJumpUrl = $searchDropdown.attr('data-action-jump-url');
-  const selectedUserId = $searchDropdown.attr('data-selected-user-id');
+  let searchUrl = $searchDropdown[0].getAttribute('data-search-url');
+  const actionJumpUrl = $searchDropdown[0].getAttribute('data-action-jump-url');
+  const selectedUserId = $searchDropdown[0].getAttribute('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
 
   $searchDropdown.dropdown('setting', {
@@ -24,13 +25,13 @@ function initUserDropdown() {
         const previousLabels = urlParams.get('labels');
         const href = actionJumpUrl.replace(
           '{labels}',
-          encodeURIComponent(previousLabels ?? '')
+          encodeURIComponent(previousLabels ?? ''),
         );
 
         for (const item of resp.results) {
-          let html = `<a href=${href.replace('{username}', encodeURIComponent(item.username))}><img class='ui avatar gt-vm' src='${htmlEscape(item.avatar_link)}' aria-hidden='true' alt='' width='20' height='20'><span class='gt-ellipsis gt-px-4' >${htmlEscape(item.username)}</span></a>`;
+          let html = `<a href=${href.replace('{username}', encodeURIComponent(item.username))}><img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span></a>`;
           if (item.full_name) {
-            html += `<span class='search-fullname gt-ml-3'>${htmlEscape(item.full_name)}</span>`;
+            html += `<span class='search-fullname tw-ml-2'>${htmlEscape(item.full_name)}</span>`;
           }
           processedResults.push({value: item.username, name: html});
         }
@@ -56,43 +57,52 @@ function initUserDropdown() {
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    const $menu = $searchDropdown.find('> .menu');
-    $menu.find('> .dynamic-item').remove(); // remove old dynamic items
+    const menu = $searchDropdown.find('> .menu')[0];
+    // remove old dynamic items
+    for (const el of menu.querySelectorAll(':scope > .dynamic-item')) {
+      el.remove();
+    }
 
-    const newMenuHtml = dropdownTemplates.menu(
-      values,
-      $searchDropdown.dropdown('setting', 'fields'),
-      true /* html */,
-      $searchDropdown.dropdown('setting', 'className')
-    );
+    const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
     if (newMenuHtml) {
-      const $newMenuItems = $(newMenuHtml);
-      $newMenuItems.addClass('dynamic-item');
-      $menu.append(
-        `<div class='divider dynamic-item'></div>`,
-        ...$newMenuItems
-      );
+      const newMenuItems = parseDom(newMenuHtml, 'text/html').querySelectorAll('body > div');
+      for (const newMenuItem of newMenuItems) {
+        newMenuItem.classList.add('dynamic-item');
+      }
+      const div = document.createElement('div');
+      div.classList.add('divider', 'dynamic-item');
+      menu.append(div, ...newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
     setTimeout(() => {
-      $menu.find('.item.active, .item.selected').removeClass('active selected');
-      $menu.find(`.item[data-value='${selectedUserId}']`).addClass('selected');
+      for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
+        el.classList.remove('active', 'selected');
+      }
+      menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
     }, 0);
   };
 }
 
-function initProjectFilterHref() {
-  if (!window.location.href.includes('?assignee=')) {
-    window.location.href += '?assignee=';
+function initShowCard() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const previousLabels = urlParams.get('labels');
+  const previousAssignee = urlParams.get('assignee');
+  if (previousLabels || previousAssignee) return;
+
+  const cards = document.querySelectorAll('.issue-card[data-issue]');
+  for (const card of cards) {
+    card.style.display = 'flex';
   }
 }
 
 function initUpdateLabelHref() {
+  const url = window.location.href.split('?')[0];
   const urlParams = new URLSearchParams(window.location.search);
   const previousLabels = urlParams.get('labels');
+  const previousAssignee = urlParams.get('assignee');
   const labels = document.querySelectorAll(
-    '.label-filter > .menu > a.label-filter-item'
+    '.label-filter > .menu > a.label-filter-item',
   );
 
   for (const label of labels) {
@@ -105,11 +115,11 @@ function initUpdateLabelHref() {
       previousLabels.length > 0 &&
       previousLabels.split(',').includes(`${labelId}`)
     ) {
-      label.href = `${window.location.href.split('&labels')[0]}'&labels='${previousLabels.split(',').filter((l) => l !== `${labelId}`).join(',')}`;
+      label.href = `${url}?${previousAssignee ? `assignee=${previousAssignee}` : ''}&labels=${previousLabels.split(',').filter((l) => l !== `${labelId}`).join(',')}`;
     } else {
       // otherwise add label to href
       const labelsQuery = `&labels=${previousLabels === null || previousLabels.length === 0 ? '' : `${previousLabels},`}`;
-      label.href = window.location.href.split('&labels')[0] + labelsQuery + labelId;
+      label.href = `${url}?${previousAssignee ? `assignee=${previousAssignee}` : ''}${labelsQuery}${labelId}`;
     }
 
     // only show checkmark for selected labels
@@ -125,31 +135,24 @@ function initUpdateLabelHref() {
   }
 }
 
-function initProjectAssigneeFilter() {
-  // check if assignee query string is set
-  const urlParams = new URLSearchParams(window.location.search);
-  const assignee = urlParams.get('assignee');
-  if (!assignee) return;
-
-  // loop through all issue cards and check if they are assigned to this user
-  const cards = document.querySelectorAll('.issue-card[data-issue]');
-  for (const card of cards) {
-    const username = card.querySelector('[data-username]');
-    if ($(username).data('username') !== assignee) {
-      card.style.display = 'none';
-    }
-  }
-}
-
 // this function is modified version from https://github.com/go-gitea/gitea/pull/21963
-function initProjectLabelFilter() {
-  // FIXME: Per design document, this should be moved to filter server side once sorting is partial ajax send
-  //        There is a risk of flash of unfiltered content with this approach
-
-  // check if labels query string is set
+function initProjectCardFilter() {
   const urlParams = new URLSearchParams(window.location.search);
   const labels = urlParams.get('labels');
-  if (!labels) return;
+  const assignee = urlParams.get('assignee');
+
+  if (!labels) {
+    if (!assignee) return;
+    // loop through all issue cards and check if they are assigned to this user
+    const cards = document.querySelectorAll('.issue-card[data-issue]');
+    for (const card of cards) {
+      const username = card.querySelector('[data-username]');
+      if ($(username).data('username') === assignee) {
+        card.style.display = 'flex';
+      }
+    }
+    return;
+  }
 
   // split labels query string into array
   const labelsArray = labels.split(',');
@@ -164,17 +167,21 @@ function initProjectLabelFilter() {
       if (typeof label_id !== 'number') continue;
       allLables.push(label_id.toString());
     }
-    if (!labelsArray.every((l) => allLables.includes(l))) {
-      card.style.display = 'none';
+    if (!assignee && labelsArray.some((l) => allLables.includes(l))) {
+      card.style.display = 'flex';
+      continue;
+    }
+    const username = card.querySelector('[data-username]');
+    if ($(username).data('username') === assignee && labelsArray.some((l) => allLables.includes(l))) {
+      card.style.display = 'flex';
     }
   }
 }
 
 export function initProjectFilter() {
   if (!document.querySelectorAll('.page-content.repository.projects.view-project').length) return;
-  initProjectFilterHref();
+  initShowCard();
+  initProjectCardFilter();
   initUpdateLabelHref();
-  initProjectAssigneeFilter();
-  initProjectLabelFilter();
   initUserDropdown();
 }

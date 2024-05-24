@@ -65,12 +65,12 @@
 	<div class="issue-card-bottom">
 		<div class="labels-list">
 			{{range .Labels}}
-				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
+				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}" data-label-id="{{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
 			{{end}}
 		</div>
 		<div class="issue-card-assignees">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}" data-username="{{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
 			{{end}}
 		</div>
 	</div>

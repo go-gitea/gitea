@@ -61,59 +61,57 @@
 	<div class="content">{{$.Project.RenderedContent}}</div>
 
 	<div class="divider"></div>
-</div>
 
-<div class="content">{{$.Project.RenderedContent|Str2html}}</div>
-
-<div class="issue-list-toolbar-right" id="org-projects">
-	<div class="ui secondary filter menu labels">
-		<!-- Label -->
-		<div class="ui {{if (and (not .Labels) (not .OrgLabels))}}disabled{{end}} dropdown jump item label-filter">
-			<span class="text">
-				{{.locale.Tr "repo.issues.filter_label"}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</span>
-			<div class="menu">
-				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
+	<div class="issue-list-toolbar-right" id="org-projects">
+		<div class="ui secondary filter menu labels">
+			<!-- Label -->
+			<div class="ui {{if (and (not .Labels) (not .OrgLabels))}}disabled{{end}} dropdown jump item label-filter">
+				<span class="text">
+					{{ctx.Locale.Tr "repo.issues.filter_label"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</span>
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
+					</div>
+					{{$previousExclusiveScope := "_no_scope"}}
+					{{range .Labels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="item label-filter-item" href="" data-label-id="{{.ID}}"><span>{{svg "octicon-check"}}</span> {{RenderLabel $.Context ctx.Locale .}}</a>
+					{{end}}
+					{{range .OrgLabels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="item label-filter-item" href="" data-label-id="{{.ID}}"><span>{{svg "octicon-check"}}</span> {{RenderLabel $.Context ctx.Locale .}}</a>
+					{{end}}
 				</div>
-				{{$previousExclusiveScope := "_no_scope"}}
-				{{range .Labels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="divider"></div>
-					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					<a class="item label-filter-item" href="" data-label-id="{{.ID}}"><span>{{svg "octicon-check"}}</span> {{RenderLabel $.Context .}}</a>
-				{{end}}
-				{{range .OrgLabels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="divider"></div>
-					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					<a class="item label-filter-item" href="" data-label-id="{{.ID}}"><span>{{svg "octicon-check"}}</span> {{RenderLabel $.Context .}}</a>
-				{{end}}
 			</div>
-		</div>
 
-		<!-- Assignee -->
-		<div id="assigneeDropdown" class="ui dropdown jump item user-remote-search org-projects" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
-			data-search-url="{{$.Link}}/posters"
-			data-selected-user-id="{{$.PosterID}}"
-			data-action-jump-url="{{$.Link}}?assignee={username}&labels={labels}"
-		>
-			<span class="text">
-				{{.locale.Tr "repo.issues.filter_assignee"}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</span>
-			<div class="menu">
-				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
+			<!-- Assignee -->
+			<div id="assigneeDropdown" class="ui dropdown jump item user-remote-search org-projects" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+				data-search-url="{{$.Link}}/posters"
+				data-selected-user-id="{{$.PosterID}}"
+				data-action-jump-url="{{$.Link}}?assignee={username}&labels={labels}"
+			>
+				<span class="text">
+					{{ctx.Locale.Tr "repo.issues.filter_assignee"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</span>
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignee"}}">
+					</div>
+					<a class="item" id="no-assignee" href="">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 				</div>
-				<a class="item" id="no-assignee" href="">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 			</div>
 		</div>
 	</div>
@@ -210,7 +208,7 @@
 				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
-						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
+						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}" style="display: none;">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 						</div>
 					{{end}}
