@@ -116,12 +116,12 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 	}
 
 	setting.IsInTesting = true
-	setting.AppURL = "https://try.gitea.io/"
+	setting.AppURL = "https://demo.gitea.com/"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
 	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
-	setting.SSH.Domain = "try.gitea.io"
+	setting.SSH.Domain = "demo.gitea.com"
 	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")

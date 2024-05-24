@@ -73,16 +73,16 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue opened: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue opened: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue opened: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue opened: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 
 		p.Action = api.HookIssueClosed
 		pl, err = mc.Issue(p)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue closed: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Issue closed: [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -92,8 +92,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on issue [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New comment on issue <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on issue [#2 crash](http://localhost:3000/test/repo/issues/2) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New comment on issue <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -103,8 +103,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request opened: <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request opened: <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -114,8 +114,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on pull request [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New comment on pull request <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New comment on pull request [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New comment on pull request <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -126,8 +126,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request review approved: <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request review approved: <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -137,8 +137,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, `[[test/repo](http://localhost:3000/test/repo)] Repository created by [user1](https://try.gitea.io/user1)`, pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, `[[test/repo](http://localhost:3000/test/repo)] Repository created by [user1](https://demo.gitea.com/user1)`, pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Package", func(t *testing.T) {
@@ -148,8 +148,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, `[[GiteaContainer](http://localhost:3000/user1/-/packages/container/GiteaContainer/latest)] Package published by [user1](https://try.gitea.io/user1)`, pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer</a>] Package published by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, `[[GiteaContainer](http://localhost:3000/user1/-/packages/container/GiteaContainer/latest)] Package published by [user1](https://demo.gitea.com/user1)`, pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer</a>] Package published by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -160,24 +160,24 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New wiki page '[index](http://localhost:3000/test/repo/wiki/index)' (Wiki change comment) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New wiki page '[index](http://localhost:3000/test/repo/wiki/index)' (Wiki change comment) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 
 		p.Action = api.HookWikiEdited
 		pl, err = mc.Wiki(p)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' edited (Wiki change comment) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' edited (Wiki change comment) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 
 		p.Action = api.HookWikiDeleted
 		pl, err = mc.Wiki(p)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' deleted by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' deleted by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -187,8 +187,8 @@ func TestMatrixPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 
-		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Release created: [v1.0](http://localhost:3000/test/repo/releases/tag/v1.0) by [user1](https://try.gitea.io/user1)", pl.Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Release created: [v1.0](http://localhost:3000/test/repo/releases/tag/v1.0) by [user1](https://demo.gitea.com/user1)", pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.FormattedBody)
 	})
 }
 

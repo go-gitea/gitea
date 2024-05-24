@@ -27,7 +27,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
 			Description: "This organization created by admin for user2",
-			Website:     "https://try.gitea.io",
+			Website:     "https://demo.gitea.com",
 			Location:    "Shanghai",
 			Visibility:  "private",
 		}
@@ -62,7 +62,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
 			Description: "This organization created by admin for user2",
-			Website:     "https://try.gitea.io",
+			Website:     "https://demo.gitea.com",
 			Location:    "Shanghai",
 			Visibility:  "notvalid",
 		}
@@ -81,7 +81,7 @@ func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 		UserName:    "user2_org",
 		FullName:    "User2's organization",
 		Description: "This organization created by admin for user2",
-		Website:     "https://try.gitea.io",
+		Website:     "https://demo.gitea.com",
 		Location:    "Shanghai",
 		Visibility:  "public",
 	}

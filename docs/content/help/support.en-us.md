@@ -39,7 +39,7 @@ If you found a bug, please [create an issue on GitHub](https://github.com/go-git
    - When using systemd, use `journalctl --lines 1000 --unit gitea` to collect logs.
    - When using docker, use `docker logs --tail 1000 <gitea-container>` to collect logs.
 4. Reproducible steps so that others could reproduce and understand the problem more quickly and easily.
-   - [try.gitea.io](https://try.gitea.io) could be used to reproduce the problem.
+   - [demo.gitea.com](https://demo.gitea.com) could be used to reproduce the problem.
 5. If you encounter slow/hanging/deadlock problems, please report the stacktrace when the problem occurs.
    Go to the "Site Admin" -> "Monitoring" -> "Stacktrace" -> "Download diagnosis report".
 

@@ -70,13 +70,13 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\n\nissue body", pl.Message)
+		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://demo.gitea.com/user1\">user1</a>\n\nissue body", pl.Message)
 
 		p.Action = api.HookIssueClosed
 		pl, err = tc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on issue <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nmore info needed", pl.Message)
+		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on issue <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://demo.gitea.com/user1\">user1</a>\nmore info needed", pl.Message)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.PullRequest(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nfixes bug #2", pl.Message)
+		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://demo.gitea.com/user1\">user1</a>\nfixes bug #2", pl.Message)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nchanges requested", pl.Message)
+		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://demo.gitea.com/user1\">user1</a>\nchanges requested", pl.Message)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Package(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer:latest</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer:latest</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -141,19 +141,19 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 
 		p.Action = api.HookWikiEdited
 		pl, err = tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 
 		p.Action = api.HookWikiDeleted
 		pl, err = tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Release(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://demo.gitea.com/user1">user1</a>`, pl.Message)
 	})
 }
 

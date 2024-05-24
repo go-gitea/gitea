@@ -26,7 +26,7 @@ This project has been
 [forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
 
-For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
+For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
 
 For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
@@ -56,7 +56,7 @@ More info: https://docs.gitea.com/installation/install-from-source
     ./gitea web
 
 > [!NOTE]
-> If you're interested in using our APIs, we have experimental support with [documentation](https://try.gitea.io/api/swagger).
+> If you're interested in using our APIs, we have experimental support with [documentation](https://demo.gitea.com/api/swagger).
 
 ## Contributing
 

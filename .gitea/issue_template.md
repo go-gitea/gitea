@@ -21,7 +21,7 @@
   - [ ] MySQL
   - [ ] MSSQL
   - [ ] SQLite
-- Can you reproduce the bug at https://try.gitea.io:
+- Can you reproduce the bug at https://demo.gitea.com:
   - [ ] Yes (provide example URL)
   - [ ] No
 - Log gist:

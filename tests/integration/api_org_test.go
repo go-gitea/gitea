@@ -32,7 +32,7 @@ func TestAPIOrgCreate(t *testing.T) {
 			UserName:    "user1_org",
 			FullName:    "User1's organization",
 			Description: "This organization created by user1",
-			Website:     "https://try.gitea.io",
+			Website:     "https://demo.gitea.com",
 			Location:    "Shanghai",
 			Visibility:  "limited",
 		}
@@ -108,7 +108,7 @@ func TestAPIOrgEdit(t *testing.T) {
 		org := api.EditOrgOption{
 			FullName:    "Org3 organization new full name",
 			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
+			Website:     "https://demo.gitea.com/new",
 			Location:    "Beijing",
 			Visibility:  "private",
 		}
@@ -136,7 +136,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 		org := api.EditOrgOption{
 			FullName:    "Org3 organization new full name",
 			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
+			Website:     "https://demo.gitea.com/new",
 			Location:    "Beijing",
 			Visibility:  "badvisibility",
 		}

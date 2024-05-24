@@ -39,7 +39,7 @@ menu:
    - 在使用 systemd 时，使用 `journalctl --lines 1000 --unit gitea` 收集日志。
    - 在使用 Docker 时，使用 `docker logs --tail 1000 <gitea-container>` 收集日志。
 4. 可重现的步骤，以便他人能够更快速、更容易地重现和理解问题。
-   - [try.gitea.io](https://try.gitea.io) 可用于重现问题。
+   - [demo.gitea.com](https://demo.gitea.com) 可用于重现问题。
 5. 如果遇到慢速/挂起/死锁等问题，请在出现问题时报告堆栈跟踪。
    转到 "Site Admin" -> "Monitoring" -> "Stacktrace" -> "Download diagnosis report"。
 

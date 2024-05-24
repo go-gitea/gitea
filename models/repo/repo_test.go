@@ -59,7 +59,7 @@ func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
+	assert.Equal(t, "https://demo.gitea.com/api/v1/repos/user12/repo10", repo.APIURL())
 }
 
 func TestWatchRepo(t *testing.T) {
@@ -149,8 +149,8 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.Equal(t, repo.OwnerID, int64(2))
 		}
 
-		test(t, "https://try.gitea.io/user2/repo2")
-		test(t, "https://try.gitea.io/user2/repo2.git")
+		test(t, "https://demo.gitea.com/user2/repo2")
+		test(t, "https://demo.gitea.com/user2/repo2.git")
 	})
 
 	t.Run("ValidGitSshURL", func(t *testing.T) {
@@ -164,11 +164,11 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.Equal(t, repo.OwnerID, int64(2))
 		}
 
-		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2")
-		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2.git")
+		test(t, "git+ssh://sshuser@demo.gitea.com/user2/repo2")
+		test(t, "git+ssh://sshuser@demo.gitea.com/user2/repo2.git")
 
-		test(t, "git+ssh://try.gitea.io/user2/repo2")
-		test(t, "git+ssh://try.gitea.io/user2/repo2.git")
+		test(t, "git+ssh://demo.gitea.com/user2/repo2")
+		test(t, "git+ssh://demo.gitea.com/user2/repo2.git")
 	})
 
 	t.Run("ValidImplicitSshURL", func(t *testing.T) {
@@ -182,11 +182,11 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.Equal(t, repo.OwnerID, int64(2))
 		}
 
-		test(t, "sshuser@try.gitea.io:user2/repo2")
-		test(t, "sshuser@try.gitea.io:user2/repo2.git")
+		test(t, "sshuser@demo.gitea.com:user2/repo2")
+		test(t, "sshuser@demo.gitea.com:user2/repo2.git")
 
-		test(t, "try.gitea.io:user2/repo2")
-		test(t, "try.gitea.io:user2/repo2.git")
+		test(t, "demo.gitea.com:user2/repo2")
+		test(t, "demo.gitea.com:user2/repo2.git")
 	})
 }
 

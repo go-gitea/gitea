@@ -62,10 +62,10 @@ func getExpectedFileResponse() *api.FileResponse {
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+				URL: "https://demo.gitea.com/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			},
-			HTMLURL: "https://try.gitea.io/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			HTMLURL: "https://demo.gitea.com/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "user1",
@@ -83,7 +83,7 @@ func getExpectedFileResponse() *api.FileResponse {
 			Parents: []*api.CommitMeta{},
 			Message: "Initial commit\n",
 			Tree: &api.CommitMeta{
-				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
+				URL: "https://demo.gitea.com/api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
 				SHA: "2a2f1d4670728a2e10049e345bd7a276468beab6",
 			},
 		},

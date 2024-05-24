@@ -308,8 +308,8 @@ func TestRender_email(t *testing.T) {
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
 	test(
-		"git@try.gitea.io:go-gitea/gitea.git",
-		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
+		"git@demo.gitea.com:go-gitea/gitea.git",
+		`<p>git@demo.gitea.com:go-gitea/gitea.git</p>`)
 	test(
 		"gitea@3",
 		`<p>gitea@3</p>`)

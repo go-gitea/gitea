@@ -61,7 +61,7 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 
 	if !strings.Contains(refURI, "://") {
 		// scp style syntax which contains *no* port number after the : (and is not parsed by net/url)
-		// ex: git@try.gitea.io:go-gitea/gitea
+		// ex: git@demo.gitea.com:go-gitea/gitea
 		match := scpSyntax.FindAllStringSubmatch(refURI, -1)
 		if len(match) > 0 {
 			m := match[0]

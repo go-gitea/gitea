@@ -47,7 +47,7 @@ func Test_IsValidURL(t *testing.T) {
 }
 
 func Test_IsValidExternalURL(t *testing.T) {
-	setting.AppURL = "https://try.gitea.io/"
+	setting.AppURL = "https://demo.gitea.com/"
 
 	cases := []struct {
 		description string
@@ -56,7 +56,7 @@ func Test_IsValidExternalURL(t *testing.T) {
 	}{
 		{
 			description: "Current instance URL",
-			url:         "https://try.gitea.io/test",
+			url:         "https://demo.gitea.com/test",
 			valid:       true,
 		},
 		{
@@ -66,7 +66,7 @@ func Test_IsValidExternalURL(t *testing.T) {
 		},
 		{
 			description: "Current instance API URL",
-			url:         "https://try.gitea.io/api/v1/user/follow",
+			url:         "https://demo.gitea.com/api/v1/user/follow",
 			valid:       false,
 		},
 		{
@@ -89,7 +89,7 @@ func Test_IsValidExternalURL(t *testing.T) {
 }
 
 func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
-	setting.AppURL = "https://try.gitea.io/"
+	setting.AppURL = "https://demo.gitea.com/"
 
 	cases := []struct {
 		description string
