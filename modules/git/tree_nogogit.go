@@ -108,6 +108,9 @@ func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArg
 		t.entriesRecursive = append(t.entriesRecursive, entry)
 		return nil
 	}, extraArgs)
+	if err == nil {
+		t.entriesRecursiveParsed = true
+	}
 	return t.entriesRecursive, err
 }
 
