@@ -52,6 +52,8 @@ func (err ErrCommentNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+var ErrCommentAlreadyChanged = util.NewInvalidArgumentErrorf("the comment is already changed")
+
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
 type CommentType int
 
@@ -262,6 +264,7 @@ type Comment struct {
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
 	Content         string        `xorm:"LONGTEXT"`
+	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
@@ -1111,7 +1114,7 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error {
+func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -1119,8 +1122,14 @@ func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
+	c.ContentVersion = contentVersion + 1
+
+	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
+	if err != nil {
 		return err
+	}
+	if affected == 0 {
+		return ErrCommentAlreadyChanged
 	}
 	if err := c.LoadIssue(ctx); err != nil {
 		return err

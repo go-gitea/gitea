@@ -5,8 +5,12 @@ package v1_23 //nolint
 
 import "xorm.io/xorm"
 
-func AddContentVersionToIssue(x *xorm.Engine) error {
+func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
 	type Issue struct {
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	type Comment struct {
 		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
@@ -18,6 +22,10 @@ func AddContentVersionToIssue(x *xorm.Engine) error {
 	}
 
 	if err := sess.Sync(new(Issue)); err != nil {
+		return err
+	}
+
+	if err := sess.Sync(new(Comment)); err != nil {
 		return err
 	}
 

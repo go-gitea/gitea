@@ -590,7 +590,7 @@ var migrations = []Migration{
 	// Gitea 1.22.0-rc1 ends at 299
 
 	// v299 -> v300
-	NewMigration("Add content version to issue table", v1_23.AddContentVersionToIssue),
+	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
 }
 
 // GetCurrentDBVersion returns the current db version
