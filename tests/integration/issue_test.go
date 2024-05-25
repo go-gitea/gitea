@@ -191,6 +191,34 @@ func TestNewIssue(t *testing.T) {
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
+func TestEditIssue(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetCSRF(t, session, issueURL),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetCSRF(t, session, issueURL),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":           GetCSRF(t, session, issueURL),
+		"content":         "modified content",
+		"content_version": "1",
+		"context":         fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestIssueCommentClose(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
