@@ -96,10 +96,10 @@
 			</div>
 
 			<!-- Assignee -->
-			<div id="assigneeDropdown" class="ui dropdown jump item user-remote-search org-projects" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+			<div class="ui dropdown jump item user-remote-search org-projects" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
 				data-search-url="{{$.Link}}/posters"
 				data-selected-user-id="{{$.PosterID}}"
-				data-action-jump-url="{{$.Link}}?assignee={username}&labels={labels}"
+				data-action-jump-url="{{$.Link}}?assignees={username}&labels={labels}"
 			>
 				<span class="text">
 					{{ctx.Locale.Tr "repo.issues.filter_assignee"}}

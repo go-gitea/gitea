@@ -23,13 +23,25 @@ function initUserDropdown() {
         const processedResults = []; // to be used by dropdown to generate menu items
         const urlParams = new URLSearchParams(window.location.search);
         const previousLabels = urlParams.get('labels');
+        const previousAssignees = urlParams.get('assignees');
         const href = actionJumpUrl.replace(
           '{labels}',
           encodeURIComponent(previousLabels ?? ''),
         );
-
         for (const item of resp.results) {
-          let html = `<a href=${href.replace('{username}', encodeURIComponent(item.username))}><img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span></a>`;
+          let usernameHref = '';
+          if (
+            previousAssignees &&
+            previousAssignees.length > 0 &&
+            previousAssignees.split(',').includes(`${item.username}`)
+          ) {
+            usernameHref = previousAssignees.split(',').filter((l) => l !== item.username).join(',');
+          } else {
+            usernameHref = `${previousAssignees === null || previousAssignees.length === 0 ? item.username : `${previousAssignees},${item.username}`}`;
+          }
+          let html = `<a href=${href.replace('{username}', encodeURIComponent(usernameHref))}>
+          ${previousAssignees && previousAssignees.split(',').includes(`${item.username}`) ? '<svg viewBox="0 0 16 16" class="svg octicon-check" aria-hidden="true" width="16" height="16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 .018-1.042.75.75 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0"></path></svg>' : ''}
+          <img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span></a>`;
           if (item.full_name) {
             html += `<span class='search-fullname tw-ml-2'>${htmlEscape(item.full_name)}</span>`;
           }
@@ -45,10 +57,10 @@ function initUserDropdown() {
 
       const urlParams = new URLSearchParams(window.location.search);
       const previousLabels = urlParams.get('labels');
-      const labelsQuery = `&labels=${previousLabels === null || previousLabels.length === 0 ? '' : `${previousLabels},`}`;
+      const labelsQuery = `&labels=${previousLabels === null || previousLabels.length === 0 ? '' : `${previousLabels}`}`;
 
       const noAssignee = document.getElementById('no-assignee');
-      noAssignee.href = `${window.location.href.split('?')[0]}?assignee=${labelsQuery}`;
+      noAssignee.href = `${window.location.href.split('?')[0]}?assignees=${labelsQuery}`;
     },
   });
 
@@ -84,23 +96,11 @@ function initUserDropdown() {
   };
 }
 
-function initShowCard() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const previousLabels = urlParams.get('labels');
-  const previousAssignee = urlParams.get('assignee');
-  if (previousLabels || previousAssignee) return;
-
-  const cards = document.querySelectorAll('.issue-card[data-issue]');
-  for (const card of cards) {
-    card.style.display = 'flex';
-  }
-}
-
 function initUpdateLabelHref() {
   const url = window.location.href.split('?')[0];
   const urlParams = new URLSearchParams(window.location.search);
   const previousLabels = urlParams.get('labels');
-  const previousAssignee = urlParams.get('assignee');
+  const previousAssignees = urlParams.get('assignees');
   const labels = document.querySelectorAll(
     '.label-filter > .menu > a.label-filter-item',
   );
@@ -115,11 +115,11 @@ function initUpdateLabelHref() {
       previousLabels.length > 0 &&
       previousLabels.split(',').includes(`${labelId}`)
     ) {
-      label.href = `${url}?${previousAssignee ? `assignee=${previousAssignee}` : ''}&labels=${previousLabels.split(',').filter((l) => l !== `${labelId}`).join(',')}`;
+      label.href = `${url}?assignees=${previousAssignees ? `${previousAssignees}` : ''}&labels=${previousLabels.split(',').filter((l) => l !== `${labelId}`).join(',')}`;
     } else {
       // otherwise add label to href
       const labelsQuery = `&labels=${previousLabels === null || previousLabels.length === 0 ? '' : `${previousLabels},`}`;
-      label.href = `${url}?${previousAssignee ? `assignee=${previousAssignee}` : ''}${labelsQuery}${labelId}`;
+      label.href = `${url}?assignees=${previousAssignees ? `${previousAssignees}` : ''}${labelsQuery}${labelId}`;
     }
 
     // only show checkmark for selected labels
@@ -138,41 +138,39 @@ function initUpdateLabelHref() {
 // this function is modified version from https://github.com/go-gitea/gitea/pull/21963
 function initProjectCardFilter() {
   const urlParams = new URLSearchParams(window.location.search);
-  const labels = urlParams.get('labels');
-  const assignee = urlParams.get('assignee');
+  const labelsFilter = urlParams.get('labels');
+  const assigneesFilter = urlParams.get('assignees');
 
-  if (!labels) {
-    if (!assignee) return;
-    // loop through all issue cards and check if they are assigned to this user
-    const cards = document.querySelectorAll('.issue-card[data-issue]');
-    for (const card of cards) {
-      const username = card.querySelector('[data-username]');
-      if ($(username).data('username') === assignee) {
-        card.style.display = 'flex';
-      }
-    }
-    return;
-  }
-
-  // split labels query string into array
-  const labelsArray = labels.split(',');
-
-  // loop through all cards and check if they have the label
   const cards = document.querySelectorAll('.issue-card[data-issue]');
   for (const card of cards) {
-    const labels = card.querySelectorAll('[data-label-id]');
-    const allLables = [];
-    for (const label of labels) {
-      const label_id = $(label).data('label-id');
-      if (typeof label_id !== 'number') continue;
-      allLables.push(label_id.toString());
-    }
-    if (!assignee && labelsArray.some((l) => allLables.includes(l))) {
+    if (!labelsFilter && !assigneesFilter) {
+      // no labels and no assignee(initial state), show all cards
       card.style.display = 'flex';
       continue;
     }
-    const username = card.querySelector('[data-username]');
-    if ($(username).data('username') === assignee && labelsArray.some((l) => allLables.includes(l))) {
+
+    const issueLabels = [];
+    if (labelsFilter) {
+      for (const label of card.querySelectorAll('[data-label-id]')) {
+        issueLabels.push($(label).data('label-id').toString());
+      }
+    }
+
+    const labelsArray = labelsFilter ? labelsFilter.split(',') : [];
+    if (!assigneesFilter && labelsArray.every((l) => issueLabels.includes(l))) {
+      card.style.display = 'flex';
+      continue;
+    }
+
+    const issueAssignees = [];
+    if (assigneesFilter) {
+      for (const assignee of card.querySelectorAll('[data-username]')) {
+        issueAssignees.push($(assignee).data('username'));
+      }
+    }
+
+    const assigneesArray = assigneesFilter ? assigneesFilter.split(',') : [];
+    if (assigneesArray.every((a) => issueAssignees.includes(a)) && labelsArray.every((l) => issueLabels.includes(l))) {
       card.style.display = 'flex';
     }
   }
@@ -180,7 +178,6 @@ function initProjectCardFilter() {
 
 export function initProjectFilter() {
   if (!document.querySelectorAll('.page-content.repository.projects.view-project').length) return;
-  initShowCard();
   initProjectCardFilter();
   initUpdateLabelHref();
   initUserDropdown();
