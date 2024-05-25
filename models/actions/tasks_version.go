@@ -95,7 +95,7 @@ func IncreaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
 
 	// 3. increase repo
 	if repoID > 0 {
-		if err := increaseTasksVersionByScope(ctx, 0, repoID); err != nil {
+		if err := increaseTasksVersionByScope(ctx, ownerID, repoID); err != nil {
 			log.Error("IncreaseTasksVersionByScope(Repo): %v", err)
 			return err
 		}
