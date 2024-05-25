@@ -21,7 +21,7 @@ func TreeList(ctx *context.Context) {
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(ctx)
 	if err != nil {
 		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
