@@ -437,9 +437,6 @@ func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 		IssueID: pr.IssueID,
 	}
 	conds := opts.ToConds()
-	if pr.ID == 0 {
-		conds = conds.And(builder.Eq{"invalidated": false})
-	}
 
 	count, err := db.GetEngine(ctx).Where(conds).Count(new(Comment))
 	if err != nil {
