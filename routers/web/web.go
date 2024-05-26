@@ -720,6 +720,14 @@ func registerRoutes(m *web.Router) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 		})
 
+		m.Group("/badges", func() {
+			m.Get("", admin.Badges)
+			m.Combo("/new").Get(admin.NewBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.NewBadgePost)
+			m.Get("/{badgeid}", admin.ViewBadge)
+			m.Combo("/{badgeid}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.EditBadgePost)
+			m.Post("/{badgeid}/delete", admin.DeleteBadge)
+		})
+
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
