@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -587,6 +588,9 @@ var migrations = []Migration{
 	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
 
 	// Gitea 1.22.0-rc1 ends at 299
+
+	// v298 -> v299
+	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 }
 
 // GetCurrentDBVersion returns the current db version

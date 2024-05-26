@@ -77,7 +77,7 @@ type Release struct {
 	Target           string
 	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
-	Sha1             string `xorm:"VARCHAR(64)"`
+	Sha1             string `xorm:"INDEX VARCHAR(64)"`
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
