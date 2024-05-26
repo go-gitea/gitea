@@ -51,29 +51,31 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		URL:       pr.Issue.HTMLURL(),
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		Assignees: apiIssue.Assignees,
-		State:     apiIssue.State,
-		IsLocked:  apiIssue.IsLocked,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		DiffURL:   pr.Issue.DiffURL(),
-		PatchURL:  pr.Issue.PatchURL(),
-		HasMerged: pr.HasMerged,
-		MergeBase: pr.MergeBase,
-		Mergeable: pr.Mergeable(ctx),
-		Deadline:  apiIssue.Deadline,
-		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
-		PinOrder:  apiIssue.PinOrder,
+		ID:             pr.ID,
+		URL:            pr.Issue.HTMLURL(),
+		Index:          pr.Index,
+		Poster:         apiIssue.Poster,
+		Title:          apiIssue.Title,
+		Body:           apiIssue.Body,
+		Labels:         apiIssue.Labels,
+		Milestone:      apiIssue.Milestone,
+		Assignee:       apiIssue.Assignee,
+		Assignees:      apiIssue.Assignees,
+		State:          apiIssue.State,
+		Draft:          pr.IsWorkInProgress(ctx),
+		IsLocked:       apiIssue.IsLocked,
+		Comments:       apiIssue.Comments,
+		ReviewComments: pr.GetReviewCommentsCount(ctx),
+		HTMLURL:        pr.Issue.HTMLURL(),
+		DiffURL:        pr.Issue.DiffURL(),
+		PatchURL:       pr.Issue.PatchURL(),
+		HasMerged:      pr.HasMerged,
+		MergeBase:      pr.MergeBase,
+		Mergeable:      pr.Mergeable(ctx),
+		Deadline:       apiIssue.Deadline,
+		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:       apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -168,6 +170,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			return nil
 		}
 
+		// Outer scope variables to be used in diff calculation
+		var (
+			startCommitID string
+			endCommitID   string
+		)
+
 		if git.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
@@ -176,6 +184,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 			if err == nil {
 				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		} else {
 			commit, err := headBranch.GetCommit()
@@ -186,7 +195,16 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
+				endCommitID = commit.ID.String()
 			}
+		}
+
+		// Calculate diff
+		startCommitID = pr.MergeBase
+
+		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
+		if err != nil {
+			log.Error("GetDiffShortStat: %v", err)
 		}
 	}
 
