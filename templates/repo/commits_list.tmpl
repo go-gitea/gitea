@@ -72,6 +72,9 @@
 						{{if IsMultilineCommitMessage .Message}}
 						<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
+						{{range (index $.CommitsTagsMap .ID.String)}}
+							<span class="ui label">{{.TagName}}</span>
+						{{end}}
 					</td>
 					{{if .Committer}}
 						<td class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</td>
