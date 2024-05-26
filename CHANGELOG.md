@@ -6,8 +6,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.22.0](https://github.com/go-gitea/gitea/releases/tag/v1.22.0) - 2024-05-24
 
-Since there are too many pull requests, this changelog will ignore bugfixes,
-misc and etc changes.
+This release includes [1478](https://github.com/go-gitea/gitea/pulls?q=is%3Apr+milestone%3A1.22.0+is%3Amerged) pull requests, which makes it the largest release in Gitea's history! It inclues a mount of new features and bug fixes.
+
+From this release, Gitea introduced `HTMX` and `Tailwind` and will retire `jquery` & `Fomantic UI` step by step.
+Below are the main changes include `BREAKING`, `FEATURES`, `ENHANCEMENTS` and `PERFORMANCE`.
 
 * BREAKING
   * Improve reverse proxy documents and clarify the AppURL guessing behavior (#31003) (#31020)
