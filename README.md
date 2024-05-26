@@ -56,7 +56,7 @@ More info: https://docs.gitea.com/installation/install-from-source
     ./gitea web
 
 > [!NOTE]
-> If you're interested in using our APIs, we have experimental support with [documentation](https://gitea.com/api/swagger).
+> If you're interested in using our APIs, we have experimental support with [documentation](https://docs.gitea.com/api).
 
 ## Contributing
 
