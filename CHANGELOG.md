@@ -6,6 +6,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.22.0](https://github.com/go-gitea/gitea/releases/tag/v1.22.0) - 2024-05-24
 
+Since there are too many pull requests, this changelog will ignore bugfixes,
+misc and etc changes.
+
 * BREAKING
   * Improve reverse proxy documents and clarify the AppURL guessing behavior (#31003) (#31020)
   * Remember log in for a month by default (#30150)
