@@ -104,6 +104,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 			if issue.PullRequest.HasMerged {
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 			}
+			// Add pr's html url
+			apiIssue.PullRequest.HTMLURL = issue.HTMLURL()
 		}
 	}
 	if issue.DeadlineUnix != 0 {
