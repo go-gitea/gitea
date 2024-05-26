@@ -50,6 +50,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add support for sha256 repositories (#23894)
   * Add admin API route for managing user's badges (#23106)
 * ENHANCEMENTS
+  * Make gitea webhooks openproject compatible (#28435) (#31081)
   * Support using label names when changing issue labels (#30943) (#30958)
   * Fix various problems around project board view (#30696) (#30902)
   * Improve context popup rendering (#30824) (#30829)
