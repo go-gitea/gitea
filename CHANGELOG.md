@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.22.0](https://github.com/go-gitea/gitea/releases/tag/v1.22.0) - 2024-05-24
 
-This release stands as a monumental milestone in our development journey with a record-breaking incorporation of [1478](https://github.com/go-gitea/gitea/pulls?q=is%3Apr+milestone%3A1.22.0+is%3Amerged) pull requests. It marks the most extensive update in Gitea's history, showcasing a plethora of new features and infrastructure improvements.
+This release stands as a monumental milestone in our development journey with a record-breaking incorporation of [1528](https://github.com/go-gitea/gitea/pulls?q=is%3Apr+milestone%3A1.22.0+is%3Amerged) pull requests. It marks the most extensive update in Gitea's history, showcasing a plethora of new features and infrastructure improvements.
 
 Noteworthy advancements in this release include the introduction of `HTMX` and `Tailwind`, signaling a strategic shift as we gradually phase out `jquery` and `Fomantic UI`. These changes reflect our commitment to embracing modern technologies and enhancing the user experience.
 
