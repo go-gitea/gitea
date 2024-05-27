@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,10 +23,11 @@ import (
 )
 
 const (
-	tplBadges    base.TplName = "admin/badge/list"
-	tplBadgeNew  base.TplName = "admin/badge/new"
-	tplBadgeView base.TplName = "admin/badge/view"
-	tplBadgeEdit base.TplName = "admin/badge/edit"
+	tplBadges     base.TplName = "admin/badge/list"
+	tplBadgeNew   base.TplName = "admin/badge/new"
+	tplBadgeView  base.TplName = "admin/badge/view"
+	tplBadgeEdit  base.TplName = "admin/badge/edit"
+	tplBadgeUsers base.TplName = "admin/badge/users"
 )
 
 // BadgeSearchDefaultAdminSort is the default sort type for admin view
@@ -212,4 +214,68 @@ func DeleteBadge(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/badges")
+}
+
+func BadgeUsers(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.badges.users_with_badge", ctx.ParamsInt64(":badgeid"))
+	ctx.Data["PageIsAdminBadges"] = true
+
+	users, _, err := user_model.GetBadgeUsers(ctx, &user_model.Badge{ID: ctx.ParamsInt64(":badgeid")})
+	if err != nil {
+		ctx.ServerError("GetBadgeUsers", err)
+		return
+	}
+
+	ctx.Data["Users"] = users
+
+	ctx.HTML(http.StatusOK, tplBadgeUsers)
+}
+
+// BadgeUsersPost response for actions for user badges
+func BadgeUsersPost(ctx *context.Context) {
+	name := strings.ToLower(ctx.FormString("user"))
+
+	u, err := user_model.GetUserByName(ctx, name)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
+
+	if err = user_model.AddUserBadge(ctx, u, &user_model.Badge{ID: ctx.ParamsInt64(":badgeid")}); err != nil {
+		if user_model.IsErrBadgeNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("admin.badges.not_found"))
+		} else {
+			ctx.ServerError("AddUserBadge", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.badges.user_add_success"))
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+}
+
+// DeleteBadgeUser delete a badge from a user
+func DeleteBadgeUser(ctx *context.Context) {
+	if user, err := user_model.GetUserByID(ctx, ctx.FormInt64("id")); err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
+		} else {
+			ctx.ServerError("GetUserByName", err)
+			return
+		}
+	} else {
+		if err := user_model.RemoveUserBadge(ctx, user, &user_model.Badge{ID: ctx.ParamsInt64(":badgeid")}); err == nil {
+			ctx.Flash.Success(ctx.Tr("admin.badges.user_remove_success"))
+		} else {
+			ctx.Flash.Error("DeleteUser: " + err.Error())
+			return
+		}
+	}
+
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/badges/" + ctx.Params(":badgeid") + "/users")
 }

@@ -56,9 +56,8 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 		orderBy = "`badge`.slug ASC"
 	default:
 		// in case the sortType is not valid, we set it to recent update
-		sortOrder = "alphabetically"
-		ctx.Data["SortType"] = "alphabetically"
-		orderBy = "`badge`.slug ASC"
+		ctx.Data["SortType"] = "oldest"
+		orderBy = "`badge`.id ASC"
 	}
 
 	opts.Keyword = ctx.FormTrim("q")

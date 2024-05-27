@@ -125,6 +125,13 @@ func DeleteUserBadgeRecord(ctx context.Context, badge *Badge) error {
 
 // AddUserBadge adds a badge to a user.
 func AddUserBadge(ctx context.Context, u *User, badge *Badge) error {
+	isExist, err := IsBadgeUserExist(ctx, u.ID, badge.ID)
+	if err != nil {
+		return err
+	} else if isExist {
+		return ErrBadgeAlreadyExist{}
+	}
+
 	return AddUserBadges(ctx, u, []*Badge{badge})
 }
 
@@ -133,11 +140,11 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
 			// hydrate badge and check if it exists
-			has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
+			has, err := db.GetEngine(ctx).Where("id=?", badge.ID).Get(badge)
 			if err != nil {
 				return err
 			} else if !has {
-				return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
+				return ErrBadgeNotExist{ID: badge.ID}
 			}
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
@@ -159,10 +166,7 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
-			if _, err := db.GetEngine(ctx).
-				Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
-				Where("`user_badge`.user_id=? AND `badge`.slug=?", u.ID, badge.Slug).
-				Delete(&UserBadge{}); err != nil {
+			if _, err := db.GetEngine(ctx).Delete(&UserBadge{BadgeID: badge.ID, UserID: u.ID}); err != nil {
 				return err
 			}
 		}
@@ -190,6 +194,12 @@ func IsBadgeExist(ctx context.Context, uid int64, slug string) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("slug!=?", uid).
 		Get(&Badge{Slug: strings.ToLower(slug)})
+}
+
+// IsBadgeUserExist checks if given badge id, uid exist,
+func IsBadgeUserExist(ctx context.Context, uid, bid int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Get(&UserBadge{UserID: uid, BadgeID: bid})
 }
 
 // SearchBadgeOptions represents the options when fdin badges

@@ -141,7 +141,7 @@ func IsErrBadgeNotExist(err error) bool {
 }
 
 func (err ErrBadgeNotExist) Error() string {
-	return fmt.Sprintf("badge does not exist [slug: %s | id: %i]", err.Slug, err.ID)
+	return fmt.Sprintf("badge does not exist [slug: %s | id: %d]", err.Slug, err.ID)
 }
 
 // Unwrap unwraps this error as a ErrNotExist error

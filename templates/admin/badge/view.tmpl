@@ -31,9 +31,9 @@
 		</div>
 	</div>
 	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "explore.users"}}
+		{{ctx.Locale.Tr "explore.users"}} ({{.UsersTotal}})
 		<div class="ui right">
-			{{.UsersTotal}}
+			<a class="ui primary tiny button" href="{{.Link}}/users">{{ctx.Locale.Tr "admin.badges.manage_users"}}</a>
 		</div>
 	</h4>
 	<div class="ui attached segment">

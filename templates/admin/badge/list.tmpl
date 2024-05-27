@@ -52,7 +52,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="">{{.Slug}}</a>
+								<a href="{{$.Link}}/{{.ID}}">{{.Slug}}</a>
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Description}}</td>
 							<td></td>
@@ -62,7 +62,7 @@
 							<td></td>
 							<td>
 								<div class="tw-flex tw-gap-2">
-									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-star"}}</a>
+									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.badges.details"}}">{{svg "octicon-star"}}</a>
 									<a href="{{$.Link}}/{{.ID}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 								</div>
 							</td>
