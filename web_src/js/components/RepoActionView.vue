@@ -6,6 +6,7 @@ import {toggleElem} from '../utils/dom.js';
 import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
 import {GET, POST, DELETE} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -87,9 +88,9 @@ const sfc = {
 
   async mounted() {
     // load job data and then auto-reload periodically
-    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
-    await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+    // need to await first loadData so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+    await this.loadData();
+    this.intervalID = setInterval(this.loadData, 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -142,7 +143,10 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        this.currentJobStepsStates[idx].loading = true;
+        // force-load the data, otherwise the state will end up incorrect if loadData
+        // is already running and the job step will never expand.
+        this.loadData(true);
       }
     },
     // cancel a run
@@ -206,7 +210,7 @@ const sfc = {
     async deleteArtifact(name) {
       if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
       await DELETE(`${this.run.link}/artifacts/${name}`);
-      await this.loadJob();
+      await this.loadData();
     },
 
     async fetchJob() {
@@ -222,8 +226,8 @@ const sfc = {
       return await resp.json();
     },
 
-    async loadJob() {
-      if (this.loading) return;
+    async loadData(force = false) {
+      if (this.loading && !force) return;
       try {
         this.loading = true;
 
@@ -235,32 +239,46 @@ const sfc = {
           ]);
         } catch (err) {
           if (err instanceof TypeError) return; // avoid network error while unloading page
-          throw err;
-        }
-
-        this.artifacts = artifacts['artifacts'] || [];
-
-        // save the state to Vue data, then the UI will be updated
-        this.run = job.state.run;
-        this.currentJob = job.state.currentJob;
-
-        // sync the currentJobStepsStates to store the job step states
-        for (let i = 0; i < this.currentJob.steps.length; i++) {
-          if (!this.currentJobStepsStates[i]) {
-            // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
+          showErrorToast(err.message);
+          // reset all loading states, we can't easily tell which one failed at this point
+          for (let i = 0; i < this.currentJob.steps.length; i++) {
+            if (this.currentJobStepsStates[i].loading) {
+              this.currentJobStepsStates[i].loading = false;
+            }
           }
         }
-        // append logs to the UI
-        for (const logs of job.logs.stepsLog) {
-          // save the cursor, it will be passed to backend next time
-          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines, logs.started);
+
+        if (artifacts) {
+          this.artifacts = artifacts['artifacts'] || [];
         }
 
-        if (this.run.done && this.intervalID) {
-          clearInterval(this.intervalID);
-          this.intervalID = null;
+        if (job) {
+          // save the state to Vue data, then the UI will be updated
+          this.run = job.state.run;
+          this.currentJob = job.state.currentJob;
+
+          // sync the currentJobStepsStates to store the job step states
+          for (let i = 0; i < this.currentJob.steps.length; i++) {
+            if (!this.currentJobStepsStates[i]) {
+              // initial states for job steps
+              this.currentJobStepsStates[i] = {cursor: null, expanded: false, loading: false};
+            }
+          }
+          for (const logs of job.logs.stepsLog) {
+            // save the cursor, it will be passed to backend next time
+            this.currentJobStepsStates[logs.step].cursor = logs.cursor;
+            // append logs to the UI
+            this.appendLogs(logs.step, logs.lines, logs.started);
+            // update loading state
+            if (this.currentJobStepsStates[logs.step].loading && logs.cursor) {
+              this.currentJobStepsStates[logs.step].loading = false;
+            }
+          }
+
+          if (this.run.done && this.intervalID) {
+            clearInterval(this.intervalID);
+            this.intervalID = null;
+          }
         }
       } finally {
         this.loading = false;
@@ -313,7 +331,7 @@ const sfc = {
         this.currentJobStepsStates[step].expanded = true;
         // need to await for load job if the step log is loaded for the first time
         // so logline can be selected by querySelector
-        await this.loadJob();
+        await this.loadData();
       }
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
@@ -479,7 +497,7 @@ export function initRepositoryActionView() {
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].loading" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
