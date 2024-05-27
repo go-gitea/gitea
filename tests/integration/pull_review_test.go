@@ -162,7 +162,9 @@ func TestPullView_CodeOwner(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
+
 			session := loginUser(t, "user5")
+
 			// create a pull request on the forked repository, code reviewers should not be mentioned
 			testPullCreateDirectly(t, session, "user5", "test_codeowner", forkedRepo.DefaultBranch, "", "", "codeowner-basebranch-forked", "Test Pull Request on Forked Repository")
 
