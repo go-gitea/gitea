@@ -67,20 +67,20 @@ func (a *azureBlobObject) Close() error {
 func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
-		a.offset = offset
 	case io.SeekCurrent:
-		a.offset += offset
+		offset += a.offset
 	case io.SeekEnd:
-		a.offset = a.Size - offset
+		offset = a.Size - offset
 	default:
 		return 0, errors.New("Seek: invalid whence")
 	}
 
-	if a.offset > a.Size {
+	if offset > a.Size {
 		return 0, errors.New("Seek: invalid offset")
-	} else if a.offset < 0 {
+	} else if offset < 0 {
 		return 0, errors.New("Seek: invalid offset")
 	}
+	a.offset = offset
 	return a.offset, nil
 }
 
@@ -112,7 +112,7 @@ func convertAzureBlobErr(err error) error {
 	}
 	var respErr *azcore.ResponseError
 	if !errors.As(err, &respErr) {
-		return nil
+		return err
 	}
 	return fmt.Errorf(respErr.ErrorCode)
 }
