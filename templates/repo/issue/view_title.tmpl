@@ -6,7 +6,7 @@
 <div class="issue-title-header">
 	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">
-		<h1 class="gt-word-break">
+		<h1 class="tw-break-anywhere">
 			{{RenderIssueTitle $.Context .Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
 			<span class="index">#{{.Issue.Index}}</span>
 		</h1>
