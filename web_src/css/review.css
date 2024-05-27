@@ -202,7 +202,7 @@
 .code-expander-button {
   border: none;
   color: var(--color-text-light);
-  height: 18px;
+  height: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -211,8 +211,9 @@
   flex: 1;
 }
 
-.code-expander-button:only-child {
-  height: 28px;
+/* expand direction 3 = both ways with two buttons */
+.code-expander-buttons[data-expand-direction="3"] .code-expander-button {
+  height: 18px;
 }
 
 .code-expander-button:hover {
