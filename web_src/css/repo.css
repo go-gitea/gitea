@@ -1540,13 +1540,6 @@ td .commit-summary {
   height: 30px;
 }
 
-.resolved-placeholder {
-  display: flex;
-  align-items: center;
-  font-size: 14px !important;
-  padding: 8px !important;
-}
-
 .repository .diff-box .resolved-placeholder .button {
   padding: 8px 12px;
 }
@@ -2391,6 +2384,10 @@ tbody.commit-list {
 }
 
 .resolved-placeholder {
+  display: flex;
+  align-items: center;
+  font-size: 14px !important;
+  padding: 8px !important;
   font-weight: var(--font-weight-normal) !important;
   border: 1px solid var(--color-secondary) !important;
   border-radius: var(--border-radius) !important;
