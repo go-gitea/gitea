@@ -14,20 +14,5 @@ func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
 		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync(new(Issue)); err != nil {
-		return err
-	}
-
-	if err := sess.Sync(new(Comment)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync(new(Comment), new(Issue))
 }
