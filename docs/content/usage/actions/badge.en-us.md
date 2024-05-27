@@ -5,11 +5,9 @@ slug: "badge"
 sidebar_position: 11
 toc: false
 draft: false
-aliases:
-  - /en-us/badge
 menu:
   sidebar:
-    parent: "usage"
+    parent: "actions"
     name: "Badge"
     sidebar_position: 11
     identifier: "Badge"

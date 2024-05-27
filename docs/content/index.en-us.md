@@ -21,7 +21,7 @@ up a self-hosted Git service.
 With Go, this can be done platform-independently across
 **all platforms** which Go supports, including Linux, macOS, and Windows,
 on x86, amd64, ARM and PowerPC architectures.
-You can try it out using [the online demo](https://try.gitea.io/).
+You can try it out using [the online demo](https://demo.gitea.com).
 
 ## Features
 
@@ -37,7 +37,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
 
 - CI/CD: Gitea Actions supports CI/CD functionality, compatible with GitHub Actions. Users can write workflows in familiar YAML format and reuse a variety of existing Actions plugins. Actions plugins support downloading from any Git website.
 
-- Project Management: Gitea tracks project requirements, features, and bugs through boards and issues. Issues support features like branches, tags, milestones, assignments, time tracking, due dates, dependencies, and more.
+- Project Management: Gitea tracks project requirements, features, and bugs through columns and issues. Issues support features like branches, tags, milestones, assignments, time tracking, due dates, dependencies, and more.
 
 - Artifact Repository: Gitea supports over 20 different types of public or private software package management, including Cargo, Chef, Composer, Conan, Conda, Container, Helm, Maven, npm, NuGet, Pub, PyPI, RubyGems, Vagrant, and more.
 
