@@ -790,7 +790,7 @@ td .commit-summary {
   width: 34px;
   height: 34px;
   background-color: var(--color-timeline);
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
   display: flex;
   float: left;
   margin-left: -33px;
