@@ -2826,12 +2826,12 @@ func ListIssues(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:        keyword,
-		RepoIDs:        []int64{ctx.Repo.Repository.ID},
-		IsPull:         isPull,
-		IsClosed:       isClosed,
-		ProjectBoardID: projectID,
-		SortBy:         issue_indexer.SortByCreatedDesc,
+		Keyword:   keyword,
+		RepoIDs:   []int64{ctx.Repo.Repository.ID},
+		IsPull:    isPull,
+		IsClosed:  isClosed,
+		ProjectID: projectID,
+		SortBy:    issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)

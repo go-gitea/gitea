@@ -828,7 +828,7 @@ and
 
 ## Project (`project`)
 
-Default templates for project boards:
+Default templates for project board view:
 
 - `PROJECT_BOARD_BASIC_KANBAN_TYPE`: **To Do, In Progress, Done**
 - `PROJECT_BOARD_BUG_TRIAGE_TYPE`: **Needs Triage, High Priority, Low Priority, Closed**
