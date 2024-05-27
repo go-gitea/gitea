@@ -202,13 +202,17 @@
 .code-expander-button {
   border: none;
   color: var(--color-text-light);
-  height: 28px;
+  height: 18px;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   background: var(--color-expand-button);
   flex: 1;
+}
+
+.code-expander-button:only-child {
+  height: 28px;
 }
 
 .code-expander-button:hover {
