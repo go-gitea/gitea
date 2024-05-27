@@ -851,6 +851,7 @@ Default templates for project board view:
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORAGE_TYPE is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio checksum algorithm: `default` (for MinIO or AWS S3) or `md5` (for Cloudflare or Backblaze)
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -974,11 +975,19 @@ Default templates for project board view:
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
-## Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
+#### Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
 
 - `ENABLED`: **true**: Enable cleanup expired actions assets job.
 - `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
 - `SCHEDULE`: **@midnight** : Cron syntax for the job.
+
+#### Cron - Cleanup Deleted Branches (`cron.deleted_branches_cleanup`)
+
+- `ENABLED`: **true**: Enable deleted branches cleanup.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `NOTICE_ON_SUCCESS`: **false**: Set to true to log a success message.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling deleted branches cleanup.
+- `OLDER_THAN`: **24h**: Branches deleted OLDER_THAN ago will be cleaned up.
 
 ### Extended cron tasks (not enabled by default)
 
@@ -1272,6 +1281,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 - `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Storage (`storage`)
 
@@ -1286,6 +1296,7 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 The recommended storage configuration for minio like below:
 
@@ -1307,6 +1318,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 Defaultly every storage has their default base path like below
@@ -1353,6 +1366,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ## Repository Archive Storage (`storage.repo-archive`)
@@ -1372,6 +1387,7 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Repository Archives (`repo-archive`)
 

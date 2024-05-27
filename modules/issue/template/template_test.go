@@ -356,6 +356,96 @@ body:
 			wantErr: "body[0](checkboxes), option[1]: can not require a hidden checkbox",
 		},
 		{
+			name: "dropdown default is not an integer",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: "def"
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): 'default' should be an int",
+		},
+		{
+			name: "dropdown default is out of range",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: 3
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): the value of 'default' is out of range",
+		},
+		{
+			name: "dropdown without default is valid",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+`,
+			want: &api.IssueTemplate{
+				Name:  "test",
+				About: "this is about",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "dropdown",
+						ID:   "1",
+						Attributes: map[string]any{
+							"label":       "Label of dropdown",
+							"description": "Description of dropdown",
+							"multiple":    true,
+							"options": []any{
+								"Option 1 of dropdown",
+								"Option 2 of dropdown",
+								"Option 3 of dropdown",
+							},
+						},
+						Validations: map[string]any{
+							"required": true,
+						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
 			name: "valid",
 			content: `
 name: Name
@@ -399,6 +489,7 @@ body:
         - Option 1 of dropdown
         - Option 2 of dropdown
         - Option 3 of dropdown
+      default: 1
     validations:
       required: true
   - type: checkboxes
@@ -475,6 +566,7 @@ body:
 								"Option 2 of dropdown",
 								"Option 3 of dropdown",
 							},
+							"default": 1,
 						},
 						Validations: map[string]any{
 							"required": true,

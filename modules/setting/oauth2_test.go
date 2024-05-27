@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/modules/generate"
@@ -14,7 +15,7 @@ import (
 
 func TestGetGeneralSigningSecret(t *testing.T) {
 	// when there is no general signing secret, it should be generated, and keep the same value
-	assert.Nil(t, generalSigningSecret.Load())
+	generalSigningSecret.Store(nil)
 	s1 := GetGeneralTokenSigningSecret()
 	assert.NotNil(t, s1)
 	s2 := GetGeneralTokenSigningSecret()
@@ -31,6 +32,31 @@ JWT_SECRET = BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 	expected, _ := generate.DecodeJwtSecretBase64("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 	assert.Len(t, actual, 32)
 	assert.EqualValues(t, expected, actual)
+}
+
+func TestGetGeneralSigningSecretSave(t *testing.T) {
+	defer test.MockVariableValue(&InstallLock, true)()
+
+	old := GetGeneralTokenSigningSecret()
+	assert.Len(t, old, 32)
+
+	tmpFile := t.TempDir() + "/app.ini"
+	_ = os.WriteFile(tmpFile, nil, 0o644)
+	cfg, _ := NewConfigProviderFromFile(tmpFile)
+	loadOAuth2From(cfg)
+	generated := GetGeneralTokenSigningSecret()
+	assert.Len(t, generated, 32)
+	assert.NotEqual(t, old, generated)
+
+	generalSigningSecret.Store(nil)
+	cfg, _ = NewConfigProviderFromFile(tmpFile)
+	loadOAuth2From(cfg)
+	again := GetGeneralTokenSigningSecret()
+	assert.Equal(t, generated, again)
+
+	iniContent, err := os.ReadFile(tmpFile)
+	assert.NoError(t, err)
+	assert.Contains(t, string(iniContent), "JWT_SECRET = ")
 }
 
 func TestOauth2DefaultApplications(t *testing.T) {

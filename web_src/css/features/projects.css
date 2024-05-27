@@ -14,7 +14,6 @@
   width: 320px;
   height: calc(100vh - 450px);
   min-height: 60vh;
-  overflow-y: scroll;
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
@@ -30,17 +29,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5em;
 }
 
-.project-column-title {
-  background: none !important;
-  line-height: 1.25 !important;
-  cursor: inherit;
+.ui.label.project-column-issue-count {
+  color: inherit;
 }
 
-.project-column-title,
-.project-column-issue-count {
-  color: inherit !important;
+.project-column-title-label {
+  flex: 1;
 }
 
 .project-column > .cards {

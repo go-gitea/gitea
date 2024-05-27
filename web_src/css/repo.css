@@ -790,7 +790,7 @@ td .commit-summary {
   width: 34px;
   height: 34px;
   background-color: var(--color-timeline);
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
   display: flex;
   float: left;
   margin-left: -33px;
@@ -2254,6 +2254,10 @@ td .commit-summary {
 
 .repo-button-row-right {
   justify-content: flex-end;
+}
+
+.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
+  flex-grow: 0;
 }
 
 @media (max-width: 991px) {
