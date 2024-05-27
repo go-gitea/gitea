@@ -91,6 +91,11 @@ var CmdMigrateStorage = &cli.Command{
 			Value: "",
 			Usage: "Minio checksum algorithm (default/md5)",
 		},
+		&cli.StringFlag{
+			Name:  "minio-bucket-lookup-type",
+			Value: "",
+			Usage: "Minio bucket lookup type",
+		},
 	},
 }
 
@@ -220,6 +225,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 					UseSSL:             ctx.Bool("minio-use-ssl"),
 					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
 					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+					BucketLookUpType:   ctx.String("minio-bucket-lookup-type"),
 				},
 			})
 	default:
