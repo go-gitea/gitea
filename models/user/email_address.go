@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
@@ -256,14 +257,6 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
-// DeleteInactiveEmailAddresses deletes inactive email addresses
-func DeleteInactiveEmailAddresses(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).
-		Where("is_activated = ?", false).
-		Delete(new(EmailAddress))
-	return err
-}
-
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(ctx context.Context, email *EmailAddress) error {
 	ctx, committer, err := db.TxContext(ctx)
@@ -361,14 +354,12 @@ func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, ne
 
 // VerifyActiveEmailCode verifies active email code when active account
 func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
 				return emailAddress
@@ -434,7 +425,7 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 		cond = cond.And(builder.Eq{"email_address.is_activated": opts.IsActivated.Value()})
 	}
 
-	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %w", err)
@@ -450,7 +441,7 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
 	err = db.GetEngine(ctx).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
-		Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Join("INNER", "`user`", "`user`.id = email_address.uid").
 		Where(cond).
 		OrderBy(orderby).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).

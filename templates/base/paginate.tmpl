@@ -6,11 +6,11 @@
 		<div class="center page buttons">
 			<div class="ui borderless pagination menu">
 				<a class="{{if .IsFirst}}disabled{{end}} item navigation" {{if not .IsFirst}}href="{{$paginationLink}}{{if $paginationParams}}?{{$paginationParams}}{{end}}"{{end}}>
-					{{svg "gitea-double-chevron-left" 16 "gt-mr-2"}}
+					{{svg "gitea-double-chevron-left" 16 "tw-mr-1"}}
 					<span class="navigation_label">{{ctx.Locale.Tr "admin.first_page"}}</span>
 				</a>
 				<a class="{{if not .HasPrevious}}disabled{{end}} item navigation" {{if .HasPrevious}}href="{{$paginationLink}}?page={{.Previous}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>
-					{{svg "octicon-chevron-left" 16 "gt-mr-2"}}
+					{{svg "octicon-chevron-left" 16 "tw-mr-1"}}
 					<span class="navigation_label">{{ctx.Locale.Tr "repo.issues.previous"}}</span>
 				</a>
 				{{range .Pages}}
@@ -22,11 +22,11 @@
 				{{end}}
 				<a class="{{if not .HasNext}}disabled{{end}} item navigation" {{if .HasNext}}href="{{$paginationLink}}?page={{.Next}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>
 					<span class="navigation_label">{{ctx.Locale.Tr "repo.issues.next"}}</span>
-					{{svg "octicon-chevron-right" 16 "gt-ml-2"}}
+					{{svg "octicon-chevron-right" 16 "tw-ml-1"}}
 				</a>
 				<a class="{{if .IsLast}}disabled{{end}} item navigation" {{if not .IsLast}}href="{{$paginationLink}}?page={{.TotalPages}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>
 					<span class="navigation_label">{{ctx.Locale.Tr "admin.last_page"}}</span>
-					{{svg "gitea-double-chevron-right" 16 "gt-ml-2"}}
+					{{svg "gitea-double-chevron-right" 16 "tw-ml-1"}}
 				</a>
 			</div>
 		</div>

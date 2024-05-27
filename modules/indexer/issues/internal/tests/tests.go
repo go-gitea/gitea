@@ -77,6 +77,13 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				assert.Equal(t, c.ExpectedIDs, ids)
 				assert.Equal(t, c.ExpectedTotal, result.Total)
 			}
+
+			// test counting
+			c.SearchOptions.Paginator = &db.ListOptions{PageSize: 0}
+			countResult, err := indexer.Search(context.Background(), c.SearchOptions)
+			require.NoError(t, err)
+			assert.Empty(t, countResult.Hits)
+			assert.Equal(t, result.Total, countResult.Total)
 		})
 	}
 }
@@ -331,38 +338,38 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectBoardID",
+		Name: "ProjectColumnID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: optional.Some(int64(1)),
+			ProjectColumnID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectBoardID)
+				assert.Equal(t, int64(1), data[v.ID].ProjectColumnID)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectBoardID == 1
+				return v.ProjectColumnID == 1
 			}), result.Total)
 		},
 	},
 	{
-		Name: "no ProjectBoardID",
+		Name: "no ProjectColumnID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: optional.Some(int64(0)),
+			ProjectColumnID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectBoardID)
+				assert.Equal(t, int64(0), data[v.ID].ProjectColumnID)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectBoardID == 0
+				return v.ProjectColumnID == 0
 			}), result.Total)
 		},
 	},
@@ -515,10 +522,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCreatedDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCreatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -533,10 +538,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByUpdatedDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByUpdatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -551,10 +554,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCommentsDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCommentsDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -569,10 +570,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineDesc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByDeadlineDesc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByDeadlineDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -587,10 +586,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCreatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCreatedAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCreatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -605,10 +602,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByUpdatedAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByUpdatedAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByUpdatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -623,10 +618,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByCommentsAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByCommentsAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByCommentsAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -641,10 +634,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "SortByDeadlineAsc",
 		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				ListAll: true,
-			},
-			SortBy: internal.SortByDeadlineAsc,
+			Paginator: &db.ListOptionsAll,
+			SortBy:    internal.SortByDeadlineAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -715,7 +706,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
 				ProjectID:          issueIndex % 5,
-				ProjectBoardID:     issueIndex % 6,
+				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
 				MentionIDs:         mentionIDs,

@@ -1,5 +1,7 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
+import {toggleElem} from '../utils/dom.js';
+import {logoutFromWorker} from '../modules/worker.js';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
@@ -35,7 +37,7 @@ async function receiveUpdateCount(event) {
     const data = JSON.parse(event.data);
 
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('gt-hidden', data.Count === 0);
+      count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
@@ -94,7 +96,7 @@ export function initNotificationCount() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = `${appSubUrl}/`;
+        logoutFromWorker();
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
@@ -177,14 +179,11 @@ async function updateNotificationCount() {
 
     const data = await response.json();
 
-    const $notificationCount = $('.notification_count');
-    if (data.new === 0) {
-      $notificationCount.addClass('gt-hidden');
-    } else {
-      $notificationCount.removeClass('gt-hidden');
-    }
+    toggleElem('.notification_count', data.new !== 0);
 
-    $notificationCount.text(`${data.new}`);
+    for (const el of document.getElementsByClassName('notification_count')) {
+      el.textContent = `${data.new}`;
+    }
 
     return `${data.new}`;
   } catch (error) {

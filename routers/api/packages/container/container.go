@@ -17,6 +17,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -115,7 +116,9 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 }
 
 func apiUnauthorizedError(ctx *context.Context) {
-	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
+	// TODO: it doesn't seem quite right but it doesn't really cause problem at the moment.
+	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed, ideally.
+	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+httplib.GuessCurrentAppURL(ctx)+`v2/token",service="container_registry",scope="*"`)
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
@@ -385,9 +388,9 @@ func EndUploadBlob(ctx *context.Context) {
 		}
 		return
 	}
-	close := true
+	doClose := true
 	defer func() {
-		if close {
+		if doClose {
 			uploader.Close()
 		}
 	}()
@@ -427,7 +430,7 @@ func EndUploadBlob(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	close = false
+	doClose = false
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

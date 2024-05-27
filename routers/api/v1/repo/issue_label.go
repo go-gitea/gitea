@@ -5,7 +5,9 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	api "code.gitea.io/gitea/modules/structs"
@@ -317,7 +319,32 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
-	labels, err := issues_model.GetLabelsByIDs(ctx, form.Labels, "id", "repo_id", "org_id", "name", "exclusive")
+	var (
+		labelIDs   []int64
+		labelNames []string
+	)
+	for _, label := range form.Labels {
+		rv := reflect.ValueOf(label)
+		switch rv.Kind() {
+		case reflect.Float64:
+			labelIDs = append(labelIDs, int64(rv.Float()))
+		case reflect.String:
+			labelNames = append(labelNames, rv.String())
+		}
+	}
+	if len(labelIDs) > 0 && len(labelNames) > 0 {
+		ctx.Error(http.StatusBadRequest, "InvalidLabels", "labels should be an array of strings or integers")
+		return nil, nil, fmt.Errorf("invalid labels")
+	}
+	if len(labelNames) > 0 {
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
+			return nil, nil, err
+		}
+	}
+
+	labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs, "id", "repo_id", "org_id", "name", "exclusive")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return nil, nil, err

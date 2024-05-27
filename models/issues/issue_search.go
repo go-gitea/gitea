@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.Paginator
+	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
@@ -33,7 +33,7 @@ type IssuesOptions struct { //nolint
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
-	ProjectBoardID     int64
+	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
@@ -104,23 +104,11 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		return sess
 	}
 
-	// Warning: Do not use GetSkipTake() for *db.ListOptions
-	// Its implementation could reset the page size with setting.API.MaxResponseItems
-	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
-		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
-			var start int
-			if listOptions.Page == 0 {
-				start = 0
-			} else {
-				start = (listOptions.Page - 1) * listOptions.PageSize
-			}
-			sess.Limit(listOptions.PageSize, start)
-		}
-		return sess
+	start := 0
+	if opts.Paginator.Page > 1 {
+		start = (opts.Paginator.Page - 1) * opts.Paginator.PageSize
 	}
-
-	start, limit := opts.Paginator.GetSkipTake()
-	sess.Limit(limit, start)
+	sess.Limit(opts.Paginator.PageSize, start)
 
 	return sess
 }
@@ -181,12 +169,12 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 	return sess
 }
 
-func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	// opts.ProjectBoardID == 0 means all project boards,
+func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	// opts.ProjectColumnID == 0 means all project columns,
 	// do not need to apply any condition
-	if opts.ProjectBoardID > 0 {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-	} else if opts.ProjectBoardID == db.NoConditionID {
+	if opts.ProjectColumnID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
+	} else if opts.ProjectColumnID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}
 	return sess
@@ -258,7 +246,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectCondition(sess, opts)
 
-	applyProjectBoardCondition(sess, opts)
+	applyProjectColumnCondition(sess, opts)
 
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())

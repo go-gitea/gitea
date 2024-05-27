@@ -100,8 +100,8 @@ const (
 	CommentTypeMergePull       // 28 merge pull request
 	CommentTypePullRequestPush // 29 push to PR head branch
 
-	CommentTypeProject      // 30 Project changed
-	CommentTypeProjectBoard // 31 Project board changed
+	CommentTypeProject       // 30 Project changed
+	CommentTypeProjectColumn // 31 Project column changed
 
 	CommentTypeDismissReview // 32 Dismiss Review
 
@@ -146,7 +146,7 @@ var commentStrings = []string{
 	"merge_pull",
 	"pull_push",
 	"project",
-	"project_board",
+	"project_board", // FIXME: the name should be project_column
 	"dismiss_review",
 	"change_issue_ref",
 	"pull_scheduled_merge",
@@ -1272,10 +1272,9 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		return nil
 	}
 
-	issueIDs := make(container.Set[int64])
-	for _, comment := range comments {
-		issueIDs.Add(comment.IssueID)
-	}
+	issueIDs := container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.IssueID, true
+	})
 
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -1298,7 +1297,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		}
 	}
 
-	for issueID := range issueIDs {
+	for _, issueID := range issueIDs {
 		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
 			issueID, CommentTypeComment, issueID); err != nil {
 			return err

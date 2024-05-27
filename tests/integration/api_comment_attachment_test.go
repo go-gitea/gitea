@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -119,6 +118,34 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	DecodeJSON(t, resp, &apiAttachment)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID})
+}
+
+func TestAPICreateCommentAttachmentWithUnallowedFile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	filename := "file.bad"
+	body := &bytes.Buffer{}
+
+	// Setup multi-part.
+	writer := multipart.NewWriter(body)
+	_, err := writer.CreateFormFile("attachment", filename)
+	assert.NoError(t, err)
+	err = writer.Close()
+	assert.NoError(t, err)
+
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID), body).
+		AddTokenAuth(token).
+		SetHeader("Content-Type", writer.FormDataContentType())
+
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPIEditCommentAttachment(t *testing.T) {

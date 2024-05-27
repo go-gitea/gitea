@@ -374,8 +374,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	// Check access.
-	if !ctx.Repo.Permission.HasAccess() {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -383,7 +382,6 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		ctx.NotFound("no access right", nil)
 		return
 	}
-	ctx.Data["HasAccess"] = true
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
@@ -789,7 +787,7 @@ func (rt RepoRefType) RefTypeIncludesTags() bool {
 	return false
 }
 
-func getRefNameFromPath(ctx *Base, repo *Repository, path string, isExist func(string) bool) string {
+func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
@@ -825,9 +823,8 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		repo.TreePath = path
 		return repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
-
 			// check if ref is HEAD
 			parts := strings.Split(path, "/")
 			if parts[0] == headRefName {
@@ -836,7 +833,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 			}
 
 			// maybe it's a renamed branch
-			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
+			return getRefNameFromPath(repo, path, func(s string) bool {
 				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch: %v", err)
@@ -856,7 +853,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 
 		return ref
 	case RepoRefTag:
-		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
+		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
 
@@ -970,7 +967,6 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-
 			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.TagName = refName
@@ -1050,21 +1046,5 @@ func GitHookService() func(ctx *Context) {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}
-	}
-}
-
-// UnitTypes returns a middleware to set unit types to context variables.
-func UnitTypes() func(ctx *Context) {
-	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = unit_model.TypeCode
-		ctx.Data["UnitTypeIssues"] = unit_model.TypeIssues
-		ctx.Data["UnitTypePullRequests"] = unit_model.TypePullRequests
-		ctx.Data["UnitTypeReleases"] = unit_model.TypeReleases
-		ctx.Data["UnitTypeWiki"] = unit_model.TypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
-		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
-		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }
