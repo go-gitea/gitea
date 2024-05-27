@@ -241,9 +241,11 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	needsUpdateStatus := opts.Status == 0
+	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
-	if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false)
+	}); err != nil {
 		return nil, err
 	}
 

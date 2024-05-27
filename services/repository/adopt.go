@@ -66,7 +66,10 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 	}
 
-	if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
+	// create the repository database operations first
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false)
+	}); err != nil {
 		return nil, err
 	}
 
