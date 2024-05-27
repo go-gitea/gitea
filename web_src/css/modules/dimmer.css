@@ -1,0 +1,27 @@
+/* These are the remnants of the fomantic dimmer module */
+
+.ui.dimmer {
+  position: fixed;
+  display: none;
+  inset: 0;
+  background: var(--color-overlay-backdrop);
+  opacity: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  justify-content: center;
+  padding: 8px 0;
+  animation-name: fadein;
+  animation-duration: .2s;
+  user-select: none;
+}
+
+.ui.active.dimmer {
+  display: flex;
+  opacity: 1;
+}
+
+.ui.dimmer > * {
+  position: static;
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+}

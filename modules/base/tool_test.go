@@ -4,19 +4,17 @@
 package base
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
-
-func TestEncodeSha1(t *testing.T) {
-	assert.Equal(t,
-		"8843d7f92416211de9ebb963ff4ce28125932878",
-		EncodeSha1("foobar"),
-	)
-}
 
 func TestEncodeSha256(t *testing.T) {
 	assert.Equal(t,
@@ -46,43 +44,54 @@ func TestBasicAuthDecode(t *testing.T) {
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {
-	tc := []struct {
-		data    string
-		minutes int
-		code    string
-		valid   bool
-	}{{
-		data:    "data",
-		minutes: 2,
-		code:    testCreateTimeLimitCode(t, "data", 2),
-		valid:   true,
-	}, {
-		data:    "abc123-ß",
-		minutes: 1,
-		code:    testCreateTimeLimitCode(t, "abc123-ß", 1),
-		valid:   true,
-	}, {
-		data:    "data",
-		minutes: 2,
-		code:    "2021012723240000005928251dac409d2c33a6eb82c63410aaad569bed",
-		valid:   false,
-	}}
-	for _, test := range tc {
-		actualValid := VerifyTimeLimitCode(test.data, test.minutes, test.code)
-		assert.Equal(t, test.valid, actualValid, "data: '%s' code: '%s' should be valid: %t", test.data, test.code, test.valid)
+	defer test.MockVariableValue(&setting.InstallLock, true)()
+	initGeneralSecret := func(secret string) {
+		setting.InstallLock = true
+		setting.CfgProvider, _ = setting.NewConfigProviderFromData(fmt.Sprintf(`
+[oauth2]
+JWT_SECRET = %s
+`, secret))
+		setting.LoadCommonSettings()
 	}
-}
 
-func testCreateTimeLimitCode(t *testing.T, data string, m int) string {
-	result0 := CreateTimeLimitCode(data, m, nil)
-	result1 := CreateTimeLimitCode(data, m, time.Now().Format("200601021504"))
-	result2 := CreateTimeLimitCode(data, m, time.Unix(time.Now().Unix()+int64(time.Minute)*int64(m), 0).Format("200601021504"))
+	initGeneralSecret("KZb_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
+	now := time.Now()
 
-	assert.Equal(t, result0, result1)
-	assert.NotEqual(t, result0, result2)
+	t.Run("TestGenericParameter", func(t *testing.T) {
+		time2000 := time.Date(2000, 1, 2, 3, 4, 5, 0, time.Local)
+		assert.Equal(t, "2000010203040000026fa5221b2731b7cf80b1b506f5e39e38c115fee5", CreateTimeLimitCode("test-sha1", 2, time2000, sha1.New()))
+		assert.Equal(t, "2000010203040000026fa5221b2731b7cf80b1b506f5e39e38c115fee5", CreateTimeLimitCode("test-sha1", 2, "200001020304", sha1.New()))
+		assert.Equal(t, "2000010203040000024842227a2f87041ff82025199c0187410a9297bf", CreateTimeLimitCode("test-hmac", 2, time2000, nil))
+		assert.Equal(t, "2000010203040000024842227a2f87041ff82025199c0187410a9297bf", CreateTimeLimitCode("test-hmac", 2, "200001020304", nil))
+	})
 
-	assert.True(t, len(result0) != 0)
-	return result0
+	t.Run("TestInvalidCode", func(t *testing.T) {
+		assert.False(t, VerifyTimeLimitCode(now, "data", 2, ""))
+		assert.False(t, VerifyTimeLimitCode(now, "data", 2, "invalid code"))
+	})
+
+	t.Run("TestCreateAndVerify", func(t *testing.T) {
+		code := CreateTimeLimitCode("data", 2, now, nil)
+		assert.False(t, VerifyTimeLimitCode(now.Add(-time.Minute), "data", 2, code)) // not started yet
+		assert.True(t, VerifyTimeLimitCode(now, "data", 2, code))
+		assert.True(t, VerifyTimeLimitCode(now.Add(time.Minute), "data", 2, code))
+		assert.False(t, VerifyTimeLimitCode(now.Add(time.Minute), "DATA", 2, code))   // invalid data
+		assert.False(t, VerifyTimeLimitCode(now.Add(2*time.Minute), "data", 2, code)) // expired
+	})
+
+	t.Run("TestDifferentSecret", func(t *testing.T) {
+		// use another secret to ensure the code is invalid for different secret
+		verifyDataCode := func(c string) bool {
+			return VerifyTimeLimitCode(now, "data", 2, c)
+		}
+		code1 := CreateTimeLimitCode("data", 2, now, sha1.New())
+		code2 := CreateTimeLimitCode("data", 2, now, nil)
+		assert.True(t, verifyDataCode(code1))
+		assert.True(t, verifyDataCode(code2))
+		initGeneralSecret("000_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
+		assert.False(t, verifyDataCode(code1))
+		assert.False(t, verifyDataCode(code2))
+	})
 }
 
 func TestFileSize(t *testing.T) {

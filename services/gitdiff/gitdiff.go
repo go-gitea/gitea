@@ -23,7 +23,6 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -746,7 +745,7 @@ parsingLoop:
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
-		f.NameHash = base.EncodeSha1(f.Name)
+		f.NameHash = git.HashFilePathForWebUI(f.Name)
 
 		for _, buffer := range diffLineTypeBuffers {
 			buffer.Reset()
@@ -1143,7 +1142,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}

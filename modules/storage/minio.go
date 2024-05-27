@@ -85,11 +85,23 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
+	var lookup minio.BucketLookupType
+	if config.BucketLookUpType == "auto" || config.BucketLookUpType == "" {
+		lookup = minio.BucketLookupAuto
+	} else if config.BucketLookUpType == "dns" {
+		lookup = minio.BucketLookupDNS
+	} else if config.BucketLookUpType == "path" {
+		lookup = minio.BucketLookupPath
+	} else {
+		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
+	}
+
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure:    config.UseSSL,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
-		Region:    config.Location,
+		Creds:        credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure:       config.UseSSL,
+		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:       config.Location,
+		BucketLookup: lookup,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)

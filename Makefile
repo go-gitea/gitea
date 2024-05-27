@@ -88,7 +88,7 @@ ifneq ($(GITHUB_REF_TYPE),branch)
 	GITEA_VERSION ?= $(VERSION)
 else
 	ifneq ($(GITHUB_REF_NAME),)
-		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
+		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))-nightly
 	else
 		VERSION ?= main
 	endif

@@ -47,6 +47,7 @@ type MinioStorageConfig struct {
 	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
 	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
+	BucketLookUpType   string `ini:"MINIO_BUCKET_LOOKUP_TYPE" json:",omitempty"`
 }
 
 // Storage represents configuration of storages
@@ -82,6 +83,7 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec.Key("MINIO_USE_SSL").MustBool(false)
 	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
 	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
+	storageSec.Key("MINIO_BUCKET_LOOKUP_TYPE").MustString("auto")
 	return storageSec
 }
 
@@ -97,7 +99,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, err
 	}
 
-	overrideSec := getStorageOverrideSection(rootCfg, targetSec, sec, tp, name)
+	overrideSec := getStorageOverrideSection(rootCfg, sec, tp, name)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	switch targetType {
@@ -189,7 +191,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 }
 
 // getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
-func getStorageOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
+func getStorageOverrideSection(rootConfig ConfigProvider, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
 		return nil
 	}

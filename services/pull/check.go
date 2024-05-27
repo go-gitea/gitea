@@ -39,7 +39,7 @@ var (
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
-	ErrNotMergableState      = errors.New("not in mergeable state")
+	ErrNotMergeableState     = errors.New("not in mergeable state")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
 
@@ -66,8 +66,8 @@ const (
 	MergeCheckTypeAuto                           // Auto Merge (Scheduled Merge) After Checks Succeed
 )
 
-// CheckPullMergable check if the pull mergeable based on all conditions (branch protection, merge options, ...)
-func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
+// CheckPullMergeable check if the pull mergeable based on all conditions (branch protection, merge options, ...)
+func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
@@ -97,7 +97,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		if !pr.CanAutoMerge() && !pr.IsEmpty() {
-			return ErrNotMergableState
+			return ErrNotMergeableState
 		}
 
 		if pr.IsChecking() {
