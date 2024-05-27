@@ -24,6 +24,10 @@
   line-height: 1.2;
 }
 
+.edit-content-zone .comment {
+  flex-direction: column;
+}
+
 .ui.comments .comment:first-child {
   margin-top: 0;
   padding-top: 0;
