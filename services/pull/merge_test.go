@@ -6,6 +6,12 @@ package pull
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/user"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,4 +70,17 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 			assert.Equalf(t, tt.wantBody, got1, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
 		})
 	}
+}
+
+func Test_IsUserAllowedToMerge(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pr.BaseRepoID})
+
+	perm, err := access.GetUserRepoPermission(db.DefaultContext, repo, user.NewActionsUser())
+	assert.NoError(t, err)
+
+	allowed, err := IsUserAllowedToMerge(db.DefaultContext, pr, perm, user.NewActionsUser())
+	assert.NoError(t, err)
+	assert.False(t, allowed)
 }
