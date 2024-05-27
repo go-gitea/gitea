@@ -42,7 +42,7 @@ func TestIssueTemplate_Type(t *testing.T) {
 	}
 }
 
-func TestIssueTemplateLabels_UnmarshalYAML(t *testing.T) {
+func TestIssueTemplateStringSlice_UnmarshalYAML(t *testing.T) {
 	tests := []struct {
 		name    string
 		content string
@@ -88,7 +88,7 @@ labels:
   b: bb
 `,
 			tmpl:    &IssueTemplate{},
-			wantErr: "line 3: cannot unmarshal !!map into IssueTemplateLabels",
+			wantErr: "line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
 		},
 	}
 	for _, tt := range tests {
