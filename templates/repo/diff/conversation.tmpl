@@ -50,7 +50,7 @@
 					</button>
 				</div>
 				{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-					<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					<button class="ui icon tiny basic button resolve-conversation tw-mr-0" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 						{{else}}
