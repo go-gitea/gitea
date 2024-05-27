@@ -48,7 +48,7 @@ With different permissions, people could do different things with these units.
 | Wiki            | View wiki pages. Clone the wiki repository.        | Create/Edit wiki pages, push | -                         |
 | ExternalWiki    | Link to an external wiki                           | -                            | -                         |
 | ExternalTracker | Link to an external issue tracker                  | -                            | -                         |
-| Projects        | View the boards                                    | Change issues across boards  | -                         |
+| Projects        | View the columns of projects                       | Change issues across columns | -                         |
 | Packages        | View the packages                                  | Upload/Delete packages       | -                         |
 | Actions         | View the Actions logs                              | Approve / Cancel / Restart   | -                         |
 | Settings        | -                                                  | -                            | Manage the repository     |
