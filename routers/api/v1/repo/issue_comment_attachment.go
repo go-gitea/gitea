@@ -210,7 +210,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
+	if err = issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, comment.Content); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "UpdateComment", err)
 		} else {

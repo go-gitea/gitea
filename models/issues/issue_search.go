@@ -33,7 +33,7 @@ type IssuesOptions struct { //nolint
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
-	ProjectBoardID     int64
+	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
@@ -169,12 +169,12 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 	return sess
 }
 
-func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	// opts.ProjectBoardID == 0 means all project boards,
+func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	// opts.ProjectColumnID == 0 means all project columns,
 	// do not need to apply any condition
-	if opts.ProjectBoardID > 0 {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-	} else if opts.ProjectBoardID == db.NoConditionID {
+	if opts.ProjectColumnID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
+	} else if opts.ProjectColumnID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}
 	return sess
@@ -246,7 +246,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectCondition(sess, opts)
 
-	applyProjectBoardCondition(sess, opts)
+	applyProjectColumnCondition(sess, opts)
 
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
