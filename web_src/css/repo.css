@@ -824,8 +824,7 @@ td .commit-summary {
   padding-top: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar,
-.repository.view.issue .comment-list .timeline-item.event .ui.avatar {
+.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar {
   margin-right: 0.25em;
 }
 
@@ -1037,10 +1036,6 @@ td .commit-summary {
   margin-top: 6px;
 }
 
-.repository.view.issue .comment-list .comment > .avatar ~ .content {
-  margin-left: 42px;
-}
-
 .repository.view.issue .comment-list .comment-code-cloud button.comment-form-reply {
   margin: 0;
 }
@@ -1062,12 +1057,6 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .event .segments {
   box-shadow: none;
-}
-
-@media (max-width: 767.98px) {
-  .repository.view.issue .comment-list {
-    padding: 1rem 0 !important; /* Important is required here to override existing fomantic styles. */
-  }
 }
 
 .repository.view.issue .ui.depending .item.is-closed .title {
@@ -1549,39 +1538,6 @@ td .commit-summary {
 .repository .diff-detail-box .ui.button {
   padding: 0 12px;
   height: 30px;
-}
-
-.repository .diff-box .header:not(.resolved-placeholder) {
-  display: flex;
-  align-items: center;
-}
-
-.repository .diff-box .header:not(.resolved-placeholder) .file {
-  min-width: 0;
-}
-
-.repository .diff-box .header:not(.resolved-placeholder) .file .file-link {
-  max-width: fit-content;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.repository .diff-box .header:not(.resolved-placeholder) .button {
-  padding: 0 12px;
-  flex: 0 0 auto;
-  margin-right: 0;
-  height: 30px;
-}
-
-.repository .diff-box .resolved-placeholder {
-  display: flex;
-  align-items: center;
-  font-size: 14px !important;
-  height: 36px;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {
@@ -2428,6 +2384,10 @@ tbody.commit-list {
 }
 
 .resolved-placeholder {
+  display: flex;
+  align-items: center;
+  font-size: 14px !important;
+  padding: 8px !important;
   font-weight: var(--font-weight-normal) !important;
   border: 1px solid var(--color-secondary) !important;
   border-radius: var(--border-radius) !important;
@@ -2537,6 +2497,38 @@ tbody.commit-list {
 .diff-file-header {
   padding: 5px 8px !important;
   box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
+  font-weight: var(--font-weight-normal);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.diff-file-header .file {
+  min-width: 0;
+}
+
+.diff-file-header .file-link {
+  max-width: fit-content;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.diff-file-header .button {
+  padding: 0 12px;
+  flex: 0 0 auto;
+  margin-right: 0;
+  height: 30px;
+}
+
+@media (max-width: 767.98px) {
+  .diff-file-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
