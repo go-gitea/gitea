@@ -770,7 +770,7 @@ examples would be:
 ```ini
 [mailer.override_header]
 Reply-To = test@example.com
-Content-Type = text/html, charset=utf-8
+Content-Type = text/html; charset=utf-8
 ```
 
 ## Incoming Email (`email.incoming`)
