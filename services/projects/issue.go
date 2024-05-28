@@ -44,19 +44,18 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 
+		issuesMap := make(map[int64]*issues_model.Issue, len(issues))
+		for _, issue := range issues {
+			issuesMap[issue.ID] = issue
+		}
+
 		for sorting, issueID := range sortedIssueIDs {
 			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
 
-			var curIssue *issues_model.Issue
-			for _, issue := range issues {
-				if issue.ID == issueID {
-					curIssue = issue
-					break
-				}
-			}
+			curIssue := issuesMap[issueID]
 
 			// add timeline to issue
 			if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
