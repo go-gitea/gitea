@@ -763,7 +763,7 @@ and
 
 ## Override Email Headers (`mailer.override_header`)
 
-⚠️ This is empyt by default, use it only if you know what you need it for.
+⚠️ This is empty by default, use it only if you know what you need it for.
 
 examples would be:
 
