@@ -724,7 +724,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Mailer (`mailer`)
 
-:::note
+:::warning
 This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
 please refer to
 [Gitea 1.17 app.ini example](https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini)
@@ -765,7 +765,7 @@ and
 
 ## Override Email Headers (`mailer.override_header`)
 
-:::note
+:::warning
 This is empty by default, use it only if you know what you need it for.
 :::
 
@@ -775,6 +775,7 @@ examples would be:
 [mailer.override_header]
 Reply-To = test@example.com, test2@example.com
 Content-Type = text/html; charset=utf-8
+In-Reply-To =
 ```
 
 ## Incoming Email (`email.incoming`)
