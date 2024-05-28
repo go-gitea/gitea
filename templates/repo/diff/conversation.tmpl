@@ -40,8 +40,8 @@
 					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
 				</ui>
 			</div>
-			<div class="tw-flex tw-justify-end tw-items-center tw-flex-wrap tw-mt-2">
-				<div class="ui buttons tw-mr-1">
+			<div class="tw-flex tw-justify-end tw-items-center tw-gap-2 tw-mt-2 tw-flex-wrap">
+				<div class="ui buttons">
 					<button class="ui icon tiny basic button previous-conversation">
 						{{svg "octicon-arrow-up" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.previous"}}
 					</button>
@@ -50,7 +50,7 @@
 					</button>
 				</div>
 				{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-					<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					<button class="ui icon tiny basic button resolve-conversation tw-mr-0" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 						{{else}}
@@ -59,7 +59,7 @@
 					</button>
 				{{end}}
 				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-					<button class="comment-form-reply ui primary tiny labeled icon button tw-ml-1 tw-mr-0">
+					<button class="comment-form-reply ui primary tiny labeled icon button tw-mr-0">
 						{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}

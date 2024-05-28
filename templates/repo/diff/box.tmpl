@@ -110,7 +110,7 @@
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
-						<h4 class="diff-file-header sticky-2nd-row ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+						<h4 class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<button class="fold-file btn interact-bg tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
