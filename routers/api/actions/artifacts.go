@@ -71,6 +71,7 @@ import (
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -144,7 +145,6 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 
 			var task *actions.ActionTask
 			if err == nil {
-
 				task, err = actions.GetTaskByID(req.Context(), tID)
 				if err != nil {
 					log.Error("Error runner api getting task by ID: %v", err)
@@ -185,8 +185,8 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactURL(runID int64, artifactHash, suffix string) string {
-	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
+func (ar artifactRoutes) buildArtifactURL(ctx *ArtifactContext, runID int64, artifactHash, suffix string) string {
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(ar.prefix, "/") +
 		strings.ReplaceAll(artifactRouteBase, "{run_id}", strconv.FormatInt(runID, 10)) +
 		"/" + artifactHash + "/" + suffix
 	return uploadURL
@@ -225,7 +225,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	// use md5(artifact_name) to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(req.Name)))
 	resp := getUploadArtifactResponse{
-		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"+retentionQuery),
+		FileContainerResourceURL: ar.buildArtifactURL(ctx, runID, artifactHash, "upload"+retentionQuery),
 	}
 	log.Debug("[artifact] get upload url: %s", resp.FileContainerResourceURL)
 	ctx.JSON(http.StatusOK, resp)
@@ -302,7 +302,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact comfirm upload artifact.
+// comfirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := validateRunID(ctx)
@@ -366,7 +366,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(art.ArtifactName)))
 		item := listArtifactsResponseItem{
 			Name:                     art.ArtifactName,
-			FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "download_url"),
+			FileContainerResourceURL: ar.buildArtifactURL(ctx, runID, artifactHash, "download_url"),
 		}
 		items = append(items, item)
 		values[art.ArtifactName] = true
@@ -438,7 +438,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 			}
 		}
 		if downloadURL == "" {
-			downloadURL = ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+			downloadURL = ar.buildArtifactURL(ctx, runID, strconv.FormatInt(artifact.ID, 10), "download")
 		}
 		item := downloadArtifactResponseItem{
 			Path:            util.PathJoinRel(itemPath, artifact.ArtifactPath),
@@ -467,14 +467,15 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
-	} else if !exist {
+	}
+	if !exist {
 		log.Error("artifact with ID %d does not exist", artifactID)
 		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {
-		log.Error("Error dismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
-		ctx.Error(http.StatusBadRequest, err.Error())
+		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 

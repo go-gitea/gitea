@@ -307,10 +307,10 @@ func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBu
 
 	// Deal with the binary hash
 	idx = 0
-	len := objectFormat.FullLength() / 2
-	for idx < len {
+	length := objectFormat.FullLength() / 2
+	for idx < length {
 		var read int
-		read, err = rd.Read(shaBuf[idx:len])
+		read, err = rd.Read(shaBuf[idx:length])
 		n += read
 		if err != nil {
 			return mode, fname, sha, n, err

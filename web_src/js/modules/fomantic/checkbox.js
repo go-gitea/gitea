@@ -1,4 +1,4 @@
-import {generateAriaId} from './base.js';
+import {linkLabelAndInput} from './base.js';
 
 export function initAriaCheckboxPatch() {
   // link the label and the input element so it's clickable and accessible
@@ -6,10 +6,8 @@ export function initAriaCheckboxPatch() {
     if (el.hasAttribute('data-checkbox-patched')) continue;
     const label = el.querySelector('label');
     const input = el.querySelector('input');
-    if (!label || !input || input.getAttribute('id') || label.getAttribute('for')) continue;
-    const id = generateAriaId();
-    input.setAttribute('id', id);
-    label.setAttribute('for', id);
+    if (!label || !input) continue;
+    linkLabelAndInput(label, input);
     el.setAttribute('data-checkbox-patched', 'true');
   }
 }

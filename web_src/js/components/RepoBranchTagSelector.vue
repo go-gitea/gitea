@@ -246,18 +246,18 @@ export function initRepoBranchTagSelector(selector) {
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
-  <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button tw-flex tw-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text tw-flex tw-items-center tw-mr-1">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
+    <div class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="flex-text-block gt-ellipsis">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2">{{ refNameText }}</strong>
+          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ refNameText }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
-    </button>
+    </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
@@ -280,7 +280,7 @@ export default sfc; // activate IDE's Vue plugin
           <div class="ui label" v-if="item.name===repoDefaultBranch && mode === 'branches'">
             {{ textDefaultBranchLabel }}
           </div>
-          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon tw-float-right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
+          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
@@ -317,43 +317,3 @@ export default sfc; // activate IDE's Vue plugin
     </div>
   </div>
 </template>
-<style scoped>
-.branch-tag-tab {
-  padding: 0 10px;
-}
-
-.branch-tag-item {
-  display: inline-block;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-bottom: none;
-}
-
-.branch-tag-item.active {
-  border-color: var(--color-secondary);
-  background: var(--color-menu);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-}
-
-.branch-tag-divider {
-  margin-top: -1px !important;
-  border-top: 1px solid var(--color-secondary);
-}
-
-.scrolling.menu {
-  border-top: none !important;
-}
-
-.menu .item .rss-icon {
-  display: none; /* only show RSS icon on hover */
-}
-
-.menu .item:hover .rss-icon {
-  display: inline-block;
-}
-
-.scrolling.menu .loading-indicator {
-  height: 4em;
-}
-</style>

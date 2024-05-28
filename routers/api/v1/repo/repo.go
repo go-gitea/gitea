@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/issue"
@@ -250,7 +252,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		Gitignores:       opt.Gitignores,
 		License:          opt.License,
 		Readme:           opt.Readme,
-		IsPrivate:        opt.Private,
+		IsPrivate:        opt.Private || setting.Repository.ForcePrivate,
 		AutoInit:         opt.AutoInit,
 		DefaultBranch:    opt.DefaultBranch,
 		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
@@ -362,7 +364,7 @@ func Generate(ctx *context.APIContext) {
 		Name:            form.Name,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
-		Private:         form.Private,
+		Private:         form.Private || setting.Repository.ForcePrivate,
 		GitContent:      form.GitContent,
 		Topics:          form.Topics,
 		GitHooks:        form.GitHooks,
@@ -583,7 +585,7 @@ func GetByID(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
-	} else if !permission.HasAccess() {
+	} else if !permission.HasAnyUnitAccess() {
 		ctx.NotFound()
 		return
 	}
@@ -1035,12 +1037,20 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
+			if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
+			}
+			if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				}
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
@@ -1052,16 +1062,10 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
-	// only update mirror if interval or enable prune are provided
-	if opts.MirrorInterval == nil && opts.EnablePrune == nil {
-		return nil
-	}
-
-	// these values only make sense if the repo is a mirror
+	// Skip this update if the repo is not a mirror, do not return error.
+	// Because reporting errors only makes the logic more complex&fragile, it doesn't really help end users.
 	if !repo.IsMirror {
-		err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
-		ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
-		return err
+		return nil
 	}
 
 	// get the mirror from the repo
@@ -1074,7 +1078,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	// update MirrorInterval
 	if opts.MirrorInterval != nil {
-
 		// MirrorInterval should be a duration
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {

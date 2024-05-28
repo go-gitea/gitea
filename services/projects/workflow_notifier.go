@@ -112,18 +112,17 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 
 	for _, wf := range wfs {
 		if err := wf.FireAction(project_module.EventItemClosed, func(action project_module.Action) error {
-			board, err := project_model.GetBoardByProjectIDAndBoardName(ctx, wf.ProjectID, action.SetValue)
+			board, err := project_model.GetColumnByProjectIDAndColumnName(ctx, wf.ProjectID, action.SetValue)
 			if err != nil {
 				log.Error("NewIssue: GetBoardByProjectIDAndBoardName: %v", err)
 				return err
 			}
-			return project_model.AddIssueToBoard(ctx, issue.ID, board)
+			return project_model.AddIssueToColumn(ctx, issue.ID, board)
 		}); err != nil {
 			log.Error("NewIssue: FireAction: %v", err)
 			return
 		}
 	}
-}
 }
 
 func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
@@ -140,12 +139,12 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 
 		for _, wf := range wfs {
 			if err := wf.FireAction(project_module.EventItemClosed, func(action project_module.Action) error {
-				board, err := project_model.GetBoardByProjectIDAndBoardName(ctx, wf.ProjectID, action.SetValue)
+				board, err := project_model.GetColumnByProjectIDAndColumnName(ctx, wf.ProjectID, action.SetValue)
 				if err != nil {
 					log.Error("IssueChangeStatus: GetBoardByProjectIDAndBoardName: %v", err)
 					return err
 				}
-				return project_model.MoveIssueToAnotherBoard(ctx, issue.ID, board)
+				return project_model.MoveIssueToAnotherColumn(ctx, issue.ID, board)
 			}); err != nil {
 				log.Error("IssueChangeStatus: FireAction: %v", err)
 				return

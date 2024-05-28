@@ -236,7 +236,7 @@ configure this, set the fields below:
 
   - Restrict what domains can log in if using a public SMTP host or SMTP host
     with multiple domains.
-  - Example: `gitea.io,mydomain.com,mydomain2.com`
+  - Example: `gitea.com,mydomain.com,mydomain2.com`
 
 - Force SMTPS
 

@@ -7,6 +7,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkd
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
 import {POST, GET} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
 
@@ -123,8 +124,8 @@ export function initRepoIssueSidebarList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -158,17 +159,22 @@ export function initRepoIssueSidebarList() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  $(document).on('click', '.delete-comment', async function () {
-    const $this = $(this);
-    if (window.confirm($this.data('locale'))) {
+  document.addEventListener('click', async (e) => {
+    if (!e.target.matches('.delete-comment')) return;
+    e.preventDefault();
+
+    const deleteButton = e.target;
+    if (window.confirm(deleteButton.getAttribute('data-locale'))) {
       try {
-        const response = await POST($this.data('url'));
+        const response = await POST(deleteButton.getAttribute('data-url'));
         if (!response.ok) throw new Error('Failed to delete comment');
-        const $conversationHolder = $this.closest('.conversation-holder');
-        const $parentTimelineItem = $this.closest('.timeline-item');
-        const $parentTimelineGroup = $this.closest('.timeline-item-group');
+
+        const conversationHolder = deleteButton.closest('.conversation-holder');
+        const parentTimelineItem = deleteButton.closest('.timeline-item');
+        const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+
         // Check if this was a pending comment.
-        if ($conversationHolder.find('.pending-label').length) {
+        if (conversationHolder?.querySelector('.pending-label')) {
           const counter = document.querySelector('#review-box .review-comments-counter');
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
@@ -176,29 +182,32 @@ export function initRepoIssueCommentDelete() {
           counter.textContent = String(num);
         }
 
-        $(`#${$this.data('comment-id')}`).remove();
-        if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
-          const path = $conversationHolder.data('path');
-          const side = $conversationHolder.data('side');
-          const idx = $conversationHolder.data('idx');
-          const lineType = $conversationHolder.closest('tr').data('line-type');
+        document.getElementById(deleteButton.getAttribute('data-comment-id'))?.remove();
+
+        if (conversationHolder && !conversationHolder.querySelector('.comment')) {
+          const path = conversationHolder.getAttribute('data-path');
+          const side = conversationHolder.getAttribute('data-side');
+          const idx = conversationHolder.getAttribute('data-idx');
+          const lineType = conversationHolder.closest('tr').getAttribute('data-line-type');
+
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('tw-invisible');
+            document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('tw-invisible');
+            document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
           }
-          $conversationHolder.remove();
+
+          conversationHolder.remove();
         }
+
         // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
-        if (!$parentTimelineGroup.find('.timeline-item.comment').length && !$parentTimelineItem.find('.conversation-holder').length) {
-          const $timelineAvatar = $parentTimelineGroup.find('.timeline-avatar');
-          $timelineAvatar.removeClass('timeline-avatar-offset');
+        if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
+          const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
+          timelineAvatar?.classList.remove('timeline-avatar-offset');
         }
       } catch (error) {
         console.error(error);
       }
     }
-    return false;
   });
 }
 
@@ -222,32 +231,35 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  $(document).on('click', '.cancel-code-comment', (e) => {
-    const $form = $(e.currentTarget).closest('form');
-    if ($form.length > 0 && $form.hasClass('comment-form')) {
-      $form.addClass('tw-hidden');
-      showElem($form.closest('.comment-code-cloud').find('button.comment-form-reply'));
+  document.addEventListener('click', (e) => {
+    if (!e.target.matches('.cancel-code-comment')) return;
+
+    const form = e.target.closest('form');
+    if (form?.classList.contains('comment-form')) {
+      hideElem(form);
+      showElem(form.closest('.comment-code-cloud')?.querySelectorAll('button.comment-form-reply'));
     } else {
-      $form.closest('.comment-code-cloud').remove();
+      form.closest('.comment-code-cloud')?.remove();
     }
   });
 }
 
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
-  const $pullUpdateButton = $('.update-button > button');
-  $pullUpdateButton.on('click', async function (e) {
+  const pullUpdateButton = document.querySelector('.update-button > button');
+  if (!pullUpdateButton) return;
+
+  pullUpdateButton.addEventListener('click', async function (e) {
     e.preventDefault();
-    const $this = $(this);
-    const redirect = $this.data('redirect');
-    $this.addClass('is-loading');
+    const redirect = this.getAttribute('data-redirect');
+    this.classList.add('is-loading');
     let response;
     try {
-      response = await POST($this.data('do'));
+      response = await POST(this.getAttribute('data-do'));
     } catch (error) {
       console.error(error);
     } finally {
-      $this.removeClass('is-loading');
+      this.classList.remove('is-loading');
     }
     let data;
     try {
@@ -266,10 +278,13 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const $url = $choice.data('do');
-      if ($url) {
-        $pullUpdateButton.find('.button-text').text($choice.text());
-        $pullUpdateButton.data('do', $url);
+      const url = $choice[0].getAttribute('data-do');
+      if (url) {
+        const buttonText = pullUpdateButton.querySelector('.button-text');
+        if (buttonText) {
+          buttonText.textContent = $choice.text();
+        }
+        pullUpdateButton.setAttribute('data-do', url);
       }
     },
   });
@@ -284,23 +299,23 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.getElementById('allow-edits-from-maintainers');
   if (!wrapper) return;
-
-  wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
-    const checked = e.target.checked;
+  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
-    e.target.disabled = true;
     try {
-      const response = await POST(url, {data: {allow_maintainer_edit: checked}});
-      if (!response.ok) {
+      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
+      const data = await resp.json();
+      checkbox.checked = data.allow_maintainer_edit;
     } catch (error) {
+      checkbox.checked = !checkbox.checked;
       console.error(error);
       showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error'));
     } finally {
       wrapper.classList.remove('is-loading');
-      e.target.disabled = false;
     }
   });
 }
@@ -367,10 +382,10 @@ export function initRepoIssueComments() {
 
   $('.re-request-review').on('click', async function (e) {
     e.preventDefault();
-    const url = $(this).data('update-url');
-    const issueId = $(this).data('issue-id');
-    const id = $(this).data('id');
-    const isChecked = $(this).hasClass('checked');
+    const url = this.getAttribute('data-update-url');
+    const issueId = this.getAttribute('data-issue-id');
+    const id = this.getAttribute('data-id');
+    const isChecked = this.classList.contains('checked');
 
     await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
     window.location.reload();
@@ -397,7 +412,7 @@ export function initRepoIssueComments() {
 export async function handleReply($el) {
   hideElem($el);
   const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  $form.removeClass('tw-hidden');
+  showElem($form);
 
   const $textarea = $form.find('textarea');
   let editor = getComboMarkdownEditor($textarea);
@@ -435,12 +450,10 @@ export function initRepoPullRequestReview() {
           offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
         }
 
-        document.getElementById(`show-outdated-${id}`).classList.add('tw-hidden');
-        document.getElementById(`code-comments-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`code-preview-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`hide-outdated-${id}`).classList.remove('tw-hidden');
+        hideElem(`#show-outdated-${id}`);
+        showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
         // if the comment box is folded, expand it
-        if (ancestorDiffBox.getAttribute('data-folded') === 'true') {
+        if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
 
@@ -454,20 +467,20 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
-    const id = $(this).data('comment');
-    $(this).addClass('tw-hidden');
-    $(`#code-comments-${id}`).removeClass('tw-hidden');
-    $(`#code-preview-${id}`).removeClass('tw-hidden');
-    $(`#hide-outdated-${id}`).removeClass('tw-hidden');
+    const id = this.getAttribute('data-comment');
+    hideElem(this);
+    showElem(`#code-comments-${id}`);
+    showElem(`#code-preview-${id}`);
+    showElem(`#hide-outdated-${id}`);
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
-    const id = $(this).data('comment');
-    $(this).addClass('tw-hidden');
-    $(`#code-comments-${id}`).addClass('tw-hidden');
-    $(`#code-preview-${id}`).addClass('tw-hidden');
-    $(`#show-outdated-${id}`).removeClass('tw-hidden');
+    const id = this.getAttribute('data-comment');
+    hideElem(this);
+    hideElem(`#code-comments-${id}`);
+    hideElem(`#code-preview-${id}`);
+    showElem(`#show-outdated-${id}`);
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -490,6 +503,7 @@ export function initRepoPullRequestReview() {
   if ($reviewBtn.length && $panel.length) {
     const tippy = createTippy($reviewBtn[0], {
       content: $panel[0],
+      theme: 'default',
       placement: 'bottom',
       trigger: 'click',
       maxWidth: 'none',
@@ -504,18 +518,19 @@ export function initRepoPullRequestReview() {
   }
 
   $(document).on('click', '.add-code-comment', async function (e) {
-    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+    if (e.target.classList.contains('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
-    const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
-    const side = $(this).data('side');
-    const idx = $(this).data('idx');
-    const path = $(this).closest('[data-path]').data('path');
-    const $tr = $(this).closest('tr');
-    const lineType = $tr.data('line-type');
+    const isSplit = this.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = this.getAttribute('data-side');
+    const idx = this.getAttribute('data-idx');
+    const path = this.closest('[data-path]')?.getAttribute('data-path');
+    const tr = this.closest('tr');
+    const lineType = tr.getAttribute('data-line-type');
 
-    let $ntr = $tr.next();
-    if (!$ntr.hasClass('add-comment')) {
+    const ntr = tr.nextElementSibling;
+    let $ntr = $(ntr);
+    if (!ntr?.classList.contains('add-comment')) {
       $ntr = $(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
@@ -525,7 +540,7 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      $tr.after($ntr);
+      $(tr).after($ntr);
     }
 
     const $td = $ntr.find(`.add-comment-${side}`);
@@ -588,85 +603,72 @@ export function initRepoIssueWipToggle() {
   });
 }
 
-async function pullrequest_targetbranch_change(update_url) {
-  const targetBranch = $('#pull-target-branch').data('branch');
-  const $branchTarget = $('#branch_target');
-  if (targetBranch === $branchTarget.text()) {
-    window.location.reload();
-    return false;
-  }
-  try {
-    await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
-  } catch (error) {
-    console.error(error);
-  } finally {
-    window.location.reload();
-  }
-}
-
 export function initRepoIssueTitleEdit() {
-  // Edit issue title
-  const $issueTitle = $('#issue-title');
-  const $editInput = $('#edit-title-input input');
+  const issueTitleDisplay = document.querySelector('#issue-title-display');
+  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  if (!issueTitleEditor) return;
 
-  const editTitleToggle = function () {
-    toggleElem($issueTitle);
-    toggleElem($('.not-in-edit'));
-    toggleElem($('#edit-title-input'));
-    toggleElem($('#pull-desc'));
-    toggleElem($('#pull-desc-edit'));
-    toggleElem($('.in-edit'));
-    toggleElem($('.new-issue-button'));
-    $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput[0].focus();
-    $editInput[0].select();
-    return false;
-  };
-
-  $('#edit-title').on('click', editTitleToggle);
-  $('#cancel-edit-title').on('click', editTitleToggle);
-  $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
-    const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
-    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
-      $editInput.val($issueTitle.text());
-      await pullrequest_targetbranch_change(pullrequest_target_update_url);
-    } else {
-      try {
-        const params = new URLSearchParams();
-        params.append('title', $editInput.val());
-        const response = await POST(this.getAttribute('data-update-url'), {data: params});
-        const data = await response.json();
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        if (pullrequest_target_update_url) {
-          await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
-        } else {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error(error);
-      }
+  const issueTitleInput = issueTitleEditor.querySelector('input');
+  const oldTitle = issueTitleInput.getAttribute('data-old-title');
+  issueTitleDisplay.querySelector('#issue-title-edit-show').addEventListener('click', () => {
+    hideElem(issueTitleDisplay);
+    hideElem('#pull-desc-display');
+    showElem(issueTitleEditor);
+    showElem('#pull-desc-editor');
+    if (!issueTitleInput.value.trim()) {
+      issueTitleInput.value = oldTitle;
     }
-    return false;
+    issueTitleInput.focus();
+  });
+  issueTitleEditor.querySelector('.ui.cancel.button').addEventListener('click', () => {
+    hideElem(issueTitleEditor);
+    hideElem('#pull-desc-editor');
+    showElem(issueTitleDisplay);
+    showElem('#pull-desc-display');
+  });
+
+  const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
+  const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
+  editSaveButton.addEventListener('click', async () => {
+    const newTitle = issueTitleInput.value.trim();
+    try {
+      if (newTitle && newTitle !== oldTitle) {
+        const resp = await POST(editSaveButton.getAttribute('data-update-url'), {data: new URLSearchParams({title: newTitle})});
+        if (!resp.ok) {
+          throw new Error(`Failed to update issue title: ${resp.statusText}`);
+        }
+      }
+      if (prTargetUpdateUrl) {
+        const newTargetBranch = document.querySelector('#pull-target-branch').getAttribute('data-branch');
+        const oldTargetBranch = document.querySelector('#branch_target').textContent;
+        if (newTargetBranch !== oldTargetBranch) {
+          const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: newTargetBranch})});
+          if (!resp.ok) {
+            throw new Error(`Failed to update PR target branch: ${resp.statusText}`);
+          }
+        }
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      showErrorToast(error.message);
+    }
   });
 }
 
 export function initRepoIssueBranchSelect() {
-  const changeBranchSelect = function () {
-    const $selectionTextField = $('#pull-target-branch');
-
-    const baseName = $selectionTextField.data('basename');
-    const branchNameNew = $(this).data('branch');
-    const branchNameOld = $selectionTextField.data('branch');
-
-    // Replace branch name to keep translation from HTML template
-    $selectionTextField.html($selectionTextField.html().replace(
-      `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`,
-    ));
-    $selectionTextField.data('branch', branchNameNew); // update branch name in setting
-  };
-  $('#branch-select > .item').on('click', changeBranchSelect);
+  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+    const el = e.target.closest('.item[data-branch]');
+    if (!el) return;
+    const pullTargetBranch = document.querySelector('#pull-target-branch');
+    const baseName = pullTargetBranch.getAttribute('data-basename');
+    const branchNameNew = el.getAttribute('data-branch');
+    const branchNameOld = pullTargetBranch.getAttribute('data-branch');
+    pullTargetBranch.textContent = pullTargetBranch.textContent.replace(`${baseName}:${branchNameOld}`, `${baseName}:${branchNameNew}`);
+    pullTargetBranch.setAttribute('data-branch', branchNameNew);
+  });
 }
 
 export function initSingleCommentEditor($commentForm) {

@@ -136,14 +136,18 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 
 // RemoveFilesFromIndex removes the given files from the index
 func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) error {
+	objFmt, err := t.gitRepo.GetObjectFormat()
+	if err != nil {
+		return fmt.Errorf("unable to get object format for temporary repo: %q, error: %w", t.repo.FullName(), err)
+	}
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 	stdIn := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			stdIn.WriteString("0 0000000000000000000000000000000000000000\t")
-			stdIn.WriteString(file)
-			stdIn.WriteByte('\000')
+			// man git-update-index: input syntax (1): mode SP sha1 TAB path
+			// mode=0 means "remove from index", then hash part "does not matter as long as it is well formatted."
+			_, _ = fmt.Fprintf(stdIn, "0 %s\t%s\x00", objFmt.EmptyObjectID(), file)
 		}
 	}
 
@@ -154,8 +158,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 			Stdout: stdOut,
 			Stderr: stdErr,
 		}); err != nil {
-		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
+		return fmt.Errorf("unable to update-index for temporary repo: %q, error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
 	return nil
 }

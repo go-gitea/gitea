@@ -130,7 +130,10 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", uniqueUserIDs.Values()).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
+		if err = e.In("id", uniqueUserIDs.Values()).
+			Where(builder.Eq{"`user`.is_active": true}).
+			OrderBy(user_model.GetOrderByName()).
+			Find(&users); err != nil {
 			return nil, err
 		}
 	}
@@ -152,7 +155,8 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 		return nil, err
 	}
 
-	cond := builder.And(builder.Neq{"`user`.id": posterID})
+	cond := builder.And(builder.Neq{"`user`.id": posterID}).
+		And(builder.Eq{"`user`.is_active": true})
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
@@ -170,7 +174,6 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 			// the owner of a private repo needs to be explicitly added.
 			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
 		}
-
 	} else {
 		// This is a "public" repository:
 		// Any user that has read access, is a watcher or organization member can be requested to review

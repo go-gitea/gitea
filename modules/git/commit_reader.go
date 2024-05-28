@@ -49,9 +49,8 @@ readLoop:
 			if len(line) > 0 && line[0] == ' ' {
 				_, _ = signatureSB.Write(line[1:])
 				continue
-			} else {
-				pgpsig = false
 			}
+			pgpsig = false
 		}
 
 		if !message {
@@ -99,7 +98,7 @@ readLoop:
 		}
 	}
 	commit.CommitMessage = messageSB.String()
-	commit.Signature = &CommitGPGSignature{
+	commit.Signature = &CommitSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
 	}

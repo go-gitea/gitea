@@ -124,6 +124,11 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+
+	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
@@ -427,6 +432,10 @@ func TestRender_ShortLinks(t *testing.T) {
 	otherImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+Other.jpg")
 	encodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+%23.jpg")
 	notencodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
+	renderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "markdown_file.md")
+	unrenderableFileURL := util.URLJoin(tree, "file.zip")
+	unrenderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "file.zip")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -481,6 +490,14 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Link]] [[Other Link]] [[Link?]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[markdown_file.md]]",
+		`<p><a href="`+renderableFileURL+`" rel="nofollow">markdown_file.md</a></p>`,
+		`<p><a href="`+renderableFileURLWiki+`" rel="nofollow">markdown_file.md</a></p>`)
+	test(
+		"[[file.zip]]",
+		`<p><a href="`+unrenderableFileURL+`" rel="nofollow">file.zip</a></p>`,
+		`<p><a href="`+unrenderableFileURLWiki+`" rel="nofollow">file.zip</a></p>`)
 	test(
 		"[[Link #.jpg]]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`,
@@ -683,7 +700,7 @@ func TestIssue18471(t *testing.T) {
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {

@@ -572,7 +572,7 @@
 			</form>
 		{{end}}
 
-		<button class="tw-mt-1 fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
+		<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock">
 			{{if .Issue.IsLocked}}
 				{{svg "octicon-key"}}
 				{{ctx.Locale.Tr "repo.issues.unlock"}}
@@ -677,7 +677,7 @@
 		{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
 			<div class="inline field">
-				<div class="ui checkbox small-loading-icon" id="allow-edits-from-maintainers"
+				<div class="ui checkbox loading-icon-2px" id="allow-edits-from-maintainers"
 						data-url="{{.Issue.Link}}"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 						data-prompt-error="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"

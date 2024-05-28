@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -107,7 +108,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue).Attachments)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue).Attachments)
 }
 
 // CreateIssueAttachment creates an attachment and saves the given file
@@ -153,6 +154,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
@@ -185,13 +188,17 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		IssueID:    issue.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
+		}
 		return
 	}
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content, issue.ContentVersion); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}

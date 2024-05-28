@@ -933,7 +933,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 					}
 				}
 			}
-
 		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
@@ -1681,7 +1680,6 @@ func ViewIssue(ctx *context.Context) {
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
 			}
-
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
@@ -1762,8 +1760,8 @@ func ViewIssue(ctx *context.Context) {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
-				// Content before v1.21 did store the formated string instead of seconds,
-				// so "|" is used as delimeter to mark the new format
+				// Content before v1.21 did store the formatted string instead of seconds,
+				// so "|" is used as delimiter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
 					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
@@ -2179,7 +2177,10 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToIssue(ctx, issue))
+	ctx.JSON(http.StatusOK, map[string]any{
+		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
+		"renderedLabels": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
+	})
 }
 
 // UpdateIssueTitle change issue's title
@@ -2246,9 +2247,15 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("content_version")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
+		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+			if issue.IsPull {
+				ctx.JSONError(ctx.Tr("repo.pulls.edit.already_changed"))
+			} else {
+				ctx.JSONError(ctx.Tr("repo.issues.edit.already_changed"))
+			}
 		} else {
 			ctx.ServerError("ChangeContent", err)
 		}
@@ -2277,8 +2284,9 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":     content,
-		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
+		"content":        content,
+		"contentVersion": issue.ContentVersion,
+		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }
 
@@ -2610,7 +2618,6 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedAnyLabels []int64
 	{
-
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
@@ -2709,7 +2716,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
@@ -2826,12 +2833,12 @@ func ListIssues(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:        keyword,
-		RepoIDs:        []int64{ctx.Repo.Repository.ID},
-		IsPull:         isPull,
-		IsClosed:       isClosed,
-		ProjectBoardID: projectID,
-		SortBy:         issue_indexer.SortByCreatedDesc,
+		Keyword:   keyword,
+		RepoIDs:   []int64{ctx.Repo.Repository.ID},
+		IsPull:    isPull,
+		IsClosed:  isClosed,
+		ProjectID: projectID,
+		SortBy:    issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -2879,7 +2886,7 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func BatchDeleteIssues(ctx *context.Context) {
@@ -2994,7 +3001,6 @@ func NewComment(ctx *context.Context) {
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
-
 			// Duplication and conflict check should apply to reopen pull request.
 			var pr *issues_model.PullRequest
 
@@ -3153,16 +3159,16 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	oldContent := comment.Content
-	comment.Content = ctx.FormString("content")
-	if len(comment.Content) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"content": "",
-		})
-		return
-	}
-	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	newContent := ctx.FormString("content")
+	contentVersion := ctx.FormInt("content_version")
+
+	// allow to save empty content
+	comment.Content = newContent
+	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
 		} else {
 			ctx.ServerError("UpdateComment", err)
 		}
@@ -3182,22 +3188,29 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	content, err := markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Ctx:     ctx,
-	}, comment.Content)
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
+	var renderedContent template.HTML
+	if comment.Content != "" {
+		renderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Links: markup.Links{
+				Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, comment.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	} else {
+		contentEmpty := fmt.Sprintf(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+		renderedContent = template.HTML(contentEmpty)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":     content,
-		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
+		"content":        renderedContent,
+		"contentVersion": comment.ContentVersion,
+		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
 
@@ -3318,7 +3331,6 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3425,7 +3437,6 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})

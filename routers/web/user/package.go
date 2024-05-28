@@ -82,7 +82,7 @@ func ListPackages(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
 	}
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
@@ -276,7 +276,7 @@ func ViewPackageVersion(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		hasRepositoryAccess = permission.HasAccess()
+		hasRepositoryAccess = permission.HasAnyUnitAccess()
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 

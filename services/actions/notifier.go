@@ -49,7 +49,7 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).WithPayload(&api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}).Notify(withMethod(ctx, "NewIssue"))
@@ -89,7 +89,7 @@ func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 		WithPayload(&api.IssuePayload{
 			Action:     api.HookIssueEdited,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -127,7 +127,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 	}
 	apiIssue := &api.IssuePayload{
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}
@@ -229,7 +229,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		WithPayload(&api.IssuePayload{
 			Action:     action,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -293,7 +293,7 @@ func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, commen
 
 	payload := &api.IssueCommentPayload{
 		Action:     action,
-		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, comment.Issue),
 		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
 		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),

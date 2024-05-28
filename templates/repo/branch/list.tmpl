@@ -87,7 +87,7 @@
 							<td class="eight wide">
 							{{if .DBBranch.IsDeleted}}
 								<div class="flex-text-block">
-									<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
+									<span class="gt-ellipsis">{{.DBBranch.Name}}</span>
 									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 								</div>
 								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{TimeSinceUnix .DBBranch.DeletedUnix ctx.Locale}}</p>
