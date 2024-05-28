@@ -153,6 +153,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	}
 
 	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
+	MailService.OverrideHeader = map[string][]string{}
 	for _, key := range overrideHeader {
 		MailService.OverrideHeader[key.Name()] = key.Strings(",")
 	}
