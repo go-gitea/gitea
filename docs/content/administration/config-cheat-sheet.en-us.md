@@ -769,7 +769,7 @@ examples would be:
 
 ```ini
 [mailer.override_header]
-Reply-To = test@example.com,test2@example.com
+Reply-To = test@example.com, test2@example.com
 Content-Type = text/html; charset=utf-8
 ```
 
