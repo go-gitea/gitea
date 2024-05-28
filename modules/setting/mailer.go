@@ -155,17 +155,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
 	MailService.OverrideHeader = make(map[string][]string)
 	for _, key := range overrideHeader {
-		keyName := key.Name()
-		values := key.Strings(",")
-		if keyName != "" {
-			valuesToSet := make([]string, 0, len(values))
-			for _, v := range values {
-				if v := strings.TrimSpace(v); v != "" {
-					valuesToSet = append(valuesToSet, v)
-				}
-			}
-			MailService.OverrideHeader[keyName] = valuesToSet
-		}
+		MailService.OverrideHeader[key.Name()] = key.Strings(",")
 	}
 
 	// Infer SMTPPort if not set
