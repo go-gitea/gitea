@@ -940,7 +940,7 @@ func SettingsPost(ctx *context.Context) {
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
-	case "private", "public":
+	case "visibility":
 		if repo.IsFork {
 			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.fork_error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")

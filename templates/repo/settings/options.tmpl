@@ -1036,7 +1036,7 @@
 			</div>
 			<form action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="{{if .Repository.IsPrivate}}public{{else}}private{{end}}">
+				<input type="hidden" name="action" value="visibility">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}
 			</form>
