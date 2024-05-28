@@ -62,9 +62,6 @@ func (m *Message) ToMessage() *gomail.Message {
 	} else {
 		msg.SetHeader("Subject", m.Subject)
 	}
-	if setting.MailService.ReturnPath != "" {
-		msg.SetHeader("Return-Path", setting.MailService.ReturnPath)
-	}
 	msg.SetDateHeader("Date", m.Date)
 	msg.SetHeader("X-Auto-Response-Suppress", "All")
 
@@ -77,6 +74,13 @@ func (m *Message) ToMessage() *gomail.Message {
 	} else {
 		msg.SetBody("text/plain", plainBody)
 		msg.AddAlternative("text/html", m.Body)
+	}
+
+	for k, v := range setting.MailService.OverrideHeader {
+		if len(msg.GetHeader(k)) != 0 {
+			log.Debug("Mailer override header '%s' as per config", k)
+		}
+		msg.SetHeader(k, v...)
 	}
 
 	if len(msg.GetHeader("Message-ID")) == 0 {

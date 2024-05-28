@@ -752,7 +752,6 @@ and
 - `ENABLE_HELO`: **true**: Enable HELO operation.
 - `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
 - `FROM`: **_empty_**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
-- `RETURN_PATH`: **_empty_**: Set the Return-Path header where bounced e-mails will be sent to.
 - `ENVELOPE_FROM`: **_empty_**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `SUBJECT_PREFIX`: **_empty_**: Prefix to be placed before e-mail subject lines.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
@@ -761,6 +760,17 @@ and
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
+
+## Override Email Headers (`mailer.override_header`)
+
+⚠️ This is empyt by default, use it only if you know what you need it for.
+
+examples would be:
+```ini
+[email.override_header]
+Reply-To = test@example.com
+Content-Type = text/html, charset=utf-8
+```
 
 ## Incoming Email (`email.incoming`)
 
