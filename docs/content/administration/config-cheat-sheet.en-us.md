@@ -767,7 +767,7 @@ and
 
 examples would be:
 ```ini
-[email.override_header]
+[mailer.override_header]
 Reply-To = test@example.com
 Content-Type = text/html, charset=utf-8
 ```
