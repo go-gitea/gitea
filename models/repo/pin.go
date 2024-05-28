@@ -28,7 +28,8 @@ func init() {
 }
 
 func IsPinned(ctx context.Context, userID, repoID int64) bool {
-	exists, _ := db.GetEngine(ctx).Get(&Pin{UID: userID, RepoID: repoID})
+	exists, _ := db.GetEngine(ctx).Exist(&Pin{UID: userID, RepoID: repoID})
+
 	return exists
 }
 
