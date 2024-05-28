@@ -236,6 +236,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
+		Topics:                        repo.Topics,
+		ObjectFormatName:              repo.ObjectFormatName,
 	}
 }
 
