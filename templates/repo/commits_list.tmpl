@@ -73,7 +73,7 @@
 						<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
 						{{range (index $.CommitsTagsMap .ID.String)}}
-							{{- template "repo/tag/name" dict "RepoFullName" $.Repository.FullName "TagName" .TagName "IsRelease" (not .IsTag) -}}
+							{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 						{{end}}
 					</td>
 					{{if .Committer}}
