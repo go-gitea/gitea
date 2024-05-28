@@ -766,6 +766,7 @@ and
 ⚠️ This is empyt by default, use it only if you know what you need it for.
 
 examples would be:
+
 ```ini
 [mailer.override_header]
 Reply-To = test@example.com
