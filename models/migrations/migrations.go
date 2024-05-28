@@ -588,8 +588,11 @@ var migrations = []Migration{
 	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
 
 	// Gitea 1.22.0-rc1 ends at 299
+	// Gitea 1.22.0 ends at 299
 
-	// v298 -> v299
+	// v299 -> v300
+	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
 	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 }
 
