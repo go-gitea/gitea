@@ -229,7 +229,7 @@ See commit 65f1bf27bc
 Ideas and codes
 
 - Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
-- Bezier widget (by @r-lyeh) ` + AppURL + `user13/repo11/issues/786
+- Bezier widget (by @r-lyeh) ` + FullURL + `issues/786
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
