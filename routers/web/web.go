@@ -1126,7 +1126,7 @@ func registerRoutes(m *web.Route) {
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
 	// TODO: maybe it should relax the permission to allow "any access"
-	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
