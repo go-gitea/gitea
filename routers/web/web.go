@@ -98,14 +98,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
-	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
-		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
-		&auth_service.Session{},
-	)
+	group := auth_service.NewGroup()
+	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
+	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
+
 	if setting.Service.EnableReverseProxyAuth {
-		group.Add(&auth_service.ReverseProxy{})
+		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
+	group.Add(&auth_service.Session{})
 
 	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
@@ -686,6 +686,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
+		m.Post("/self_check", admin.SelfCheckPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -999,7 +1000,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
 					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
@@ -1007,10 +1008,10 @@ func registerRoutes(m *web.Route) {
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
-						m.Delete("", org.DeleteProjectBoard)
-						m.Post("/default", org.SetDefaultProjectBoard)
+					m.Group("/{columnID}", func() {
+						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+						m.Delete("", org.DeleteProjectColumn)
+						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
 					})
 				})
@@ -1355,7 +1356,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
-				m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
 				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
@@ -1363,10 +1364,10 @@ func registerRoutes(m *web.Route) {
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-				m.Group("/{boardID}", func() {
-					m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-					m.Delete("", repo.DeleteProjectBoard)
-					m.Post("/default", repo.SetDefaultProjectBoard)
+				m.Group("/{columnID}", func() {
+					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+					m.Delete("", repo.DeleteProjectColumn)
+					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
 				})
 			})

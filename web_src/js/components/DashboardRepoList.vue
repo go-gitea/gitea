@@ -509,10 +509,8 @@ ul li:not(:last-child) {
 }
 
 .repos-filter {
-  padding-top: 0 !important;
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
 }
 
 .repos-filter .item {

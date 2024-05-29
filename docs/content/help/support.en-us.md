@@ -19,11 +19,11 @@ menu:
 
 - [Paid Commercial Support](https://about.gitea.com/)
 - [Discord](https://discord.gg/Gitea)
-- [Discourse Forum](https://discourse.gitea.io/)
+- [Forum](https://forum.gitea.com/)
 - [Matrix](https://matrix.to/#/#gitea-space:matrix.org)
   - NOTE: Most of the Matrix channels are bridged with their counterpart in Discord and may experience some degree of flakiness with the bridge process.
 - Chinese Support
-  - [Discourse Chinese Category](https://discourse.gitea.io/c/5-category/5)
+  - [Discourse Chinese Category](https://forum.gitea.com/c/5-category/5)
   - QQ Group 328432459
 
 # Bug Report
@@ -39,7 +39,7 @@ If you found a bug, please [create an issue on GitHub](https://github.com/go-git
    - When using systemd, use `journalctl --lines 1000 --unit gitea` to collect logs.
    - When using docker, use `docker logs --tail 1000 <gitea-container>` to collect logs.
 4. Reproducible steps so that others could reproduce and understand the problem more quickly and easily.
-   - [try.gitea.io](https://try.gitea.io) could be used to reproduce the problem.
+   - [demo.gitea.com](https://demo.gitea.com) could be used to reproduce the problem.
 5. If you encounter slow/hanging/deadlock problems, please report the stacktrace when the problem occurs.
    Go to the "Site Admin" -> "Monitoring" -> "Stacktrace" -> "Download diagnosis report".
 

@@ -110,7 +110,7 @@
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
-						<h4 class="diff-file-header sticky-2nd-row ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+						<h4 class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<button class="fold-file btn interact-bg tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
 									{{if $file.ShouldBeHidden}}
@@ -159,25 +159,30 @@
 								{{if and $isReviewFile $file.HasChangedSinceLastReview}}
 									<span class="changed-since-last-review unselectable not-mobile">{{ctx.Locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
-								{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-									<button class="ui basic tiny button unescape-button not-mobile">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-									<button class="ui basic tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-								{{end}}
-								{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-									{{if $file.IsDeleted}}
-										<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-									{{else}}
-										<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-										{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
-											<a class="ui basic tiny button" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
-										{{end}}
-									{{end}}
-								{{end}}
 								{{if $isReviewFile}}
 									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
+								<div class="ui dropdown basic">
+									{{svg "octicon-kebab-horizontal" 18 "icon tw-mx-2"}}
+									<div class="ui menu">
+										{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
+											<button class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+											<button class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+										{{end}}
+										{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+											{{if $file.IsDeleted}}
+												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+											{{else}}
+												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+												{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
+													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+												{{end}}
+											{{end}}
+										{{end}}
+									</div>
+								</div>
 							</div>
 						</h4>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>

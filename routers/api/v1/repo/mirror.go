@@ -383,6 +383,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	if err = mirror_service.AddPushMirrorRemote(ctx, pushMirror, address); err != nil {
 		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrors", err)
+			return
 		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
