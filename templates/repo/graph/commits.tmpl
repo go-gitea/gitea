@@ -21,13 +21,15 @@
 								{{$class = (print $class " isWarning")}}
 							{{end}}
 						{{end}}
-						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
+						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="tw-text-inherit">
 							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
-							{{- if $commit.Commit.Signature -}}
-								{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
-							{{- end -}}
 						</a>
 					</span>
+					{{- if $commit.Commit.Signature -}}
+						<span class="tw-mx-2 tw-leading-5">
+							{{template "repo/signature_badge" dict "root" $ "verification" $commit.Verification "shortsha" (ShortSha $commit.Commit.ID.String)}}
+						</span>
+					{{- end -}}
 					<span class="message tw-inline-block gt-ellipsis tw-mr-2">
 						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>

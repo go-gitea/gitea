@@ -13,36 +13,23 @@
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
-		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{.Summary}}">
-			{{- RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
-		</span>
+		<div class="tw-flex-1">
+			<span class="tw-font-mono gt-ellipsis" title="{{.Summary}}">
+				{{- RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+			</span>
 
-		{{if IsMultilineCommitMessage .Message}}
-			<button class="ui button ellipsis-button show-panel toggle" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
-		{{end}}
-
-		<span class="shabox tw-flex tw-items-center">
-			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-			{{$class := "ui sha label"}}
-			{{if .Signature}}
-				{{$class = (print $class " isSigned")}}
-				{{if .Verification.Verified}}
-					{{if eq .Verification.TrustStatus "trusted"}}
-						{{$class = (print $class " isVerified")}}
-					{{else if eq .Verification.TrustStatus "untrusted"}}
-						{{$class = (print $class " isVerifiedUntrusted")}}
-					{{else}}
-						{{$class = (print $class " isVerifiedUnmatched")}}
-					{{end}}
-				{{else if .Verification.Warning}}
-					{{$class = (print $class " isWarning")}}
-				{{end}}
+			{{if IsMultilineCommitMessage .Message}}
+				<button class="ui button ellipsis-button show-panel toggle tw-ml-1" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="tw-ml-2 {{$class}}">
+		</div>
+
+		<span class="shabox tw-flex tw-items-center tw-gap-2">
+			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
+			{{if .Signature}}
+				{{template "repo/signature_badge" dict "root" $.root "verification" .Verification}}
+			{{end}}
+			<a href="{{$commitLink}}" rel="nofollow" class="tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
 				<span class="shortsha">{{ShortSha .ID.String}}</span>
-				{{if .Signature}}
-					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
-				{{end}}
 			</a>
 		</span>
 	</div>

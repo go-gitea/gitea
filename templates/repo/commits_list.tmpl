@@ -1,62 +1,10 @@
 <div class="ui attached table segment commit-table">
-	<table class="ui very basic striped table unstackable" id="commits-table">
-		<thead>
-			<tr>
-				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
-				<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
-				<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
-				<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
-				<th class="one wide"></th>
-			</tr>
-		</thead>
-		<tbody class="commit-list">
+	<div class="ui very basic striped table unstackable" id="commits-table">
+		<ul class="commit-list tw-list-none tw-divide-y tw-divide-secondary tw-p-0 tw-m-0">
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 			{{range .Commits}}
-				<tr>
-					<td class="author">
-						<div class="tw-flex">
-							{{$userName := .Author.Name}}
-							{{if .User}}
-								{{if and .User.FullName DefaultShowFullName}}
-									{{$userName = .User.FullName}}
-								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
-							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								<span class="author-wrapper">{{$userName}}</span>
-							{{end}}
-						</div>
-					</td>
-					<td class="sha">
-						{{$class := "ui sha label"}}
-						{{if .Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if .Verification.Verified}}
-								{{if eq .Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq .Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if .Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
-						{{$commitShaLink := ""}}
-						{{if $.PageIsWiki}}
-							{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
-						{{else if $.PageIsPullCommits}}
-							{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
-						{{else if $.Reponame}}
-							{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
-						{{end}}
-						<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
-							<span class="shortsha">{{ShortSha .ID.String}}</span>
-							{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
-						</a>
-					</td>
-					<td class="message">
+				<li class="tw-grid tw-gap-1 tw-px-4 tw-py-2 tw-items-center tw-grid-cols-[minmax(30%,_1fr)_minmax(0px,_max-content)]">
+					<div class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
 							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
@@ -66,28 +14,61 @@
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
-						<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
+						<button class="ui button js-toggle-commit-body ellipsis-button tw-ml-1" aria-expanded="false">...</button>
 						{{end}}
-						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
+						<pre class="commit-body tw-hidden tw-text-xs tw-mt-2">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
-					</td>
-					{{if .Committer}}
-						<td class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</td>
-					{{else}}
-						<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
-					{{end}}
-					<td class="text right aligned tw-py-0">
-						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-						{{if not $.PageIsWiki}}{{/* at the moment, wiki doesn't support "view at history point*/}}
-							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
-							<a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+					</div>
+					<div class="author tw-row-start-2">
+						<div class="tw-flex tw-items-center tw-gap-1">
+							{{$userName := .Author.Name}}
+							{{if .User}}
+								{{if and .User.FullName DefaultShowFullName}}
+									{{$userName = .User.FullName}}
+								{{end}}
+								{{ctx.AvatarUtils.Avatar .User 20 "tw-mr-1"}}<a class="muted author-wrapper tw-max-w-full" href="{{.User.HomeLink}}">{{$userName}},</a>
+							{{else}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "tw-mr-1"}}
+								<span class="author-wrapper tw-max-w-full">{{$userName}},</span>
+							{{end}}
+							{{if .Committer}}
+								<div class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</div>
+							{{else}}
+								<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
+							{{end}}
+							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
+						</div>
+					</div>
+					<div class="tw-col-start-2 tw-row-span-2 tw-flex tw-gap-2 tw-items-center tw-justify-end">
+						{{if .Signature}}
+								{{template "repo/signature_badge" dict "root" $ "verification" .Verification "shortsha" (ShortSha .ID.String)}}
 						{{end}}
-					</td>
-				</tr>
+						<div class="sha">
+							{{$class := "ui sha label"}}
+							{{$commitShaLink := ""}}
+							{{if $.PageIsWiki}}
+								{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{else if $.PageIsPullCommits}}
+								{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
+							{{else if $.Reponame}}
+								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{end}}
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
+							</a>
+						</div>
+						<div class="text right aligned tw-py-0">
+							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+							{{if not $.PageIsWiki}}{{/* at the moment, wiki doesn't support "view at history point*/}}
+								{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
+								{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
+								<a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							{{end}}
+						</div>
+					</div>
+				</li>
 			{{end}}
-		</tbody>
-	</table>
+		</ul>
+	</div>
 </div>
