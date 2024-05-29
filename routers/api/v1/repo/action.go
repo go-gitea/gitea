@@ -562,7 +562,6 @@ func ListActionTasks(ctx *context.APIContext) {
 	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		IDOrderDesc: true,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
