@@ -18,7 +18,7 @@
   /* other variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
-  --border-radius-circle: 50%;
+  --border-radius-full: 99999px; /* TODO: use calc(infinity * 1px) */
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
@@ -1166,7 +1166,7 @@ overflow-menu .ui.label {
 
 .color-icon {
   display: inline-block;
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
 }

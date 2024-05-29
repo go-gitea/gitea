@@ -107,7 +107,12 @@ func List(ctx *context.Context) {
 			// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 			hasJobWithoutNeeds := false
 			// Check whether have matching runner and a job without "needs"
+			emptyJobsNumber := 0
 			for _, j := range wf.Jobs {
+				if j == nil {
+					emptyJobsNumber++
+					continue
+				}
 				if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
 					hasJobWithoutNeeds = true
 				}
@@ -130,6 +135,9 @@ func List(ctx *context.Context) {
 			}
 			if !hasJobWithoutNeeds {
 				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+			}
+			if emptyJobsNumber == len(wf.Jobs) {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
 			}
 			workflows = append(workflows, workflow)
 		}

@@ -180,7 +180,7 @@
 					{{$projectsUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeProjects}}
 					{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
-							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
+							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
 							{{if .Repository.NumOpenProjects}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
 							{{end}}

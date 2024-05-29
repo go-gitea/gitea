@@ -60,7 +60,7 @@
 							{{end}}
 						</div>
 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
