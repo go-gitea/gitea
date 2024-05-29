@@ -169,7 +169,6 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
-    ProxyPreserveHost On
     RequestHeader set "X-Forwarded-Proto" expr=%{REQUEST_SCHEME}
 </VirtualHost>
 ```
