@@ -610,8 +610,13 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
 		if err != nil {
+			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
+				return
+			}
+
 			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 			return
 		}
