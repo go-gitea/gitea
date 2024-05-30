@@ -56,7 +56,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/List"
+	//     "$ref": "#/responses/MilestoneList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
