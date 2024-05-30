@@ -197,6 +197,7 @@ Gitea or set your environment appropriately.`, "")
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
 		ActionPerm:                      int(actionPerm),
+		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)

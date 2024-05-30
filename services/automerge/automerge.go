@@ -5,14 +5,12 @@ package automerge
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -275,26 +273,15 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	// Merge if all checks succeeded
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
+	// Use GetPossibleUserByID to allow merging by deleted users or bot users
+	doer, err := user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		log.Error("Unable to get scheduled User[%d]: %v", scheduledPRM.DoerID, err)
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
-	if err != nil {
-		log.Error("GetUserRepoPermission %-v: %v", pr.HeadRepo, err)
-		return
-	}
-
-	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
-		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
-			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
-			return
-		}
-		log.Error("%-v CheckPullMergeable: %v", pr, err)
-		return
-	}
+	// We don't check doer's permission here because their permissions have been checked
+	// before ids were written to the auto_merge table
 
 	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
 		log.Error("pull_service.Merge: %v", err)
