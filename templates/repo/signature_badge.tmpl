@@ -23,16 +23,18 @@
 		{{end}}
 	</div>
 	<div class="content">
-		<div class="tw-flex tw-items-center tw-gap-2">
+		<div class="tw-flex tw-flex-wrap tw-items-center">
 			{{if .verification.Verified}}
 				{{if ne .verification.SigningUser.ID 0}}
-					{{if eq .verification.TrustStatus "trusted"}}
-						<span>{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-					{{else if eq .verification.TrustStatus "untrusted"}}
-						<span>{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
-					{{else}}
-						<span>{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
-					{{end}}
+					<span class="tw-mr-2">
+						{{if eq .verification.TrustStatus "trusted"}}
+							{{ctx.Locale.Tr "repo.commits.signed_by"}}:
+						{{else if eq .verification.TrustStatus "untrusted"}}
+							{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:
+						{{else}}
+							{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:
+						{{end}}
+					</span>
 					<span class="tw-inline-flex tw-items-center">
 						{{ctx.AvatarUtils.Avatar .verification.SigningUser 16 "tw-mr-2"}}
 						<a href="{{.verification.SigningUser.HomeLink}}"><strong>{{.verification.SigningUser.GetDisplayName}}</strong></a>
