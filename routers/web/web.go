@@ -1029,7 +1029,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("/{param}/posters", org.MilestonePoster)
 				m.Get("/{id}", org.ViewMilestone)
 			})
-			m.Group("", func() { //nolint:dupl
+			m.Group("", func() {
 				m.Get("/new", org.RenderNewMilestone)
 				m.Post("/new", web.Bind(forms.CreateMilestoneForm{}), org.NewMilestonePost)
 				m.Group("/{id}", func() {

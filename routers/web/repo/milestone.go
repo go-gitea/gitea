@@ -74,7 +74,7 @@ func Milestones(ctx *context.Context) {
 		url.QueryEscape(keyword), url.QueryEscape(sortType))
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
-		if err := milestone_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
+		if err := milestone_model.List(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}

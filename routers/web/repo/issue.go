@@ -540,7 +540,7 @@ func renderMilestones(ctx *context.Context) {
 		return
 	}
 
-	openMilestones, closedMilestones := milestone_model.MilestoneList{}, milestone_model.MilestoneList{}
+	openMilestones, closedMilestones := milestone_model.List{}, milestone_model.List{}
 	for _, milestone := range milestones {
 		if milestone.IsClosed {
 			closedMilestones = append(closedMilestones, milestone)
@@ -554,13 +554,12 @@ func renderMilestones(ctx *context.Context) {
 	orgMilestones, err := db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		OrgID: ctx.Repo.Owner.ID,
 	})
-
 	if err != nil {
 		ctx.ServerError("GetAllOrgMilestones", err)
 		return
 	}
 
-	orgOpenMilestones, orgClosedMilestones := milestone_model.MilestoneList{}, milestone_model.MilestoneList{}
+	orgOpenMilestones, orgClosedMilestones := milestone_model.List{}, milestone_model.List{}
 	for _, milestone := range orgMilestones {
 		if milestone.IsClosed {
 			orgClosedMilestones = append(orgClosedMilestones, milestone)
@@ -586,7 +585,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	}
 	ctx.Data["ClosedMilestones"], err = db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -595,7 +594,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 	ctx.Data["OrgOpenMilestones"], err = db.Find[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		OrgID:    repo.Owner.ID,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)

@@ -19,16 +19,17 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	repo "code.gitea.io/gitea/routers/web/repo"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -60,7 +61,7 @@ func Milestones(ctx *context.Context) {
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 		Type:     milestone_model.MilestoneTypeOrganization,
@@ -72,7 +73,7 @@ func Milestones(ctx *context.Context) {
 
 	total, err := db.Count[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		OrgID:    ctx.Org.Organization.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		Type:     milestone_model.MilestoneTypeOrganization,
 	})
 	if err != nil {
@@ -81,18 +82,16 @@ func Milestones(ctx *context.Context) {
 	}
 	opTotal, err := db.Count[milestone_model.Milestone](ctx, milestone_model.FindMilestoneOptions{
 		OrgID:    ctx.Org.Organization.ID,
-		IsClosed: util.OptionalBoolOf(!isShowClosed),
+		IsClosed: optional.Some(!isShowClosed),
 		Type:     milestone_model.MilestoneTypeOrganization,
 	})
 	if err != nil {
 		ctx.ServerError("CountMilestones", err)
 		return
 	}
-
 	if isShowClosed {
 		ctx.Data["OpenCount"] = opTotal
 		ctx.Data["ClosedCount"] = total
-
 	} else {
 		ctx.Data["OpenCount"] = total
 		ctx.Data["ClosedCount"] = opTotal
@@ -113,7 +112,16 @@ func Milestones(ctx *context.Context) {
 	}
 
 	for _, milestone := range milestones {
-		milestone.RenderedContent = milestone.Name
+		milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Links: markup.Links{
+				Base: ctx.Org.OrgLink,
+			},
+			Ctx: ctx,
+		}, milestone.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -128,7 +136,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParam(ctx, "state", "State")
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	ctx.Data["Page"] = pager
 
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -353,7 +361,7 @@ func ViewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, util.OptionalBoolNone)
+	issues(ctx, milestoneID, optional.None[bool]())
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -378,7 +386,7 @@ func canWriteMilestone(ctx *context.Context) {
 	ctx.Data["CanWriteMilestone"] = canCreateMilestone
 }
 
-func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -480,18 +488,18 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
-	var isShowClosed util.OptionalBool
+	var isShowClosed optional.Option[bool]
 	switch ctx.FormString("state") {
 	case "closed":
-		isShowClosed = util.OptionalBoolTrue
+		isShowClosed = optional.Some(true)
 	case "all":
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	default:
-		isShowClosed = util.OptionalBoolFalse
+		isShowClosed = optional.Some(false)
 	}
 	// if there are closed issues and no open issues, default to showing all issues
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
-		isShowClosed = util.OptionalBoolNone
+		isShowClosed = optional.None[bool]()
 	}
 
 	archived := ctx.FormBool("archived")
@@ -502,10 +510,10 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	var total int
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		total = int(issueStats.ClosedCount)
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		total = int(issueStats.OpenCount + issueStats.ClosedCount)
 	default:
 		total = int(issueStats.OpenCount)
@@ -596,7 +604,6 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	assigneeUsers, err := user_model.GetUsersByIDs(ctx, assigneeIDs)
-
 	if err != nil {
 		ctx.ServerError("GetUsersByIDs", err)
 		return
@@ -682,26 +689,26 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["Keyword"] = keyword
-	switch isShowClosed {
-	case util.OptionalBoolTrue:
+	switch {
+	case isShowClosed.Value():
 		ctx.Data["State"] = "closed"
-	case util.OptionalBoolNone:
+	case !isShowClosed.Has():
 		ctx.Data["State"] = "all"
 	default:
 		ctx.Data["State"] = "open"
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
 
-	pager.AddParam(ctx, "q", "Keyword")
-	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "sort", "SortType")
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "labels", "SelectLabels")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "project", "ProjectID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
-	pager.AddParam(ctx, "poster", "PosterID")
-	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	pager.AddParamString("q", keyword)
+	pager.AddParamString("type", viewType)
+	pager.AddParamString("sort", sortType)
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("labels", fmt.Sprint(selectLabels))
+	pager.AddParamString("milestone", fmt.Sprint(milestoneID))
+	pager.AddParamString("project", fmt.Sprint(projectID))
+	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
+	pager.AddParamString("poster", fmt.Sprint(posterID))
+	pager.AddParamString("archived", fmt.Sprint(archived))
 
 	ctx.Data["Page"] = pager
 }
@@ -760,7 +767,7 @@ func retrieveProjects(ctx *context.Context, org *org_model.Organization) {
 	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     org.ID,
-		IsClosed:    util.OptionalBoolFalse,
+		IsClosed:    optional.Some(false),
 		Type:        project_model.TypeOrganization,
 	})
 	if err != nil {
@@ -773,7 +780,7 @@ func retrieveProjects(ctx *context.Context, org *org_model.Organization) {
 	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     org.ID,
-		IsClosed:    util.OptionalBoolTrue,
+		IsClosed:    optional.Some(true),
 		Type:        project_model.TypeOrganization,
 	})
 	if err != nil {

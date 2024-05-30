@@ -20,8 +20,6 @@
 				{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 			</a>
 			{{end}}
-		</a>
-		{{end}}
 		<a class="{{if .PageIsViewMilestones}}active {{end}}item" href="{{$.Org.HomeLink}}/-/milestones">
 			{{svg "octicon-milestone"}} {{ctx.Locale.Tr "milestones"}}
 			{{if .MilestoneCount}}
@@ -64,6 +62,7 @@
 				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 			</a>
 			{{end}}
+		{{end}}
 		</div>
 	</overflow-menu>
 </div>

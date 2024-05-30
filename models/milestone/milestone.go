@@ -52,11 +52,11 @@ func (err ErrMilestoneNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-type MilestoneType uint8
+type Type uint8
 
 const (
 	// MilestoneTypeRepository is a milestone that is tied to a repository
-	MilestoneTypeRepository MilestoneType = iota + 1
+	MilestoneTypeRepository Type = iota + 1
 
 	// MilestoneTypeOrganization is a milestone that is tied to an organisation
 	MilestoneTypeOrganization
@@ -75,10 +75,10 @@ type Milestone struct {
 	IsClosed        bool
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int           `xorm:"-"`
-	Completeness    int           // Percentage(1-100).
-	IsOverdue       bool          `xorm:"-"`
-	Type            MilestoneType `xorm:"INT NOT NULL DEFAULT 1"`
+	NumOpenIssues   int  `xorm:"-"`
+	Completeness    int  // Percentage(1-100).
+	IsOverdue       bool `xorm:"-"`
+	Type            Type `xorm:"INT NOT NULL DEFAULT 1"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -247,13 +247,11 @@ func UpdateMilestone(ctx context.Context, m *Milestone, oldIsClosed bool) error 
 	// if IsClosed changed, update milestone numbers of repository
 	if oldIsClosed != m.IsClosed {
 		if m.OrgID > 0 {
-
 			if err := updateOrgMilestoneNum(ctx, m.OrgID); err != nil {
 				return err
 			}
 		}
 		if m.RepoID > 0 {
-
 			if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
 				return err
 			}
@@ -475,7 +473,7 @@ func DeleteMilestoneByOrgID(ctx context.Context, orgID, id int64) error {
 	}
 	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		OrgID:    org.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		return err
@@ -557,15 +555,11 @@ func InsertMilestones(ctx context.Context, ms ...*Milestone) (err error) {
 			return err
 		}
 	}
-
 	if ms[0].OrgID > 0 {
-
 		if _, err = db.Exec(ctx, "UPDATE `user` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
 			return err
 		}
-
 		return committer.Commit()
-
 	}
 
 	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {

@@ -358,7 +358,7 @@ func TestCorrectIssueStats(t *testing.T) {
 
 func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	miles := milestone_model.MilestoneList{
+	miles := milestone_model.List{
 		unittest.AssertExistsAndLoadBean(t, &milestone_model.Milestone{ID: 1}),
 	}
 

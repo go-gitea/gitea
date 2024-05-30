@@ -13,10 +13,10 @@ import (
 	"xorm.io/builder"
 )
 
-// MilestoneList is a list of milestones offering additional functionality
-type MilestoneList []*Milestone
+// List is a list of milestones offering additional functionality
+type List []*Milestone
 
-func (milestones MilestoneList) getMilestoneIDs() []int64 {
+func (milestones List) getMilestoneIDs() []int64 {
 	ids := make([]int64, 0, len(milestones))
 	for _, ms := range milestones {
 		ids = append(ids, ms.ID)
@@ -35,7 +35,7 @@ type FindMilestoneOptions struct {
 	RepoCond builder.Cond
 	RepoIDs  []int64
 	OrgIDs   []int64
-	Type     MilestoneType
+	Type     Type
 }
 
 func (opts FindMilestoneOptions) ToConds() builder.Cond {
@@ -98,7 +98,7 @@ func GetMilestoneIDsByNames(ctx context.Context, names []string) ([]int64, error
 }
 
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
-func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error {
+func (milestones List) LoadTotalTrackedTimes(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
