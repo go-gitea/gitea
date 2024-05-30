@@ -223,6 +223,7 @@ help:
 	@echo " - lint-yaml                        lint yaml files"
 	@echo " - lint-spell                       lint spelling"
 	@echo " - lint-spell-fix                   lint spelling and fix issues"
+	@echo " - lint-typescript                  lint for typescript errors"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -440,6 +441,10 @@ lint-templates: .venv node_modules
 .PHONY: lint-yaml
 lint-yaml: .venv
 	@poetry run yamllint .
+
+.PHONY: lint-typescript
+lint-typescript: node_modules
+	npx tsc
 
 .PHONY: watch
 watch:
