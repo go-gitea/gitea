@@ -16,10 +16,10 @@
 	<div class="header tw-flex tw-items-center">
 		{{if and .verification.Verified (eq .verification.TrustStatus "trusted")}}
 			{{svg "octicon-verified" 20 "tw-mr-2"}}
-			Verified commit
+			{{ctx.Locale.Tr "verified_commit"}}
 		{{else}}
 			{{svg "octicon-unverified" 20 "tw-mr-2"}}
-			Unverified commit
+			{{ctx.Locale.Tr "unverified_commit"}}
 		{{end}}
 	</div>
 	<div class="content">
