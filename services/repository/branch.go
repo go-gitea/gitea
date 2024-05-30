@@ -332,7 +332,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 				}
-				return nil
+				continue
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
