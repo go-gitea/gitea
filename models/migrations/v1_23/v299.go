@@ -3,39 +3,16 @@
 
 package v1_23 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddMilestoneType(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
+func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
+	type Issue struct {
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if _, err := sess.Exec("ALTER TABLE milestone ADD type INT NOT NULL DEFAULT 1"); err != nil {
-		return err
+	type Comment struct {
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return sess.Commit()
-}
-
-func AddNumMilestoneInUser(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err := sess.Exec("ALTER TABLE user ADD num_milestones INT NOT NULL DEFAULT 0"); err != nil {
-		return err
-	}
-	if _, err := sess.Exec("ALTER TABLE user ADD num_closed_milestones INT NOT NULL DEFAULT 0"); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync(new(Comment), new(Issue))
 }

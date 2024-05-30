@@ -590,6 +590,7 @@ var migrations = []Migration{
 	// Gitea 1.22.0-rc1 ends at 299
 
 	// v299 -> v300
+	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
 	NewMigration("Add milestone type in milestone table", v1_23.AddMilestoneType),
 	NewMigration("Add num_milestones in user table", v1_23.AddNumMilestoneInUser),
 }
