@@ -3,14 +3,16 @@
 
 package v1_23 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
+func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
 	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(Issue))
+	type Comment struct {
+		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	return x.Sync(new(Comment), new(Issue))
 }

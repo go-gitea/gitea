@@ -94,6 +94,8 @@ func (err ErrIssueWasClosed) Error() string {
 	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
 }
 
+var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
+
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID               int64                  `xorm:"pk autoincr"`
@@ -107,6 +109,7 @@ type Issue struct {
 	Title            string                 `xorm:"name"`
 	Content          string                 `xorm:"LONGTEXT"`
 	RenderedContent  template.HTML          `xorm:"-"`
+	ContentVersion   int                    `xorm:"NOT NULL DEFAULT 0"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`

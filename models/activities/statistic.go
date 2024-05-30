@@ -30,7 +30,7 @@ type Statistic struct {
 		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
-		ProjectBoard, Attachment,
+		ProjectColumn, Attachment,
 		Branches, Tags, CommitStatus int64
 		IssueByLabel      []IssueByLabelCount
 		IssueByRepository []IssueByRepositoryCount
@@ -115,6 +115,6 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	stats.Counter.ProjectColumn, _ = e.Count(new(project_model.Column))
 	return stats
 }

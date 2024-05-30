@@ -186,7 +186,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 		user2Session := loginUser(t, "user2")
 
 		// Have user1 create a fork of repo1.
-		testRepoFork(t, user1Session, "user2", "repo1", "user1", "repo1")
+		testRepoFork(t, user1Session, "user2", "repo1", "user1", "repo1", "")
 
 		t.Run("Submit approve/reject review on merged PR", func(t *testing.T) {
 			// Create a merged PR (made by user1) in the upstream repo1.
@@ -202,10 +202,10 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			htmlDoc := NewHTMLParser(t, resp.Body)
 
 			// Submit an approve review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "approve", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
 
 			// Submit a reject review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "reject", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
 		})
 
 		t.Run("Submit approve/reject review on closed PR", func(t *testing.T) {
@@ -222,18 +222,18 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			htmlDoc := NewHTMLParser(t, resp.Body)
 
 			// Submit an approve review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "approve", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
 
 			// Submit a reject review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "reject", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
 		})
 	})
 }
 
-func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pullNumber, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
+func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
 	options := map[string]string{
 		"_csrf":     csrf,
-		"commit_id": "",
+		"commit_id": commitID,
 		"content":   "test",
 		"type":      reviewType,
 	}

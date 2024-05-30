@@ -574,7 +574,7 @@ var migrations = []Migration{
 	// v293 -> v294
 	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
 
-	// Gitea 1.22.0 ends at 294
+	// Gitea 1.22.0-rc0 ends at 294
 
 	// v294 -> v295
 	NewMigration("Add unique index for project issue table", v1_22.AddUniqueIndexForProjectIssue),
@@ -588,7 +588,9 @@ var migrations = []Migration{
 	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
 
 	// Gitea 1.22.0-rc1 ends at 299
-	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
+
+	// v299 -> v300
+	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
 	// v300 -> v301
 	NewMigration("Add TimeEstimate to issue table", v1_23.AddTimeEstimateColumnToIssueTable),
 }

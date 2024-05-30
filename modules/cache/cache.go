@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	_ "gitea.com/go-chi/cache/memcache" //nolint:depguard // memcache plugin for cache, it is required for config "ADAPTER=memcache"
 )
 
 var defaultCache StringCache
