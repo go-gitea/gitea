@@ -2181,7 +2181,7 @@ func GetIssueInfo(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"issue": convert.ToIssue(ctx, ctx.Doer, issue),
+		"issue":      convert.ToIssue(ctx, ctx.Doer, issue),
 		"labelsHtml": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
 	})
 }
