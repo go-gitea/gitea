@@ -139,9 +139,9 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo_model.GetCollaborators(ctx, repo.ID, db.ListOptions{})
+	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 	if err != nil {
-		return fmt.Errorf("getCollaborators: %w", err)
+		return fmt.Errorf("GetCollaborators: %w", err)
 	}
 
 	// Dummy object.
@@ -201,13 +201,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+	if err := repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := repo_model.WatchRepo(ctx, oldOwner.ID, repo.ID, false); err != nil {
+		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 	}
@@ -371,6 +371,10 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return TransferOwnership(ctx, doer, newOwner, repo, teams)
 	}
 
+	if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) {
+		return user_model.ErrBlockedUser
+	}
+
 	// If new owner is an org and user can create repos he can transfer directly too
 	if newOwner.IsOrganization() {
 		allowed, err := organization.CanCreateOrgRepo(ctx, newOwner.ID, doer.ID)
@@ -383,7 +387,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	// In case the new owner would not have sufficient access to the repo, give access rights for read
-	hasAccess, err := access_model.HasAccess(ctx, newOwner.ID, repo)
+	hasAccess, err := access_model.HasAnyUnitAccess(ctx, newOwner.ID, repo)
 	if err != nil {
 		return err
 	}

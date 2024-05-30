@@ -23,7 +23,6 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -154,7 +153,7 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 
 // GetExpandDirection gets DiffLineExpandDirection
 func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
-	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return DiffLineExpandNone
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
@@ -746,7 +745,7 @@ parsingLoop:
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
-		f.NameHash = base.EncodeSha1(f.Name)
+		f.NameHash = git.HashFilePathForWebUI(f.Name)
 
 		for _, buffer := range diffLineTypeBuffers {
 			buffer.Reset()
@@ -1044,10 +1043,10 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 			// diff --git a/b b/b b/b b/b b/b b/b
 			//
 			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
-			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
-			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
-				curFile.OldName = old[2:]
-				curFile.Name = old[2:]
+			newPart, oldPart := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(newPart) > 2 && len(oldPart) > 2 && newPart[2:] == oldPart[2:] {
+				curFile.OldName = oldPart[2:]
+				curFile.Name = oldPart[2:]
 			}
 		}
 	}
@@ -1143,7 +1142,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}
@@ -1181,7 +1180,6 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
 		if checker != nil {

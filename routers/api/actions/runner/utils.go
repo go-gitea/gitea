@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/actions"
 
@@ -32,14 +31,24 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetSecretsOfTask: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
 	actions.CreateCommitStatus(ctx, t.Job)
 
 	task := &runnerv1.Task{
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
-		Secrets:         getSecretsOfTask(ctx, t),
-		Vars:            getVariablesOfTask(ctx, t),
+		Secrets:         secrets,
+		Vars:            vars,
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {
@@ -53,71 +62,6 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	return task, true, nil
-}
-
-func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
-	secrets := map[string]string{}
-
-	secrets["GITHUB_TOKEN"] = task.Token
-	secrets["GITEA_TOKEN"] = task.Token
-
-	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
-		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
-		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
-		return secrets
-	}
-
-	ownerSecrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
-	if err != nil {
-		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
-		// go on
-	}
-	repoSecrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{RepoID: task.Job.Run.RepoID})
-	if err != nil {
-		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
-		// go on
-	}
-
-	for _, secret := range append(ownerSecrets, repoSecrets...) {
-		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
-			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
-			// go on
-		} else {
-			secrets[secret.Name] = v
-		}
-	}
-
-	return secrets
-}
-
-func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
-	variables := map[string]string{}
-
-	// Global
-	globalVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{})
-	if err != nil {
-		log.Error("find global variables: %v", err)
-	}
-
-	// Org / User level
-	ownerVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
-	if err != nil {
-		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
-	}
-
-	// Repo level
-	repoVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
-	if err != nil {
-		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
-	}
-
-	// Level precedence: Repo > Org / User > Global
-	for _, v := range append(globalVariables, append(ownerVariables, repoVariables...)...) {
-		variables[v.Name] = v.Data
-	}
-
-	return variables
 }
 
 func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {

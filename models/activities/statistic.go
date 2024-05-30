@@ -9,6 +9,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	milestone_model "code.gitea.io/gitea/models/milestone"
 	"code.gitea.io/gitea/models/organization"
@@ -30,7 +31,8 @@ type Statistic struct {
 		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
-		ProjectBoard, Attachment int64
+		ProjectColumn, Attachment,
+		Branches, Tags, CommitStatus int64
 		IssueByLabel      []IssueByLabelCount
 		IssueByRepository []IssueByRepositoryCount
 	}
@@ -59,6 +61,9 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
+	stats.Counter.Branches, _ = e.Count(new(git_model.Branch))
+	stats.Counter.Tags, _ = e.Where("is_draft=?", false).Count(new(repo_model.Release))
+	stats.Counter.CommitStatus, _ = e.Count(new(git_model.CommitStatus))
 
 	type IssueCount struct {
 		Count    int64
@@ -111,6 +116,6 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	stats.Counter.ProjectColumn, _ = e.Count(new(project_model.Column))
 	return stats
 }

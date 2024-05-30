@@ -5,7 +5,7 @@
 	<title>{{.Subject}}</title>
 </head>
 
-{{$url := HTMLFormat "<a href='%[1]s'>%[2]s</a>" .Link .Repo)}}
+{{$url := HTMLFormat "<a href='%[1]s'>%[2]s</a>" .Link .Repo}}
 <body>
 	<p>{{.Subject}}.
 		{{.locale.Tr "mail.repo.transfer.body" $url}}

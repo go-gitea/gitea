@@ -58,14 +58,14 @@
 				{{.locale.Tr "mail.issue.action.new" .Doer.Name .Issue.Index}}
 			{{end}}
 		{{else}}
-			{{.Body | Str2html}}
+			{{.Body}}
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
 			{{$.locale.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
-				<div>{{.RenderedContent | SafeHTML}}</div>
+				<div>{{.RenderedContent}}</div>
 			</div>
 		{{end -}}
 		{{if eq .ActionName "push"}}

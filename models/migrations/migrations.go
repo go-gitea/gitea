@@ -560,6 +560,36 @@ var migrations = []Migration{
 	// v286 -> v287
 	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 	// v287 -> v288
+	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+	// v288 -> v289
+	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
+	// v289 -> v290
+	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+	// v290 -> v291
+	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
+	// v291 -> v292
+	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+	// v292 -> v293
+	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
+	// v293 -> v294
+	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+
+	// Gitea 1.22.0-rc0 ends at 294
+
+	// v294 -> v295
+	NewMigration("Add unique index for project issue table", v1_22.AddUniqueIndexForProjectIssue),
+	// v295 -> v296
+	NewMigration("Add commit status summary table", v1_22.AddCommitStatusSummary),
+	// v296 -> v297
+	NewMigration("Add missing field of commit status summary table", v1_22.AddCommitStatusSummary2),
+	// v297 -> v298
+	NewMigration("Add everyone_access_mode for repo_unit", v1_22.AddRepoUnitEveryoneAccessMode),
+	// v298 -> v299
+	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
+
+	// Gitea 1.22.0-rc1 ends at 299
+
+	// v299 -> v300
 	NewMigration("Add milestone type in milestone table", v1_23.AddMilestoneType),
 	NewMigration("Add num_milestones in user table", v1_23.AddNumMilestoneInUser),
 }

@@ -12,10 +12,10 @@ import (
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
@@ -133,6 +133,8 @@ type RepoSettingForm struct {
 	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
+	DefaultWikiBranch                     string
+	DefaultWikiEveryoneAccess             string
 	ExternalWikiURL                       string
 	EnableIssues                          bool
 	EnableExternalTracker                 bool
@@ -142,6 +144,7 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	ProjectsMode                          string
 	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
@@ -502,44 +505,20 @@ func (i IssueLockForm) HasValidReason() bool {
 	return false
 }
 
-// __________                   __               __
-// \______   \_______  ____    |__| ____   _____/  |_  ______
-//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
-//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
-//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
-//                         \______|    \/     \/          \/
-
 // CreateProjectForm form for creating a project
 type CreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.BoardType
-	CardType  project_model.CardType
+	Title        string `binding:"Required;MaxSize(100)"`
+	Content      string
+	TemplateType project_model.TemplateType
+	CardType     project_model.CardType
 }
 
-// UserCreateProjectForm is a from for creating an individual or organization
-// form.
-type UserCreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.BoardType
-	CardType  project_model.CardType
-	UID       int64 `binding:"Required"`
-}
-
-// EditProjectBoardForm is a form for editing a project board
-type EditProjectBoardForm struct {
+// EditProjectColumnForm is a form for editing a project column
+type EditProjectColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
 	Color   string `binding:"MaxSize(7)"`
 }
-
-//    _____  .__.__                   __
-//   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
-//  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
-// /    Y    \  |  |_\  ___/ \___ \  |  | (  <_> )   |  \  ___/
-// \____|__  /__|____/\___  >____  > |__|  \____/|___|  /\___  >
-//         \/             \/     \/                   \/     \/
 
 // CreateMilestoneForm form for creating milestone
 type CreateMilestoneForm struct {
@@ -553,13 +532,6 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// .____          ___.          .__
-// |    |   _____ \_ |__   ____ |  |
-// |    |   \__  \ | __ \_/ __ \|  |
-// |    |___ / __ \| \_\ \  ___/|  |__
-// |_______ (____  /___  /\___  >____/
-//         \/    \/    \/     \/
 
 // CreateLabelForm form for creating label
 type CreateLabelForm struct {
@@ -587,13 +559,6 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// __________      .__  .__    __________                                     __
-// \______   \__ __|  | |  |   \______   \ ____  ________ __   ____   _______/  |_
-//  |     ___/  |  \  | |  |    |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
-//  |    |   |  |  /  |_|  |__  |    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
-//  |____|   |____/|____/____/  |____|_  /\___  >__   |____/  \___  >____  > |__|
-//                                     \/     \/   |__|           \/     \/
 
 // MergePullRequestForm form for merging Pull Request
 // swagger:model MergePullRequestOption

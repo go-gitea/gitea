@@ -3,9 +3,9 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
-import {getCurrentLocale} from '../utils.js';
+import {formatDatetime} from '../utils/time.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST, DELETE} from '../modules/fetch.js';
+import {GET, POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -44,6 +44,9 @@ const sfc = {
         canApprove: false,
         canRerun: false,
         done: false,
+        workflowID: '',
+        workflowLink: '',
+        isSchedule: false,
         jobs: [
           // {
           //   id: 0,
@@ -66,7 +69,7 @@ const sfc = {
             name: '',
             link: '',
           },
-        }
+        },
       },
       currentJob: {
         title: '',
@@ -167,7 +170,7 @@ const sfc = {
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
       const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      const timeStamp = formatDatetime(date);
       logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
       // for "Show seconds"
@@ -196,7 +199,7 @@ const sfc = {
     },
 
     async fetchArtifacts() {
-      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
       return await resp.json();
     },
 
@@ -268,6 +271,10 @@ const sfc = {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
+    isExpandable(status) {
+      return ['success', 'running', 'failure', 'cancelled'].includes(status);
+    },
+
     closeDropdown() {
       if (this.menuVisible) this.menuVisible = false;
     },
@@ -311,7 +318,7 @@ const sfc = {
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector('.line-num').click();
-    }
+    },
   },
 };
 
@@ -334,10 +341,13 @@ export function initRepositoryActionView() {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
+      rerun_all: el.getAttribute('data-locale-rerun-all'),
+      scheduled: el.getAttribute('data-locale-runs-scheduled'),
+      commit: el.getAttribute('data-locale-runs-commit'),
+      pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
-      rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
@@ -352,7 +362,7 @@ export function initRepositoryActionView() {
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
-    }
+    },
   });
   view.mount(el);
 }
@@ -373,17 +383,23 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button gt-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
-        {{ run.commit.localeCommit }}
-        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        {{ run.commit.localePushedBy }}
-        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        <span class="ui label" v-if="run.commit.shortSHA">
-          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <template v-if="run.isSchedule">
+          {{ locale.scheduled }}
+        </template>
+        <template v-else>
+          {{ locale.commit }}
+          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+          {{ locale.pushedBy }}
+          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+        </template>
+        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
+          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -394,10 +410,10 @@ export function initRepositoryActionView() {
             <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-                <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
+                <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -422,8 +438,8 @@ export function initRepositoryActionView() {
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-left">
-            <h3 class="job-info-header-title">
+          <div class="job-info-header-left gt-ellipsis">
+            <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
             </h3>
             <p class="job-info-header-detail">
@@ -432,7 +448,7 @@ export function initRepositoryActionView() {
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg gt-p-3">
+              <button class="btn gt-interact-bg tw-p-2">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -449,7 +465,7 @@ export function initRepositoryActionView() {
                   {{ locale.showFullScreen }}
                 </a>
                 <div class="divider"/>
-                <a :class="['item', currentJob.steps.length === 0 ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
                   {{ locale.downloadLogs }}
                 </a>
@@ -457,15 +473,15 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps">
+        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
+            <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
-              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" class="gt-mr-3"/>
-              <ActionRunStatus :status="jobStep.status" class="gt-mr-3"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
+              <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
               <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
@@ -499,6 +515,7 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .action-info-summary-title {
@@ -509,12 +526,21 @@ export function initRepositoryActionView() {
   font-size: 20px;
   margin: 0 0 0 8px;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .action-commit-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  margin: 0 0 0 28px;
+  margin-left: 28px;
+}
+
+@media (max-width: 767.98px) {
+  .action-commit-summary {
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }
 
 /* ================ */
@@ -524,9 +550,17 @@ export function initRepositoryActionView() {
   width: 30%;
   max-width: 400px;
   position: sticky;
-  top: 0;
+  top: 12px;
   max-height: 100vh;
   overflow-y: auto;
+  background: var(--color-body);
+  z-index: 2; /* above .job-info-header */
+}
+
+@media (max-width: 767.98px) {
+  .action-view-left {
+    position: static; /* can not sticky because multiple jobs would overlap into right view */
+  }
 }
 
 .job-artifacts-title {
@@ -622,6 +656,10 @@ export function initRepositoryActionView() {
   width: 70%;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--color-console-border);
+  border-radius: var(--border-radius);
+  background: var(--color-console-bg);
+  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */
@@ -681,13 +719,16 @@ export function initRepositoryActionView() {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--color-console-border);
-  background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
   height: 60px;
-  z-index: 1;
+  z-index: 1; /* above .job-step-container */
+  background: var(--color-console-bg);
+  border-radius: 3px;
+}
+
+.job-info-header:has(+ .job-step-container) {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .job-info-header .job-info-header-title {
@@ -701,19 +742,31 @@ export function initRepositoryActionView() {
   font-size: 12px;
 }
 
+.job-info-header-left {
+  flex: 1;
+}
+
 .job-step-container {
-  background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  border-top: 1px solid var(--color-console-border);
   z-index: 0;
 }
 
 .job-step-container .job-step-summary {
-  cursor: pointer;
   padding: 5px 10px;
   display: flex;
   align-items: center;
   border-radius: var(--border-radius);
+}
+
+.job-step-container .job-step-summary.step-expandable {
+  cursor: pointer;
+}
+
+.job-step-container .job-step-summary.step-expandable:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -724,12 +777,6 @@ export function initRepositoryActionView() {
   margin-left: 16px;
 }
 
-.job-step-container .job-step-summary:hover {
-  color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
-
-}
-
 .job-step-container .job-step-summary.selected {
   color: var(--color-console-fg);
   background-color: var(--color-console-active-bg);
@@ -737,17 +784,15 @@ export function initRepositoryActionView() {
   top: 60px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .action-view-body {
     flex-direction: column;
   }
   .action-view-left, .action-view-right {
     width: 100%;
   }
-
   .action-view-left {
     max-width: none;
-    overflow-y: hidden;
   }
 }
 </style>
@@ -790,7 +835,7 @@ export function initRepositoryActionView() {
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
 .job-log-line .line-num, .log-time-seconds {
   width: 48px;
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   text-align: right;
   user-select: none;
 }
@@ -806,7 +851,7 @@ export function initRepositoryActionView() {
 
 .job-log-line .log-time,
 .log-time-stamp {
-  color: var(--color-grey-light);
+  color: var(--color-text-light-3);
   margin-left: 10px;
   white-space: nowrap;
 }

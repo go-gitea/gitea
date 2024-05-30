@@ -30,8 +30,9 @@ function initTagNameEditor() {
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
   const existingTagHelperText = el.getAttribute('data-tag-helper-existing');
 
-  document.getElementById('tag-name').addEventListener('keyup', (e) => {
-    const value = e.target.value;
+  const tagNameInput = document.getElementById('tag-name');
+  const hideTargetInput = function(tagNameInput) {
+    const value = tagNameInput.value;
     const tagHelper = document.getElementById('tag-helper');
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
@@ -41,6 +42,10 @@ function initTagNameEditor() {
       showElem('#tag-target-selector');
       tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
+  };
+  hideTargetInput(tagNameInput); // update on page load because the input may have a value
+  tagNameInput.addEventListener('input', (e) => {
+    hideTargetInput(e.target);
   });
 }
 

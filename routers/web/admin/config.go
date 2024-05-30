@@ -12,13 +12,13 @@ import (
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
@@ -112,7 +112,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
-	ctx.Data["GitVersion"] = git.VersionInfo()
+	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
 
 	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
@@ -165,7 +165,7 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 	config.GetDynGetter().InvalidateCache()
-	prepareDeprecatedWarningsAlert(ctx)
+	prepareStartupProblemsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }

@@ -7,22 +7,22 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/routers/web/org"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckProjectBoardChangePermissions(t *testing.T) {
+func TestCheckProjectColumnChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/-/projects/4/4")
 	contexttest.LoadUser(t, ctx, 2)
 	ctx.ContextUser = ctx.Doer // user2
 	ctx.SetParams(":id", "4")
-	ctx.SetParams(":boardID", "4")
+	ctx.SetParams(":columnID", "4")
 
-	project, board := org.CheckProjectBoardChangePermissions(ctx)
+	project, column := org.CheckProjectColumnChangePermissions(ctx)
 	assert.NotNil(t, project)
-	assert.NotNil(t, board)
+	assert.NotNil(t, column)
 	assert.False(t, ctx.Written())
 }

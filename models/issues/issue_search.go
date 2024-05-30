@@ -13,7 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.Paginator
+	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
@@ -33,9 +33,9 @@ type IssuesOptions struct { //nolint
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
-	ProjectBoardID     int64
-	IsClosed           util.OptionalBool
-	IsPull             util.OptionalBool
+	ProjectColumnID    int64
+	IsClosed           optional.Option[bool]
+	IsPull             optional.Option[bool]
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
@@ -46,7 +46,7 @@ type IssuesOptions struct { //nolint
 	UpdatedBeforeUnix  int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
-	IsArchived     util.OptionalBool
+	IsArchived     optional.Option[bool]
 	Org            *organization.Organization // issues permission scope
 	Team           *organization.Team         // issues permission scope
 	User           *user_model.User           // issues permission scope
@@ -104,23 +104,11 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		return sess
 	}
 
-	// Warning: Do not use GetSkipTake() for *db.ListOptions
-	// Its implementation could reset the page size with setting.API.MaxResponseItems
-	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
-		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
-			var start int
-			if listOptions.Page == 0 {
-				start = 0
-			} else {
-				start = (listOptions.Page - 1) * listOptions.PageSize
-			}
-			sess.Limit(listOptions.PageSize, start)
-		}
-		return sess
+	start := 0
+	if opts.Paginator.Page > 1 {
+		start = (opts.Paginator.Page - 1) * opts.Paginator.PageSize
 	}
-
-	start, limit := opts.Paginator.GetSkipTake()
-	sess.Limit(limit, start)
+	sess.Limit(opts.Paginator.PageSize, start)
 
 	return sess
 }
@@ -181,12 +169,12 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 	return sess
 }
 
-func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	// opts.ProjectBoardID == 0 means all project boards,
+func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	// opts.ProjectColumnID == 0 means all project columns,
 	// do not need to apply any condition
-	if opts.ProjectBoardID > 0 {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-	} else if opts.ProjectBoardID == db.NoConditionID {
+	if opts.ProjectColumnID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
+	} else if opts.ProjectColumnID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}
 	return sess
@@ -217,8 +205,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyRepoConditions(sess, opts)
 
-	if !opts.IsClosed.IsNone() {
-		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
+	if opts.IsClosed.Has() {
+		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
 	if opts.AssigneeID > 0 {
@@ -258,23 +246,20 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectCondition(sess, opts)
 
-	applyProjectBoardCondition(sess, opts)
+	applyProjectColumnCondition(sess, opts)
 
-	switch opts.IsPull {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?", false)
+	if opts.IsPull.Has() {
+		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
-	if opts.IsArchived != util.OptionalBoolNone {
-		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+	if opts.IsArchived.Has() {
+		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.Value()})
 	}
 
 	applyLabelsCondition(sess, opts)
 
 	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
 	}
 
 	return sess
@@ -396,7 +381,7 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 
 func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
 	// Query for pull requests where you are a reviewer or commenter, excluding
-	// any pull requests already returned by the the review requested filter.
+	// any pull requests already returned by the review requested filter.
 	notPoster := builder.Neq{"issue.poster_id": reviewedID}
 	reviewed := builder.In("issue.id", builder.
 		Select("issue_id").

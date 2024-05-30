@@ -6,7 +6,7 @@
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message gt-text-center">
+					<div class="ui warning message tw-text-center">
 						{{if .Repository.ArchivedUnix.IsZero}}
 							{{ctx.Locale.Tr "repo.archive.title"}}
 						{{else}}
@@ -37,14 +37,14 @@
 									</a>
 									{{end}}
 								{{end}}
-								<div class="ui action small input gt-df gt-f1">
+								<div class="clone-panel ui action small input tw-flex-1">
 									{{template "repo/clone_buttons" .}}
 								</div>
 							</div>
 						</div>
 
 						{{if not .Repository.IsArchived}}
-							<div class="divider gt-my-0"></div>
+							<div class="divider tw-my-0"></div>
 
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>

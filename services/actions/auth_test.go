@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,7 +20,7 @@ func TestCreateAuthorizationToken(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEqual(t, "", token)
 	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
 		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	assert.Nil(t, err)
@@ -29,6 +30,14 @@ func TestCreateAuthorizationToken(t *testing.T) {
 	taskIDClaim, ok := claims["TaskID"]
 	assert.True(t, ok, "Has TaskID claim in jwt token")
 	assert.Equal(t, float64(taskID), taskIDClaim, "Supplied taskid must match stored one")
+	acClaim, ok := claims["ac"]
+	assert.True(t, ok, "Has ac claim in jwt token")
+	ac, ok := acClaim.(string)
+	assert.True(t, ok, "ac claim is a string for buildx gha cache")
+	scopes := []actionsCacheScope{}
+	err = json.Unmarshal([]byte(ac), &scopes)
+	assert.NoError(t, err, "ac claim is a json list for buildx gha cache")
+	assert.GreaterOrEqual(t, len(scopes), 1, "Expected at least one action cache scope for buildx gha cache")
 }
 
 func TestParseAuthorizationToken(t *testing.T) {

@@ -10,13 +10,13 @@ import (
 	"net/url"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
@@ -478,7 +478,6 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
-
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
 			ctx.NotFound(err)
 		} else {

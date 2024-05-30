@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -20,18 +21,19 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -135,33 +137,33 @@ func Search(ctx *context.APIContext) {
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
-		Collaborate:        util.OptionalBoolNone,
+		Collaborate:        optional.None[bool](),
 		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
-		Template:           util.OptionalBoolNone,
+		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
 
 	if ctx.FormString("template") != "" {
-		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
+		opts.Template = optional.Some(ctx.FormBool("template"))
 	}
 
 	if ctx.FormBool("exclusive") {
-		opts.Collaborate = util.OptionalBoolFalse
+		opts.Collaborate = optional.Some(false)
 	}
 
 	mode := ctx.FormString("mode")
 	switch mode {
 	case "source":
-		opts.Fork = util.OptionalBoolFalse
-		opts.Mirror = util.OptionalBoolFalse
+		opts.Fork = optional.Some(false)
+		opts.Mirror = optional.Some(false)
 	case "fork":
-		opts.Fork = util.OptionalBoolTrue
+		opts.Fork = optional.Some(true)
 	case "mirror":
-		opts.Mirror = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(true)
 	case "collaborative":
-		opts.Mirror = util.OptionalBoolFalse
-		opts.Collaborate = util.OptionalBoolTrue
+		opts.Mirror = optional.Some(false)
+		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
@@ -169,11 +171,11 @@ func Search(ctx *context.APIContext) {
 	}
 
 	if ctx.FormString("archived") != "" {
-		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
+		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
 	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
+		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
 	sortMode := ctx.FormString("sort")
@@ -250,7 +252,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		Gitignores:       opt.Gitignores,
 		License:          opt.License,
 		Readme:           opt.Readme,
-		IsPrivate:        opt.Private,
+		IsPrivate:        opt.Private || setting.Repository.ForcePrivate,
 		AutoInit:         opt.AutoInit,
 		DefaultBranch:    opt.DefaultBranch,
 		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
@@ -358,11 +360,11 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	opts := repo_module.GenerateRepoOptions{
+	opts := repo_service.GenerateRepoOptions{
 		Name:            form.Name,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
-		Private:         form.Private,
+		Private:         form.Private || setting.Repository.ForcePrivate,
 		GitContent:      form.GitContent,
 		Topics:          form.Topics,
 		GitHooks:        form.GitHooks,
@@ -583,7 +585,7 @@ func GetByID(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
-	} else if !permission.HasAccess() {
+	} else if !permission.HasAnyUnitAccess() {
 		ctx.NotFound()
 		return
 	}
@@ -720,7 +722,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
@@ -731,7 +733,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	// Default branch only updated if changed and exist or the repository is empty
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
 		if !repo.IsEmpty {
-			if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
 					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
 					return err
@@ -944,13 +946,33 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
-		if *opts.HasProjects {
+	currHasProjects := repo.UnitEnabled(ctx, unit_model.TypeProjects)
+	newHasProjects := currHasProjects
+	if opts.HasProjects != nil {
+		newHasProjects = *opts.HasProjects
+	}
+	if currHasProjects || newHasProjects {
+		if newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
+			unit, err := repo.GetUnit(ctx, unit_model.TypeProjects)
+			var config *repo_model.ProjectsConfig
+			if err != nil {
+				config = &repo_model.ProjectsConfig{
+					ProjectsMode: repo_model.ProjectsModeAll,
+				}
+			} else {
+				config = unit.ProjectsConfig()
+			}
+
+			if opts.ProjectsMode != nil {
+				config.ProjectsMode = repo_model.ProjectsMode(*opts.ProjectsMode)
+			}
+
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
+				Config: config,
 			})
-		} else {
+		} else if !newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 	}
@@ -1015,12 +1037,20 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
+			if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
+			}
+			if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				}
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
@@ -1032,16 +1062,10 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
-	// only update mirror if interval or enable prune are provided
-	if opts.MirrorInterval == nil && opts.EnablePrune == nil {
-		return nil
-	}
-
-	// these values only make sense if the repo is a mirror
+	// Skip this update if the repo is not a mirror, do not return error.
+	// Because reporting errors only makes the logic more complex&fragile, it doesn't really help end users.
 	if !repo.IsMirror {
-		err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
-		ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
-		return err
+		return nil
 	}
 
 	// get the mirror from the repo
@@ -1054,7 +1078,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	// update MirrorInterval
 	if opts.MirrorInterval != nil {
-
 		// MirrorInterval should be a duration
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {

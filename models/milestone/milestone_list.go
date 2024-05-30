@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -29,7 +29,7 @@ type FindMilestoneOptions struct {
 	db.ListOptions
 	OrgID    int64
 	RepoID   int64
-	IsClosed util.OptionalBool
+	IsClosed optional.Option[bool]
 	Name     string
 	SortType string
 	RepoCond builder.Cond
@@ -46,8 +46,8 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	if opts.IsClosed != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.IsTrue()})
+	if opts.IsClosed.Has() {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
 	}
 	if opts.RepoCond != nil && opts.RepoCond.IsValid() {
 		if len(opts.OrgIDs) > 0 {

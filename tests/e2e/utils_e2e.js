@@ -52,7 +52,7 @@ export async function save_visual(page) {
       fullPage: true,
       timeout: 20000,
       mask: [
-        page.locator('.dashboard-navbar span>img.ui.avatar'),
+        page.locator('.secondary-nav span>img.ui.avatar'),
         page.locator('.ui.dropdown.jump.item span>img.ui.avatar'),
       ],
     });

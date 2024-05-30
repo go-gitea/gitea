@@ -51,13 +51,13 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project := &Project{
-		Type:        TypeRepository,
-		BoardType:   BoardTypeBasicKanban,
-		CardType:    CardTypeTextOnly,
-		Title:       "New Project",
-		RepoID:      1,
-		CreatedUnix: timeutil.TimeStampNow(),
-		CreatorID:   2,
+		Type:         TypeRepository,
+		TemplateType: TemplateTypeBasicKanban,
+		CardType:     CardTypeTextOnly,
+		Title:        "New Project",
+		RepoID:       1,
+		CreatedUnix:  timeutil.TimeStampNow(),
+		CreatorID:    2,
 	}
 
 	assert.NoError(t, NewProject(db.DefaultContext, project))
@@ -92,19 +92,19 @@ func TestProjectsSort(t *testing.T) {
 	}{
 		{
 			sortType: "default",
-			wants:    []int64{1, 3, 2, 4},
+			wants:    []int64{1, 3, 2, 6, 5, 4},
 		},
 		{
 			sortType: "oldest",
-			wants:    []int64{4, 2, 3, 1},
+			wants:    []int64{4, 5, 6, 2, 3, 1},
 		},
 		{
 			sortType: "recentupdate",
-			wants:    []int64{1, 3, 2, 4},
+			wants:    []int64{1, 3, 2, 6, 5, 4},
 		},
 		{
 			sortType: "leastupdate",
-			wants:    []int64{4, 2, 3, 1},
+			wants:    []int64{4, 5, 6, 2, 3, 1},
 		},
 	}
 
@@ -113,8 +113,8 @@ func TestProjectsSort(t *testing.T) {
 			OrderBy: GetSearchOrderByBySortType(tt.sortType),
 		})
 		assert.NoError(t, err)
-		assert.EqualValues(t, int64(4), count)
-		if assert.Len(t, projects, 4) {
+		assert.EqualValues(t, int64(6), count)
+		if assert.Len(t, projects, 6) {
 			for i := range projects {
 				assert.EqualValues(t, tt.wants[i], projects[i].ID)
 			}

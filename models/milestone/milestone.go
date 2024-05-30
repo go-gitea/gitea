@@ -6,11 +6,13 @@ package milestone
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -68,8 +70,8 @@ type Milestone struct {
 	OrgID           int64                   `xorm:"INDEX"`
 	Org             *org_model.Organization `xorm:"-"`
 	Name            string
-	Content         string `xorm:"TEXT"`
-	RenderedContent string `xorm:"-"`
+	Content         string        `xorm:"TEXT"`
+	RenderedContent template.HTML `xorm:"-"`
 	IsClosed        bool
 	NumIssues       int
 	NumClosedIssues int
@@ -422,7 +424,7 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	}
 	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		return err

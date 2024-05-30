@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
@@ -76,12 +77,15 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 type jobStatusResolver struct {
 	statuses map[int64]actions_model.Status
 	needs    map[int64][]int64
+	jobMap   map[int64]*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
 		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
+		jobMap[job.ID] = job
 	}
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
@@ -97,6 +101,7 @@ func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	return &jobStatusResolver{
 		statuses: statuses,
 		needs:    needs,
+		jobMap:   jobMap,
 	}
 }
 
@@ -135,7 +140,21 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 			if allSucceed {
 				ret[id] = actions_model.StatusWaiting
 			} else {
-				ret[id] = actions_model.StatusSkipped
+				// Check if the job has an "if" condition
+				hasIf := false
+				if wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload); len(wfJobs) == 1 {
+					_, wfJob := wfJobs[0].Job()
+					hasIf = len(wfJob.If.Value) > 0
+				}
+
+				if hasIf {
+					// act_runner will check the "if" condition
+					ret[id] = actions_model.StatusWaiting
+				} else {
+					// If the "if" condition is empty and not all dependent jobs completed successfully,
+					// the job should be skipped.
+					ret[id] = actions_model.StatusSkipped
+				}
 			}
 		}
 	}

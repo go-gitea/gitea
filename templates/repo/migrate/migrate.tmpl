@@ -5,21 +5,21 @@
 			{{template "repo/migrate/helper" .}}
 			<div class="ui cards migrate-entries">
 				{{range .Services}}
-					<a class="ui card migrate-entry gt-df gt-ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
+					<a class="ui card migrate-entry tw-flex tw-items-center" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
-							{{svg "octicon-mark-github" 184 "gt-p-4"}}
+							{{svg "octicon-mark-github" 184 "tw-p-4"}}
 						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "gt-p-4"}}
+							{{svg "gitea-gitlab" 184 "tw-p-4"}}
 						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "gt-p-4"}}
+							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
 						{{end}}
 						<div class="content">
-							<div class="header gt-text-center">
+							<div class="header tw-text-center">
 								{{.Title}}
 							</div>
-							<div class="description gt-text-center">
+							<div class="description tw-text-center">
 								{{ctx.Locale.Tr (printf "repo.migrate.%s.description" .Name)}}
 							</div>
 						</div>

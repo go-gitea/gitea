@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message gt-text-center">
+			<div class="ui warning message tw-text-center">
 				{{ctx.Locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -28,7 +28,7 @@
 									<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.users"}}</label>
 									<div class="ui multiple search selection dropdown">
 										<input type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
-										<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+										<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
@@ -43,7 +43,7 @@
 										<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
 										<div class="ui multiple search selection dropdown">
 											<input type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
-											<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+											<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 											<div class="menu">
 												{{range .Teams}}
 													<div class="item" data-value="{{.ID}}">
@@ -106,7 +106,7 @@
 										</td>
 										<td class="right aligned">
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{ctx.Locale.Tr "edit"}}</a>
-											<form class="gt-dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
+											<form class="tw-inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}">
 												<button class="ui tiny red button">{{ctx.Locale.Tr "remove"}}</button>

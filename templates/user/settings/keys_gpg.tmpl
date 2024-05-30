@@ -5,7 +5,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasGPGError}}gt-hidden{{end}} gt-mb-4" id="add-gpg-key-panel">
+	<div class="{{if not .HasGPGError}}tw-hidden{{end}} tw-mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
@@ -22,7 +22,7 @@
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						<p>{{ctx.Locale.Tr "settings.gpg_token_help"}}</p>
-						<p><code>{{ctx.Locale.Tr "settings.gpg_token_code" .TokenToSign .PaddedKeyID}}</code></p>
+						<p><code>{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` .TokenToSign .PaddedKeyID}}</code></p>
 					</div>
 				</div>
 				<div class="field">
@@ -73,7 +73,7 @@
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
-						<a class="ui primary tiny button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{ctx.Locale.Tr "settings.gpg_key_verify"}}</a>
+						<a class="ui primary tiny button" href="?verify_gpg={{.KeyID}}">{{ctx.Locale.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -90,7 +90,7 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{ctx.Locale.Tr "settings.gpg_token_help"}}</p>
-								<p><code>{{ctx.Locale.Tr "settings.gpg_token_code" $.TokenToSign .PaddedKeyID}}</code></p>
+								<p><code>{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` $.TokenToSign .PaddedKeyID}}</code></p>
 							</div>
 							<br>
 						</div>

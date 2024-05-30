@@ -1,5 +1,5 @@
 <div id="profile-avatar-card" class="ui card">
-	<div id="profile-avatar" class="content gt-df">
+	<div id="profile-avatar" class="content tw-flex">
 	{{if eq .SignedUserID .ContextUser.ID}}
 		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
 			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
@@ -18,19 +18,25 @@
 						{{svg "octicon-gear" 18}}
 					</a>
 				{{end}}</span>
-		<div class="gt-mt-3">
-			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
+		<div class="tw-mt-2">
+			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "tw-mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
 			{{if .EnableFeed}}
-				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 			{{end}}
 		</div>
 	</div>
 	<div class="extra content gt-word-break">
 		<ul>
+			{{if .UserBlocking}}
+				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
+				{{if .UserBlocking.Note}}
+					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
+				{{end}}
+			{{end}}
 			{{if .ContextUser.Location}}
 				<li>
 					{{svg "octicon-location"}}
-					<span class="gt-f1">{{.ContextUser.Location}}</span>
+					<span class="tw-flex-1">{{.ContextUser.Location}}</span>
 					{{if .ContextUserLocationMapURL}}
 						<a href="{{.ContextUserLocationMapURL}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
 							{{svg "octicon-link-external"}}
@@ -41,7 +47,7 @@
 			{{if (eq .SignedUserID .ContextUser.ID)}}
 				<li>
 					{{svg "octicon-mail"}}
-					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 						{{if .ShowUserEmail}}
 							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
@@ -70,7 +76,7 @@
 			{{end}}
 			{{if $.RenderedDescription}}
 				<li>
-					<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>
+					<div class="render-content markup">{{$.RenderedDescription}}</div>
 				</li>
 			{{end}}
 			{{range .OpenIDs}}
@@ -109,18 +115,29 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-			<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card" >
-				{{if $.IsFollowing}}
-					<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
-					</button>
-				{{else}}
-					<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
-					</button>
+				{{if not .UserBlocking}}
+				<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card">
+					{{if $.IsFollowing}}
+						<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
+						</button>
+					{{else}}
+						<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
+						</button>
+					{{end}}
+				</li>
 				{{end}}
-			</li>
+				<li>
+					{{if not .UserBlocking}}
+						<a class="muted show-modal" href="#" data-modal="#block-user-modal" data-modal-modal-blockee="{{.ContextUser.Name}}" data-modal-modal-blockee-name="{{.ContextUser.GetDisplayName}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</a>
+					{{else}}
+						<a class="muted" href="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.unblock"}}</a>
+					{{end}}
+				</li>
 			{{end}}
 		</ul>
 	</div>
 </div>
+
+{{template "shared/user/block_user_dialog" .}}

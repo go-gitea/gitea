@@ -4,12 +4,12 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.alpine.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code><gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine"></gitea-origin-url>/$branch/$repository</code></pre></div>
+				<div class="markup"><pre class="code-block"><code><origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine"></origin-url>/$branch/$repository</code></pre></div>
 				<p>{{ctx.Locale.Tr "packages.alpine.registry.info"}}</p>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.alpine.registry.key"}}</label>
-				<div class="markup"><pre class="code-block"><code>curl -JO <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine/key"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>curl -JO <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine/key"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.alpine.install"}}</label>

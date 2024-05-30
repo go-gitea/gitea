@@ -79,7 +79,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -94,8 +93,9 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -210,11 +210,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
 				return
 			}
-			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
-			for _, u := range ctx.Repo.Repository.Units {
-				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
-			}
+			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
@@ -223,7 +219,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.HasAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() {
 			ctx.NotFound()
 			return
 		}
@@ -417,7 +413,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.HasAccess() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
@@ -840,6 +836,34 @@ func Routes() *web.Route {
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
+	addActionsRoutes := func(
+		m *web.Route,
+		reqChecker func(ctx *context.APIContext),
+		act actions.API,
+	) {
+		m.Group("/actions", func() {
+			m.Group("/secrets", func() {
+				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqChecker, act.DeleteSecret)
+			})
+
+			m.Group("/variables", func() {
+				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Combo("/{variablename}").
+					Get(reqToken(), reqChecker, act.GetVariable).
+					Delete(reqToken(), reqChecker, act.DeleteVariable).
+					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+			})
+
+			m.Group("/runners", func() {
+				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+			})
+		})
+	}
+
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -855,11 +879,11 @@ func Routes() *web.Route {
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context_service.UserAssignmentAPI())
+				}, context.UserAssignmentAPI())
 				m.Group("/user-id/{user-id}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context_service.UserIDAssignmentAPI())
+				}, context.UserIDAssignmentAPI())
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
@@ -915,7 +939,7 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context_service.UserAssignmentAPI(), individualPermsChecker)
+			}, context.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
@@ -933,7 +957,7 @@ func Routes() *web.Route {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context_service.UserAssignmentAPI())
+			}, context.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -956,6 +980,15 @@ func Routes() *web.Route {
 						Delete(user.DeleteSecret)
 				})
 
+				m.Group("/variables", func() {
+					m.Get("", user.ListVariables)
+					m.Combo("/{variablename}").
+						Get(user.GetVariable).
+						Delete(user.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), user.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), user.UpdateVariable)
+				})
+
 				m.Group("/runners", func() {
 					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 				})
@@ -968,7 +1001,7 @@ func Routes() *web.Route {
 					m.Get("", user.CheckMyFollowing)
 					m.Put("", user.Follow)
 					m.Delete("", user.Unfollow)
-				}, context_service.UserAssignmentAPI())
+				}, context.UserAssignmentAPI())
 			})
 
 			// (admin:public_key scope)
@@ -1028,7 +1061,16 @@ func Routes() *web.Route {
 			m.Group("/avatar", func() {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
-			}, reqToken())
+			})
+
+			m.Group("/blocks", func() {
+				m.Get("", user.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckUserBlock)
+					m.Put("", user.BlockUser)
+					m.Delete("", user.UnblockUser)
+				}, context.UserAssignmentAPI())
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1049,6 +1091,8 @@ func Routes() *web.Route {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
+				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
+
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
@@ -1058,17 +1102,11 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Group("/actions", func() {
-					m.Group("/secrets", func() {
-						m.Combo("/{secretname}").
-							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
-							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
-					})
-
-					m.Group("/runners", func() {
-						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
-					})
-				})
+				addActionsRoutes(
+					m,
+					reqOwner(),
+					repo.NewAction(),
+				)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1130,6 +1168,9 @@ func Routes() *web.Route {
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				m.Group("/actions", func() {
+					m.Get("/tasks", repo.ListActionTasks)
+				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -1415,14 +1456,14 @@ func Routes() *web.Route {
 				m.Get("/files", reqToken(), packages.ListPackageFiles)
 			})
 			m.Get("/", reqToken(), packages.ListPackages)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context_service.UserAssignmentAPI())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI())
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
@@ -1436,18 +1477,11 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			m.Group("/actions", func() {
-				m.Group("/secrets", func() {
-					m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-					m.Combo("/{secretname}").
-						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
-				})
-
-				m.Group("/runners", func() {
-					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
-				})
-			})
+			addActionsRoutes(
+				m,
+				reqOrgOwnership(),
+				org.NewAction(),
+			)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).
@@ -1478,6 +1512,15 @@ func Routes() *web.Route {
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+
+			m.Group("/blocks", func() {
+				m.Get("", org.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", org.CheckUserBlock)
+					m.Put("", org.BlockUser)
+					m.Delete("", org.UnblockUser)
+				})
+			}, reqToken(), reqOrgOwnership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1520,7 +1563,10 @@ func Routes() *web.Route {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
-				}, context_service.UserAssignmentAPI())
+					m.Get("/badges", admin.ListUserBadges)
+					m.Post("/badges", bind(api.UserBadgeOption{}), admin.AddUserBadges)
+					m.Delete("/badges", bind(api.UserBadgeOption{}), admin.DeleteUserBadges)
+				}, context.UserAssignmentAPI())
 			})
 			m.Group("/emails", func() {
 				m.Get("", admin.GetAllEmails)

@@ -19,7 +19,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -431,6 +430,21 @@ func (pr *PullRequest) GetGitHeadBranchRefName() string {
 	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
 }
 
+// GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
+func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
+	opts := FindCommentsOptions{
+		Type:    CommentTypeReview,
+		IssueID: pr.IssueID,
+	}
+	conds := opts.ToConds()
+
+	count, err := db.GetEngine(ctx).Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
 // IsChecking returns true if this pull request is still checking conflict.
 func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
@@ -808,7 +822,7 @@ func UpdateAllowEdits(ctx context.Context, pr *PullRequest) error {
 
 // Mergeable returns if the pullrequest is mergeable.
 func (pr *PullRequest) Mergeable(ctx context.Context) bool {
-	// If a pull request isn't mergable if it's:
+	// If a pull request isn't mergeable if it's:
 	// - Being conflict checked.
 	// - Has a conflict.
 	// - Received a error while being conflict checked.
@@ -882,82 +896,6 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
-}
-
-func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullRequest) error {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-
-	if pr.IsWorkInProgress(ctx) {
-		return nil
-	}
-
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
-	}
-
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer repo.Close()
-
-	branch, err := repo.GetDefaultBranch()
-	if err != nil {
-		return err
-	}
-
-	commit, err := repo.GetBranchCommit(branch)
-	if err != nil {
-		return err
-	}
-
-	var data string
-	for _, file := range files {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err == nil {
-				break
-			}
-		}
-	}
-
-	rules, _ := GetCodeOwnersFromContent(ctx, data)
-	changedFiles, err := repo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-	if err != nil {
-		return err
-	}
-
-	uniqUsers := make(map[int64]*user_model.User)
-	uniqTeams := make(map[string]*org_model.Team)
-	for _, rule := range rules {
-		for _, f := range changedFiles {
-			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
-				for _, u := range rule.Users {
-					uniqUsers[u.ID] = u
-				}
-				for _, t := range rule.Teams {
-					uniqTeams[fmt.Sprintf("%d/%d", t.OrgID, t.ID)] = t
-				}
-			}
-		}
-	}
-
-	for _, u := range uniqUsers {
-		if u.ID != pull.Poster.ID {
-			if _, err := AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
-				return err
-			}
-		}
-	}
-	for _, t := range uniqTeams {
-		if _, err := AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // GetCodeOwnersFromContent returns the code owners configuration

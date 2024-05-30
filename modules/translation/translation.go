@@ -144,7 +144,7 @@ func Match(tags ...language.Tag) language.Tag {
 // locale represents the information of localization.
 type locale struct {
 	i18n.Locale
-	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
+	Lang, LangName string // these fields are used directly in templates: ctx.Locale.Lang
 	msgPrinter     *message.Printer
 }
 

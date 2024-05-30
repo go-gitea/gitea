@@ -306,7 +306,7 @@ func (u *User) OrganisationLink() string {
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
 		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
-		setting.Service.ActiveCodeLives, nil)
+		setting.Service.ActiveCodeLives, time.Now(), nil)
 
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
@@ -427,7 +427,7 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
-// GetCompleteName returns the the full name and username in the form of
+// GetCompleteName returns the full name and username in the form of
 // "Full Name (username)" if full name is not empty, otherwise it returns
 // "username".
 func (u *User) GetCompleteName() string {
@@ -503,19 +503,19 @@ func GetUserSalt() (string, error) {
 // Note: The set of characters here can safely expand without a breaking change,
 // but characters removed from this set can cause user account linking to break
 var (
-	customCharsReplacement    = strings.NewReplacer("Æ", "AE")
-	removeCharsRE             = regexp.MustCompile(`['´\x60]`)
-	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	replaceCharsHyphenRE      = regexp.MustCompile(`[\s~+]`)
+	customCharsReplacement = strings.NewReplacer("Æ", "AE")
+	removeCharsRE          = regexp.MustCompile("['`´]")
+	transformDiacritics    = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	replaceCharsHyphenRE   = regexp.MustCompile(`[\s~+]`)
 )
 
-// normalizeUserName returns a string with single-quotes and diacritics
-// removed, and any other non-supported username characters replaced with
-// a `-` character
+// NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
+// It returns a string with the single-quotes removed, and any other non-supported username characters are replaced with a `-` character
 func NormalizeUserName(s string) (string, error) {
-	strDiacriticsRemoved, n, err := transform.String(removeDiacriticsTransform, customCharsReplacement.Replace(s))
+	s, _, _ = strings.Cut(s, "@")
+	strDiacriticsRemoved, n, err := transform.String(transformDiacritics, customCharsReplacement.Replace(s))
 	if err != nil {
-		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
+		return "", fmt.Errorf("failed to normalize the string of provided username %q at position %d", s, n)
 	}
 	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
@@ -588,6 +588,16 @@ type CreateUserOverwriteOptions struct {
 
 // CreateUser creates record of a new user.
 func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, false, overwriteDefault...)
+}
+
+// AdminCreateUser is used by admins to manually create users
+func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, true, overwriteDefault...)
+}
+
+// createUser creates record of a new user.
+func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -641,8 +651,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	if err := ValidateEmail(u.Email); err != nil {
-		return err
+	if createdByAdmin {
+		if err := ValidateEmailForAdmin(u.Email); err != nil {
+			return err
+		}
+	} else {
+		if err := ValidateEmail(u.Email); err != nil {
+			return err
+		}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -717,7 +733,7 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 
 // IsLastAdminUser check whether user is the last admin
 func IsLastAdminUser(ctx context.Context, user *User) bool {
-	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: optional.Some(true)}) <= 1 {
 		return true
 	}
 	return false
@@ -726,7 +742,7 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
-	IsAdmin        util.OptionalBool
+	IsAdmin        optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -744,8 +760,8 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
 		}
 
-		if !opts.IsAdmin.IsNone() {
-			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+		if opts.IsAdmin.Has() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
 		}
 	}
 
@@ -777,14 +793,11 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 
 // VerifyUserActiveCode verifies active code when active account
 func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			return user
 		}
 	}
@@ -974,9 +987,8 @@ func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bo
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}
@@ -1169,7 +1181,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		// If they follow - they see each over
+		// If they follow - they see each other
 		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true
@@ -1217,4 +1229,22 @@ func GetOrderByName() string {
 		return "full_name, name"
 	}
 	return "name"
+}
+
+// IsFeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
+// user if applicable
+func IsFeatureDisabledWithLoginType(user *User, feature string) bool {
+	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
+	return (user != nil && user.LoginType > auth.Plain && setting.Admin.ExternalUserDisableFeatures.Contains(feature)) ||
+		setting.Admin.UserDisabledFeatures.Contains(feature)
+}
+
+// DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type
+// of the user if applicable
+func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
+	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
+	if user != nil && user.LoginType > auth.Plain {
+		return &setting.Admin.ExternalUserDisableFeatures
+	}
+	return &setting.Admin.UserDisabledFeatures
 }

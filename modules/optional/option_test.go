@@ -22,10 +22,20 @@ func TestOption(t *testing.T) {
 	assert.Equal(t, int(0), none.Value())
 	assert.Equal(t, int(1), none.ValueOrDefault(1))
 
-	some := optional.Some[int](1)
+	some := optional.Some(1)
 	assert.True(t, some.Has())
 	assert.Equal(t, int(1), some.Value())
 	assert.Equal(t, int(1), some.ValueOrDefault(2))
+
+	noneBool := optional.None[bool]()
+	assert.False(t, noneBool.Has())
+	assert.False(t, noneBool.Value())
+	assert.True(t, noneBool.ValueOrDefault(true))
+
+	someBool := optional.Some(true)
+	assert.True(t, someBool.Has())
+	assert.True(t, someBool.Value())
+	assert.True(t, someBool.ValueOrDefault(false))
 
 	var ptr *int
 	assert.False(t, optional.FromPtr(ptr).Has())

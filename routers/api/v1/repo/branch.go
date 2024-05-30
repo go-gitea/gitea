@@ -14,7 +14,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/optional"
@@ -22,6 +21,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -437,7 +437,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp, repo))
 }
 
 // ListBranchProtections list branch protections for a repo
@@ -470,7 +470,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	}
 	apiBps := make([]*api.BranchProtection, len(bps))
 	for i := range bps {
-		apiBps[i] = convert.ToBranchProtection(ctx, bps[i])
+		apiBps[i] = convert.ToBranchProtection(ctx, bps[i], repo)
 	}
 
 	ctx.JSON(http.StatusOK, apiBps)
@@ -681,7 +681,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(ctx, bp))
+	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(ctx, bp, repo))
 }
 
 // EditBranchProtection edits a branch protection for a repo
@@ -959,7 +959,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp, repo))
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo

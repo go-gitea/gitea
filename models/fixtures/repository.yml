@@ -327,7 +327,7 @@
   is_archived: false
   is_mirror: false
   status: 0
-  is_fork: false
+  is_fork: true
   fork_id: 10
   is_template: false
   template_id: 0
@@ -614,8 +614,8 @@
   owner_name: user16
   lower_name: big_test_public_3
   name: big_test_public_3
-  num_watches: 0
-  num_stars: 0
+  num_watches: 1
+  num_stars: 1
   num_forks: 0
   num_issues: 0
   num_closed_issues: 0
@@ -945,8 +945,8 @@
   owner_name: org3
   lower_name: repo21
   name: repo21
-  num_watches: 0
-  num_stars: 0
+  num_watches: 1
+  num_stars: 1
   num_forks: 0
   num_issues: 2
   num_closed_issues: 0

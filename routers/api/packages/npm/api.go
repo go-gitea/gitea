@@ -12,6 +12,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -63,6 +64,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Homepage:             metadata.ProjectURL,
 		License:              metadata.License,
 		Dependencies:         metadata.Dependencies,
+		BundleDependencies:   metadata.BundleDependencies,
 		DevDependencies:      metadata.DevelopmentDependencies,
 		PeerDependencies:     metadata.PeerDependencies,
 		OptionalDependencies: metadata.OptionalDependencies,
@@ -98,7 +100,7 @@ func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total 
 				Maintainers: []npm_module.User{}, // npm cli needs this field
 				Keywords:    metadata.Keywords,
 				Links: &npm_module.PackageSearchPackageLinks{
-					Registry: pd.FullWebLink(),
+					Registry: setting.AppURL + "api/packages/" + pd.Owner.Name + "/npm",
 					Homepage: metadata.ProjectURL,
 				},
 			},

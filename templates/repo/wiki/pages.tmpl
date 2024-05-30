@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki pages">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header gt-df gt-ac gt-sb">
+		<h2 class="ui header tw-flex tw-items-center tw-justify-between">
 			<span>{{ctx.Locale.Tr "repo.wiki.pages"}}</span>
 			<span>
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
@@ -10,6 +10,7 @@
 				{{end}}
 			</span>
 		</h2>
+		{{if .IsRepositoryAdmin}}<div>{{ctx.Locale.Tr "repo.default_branch"}}: {{.Repository.DefaultWikiBranch}}</div>{{end}}
 		<table class="ui table wiki-pages-list">
 			<tbody>
 				{{range .Pages}}
