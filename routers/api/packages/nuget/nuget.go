@@ -96,6 +96,12 @@ func FeedCapabilityResource(ctx *context.Context) {
 	xmlResponse(ctx, http.StatusOK, Metadata)
 }
 
+var searchTermEqPattern = regexp.MustCompile(`(?i)(?:tolower\(Id\)|Id)\s+eq\s+'[^']*'`)
+
+func isSearchTermExact(ctx *context.Context) bool {
+	return searchTermEqPattern.MatchString(ctx.FormTrim("$filter"))
+}
+
 var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
 
 func getSearchTerm(ctx *context.Context) string {
@@ -117,15 +123,26 @@ func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
-	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
-		Name: packages_model.SearchValue{
-			Value: getSearchTerm(ctx),
-		},
-		IsInternal: optional.Some(false),
-		Paginator:  paginator,
-	})
+	searchValue := packages_model.SearchValue{
+		Value:      getSearchTerm(ctx),
+		ExactMatch: isSearchTermExact(ctx),
+	}
+
+	pvs := []*packages_model.PackageVersion{}
+	total := int64(0)
+	err := error(nil)
+
+	// PackageSearchOptions.ToConds doesn't handle this correctly
+	// https://github.com/go-gitea/gitea/blob/fb7b743bd0f305a6462896398bcba2a74c6e391e/models/packages/package_version.go#L213-L214
+	if !(searchValue.ExactMatch && searchValue.Value == "") {
+		pvs, total, err = packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+			OwnerID:    ctx.Package.Owner.ID,
+			Type:       packages_model.TypeNuGet,
+			Name:       searchValue,
+			IsInternal: optional.Some(false),
+			Paginator:  paginator,
+		})
+	}
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
