@@ -435,16 +435,26 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			ExpectedTotal   int64
 			ExpectedResults int
 		}{
-			{"", 0, 0, 1, 1},
-			{"", 0, 10, 1, 1},
+			{"", 0, 0, 4, 4},
+			{"", 0, 10, 4, 4},
 			{"gitea", 0, 10, 0, 0},
 			{"test", 0, 10, 1, 1},
 			{"test", 1, 10, 1, 0},
+			{"almost.similar", 0, 0, 3, 3},
 		}
 
-		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+		fakePackages := []string{
+			packageName,
+			"almost.similar.dependency",
+			"almost.similar",
+			"almost.similar.dependant",
+		}
+
+		for _, fakePackageName := range fakePackages {
+			req := NewRequestWithBody(t, "PUT", url, createPackage(fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
 
 		t.Run("v2", func(t *testing.T) {
 			t.Run("Search()", func(t *testing.T) {
@@ -548,9 +558,11 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			})
 		})
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNoContent)
+		for _, fakePackageName := range fakePackages {
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
