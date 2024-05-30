@@ -3,11 +3,6 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
-.gt-word-break {
-  word-wrap: break-word !important;
-  overflow-wrap: anywhere;
-}
-
 .gt-ellipsis {
   overflow: hidden !important;
   white-space: nowrap !important;
