@@ -625,7 +625,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
 	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
 		art := artifacts[0]
-		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+		if setting.Actions.ArtifactStorage.ServeDirect() {
 			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())

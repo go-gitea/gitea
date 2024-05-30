@@ -491,7 +491,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		archiver.CommitID, archiver.CommitID))
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
+	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {

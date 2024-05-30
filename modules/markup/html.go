@@ -16,7 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
@@ -1140,7 +1140,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || ctx.Metas["repoPath"] == "" {
+	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || (ctx.Repo == nil && ctx.GitRepo == nil) {
 		return
 	}
 
@@ -1172,13 +1172,14 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
-				ctx.GitRepo, err = git.OpenRepository(ctx.Ctx, ctx.Metas["repoPath"])
+				var closer io.Closer
+				ctx.GitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
 				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.Repo), err)
 					return
 				}
 				ctx.AddCancel(func() {
-					ctx.GitRepo.Close()
+					closer.Close()
 					ctx.GitRepo = nil
 				})
 			}

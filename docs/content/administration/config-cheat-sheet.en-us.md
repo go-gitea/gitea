@@ -1287,7 +1287,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact.
 
-- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk or `minio` for s3 compatible object storage service.
+- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk, `minio` for s3 compatible object storage service, `azureblob` for azure blob storage service.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`. If not provided and STORAGE_TYPE is `minio`, will search for credentials in known environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
@@ -1297,6 +1297,12 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 - `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+
+- `AZURE_BLOB_ENDPOINT`: **_empty_**: Azure Blob endpoint to connect only available when STORAGE_TYPE is `azureblob`,
+ e.g. https://accountname.blob.core.windows.net or http://127.0.0.1:10000/devstoreaccount1
+- `AZURE_BLOB_ACCOUNT_NAME`: **_empty_**: Azure Blob account name to connect only available when STORAGE_TYPE is `azureblob`
+- `AZURE_BLOB_ACCOUNT_KEY`: **_empty_**: Azure Blob account key to connect only available when STORAGE_TYPE is `azureblob`
+- `AZURE_BLOB_CONTAINER`: **gitea**: Azure Blob container to store the data only available when STORAGE_TYPE is `azureblob`
 
 The recommended storage configuration for minio like below:
 
