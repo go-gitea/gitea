@@ -3,7 +3,7 @@
 		<ul class="commit-list tw-list-none tw-divide-y tw-divide-secondary tw-p-0 tw-m-0">
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 			{{range .Commits}}
-				<li class="tw-grid tw-gap-1 tw-px-4 tw-py-2 tw-items-center tw-grid-cols-[minmax(30%,_1fr)_minmax(0px,_max-content)]">
+				<li class="tw-grid tw-gap-1 tw-px-4 tw-py-2 tw-items-center tw-grid-cols-[minmax(30%,1fr)_minmax(0px,max-content)]">
 					<div class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
@@ -44,8 +44,7 @@
 						{{if .Signature}}
 								{{template "repo/signature_badge" dict "root" $ "verification" .Verification "shortsha" (ShortSha .ID.String)}}
 						{{end}}
-						<div class="sha">
-							{{$class := "ui sha label"}}
+						<div>
 							{{$commitShaLink := ""}}
 							{{if $.PageIsWiki}}
 								{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
@@ -55,7 +54,7 @@
 								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
 							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
-								<span class="shortsha">{{ShortSha .ID.String}}</span>
+								<span>{{ShortSha .ID.String}}</span>
 							</a>
 						</div>
 						<div class="text right aligned tw-py-0">

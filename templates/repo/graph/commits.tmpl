@@ -5,24 +5,9 @@
 				{{if $commit.OnlyRelation}}
 					<span></span>
 				{{else}}
-					<span class="sha" id="{{$commit.ShortRev}}">
-						{{$class := "ui sha label"}}
-						{{if $commit.Commit.Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if $commit.Verification.Verified}}
-								{{if eq $commit.Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq $commit.Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if $commit.Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
+					<span id="{{$commit.ShortRev}}">
 						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="tw-text-inherit">
-							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
+							<span>{{ShortSha $commit.Commit.ID.String}}</span>
 						</a>
 					</span>
 					{{- if $commit.Commit.Signature -}}
@@ -30,7 +15,7 @@
 							{{template "repo/signature_badge" dict "root" $ "verification" $commit.Verification "shortsha" (ShortSha $commit.Commit.ID.String)}}
 						</span>
 					{{- end -}}
-					<span class="message tw-inline-block gt-ellipsis tw-mr-2">
+					<span class="tw-inline-block gt-ellipsis tw-mr-2">
 						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
 					<span class="commit-refs tw-flex tw-items-center tw-mr-1">

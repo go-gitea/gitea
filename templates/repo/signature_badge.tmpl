@@ -23,65 +23,67 @@
 		{{end}}
 	</div>
 	<div class="content">
-		<div class="tw-flex tw-items-center">
+		<div class="tw-flex tw-items-center tw-gap-2">
 			{{if .verification.Verified}}
 				{{if ne .verification.SigningUser.ID 0}}
 					{{if eq .verification.TrustStatus "trusted"}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
 					{{else if eq .verification.TrustStatus "untrusted"}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
 					{{else}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 					{{end}}
-					{{ctx.AvatarUtils.Avatar .verification.SigningUser 16 "tw-mr-2"}}
-					<a href="{{.verification.SigningUser.HomeLink}}"><strong>{{.verification.SigningUser.GetDisplayName}}</strong></a>
+					<span class="tw-inline-flex tw-items-center">
+						{{ctx.AvatarUtils.Avatar .verification.SigningUser 16 "tw-mr-2"}}
+						<a href="{{.verification.SigningUser.HomeLink}}"><strong>{{.verification.SigningUser.GetDisplayName}}</strong></a>
+					</span>
 				{{else}}
-					<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "tw-mr-2"}}</span>
-					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-					{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16 "tw-mr-2"}}
+					<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
+					<span>{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
+					{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16}}
 					<strong>{{.verification.SigningUser.GetDisplayName}}</strong>
 				{{end}}
 			{{else}}
-				<span class="ui text">{{ctx.Locale.Tr .verification.Reason}}</span>
+				<span>{{ctx.Locale.Tr .verification.Reason}}</span>
 			{{end}}
 		</div>
-		<div class="tw-flex tw-items-center">
+		<div class="tw-flex tw-items-center tw-gap-2">
 			{{if .verification.Verified}}
 				{{if ne .verification.SigningUser.ID 0}}
 					{{if .verification.SigningSSHKey}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 						{{.verification.SigningSSHKey.Fingerprint}}
 					{{else}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
 						{{.verification.SigningKey.PaddedKeyID}}
 					{{end}}
 				{{else}}
 					{{if .verification.SigningSSHKey}}
-						<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+						<span data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 						{{.verification.SigningSSHKey.Fingerprint}}
 					{{else}}
-						<span class="ui text tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+						<span data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
 						{{.verification.SigningKey.PaddedKeyID}}
 					{{end}}
 				{{end}}
 			{{else if .verification.Warning}}
 				{{if .verification.SigningSSHKey}}
-					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+					<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 					{{.verification.SigningSSHKey.Fingerprint}}
 				{{else}}
-					<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+					<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
 					{{.verification.SigningKey.PaddedKeyID}}
 				{{end}}
 			{{else}}
 				{{if .verification.SigningKey}}
 					{{if ne .verification.SigningKey.KeyID ""}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
 						{{.verification.SigningKey.PaddedKeyID}}
 					{{end}}
 				{{end}}
 				{{if .verification.SigningSSHKey}}
 					{{if ne .verification.SigningSSHKey.Fingerprint ""}}
-						<span class="ui text tw-mr-2">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+						<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 						{{.verification.SigningSSHKey.Fingerprint}}
 					{{end}}
 				{{end}}

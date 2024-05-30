@@ -23,13 +23,13 @@
 			{{end}}
 		</div>
 
-		<span class="shabox tw-flex tw-items-center tw-gap-2">
+		<span class="tw-flex tw-items-center tw-gap-2">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 			{{if .Signature}}
 				{{template "repo/signature_badge" dict "root" $.root "verification" .Verification}}
 			{{end}}
 			<a href="{{$commitLink}}" rel="nofollow" class="tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
-				<span class="shortsha">{{ShortSha .ID.String}}</span>
+				<span>{{ShortSha .ID.String}}</span>
 			</a>
 		</span>
 	</div>
