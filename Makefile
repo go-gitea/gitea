@@ -223,7 +223,6 @@ help:
 	@echo " - lint-yaml                        lint yaml files"
 	@echo " - lint-spell                       lint spelling"
 	@echo " - lint-spell-fix                   lint spelling and fix issues"
-	@echo " - lint-typescript                  lint for typescript errors"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -375,10 +374,12 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 .PHONY: lint-js
 lint-js: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	npx tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	npx tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -441,10 +442,6 @@ lint-templates: .venv node_modules
 .PHONY: lint-yaml
 lint-yaml: .venv
 	@poetry run yamllint .
-
-.PHONY: lint-typescript
-lint-typescript: node_modules
-	npx tsc
 
 .PHONY: watch
 watch:
