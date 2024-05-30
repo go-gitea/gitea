@@ -4,7 +4,7 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  updateItems = throttle(100, () => {
+  updateItems = throttle(100, () => { // eslint-disable-line unicorn/consistent-function-scoping -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
