@@ -429,18 +429,19 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 	t.Run("SearchService", func(t *testing.T) {
 		cases := []struct {
-			Query           string
-			Skip            int
-			Take            int
-			ExpectedTotal   int64
-			ExpectedResults int
+			Query              string
+			Skip               int
+			Take               int
+			ExpectedTotal      int64
+			ExpectedResults    int
+			ExpectedExactMatch bool
 		}{
-			{"", 0, 0, 4, 4},
-			{"", 0, 10, 4, 4},
-			{"gitea", 0, 10, 0, 0},
-			{"test", 0, 10, 1, 1},
-			{"test", 1, 10, 1, 0},
-			{"almost.similar", 0, 0, 3, 3},
+			{"", 0, 0, 4, 4, false},
+			{"", 0, 10, 4, 4, false},
+			{"gitea", 0, 10, 0, 0, false},
+			{"test", 0, 10, 1, 1, false},
+			{"test", 1, 10, 1, 0, false},
+			{"almost.similar", 0, 0, 3, 3, true},
 		}
 
 		fakePackages := []string{
@@ -499,6 +500,59 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
 				}
+			})
+
+			t.Run("Packages()", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				t.Run("substringof", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
+
+				t.Run("IdEq", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						if c.ExpectedExactMatch {
+							assert.Equal(t, int64(1), result.Count, "case %d: unexpected total hits", i)
+							assert.Len(t, result.Entries, 1, "case %d: unexpected result count", i)
+						} else {
+							assert.Equal(t, int64(0), result.Count, "case %d: unexpected total hits", i)
+							assert.Len(t, result.Entries, 0, "case %d: unexpected result count", i)
+						}
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
 			})
 
 			t.Run("Next", func(t *testing.T) {
