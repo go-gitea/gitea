@@ -38,7 +38,7 @@
 		</div>
 
 		<!-- Milestone -->
-		<div class="ui {{if not ( or .OpenMilestones .ClosedMilestones .OrgOpenMilestones .OrgOpenMilestones)}}disabled{{end}} dropdown jump item">
+		<div class="ui {{if not (or .OpenMilestones .ClosedMilestones .OrgOpenMilestones .OrgOpenMilestones)}}disabled{{end}} dropdown jump item">
 			<span class="text">
 				{{ctx.Locale.Tr "repo.issues.action_milestone"}}
 			</span>

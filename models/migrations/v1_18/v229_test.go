@@ -8,8 +8,8 @@ import (
 
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations/base"
-
 	milestone_model "code.gitea.io/gitea/models/milestone"
+
 	"github.com/stretchr/testify/assert"
 )
 

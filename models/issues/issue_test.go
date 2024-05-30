@@ -13,12 +13,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	milestone_model "code.gitea.io/gitea/models/milestone"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
-	milestone_model "code.gitea.io/gitea/models/milestone"
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )

@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	milestone_service "code.gitea.io/gitea/services/milestone"
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -40,6 +38,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
