@@ -5,9 +5,13 @@ import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
+const initAttr = 'data-contextpopup-init-done';
 
-async function show(e) {
+async function init(e) {
   const link = e.currentTarget;
+  if (link.hasAttribute(initAttr)) return;
+  link.setAttribute(initAttr, 'true');
+
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
   if (!owner) return;
 
@@ -29,7 +33,7 @@ async function show(e) {
     content,
     placement: 'top-start',
     interactive: true,
-    role: 'dialog',
+    role: 'tooltip',
     interactiveBorder: 15,
   });
 
@@ -38,9 +42,9 @@ async function show(e) {
 }
 
 export function attachRefIssueContextPopup(els) {
-  for (const link of els) {
-    link.addEventListener('mouseenter', show);
-    link.addEventListener('focus', show);
+  for (const el of els) {
+    el.addEventListener('mouseenter', init, {once: true});
+    el.addEventListener('focus', init, {once: true});
   }
 }
 
