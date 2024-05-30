@@ -1047,8 +1047,7 @@ func renderHomeCode(ctx *context.Context) {
 			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
 			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
-				ctx.ServerError("FindRecentlyPushedNewBranches", err)
-				return
+				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
 		}
 	}
