@@ -8,6 +8,7 @@ export function initRepoEllipsisButton() {
       const expanded = this.getAttribute('aria-expanded') === 'true';
       toggleElem(this.parentElement.querySelector('.commit-body'));
       this.setAttribute('aria-expanded', String(!expanded));
+      this.closest('.commit-summary').setAttribute('data-expanded', !expanded);
     });
   }
 }

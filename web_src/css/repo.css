@@ -184,16 +184,29 @@ td .commit-summary {
 }
 
 .latest-commit .commit-summary {
-  display: flex;
   overflow: hidden;
+  display: flex;
+  gap: .25rem;
+}
+
+.message-wrapper {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+.latest-commit .commit-summary[data-expanded="true"] {
+  display: block;
+}
+
+.latest-commit .commit-summary[data-expanded="true"] .message-wrapper {
+  white-space: normal;
 }
 
 @media (max-width: 767.98px) {
-  .latest-commit .sha {
+  .latest-commit .commit-hash-link,
+  .latest-commit .signature-badge {
     display: none;
-  }
-  .latest-commit .commit-summary {
-    margin-left: 8px;
   }
 }
 
