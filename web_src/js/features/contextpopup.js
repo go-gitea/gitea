@@ -16,7 +16,10 @@ async function init(e) {
   const url = `${appSubUrl}/${owner}/${repo}/issues/${index}/info`; // backend: GetIssueInfo
   if (link.getAttribute(urlAttribute) === url) return; // link already has a tooltip with this url
 
-  const res = await GET(url);
+  let res;
+  try {
+    res = await GET(url);
+  } catch {}
   if (!res.ok) return;
 
   let issue, labelsHtml;
