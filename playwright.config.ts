@@ -5,7 +5,7 @@ const BASE_URL = env.GITEA_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000'
 
 export default {
   testDir: './tests/e2e/',
-  testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
+  testMatch: /.*\.test\.e2e\.ts/, // Match any .test.e2e.ts files
 
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
