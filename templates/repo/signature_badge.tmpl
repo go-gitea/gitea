@@ -4,8 +4,6 @@
 {{if .verification.Verified}}
 	{{if eq .verification.TrustStatus "trusted"}}
 		<div class="{{$base_classes}} {{$verified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Verified</div>
-	{{else if eq .verification.TrustStatus "untrusted"}}
-		<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
 	{{else}}
 		<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
 	{{end}}
