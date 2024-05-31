@@ -40,7 +40,7 @@ var CmdMigrateStorage = &cli.Command{
 			Name:    "storage",
 			Aliases: []string{"s"},
 			Value:   "",
-			Usage:   "New storage type: local (default) or minio",
+			Usage:   "New storage type: local (default), minio or azureblob",
 		},
 		&cli.StringFlag{
 			Name:    "path",
@@ -48,6 +48,7 @@ var CmdMigrateStorage = &cli.Command{
 			Value:   "",
 			Usage:   "New storage placement if store is local (leave blank for default)",
 		},
+		// Minio Storage special configurations
 		&cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
@@ -95,6 +96,32 @@ var CmdMigrateStorage = &cli.Command{
 			Name:  "minio-bucket-lookup-type",
 			Value: "",
 			Usage: "Minio bucket lookup type",
+		},
+		// Azure Blob Storage special configurations
+		&cli.StringFlag{
+			Name:  "azureblob-endpoint",
+			Value: "",
+			Usage: "Azure Blob storage endpoint",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-account-name",
+			Value: "",
+			Usage: "Azure Blob storage account name",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-account-key",
+			Value: "",
+			Usage: "Azure Blob storage account key",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-container",
+			Value: "",
+			Usage: "Azure Blob storage container",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-base-path",
+			Value: "",
+			Usage: "Azure Blob storage base path",
 		},
 	},
 }
@@ -226,6 +253,18 @@ func runMigrateStorage(ctx *cli.Context) error {
 					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
 					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
 					BucketLookUpType:   ctx.String("minio-bucket-lookup-type"),
+				},
+			})
+	case string(setting.AzureBlobStorageType):
+		dstStorage, err = storage.NewAzureBlobStorage(
+			stdCtx,
+			&setting.Storage{
+				AzureBlobConfig: setting.AzureBlobStorageConfig{
+					Endpoint:    ctx.String("azureblob-endpoint"),
+					AccountName: ctx.String("azureblob-account-name"),
+					AccountKey:  ctx.String("azureblob-account-key"),
+					Container:   ctx.String("azureblob-container"),
+					BasePath:    ctx.String("azureblob-base-path"),
 				},
 			})
 	default:
