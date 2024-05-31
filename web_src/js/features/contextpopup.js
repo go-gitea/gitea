@@ -5,50 +5,56 @@ import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
-const urlAttribute = 'data-issue-ref-url';
 
 async function attach(e) {
   const link = e.currentTarget;
 
   // ignore external issues
   if (link.classList.contains('ref-external-issue')) return;
+  // ignore links that are already loading
+  if (link.hasAttribute('data-issue-ref-loading')) return;
 
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
   if (!owner) return;
 
   const url = `${appSubUrl}/${owner}/${repo}/issues/${index}/info`; // backend: GetIssueInfo
-  if (link.getAttribute(urlAttribute) === url) return; // link already has a tooltip with this url
+  if (link.getAttribute('data-issue-ref-url') === url) return; // link already has a tooltip with this url
 
-  let res;
   try {
-    res = await GET(url);
-  } catch {}
-  if (!res.ok) return;
+    link.setAttribute('data-issue-ref-loading', 'true');
+    let res;
+    try {
+      res = await GET(url);
+    } catch {}
+    if (!res.ok) return;
 
-  let issue, labelsHtml;
-  try {
-    ({issue, labelsHtml} = await res.json());
-  } catch {}
-  if (!issue) return;
+    let issue, labelsHtml;
+    try {
+      ({issue, labelsHtml} = await res.json());
+    } catch {}
+    if (!issue) return;
 
-  const content = createVueRoot(ContextPopup, {issue, labelsHtml});
-  if (!content) return;
+    const content = createVueRoot(ContextPopup, {issue, labelsHtml});
+    if (!content) return;
 
-  const tippy = createTippy(link, {
-    theme: 'default',
-    trigger: 'mouseenter focus',
-    content,
-    placement: 'top-start',
-    interactive: true,
-    role: 'tooltip',
-    interactiveBorder: 15,
-  });
+    const tippy = createTippy(link, {
+      theme: 'default',
+      trigger: 'mouseenter focus',
+      content,
+      placement: 'top-start',
+      interactive: true,
+      role: 'tooltip',
+      interactiveBorder: 15,
+    });
 
-  // set attribute on the link that indicates which url the tooltip currently renders
-  link.setAttribute(urlAttribute, url);
+    // set attribute on the link that indicates which url the tooltip currently renders
+    link.setAttribute('data-issue-ref-url', url);
 
-  // show immediately because this runs during mouseenter and focus
-  tippy.show();
+    // show immediately because this runs during mouseenter and focus
+    tippy.show();
+  } finally {
+    link.removeAttribute('data-issue-ref-loading');
+  }
 }
 
 export function attachRefIssueContextPopup(els) {
