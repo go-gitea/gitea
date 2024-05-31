@@ -38,6 +38,7 @@ async function init(e) {
     interactiveBorder: 15,
   });
 
+  // set attribute on the link that indicates which url the tooltip currently renders
   link.setAttribute(urlAttribute, url);
 
   // show immediately because this runs during mouseenter and focus
