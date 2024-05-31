@@ -32,7 +32,7 @@ func IsRelativeURL(s string) bool {
 	return err == nil && urlIsRelative(s, u)
 }
 
-func guessRequestScheme(req *http.Request, def string) string {
+func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
 	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
 		return s
@@ -49,10 +49,10 @@ func guessRequestScheme(req *http.Request, def string) string {
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
 		return util.Iif(s == "on", "https", "http")
 	}
-	return def
+	return ""
 }
 
-func guessForwardedHost(req *http.Request) string {
+func getForwardedHost(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
 	return req.Header.Get("X-Forwarded-Host")
 }
@@ -63,15 +63,24 @@ func GuessCurrentAppURL(ctx context.Context) string {
 	if !ok {
 		return setting.AppURL
 	}
-	if host := guessForwardedHost(req); host != "" {
-		// if it is behind a reverse proxy, use "https" as default scheme in case the site admin forgets to set the correct forwarded-protocol headers
-		return guessRequestScheme(req, "https") + "://" + host + setting.AppSubURL + "/"
-	} else if req.Host != "" {
-		// if it is not behind a reverse proxy, use the scheme from config options, meanwhile use "https" as much as possible
-		defaultScheme := util.Iif(setting.Protocol == "http", "http", "https")
-		return guessRequestScheme(req, defaultScheme) + "://" + req.Host + setting.AppSubURL + "/"
+	// If no scheme provided by reverse proxy, then do not guess the AppURL, use the configured one.
+	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
+	// There are some cases:
+	// 1. The reverse proxy is configured correctly, it passes "X-Forwarded-Proto/Host" headers. Perfect, Gitea can handle it correctly.
+	// 2. The reverse proxy is not configured correctly, doesn't pass "X-Forwarded-Proto/Host" headers, eg: only one "proxy_pass http://gitea:3000" in Nginx.
+	// 3. There is no reverse proxy.
+	// Without an extra config option, Gitea is impossible to distinguish between case 2 and case 3,
+	// then case 2 would result in wrong guess like guessed AppURL becomes "http://gitea:3000/", which is not accessible by end users.
+	// So in the future maybe it should introduce a new config option, to let site admin decide how to guess the AppURL.
+	reqScheme := getRequestScheme(req)
+	if reqScheme == "" {
+		return setting.AppURL
 	}
-	return setting.AppURL
+	reqHost := getForwardedHost(req)
+	if reqHost == "" {
+		reqHost = req.Host
+	}
+	return reqScheme + "://" + reqHost + setting.AppSubURL + "/"
 }
 
 func MakeAbsoluteURL(ctx context.Context, s string) string {

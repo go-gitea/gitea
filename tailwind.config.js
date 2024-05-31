@@ -66,7 +66,7 @@ export default {
       'xl': '12px',
       '2xl': '16px',
       '3xl': '24px',
-      'full': 'var(--border-radius-circle)', // 50%
+      'full': 'var(--border-radius-full)',
     },
     fontFamily: {
       sans: 'var(--fonts-regular)',
