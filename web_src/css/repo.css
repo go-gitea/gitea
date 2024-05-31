@@ -185,6 +185,7 @@ td .commit-summary {
 .latest-commit {
   display: flex;
   flex: 1;
+  gap: .25rem;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;

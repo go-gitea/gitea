@@ -744,6 +744,10 @@ input:-webkit-autofill:active,
   font-size: var(--font-size-mono);
 }
 
+.commit-hash-link:hover {
+  color: inherit;
+}
+
 .ui .button.truncate {
   display: inline-block;
   max-width: 100%;
