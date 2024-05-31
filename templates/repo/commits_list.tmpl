@@ -20,7 +20,7 @@
 						<pre class="commit-body tw-hidden tw-text-xs tw-mt-2">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
 					</div>
-					<div class="author tw-row-start-2">
+					<div class="author tw-row-start-2 tw-text-text-light-2">
 						<div class="tw-flex tw-items-center tw-gap-1">
 							{{$userName := .Author.Name}}
 							{{if .User}}
