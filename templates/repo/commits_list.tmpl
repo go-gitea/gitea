@@ -53,9 +53,7 @@
 							{{else if $.Reponame}}
 								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
-							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="commit-hash-link tw-p-2 hover:tw-bg-hover hover:tw-no-underline tw-rounded-lg">
-								<span>{{ShortSha .ID.String}}</span>
-							</a>
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="commit-hash-link tw-p-2 hover:tw-bg-hover hover:tw-no-underline tw-rounded-lg">{{ShortSha .ID.String}}</a>
 						</div>
 						<div class="text right aligned tw-py-0">
 							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>

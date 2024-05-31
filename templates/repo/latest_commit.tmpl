@@ -28,7 +28,5 @@
 	{{if .LatestCommit.Signature}}
 		{{template "repo/signature_badge" dict "root" $ "verification" .LatestCommitVerification "shortsha" (ShortSha .LatestCommit.ID.String)}}
 	{{end}}
-	<a rel="nofollow" class="commit-hash-link tw-p-2" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
-		<span>{{ShortSha .LatestCommit.ID.String}}</span>
-	</a>
+	<a rel="nofollow" class="commit-hash-link tw-p-2" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">{{ShortSha .LatestCommit.ID.String}}</a>
 {{end}}

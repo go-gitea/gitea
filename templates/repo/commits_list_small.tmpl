@@ -28,9 +28,7 @@
 			{{if .Signature}}
 				{{template "repo/signature_badge" dict "root" $.root "verification" .Verification}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="commit-hash-link tw-p-2 hover:tw-bg-hover hover:tw-no-underline tw-rounded-lg">
-				<span>{{ShortSha .ID.String}}</span>
-			</a>
+			<a href="{{$commitLink}}" rel="nofollow" class="commit-hash-link tw-p-2 hover:tw-bg-hover hover:tw-no-underline tw-rounded-lg">{{ShortSha .ID.String}}</a>
 		</span>
 	</div>
 	{{if IsMultilineCommitMessage .Message}}
