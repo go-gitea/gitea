@@ -169,14 +169,6 @@
   margin-bottom: 5px;
 }
 
-.commit-summary {
-  flex: 1;
-  overflow-wrap: anywhere;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .commit-header .commit-summary,
 td .commit-summary {
   white-space: normal;
@@ -189,6 +181,11 @@ td .commit-summary {
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.latest-commit .commit-summary {
+  display: flex;
+  overflow: hidden;
 }
 
 @media (max-width: 767.98px) {
@@ -1989,68 +1986,6 @@ td .commit-summary {
   .repo-button-row-left {
     flex-wrap: wrap;
   }
-}
-
-tbody.commit-list {
-  vertical-align: baseline;
-}
-
-.message-wrapper,
-.author-wrapper {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.author-wrapper {
-  max-width: 180px;
-  align-self: center;
-  white-space: nowrap;
-}
-
-/* in the commit list, messages can wrap so we can use inline */
-.commit-list .message-wrapper {
-  display: inline;
-  overflow-wrap: anywhere;
-}
-
-/* but in the repo-files-table we cannot */
-#repo-files-table .commit-list .message-wrapper {
-  display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  tr.commit-list {
-    width: 100%;
-  }
-  .author-wrapper {
-    max-width: 80px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  tr.commit-list {
-    width: 723px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  tr.commit-list {
-    width: 933px;
-  }
-}
-
-@media (min-width: 1201px) {
-  tr.commit-list {
-    width: 1127px;
-  }
-}
-
-.commit-list .commit-status-link {
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .commit-body {

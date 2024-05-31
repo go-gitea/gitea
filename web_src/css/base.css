@@ -1271,6 +1271,7 @@ table th[data-sortt-desc] .svg {
   font-weight: var(--font-weight-semibold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
+  flex-shrink: 0;
 }
 
 .truncated-item-name {
