@@ -177,16 +177,18 @@ td .commit-summary {
 .latest-commit {
   display: flex;
   flex: 1;
-  gap: .25rem;
+  gap: 4px;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-left: 2px;
 }
 
 .latest-commit .commit-summary {
   overflow: hidden;
   display: flex;
-  gap: .25rem;
+  gap: 4px;
+  margin: 0 2px;
 }
 
 .message-wrapper {
