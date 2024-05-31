@@ -58,9 +58,6 @@ overrides:
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
-  - files: ["tests/e2e/**"]
-    plugins: [eslint-plugin-playwright]
-    extends: plugin:playwright/recommended
   - files: ["**/*.test.*", "web_src/js/test/setup.js"]
     env:
       vitest-globals/env: true
@@ -129,6 +126,9 @@ overrides:
       vue/html-closing-bracket-spacing: [2, {startTag: never, endTag: never, selfClosingTag: never}]
       vue/max-attributes-per-line: [0]
       vue/singleline-html-element-content-newline: [0]
+  - files: ["tests/e2e/**"]
+    plugins: [eslint-plugin-playwright]
+    extends: plugin:playwright/recommended
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
