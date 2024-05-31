@@ -12,6 +12,10 @@ export default {
       type: String,
       default: '',
     },
+    repoUrl: {
+      type: String,
+      default: '',
+    },
   },
   computed: {
     createdAt() {
@@ -61,7 +65,9 @@ export default {
 </script>
 <template>
   <div class="tw-p-3 tw-flex tw-flex-col tw-gap-2">
-    <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
+    <div class="tw-text-12">
+      <a class="muted" :href="repoUrl">{{ issue.repository.full_name }}</a> on {{ createdAt }}
+    </div>
     <div class="flex-text-block tw-gap-2">
       <svg-icon :name="icon" :class="['text', color]"/>
       <span class="issue-title tw-font-semibold tw-break-anywhere">

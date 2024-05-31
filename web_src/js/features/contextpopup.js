@@ -34,7 +34,8 @@ async function attach(e) {
     } catch {}
     if (!issue) return;
 
-    const content = createVueRoot(ContextPopup, {issue, labelsHtml});
+    const repoUrl = `${appSubUrl}/${owner}/${repo}`;
+    const content = createVueRoot(ContextPopup, {issue, labelsHtml, repoUrl});
     if (!content) return;
 
     const tippy = createTippy(link, {
