@@ -46,7 +46,6 @@ func Init(ph *ProcessorHelper) {
 		DefaultProcessorHelper = *ph
 	}
 
-	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
