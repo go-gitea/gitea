@@ -90,7 +90,7 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 func (repo *Repository) AvatarLink(ctx context.Context) string {
 	relLink := repo.relAvatarLink(ctx)
 	if relLink != "" {
-		return httplib.MakeAbsoluteURL(ctx, repo.relAvatarLink(ctx))
+		return httplib.MakeAbsoluteURL(ctx, relLink)
 	}
 	return ""
 }
