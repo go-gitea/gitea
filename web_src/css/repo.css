@@ -191,7 +191,12 @@ td .commit-summary {
   margin: 0 2px;
 }
 
-.message-wrapper {
+.author-wrapper {
+  max-width: 180px;
+  flex-shrink: 0;
+}
+
+.message-wrapper, .author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   overflow-wrap: anywhere;
