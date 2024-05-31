@@ -7,7 +7,7 @@ import {GET} from '../modules/fetch.js';
 const {appSubUrl} = window.config;
 const urlAttribute = 'data-issue-ref-url';
 
-async function init(e) {
+async function attach(e) {
   const link = e.currentTarget;
   if (link.classList.contains('ref-external-issue')) return;
 
@@ -51,8 +51,8 @@ async function init(e) {
 
 export function attachRefIssueContextPopup(els) {
   for (const el of els) {
-    el.addEventListener('mouseenter', init);
-    el.addEventListener('focus', init);
+    el.addEventListener('mouseenter', attach);
+    el.addEventListener('focus', attach);
   }
 }
 
