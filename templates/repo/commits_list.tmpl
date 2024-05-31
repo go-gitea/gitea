@@ -53,7 +53,7 @@
 							{{else if $.Reponame}}
 								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
-							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="commit-hash-link tw-text-inherit tw-p-2 hover:tw-bg-box-body-highlight tw-rounded-lg">
 								<span>{{ShortSha .ID.String}}</span>
 							</a>
 						</div>

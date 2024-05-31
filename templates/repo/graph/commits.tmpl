@@ -6,7 +6,7 @@
 					<span></span>
 				{{else}}
 					<span id="{{$commit.ShortRev}}">
-						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="tw-text-inherit">
+						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="commit-hash-link">
 							<span>{{ShortSha $commit.Commit.ID.String}}</span>
 						</a>
 					</span>

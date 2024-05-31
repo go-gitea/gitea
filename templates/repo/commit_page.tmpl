@@ -1,4 +1,8 @@
 {{template "base/head" .}}
+{{$hashLinkSubPath := ""}}
+{{if $.PageIsWiki}}
+	{{$hashLinkSubPath := "/wiki"}}
+{{end}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
@@ -152,22 +156,18 @@
 						{{template "repo/signature_badge" dict "root" $ "verification" .Verification "shortsha" (ShortSha .Commit.ID.String)}}
 					{{end}}
 				</div>
-				<div class="tw-flex tw-items-center">
+				<div class="tw-flex tw-items-center tw-gap-5 tw-py-3">
 					{{if .Parents}}
-						<div>
+						<div class="tw-flex tw-gap-2">
 							<span>{{ctx.Locale.Tr "repo.diff.parent"}}</span>
 							{{range .Parents}}
-								{{if $.PageIsWiki}}
-									<a class="ui primary sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
-								{{else}}
-									<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
-								{{end}}
+								<a class="commit-hash-link" href="{{$.RepoLink}}{{$hashLinkSubPath}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 							{{end}}
 						</div>
 					{{end}}
-					<div class="item">
+					<div class="tw-flex tw-gap-2">
 						<span>{{ctx.Locale.Tr "repo.diff.commit"}}</span>
-						<span class="ui primary sha label">{{ShortSha .CommitID}}</span>
+						<a class="commit-hash-link" href="{{$.RepoLink}}{{$hashLinkSubPath}}/commit/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
 					</div>
 				</div>
 		</div>
