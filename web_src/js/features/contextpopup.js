@@ -5,15 +5,18 @@ import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
+const urlAttribute = 'data-issue-ref-url';
 
 async function init(e) {
   const link = e.currentTarget;
-  if (link._tippy) return; // link already has a tooltip
 
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
   if (!owner) return;
 
-  const res = await GET(`${appSubUrl}/${owner}/${repo}/issues/${index}/info`); // backend: GetIssueInfo
+  const url = `${appSubUrl}/${owner}/${repo}/issues/${index}/info`; // backend: GetIssueInfo
+  if (link.getAttribute(urlAttribute) === url) return; // link already has a tooltip with this url
+
+  const res = await GET(url);
   if (!res.ok) return;
 
   let issue, labelsHtml;
@@ -34,6 +37,8 @@ async function init(e) {
     role: 'tooltip',
     interactiveBorder: 15,
   });
+
+  link.setAttribute(urlAttribute, url);
 
   // show immediately because this runs during mouseenter and focus
   tippy.show();
