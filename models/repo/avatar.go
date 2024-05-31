@@ -89,7 +89,7 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 // TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (repo *Repository) AvatarLink(ctx context.Context) string {
 	relLink := repo.relAvatarLink(ctx)
-	if len(relLink) > 0 {
+	if relLink != "" {
 		return httplib.MakeAbsoluteURL(ctx, repo.relAvatarLink(ctx))
 	}
 	return ""
