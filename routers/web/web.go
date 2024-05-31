@@ -1125,6 +1125,9 @@ func registerRoutes(m *web.Route) {
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
@@ -1235,8 +1238,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
-
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
