@@ -9,6 +9,8 @@ const urlAttribute = 'data-issue-ref-url';
 
 async function attach(e) {
   const link = e.currentTarget;
+
+  // ignore external issues
   if (link.classList.contains('ref-external-issue')) return;
 
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
