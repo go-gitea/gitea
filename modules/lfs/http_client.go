@@ -251,6 +251,6 @@ func handleErrorResponse(resp *http.Response) error {
 		return err
 	}
 
-	log.Trace("ErrorResponse: %v", er)
+	log.Trace("ErrorResponse(%v): %v", resp.Status, er)
 	return errors.New(er.Message)
 }
