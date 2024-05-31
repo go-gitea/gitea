@@ -200,6 +200,7 @@ td .commit-summary {
   overflow: hidden;
   text-overflow: ellipsis;
   overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .latest-commit .commit-summary[data-expanded="true"] {
