@@ -58,6 +58,9 @@ overrides:
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
+  - files: ["tests/e2e/**"]
+    plugins: [eslint-plugin-playwright]
+    extends: plugin:playwright/recommended
   - files: ["**/*.test.*", "web_src/js/test/setup.js"]
     env:
       vitest-globals/env: true

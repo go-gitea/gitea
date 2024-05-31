@@ -1,4 +1,5 @@
 import {expect} from '@playwright/test';
+import {env} from 'node:process';
 
 const ARTIFACTS_PATH = `tests/e2e/test-artifacts`;
 const LOGIN_PASSWORD = 'password';
@@ -20,7 +21,7 @@ export async function login_user(browser, workerInfo, user) {
   await page.type('input[name=password]', LOGIN_PASSWORD);
   await page.click('form button.ui.primary.button:visible');
 
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
   await expect(page.url(), {message: `Failed to login user ${user}`}).toBe(`${workerInfo.project.use.baseURL}/`);
 
@@ -44,8 +45,8 @@ export async function load_logged_in_context(browser, workerInfo, user) {
 
 export async function save_visual(page) {
   // Optionally include visual testing
-  if (process.env.VISUAL_TEST) {
-    await page.waitForLoadState('networkidle');
+  if (env.VISUAL_TEST) {
+    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
     // Mock page/version string
     await page.locator('footer div.ui.left').evaluate((node) => node.innerHTML = 'MOCK');
     await expect(page).toHaveScreenshot({

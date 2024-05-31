@@ -77,6 +77,7 @@
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-no-jquery": "2.7.0",
     "eslint-plugin-no-use-extend-native": "0.5.0",
+    "eslint-plugin-playwright": "1.6.2",
     "eslint-plugin-regexp": "2.6.0",
     "eslint-plugin-sonarjs": "1.0.3",
     "eslint-plugin-unicorn": "53.0.0",

@@ -1,12 +1,8 @@
-// @ts-check
 import {devices} from '@playwright/test';
+import {env} from 'node:process';
 
-const BASE_URL = process.env.GITEA_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000';
+const BASE_URL = env.GITEA_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000';
 
-/**
- * @see https://playwright.dev/docs/test-configuration
- * @type {import('@playwright/test').PlaywrightTestConfig}
- */
 export default {
   testDir: './tests/e2e/',
   testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
@@ -24,13 +20,13 @@ export default {
   },
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: Boolean(process.env.CI),
+  forbidOnly: Boolean(env.CI),
 
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: env.CI ? 2 : 0,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI ? 'list' : [['list'], ['html', {outputFolder: 'tests/e2e/reports/', open: 'never'}]],
+  reporter: env.CI ? 'list' : [['list'], ['html', {outputFolder: 'tests/e2e/reports/', open: 'never'}]],
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
