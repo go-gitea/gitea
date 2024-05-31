@@ -18,7 +18,7 @@ async function attach(e) {
   if (!owner) return;
 
   const url = `${appSubUrl}/${owner}/${repo}/issues/${index}/info`; // backend: GetIssueInfo
-  if (link.getAttribute('data-issue-ref-url') === url) return; // link already has a tooltip with this url
+  if (link.getAttribute('data-issue-ref-info-url') === url) return; // link already has a tooltip with this url
 
   try {
     link.setAttribute('data-issue-ref-loading', 'true');
@@ -48,7 +48,7 @@ async function attach(e) {
     });
 
     // set attribute on the link that indicates which url the tooltip currently renders
-    link.setAttribute('data-issue-ref-url', url);
+    link.setAttribute('data-issue-ref-info-url', url);
 
     // show immediately because this runs during mouseenter and focus
     tippy.show();
