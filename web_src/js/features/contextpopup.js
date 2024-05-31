@@ -9,6 +9,7 @@ const urlAttribute = 'data-issue-ref-url';
 
 async function init(e) {
   const link = e.currentTarget;
+  if (link.classList.contains('ref-external-issue')) return;
 
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
   if (!owner) return;
@@ -57,5 +58,5 @@ export function attachRefIssueContextPopup(els) {
 
 export function initContextPopups() {
   // TODO: Use MutationObserver to detect newly inserted .ref-issue
-  attachRefIssueContextPopup(document.querySelectorAll('.ref-issue:not(.ref-external-issue)'));
+  attachRefIssueContextPopup(document.querySelectorAll('.ref-issue'));
 }
