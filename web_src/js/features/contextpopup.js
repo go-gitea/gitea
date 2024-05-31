@@ -5,12 +5,10 @@ import {createTippy} from '../modules/tippy.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
-const initAttr = 'data-contextpopup-init-done';
 
 async function init(e) {
   const link = e.currentTarget;
-  if (link.hasAttribute(initAttr)) return;
-  link.setAttribute(initAttr, 'true');
+  if (link._tippy) return; // link already has a tooltip
 
   const {owner, repo, index} = parseIssueHref(link.getAttribute('href'));
   if (!owner) return;
@@ -43,8 +41,8 @@ async function init(e) {
 
 export function attachRefIssueContextPopup(els) {
   for (const el of els) {
-    el.addEventListener('mouseenter', init, {once: true});
-    el.addEventListener('focus', init, {once: true});
+    el.addEventListener('mouseenter', init);
+    el.addEventListener('focus', init);
   }
 }
 
