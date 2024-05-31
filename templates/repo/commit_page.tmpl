@@ -129,27 +129,27 @@
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 		<div class="ui bottom attached segment tw-flex tw-items-center tw-justify-between tw-py-1 commit-header-row tw-flex-wrap">
-				<div class="tw-flex tw-items-center author">
+				<div class="author tw-flex tw-items-center tw-gap-1">
 					{{if .Author}}
-						{{ctx.AvatarUtils.Avatar .Author 28 "tw-mr-2"}}
+						{{ctx.AvatarUtils.Avatar .Author 20}}
 						{{if .Author.FullName}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
 						{{else}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
 					{{else}}
-						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "tw-mr-2"}}
+						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey tw-mx-2" id="authored-time">{{TimeSince .Commit.Author.When ctx.Locale}}</span>
+					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When ctx.Locale}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-						<span class="text grey tw-mr-2">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
+						<span class="text grey">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
-							{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 28 "tw-mr-2"}}
-							<a href="{{.Verification.CommittingUser.HomeLink}}" class="tw-mr-2"><strong>{{.Commit.Committer.Name}}</strong></a>
+							{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
+							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 						{{else}}
-							{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 28 "tw-mr-2"}}
-							<strong class="tw-mr-2">{{.Commit.Committer.Name}}</strong>
+							{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 20}}
+							<strong>{{.Commit.Committer.Name}}</strong>
 						{{end}}
 					{{end}}
 					{{if .Commit.Signature}}
@@ -173,7 +173,7 @@
 		</div>
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
-				{{svg "octicon-note" 16 "tw-mr-2"}}
+				{{svg "octicon-note" 16}}
 				{{ctx.Locale.Tr "repo.diff.git-notes"}}:
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">

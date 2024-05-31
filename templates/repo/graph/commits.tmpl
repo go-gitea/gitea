@@ -1,7 +1,7 @@
 <div id="rev-container">
 	<ul id="rev-list">
 		{{range $commitI, $commit := .Graph.Commits}}
-			<li {{if $commit.Rev}}id="commit-{{$commit.Rev}}"{{end}} data-flow="{{$commit.Flow}}">
+			<li {{if $commit.Rev}}id="commit-{{$commit.Rev}}"{{end}} class="tw-flex tw-gap-2" data-flow="{{$commit.Flow}}">
 				{{if $commit.OnlyRelation}}
 					<span></span>
 				{{else}}
@@ -9,14 +9,14 @@
 						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="commit-hash-link">{{ShortSha $commit.Commit.ID.String}}</a>
 					</span>
 					{{- if $commit.Commit.Signature -}}
-						<span class="tw-mx-2 tw-leading-5">
+						<span class="tw-leading-5">
 							{{template "repo/signature_badge" dict "root" $ "verification" $commit.Verification "shortsha" (ShortSha $commit.Commit.ID.String)}}
 						</span>
 					{{- end -}}
-					<span class="tw-inline-block gt-ellipsis tw-mr-2">
+					<span class="tw-inline-block gt-ellipsis">
 						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
-					<span class="commit-refs tw-flex tw-items-center tw-mr-1">
+					<span class="commit-refs tw-flex tw-items-center">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
@@ -43,7 +43,7 @@
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author tw-flex tw-items-center tw-mr-2">
+					<span class="author tw-flex tw-items-center">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if and $commit.User.FullName DefaultShowFullName}}

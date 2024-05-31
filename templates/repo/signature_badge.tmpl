@@ -11,12 +11,12 @@
 	<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
 {{end}}
 <div class="ui small modal" id="{{.shortsha}}-verification-modal">
-	<div class="header tw-flex tw-items-center">
+	<div class="header tw-flex tw-items-center tw-gap-2">
 		{{if and .verification.Verified (eq .verification.TrustStatus "trusted")}}
-			{{svg "octicon-verified" 20 "tw-mr-2"}}
+			{{svg "octicon-verified" 20}}
 			{{ctx.Locale.Tr "verified_commit"}}
 		{{else}}
-			{{svg "octicon-unverified" 20 "tw-mr-2"}}
+			{{svg "octicon-unverified" 20}}
 			{{ctx.Locale.Tr "unverified_commit"}}
 		{{end}}
 	</div>
@@ -33,15 +33,17 @@
 							{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:
 						{{end}}
 					</span>
-					<span class="tw-inline-flex tw-items-center">
-						{{ctx.AvatarUtils.Avatar .verification.SigningUser 16 "tw-mr-2"}}
+					<span class="tw-inline-flex tw-items-center tw-gap-2">
+						{{ctx.AvatarUtils.Avatar .verification.SigningUser 16}}
 						<a href="{{.verification.SigningUser.HomeLink}}"><strong>{{.verification.SigningUser.GetDisplayName}}</strong></a>
 					</span>
 				{{else}}
 					<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
 					<span>{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-					{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16}}
-					<strong>{{.verification.SigningUser.GetDisplayName}}</strong>
+					<span class="tw-inline-flex tw-items-center tw-gap-2">
+						{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16}}
+						<strong>{{.verification.SigningUser.GetDisplayName}}</strong>
+					</span>
 				{{end}}
 			{{else}}
 				<span>{{ctx.Locale.Tr .verification.Reason}}</span>

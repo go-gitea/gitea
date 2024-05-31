@@ -27,9 +27,9 @@
 								{{if and .User.FullName DefaultShowFullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 20 "tw-mr-1"}}<a class="muted author-wrapper tw-max-w-full" href="{{.User.HomeLink}}">{{$userName}},</a>
+								{{ctx.AvatarUtils.Avatar .User 20}}<a class="muted author-wrapper tw-max-w-full" href="{{.User.HomeLink}}">{{$userName}},</a>
 							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "tw-mr-1"}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20}}
 								<span class="author-wrapper tw-max-w-full">{{$userName}},</span>
 							{{end}}
 							{{if .Committer}}
