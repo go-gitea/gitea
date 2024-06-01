@@ -169,13 +169,18 @@ func TestRender_links(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
-	// Text that should be turned into URL
 
-	defaultCustom := setting.Markdown.CustomURLSchemes
+	oldCustomURLSchemes := setting.Markdown.CustomURLSchemes
+	markup.ResetDefaultSanitizerForTesting()
+	defer func() {
+		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
+		markup.ResetDefaultSanitizerForTesting()
+		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	markup.InitializeSanitizer()
 	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
+	// Text that should be turned into URL
 	test(
 		"https://www.example.com",
 		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
@@ -259,11 +264,6 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
-
-	// Restore previous settings
-	setting.Markdown.CustomURLSchemes = defaultCustom
-	markup.InitializeSanitizer()
-	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
 func TestRender_email(t *testing.T) {
