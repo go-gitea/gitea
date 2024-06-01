@@ -846,3 +846,100 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
+
+func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// create a pull request
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		dstPath := t.TempDir()
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		t.Run("Clone", doGitClone(dstPath, u))
+
+		standardCommitAndPushTest(t, dstPath)
+		doCreateAgitFlowPull(dstPath, &baseAPITestContext, "test/head2")(t)
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: baseRepo.ID,
+			BaseBranch: "master",
+			HeadRepoID: baseRepo.ID,
+			HeadBranch: "test/head2",
+		})
+
+		session := loginUser(t, "user1")
+		// add protected branch for commit status
+		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		// Change master branch to protected
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"_csrf":                 csrf,
+			"rule_name":             "master",
+			"enable_push":           "true",
+			"enable_status_check":   "true",
+			"status_check_contexts": "gitea/actions",
+			"required_approvals":    "1",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		// first time insert automerge record, return true
+		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
+		assert.NoError(t, err)
+		assert.True(t, scheduled)
+
+		// second time insert automerge record, return false because it does exist
+		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test")
+		assert.Error(t, err)
+		assert.False(t, scheduled)
+
+		// reload pr again
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.False(t, pr.HasMerged)
+		assert.Empty(t, pr.MergedCommitID)
+
+		// update commit status to success, then it should be merged automatically
+		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		assert.NoError(t, err)
+		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+		assert.NoError(t, err)
+		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		assert.NoError(t, err)
+		baseGitRepo.Close()
+		defer func() {
+			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+		}()
+
+		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
+			State:     api.CommitStatusSuccess,
+			TargetURL: "https://gitea.com",
+			Context:   "gitea/actions",
+		})
+		assert.NoError(t, err)
+
+		time.Sleep(2 * time.Second)
+
+		// reload pr again
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.False(t, pr.HasMerged)
+		assert.Empty(t, pr.MergedCommitID)
+
+		// approve the PR from non-author
+		approveSession := loginUser(t, "user1")
+		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
+		resp := approveSession.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+
+		time.Sleep(2 * time.Second)
+
+		// realod pr again
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.True(t, pr.HasMerged)
+		assert.NotEmpty(t, pr.MergedCommitID)
+
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	})
+}
