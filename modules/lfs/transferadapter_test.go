@@ -28,7 +28,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 
 	roundTripHandler := func(req *http.Request) *http.Response {
 		if !downloadTestFlag {
-			assert.Equal(t, MediaType, req.Header.Get("Accept"))
+			assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 		}
 		assert.Equal(t, "test-value", req.Header.Get("test-header"))
 

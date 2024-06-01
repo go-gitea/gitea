@@ -211,7 +211,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	req.Header.Set("Accept", MediaType)
+	req.Header.Set("Accept", AcceptHeader)
 
 	return req, nil
 }
