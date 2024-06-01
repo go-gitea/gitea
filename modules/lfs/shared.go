@@ -9,7 +9,8 @@ import (
 
 const (
 	// MediaType contains the media type for LFS server requests
-	MediaType    = "application/vnd.git-lfs+json"
+	MediaType = "application/vnd.git-lfs+json"
+	// Some LFS server might offer content with other types, so open with */*
 	AcceptHeader = "application/vnd.git-lfs+json;q=0.9, */*;q=0.8"
 )
 
