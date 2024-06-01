@@ -80,6 +80,8 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				"PullRequestPosterName":  pr.Issue.Poster.Name,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
+				"ReviewedOnTrailer":      reviewedOnTrailer,
+				"ReviewedByTrailer":      reviewedByTrailer,
 			}
 			if pr.HeadRepo != nil {
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
