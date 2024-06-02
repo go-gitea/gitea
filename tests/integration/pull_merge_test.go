@@ -859,8 +859,38 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
-		standardCommitAndPushTest(t, dstPath)
-		doCreateAgitFlowPull(dstPath, &baseAPITestContext, "test/head2")(t)
+		err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
+		assert.NoError(t, err)
+
+		err = git.AddChanges(dstPath, true)
+		assert.NoError(t, err)
+
+		err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "user2",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "user2",
+				When:  time.Now(),
+			},
+			Message: "Testing commit 1",
+		})
+		assert.NoError(t, err)
+
+		stderrBuf := &bytes.Buffer{}
+
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").
+			AddDynamicArguments("topic=test/head2").
+			AddArguments("-o").
+			AddDynamicArguments("title='create a test pull request with agit'").
+			AddArguments("-o").
+			AddDynamicArguments("description='This PR is a test pull request which created with agit'").
+			Run(&git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
+		assert.NoError(t, err)
+		assert.Empty(t, stderrBuf.String())
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
