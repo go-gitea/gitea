@@ -1827,7 +1827,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
-			if !canWriteToHeadRepo { // maintainers allowed to push head repo will show merge instructions
+			if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
 				canWriteToHeadRepo = pull.AllowMaintainerEdit && perm.CanWrite(unit.TypeCode)
 			}
 			allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
