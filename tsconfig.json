@@ -8,7 +8,6 @@
   "exclude": [
     "**/.git/**",
     "**/.venv/**",
-    "**/node_modules/**",
     "**/vendor/**",
   ],
   "compilerOptions": {
