@@ -14,7 +14,7 @@
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
 			</div>
-			<a class="issue-card-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
+			<a class="issue-card-title muted issue-title tw-break-anywhere" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
 				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
