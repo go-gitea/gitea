@@ -19,7 +19,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -37,13 +39,14 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	req := &http.Request{Method: method, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
+	req := &http.Request{Method: method, Host: requestURL.Host, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
 	req = req.WithContext(middleware.WithContextData(req.Context()))
 	return req
 }
 
 type MockContextOption struct {
-	Render context.Render
+	Render       context.Render
+	SessionStore *session.MockStore
 }
 
 // MockContext mock context for unit tests
@@ -62,12 +65,17 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 
+	chiCtx := chi.NewRouteContext()
 	ctx := context.NewWebContext(base, opt.Render, nil)
 	ctx.AppendContextValue(context.WebContextKey, ctx)
+	ctx.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	if opt.SessionStore != nil {
+		ctx.AppendContextValue(session.MockStoreContextKey, opt.SessionStore)
+		ctx.Session = opt.SessionStore
+	}
+	ctx.Cache = cache.GetCache()
 	ctx.PageData = map[string]any{}
 	ctx.Data["PageStartTime"] = time.Now()
-	chiCtx := chi.NewRouteContext()
-	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
 }
 
@@ -81,6 +89,19 @@ func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptes
 	ctx := &context.APIContext{Base: base}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
+	chiCtx := chi.NewRouteContext()
+	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	return ctx, resp
+}
+
+func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.GetContextData(req.Context())
+	base.Locale = &translation.MockLocale{}
+	ctx := &context.PrivateContext{Base: base}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp

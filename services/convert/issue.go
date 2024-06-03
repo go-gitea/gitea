@@ -31,13 +31,13 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 }
 
 func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
-	if err := issue.LoadLabels(ctx); err != nil {
-		return &api.Issue{}
-	}
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if err := issue.LoadAttachments(ctx); err != nil {
 		return &api.Issue{}
 	}
 
@@ -63,6 +63,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		}
 		apiIssue.URL = issue.APIURL(ctx)
 		apiIssue.HTMLURL = issue.HTMLURL()
+		if err := issue.LoadLabels(ctx); err != nil {
+			return &api.Issue{}
+		}
 		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
@@ -104,6 +107,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 			if issue.PullRequest.HasMerged {
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 			}
+			// Add pr's html url
+			apiIssue.PullRequest.HTMLURL = issue.HTMLURL()
 		}
 	}
 	if issue.DeadlineUnix != 0 {
@@ -211,19 +216,21 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 		IsArchived:  label.IsArchived(),
 	}
 
+	labelBelongsToRepo := label.BelongsToRepo()
+
 	// calculate URL
-	if label.BelongsToRepo() && repo != nil {
-		if repo != nil {
-			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
-		} else {
-			log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
-		}
+	if labelBelongsToRepo && repo != nil {
+		result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
 	} else { // BelongsToOrg
 		if org != nil {
 			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, url.PathEscape(org.Name), label.ID)
 		} else {
 			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
 		}
+	}
+
+	if labelBelongsToRepo && repo == nil {
+		log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
 	}
 
 	return result

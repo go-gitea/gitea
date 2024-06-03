@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -137,12 +138,7 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"ThemeName": func(user *user_model.User) string {
-			if user == nil || user.Theme == "" {
-				return setting.UI.DefaultTheme
-			}
-			return user.Theme
-		},
+		"UserThemeName": UserThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -260,4 +256,14 @@ func Iif(condition bool, vals ...any) any {
 func Eval(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
+}
+
+func UserThemeName(user *user_model.User) string {
+	if user == nil || user.Theme == "" {
+		return setting.UI.DefaultTheme
+	}
+	if webtheme.IsThemeAvailable(user.Theme) {
+		return user.Theme
+	}
+	return setting.UI.DefaultTheme
 }

@@ -68,7 +68,7 @@ func cssColorHandler(value string) bool {
 	return css.HSLA.MatchString(value)
 }
 
-func (g *ASTTransformer) transformCodeSpan(ctx *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
+func (g *ASTTransformer) transformCodeSpan(_ *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
 	colorContent := v.Text(reader.Source())
 	if cssColorHandler(string(colorContent)) {
 		v.AppendChild(v, NewColorPreview(colorContent))

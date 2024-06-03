@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -66,7 +67,9 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	meta := map[string]string{}
+	var repoCtx *repo_model.Repository
 	if repo != nil && repo.Repository != nil {
+		repoCtx = repo.Repository
 		if mode == "comment" {
 			meta = repo.Repository.ComposeMetas(ctx)
 		} else {
@@ -78,7 +81,8 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	if err := markup.Render(&markup.RenderContext{
-		Ctx: ctx,
+		Ctx:  ctx,
+		Repo: repoCtx,
 		Links: markup.Links{
 			AbsolutePrefix: true,
 			Base:           urlPrefix,

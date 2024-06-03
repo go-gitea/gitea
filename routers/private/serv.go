@@ -297,7 +297,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 		} else {
 			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.DefaultFeatures.SupportProcReceive && unitType == unit.TypeCode {
+			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode {
 				mode = perm.AccessModeRead
 			}
 

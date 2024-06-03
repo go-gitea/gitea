@@ -20,7 +20,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 import {initRepoIssueCommentEdit} from './repo-issue-edit.js';
 
@@ -57,37 +57,36 @@ export function initRepoCommentForm() {
   }
 
   function initBranchSelector() {
-    const $selectBranch = $('.ui.select-branch');
-    const $branchMenu = $selectBranch.find('.reference-list-menu');
-    const $isNewIssue = $branchMenu.hasClass('new-issue');
-    $branchMenu.find('.item:not(.no-select)').on('click', async function () {
-      const selectedValue = $(this).data('id');
-      const editMode = $('#editing_mode').val();
-      $($(this).data('id-selector')).val(selectedValue);
-      if ($isNewIssue) {
-        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
-        return;
-      }
+    const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+    if (!elSelectBranch) return;
 
-      if (editMode === 'true') {
-        const form = document.getElementById('update_issueref_form');
-        const params = new URLSearchParams();
-        params.append('ref', selectedValue);
+    const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
+    const $selectBranch = $(elSelectBranch);
+    const $branchMenu = $selectBranch.find('.reference-list-menu');
+    $branchMenu.find('.item:not(.no-select)').on('click', async function (e) {
+      e.preventDefault();
+      const selectedValue = this.getAttribute('data-id'); // eg: "refs/heads/my-branch"
+      const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
+      if (urlUpdateIssueRef) {
+        // for existing issue, send request to update issue ref, and reload page
         try {
-          await POST(form.getAttribute('action'), {data: params});
+          await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: selectedValue})});
           window.location.reload();
         } catch (error) {
           console.error(error);
         }
-      } else if (editMode === '') {
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
+      } else {
+        // for new issue, only update UI&form, do not send request/reload
+        const selectedHiddenSelector = this.getAttribute('data-id-selector');
+        document.querySelector(selectedHiddenSelector).value = selectedValue;
+        elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
       hideElem($selectBranch.find('.scrolling.reference-list-menu'));
-      $selectBranch.find('.reference .text').removeClass('black');
-      showElem($($(this).data('target')));
-      $(this).find('.text').addClass('black');
+      showElem(this.getAttribute('data-target'));
+      queryElemChildren(this.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+      this.classList.add('active');
       return false;
     });
   }

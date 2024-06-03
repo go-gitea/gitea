@@ -143,14 +143,16 @@
   --color-grey-light: #818f9e;
   --color-gold: #b1983b;
   --color-white: #ffffff;
-  --color-diff-removed-word-bg: #6f3333;
-  --color-diff-added-word-bg: #3c653c;
-  --color-diff-removed-row-bg: #3c2626;
-  --color-diff-moved-row-bg: #818044;
-  --color-diff-added-row-bg: #283e2d;
-  --color-diff-removed-row-border: #634343;
-  --color-diff-moved-row-border: #bcca6f;
+  --color-diff-added-linenum-bg: #274227;
+  --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
+  --color-diff-added-word-bg: #3c653c;
+  --color-diff-moved-row-bg: #818044;
+  --color-diff-moved-row-border: #bcca6f;
+  --color-diff-removed-linenum-bg: #482121;
+  --color-diff-removed-row-bg: #301e1e;
+  --color-diff-removed-row-border: #634343;
+  --color-diff-removed-word-bg: #6f3333;
   --color-diff-inactive: #22282d;
   --color-error-border: #a04141;
   --color-error-bg: #522;
@@ -214,7 +216,7 @@
   --color-expand-button: #2f363d;
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-5);
-  --color-project-board-bg: var(--color-secondary-light-2);
+  --color-project-column-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #e8f3ff12;
   --color-reaction-hover-bg: var(--color-primary-light-4);

@@ -4,16 +4,13 @@
 package markup_test
 
 import (
-	"context"
 	"io"
-	"os"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,18 +19,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var localMetas = map[string]string{
-	"user":     "gogits",
-	"repo":     "gogs",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
+var (
+	testRepoOwnerName = "user13"
+	testRepoName      = "repo11"
+	localMetas        = map[string]string{
+		"user": testRepoOwnerName,
+		"repo": testRepoName,
+	}
+)
+
+type mockRepo struct {
+	OwnerName string
+	RepoName  string
 }
 
-func TestMain(m *testing.M) {
-	unittest.InitSettings()
-	if err := git.InitSimple(context.Background()); err != nil {
-		log.Fatal("git init failed, err: %v", err)
+func (m *mockRepo) GetOwnerName() string {
+	return m.OwnerName
+}
+
+func (m *mockRepo) GetName() string {
+	return m.RepoName
+}
+
+func newMockRepo(ownerName, repoName string) gitrepo.Repository {
+	return &mockRepo{
+		OwnerName: ownerName,
+		RepoName:  repoName,
 	}
-	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
@@ -46,6 +58,7 @@ func TestRender_Commits(t *testing.T) {
 				AbsolutePrefix: true,
 				Base:           markup.TestRepoURL,
 			},
+			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
 			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
@@ -53,7 +66,7 @@ func TestRender_Commits(t *testing.T) {
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	repo := markup.TestRepoURL
+	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	commit := util.URLJoin(repo, "commit", sha)
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
@@ -124,6 +137,11 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+
+	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
@@ -151,13 +169,18 @@ func TestRender_links(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
-	// Text that should be turned into URL
 
-	defaultCustom := setting.Markdown.CustomURLSchemes
+	oldCustomURLSchemes := setting.Markdown.CustomURLSchemes
+	markup.ResetDefaultSanitizerForTesting()
+	defer func() {
+		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
+		markup.ResetDefaultSanitizerForTesting()
+		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	markup.InitializeSanitizer()
 	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
+	// Text that should be turned into URL
 	test(
 		"https://www.example.com",
 		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
@@ -241,11 +264,6 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
-
-	// Restore previous settings
-	setting.Markdown.CustomURLSchemes = defaultCustom
-	markup.InitializeSanitizer()
-	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
 func TestRender_email(t *testing.T) {
@@ -695,7 +713,7 @@ func TestIssue18471(t *testing.T) {
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {
