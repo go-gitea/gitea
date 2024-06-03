@@ -1061,7 +1061,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	char, _ := rd.ReadByte()
 	_ = rd.UnreadByte()
 	if char == '"' {
-		fmt.Fscanf(rd, "%q ", &name)
+		_, _ = fmt.Fscanf(rd, "%q ", &name)
 		if len(name) == 0 {
 			log.Error("Reader has no file name: reader=%+v", rd)
 			return "", true
@@ -1073,12 +1073,12 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	} else {
 		// This technique is potentially ambiguous it may not be possible to uniquely identify the filenames from the diff line alone
 		ambiguity = true
-		fmt.Fscanf(rd, "%s ", &name)
+		_, _ = fmt.Fscanf(rd, "%s ", &name)
 		char, _ := rd.ReadByte()
 		_ = rd.UnreadByte()
 		for !(char == 0 || char == '"' || char == 'b') {
 			var suffix string
-			fmt.Fscanf(rd, "%s ", &suffix)
+			_, _ = fmt.Fscanf(rd, "%s ", &suffix)
 			name += " " + suffix
 			char, _ = rd.ReadByte()
 			_ = rd.UnreadByte()
