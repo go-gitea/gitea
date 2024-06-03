@@ -76,6 +76,10 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.AddAlternative("text/html", m.Body)
 	}
 
+	if len(msg.GetHeader("Message-ID")) == 0 {
+		msg.SetHeader("Message-ID", m.generateAutoMessageID())
+	}
+
 	for k, v := range setting.MailService.OverrideHeader {
 		if len(msg.GetHeader(k)) != 0 {
 			log.Debug("Mailer override header '%s' as per config", k)
@@ -83,9 +87,6 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetHeader(k, v...)
 	}
 
-	if len(msg.GetHeader("Message-ID")) == 0 {
-		msg.SetHeader("Message-ID", m.generateAutoMessageID())
-	}
 	return msg
 }
 
