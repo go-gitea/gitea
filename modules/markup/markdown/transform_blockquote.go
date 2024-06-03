@@ -6,6 +6,7 @@ package markdown
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/markup/markdown/math"
 	"code.gitea.io/gitea/modules/svg"
 
 	"github.com/yuin/goldmark/ast"
@@ -37,41 +38,57 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
-func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Reader) (ast.WalkStatus, error) {
-	// We only want attention blockquotes when the AST looks like:
-	// > Text("[") Text("!TYPE") Text("]")
+func popAttentionTypeFromMathBlock(g *ASTTransformer, mathBlock *math.Block, reader text.Reader) string {
+	line := mathBlock.Lines().At(0)
+	innerText := line.Value(reader.Source())
 
-	// grab these nodes and make sure we adhere to the attention blockquote structure
-	firstParagraph := v.FirstChild()
-	g.applyElementDir(firstParagraph)
-	if firstParagraph.ChildCount() < 3 {
-		return ast.WalkContinue, nil
+	// make sure it's a !TYPE
+	if innerText[0] != '!' {
+		return ""
 	}
-	node1, ok := firstParagraph.FirstChild().(*ast.Text)
+	attentionType := strings.ToLower(string(innerText[1:]))
+	if !g.attentionTypes.Contains(attentionType) {
+		return ""
+	}
+	return attentionType
+}
+
+func popAttentionTypeFromParagraph(g *ASTTransformer, paragraph *ast.Paragraph, reader text.Reader) string {
+	g.applyElementDir(paragraph)
+	if paragraph.ChildCount() < 3 {
+		return ""
+	}
+	node1, ok := paragraph.FirstChild().(*ast.Text)
 	if !ok {
-		return ast.WalkContinue, nil
+		return ""
 	}
 	node2, ok := node1.NextSibling().(*ast.Text)
 	if !ok {
-		return ast.WalkContinue, nil
+		return ""
 	}
 	node3, ok := node2.NextSibling().(*ast.Text)
 	if !ok {
-		return ast.WalkContinue, nil
+		return ""
 	}
 	val1 := string(node1.Segment.Value(reader.Source()))
 	val2 := string(node2.Segment.Value(reader.Source()))
 	val3 := string(node3.Segment.Value(reader.Source()))
 	if val1 != "[" || val3 != "]" || !strings.HasPrefix(val2, "!") {
-		return ast.WalkContinue, nil
+		return ""
 	}
 
-	// grab attention type from markdown source
 	attentionType := strings.ToLower(val2[1:])
 	if !g.attentionTypes.Contains(attentionType) {
-		return ast.WalkContinue, nil
+		return ""
 	}
 
+	paragraph.RemoveChild(paragraph, node1)
+	paragraph.RemoveChild(paragraph, node2)
+	paragraph.RemoveChild(paragraph, node3)
+	return attentionType
+}
+
+func newAttentionParagraph(v *ast.Blockquote, attentionType string, g *ASTTransformer) *ast.Paragraph {
 	// color the blockquote
 	v.SetAttributeString("class", []byte("attention-header attention-"+attentionType))
 
@@ -87,12 +104,38 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 	emphasis.AppendChild(emphasis, attentionAstString)
 	attentionParagraph.AppendChild(attentionParagraph, NewAttention(attentionType))
 	attentionParagraph.AppendChild(attentionParagraph, emphasis)
-	firstParagraph.Parent().InsertBefore(firstParagraph.Parent(), firstParagraph, attentionParagraph)
-	firstParagraph.RemoveChild(firstParagraph, node1)
-	firstParagraph.RemoveChild(firstParagraph, node2)
-	firstParagraph.RemoveChild(firstParagraph, node3)
-	if firstParagraph.ChildCount() == 0 {
-		firstParagraph.Parent().RemoveChild(firstParagraph.Parent(), firstParagraph)
+	return attentionParagraph
+}
+
+func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Reader) (ast.WalkStatus, error) {
+	// We only want attention blockquotes when the AST looks like:
+	// > Text("[") Text("!TYPE") Text("]")
+	//
+	// or, in case of a math block: \[!TYPE\]
+
+	firstChild := v.FirstChild()
+	var attentionType string
+
+	// grab attention type from markdown source
+	if paragraph, ok := firstChild.(*ast.Paragraph); ok {
+		attentionType = popAttentionTypeFromParagraph(g, paragraph, reader)
+	} else {
+		mathBlock, ok := firstChild.(*math.Block)
+		if !ok {
+			return ast.WalkContinue, nil
+		}
+		attentionType = popAttentionTypeFromMathBlock(g, mathBlock, reader)
+	}
+
+	// it's possible this isn't an attention block
+	if attentionType == "" {
+		return ast.WalkContinue, nil
+	}
+
+	attentionParagraph := newAttentionParagraph(v, attentionType, g)
+	v.InsertBefore(v, firstChild, attentionParagraph)
+	if firstChild.ChildCount() == 0 {
+		v.RemoveChild(v, firstChild)
 	}
 	return ast.WalkContinue, nil
 }

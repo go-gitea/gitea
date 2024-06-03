@@ -1019,4 +1019,9 @@ func TestAttention(t *testing.T) {
 	test(`> [!important]`, renderAttention("important", "octicon-report")+"\n</blockquote>")
 	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
+
+	test(`
+> \[!NOTE\]
+> text
+`, renderAttention("note", "octicon-info")+"\n<p>text</p>\n</blockquote>")
 }
