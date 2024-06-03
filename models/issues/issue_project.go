@@ -42,7 +42,7 @@ func (issue *Issue) LoadProjectIssue(ctx context.Context) (err error) {
 		return err
 	}
 
-	return issue.ProjectIssue.LoadProjectBoard(ctx)
+	return issue.ProjectIssue.LoadProjectColumn(ctx)
 }
 
 func (issue *Issue) projectID(ctx context.Context) int64 {

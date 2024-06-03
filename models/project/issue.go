@@ -19,7 +19,8 @@ type ProjectIssue struct { //revive:disable-line:exported
 	ProjectID int64 `xorm:"INDEX"`
 
 	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
-	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
+	ProjectColumnID int64   `xorm:"'project_board_id' INDEX"`
+	ProjectColumn   *Column `xorm:"-"`
 
 	// the sorting order on the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
@@ -62,14 +63,14 @@ func GetProjectIssueByIssueID(ctx context.Context, issueID int64) (*ProjectIssue
 	return issue, nil
 }
 
-func (issue *ProjectIssue) LoadProjectBoard(ctx context.Context) error {
-	if issue.ProjectBoard != nil {
+func (issue *ProjectIssue) LoadProjectColumn(ctx context.Context) error {
+	if issue.ProjectColumn != nil {
 		return nil
 	}
 
 	var err error
 
-	issue.ProjectBoard, err = GetBoard(ctx, issue.ProjectBoardID)
+	issue.ProjectColumn, err = GetColumn(ctx, issue.ProjectColumnID)
 	return err
 }
 
@@ -139,20 +140,20 @@ func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueI
 	})
 }
 
-func MoveIssueToBoardTail(ctx context.Context, issue *ProjectIssue, toBoard *Board) error {
+func MoveIssueToColumnTail(ctx context.Context, issue *ProjectIssue, toColumn *Column) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	num, err := toBoard.NumIssues(ctx)
+	num, err := toColumn.NumIssues(ctx)
 	if err != nil {
 		return err
 	}
 
 	_, err = db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?",
-		toBoard.ID, num, issue.IssueID)
+		toColumn.ID, num, issue.IssueID)
 	if err != nil {
 		return err
 	}

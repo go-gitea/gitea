@@ -619,22 +619,22 @@ func MoveBoardForIssue(ctx *context.Context) {
 		return
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
 	if err != nil {
-		if project_model.IsErrProjectBoardNotExist(err) {
-			ctx.NotFound("ProjectBoardNotExist", nil)
+		if project_model.IsErrProjectColumnNotExist(err) {
+			ctx.NotFound("ErrProjectColumnNotExist", nil)
 		} else {
-			ctx.ServerError("GetProjectBoard", err)
+			ctx.ServerError("GetColumn", err)
 		}
 		return
 	}
 
-	if board.ProjectID != issue.Project.ID {
-		ctx.NotFound("BoardNotInProject", nil)
+	if column.ProjectID != issue.Project.ID {
+		ctx.NotFound("ColumnNotInProject", nil)
 		return
 	}
 
-	err = project_model.MoveIssueToBoardTail(ctx, issue.ProjectIssue, board)
+	err = project_model.MoveIssueToColumnTail(ctx, issue.ProjectIssue, column)
 	if err != nil {
 		ctx.NotFound("MoveIssueToBoardTail", nil)
 		return

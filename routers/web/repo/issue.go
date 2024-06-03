@@ -2050,7 +2050,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects
 
 	if canWriteProjects && issue.Project != nil {
-		ctx.Data["ProjectBoards"], err = issue.Project.GetBoards(ctx)
+		ctx.Data["ProjectColumns"], err = issue.Project.GetColumns(ctx)
 		if err != nil {
 			ctx.ServerError("Project.GetBoards", err)
 			return
