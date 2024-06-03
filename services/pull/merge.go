@@ -56,8 +56,8 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		issueReference = "!"
 	}
 
-	reviewedOnTrailer := fmt.Sprintf("Reviewed-on: %s/%s", setting.AppURL, pr.Issue.Link())
-	reviewedByTrailer := pr.GetApprovers(ctx)
+	reviewedOn := fmt.Sprintf("Reviewed-on: %s/%s", setting.AppURL, pr.Issue.Link())
+	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
@@ -83,8 +83,8 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				"PullRequestPosterName":  pr.Issue.Poster.Name,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
-				"ReviewedOnTrailer":      reviewedOnTrailer,
-				"ReviewedByTrailer":      reviewedByTrailer,
+				"ReviewedOn":             reviewedOn,
+				"ReviewedBy":             reviewedBy,
 			}
 			if pr.HeadRepo != nil {
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
@@ -124,7 +124,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		return "", "", nil
 	}
 
-	body = fmt.Sprintf("%s\n%s", reviewedOnTrailer, reviewedByTrailer)
+	body = fmt.Sprintf("%s\n%s", reviewedOn, reviewedBy)
 
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
