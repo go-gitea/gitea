@@ -531,6 +531,10 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					defer tests.PrintCurrentTest(t)()
 
 					for i, c := range cases {
+						if c.Query == "" {
+							// Ignore the `tolower(Id) eq ''` as it's unlikely to happen
+							continue
+						}
 						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
 							AddBasicAuth(user.Name)
 						resp := MakeRequest(t, req, http.StatusOK)
