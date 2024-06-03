@@ -26,7 +26,8 @@
         "ms-azuretools.vscode-docker",
         "vitest.explorer",
         "qwtel.sqlite-viewer",
-        "GitHub.vscode-pull-request-github"
+        "GitHub.vscode-pull-request-github",
+        "Azurite.azurite"
       ]
     }
   },

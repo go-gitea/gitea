@@ -2,19 +2,20 @@
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded">
 		{{if eq .GetType 4}}
+			{{$expandDirection := $line.GetExpandDirection}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
-				<div class="tw-flex">
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
+				<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+				{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
 					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</button>
 				{{end}}
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
+				{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
 					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</button>
 				{{end}}
-				{{if eq $line.GetExpandDirection 2}}
+				{{if eq $expandDirection 2}}
 					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</button>
@@ -48,19 +49,20 @@
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded">
 		{{if eq .GetType 4}}
+			{{$expandDirection := $line.GetExpandDirection}}
 			<td colspan="2" class="lines-num">
-				<div class="tw-flex">
-					{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
+				<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+					{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?data-query={{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 							{{svg "octicon-fold-down"}}
 						</button>
 					{{end}}
-					{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
+					{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?data-query={{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 							{{svg "octicon-fold-up"}}
 						</button>
 					{{end}}
-					{{if eq $line.GetExpandDirection 2}}
+					{{if eq $expandDirection 2}}
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?data-query={{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.PageIsWiki}}&anchor={{$.Anchor}}">
 							{{svg "octicon-fold"}}
 						</button>
