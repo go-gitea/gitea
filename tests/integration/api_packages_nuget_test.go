@@ -538,19 +538,19 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 						var result FeedResponse
 						decodeXML(t, resp, &result)
 
+						expectedCount := 0
 						if c.ExpectedExactMatch {
-							assert.Equal(t, int64(1), result.Count, "case %d: unexpected total hits", i)
-							assert.Len(t, result.Entries, 1, "case %d: unexpected result count", i)
-						} else {
-							assert.Equal(t, int64(0), result.Count, "case %d: unexpected total hits", i)
-							assert.Len(t, result.Entries, 0, "case %d: unexpected result count", i)
+							expectedCount = 1
 						}
+
+						assert.Equal(t, int64(expectedCount), result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, expectedCount, "case %d: unexpected result count", i)
 
 						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
 							AddBasicAuth(user.Name)
 						resp = MakeRequest(t, req, http.StatusOK)
 
-						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
+						assert.Equal(t, strconv.FormatInt(int64(expectedCount), 10), resp.Body.String(), "case %d: unexpected total hits", i)
 					}
 				})
 			})
