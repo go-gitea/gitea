@@ -736,7 +736,7 @@ export function initArchivedLabelHandler() {
   }
 }
 
-export function initIssueProjectBoardSelector() {
+export function initIssueProjectColumnSelector() {
   const root = document.querySelector('.select-issue-project-board');
   if (!root) return;
 
