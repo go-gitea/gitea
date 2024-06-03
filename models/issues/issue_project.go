@@ -42,6 +42,8 @@ func (issue *Issue) LoadProjectIssue(ctx context.Context) (err error) {
 		return err
 	}
 
+	issue.ProjectIssue.Project = issue.Project
+
 	return issue.ProjectIssue.LoadProjectColumn(ctx)
 }
 

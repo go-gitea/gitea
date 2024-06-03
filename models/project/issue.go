@@ -14,9 +14,10 @@ import (
 
 // ProjectIssue saves relation from issue to a project
 type ProjectIssue struct { //revive:disable-line:exported
-	ID        int64 `xorm:"pk autoincr"`
-	IssueID   int64 `xorm:"INDEX"`
-	ProjectID int64 `xorm:"INDEX"`
+	ID        int64    `xorm:"pk autoincr"`
+	IssueID   int64    `xorm:"INDEX"`
+	ProjectID int64    `xorm:"INDEX"`
+	Project   *Project `xorm:"-"`
 
 	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
 	ProjectColumnID int64   `xorm:"'project_board_id' INDEX"`
@@ -69,6 +70,11 @@ func (issue *ProjectIssue) LoadProjectColumn(ctx context.Context) error {
 	}
 
 	var err error
+
+	if issue.ProjectColumnID == 0 {
+		issue.ProjectColumn, err = issue.Project.GetDefaultColumn(ctx)
+		return err
+	}
 
 	issue.ProjectColumn, err = GetColumn(ctx, issue.ProjectColumnID)
 	return err
