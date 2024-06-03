@@ -579,8 +579,8 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-// MoveBoardForIssue move a issue to other board
-func MoveBoardForIssue(ctx *context.Context) {
+// MoveColumnForIssue move a issue to other board
+func MoveColumnForIssue(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
