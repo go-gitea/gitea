@@ -57,7 +57,7 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetHeader(header, m.Headers[header]...)
 	}
 
-	if len(setting.MailService.SubjectPrefix) > 0 {
+	if setting.MailService.SubjectPrefix != "" {
 		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+m.Subject)
 	} else {
 		msg.SetHeader("Subject", m.Subject)
@@ -79,6 +79,14 @@ func (m *Message) ToMessage() *gomail.Message {
 	if len(msg.GetHeader("Message-ID")) == 0 {
 		msg.SetHeader("Message-ID", m.generateAutoMessageID())
 	}
+
+	for k, v := range setting.MailService.OverrideHeader {
+		if len(msg.GetHeader(k)) != 0 {
+			log.Debug("Mailer override header '%s' as per config", k)
+		}
+		msg.SetHeader(k, v...)
+	}
+
 	return msg
 }
 
