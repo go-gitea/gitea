@@ -18,7 +18,7 @@ import (
 
 const (
 	TestAppURL  = "http://localhost:3000/"
-	TestRepoURL = TestAppURL + "owenr/repo/"
+	TestRepoURL = TestAppURL + "owner/repo/"
 )
 
 // externalIssueLink an HTML link to an alphanumeric-style issue
