@@ -372,7 +372,42 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
+func handleNodeImg(ctx *RenderContext, img *html.Node) {
+	for i, attr := range img.Attr {
+		if attr.Key != "src" {
+			continue
+		}
+
+		if attr.Val != "" && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "/") {
+			attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
+
+			// By default, the "<img>" tag should also be clickable,
+			// because frontend use `<img>` to paste the re-scaled image into the markdown,
+			// so it must match the default markdown image behavior.
+			hasParentAnchor := false
+			for p := img.Parent; p != nil; p = p.Parent {
+				if hasParentAnchor = p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
+					break
+				}
+			}
+			if !hasParentAnchor {
+				imgA := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
+					{Key: "href", Val: attr.Val},
+					{Key: "target", Val: "_blank"},
+				}}
+				parent := img.Parent
+				imgNext := img.NextSibling
+				parent.RemoveChild(img)
+				parent.InsertBefore(imgA, imgNext)
+				imgA.AppendChild(img)
+			}
+		}
+		attr.Val = camoHandleLink(attr.Val)
+		img.Attr[i] = attr
+	}
+}
+
+func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
@@ -397,21 +432,14 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 		textNode(ctx, procs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
-			for i, attr := range node.Attr {
-				if attr.Key != "src" {
-					continue
-				}
-				if len(attr.Val) > 0 && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
-					attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
-				}
-				attr.Val = camoHandleLink(attr.Val)
-				node.Attr[i] = attr
-			}
+			next := node.NextSibling
+			handleNodeImg(ctx, node)
+			return next
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
 			procs = emojiProcessors
 		} else if node.Data == "code" || node.Data == "pre" {
-			return
+			return node.NextSibling
 		} else if node.Data == "i" {
 			for _, attr := range node.Attr {
 				if attr.Key != "class" {
@@ -434,11 +462,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 				}
 			}
 		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			visitNode(ctx, procs, n)
+		for n := node.FirstChild; n != nil; {
+			n = visitNode(ctx, procs, n)
 		}
 	}
-	// ignore everything else
+	return node.NextSibling
 }
 
 // textNode runs the passed node through various processors, in order to handle
@@ -851,7 +879,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	// FIXME: the use of "mode" is quite dirty and hacky, for example: what is a "document"? how should it be rendered?
 	// The "mode" approach should be refactored to some other more clear&reliable way.
-	crossLinkOnly := (ctx.Metas["mode"] == "document" && !ctx.IsWiki)
+	crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
 
 	var (
 		found bool
