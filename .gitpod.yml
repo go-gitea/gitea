@@ -43,7 +43,7 @@ vscode:
     - Vue.volar
     - ms-azuretools.vscode-docker
     - vitest.explorer
-    - qwtel.sqlite-viewer
+    - cweijan.vscode-database-client2
     - GitHub.vscode-pull-request-github
 
 ports:
