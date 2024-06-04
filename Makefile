@@ -25,7 +25,7 @@ COMMA := ,
 
 XGO_VERSION := go-1.22.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1
+AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
