@@ -724,11 +724,13 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Mailer (`mailer`)
 
-⚠️ This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
+:::warning
+This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
 please refer to
 [Gitea 1.17 app.ini example](https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini)
 and
 [Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
+:::
 
 - `ENABLED`: **false**: Enable to use a mail service.
 - `PROTOCOL`: **_empty_**: Mail server protocol. One of "smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
@@ -760,6 +762,21 @@ and
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
+
+## Override Email Headers (`mailer.override_header`)
+
+:::warning
+This is empty by default, use it only if you know what you need it for.
+:::
+
+examples would be:
+
+```ini
+[mailer.override_header]
+Reply-To = test@example.com, test2@example.com
+Content-Type = text/html; charset=utf-8
+In-Reply-To =
+```
 
 ## Incoming Email (`email.incoming`)
 
