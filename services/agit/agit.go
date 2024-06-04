@@ -36,6 +36,75 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		return nil, fmt.Errorf("failed to get user. Error: %w", err)
 	}
 
+	updateExistPull := func(pr *issues_model.PullRequest, i int) error {
+		// update exist pull request
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
+		}
+
+		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			return fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
+		}
+
+		if oldCommitID == opts.NewCommitIDs[i] {
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "new commit is same with old commit",
+			})
+			return nil
+		}
+
+		if !forcePush {
+			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
+				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
+				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+			if err != nil {
+				return fmt.Errorf("failed to detect force push: %w", err)
+			} else if len(output) > 0 {
+				results = append(results, private.HookProcReceiveRefResult{
+					OriginalRef: opts.RefFullNames[i],
+					OldOID:      opts.OldCommitIDs[i],
+					NewOID:      opts.NewCommitIDs[i],
+					Err:         "request `force-push` push option",
+				})
+				return nil
+			}
+		}
+
+		pr.HeadCommitID = opts.NewCommitIDs[i]
+		if err = pull_service.UpdateRef(ctx, pr); err != nil {
+			return fmt.Errorf("failed to update pull ref. Error: %w", err)
+		}
+
+		pull_service.AddToTaskQueue(ctx, pr)
+		err = pr.LoadIssue(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to load pull issue. Error: %w", err)
+		}
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		if err == nil && comment != nil {
+			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
+		}
+		notify_service.PullRequestSynchronized(ctx, pusher, pr)
+		isForcePush := comment != nil && comment.IsForcePush
+
+		results = append(results, private.HookProcReceiveRefResult{
+			OldOID:            oldCommitID,
+			NewOID:            opts.NewCommitIDs[i],
+			Ref:               pr.GetGitRefName(),
+			OriginalRef:       opts.RefFullNames[i],
+			IsForcePush:       isForcePush,
+			IsCreatePR:        false,
+			URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
+		})
+
+		return nil
+	}
+
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
@@ -44,6 +113,37 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				NewOID:      opts.NewCommitIDs[i],
 				Err:         "Can't delete not exist branch",
 			})
+			continue
+		}
+
+		if opts.RefFullNames[i].IsForReview() {
+			// try match refs/for-review/<pull index>
+			pullIndex, err := strconv.ParseInt(strings.TrimPrefix(string(opts.RefFullNames[i]), git.ForReviewPrefix), 10, 64)
+			if err != nil {
+				results = append(results, private.HookProcReceiveRefResult{
+					OriginalRef: opts.RefFullNames[i],
+					OldOID:      opts.OldCommitIDs[i],
+					NewOID:      opts.NewCommitIDs[i],
+					Err:         "Unknow pull request index",
+				})
+				continue
+			}
+			pull, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
+			if err != nil {
+				results = append(results, private.HookProcReceiveRefResult{
+					OriginalRef: opts.RefFullNames[i],
+					OldOID:      opts.OldCommitIDs[i],
+					NewOID:      opts.NewCommitIDs[i],
+					Err:         "Unknow pull request index",
+				})
+				continue
+			}
+
+			err = updateExistPull(pull, i)
+			if err != nil {
+				return nil, err
+			}
+
 			continue
 		}
 
@@ -158,70 +258,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		// update exist pull request
-		if err := pr.LoadBaseRepo(ctx); err != nil {
-			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
-		}
-
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		err = updateExistPull(pr, i)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
+			return nil, err
 		}
-
-		if oldCommitID == opts.NewCommitIDs[i] {
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "new commit is same with old commit",
-			})
-			continue
-		}
-
-		if !forcePush {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
-			if err != nil {
-				return nil, fmt.Errorf("failed to detect force push: %w", err)
-			} else if len(output) > 0 {
-				results = append(results, private.HookProcReceiveRefResult{
-					OriginalRef: opts.RefFullNames[i],
-					OldOID:      opts.OldCommitIDs[i],
-					NewOID:      opts.NewCommitIDs[i],
-					Err:         "request `force-push` push option",
-				})
-				continue
-			}
-		}
-
-		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(ctx, pr); err != nil {
-			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
-		}
-
-		pull_service.AddToTaskQueue(ctx, pr)
-		err = pr.LoadIssue(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)
-		}
-		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
-		if err == nil && comment != nil {
-			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
-		}
-		notify_service.PullRequestSynchronized(ctx, pusher, pr)
-		isForcePush := comment != nil && comment.IsForcePush
-
-		results = append(results, private.HookProcReceiveRefResult{
-			OldOID:            oldCommitID,
-			NewOID:            opts.NewCommitIDs[i],
-			Ref:               pr.GetGitRefName(),
-			OriginalRef:       opts.RefFullNames[i],
-			IsForcePush:       isForcePush,
-			IsCreatePR:        false,
-			URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-			ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-		})
 	}
 
 	return results, nil

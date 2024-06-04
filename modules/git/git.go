@@ -259,8 +259,14 @@ func syncGitConfig() (err error) {
 		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
+		if err := configAddNonExist("receive.procReceiveRefs", "refs/for-review"); err != nil {
+			return err
+		}
 	} else {
 		if err := configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		if err := configUnsetAll("receive.procReceiveRefs", "refs/for-review"); err != nil {
 			return err
 		}
 	}
