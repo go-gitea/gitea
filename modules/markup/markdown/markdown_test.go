@@ -1010,4 +1010,10 @@ func TestAttention(t *testing.T) {
 	test(`> [!important]`, renderAttention("important", "octicon-report")+"\n</blockquote>")
 	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
+
+	// escaped by mdformat
+	test(`> \[!NOTE\]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
+
+	// legacy GitHub style
+	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 }
