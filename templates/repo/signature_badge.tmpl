@@ -1,12 +1,8 @@
 {{$base_classes := "signature-badge show-modal tw-cursor-pointer tw-rounded tw-border tw-px-2 tw-py-0"}}
 {{$verified_colors := "tw-border-success-border tw-bg-success-bg tw-text-success-text"}}
 {{$unverified_colors := "tw-border-warning-border tw-bg-warning-bg tw-text-warning-text"}}
-{{if .verification.Verified}}
-	{{if eq .verification.TrustStatus "trusted"}}
-		<div class="{{$base_classes}} {{$verified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Verified</div>
-	{{else}}
-		<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
-	{{end}}
+{{if and .verification.Verified (eq .verification.TrustStatus "trusted")}}
+	<div class="{{$base_classes}} {{$verified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Verified</div>
 {{else}}
 	<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
 {{end}}
