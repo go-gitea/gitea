@@ -79,9 +79,8 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 			Page:     page,
 			PageSize: 30,
 		},
-		Status:      actions_model.StatusUnknown, // Unknown means all
-		IDOrderDesc: true,
-		RunnerID:    runner.ID,
+		Status:   actions_model.StatusUnknown, // Unknown means all
+		RunnerID: runner.ID,
 	}
 
 	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)

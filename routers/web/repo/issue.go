@@ -1794,6 +1794,7 @@ func ViewIssue(ctx *context.Context) {
 		pull.Issue = issue
 		canDelete := false
 		allowMerge := false
+		canWriteToHeadRepo := false
 
 		if ctx.IsSigned {
 			if err := pull.LoadHeadRepo(ctx); err != nil {
@@ -1814,7 +1815,7 @@ func ViewIssue(ctx *context.Context) {
 							ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 						}
 					}
-					ctx.Data["CanWriteToHeadRepo"] = true
+					canWriteToHeadRepo = true
 				}
 			}
 
@@ -1825,6 +1826,9 @@ func ViewIssue(ctx *context.Context) {
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
+			}
+			if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
+				canWriteToHeadRepo = pull.AllowMaintainerEdit && perm.CanWrite(unit.TypeCode)
 			}
 			allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 			if err != nil {
@@ -1838,6 +1842,8 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
+		ctx.Data["CanWriteToHeadRepo"] = canWriteToHeadRepo
+		ctx.Data["ShowMergeInstructions"] = canWriteToHeadRepo
 		ctx.Data["AllowMerge"] = allowMerge
 
 		prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
@@ -1892,13 +1898,9 @@ func ViewIssue(ctx *context.Context) {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
-		ctx.Data["ShowMergeInstructions"] = true
+
 		if pb != nil {
 			pb.Repo = pull.BaseRepo
-			var showMergeInstructions bool
-			if ctx.Doer != nil {
-				showMergeInstructions = pb.CanUserPush(ctx, ctx.Doer)
-			}
 			ctx.Data["ProtectedBranch"] = pb
 			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
 			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
@@ -1909,7 +1911,6 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
-			ctx.Data["ShowMergeInstructions"] = showMergeInstructions
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.Doer != nil {
