@@ -10,12 +10,13 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
@@ -54,7 +55,7 @@ var (
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
 	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
@@ -371,7 +372,42 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
+func handleNodeImg(ctx *RenderContext, img *html.Node) {
+	for i, attr := range img.Attr {
+		if attr.Key != "src" {
+			continue
+		}
+
+		if attr.Val != "" && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "/") {
+			attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
+
+			// By default, the "<img>" tag should also be clickable,
+			// because frontend use `<img>` to paste the re-scaled image into the markdown,
+			// so it must match the default markdown image behavior.
+			hasParentAnchor := false
+			for p := img.Parent; p != nil; p = p.Parent {
+				if hasParentAnchor = p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
+					break
+				}
+			}
+			if !hasParentAnchor {
+				imgA := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
+					{Key: "href", Val: attr.Val},
+					{Key: "target", Val: "_blank"},
+				}}
+				parent := img.Parent
+				imgNext := img.NextSibling
+				parent.RemoveChild(img)
+				parent.InsertBefore(imgA, imgNext)
+				imgA.AppendChild(img)
+			}
+		}
+		attr.Val = camoHandleLink(attr.Val)
+		img.Attr[i] = attr
+	}
+}
+
+func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
@@ -396,21 +432,14 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 		textNode(ctx, procs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
-			for i, attr := range node.Attr {
-				if attr.Key != "src" {
-					continue
-				}
-				if len(attr.Val) > 0 && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
-					attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
-				}
-				attr.Val = camoHandleLink(attr.Val)
-				node.Attr[i] = attr
-			}
+			next := node.NextSibling
+			handleNodeImg(ctx, node)
+			return next
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
 			procs = emojiProcessors
 		} else if node.Data == "code" || node.Data == "pre" {
-			return
+			return node.NextSibling
 		} else if node.Data == "i" {
 			for _, attr := range node.Attr {
 				if attr.Key != "class" {
@@ -433,11 +462,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 				}
 			}
 		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			visitNode(ctx, procs, n)
+		for n := node.FirstChild; n != nil; {
+			n = visitNode(ctx, procs, n)
 		}
 	}
-	// ignore everything else
+	return node.NextSibling
 }
 
 // textNode runs the passed node through various processors, in order to handle
@@ -591,17 +620,17 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 
 func mentionProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
-	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
-		// We replace only the first mention; other mentions will be addressed later
-		found, loc := references.FindFirstMentionBytes([]byte(node.Data[start:]))
+	nodeStop := node.NextSibling
+	for node != nodeStop {
+		found, loc := references.FindFirstMentionBytes(util.UnsafeStringToBytes(node.Data[start:]))
 		if !found {
-			return
+			node = node.NextSibling
+			start = 0
+			continue
 		}
 		loc.Start += start
 		loc.End += start
 		mention := node.Data[loc.Start:loc.End]
-		var teams string
 		teams, ok := ctx.Metas["teams"]
 		// FIXME: util.URLJoin may not be necessary here:
 		// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
@@ -623,10 +652,10 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
 			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "mention"))
 			node = node.NextSibling.NextSibling
+			start = 0
 		} else {
-			node = node.NextSibling
+			start = loc.End
 		}
-		start = 0
 	}
 }
 
@@ -850,7 +879,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	// FIXME: the use of "mode" is quite dirty and hacky, for example: what is a "document"? how should it be rendered?
 	// The "mode" approach should be refactored to some other more clear&reliable way.
-	crossLinkOnly := (ctx.Metas["mode"] == "document" && !ctx.IsWiki)
+	crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
 
 	var (
 		found bool
@@ -963,57 +992,68 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+type anyHashPatternResult struct {
+	PosStart  int
+	PosEnd    int
+	FullURL   string
+	CommitID  string
+	SubPath   string
+	QueryHash string
+}
+
+func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
+	m := anyHashPattern.FindStringSubmatchIndex(s)
+	if m == nil {
+		return ret, false
+	}
+
+	ret.PosStart, ret.PosEnd = m[0], m[1]
+	ret.FullURL = s[ret.PosStart:ret.PosEnd]
+	if strings.HasSuffix(ret.FullURL, ".") {
+		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
+		ret.PosEnd--
+		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
+		for i := 0; i < len(m); i++ {
+			m[i] = min(m[i], ret.PosEnd)
+		}
+	}
+
+	ret.CommitID = s[m[2]:m[3]]
+	if m[5] > 0 {
+		ret.SubPath = s[m[4]:m[5]]
+	}
+
+	lastStart, lastEnd := m[len(m)-2], m[len(m)-1]
+	if lastEnd > 0 {
+		ret.QueryHash = s[lastStart:lastEnd][1:]
+	}
+	return ret, true
+}
+
 // fullHashPatternProcessor renders SHA containing URLs
 func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
-	next := node.NextSibling
-	for node != nil && node != next {
-		m := anyHashPattern.FindStringSubmatchIndex(node.Data)
-		if m == nil {
-			return
+	nodeStop := node.NextSibling
+	for node != nodeStop {
+		if node.Type != html.TextNode {
+			node = node.NextSibling
+			continue
 		}
-
-		urlFull := node.Data[m[0]:m[1]]
-		text := base.ShortSha(node.Data[m[2]:m[3]])
-
-		// 3rd capture group matches a optional path
-		subpath := ""
-		if m[5] > 0 {
-			subpath = node.Data[m[4]:m[5]]
+		ret, ok := anyHashPatternExtract(node.Data)
+		if !ok {
+			node = node.NextSibling
+			continue
 		}
-
-		// 4th capture group matches a optional url hash
-		hash := ""
-		if m[7] > 0 {
-			hash = node.Data[m[6]:m[7]][1:]
+		text := base.ShortSha(ret.CommitID)
+		if ret.SubPath != "" {
+			text += ret.SubPath
 		}
-
-		start := m[0]
-		end := m[1]
-
-		// If url ends in '.', it's very likely that it is not part of the
-		// actual url but used to finish a sentence.
-		if strings.HasSuffix(urlFull, ".") {
-			end--
-			urlFull = urlFull[:len(urlFull)-1]
-			if hash != "" {
-				hash = hash[:len(hash)-1]
-			} else if subpath != "" {
-				subpath = subpath[:len(subpath)-1]
-			}
+		if ret.QueryHash != "" {
+			text += " (" + ret.QueryHash + ")"
 		}
-
-		if subpath != "" {
-			text += subpath
-		}
-
-		if hash != "" {
-			text += " (" + hash + ")"
-		}
-		replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
 		node = node.NextSibling.NextSibling
 	}
 }
@@ -1022,19 +1062,16 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
-
-	next := node.NextSibling
-	for node != nil && node != next {
-		m := comparePattern.FindStringSubmatchIndex(node.Data)
-		if m == nil {
-			return
+	nodeStop := node.NextSibling
+	for node != nodeStop {
+		if node.Type != html.TextNode {
+			node = node.NextSibling
+			continue
 		}
-
-		// Ensure that every group (m[0]...m[7]) has a match
-		for i := 0; i < 8; i++ {
-			if m[i] == -1 {
-				return
-			}
+		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
+			node = node.NextSibling
+			continue
 		}
 
 		urlFull := node.Data[m[0]:m[1]]
@@ -1131,7 +1168,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || ctx.Metas["repoPath"] == "" {
+	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || (ctx.Repo == nil && ctx.GitRepo == nil) {
 		return
 	}
 
@@ -1163,13 +1200,14 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
-				ctx.GitRepo, err = git.OpenRepository(ctx.Ctx, ctx.Metas["repoPath"])
+				var closer io.Closer
+				ctx.GitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
 				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.Repo), err)
 					return
 				}
 				ctx.AddCancel(func() {
-					ctx.GitRepo.Close()
+					closer.Close()
 					ctx.GitRepo = nil
 				})
 			}

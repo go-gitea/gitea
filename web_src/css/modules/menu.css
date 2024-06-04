@@ -358,6 +358,7 @@
 }
 
 .ui.vertical.menu .active.item {
+  background: var(--color-active);
   border-radius: 0;
 }
 .ui.vertical.menu > .active.item:first-child {
@@ -511,11 +512,14 @@
   background: var(--color-hover);
 }
 
+.ui.secondary.menu .active.item {
+  border-radius: 0.28571429rem;
+}
+
 .ui.secondary.menu .active.item,
 .ui.secondary.menu .active.item:hover {
   color: var(--color-text-dark);
   background: var(--color-active);
-  border-radius: 0.28571429rem;
 }
 
 .ui.secondary.item.menu {
@@ -552,13 +556,11 @@
   border-bottom: 2px solid var(--color-secondary);
 }
 .ui.secondary.pointing.menu .item {
-  border-bottom-color: transparent;
-  border-bottom-style: solid;
+  border-bottom: 2px solid transparent;
   border-radius: 0;
   align-self: flex-end;
   margin: 0 0 -2px;
   padding: 0.85714286em 1.14285714em;
-  border-bottom-width: 2px;
 }
 .ui.secondary.pointing.menu .ui.dropdown .menu .item {
   border-bottom-width: 0;

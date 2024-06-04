@@ -216,7 +216,7 @@
   --color-expand-button: #2f363d;
   --color-placeholder-text: var(--color-text-light-3);
   --color-editor-line-highlight: var(--color-primary-light-5);
-  --color-project-board-bg: var(--color-secondary-light-2);
+  --color-project-column-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #e8f3ff12;
   --color-reaction-hover-bg: var(--color-primary-light-4);

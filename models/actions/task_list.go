@@ -54,7 +54,6 @@ type FindTaskOptions struct {
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
 	RunnerID      int64
-	IDOrderDesc   bool
 }
 
 func (opts FindTaskOptions) ToConds() builder.Cond {
@@ -84,8 +83,5 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskOptions) ToOrders() string {
-	if opts.IDOrderDesc {
-		return "`id` DESC"
-	}
-	return ""
+	return "`id` DESC"
 }

@@ -207,3 +207,8 @@ func TestRenderLabels(t *testing.T) {
 	expected = `/owner/repo/pulls?labels=123`
 	assert.Contains(t, RenderLabels(ctx, locale, []*issues.Label{label}, "/owner/repo", issue), expected)
 }
+
+func TestUserMention(t *testing.T) {
+	rendered := RenderMarkdownToHtml(context.Background(), "@no-such-user @mention-user @mention-user")
+	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+}

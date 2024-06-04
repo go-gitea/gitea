@@ -36,9 +36,9 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 		if setting.Database.Type.IsMSSQL() {
 			// drop indexes that need to be re-created afterwards
 			droppedIndexes := []string{
-				"DROP INDEX IF EXISTS [IDX_commit_status_context_hash] ON [commit_status]",
-				"DROP INDEX IF EXISTS [UQE_review_state_pull_commit_user] ON [review_state]",
-				"DROP INDEX IF EXISTS [UQE_repo_archiver_s] ON [repo_archiver]",
+				"DROP INDEX [IDX_commit_status_context_hash] ON [commit_status]",
+				"DROP INDEX [UQE_review_state_pull_commit_user] ON [review_state]",
+				"DROP INDEX [UQE_repo_archiver_s] ON [repo_archiver]",
 			}
 			for _, s := range droppedIndexes {
 				_, err := db.Exec(s)
@@ -92,7 +92,7 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 
 	// Here to catch weird edge-cases where column constraints above are
 	// not applied by the DB backend
-	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	_, err := x.Exec("UPDATE `repository` set `object_format_name` = 'sha1' WHERE `object_format_name` = '' or `object_format_name` IS NULL")
 	return err
 }
 

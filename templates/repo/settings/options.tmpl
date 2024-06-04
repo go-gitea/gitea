@@ -28,9 +28,10 @@
 						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox" {{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}data-tooltip-content="{{ctx.Locale.Tr "repo.stars_remove_warning"}}"{{end}}>
 							{{if .IsAdmin}}
-							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
+								<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
-							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
+								<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} disabled{{end}}>
+								{{if and .Repository.IsPrivate $.ForcePrivate}}<input type="hidden" name="private" value="{{.Repository.IsPrivate}}">{{end}}
 							{{end}}
 							<label>{{ctx.Locale.Tr "repo.visibility_helper"}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
@@ -216,7 +217,7 @@
 						<tbody>
 							{{range .PushMirrors}}
 							<tr>
-								<td class="gt-word-break">{{.RemoteAddress}}</td>
+								<td class="tw-break-anywhere">{{.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 								<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
 								<td class="right aligned">
@@ -345,7 +346,7 @@
 						<div class="inline field">
 							{{$unitInternalWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
-							<select name="default_wiki_everyone_access" class="ui dropdown">
+							<select name="default_wiki_everyone_access" class="ui selection dropdown">
 								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
 								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
 								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
@@ -466,7 +467,7 @@
 				{{$isProjectsGlobalDisabled := ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled}}
 				{{$projectsUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeProjects}}
 				<div class="inline field">
-					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
+					<label>{{ctx.Locale.Tr "repo.projects"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>

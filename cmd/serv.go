@@ -178,7 +178,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(words) < 2 {
-		if git.CheckGitVersionAtLeast("2.29") == nil {
+		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
 				fmt.Print(`{"type":"gitea","version":1}`)

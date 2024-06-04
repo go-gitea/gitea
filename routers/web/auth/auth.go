@@ -368,7 +368,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(ctx, redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToCurrentSite(redirectTo)
@@ -831,6 +831,7 @@ func ActivateEmail(ctx *context.Context) {
 	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
+			return
 		}
 
 		log.Trace("Email activated: %s", email.Email)

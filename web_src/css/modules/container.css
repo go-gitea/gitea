@@ -2,8 +2,10 @@
    unused rules here after refactoring, please remove them. */
 
 .ui.container {
-  display: block;
-  max-width: 100%;
+  width: 1280px;
+  max-width: calc(100% - calc(2 * var(--page-margin-x)));
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ui.fluid.container {
@@ -12,16 +14,4 @@
 
 .ui[class*="center aligned"].container {
   text-align: center;
-}
-
-/* overwrite width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - calc(2 * var(--page-margin-x)));
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 var(--page-margin-x);
 }

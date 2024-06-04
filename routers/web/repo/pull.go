@@ -862,7 +862,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 
 		if pull.HeadRepo != nil {
-			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pull.HeadBranch)
+			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/commit/" + endCommitID
 
 			if !pull.HasMerged && ctx.Doer != nil {
 				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
@@ -1007,7 +1007,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 		switch {
 		case errors.Is(err, pull_service.ErrIsClosed):
 			if issue.IsPull {
@@ -1021,7 +1021,7 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
 		case errors.Is(err, pull_service.ErrIsWorkInProgress):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_wip"))
-		case errors.Is(err, pull_service.ErrNotMergableState):
+		case errors.Is(err, pull_service.ErrNotMergeableState):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case models.IsErrDisallowedToMerge(err):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
@@ -1329,14 +1329,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	if projectID > 0 {
-		if !ctx.Repo.CanWrite(unit.TypeProjects) {
-			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
-			return
-		}
-		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
-			return
+	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
+			if !errors.Is(err, util.ErrPermissionDenied) {
+				ctx.ServerError("IssueAssignOrRemoveProject", err)
+				return
+			}
 		}
 	}
 

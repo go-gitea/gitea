@@ -184,6 +184,8 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateTagOption)
@@ -205,7 +207,7 @@ func CreateTag(ctx *context.APIContext) {
 			return
 		}
 		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "CreateNewTag", "user not allowed to create protected tag")
+			ctx.Error(http.StatusUnprocessableEntity, "CreateNewTag", "user not allowed to create protected tag")
 			return
 		}
 
@@ -253,6 +255,8 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	tagName := ctx.Params("*")
@@ -274,7 +278,7 @@ func DeleteTag(ctx *context.APIContext) {
 
 	if err = releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, tag, ctx.Doer, true); err != nil {
 		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
