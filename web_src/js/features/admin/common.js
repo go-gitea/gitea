@@ -67,39 +67,44 @@ export function initAdminCommon() {
       input.removeAttribute('required');
     }
 
-    const provider = document.getElementById('oauth2_provider')?.value;
+    const provider = document.getElementById('oauth2_provider').value;
     switch (provider) {
       case 'openidConnect':
-        for (const input of document.querySelectorAll('.open_id_connect_auto_discovery_url input')) {
-          input.setAttribute('required', 'required');
-        }
+        document.querySelector('.open_id_connect_auto_discovery_url input').setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
         break;
-      default:
-        if (document.getElementById(`#${provider}_customURLSettings`)?.getAttribute('data-required')) {
-          document.getElementById('oauth2_use_custom_url')?.setAttribute('checked', 'checked');
+      default: {
+        const elProviderCustomUrlSettings = document.querySelector(`#${provider}_customURLSettings`);
+        if (!elProviderCustomUrlSettings) break; // some providers do not have custom URL settings
+        const couldChangeCustomURLs = elProviderCustomUrlSettings.getAttribute('data-available') === 'true';
+        const mustProvideCustomURLs = elProviderCustomUrlSettings.getAttribute('data-required') === 'true';
+        if (couldChangeCustomURLs) {
+          showElem('.oauth2_use_custom_url'); // show the checkbox
         }
-        if (document.getElementById(`#${provider}_customURLSettings`)?.getAttribute('data-available')) {
-          showElem('.oauth2_use_custom_url');
+        if (mustProvideCustomURLs) {
+          document.querySelector('#oauth2_use_custom_url').checked = true; // make the checkbox checked
         }
+        break;
+      }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
   function onOAuth2UseCustomURLChange(applyDefaultValues) {
-    const provider = document.getElementById('oauth2_provider')?.value;
+    const provider = document.getElementById('oauth2_provider').value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll('.oauth2_use_custom_url_field input[required]')) {
       input.removeAttribute('required');
     }
 
-    if (document.getElementById('oauth2_use_custom_url')?.checked) {
+    const elProviderCustomUrlSettings = document.querySelector(`#${provider}_customURLSettings`);
+    if (elProviderCustomUrlSettings && document.getElementById('oauth2_use_custom_url').checked) {
       for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
           document.getElementById(`oauth2_${custom}`).value = document.getElementById(`${provider}_${custom}`).value;
         }
         const customInput = document.getElementById(`${provider}_${custom}`);
-        if (customInput && customInput.getAttribute('data-available')) {
+        if (customInput && customInput.getAttribute('data-available') === 'true') {
           for (const input of document.querySelectorAll(`.oauth2_${custom} input`)) {
             input.setAttribute('required', 'required');
           }
