@@ -53,7 +53,7 @@ func TestRender_Commits(t *testing.T) {
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	repo := markup.TestRepoURL
+	repo := "http://localhost:3000/test-owner/test-repo"
 	commit := util.URLJoin(repo, "commit", sha)
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
