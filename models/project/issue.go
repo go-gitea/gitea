@@ -147,24 +147,38 @@ func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueI
 }
 
 func MoveIssueToColumnTail(ctx context.Context, issue *ProjectIssue, toColumn *Column) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	num, err := toColumn.NumIssues(ctx)
+	nextSorting, err := toColumn.getNextSorting(ctx)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?",
-		toColumn.ID, num, issue.IssueID)
-	if err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err = db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?",
+			toColumn.ID, nextSorting, issue.IssueID)
+
 		return err
+	})
+}
+
+func (c *Column) getNextSorting(ctx context.Context) (int64, error) {
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+		Table("project_issue").
+		Where("project_id=?", c.ProjectID).
+		And("project_board_id=?", c.ID).
+		Get(&res); err != nil {
+		return 0, err
 	}
 
-	return committer.Commit()
+	if res.IssueCount > 0 {
+		return res.MaxSorting + 1, nil
+	}
+
+	return 0, nil
 }
 
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
@@ -176,15 +190,8 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	}
 
-	res := struct {
-		MaxSorting int64
-		IssueCount int64
-	}{}
-	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
-		Table("project_issue").
-		Where("project_id=?", newColumn.ProjectID).
-		And("project_board_id=?", newColumn.ID).
-		Get(&res); err != nil {
+	nextSorting, err := newColumn.getNextSorting(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -196,7 +203,6 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	}
 
-	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for i, issue := range issues {
 			issue.ProjectColumnID = newColumn.ID

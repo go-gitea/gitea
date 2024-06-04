@@ -58,7 +58,7 @@ func (Column) TableName() string {
 }
 
 // NumIssues return counter of all issues assigned to the column
-func (c *Column) NumIssues(ctx context.Context) (int64, error) {
+func (c *Column) NumIssues(ctx context.Context) int {
 	total, err := db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", c.ProjectID).
 		And("project_board_id=?", c.ID).
@@ -66,9 +66,9 @@ func (c *Column) NumIssues(ctx context.Context) (int64, error) {
 		Cols("issue_id").
 		Count()
 	if err != nil {
-		return 0, err
+		return 0
 	}
-	return total, nil
+	return int(total)
 }
 
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
