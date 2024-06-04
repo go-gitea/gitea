@@ -18,8 +18,7 @@ import (
 
 const (
 	TestAppURL  = "http://localhost:3000/"
-	TestOrgRepo = "gogits/gogs"
-	TestRepoURL = TestAppURL + TestOrgRepo + "/"
+	TestRepoURL = TestAppURL + "owenr/repo/"
 )
 
 // externalIssueLink an HTML link to an alphanumeric-style issue

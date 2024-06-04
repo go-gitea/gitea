@@ -74,7 +74,7 @@ type RenderContext struct {
 	Type             string
 	IsWiki           bool
 	Links            Links
-	Metas            map[string]string
+	Metas            map[string]string // user, repo, mode(comment/document)
 	DefaultLink      string
 	GitRepo          *git.Repository
 	Repo             gitrepo.Repository
