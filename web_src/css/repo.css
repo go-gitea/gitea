@@ -2322,6 +2322,7 @@ tbody.commit-list {
   min-height: 12em;
   max-height: calc(100vh - 10.5rem);
   overflow-y: auto;
+  tab-size: 4;
 }
 
 .comment-diff-data pre {

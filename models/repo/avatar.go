@@ -84,7 +84,13 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
 }
 
-// AvatarLink returns the full avatar url with http host. TODO: refactor it to a relative URL, but it is still used in API response at the moment
+// AvatarLink returns the full avatar url with http host or the empty string if the repo doesn't have an avatar.
+//
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (repo *Repository) AvatarLink(ctx context.Context) string {
-	return httplib.MakeAbsoluteURL(ctx, repo.relAvatarLink(ctx))
+	relLink := repo.relAvatarLink(ctx)
+	if relLink != "" {
+		return httplib.MakeAbsoluteURL(ctx, relLink)
+	}
+	return ""
 }
