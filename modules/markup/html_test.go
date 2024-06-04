@@ -120,8 +120,8 @@ func TestRender_CrossReferences(t *testing.T) {
 	}
 
 	test(
-		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
+		"test-owner/test-repo#12345",
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
@@ -541,19 +541,19 @@ func TestRender_RelativeImages(t *testing.T) {
 		return strings.TrimSpace(string(buffer))
 	}
 
-	out := render(`<img src="LINK">`, false, markup.Links{Base: "/owner/repo"})
-	assert.Equal(t, `<a href="/owner/repo/LINK" target="_blank" rel="nofollow noopener"><img src="/owner/repo/LINK"/></a>`, out)
+	out := render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/LINK"/></a>`, out)
 
-	out = render(`<img src="LINK">`, true, markup.Links{Base: "/owner/repo"})
-	assert.Equal(t, `<a href="/owner/repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/owner/repo/wiki/raw/LINK"/></a>`, out)
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
 
-	out = render(`<img src="LINK">`, false, markup.Links{Base: "/owner/repo", BranchPath: "master"})
-	assert.Equal(t, `<a href="/owner/repo/media/master/LINK" target="_blank" rel="nofollow noopener"><img src="/owner/repo/media/master/LINK"/></a>`, out)
+	out = render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/media/test-branch/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/media/test-branch/LINK"/></a>`, out)
 
-	out = render(`<img src="LINK">`, true, markup.Links{Base: "/owner/repo", BranchPath: "master"})
-	assert.Equal(t, `<a href="/owner/repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/owner/repo/wiki/raw/LINK"/></a>`, out)
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
 
-	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/owner/repo", BranchPath: "master"})
+	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
 	assert.Equal(t, `<img src="/LINK"/>`, out)
 }
 
