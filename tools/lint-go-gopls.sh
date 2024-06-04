@@ -4,7 +4,7 @@ set -uo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")" && cd ..
 
 IGNORE_PATTERNS=(
-  "is deprecated" # no alternatives for the matching cases
+  "is deprecated" # TODO: fix these
 )
 
 # lint all go files with 'gopls check' and look for lines starting with the
