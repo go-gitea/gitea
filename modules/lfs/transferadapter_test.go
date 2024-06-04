@@ -24,12 +24,9 @@ func TestBasicTransferAdapterName(t *testing.T) {
 
 func TestBasicTransferAdapter(t *testing.T) {
 	p := Pointer{Oid: "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259", Size: 5}
-	downloadTestFlag := false
 
 	roundTripHandler := func(req *http.Request) *http.Response {
-		if !downloadTestFlag {
-			assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
-		}
+		assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 		assert.Equal(t, "test-value", req.Header.Get("test-header"))
 
 		url := req.URL.String()
@@ -74,10 +71,6 @@ func TestBasicTransferAdapter(t *testing.T) {
 	a := &BasicTransferAdapter{hc}
 
 	t.Run("Download", func(t *testing.T) {
-		downloadTestFlag = true
-		t.Cleanup(func() {
-			downloadTestFlag = false
-		})
 		cases := []struct {
 			link          *Link
 			expectederror string
