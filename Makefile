@@ -429,9 +429,9 @@ lint-go-vet:
 .PHONY: lint-go-gopls
 lint-go-gopls:
 	@echo "Running gopls check..."
-# TODO: Fix all errors and remove '|| true'
-	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA) || true
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
+.PHONY: lint-editorconfig
 lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
