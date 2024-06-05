@@ -159,8 +159,6 @@ jobs:
             ${{ steps.vars.outputs.GOCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
-        env:
-          GOOS: linux
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
