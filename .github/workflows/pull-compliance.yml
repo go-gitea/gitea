@@ -27,7 +27,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
@@ -36,7 +37,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
 
   lint-templates:
     if: needs.files-changed.outputs.templates == 'true'
@@ -112,7 +114,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
       - run: make lint-go-windows lint-go-vet
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
@@ -123,7 +126,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
 
   lint-go-gogit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -141,7 +145,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
         env:
           GOOS: linux
       - run: make lint-go
@@ -152,7 +157,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-          key: ${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
+            ~/.cache/go-build
+          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile')}}
 
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
