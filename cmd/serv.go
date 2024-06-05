@@ -181,7 +181,7 @@ func runServ(c *cli.Context) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				data := private.GetSshInfo(ctx)
+				data := private.GetSSHInfo(ctx)
 				fmt.Print(data)
 				return nil
 			}
