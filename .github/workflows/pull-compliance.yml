@@ -21,10 +21,27 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - run: make lint-backend
+      - run: make deps-backend
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-linux-${{ runner.arch }}-${{hashFiles('go.mod')}}
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          GOOS: linux
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59.0
+          skip-cache: true
+          args: --build-tags bindata,sqlite,sqlite_unlock_notify
+      - run: make lint-go-vet lint-go-gopls lint-editorconfig
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-linux-${{ runner.arch }}-${{hashFiles('go.mod')}}
 
   lint-templates:
     if: needs.files-changed.outputs.templates == 'true'
@@ -94,12 +111,28 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - run: make lint-go-windows lint-go-vet
+      - run: make deps-backend
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-windows-${{ runner.arch }}-${{hashFiles('go.mod')}}
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
-          GOARCH: amd64
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59.0
+          skip-cache: true
+          args: --build-tags bindata,sqlite,sqlite_unlock_notify
+        env:
+          GOOS: windows
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-windows-${{ runner.arch }}-${{hashFiles('go.mod')}}
 
   lint-go-gogit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -111,10 +144,28 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - run: make lint-go
+      - run: make deps-backend
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-linux-gogit-${{ runner.arch }}-${{hashFiles('go.mod')}}
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          GOOS: linux
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59.0
+          skip-cache: true
+          args: --build-tags gogit,bindata,sqlite,sqlite_unlock_notify
+        env:
+          GOOS: linux
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+          key: golangci-v1.59.0-linux-gogit-${{ runner.arch }}-${{hashFiles('go.mod')}}
 
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
