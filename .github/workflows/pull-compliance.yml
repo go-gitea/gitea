@@ -24,7 +24,6 @@ jobs:
       - id: vars
         run: |
           echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
           echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
         with:
@@ -32,7 +31,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -44,7 +42,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-templates:
@@ -118,7 +115,6 @@ jobs:
       - id: vars
         run: |
           echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
           echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
         with:
@@ -126,7 +122,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -140,7 +135,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-go-gogit:
@@ -156,7 +150,6 @@ jobs:
       - id: vars
         run: |
           echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
           echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
         with:
@@ -164,7 +157,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
         env:
@@ -178,7 +170,6 @@ jobs:
             ~/.cache/golangci-lint
             ~/.cache/gopls
             ${{ steps.vars.outputs.GOCACHE }}
-            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   checks-backend:
