@@ -24,5 +24,3 @@ jobs:
             ${{steps.vars.outputs.GOCACHE}}
             ${{steps.vars.outputs.GOMODCACHE}}
           key: golint-v1-${{ inputs.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
-
-
