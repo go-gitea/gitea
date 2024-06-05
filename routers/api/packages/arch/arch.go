@@ -163,7 +163,8 @@ func DownloadPackageOrRepositoryFile(ctx *context.Context) {
 	}
 
 	if strings.HasSuffix(filename, ".db.tar.gz") || strings.HasSuffix(filename, ".files.tar.gz") || strings.HasSuffix(filename, ".files") || strings.HasSuffix(filename, ".db") {
-		// normalize to packages.db
+		// The requested filename is based on the user-defined repository name.
+		// Normalize everything to "packages.db".
 		opts.Query = arch_service.IndexArchiveFilename
 
 		pv, err := arch_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)

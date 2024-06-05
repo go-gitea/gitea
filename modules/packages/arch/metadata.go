@@ -33,7 +33,7 @@ const (
 )
 
 var (
-	ErrMissingPkgInfoFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
+	ErrMissingPKGINFOFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
@@ -110,7 +110,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	if p == nil {
-		return nil, ErrMissingPkgInfoFile
+		return nil, ErrMissingPKGINFOFile
 	}
 
 	p.FileMetadata.Files = files
