@@ -31,25 +31,20 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
-      - id: vars
-        run: |
-          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/save@v4
         with:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-templates:
@@ -130,8 +125,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -139,18 +134,13 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
-      - id: vars
-        run: |
-          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/save@v4
         with:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-go-gogit:
@@ -173,8 +163,8 @@ jobs:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
         env:
@@ -182,18 +172,13 @@ jobs:
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - id: vars
-        run: |
-          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
-          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/save@v4
         with:
           path: |
             ~/.cache/golangci-lint
             ~/.cache/gopls
-            ${{steps.vars.outputs.GOCACHE}}
-            ${{steps.vars.outputs.GOMODCACHE}}
+            ${{ steps.vars.outputs.GOCACHE }}
+            ${{ steps.vars.outputs.GOMODCACHE }}
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   checks-backend:
