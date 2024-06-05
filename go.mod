@@ -311,7 +311,7 @@ replace github.com/nektos/act => gitea.com/gitea/act v0.259.1
 
 replace github.com/gorilla/feeds => github.com/yardenshoham/feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
-replace github.com/mholt/archiver/v3 =>  github.com/anchore/archiver/v3 v3.5.2
+replace github.com/mholt/archiver/v3 => github.com/anchore/archiver/v3 v3.5.2
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
