@@ -13,9 +13,9 @@ jobs:
     steps:
       - id: vars
         run: |
-          echo "::set-output name=GOCACHE::$(go env GOCACHE)"
-          echo "::set-output name=GOMODCACHE::$(go env GOMODCACHE)"
-          echo "::set-output name=GOVERSION::$(go env GOVERSION)"
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
         with:
           path: |
