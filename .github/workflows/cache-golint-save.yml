@@ -1,0 +1,28 @@
+name: cache-golint-save
+
+on:
+  workflow_call:
+    inputs:
+      job:
+        type: string
+        required: true
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - id: vars
+        run: |
+          echo "::set-output name=GOCACHE::$(go env GOCACHE)"
+          echo "::set-output name=GOMODCACHE::$(go env GOMODCACHE)"
+          echo "::set-output name=GOVERSION::$(go env GOVERSION)"
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{steps.vars.outputs.GOCACHE}}
+            ${{steps.vars.outputs.GOMODCACHE}}
+          key: golint-v1-${{ inputs.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
+
+

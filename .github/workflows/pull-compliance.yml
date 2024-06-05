@@ -21,24 +21,16 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - uses: actions/cache/restore@v4
+      - uses: ./.github/workflows/cache-golint-restore.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
+      - run: make deps-backend deps-tools
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
-      - uses: actions/cache/save@v4
+      - uses: ./.github/workflows/cache-golint-save.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
 
   lint-templates:
     if: needs.files-changed.outputs.templates == 'true'
@@ -108,26 +100,18 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - uses: actions/cache/restore@v4
+      - uses: ./.github/workflows/cache-golint-restore.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
+      - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
-      - uses: actions/cache/save@v4
+      - uses: ./.github/workflows/cache-golint-save.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
 
   lint-go-gogit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -139,26 +123,18 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend deps-tools
-      - uses: actions/cache/restore@v4
+      - uses: ./.github/workflows/cache-golint-restore.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
+      - run: make deps-backend deps-tools
         env:
           GOOS: linux
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - uses: actions/cache/save@v4
+      - uses: ./.github/workflows/cache-golint-save.yml
         with:
-          path: |
-            ~/.cache/golangci-lint
-            ~/.cache/gopls
-            ~/.cache/go-build
-          key: golint-v1-${{github.job}}-${{runner.os}}-${{runner.arch}}-${{hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh')}}
+          job: ${{ github.job }}
 
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
