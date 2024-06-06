@@ -883,11 +883,11 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		stderrBuf := &bytes.Buffer{}
 
 		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").
-			AddDynamicArguments("topic=test/head2").
+			AddDynamicArguments(`topic="test/head2"`).
 			AddArguments("-o").
-			AddDynamicArguments("title='create a test pull request with agit'").
+			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
-			AddDynamicArguments("description='This PR is a test pull request which created with agit'").
+			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
 			Run(&git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
 		assert.NoError(t, err)
 		assert.Empty(t, stderrBuf.String())
