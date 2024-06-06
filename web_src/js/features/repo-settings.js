@@ -8,35 +8,35 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.page-content.repository .ui.dropdown.access-mode').each((_, el) => {
-    const $dropdown = $(el);
-    const $text = $dropdown.find('> .text');
-    $dropdown.dropdown({
+  $('.page-content.repository .ui.dropdown.access-mode').each((_, dropdownEl) => {
+    const textEl = dropdownEl.querySelector(':scope > .text');
+    $(dropdownEl).dropdown({
       async action(_text, value) {
-        const lastValue = el.getAttribute('data-last-value');
+        const lastValue = dropdownEl.getAttribute('data-last-value');
         try {
-          el.setAttribute('data-last-value', value);
-          $dropdown.dropdown('hide');
+          dropdownEl.setAttribute('data-last-value', value);
+          $(dropdownEl).dropdown('hide');
           const data = new FormData();
-          data.append('uid', el.getAttribute('data-uid'));
+          data.append('uid', dropdownEl.getAttribute('data-uid'));
           data.append('mode', value);
-          await POST(el.getAttribute('data-url'), {data});
+          await POST(dropdownEl.getAttribute('data-url'), {data});
         } catch {
-          $text[0].textContent = '(error)'; // prevent from misleading users when error occurs
-          el.setAttribute('data-last-value', lastValue);
+          textEl.textContent = '(error)'; // prevent from misleading users when error occurs
+          dropdownEl.setAttribute('data-last-value', lastValue);
         }
       },
       onChange(_value, text, _$choice) {
-        $text[0].textContent = text; // update the text when using keyboard navigating
+        textEl.textContent = text; // update the text when using keyboard navigating
       },
       onHide() {
-        // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
+        // set to the really selected value, defer to next tick to make sure `action` has finished
+        // its work because the calling order might be onHide -> action
         setTimeout(() => {
-          const $item = $dropdown.dropdown('get item', el.getAttribute('data-last-value'));
+          const $item = $(dropdownEl).dropdown('get item', dropdownEl.getAttribute('data-last-value'));
           if ($item) {
-            $dropdown.dropdown('set selected', el.getAttribute('data-last-value'));
+            $(dropdownEl).dropdown('set selected', dropdownEl.getAttribute('data-last-value'));
           } else {
-            $text[0].textContent = '(none)'; // prevent from misleading users when the access mode is undefined
+            textEl.textContent = '(none)'; // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       },
