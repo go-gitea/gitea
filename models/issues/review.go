@@ -155,14 +155,14 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
-func (r *Review) loadIssue(ctx context.Context) (err error) {
+func (r *Review) LoadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes(ctx context.Context) (err error) {
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	if err = r.LoadCodeComments(ctx); err != nil {

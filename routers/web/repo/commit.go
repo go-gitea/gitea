@@ -212,8 +212,6 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	ctx.Data["IsRepoToolbarCommits"] = true
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
@@ -384,6 +382,7 @@ func Diff(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {

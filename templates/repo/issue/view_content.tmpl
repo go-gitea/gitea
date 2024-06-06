@@ -60,7 +60,7 @@
 							{{end}}
 						</div>
 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
@@ -146,7 +146,7 @@
 </div>
 
 <template id="issue-comment-editor-template">
-	<div class="ui comment form">
+	<div class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
@@ -164,8 +164,8 @@
 
 		<div class="field">
 			<div class="text right edit">
-				<button class="ui basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+				<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
 	</div>

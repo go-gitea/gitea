@@ -15,9 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func init() {
-	isGogit = false
-}
+const isGogit = false
 
 // Repository represents a Git repository.
 type Repository struct {

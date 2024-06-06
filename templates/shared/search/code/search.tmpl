@@ -8,7 +8,7 @@
 			<p>{{ctx.Locale.Tr "search.code_search_unavailable"}}</p>
 		</div>
 	{{else}}
-		{{if not .CodeIndexerEnabled}}
+		{{if not .IsRepoIndexerEnabled}}
 			<div class="ui message">
 				<p>{{ctx.Locale.Tr "search.code_search_by_git_grep"}}</p>
 			</div>

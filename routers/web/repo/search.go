@@ -17,6 +17,16 @@ import (
 
 const tplSearch base.TplName = "repo/search"
 
+func indexSettingToGitGrepPathspecList() (list []string) {
+	for _, expr := range setting.Indexer.IncludePatterns {
+		list = append(list, ":(glob)"+expr.PatternString())
+	}
+	for _, expr := range setting.Indexer.ExcludePatterns {
+		list = append(list, ":(glob,exclude)"+expr.PatternString())
+	}
+	return list
+}
+
 // Search render repository search page
 func Search(ctx *context.Context) {
 	language := ctx.FormTrim("l")
@@ -28,6 +38,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["Language"] = language
 	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, tplSearch)
@@ -64,8 +75,14 @@ func Search(ctx *context.Context) {
 			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 	} else {
-		res, err := git.GrepSearch(ctx, ctx.Repo.GitRepo, keyword, git.GrepOptions{ContextLineNumber: 3, IsFuzzy: isFuzzy})
+		res, err := git.GrepSearch(ctx, ctx.Repo.GitRepo, keyword, git.GrepOptions{
+			ContextLineNumber: 1,
+			IsFuzzy:           isFuzzy,
+			RefName:           git.RefNameFromBranch(ctx.Repo.BranchName).String(), // BranchName should be default branch or the first existing branch
+			PathspecList:      indexSettingToGitGrepPathspecList(),
+		})
 		if err != nil {
+			// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
 			ctx.ServerError("GrepSearch", err)
 			return
 		}
@@ -86,7 +103,6 @@ func Search(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Repo"] = ctx.Repo.Repository
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages

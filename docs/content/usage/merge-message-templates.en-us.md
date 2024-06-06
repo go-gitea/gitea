@@ -44,6 +44,8 @@ You can use the following variables enclosed in `${}` inside these templates whi
 - PullRequestIndex: Pull request's index number
 - PullRequestReference: Pull request's reference char with index number. i.e. #1, !2
 - ClosingIssues: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
+- ReviewedOn: Which pull request this commit belongs to. For example `Reviewed-on: https://gitea.com/foo/bar/pulls/1`
+- ReviewedBy: Who approved the pull request before the merge. For example `Reviewed-by: Jane Doe <jane.doe@example.com>`
 
 ## Rebase
 

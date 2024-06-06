@@ -92,6 +92,7 @@ import (
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -160,9 +161,9 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 	return mac.Sum(nil)
 }
 
-func (r artifactV4Routes) buildArtifactURL(endp, artifactName string, taskID int64) string {
+func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactName string, taskID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(r.prefix, "/") +
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
 		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
 	return uploadURL
 }
@@ -278,7 +279,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 
 	respData := CreateArtifactResponse{
 		Ok:              true,
-		SignedUploadUrl: r.buildArtifactURL("UploadArtifact", artifactName, ctx.ActionTask.ID),
+		SignedUploadUrl: r.buildArtifactURL(ctx, "UploadArtifact", artifactName, ctx.ActionTask.ID),
 	}
 	r.sendProtbufBody(ctx, &respData)
 }
@@ -447,14 +448,14 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 
 	respData := GetSignedArtifactURLResponse{}
 
-	if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+	if setting.Actions.ArtifactStorage.ServeDirect() {
 		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}
 	}
 	if respData.SignedUrl == "" {
-		respData.SignedUrl = r.buildArtifactURL("DownloadArtifact", artifactName, ctx.ActionTask.ID)
+		respData.SignedUrl = r.buildArtifactURL(ctx, "DownloadArtifact", artifactName, ctx.ActionTask.ID)
 	}
 	r.sendProtbufBody(ctx, &respData)
 }

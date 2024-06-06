@@ -176,7 +176,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(ctx context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
+func migrateRepository(_ context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
 	}

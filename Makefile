@@ -25,17 +25,18 @@ COMMA := ,
 
 XGO_VERSION := go-1.22.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1
+AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@db51e79a0e37c572d8b59ae0c58bf2bbbbe53285
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.15.3
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -88,7 +89,7 @@ ifneq ($(GITHUB_REF_TYPE),branch)
 	GITEA_VERSION ?= $(VERSION)
 else
 	ifneq ($(GITHUB_REF_NAME),)
-		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
+		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))-nightly
 	else
 		VERSION ?= main
 	endif
@@ -213,6 +214,7 @@ help:
 	@echo " - lint-go                          lint go files"
 	@echo " - lint-go-fix                      lint go files and fix issues"
 	@echo " - lint-go-vet                      lint go files with vet"
+	@echo " - lint-go-gopls                    lint go files with gopls"
 	@echo " - lint-js                          lint js files"
 	@echo " - lint-js-fix                      lint js files and fix issues"
 	@echo " - lint-css                         lint css files"
@@ -366,7 +368,7 @@ lint-frontend: lint-js lint-css
 lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-editorconfig
+lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig
 
 .PHONY: lint-backend-fix
 lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
@@ -397,11 +399,11 @@ lint-md: node_modules
 
 .PHONY: lint-spell
 lint-spell:
-	@go run $(MISSPELL_PACKAGE) -error $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
 lint-spell-fix:
-	@go run $(MISSPELL_PACKAGE) -w $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go:
@@ -423,6 +425,11 @@ lint-go-vet:
 	@echo "Running go vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
+
+.PHONY: lint-go-gopls
+lint-go-gopls:
+	@echo "Running gopls check..."
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -778,7 +785,7 @@ generate-backend: $(TAGS_PREREQ) generate-go
 .PHONY: generate-go
 generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
-	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' ./...
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./...
 
 .PHONY: security-check
 security-check:
@@ -864,6 +871,7 @@ deps-tools:
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
 	$(GO) install $(ACTIONLINT_PACKAGE)
+	$(GO) install $(GOPLS_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -908,8 +916,9 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 	@$(MAKE) -s node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
+	@echo "Running webpack..."
+	@BROWSERSLIST_IGNORE_OLD_DATA=true npx webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
