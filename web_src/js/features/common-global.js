@@ -309,7 +309,6 @@ export function initGlobalLinkActions() {
 
       // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
       const dataObj = btn.dataset;
-      console.log(dataObj);
 
       const modalId = btn.getAttribute('data-modal-id');
       const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
