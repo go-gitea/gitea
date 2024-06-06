@@ -278,11 +278,12 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const url = $choice[0].getAttribute('data-do');
+      const choiceEl = $choice[0];
+      const url = choiceEl.getAttribute('data-do');
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice[0].textContent ?? '';
+          buttonText.textContent = choiceEl.textContent ?? '';
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
