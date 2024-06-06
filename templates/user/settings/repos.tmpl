@@ -88,13 +88,13 @@
 									{{if .IsPrivate}}
 										{{svg "octicon-lock" 16 "text gold"}}
 									{{else if .IsFork}}
-										{{svg "octicon-repo-forked" 16 ""}}
+										{{svg "octicon-repo-forked"}}
 									{{else if .IsMirror}}
-										{{svg "octicon-mirror" 16 ""}}
+										{{svg "octicon-mirror"}}
 									{{else if .IsTemplate}}
-										{{svg "octicon-repo-template" 16 ""}}
+										{{svg "octicon-repo-template"}}
 									{{else}}
-										{{svg "octicon-repo" 16 ""}}
+										{{svg "octicon-repo"}}
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>
