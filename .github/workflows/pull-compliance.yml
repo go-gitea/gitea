@@ -180,7 +180,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend
+      - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
   frontend:
