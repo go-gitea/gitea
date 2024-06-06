@@ -47,8 +47,7 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const $notificationCount = $('.notification_count');
-  if (!$notificationCount.length) return;
+  if (!document.querySelector('.notification_count')) return;
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout, lastCount) => {
