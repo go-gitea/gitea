@@ -116,23 +116,39 @@ func ListPullRequests(ctx *context.APIContext) {
 	}
 
 	apiPrs := make([]*api.PullRequest, len(prs))
+	// NOTE: load repository first, so that issue.Repo will be filled with pr.BaseRepo
+	if err := prs.LoadRepositories(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
+		return
+	}
+	issueList, err := prs.LoadIssues(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
+		return
+	}
+
+	if err := issueList.LoadLabels(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadLabels", err)
+		return
+	}
+	if err := issueList.LoadPosters(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPoster", err)
+		return
+	}
+	if err := issueList.LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
+		return
+	}
+	if err := issueList.LoadMilestones(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadMilestones", err)
+		return
+	}
+	if err := issueList.LoadAssignees(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAssignees", err)
+		return
+	}
+
 	for i := range prs {
-		if err = prs[i].LoadIssue(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-			return
-		}
-		if err = prs[i].LoadAttributes(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
-			return
-		}
-		if err = prs[i].LoadBaseRepo(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
-			return
-		}
-		if err = prs[i].LoadHeadRepo(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
-			return
-		}
 		apiPrs[i] = convert.ToAPIPullRequest(ctx, prs[i], ctx.Doer)
 	}
 
@@ -610,8 +626,13 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
 		if err != nil {
+			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
+				return
+			}
+
 			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 			return
 		}

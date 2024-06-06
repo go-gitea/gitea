@@ -17,7 +17,7 @@
 					</div>
 					<div class="ui segment detail">
 						<div class="tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-mb-2">
-							<h4 class="release-list-title gt-word-break">
+							<h4 class="release-list-title tw-break-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
 								{{if $release.IsDraft}}

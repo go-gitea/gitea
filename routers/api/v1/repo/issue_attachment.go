@@ -198,7 +198,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content, issue.ContentVersion); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}

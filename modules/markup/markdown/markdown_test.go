@@ -6,12 +6,11 @@ package markdown_test
 import (
 	"context"
 	"html/template"
-	"os"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -25,28 +24,36 @@ import (
 )
 
 const (
-	AppURL  = "http://localhost:3000/"
-	FullURL = AppURL + "gogits/gogs/"
+	AppURL            = "http://localhost:3000/"
+	testRepoOwnerName = "user13"
+	testRepoName      = "repo11"
+	FullURL           = AppURL + testRepoOwnerName + "/" + testRepoName + "/"
 )
 
 // these values should match the const above
 var localMetas = map[string]string{
-	"user":     "gogits",
-	"repo":     "gogs",
-	"repoPath": "../../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"user": testRepoOwnerName,
+	"repo": testRepoName,
 }
 
-func TestMain(m *testing.M) {
-	unittest.InitSettings()
-	if err := git.InitSimple(context.Background()); err != nil {
-		log.Fatal("git init failed, err: %v", err)
+type mockRepo struct {
+	OwnerName string
+	RepoName  string
+}
+
+func (m *mockRepo) GetOwnerName() string {
+	return m.OwnerName
+}
+
+func (m *mockRepo) GetName() string {
+	return m.RepoName
+}
+
+func newMockRepo(ownerName, repoName string) gitrepo.Repository {
+	return &mockRepo{
+		OwnerName: ownerName,
+		RepoName:  repoName,
 	}
-	markup.Init(&markup.ProcessorHelper{
-		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			return username == "r-lyeh"
-		},
-	})
-	os.Exit(m.Run())
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -133,11 +140,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
-<p>See commit <a href="/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
+<p>See commit <a href="/` + testRepoOwnerName + `/` + testRepoName + `/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 <p>Ideas and codes</p>
 <ul>
 <li>Bezier widget (by <a href="/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
-<li>Bezier widget (by <a href="/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="` + FullURL + `issues/786" class="ref-issue" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
@@ -222,7 +229,7 @@ See commit 65f1bf27bc
 Ideas and codes
 
 - Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
-- Bezier widget (by @r-lyeh) ` + AppURL + `gogits/gogs/issues/786
+- Bezier widget (by @r-lyeh) ` + FullURL + `issues/786
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
@@ -299,6 +306,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
+			Repo:   newMockRepo(testRepoOwnerName, testRepoName),
 			Metas:  localMetas,
 			IsWiki: true,
 		}, sameCases[i])
@@ -344,6 +352,7 @@ func TestTotal_RenderString(t *testing.T) {
 				Base:       FullURL,
 				BranchPath: "master",
 			},
+			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
 			Metas: localMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
@@ -1010,4 +1019,10 @@ func TestAttention(t *testing.T) {
 	test(`> [!important]`, renderAttention("important", "octicon-report")+"\n</blockquote>")
 	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
+
+	// escaped by mdformat
+	test(`> \[!NOTE\]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
+
+	// legacy GitHub style
+	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 }

@@ -100,13 +100,17 @@ async function handleClipboardImages(editor, dropzone, images, e) {
     const {uuid} = await uploadFile(img, uploadUrl);
     const {width, dppx} = await imageInfo(img);
 
-    const url = `/attachments/${uuid}`;
     let text;
     if (width > 0 && dppx > 1) {
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.
+      // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
+      const url = `attachments/${uuid}`;
       text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
     } else {
+      // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
+      // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
+      const url = `/attachments/${uuid}`;
       text = `![${name}](${url})`;
     }
     editor.replacePlaceholder(placeholder, text);
