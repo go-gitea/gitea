@@ -25,7 +25,7 @@ export function initRepoSettingsCollaboration() {
           dropdownEl.setAttribute('data-last-value', lastValue);
         }
       },
-      onChange(_value, text, _$choice) {
+      onChange(_value, text) {
         textEl.textContent = text; // update the text when using keyboard navigating
       },
       onHide() {
