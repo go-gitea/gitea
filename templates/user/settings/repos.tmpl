@@ -86,15 +86,15 @@
 							<div class="item">
 								<div class="content flex-text-block">
 									{{if .IsPrivate}}
-										{{svg "octicon-lock" 16 "iconFloat text gold"}}
+										{{svg "octicon-lock" 16 "text gold"}}
 									{{else if .IsFork}}
-										{{svg "octicon-repo-forked" 16 "iconFloat"}}
+										{{svg "octicon-repo-forked" 16 ""}}
 									{{else if .IsMirror}}
-										{{svg "octicon-mirror" 16 "iconFloat"}}
+										{{svg "octicon-mirror" 16 ""}}
 									{{else if .IsTemplate}}
-										{{svg "octicon-repo-template" 16 "iconFloat"}}
+										{{svg "octicon-repo-template" 16 ""}}
 									{{else}}
-										{{svg "octicon-repo" 16 "iconFloat"}}
+										{{svg "octicon-repo" 16 ""}}
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>
