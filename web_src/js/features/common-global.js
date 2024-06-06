@@ -302,58 +302,56 @@ async function linkAction(e) {
 }
 
 export function initGlobalLinkActions() {
-  function showDeletePopup(e) {
-    e.preventDefault();
-    const modalId = this.getAttribute('data-modal-id');
-    const modal = document.querySelector(`.delete.modal${modalId ?? ''}`);
-    const modalNameEl = modal.querySelector('.name');
-    if (modalNameEl) {
-      modalNameEl.textContent = this.getAttribute('name');
-    }
+  for (const el of document.querySelectorAll('.delete-button')) {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const btn = e.currentTarget;
 
-    for (let i = 0; i < this.attributes.length; i++) {
-      const {name, value} = this.attributes[i];
-      if (name?.startsWith('data-')) {
-        const nameEl = modal.querySelector(`.${name}`);
-        if (nameEl) {
-          nameEl.textContent = value;
+      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
+      const dataObj = btn.dataset;
+      console.log(dataObj);
+
+      const modalId = btn.getAttribute('data-modal-id');
+      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
+      const modalNameEl = modal.querySelector('.name');
+      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('name');
+
+      for (const [key, value] of Object.entries(dataObj)) {
+        if (key?.startsWith('data')) {
+          const nameEl = modal.querySelector(`.${key}`);
+          if (nameEl) nameEl.textContent = value;
         }
       }
-    }
 
-    $(modal).modal({
-      closable: false,
-      onApprove: async () => {
-        if (modal.getAttribute('data-type') === 'form') {
-          const formSelector = this.getAttribute('data-form');
-          const form = document.querySelector(formSelector);
-          if (form) {
-            form.submit();
+      $(modal).modal({
+        closable: false,
+        onApprove: async () => {
+          if (modal.getAttribute('data-type') === 'form') {
+            const form = document.querySelector(btn.getAttribute('data-form'));
+            if (form) form.submit();
+            return;
           }
-          return;
-        }
-        const postData = new FormData();
-        for (let i = 0; i < this.attributes.length; i++) {
-          const {name, value} = this.attributes[i];
-          if (name?.startsWith('data-')) {
-            postData.append(name.slice(4), value);
+          const postData = new FormData();
+          for (const [key, value] of Object.entries(dataObj)) {
+            // data-dataxxx (HTML) -> dataxxx
+            // data-data-xxx (HTML) -> dataXxx
+            if (key?.startsWith('data')) {
+              postData.append(key.slice(4), value);
+            }
+            if (key === 'id') {
+              postData.append('id', value);
+            }
           }
-          if (name === 'id') {
-            postData.append('id', value);
-          }
-        }
 
-        const response = await POST(this.getAttribute('data-url'), {data: postData});
-        if (response.ok) {
-          const data = await response.json();
-          window.location.href = data.redirect;
-        }
-      },
-    }).modal('show');
+          const response = await POST(btn.getAttribute('data-url'), {data: postData});
+          if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.redirect;
+          }
+        },
+      }).modal('show');
+    });
   }
-
-  // Helpers.
-  $('.delete-button').on('click', showDeletePopup);
 }
 
 function initGlobalShowModal() {
