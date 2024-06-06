@@ -347,6 +347,6 @@ type msteamsConvertor struct{}
 
 var _ payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
 
-func newMSTeamsRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newMSTeamsRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) { //nolint:unparam
 	return newJSONRequest(msteamsConvertor{}, w, t, true)
 }

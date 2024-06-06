@@ -283,7 +283,7 @@ type slackConvertor struct {
 
 var _ payloadConvertor[SlackPayload] = slackConvertor{}
 
-func newSlackRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newSlackRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) { //nolint:unparam
 	meta := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newSlackRequest meta json: %w", err)

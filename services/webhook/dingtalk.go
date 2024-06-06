@@ -190,6 +190,6 @@ type dingtalkConvertor struct{}
 
 var _ payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
 
-func newDingtalkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newDingtalkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) { //nolint:unparam
 	return newJSONRequest(dingtalkConvertor{}, w, t, true)
 }
