@@ -304,39 +304,46 @@ async function linkAction(e) {
 export function initGlobalLinkActions() {
   function showDeletePopup(e) {
     e.preventDefault();
-    const $this = $(this);
-    const dataArray = $this.data();
-    let filter = '';
-    if (this.getAttribute('data-modal-id')) {
-      filter += `#${this.getAttribute('data-modal-id')}`;
+    const modalId = this.getAttribute('data-modal-id');
+    const modal = document.querySelector(`.delete.modal${modalId ?? ''}`);
+    const modalNameEl = modal.querySelector('.name');
+    if (modalNameEl) {
+      modalNameEl.textContent = this.getAttribute('name');
     }
 
-    const $dialog = $(`.delete.modal${filter}`);
-    $dialog.find('.name')[0].textContent = $this.data('name');
-    for (const [key, value] of Object.entries(dataArray)) {
-      if (key && key.startsWith('data')) {
-        $dialog.find(`.${key}`)[0].textContent = value;
+    for (let i = 0; i < this.attributes.length; i++) {
+      const {name, value} = this.attributes[i];
+      if (name?.startsWith('data-')) {
+        const nameEl = modal.querySelector(`.${name}`);
+        if (nameEl) {
+          nameEl.textContent = value;
+        }
       }
     }
 
-    $dialog.modal({
+    $(modal).modal({
       closable: false,
       onApprove: async () => {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
+        if (modal.getAttribute('data-type') === 'form') {
+          const formSelector = this.getAttribute('data-form');
+          const form = document.querySelector(formSelector);
+          if (form) {
+            form.submit();
+          }
           return;
         }
         const postData = new FormData();
-        for (const [key, value] of Object.entries(dataArray)) {
-          if (key && key.startsWith('data')) {
-            postData.append(key.slice(4), value);
+        for (let i = 0; i < this.attributes.length; i++) {
+          const {name, value} = this.attributes[i];
+          if (name?.startsWith('data-')) {
+            postData.append(name.slice(4), value);
           }
-          if (key === 'id') {
+          if (name === 'id') {
             postData.append('id', value);
           }
         }
 
-        const response = await POST($this.data('url'), {data: postData});
+        const response = await POST(this.getAttribute('data-url'), {data: postData});
         if (response.ok) {
           const data = await response.json();
           window.location.href = data.redirect;
