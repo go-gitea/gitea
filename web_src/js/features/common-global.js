@@ -282,7 +282,6 @@ async function linkAction(e) {
   if (!el) return;
 
   e.preventDefault();
-
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     el.disabled = true;
