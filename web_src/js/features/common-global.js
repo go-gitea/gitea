@@ -296,7 +296,7 @@ async function linkAction(e) {
   }
 
   const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'primary'})) {
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'red' : 'primary'})) {
     await doRequest();
   }
 }

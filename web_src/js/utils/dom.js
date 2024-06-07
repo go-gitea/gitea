@@ -297,3 +297,9 @@ export function replaceTextareaSelection(textarea, text) {
     textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
   }
 }
+
+export function createElementFromHTML(htmlString) {
+  const div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.firstChild;
+}
