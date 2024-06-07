@@ -283,7 +283,7 @@ export function initRepoPullRequestUpdate() {
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = choiceEl.textContent ?? '';
+          buttonText.textContent = choiceEl.textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
