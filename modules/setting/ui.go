@@ -52,6 +52,7 @@ var UI = struct {
 
 	CSV struct {
 		MaxFileSize int64
+		MaxRows     int
 	} `ini:"ui.csv"`
 
 	Admin struct {
@@ -107,8 +108,10 @@ var UI = struct {
 	},
 	CSV: struct {
 		MaxFileSize int64
+		MaxRows     int
 	}{
 		MaxFileSize: 524288,
+		MaxRows:     2500,
 	},
 	Admin: struct {
 		UserPagingNum   int
