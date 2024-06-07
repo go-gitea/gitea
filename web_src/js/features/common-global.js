@@ -282,6 +282,7 @@ async function linkAction(e) {
   if (!el) return;
 
   e.preventDefault();
+
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     el.disabled = true;
@@ -296,7 +297,7 @@ async function linkAction(e) {
   }
 
   const isRisky = el.classList.contains('red') || el.classList.contains('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'red' : 'primary'})) {
+  if (await confirmModal(modalConfirmContent, {confirmButtonColor: isRisky ? 'red' : 'primary'})) {
     await doRequest();
   }
 }
