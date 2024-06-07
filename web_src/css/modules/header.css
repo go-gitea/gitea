@@ -135,7 +135,7 @@ h4.ui.header .sub.header {
 }
 
 /* open dropdown menus to the left in right-attached headers */
-/* this method must be used instead of "left menu" because otherwise menus will flash on page load. */
+/* this method must be used instead of "left menu" because otherwise the menu will flash on page load. */
 .ui.attached.header > .ui.right .ui.dropdown .menu,
 .navbar-right .ui.dropdown .menu {
   right: 0;
