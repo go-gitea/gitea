@@ -5,7 +5,7 @@ import {createElementFromHTML} from '../../utils/dom.js';
 
 const {i18n} = window.config;
 
-export function confirmModal({content = '', buttonColor = 'red'} = {}) {
+export function confirmModal({content = '', buttonColor = 'red'}) {
   return new Promise((resolve) => {
     const modal = createElementFromHTML(`
       <div class="ui g-modal-confirm modal">
