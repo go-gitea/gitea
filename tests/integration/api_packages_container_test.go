@@ -84,9 +84,7 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		wwwAuthenticateValues := func() []string {
-			return []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
-		}
+		defaultAuthenticateValues := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
@@ -94,7 +92,7 @@ func TestPackageContainer(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
-			assert.ElementsMatch(t, wwwAuthenticateValues(), resp.Header().Values("WWW-Authenticate"))
+			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
 			resp = MakeRequest(t, req, http.StatusOK)
@@ -131,7 +129,7 @@ func TestPackageContainer(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
-			assert.ElementsMatch(t, wwwAuthenticateValues(), resp.Header().Values("WWW-Authenticate"))
+			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL)).
 				AddBasicAuth(user.Name)
