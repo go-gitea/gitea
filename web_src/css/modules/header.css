@@ -135,7 +135,8 @@ h4.ui.header .sub.header {
 }
 
 /* open dropdown menus to the left in right-attached headers */
-.ui.attached.header > .ui.right .ui.dropdown .menu {
+.ui.attached.header > .ui.right .ui.dropdown .menu,
+.navbar-right .ui.dropdown .menu {
   right: 0;
   left: auto;
 }
