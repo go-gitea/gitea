@@ -48,13 +48,13 @@
 				<li>
 					{{svg "octicon-mail"}}
 					<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
+					<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 						{{if .ShowUserEmail}}
-							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
+							<i class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
 								{{svg "octicon-unlock"}}
 							</i>
 						{{else}}
-							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.private"}}">
+							<i class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.private"}}">
 								{{svg "octicon-lock"}}
 							</i>
 						{{end}}
