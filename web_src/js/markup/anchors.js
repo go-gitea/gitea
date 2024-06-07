@@ -14,7 +14,6 @@ function scrollToAnchor(encodedId) {
   // check for matching user-generated `a[name]`
   if (!el) {
     el = document.querySelector(`a[name="${CSS.escape(prefixedId)}"]`);
-    }
   }
 
   // compat for links with old 'user-content-' prefixed hashes
