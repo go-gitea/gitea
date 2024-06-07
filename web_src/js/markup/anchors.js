@@ -9,7 +9,7 @@ function scrollToAnchor(encodedId) {
   if (!encodedId) return;
   const id = decodeURIComponent(encodedId);
   const prefixedId = addPrefix(id);
-  let el = document.getElementById(prefixedId);
+  let el = document.querySelector(`#${prefixedId}`);
 
   // check for matching user-generated `a[name]`
   if (!el) {
@@ -21,7 +21,7 @@ function scrollToAnchor(encodedId) {
 
   // compat for links with old 'user-content-' prefixed hashes
   if (!el && hasPrefix(id)) {
-    return document.getElementById(id)?.scrollIntoView();
+    return document.querySelector(`#${id}`)?.scrollIntoView();
   }
 
   el?.scrollIntoView();

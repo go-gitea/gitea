@@ -24,8 +24,8 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initHeadNavbarContentToggle() {
-  const navbar = document.getElementById('navbar');
-  const btn = document.getElementById('navbar-expand-toggle');
+  const navbar = document.querySelector('#navbar');
+  const btn = document.querySelector('#navbar-expand-toggle');
   if (!navbar || !btn) return;
 
   btn.addEventListener('click', () => {
