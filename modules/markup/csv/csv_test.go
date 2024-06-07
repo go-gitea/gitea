@@ -4,8 +4,6 @@
 package markup
 
 import (
-	"bufio"
-	"bytes"
 	"strings"
 	"testing"
 
@@ -31,12 +29,4 @@ func TestRenderCSV(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, v, buf.String())
 	}
-
-	t.Run("fallbackRender", func(t *testing.T) {
-		var buf bytes.Buffer
-		err := render.fallbackRender(strings.NewReader("1,<a>\n2,<b>"), bufio.NewWriter(&buf))
-		assert.NoError(t, err)
-		want := "<pre>1,&lt;a&gt;\n2,&lt;b&gt;</pre>"
-		assert.Equal(t, want, buf.String())
-	})
 }
