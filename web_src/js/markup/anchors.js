@@ -13,9 +13,7 @@ function scrollToAnchor(encodedId) {
 
   // check for matching user-generated `a[name]`
   if (!el) {
-    const nameAnchor = document.querySelector(`[name="${CSS.escape(prefixedId)}"]`);
-    if (nameAnchor) {
-      el = nameAnchor;
+    el = document.querySelector(`a[name="${CSS.escape(prefixedId)}"]`);
     }
   }
 
