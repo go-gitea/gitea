@@ -66,6 +66,22 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		}
 	}
 
+	links := markup.Links{
+		AbsolutePrefix: true,
+		Base:           urlPrefix,
+	}
+
+	// Parse branch path and tree path, for correct media links.
+	urlElements := strings.Split(strings.TrimPrefix(urlPrefix, setting.AppURL), "/")
+	if len(urlElements) >= 5 && urlElements[2] == "src" {
+		links = markup.Links{
+			AbsolutePrefix: true,
+			Base:           setting.AppURL + urlElements[0] + "/" + urlElements[1],
+			BranchPath:     urlElements[3] + "/" + urlElements[4],
+			TreePath:       strings.Join(urlElements[5:], "/"),
+		}
+	}
+
 	meta := map[string]string{}
 	var repoCtx *repo_model.Repository
 	if repo != nil && repo.Repository != nil {
@@ -81,12 +97,9 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	if err := markup.Render(&markup.RenderContext{
-		Ctx:  ctx,
-		Repo: repoCtx,
-		Links: markup.Links{
-			AbsolutePrefix: true,
-			Base:           urlPrefix,
-		},
+		Ctx:          ctx,
+		Repo:         repoCtx,
+		Links:        links,
 		Metas:        meta,
 		IsWiki:       wiki,
 		Type:         markupType,

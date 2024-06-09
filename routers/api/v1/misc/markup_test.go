@@ -22,16 +22,21 @@ import (
 const (
 	AppURL  = "http://localhost:3000/"
 	Repo    = "gogits/gogs"
+	Branch  = "main"
 	FullURL = AppURL + Repo + "/"
 )
 
-func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, responseCode int) {
+func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, responseBody string, responseCode int) {
 	setting.AppURL = AppURL
+	context := Repo
+	if !wiki {
+		context += "/src/branch/" + Branch
+	}
 	options := api.MarkupOption{
 		Mode:     mode,
 		Text:     text,
-		Context:  Repo,
-		Wiki:     true,
+		Context:  context,
+		Wiki:     wiki,
 		FilePath: filePath,
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
@@ -42,13 +47,17 @@ func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, r
 	resp.Body.Reset()
 }
 
-func testRenderMarkdown(t *testing.T, mode, text, responseBody string, responseCode int) {
+func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
 	setting.AppURL = AppURL
+	context := Repo
+	if !wiki {
+		context += "/src/branch/" + Branch
+	}
 	options := api.MarkdownOption{
 		Mode:    mode,
 		Text:    text,
-		Context: Repo,
-		Wiki:    true,
+		Context: context,
+		Wiki:    wiki,
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	web.SetForm(ctx, &options)
@@ -65,7 +74,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 		},
 	})
 
-	testCasesCommon := []string{
+	testCasesWiki := []string{
 		// dear imgui wiki markdown extract: special wiki syntax
 		`Wiki! Enjoy :)
 - [[Links, Language bindings, Engine bindings|Links]]
@@ -95,7 +104,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 		``,
 	}
 
-	testCasesDocument := []string{
+	testCasesWikiDocument := []string{
 		// wine-staging wiki home extract: special wiki syntax, images
 		`## What is Wine Staging?
 **Wine Staging** on website [wine-staging.com](http://wine-staging.com).
@@ -116,26 +125,46 @@ Here are some links to the most important topics. You can find the full list of 
 `,
 	}
 
-	for i := 0; i < len(testCasesCommon); i += 2 {
-		text := testCasesCommon[i]
-		response := testCasesCommon[i+1]
-		testRenderMarkdown(t, "gfm", text, response, http.StatusOK)
-		testRenderMarkup(t, "gfm", "", text, response, http.StatusOK)
-		testRenderMarkdown(t, "comment", text, response, http.StatusOK)
-		testRenderMarkup(t, "comment", "", text, response, http.StatusOK)
-		testRenderMarkup(t, "file", "path/test.md", text, response, http.StatusOK)
+	testCasesRepoBranch := []string{
+		// links to other files in a branch, no wiki syntax
+		`# Title
+[Link](test.md)
+![Image](image.png)`,
+		// rendered
+		`<h1 id="user-content-title">Title</h1>
+<p><a href="` + FullURL + `src/branch/` + Branch + `/test.md" rel="nofollow">Link</a>
+<a href="` + FullURL + `media/branch/` + Branch + `/image.png" target="_blank" rel="nofollow noopener"><img src="` + FullURL + `media/branch/` + Branch + `/image.png" alt="Image"/></a></p>
+`,
 	}
 
-	for i := 0; i < len(testCasesDocument); i += 2 {
-		text := testCasesDocument[i]
-		response := testCasesDocument[i+1]
-		testRenderMarkdown(t, "gfm", text, response, http.StatusOK)
-		testRenderMarkup(t, "gfm", "", text, response, http.StatusOK)
-		testRenderMarkup(t, "file", "path/test.md", text, response, http.StatusOK)
+	for i := 0; i < len(testCasesWiki); i += 2 {
+		text := testCasesWiki[i]
+		response := testCasesWiki[i+1]
+		testRenderMarkdown(t, "gfm", true, text, response, http.StatusOK)
+		testRenderMarkup(t, "gfm", true, "", text, response, http.StatusOK)
+		testRenderMarkdown(t, "comment", true, text, response, http.StatusOK)
+		testRenderMarkup(t, "comment", true, "", text, response, http.StatusOK)
+		testRenderMarkup(t, "file", true, "path/test.md", text, response, http.StatusOK)
 	}
 
-	testRenderMarkup(t, "file", "path/test.unknown", "## Test", "Unsupported render extension: .unknown\n", http.StatusUnprocessableEntity)
-	testRenderMarkup(t, "unknown", "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
+	for i := 0; i < len(testCasesWikiDocument); i += 2 {
+		text := testCasesWikiDocument[i]
+		response := testCasesWikiDocument[i+1]
+		testRenderMarkdown(t, "gfm", true, text, response, http.StatusOK)
+		testRenderMarkup(t, "gfm", true, "", text, response, http.StatusOK)
+		testRenderMarkup(t, "file", true, "path/test.md", text, response, http.StatusOK)
+	}
+
+	for i := 0; i < len(testCasesRepoBranch); i += 2 {
+		text := testCasesRepoBranch[i]
+		response := testCasesRepoBranch[i+1]
+		testRenderMarkdown(t, "gfm", false, text, response, http.StatusOK)
+		testRenderMarkup(t, "gfm", false, "", text, response, http.StatusOK)
+		testRenderMarkup(t, "file", false, "path/test.md", text, response, http.StatusOK)
+	}
+
+	testRenderMarkup(t, "file", true, "path/test.unknown", "## Test", "Unsupported render extension: .unknown\n", http.StatusUnprocessableEntity)
+	testRenderMarkup(t, "unknown", true, "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
 }
 
 var simpleCases = []string{
