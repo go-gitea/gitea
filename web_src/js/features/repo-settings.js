@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
-import {onInputDebounce, queryElemChildren, queryElems, toggleElem} from '../utils/dom.js';
+import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;

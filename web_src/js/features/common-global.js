@@ -301,7 +301,12 @@ async function linkAction(e) {
   }
 }
 
-export function initGlobalLinkActions() {
+export function initGlobalDeleteButton() {
+  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
+  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
+  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
+  // If there is no form, then the data will be posted to `data-url`.
+  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
   for (const el of document.querySelectorAll('.delete-button')) {
     el.addEventListener('click', (e) => {
       e.preventDefault();
@@ -312,32 +317,37 @@ export function initGlobalLinkActions() {
 
       const modalId = btn.getAttribute('data-modal-id');
       const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
-      const modalNameEl = modal.querySelector('.name');
-      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('name');
 
+      // set the modal name by `data-name`
+      const modalNameEl = modal.querySelector('.name');
+      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
+
+      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
       for (const [key, value] of Object.entries(dataObj)) {
         if (key?.startsWith('data')) {
-          const nameEl = modal.querySelector(`.${key}`);
-          if (nameEl) nameEl.textContent = value;
+          const textEl = modal.querySelector(`.${key}`);
+          if (textEl) textEl.textContent = value;
         }
       }
 
       $(modal).modal({
         closable: false,
         onApprove: async () => {
+          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (modal.getAttribute('data-type') === 'form') {
-            const form = document.querySelector(btn.getAttribute('data-form'));
-            if (form) form.submit();
-            return;
+            const formSelector = btn.getAttribute('data-form');
+            const form = document.querySelector(formSelector);
+            if (!form) throw new Error(`no form named ${formSelector} found`);
+            form.submit();
           }
+
+          // prepare an AJAX form by data attributes
           const postData = new FormData();
           for (const [key, value] of Object.entries(dataObj)) {
-            // data-dataxxx (HTML) -> dataxxx
-            // data-data-xxx (HTML) -> dataXxx
-            if (key?.startsWith('data')) {
+            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
               postData.append(key.slice(4), value);
             }
-            if (key === 'id') {
+            if (key === 'id') { // for data-id="..."
               postData.append('id', value);
             }
           }
