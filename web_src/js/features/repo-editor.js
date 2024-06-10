@@ -40,21 +40,6 @@ function initEditPreviewTab($form) {
   }
 }
 
-function getCursorPosition($e) {
-  const el = ('length' in $e) ? $e[0] : $e;
-  let pos = 0;
-  if ('selectionStart' in el) {
-    pos = el.selectionStart;
-  } else if ('selection' in document) {
-    el.focus();
-    const Sel = document.selection.createRange();
-    const SelLength = document.selection.createRange().text.length;
-    Sel.moveStart('character', -el.value.length);
-    pos = Sel.text.length - SelLength;
-  }
-  return pos;
-}
-
 export function initRepoEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
@@ -106,7 +91,7 @@ export function initRepoEditor() {
     const sections = queryElems('.breadcrumb span.section');
     const dividers = queryElems('.breadcrumb .breadcrumb-divider');
     // Jump back to last directory once the filename is empty
-    if (e.code === 'Backspace' && getCursorPosition(filenameInput) === 0 && sections.length > 0) {
+    if (e.code === 'Backspace' && filenameInput.selectionStart === 0 && sections.length > 0) {
       e.preventDefault();
       const lastSection = sections[sections.length - 1];
       const lastDivider = dividers.length ? dividers[dividers.length - 1] : null;
