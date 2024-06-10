@@ -47,17 +47,13 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const $notificationCount = $('.notification_count');
-
-  if (!$notificationCount.length) {
-    return;
-  }
+  if (!document.querySelector('.notification_count')) return;
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout, lastCount) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    lastCount = lastCount ?? $notificationCount.text();
+    lastCount = lastCount ?? getCurrentCount();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
@@ -121,8 +117,12 @@ export function initNotificationCount() {
   startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
+function getCurrentCount() {
+  return document.querySelector('.notification_count').textContent;
+}
+
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
-  const currentCount = $('.notification_count').text();
+  const currentCount = getCurrentCount();
   if (lastCount !== currentCount) {
     callback(notificationSettings.MinTimeout, currentCount);
     return;
