@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -15,7 +16,7 @@ import (
 )
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
-type CodeComments map[string]map[int64][]*Comment
+type CodeComments map[string]map[string][]*Comment
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User, showOutdatedComments bool) (CodeComments, error) {
@@ -40,9 +41,12 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 
 	for _, comment := range comments {
 		if pathToLineToComment[comment.TreePath] == nil {
-			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+			pathToLineToComment[comment.TreePath] = make(map[string][]*Comment)
 		}
-		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+		// always show the comment at the last line
+		patchLines := strings.Split(comment.Patch, "\n")
+		lineContent := patchLines[len(patchLines)-1]
+		pathToLineToComment[comment.TreePath][lineContent] = append(pathToLineToComment[comment.TreePath][lineContent], comment)
 	}
 	return pathToLineToComment, nil
 }

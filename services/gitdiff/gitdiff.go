@@ -475,10 +475,10 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {
 				for _, line := range section.Lines {
-					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+					if comments, ok := lineCommits[line.Content]; ok {
 						line.Comments = append(line.Comments, comments...)
 					}
-					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+					if comments, ok := lineCommits[""]; ok {
 						line.Comments = append(line.Comments, comments...)
 					}
 					sort.SliceStable(line.Comments, func(i, j int) bool {
