@@ -5,6 +5,7 @@ package user
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -15,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -178,7 +180,11 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+		registryAppURL, err := url.Parse(httplib.GuessCurrentAppURL(ctx))
+		if err != nil {
+			registryAppURL, _ = url.Parse(setting.AppURL)
+		}
+		ctx.Data["RegistryHost"] = registryAppURL.Host
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
