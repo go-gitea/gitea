@@ -51,16 +51,11 @@ func TestFetchCodeComments(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	res, err := issues_model.FetchCodeComments(db.DefaultContext, issue, user, false)
-	lineContent := "+ # repo1"
 	assert.NoError(t, err)
 	assert.Contains(t, res, "README.md")
-	assert.Contains(t, res["README.md"], lineContent)
-	assert.Len(t, res["README.md"][lineContent], 1)
-	assert.Equal(t, int64(4), res["README.md"][lineContent][0].ID)
-	lineContent = "- "
-	assert.Contains(t, res["README.md"], lineContent)
-	assert.Len(t, res["README.md"][lineContent], 1)
-	assert.Equal(t, int64(5), res["README.md"][lineContent][0].ID)
+	assert.Len(t, res["README.md"], 2)
+	assert.Equal(t, res["README.md"][0].ID, int64(4))
+	assert.Equal(t, res["README.md"][1].ID, int64(5))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	res, err = issues_model.FetchCodeComments(db.DefaultContext, issue, user2, false)
