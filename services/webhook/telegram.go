@@ -191,6 +191,6 @@ type telegramConvertor struct{}
 
 var _ payloadConvertor[TelegramPayload] = telegramConvertor{}
 
-func newTelegramRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) { //nolint:unparam
+func newTelegramRequest(_ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	return newJSONRequest(telegramConvertor{}, w, t, true)
 }

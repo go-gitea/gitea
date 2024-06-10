@@ -112,7 +112,7 @@ type packagistConvertor struct {
 
 var _ payloadConvertor[PackagistPayload] = packagistConvertor{}
 
-func newPackagistRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) { //nolint:unparam
+func newPackagistRequest(_ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &PackagistMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newpackagistRequest meta json: %w", err)
