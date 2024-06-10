@@ -4,10 +4,10 @@ import {GET, POST} from '../modules/fetch.js';
 const {appSubUrl} = window.config;
 
 export function initRepoMigrationStatusChecker() {
-  const repoMigrating = document.getElementById('repo_migrating');
+  const repoMigrating = document.querySelector('#repo_migrating');
   if (!repoMigrating) return;
 
-  document.getElementById('repo_migrating_retry').addEventListener('click', doMigrationRetry);
+  document.querySelector('#repo_migrating_retry').addEventListener('click', doMigrationRetry);
 
   const task = repoMigrating.getAttribute('data-migrating-task-id');
 
@@ -20,7 +20,7 @@ export function initRepoMigrationStatusChecker() {
 
     // for all status
     if (data.message) {
-      document.getElementById('repo_migrating_progress_message').textContent = data.message;
+      document.querySelector('#repo_migrating_progress_message').textContent = data.message;
     }
 
     // TaskStatusFinished
@@ -36,7 +36,7 @@ export function initRepoMigrationStatusChecker() {
       showElem('#repo_migrating_retry');
       showElem('#repo_migrating_failed');
       showElem('#repo_migrating_failed_image');
-      document.getElementById('repo_migrating_failed_error').textContent = data.message;
+      document.querySelector('#repo_migrating_failed_error').textContent = data.message;
       return false;
     }
 
