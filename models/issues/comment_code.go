@@ -8,7 +8,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 
@@ -65,12 +64,6 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		Asc("comment.id").
 		Find(&comments); err != nil {
 		return nil, err
-	}
-
-	if opts.LineContent != "" {
-		comments = container.FilterSlice(comments, func(c *Comment) (*Comment, bool) {
-			return c, c.GetLineContent() == opts.LineContent
-		})
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {

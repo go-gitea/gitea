@@ -456,10 +456,8 @@
 
 				{{if and .Review .Review.CodeComments}}
 				<div class="timeline-item event">
-					{{range $filename, $lines := .Review.CodeComments}}
-						{{range $line, $comms := $lines}}
-							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
-						{{end}}
+					{{range $filename, $comms := .Review.CodeComments}}
+						{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
 					{{end}}
 				</div>
 				{{end}}

@@ -466,35 +466,53 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
+func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, gitRepo *git.Repository, diffOptions *DiffOptions, currentUser *user_model.User, showOutdatedComments bool) error {
 	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
 	if err != nil {
 		return err
 	}
 	for _, file := range diff.Files {
-
 		if comments, ok := allComments[file.Name]; ok {
 			for _, comment := range comments {
-				lineContent := comment.GetLineContent()
+				diffOptions.BeforeCommitID = comment.CommitSHA
+				diffOptions.MaxFiles = 1
+				d, err := GetDiff(ctx, gitRepo, diffOptions, file.Name)
+				if err != nil {
+					return err
+				}
+
+				deleted := false
+				done := false
+				if len(d.Files) > 0 {
+					f := d.Files[0]
+					for _, s := range f.Sections {
+						for _, l := range s.Lines {
+							if l.LeftIdx == int(comment.Line) {
+								if l.Type == DiffLineDel {
+									// this line has been deleted so skip it
+									deleted = true
+								} else {
+									// update new line
+									comment.Line = int64(l.RightIdx)
+								}
+								done = true
+								break
+							}
+						}
+						if done {
+							break
+						}
+					}
+				}
+
+				if deleted {
+					continue
+				}
 
 				for _, section := range file.Sections {
-					diffLineMap := make(map[string][]*DiffLine, len(section.Lines))
 					for _, line := range section.Lines {
-						if _, ok := diffLineMap[line.Content]; !ok {
-							diffLineMap[line.Content] = make([]*DiffLine, 0)
-						}
-						diffLineMap[line.Content] = append(diffLineMap[line.Content], line)
-					}
-
-					if diffLines, ok := diffLineMap[lineContent]; ok {
-						if len(diffLines) > 1 {
-							for _, diffLine := range diffLines {
-								if comment.Line == int64(diffLine.LeftIdx*-1) || comment.Line == int64(diffLine.RightIdx) {
-									diffLine.Comments = append(diffLine.Comments, comment)
-								}
-							}
-						} else if len(diffLines) == 1 {
-							diffLines[0].Comments = append(diffLines[0].Comments, comment)
+						if comment.Line == int64(line.RightIdx) {
+							line.Comments = append(line.Comments, comment)
 						}
 					}
 				}
