@@ -119,8 +119,7 @@ export function initRepoEditor() {
     }
   });
 
-  const $form = $('.repository .edit.form');
-  if (!$form) return;
+  const $form = $('.repository.editor .edit.form');
   initEditPreviewTab($form);
 
   (async () => {

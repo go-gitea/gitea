@@ -307,10 +307,9 @@ export function initGlobalDeleteButton() {
   // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
   // If there is no form, then the data will be posted to `data-url`.
   // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
-  for (const el of document.querySelectorAll('.delete-button')) {
-    el.addEventListener('click', (e) => {
+  for (const btn of document.querySelectorAll('.delete-button')) {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
-      const btn = e.currentTarget;
 
       // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
       const dataObj = btn.dataset;
@@ -318,13 +317,13 @@ export function initGlobalDeleteButton() {
       const modalId = btn.getAttribute('data-modal-id');
       const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
 
-      // set the modal name by `data-name`
+      // set the modal "display name" by `data-name`
       const modalNameEl = modal.querySelector('.name');
       if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
 
       // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
       for (const [key, value] of Object.entries(dataObj)) {
-        if (key?.startsWith('data')) {
+        if (key.startsWith('data')) {
           const textEl = modal.querySelector(`.${key}`);
           if (textEl) textEl.textContent = value;
         }
@@ -334,7 +333,7 @@ export function initGlobalDeleteButton() {
         closable: false,
         onApprove: async () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
-          if (modal.getAttribute('data-type') === 'form') {
+          if (btn.getAttribute('data-type') === 'form') {
             const formSelector = btn.getAttribute('data-form');
             const form = document.querySelector(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
