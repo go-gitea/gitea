@@ -242,8 +242,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	if ctx.Comment != nil && ctx.Comment.Review != nil {
 		reviewComments = make([]*issues_model.Comment, 0, 10)
 		for _, lines := range ctx.Comment.Review.CodeComments {
-			for _, comments := range lines {
-				reviewComments = append(reviewComments, comments...)
+			for _, comment := range lines {
+				reviewComments = append(reviewComments, comment)
 			}
 		}
 	}

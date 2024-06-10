@@ -329,14 +329,12 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	notify_service.PullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
-		for _, comments := range lines {
-			for _, codeComment := range comments {
-				mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
-				if err != nil {
-					return nil, nil, err
-				}
-				notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
+		for _, comment := range lines {
+			mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
+			if err != nil {
+				return nil, nil, err
 			}
+			notify_service.PullRequestCodeComment(ctx, pr, comment, mentions)
 		}
 	}
 

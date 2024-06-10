@@ -16,7 +16,7 @@ import (
 )
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
-type CodeComments map[string]map[string][]*Comment
+type CodeComments map[string][]*Comment
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User, showOutdatedComments bool) (CodeComments, error) {
@@ -41,10 +41,9 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 
 	for _, comment := range comments {
 		if pathToLineToComment[comment.TreePath] == nil {
-			pathToLineToComment[comment.TreePath] = make(map[string][]*Comment)
+			pathToLineToComment[comment.TreePath] = make([]*Comment, 0)
 		}
-		lineContent := comment.GetLineContent()
-		pathToLineToComment[comment.TreePath][lineContent] = append(pathToLineToComment[comment.TreePath][lineContent], comment)
+		pathToLineToComment[comment.TreePath] = append(pathToLineToComment[comment.TreePath], comment)
 	}
 	return pathToLineToComment, nil
 }

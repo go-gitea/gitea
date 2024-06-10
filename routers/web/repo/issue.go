@@ -1728,23 +1728,21 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			for _, codeComments := range comment.Review.CodeComments {
-				for _, lineComments := range codeComments {
-					for _, c := range lineComments {
-						// Check tag.
-						role, ok = marked[c.PosterID]
-						if ok {
-							c.ShowRole = role
-							continue
-						}
-
-						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, c.HasOriginalAuthor())
-						if err != nil {
-							ctx.ServerError("roleDescriptor", err)
-							return
-						}
-						marked[c.PosterID] = c.ShowRole
-						participants = addParticipant(c.Poster, participants)
+				for _, c := range codeComments {
+					// Check tag.
+					role, ok = marked[c.PosterID]
+					if ok {
+						c.ShowRole = role
+						continue
 					}
+
+					c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, c.HasOriginalAuthor())
+					if err != nil {
+						ctx.ServerError("roleDescriptor", err)
+						return
+					}
+					marked[c.PosterID] = c.ShowRole
+					participants = addParticipant(c.Poster, participants)
 				}
 			}
 			if err = comment.LoadResolveDoer(ctx); err != nil {

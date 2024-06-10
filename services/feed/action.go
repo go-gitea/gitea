@@ -224,20 +224,18 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 
 	actions := make([]*activities_model.Action, 0, 10)
 	for _, lines := range review.CodeComments {
-		for _, comments := range lines {
-			for _, comm := range comments {
-				actions = append(actions, &activities_model.Action{
-					ActUserID: review.Reviewer.ID,
-					ActUser:   review.Reviewer,
-					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
-					OpType:    activities_model.ActionCommentPull,
-					RepoID:    review.Issue.RepoID,
-					Repo:      review.Issue.Repo,
-					IsPrivate: review.Issue.Repo.IsPrivate,
-					Comment:   comm,
-					CommentID: comm.ID,
-				})
-			}
+		for _, comment := range lines {
+			actions = append(actions, &activities_model.Action{
+				ActUserID: review.Reviewer.ID,
+				ActUser:   review.Reviewer,
+				Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
+				OpType:    activities_model.ActionCommentPull,
+				RepoID:    review.Issue.RepoID,
+				Repo:      review.Issue.Repo,
+				IsPrivate: review.Issue.Repo.IsPrivate,
+				Comment:   comment,
+				CommentID: comment.ID,
+			})
 		}
 	}
 

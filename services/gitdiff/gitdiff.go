@@ -472,15 +472,35 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 		return err
 	}
 	for _, file := range diff.Files {
-		if lineCommits, ok := allComments[file.Name]; ok {
+
+		if comments, ok := allComments[file.Name]; ok {
+			for _, comment := range comments {
+				lineContent := comment.GetLineContent()
+
+				for _, section := range file.Sections {
+					diffLineMap := make(map[string][]*DiffLine, len(section.Lines))
+					for _, line := range section.Lines {
+						if _, ok := diffLineMap[line.Content]; !ok {
+							diffLineMap[line.Content] = make([]*DiffLine, 0)
+						}
+						diffLineMap[line.Content] = append(diffLineMap[line.Content], line)
+					}
+
+					if diffLines, ok := diffLineMap[lineContent]; ok {
+						if len(diffLines) > 1 {
+							for _, diffLine := range diffLines {
+								if comment.Line == int64(diffLine.LeftIdx*-1) || comment.Line == int64(diffLine.RightIdx) {
+									diffLine.Comments = append(diffLine.Comments, comment)
+								}
+							}
+						} else if len(diffLines) == 1 {
+							diffLines[0].Comments = append(diffLines[0].Comments, comment)
+						}
+					}
+				}
+			}
 			for _, section := range file.Sections {
 				for _, line := range section.Lines {
-					if comments, ok := lineCommits[line.Content]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineCommits[""]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
 					sort.SliceStable(line.Comments, func(i, j int) bool {
 						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
 					})
