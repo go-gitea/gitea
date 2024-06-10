@@ -79,20 +79,20 @@ export function initImageDiff() {
       path: this.getAttribute('data-path-after'),
       mime: this.getAttribute('data-mime-after'),
       $images: $container.find('img.image-after'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-after'),
+      boundsInfo: this.querySelector('.bounds-info-after'),
     }, {
       path: this.getAttribute('data-path-before'),
       mime: this.getAttribute('data-mime-before'),
       $images: $container.find('img.image-before'), // matches 3 <img>
-      $boundsInfo: $container.find('.bounds-info-before'),
+      boundsInfo: this.querySelector('.bounds-info-before'),
     }];
 
     await Promise.all(imageInfos.map(async (info) => {
       const [success] = await Promise.all(Array.from(info.$images, (img) => {
         return loadElem(img, info.path);
       }));
-      // only the first images is associated with $boundsInfo
-      if (!success) info.$boundsInfo.text('(image error)');
+      // only the first images is associated with boundsInfo
+      if (!success && info.boundsInfo) info.boundsInfo.textContent = '(image error)';
       if (info.mime === 'image/svg+xml') {
         const resp = await GET(info.path);
         const text = await resp.text();
@@ -102,7 +102,7 @@ export function initImageDiff() {
             this.setAttribute('width', bounds.width);
             this.setAttribute('height', bounds.height);
           });
-          hideElem(info.$boundsInfo);
+          hideElem(info.boundsInfo);
         }
       }
     }));

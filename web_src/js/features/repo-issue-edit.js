@@ -189,11 +189,12 @@ export function initRepoIssueCommentEdit() {
   // Quote reply
   $(document).on('click', '.quote-reply', async function (event) {
     event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const target = this.getAttribute('data-target');
+    const quote = document.querySelector(`#${target}`).textContent.replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
+
     let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
+    if (this.classList.contains('quote-reply-diff')) {
       const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
       editor = await handleReply($replyBtn);
     } else {
