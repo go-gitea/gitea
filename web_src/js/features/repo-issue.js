@@ -524,6 +524,7 @@ export function initRepoPullRequestReview() {
     const isSplit = this.closest('.code-diff')?.classList.contains('code-diff-split');
     const side = this.getAttribute('data-side');
     const idx = this.getAttribute('data-idx');
+    const content = this.getAttribute('data-content');
     const path = this.closest('[data-path]')?.getAttribute('data-path');
     const tr = this.closest('tr');
     const lineType = tr.getAttribute('data-line-type');
@@ -551,6 +552,7 @@ export function initRepoPullRequestReview() {
         const html = await response.text();
         $td.html(html);
         $td.find("input[name='line']").val(idx);
+        $td.find("input[name='line_content']").val(content);
         $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
         $td.find("input[name='path']").val(path);
 

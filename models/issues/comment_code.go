@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -43,9 +42,7 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[string][]*Comment)
 		}
-		// always show the comment at the last line
-		patchLines := strings.Split(comment.Patch, "\n")
-		lineContent := patchLines[len(patchLines)-1]
+		lineContent := comment.GetLineContent()
 		pathToLineToComment[comment.TreePath][lineContent] = append(pathToLineToComment[comment.TreePath][lineContent], comment)
 	}
 	return pathToLineToComment, nil
@@ -68,6 +65,14 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		Asc("comment.id").
 		Find(&comments); err != nil {
 		return nil, err
+	}
+
+	if opts.LineContent != "" {
+		for index, comment := range comments {
+			if comment.GetLineContent() != opts.LineContent {
+				comments = append(comments[:index], comments[index+1:]...)
+			}
+		}
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -131,12 +136,13 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64, showOutdatedComments bool) (CommentList, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64, lineContent string, showOutdatedComments bool) (CommentList, error) {
 	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  issue.ID,
-		TreePath: treePath,
-		Line:     line,
+		Type:        CommentTypeCode,
+		IssueID:     issue.ID,
+		TreePath:    treePath,
+		Line:        line,
+		LineContent: lineContent,
 	}
 	return findCodeComments(ctx, opts, issue, currentUser, nil, showOutdatedComments)
 }

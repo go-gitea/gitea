@@ -110,7 +110,7 @@ func CreateCodeComment(ctx *context.Context) {
 
 	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
 
-	renderConversation(ctx, comment, form.Origin)
+	renderConversation(ctx, comment, form.Origin, form.LineContent)
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -161,14 +161,14 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
-	renderConversation(ctx, comment, origin)
+	renderConversation(ctx, comment, origin, ctx.FormString("line_content"))
 }
 
-func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
+func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin, lineContent string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
 	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, lineContent, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return

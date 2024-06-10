@@ -100,10 +100,11 @@ function initRepoDiffConversationForm() {
     const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');
     const action = $(this).data('action');
+    const line_content = $(this).data('line-content');
     const url = $(this).data('update-url');
 
     try {
-      const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
+      const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id, line_content})});
       const data = await response.text();
 
       if ($(this).closest('.conversation-holder').length) {
