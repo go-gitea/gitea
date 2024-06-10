@@ -72,6 +72,7 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	// Parse branch path and tree path, for correct media links.
+	// The expected route is "{user}/{repo}/src/{branch, commit, tag]/{identifier}"
 	urlElements := strings.Split(strings.TrimPrefix(urlPrefix, setting.AppURL), "/")
 	if len(urlElements) >= 5 && urlElements[2] == "src" {
 		links = markup.Links{

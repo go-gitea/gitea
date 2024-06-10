@@ -25,7 +25,8 @@ type MarkupOption struct {
 	//
 	// in: body
 	Mode string
-	// Context to render
+	// URL path for rendering issue, media and file links
+	// Expected format: {user}/{repo}/src/{branch, commit, tag}/{identifier}/{filepath}
 	//
 	// in: body
 	Context string
@@ -53,7 +54,8 @@ type MarkdownOption struct {
 	//
 	// in: body
 	Mode string
-	// Context to render
+	// URL path for rendering issue, media and file links
+	// Expected format: {user}/{repo}/src/{branch, commit, tag}/{identifier}/{filepath}
 	//
 	// in: body
 	Context string
