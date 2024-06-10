@@ -472,10 +472,9 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
-			"user":     repo.OwnerName,
-			"repo":     repo.Name,
-			"repoPath": repo.RepoPath(),
-			"mode":     "comment",
+			"user": repo.OwnerName,
+			"repo": repo.Name,
+			"mode": "comment",
 		}
 
 		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)

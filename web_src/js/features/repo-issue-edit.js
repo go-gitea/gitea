@@ -3,6 +3,7 @@ import {handleReply} from './repo-issue.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {createDropzone} from './dropzone.js';
 import {GET, POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
@@ -124,11 +125,17 @@ async function onEditContent(event) {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
+        content_version: editContentZone.getAttribute('data-content-version'),
       });
       for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
 
       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
       const data = await response.json();
+      if (response.status === 400) {
+        showErrorToast(data.errorMessage);
+        return;
+      }
+      editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
         renderContent.innerHTML = document.getElementById('no-content').innerHTML;
         rawContent.textContent = '';
@@ -182,11 +189,12 @@ export function initRepoIssueCommentEdit() {
   // Quote reply
   $(document).on('click', '.quote-reply', async function (event) {
     event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const target = this.getAttribute('data-target');
+    const quote = document.querySelector(`#${target}`).textContent.replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
+
     let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
+    if (this.classList.contains('quote-reply-diff')) {
       const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
       editor = await handleReply($replyBtn);
     } else {

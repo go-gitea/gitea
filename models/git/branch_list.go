@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
@@ -59,6 +60,24 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
+func (branches BranchList) LoadRepo(ctx context.Context) error {
+	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
+		return branch.RepoID, branch.RepoID > 0 && branch.Repo == nil
+	})
+
+	reposMap := make(map[int64]*repo_model.Repository, len(ids))
+	if err := db.GetEngine(ctx).In("id", ids).Find(&reposMap); err != nil {
+		return err
+	}
+	for _, branch := range branches {
+		if branch.RepoID <= 0 || branch.Repo != nil {
+			continue
+		}
+		branch.Repo = reposMap[branch.RepoID]
+	}
+	return nil
+}
+
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
@@ -88,17 +107,13 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 
 func (opts FindBranchOptions) ToOrders() string {
 	orderBy := opts.OrderBy
-	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the end
-		if orderBy != "" {
-			orderBy += ", "
-		}
-		orderBy += "is_deleted ASC"
-	}
 	if orderBy == "" {
 		// the commit_time might be the same, so add the "name" to make sure the order is stable
-		return "commit_time DESC, name ASC"
+		orderBy = "commit_time DESC, name ASC"
 	}
-
+	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the beginning
+		orderBy = "is_deleted ASC, " + orderBy
+	}
 	return orderBy
 }
 

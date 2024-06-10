@@ -8,7 +8,7 @@
 	<div class="ui segments conversation-holder">
 		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between">
 			<div class="tw-flex tw-items-center">
-				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 gt-word-break">{{$comment.TreePath}}</a>
+				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 tw-break-anywhere">{{$comment.TreePath}}</a>
 				{{if $invalid}}
 					<span class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
@@ -96,7 +96,7 @@
 								{{end}}
 								</div>
 								<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 								{{if .Attachments}}
 									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 								{{end}}

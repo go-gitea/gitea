@@ -11,7 +11,7 @@
 		</span>
 	{{end}}
 	</div>
-	<div class="content gt-word-break profile-avatar-name">
+	<div class="content tw-break-anywhere profile-avatar-name">
 		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
 		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
 					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
@@ -25,7 +25,7 @@
 			{{end}}
 		</div>
 	</div>
-	<div class="extra content gt-word-break">
+	<div class="extra content tw-break-anywhere">
 		<ul>
 			{{if .UserBlocking}}
 				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>

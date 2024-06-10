@@ -1,47 +1,46 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
-import {onInputDebounce, toggleElem} from '../utils/dom.js';
+import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.page-content.repository .ui.dropdown.access-mode').each((_, el) => {
-    const $dropdown = $(el);
-    const $text = $dropdown.find('> .text');
-    $dropdown.dropdown({
-      async action(_text, value) {
-        const lastValue = el.getAttribute('data-last-value');
+  for (const dropdownEl of queryElems('.page-content.repository .ui.dropdown.access-mode')) {
+    const textEl = dropdownEl.querySelector(':scope > .text');
+    $(dropdownEl).dropdown({
+      async action(text, value) {
+        dropdownEl.classList.add('is-loading', 'loading-icon-2px');
+        const lastValue = dropdownEl.getAttribute('data-last-value');
+        $(dropdownEl).dropdown('hide');
         try {
-          el.setAttribute('data-last-value', value);
-          $dropdown.dropdown('hide');
-          const data = new FormData();
-          data.append('uid', el.getAttribute('data-uid'));
-          data.append('mode', value);
-          await POST(el.getAttribute('data-url'), {data});
+          const uid = dropdownEl.getAttribute('data-uid');
+          await POST(dropdownEl.getAttribute('data-url'), {data: new URLSearchParams({uid, 'mode': value})});
+          textEl.textContent = text;
+          dropdownEl.setAttribute('data-last-value', value);
         } catch {
-          $text.text('(error)'); // prevent from misleading users when error occurs
-          el.setAttribute('data-last-value', lastValue);
+          textEl.textContent = '(error)'; // prevent from misleading users when error occurs
+          dropdownEl.setAttribute('data-last-value', lastValue);
+        } finally {
+          dropdownEl.classList.remove('is-loading');
         }
       },
-      onChange(_value, text, _$choice) {
-        $text.text(text); // update the text when using keyboard navigating
-      },
       onHide() {
-        // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
+        // set to the really selected value, defer to next tick to make sure `action` has finished
+        // its work because the calling order might be onHide -> action
         setTimeout(() => {
-          const $item = $dropdown.dropdown('get item', el.getAttribute('data-last-value'));
+          const $item = $(dropdownEl).dropdown('get item', dropdownEl.getAttribute('data-last-value'));
           if ($item) {
-            $dropdown.dropdown('set selected', el.getAttribute('data-last-value'));
+            $(dropdownEl).dropdown('set selected', dropdownEl.getAttribute('data-last-value'));
           } else {
-            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
+            textEl.textContent = '(none)'; // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       },
     });
-  });
+  }
 }
 
 export function initRepoSettingSearchTeamBox() {

@@ -125,7 +125,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
-<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -278,11 +278,12 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const url = $choice[0].getAttribute('data-do');
+      const choiceEl = $choice[0];
+      const url = choiceEl.getAttribute('data-do');
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice.text();
+          buttonText.textContent = choiceEl.textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
@@ -567,14 +568,15 @@ export function initRepoPullRequestReview() {
 export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
-    const $this = $(this);
-    const content = $(`#${$this.data('target')}`).text();
-    const poster = $this.data('poster-username');
-    const reference = toAbsoluteUrl($this.data('reference'));
-    const $modal = $($this.data('modal'));
-    $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
-    $modal.modal('show');
-
+    const target = this.getAttribute('data-target');
+    const content = document.querySelector(`#${target}`)?.textContent ?? '';
+    const poster = this.getAttribute('data-poster-username');
+    const reference = toAbsoluteUrl(this.getAttribute('data-reference'));
+    const modalSelector = this.getAttribute('data-modal');
+    const modal = document.querySelector(modalSelector);
+    const textarea = modal.querySelector('textarea[name="content"]');
+    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
+    $(modal).modal('show');
     event.preventDefault();
   });
 }
@@ -626,9 +628,12 @@ export function initRepoIssueTitleEdit() {
     showElem(issueTitleDisplay);
     showElem('#pull-desc-display');
   });
+
+  const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
   editSaveButton.addEventListener('click', async () => {
-    const prTargetUpdateUrl = editSaveButton.getAttribute('data-target-update-url');
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
