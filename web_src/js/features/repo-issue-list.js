@@ -76,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     // for delete
     if (action === 'delete') {
       const confirmText = e.target.getAttribute('data-action-delete-confirm');
-      if (!await confirmModal({content: confirmText, buttonColor: 'orange'})) {
+      if (!await confirmModal(confirmText, {confirmButtonColor: 'red'})) {
         return;
       }
     }
