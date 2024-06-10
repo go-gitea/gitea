@@ -278,11 +278,12 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const url = $choice[0].getAttribute('data-do');
+      const choiceEl = $choice[0];
+      const url = choiceEl.getAttribute('data-do');
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice.text();
+          buttonText.textContent = choiceEl.textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
@@ -567,14 +568,15 @@ export function initRepoPullRequestReview() {
 export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
-    const $this = $(this);
-    const content = $(`#${$this.data('target')}`).text();
-    const poster = $this.data('poster-username');
-    const reference = toAbsoluteUrl($this.data('reference'));
-    const $modal = $($this.data('modal'));
-    $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
-    $modal.modal('show');
-
+    const target = this.getAttribute('data-target');
+    const content = document.querySelector(`#${target}`)?.textContent ?? '';
+    const poster = this.getAttribute('data-poster-username');
+    const reference = toAbsoluteUrl(this.getAttribute('data-reference'));
+    const modalSelector = this.getAttribute('data-modal');
+    const modal = document.querySelector(modalSelector);
+    const textarea = modal.querySelector('textarea[name="content"]');
+    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
+    $(modal).modal('show');
     event.preventDefault();
   });
 }
