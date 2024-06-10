@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElems, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
@@ -40,14 +40,8 @@ function initEditPreviewTab($form) {
   }
 }
 
-function initEditorForm() {
-  const $form = $('.repository .edit.form');
-  if (!$form) return;
-  initEditPreviewTab($form);
-}
-
 function getCursorPosition($e) {
-  const el = $e.get(0);
+  const el = ('length' in $e) ? $e[0] : $e;
   let pos = 0;
   if ('selectionStart' in el) {
     pos = el.selectionStart;
@@ -61,78 +55,76 @@ function getCursorPosition($e) {
   return pos;
 }
 
-function joinTreePath(fileNameEl) {
-  const parts = [];
-
-  for (const el of document.querySelectorAll('.breadcrumb span.section')) {
-    const link = el.querySelector('a');
-    parts.push(link ? link.textContent : el.textContent);
-  }
-
-  if (fileNameEl.value) {
-    parts.push(fileNameEl.value);
-  }
-
-  document.querySelector('#tree_path').value = parts.join('/');
-}
-
 export function initRepoEditor() {
-  initEditorForm();
+  const $editArea = $('.repository.editor textarea#edit_area');
+  if (!$editArea.length) return;
 
-  $('.js-quick-pull-choice-option').on('change', function () {
-    if ($(this).val() === 'commit-to-new-branch') {
-      showElem('.quick-pull-branch-name');
-      document.querySelector('.quick-pull-branch-name input').required = true;
-    } else {
-      hideElem('.quick-pull-branch-name');
-      document.querySelector('.quick-pull-branch-name input').required = false;
+  for (const el of queryElems('.js-quick-pull-choice-option')) {
+    el.addEventListener('input', () => {
+      if (el.value === 'commit-to-new-branch') {
+        showElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = true;
+      } else {
+        hideElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = false;
+      }
+      document.querySelector('#commit-button').textContent = el.getAttribute('data-button-text');
+    });
+  }
+
+  const filenameInput = document.querySelector('#file-name');
+  function joinTreePath() {
+    const parts = [];
+    for (const el of document.querySelectorAll('.breadcrumb span.section')) {
+      const link = el.querySelector('a');
+      parts.push(link ? link.textContent : el.textContent);
     }
-    $('#commit-button')[0].textContent = this.getAttribute('button_text');
-  });
-
-  const $editFilename = $('#file-name');
-  $editFilename.on('input', function () {
-    const parts = $(this).val().split('/');
-
+    if (filenameInput.value) {
+      parts.push(filenameInput.value);
+    }
+    document.querySelector('#tree_path').value = parts.join('/');
+  }
+  filenameInput.addEventListener('input', function () {
+    const parts = filenameInput.value.split('/');
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
-            $('<div class="breadcrumb-divider">/</div>').insertBefore($(this));
+            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
+            $('<div class="breadcrumb-divider">/</div>').insertBefore($(filenameInput));
           }
         } else {
-          $(this).val(value);
+          filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
       }
     }
-
-    joinTreePath(this);
+    joinTreePath();
   });
-
-  $editFilename.on('keydown', function (e) {
-    const $section = $('.breadcrumb span.section');
-
+  filenameInput.addEventListener('keydown', function (e) {
+    const sections = queryElems('.breadcrumb span.section');
+    const dividers = queryElems('.breadcrumb .breadcrumb-divider');
     // Jump back to last directory once the filename is empty
-    if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
+    if (e.code === 'Backspace' && getCursorPosition(filenameInput) === 0 && sections.length > 0) {
       e.preventDefault();
-      const $divider = $('.breadcrumb .breadcrumb-divider');
-      const value = $section.last().find('a')[0].textContent;
-      $(this).val(value + $(this).val());
+      const lastSection = sections[sections.length - 1];
+      const lastDivider = dividers.length ? dividers[dividers.length - 1] : null;
+      const value = lastSection.querySelector('a').textContent;
+      filenameInput.value = value + filenameInput.value;
       this.setSelectionRange(value.length, value.length);
-      $section.last().remove();
-      $divider.last().remove();
-      joinTreePath(this);
+      lastDivider?.remove();
+      lastSection.remove();
+      joinTreePath();
     }
   });
 
-  const $editArea = $('.repository.editor textarea#edit_area');
-  if (!$editArea.length) return;
+  const $form = $('.repository .edit.form');
+  if (!$form) return;
+  initEditPreviewTab($form);
 
   (async () => {
-    const editor = await createCodeEditor($editArea[0], $editFilename[0]);
+    const editor = await createCodeEditor($editArea[0], filenameInput);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
