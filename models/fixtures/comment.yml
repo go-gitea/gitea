@@ -29,8 +29,8 @@
   issue_id: 2
   content: "meh..."
   review_id: 4
+  line: 4
   tree_path: "README.md"
-  patch: "+ # repo1"
   created_unix: 946684812
   invalidated: false
 -
@@ -39,7 +39,7 @@
   poster_id: 1
   issue_id: 2
   content: "meh..."
-  patch: "- "
+  line: -4
   tree_path: "README.md"
   created_unix: 946684812
   invalidated: false
@@ -50,7 +50,7 @@
   poster_id: 1
   issue_id: 2
   content: "it's already invalidated. boring..."
-  patch: "- "
+  line: -4
   tree_path: "README.md"
   created_unix: 946684812
   invalidated: true

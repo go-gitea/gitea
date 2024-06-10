@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html/template"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
@@ -784,15 +783,6 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *Comment) GetLineContent() string {
-	// always show the comment at the last line
-	patchLines := strings.Split(c.Patch, "\n")
-	if len(patchLines) == 0 {
-		return ""
-	}
-	return patchLines[len(patchLines)-1]
-}
-
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
@@ -1043,7 +1033,6 @@ type FindCommentsOptions struct {
 	Since       int64
 	Before      int64
 	Line        int64
-	LineContent string
 	TreePath    string
 	Type        CommentType
 	IssueIDs    []int64
