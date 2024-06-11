@@ -227,8 +227,7 @@ func SelfCheck(ctx *context.Context) {
 	elapsed, err := cache.Test()
 	if err != nil {
 		ctx.Data["CacheError"] = err
-	}
-	if elapsed > cache.SlowCacheThreshold {
+	} else if elapsed > cache.SlowCacheThreshold {
 		ctx.Data["CacheSlow"] = fmt.Sprint(elapsed)
 	}
 
