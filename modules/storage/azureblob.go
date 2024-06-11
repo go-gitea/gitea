@@ -163,10 +163,7 @@ func (a *AzureBlobStorage) getObjectNameFromPath(path string) string {
 
 // Open opens a file
 func (a *AzureBlobStorage) Open(path string) (Object, error) {
-	blobClient, err := a.getBlobClient(path)
-	if err != nil {
-		return nil, convertAzureBlobErr(err)
-	}
+	blobClient := a.getBlobClient(path)
 	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
@@ -229,10 +226,7 @@ func (a azureBlobFileInfo) Sys() any {
 
 // Stat returns the stat information of the object
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
-	blobClient, err := a.getBlobClient(path)
-	if err != nil {
-		return nil, convertAzureBlobErr(err)
-	}
+	blobClient := a.getBlobClient(path)
 	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
@@ -247,20 +241,14 @@ func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
 
 // Delete delete a file
 func (a *AzureBlobStorage) Delete(path string) error {
-	blobClient, err := a.getBlobClient(path)
-	if err != nil {
-		return convertAzureBlobErr(err)
-	}
-	_, err = blobClient.Delete(a.ctx, nil)
+	blobClient := a.getBlobClient(path)
+	_, err := blobClient.Delete(a.ctx, nil)
 	return convertAzureBlobErr(err)
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
-	blobClient, err := a.getBlobClient(path)
-	if err != nil {
-		return nil, convertAzureBlobErr(err)
-	}
+	blobClient := a.getBlobClient(path)
 
 	startTime := time.Now()
 	u, err := blobClient.GetSASURL(sas.BlobPermissions{
@@ -290,10 +278,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			return convertAzureBlobErr(err)
 		}
 		for _, object := range resp.Segment.BlobItems {
-			blobClient, err := a.getBlobClient(*object.Name)
-			if err != nil {
-				return convertAzureBlobErr(err)
-			}
+			blobClient := a.getBlobClient(*object.Name)
 			object := &azureBlobObject{
 				Context:    a.ctx,
 				blobClient: blobClient,
@@ -313,8 +298,8 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 }
 
 // Delete delete a file
-func (a *AzureBlobStorage) getBlobClient(path string) (*blob.Client, error) {
-	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path)), nil
+func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
+	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
 }
 
 func init() {

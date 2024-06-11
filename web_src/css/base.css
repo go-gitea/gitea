@@ -1001,8 +1001,6 @@ overflow-menu .ui.label {
   padding: 0 8px;
   text-align: right !important;
   color: var(--color-text-light-2);
-  width: 1%;
-  font-family: var(--fonts-monospace);
 }
 
 .lines-num span.bottom-line::after {
