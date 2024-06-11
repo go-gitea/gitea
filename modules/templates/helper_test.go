@@ -65,3 +65,18 @@ func TestHTMLFormat(t *testing.T) {
 func TestSanitizeHTML(t *testing.T) {
 	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }
+
+func TestIsTruthy(t *testing.T) {
+	var test any
+	assert.Equal(t, false, IsTruthy(test))
+	assert.Equal(t, false, IsTruthy(nil))
+	assert.Equal(t, false, IsTruthy(""))
+	assert.Equal(t, true, IsTruthy("non-empty"))
+	assert.Equal(t, true, IsTruthy(-1))
+	assert.Equal(t, false, IsTruthy(0))
+	assert.Equal(t, true, IsTruthy(42))
+	assert.Equal(t, false, IsTruthy(0.0))
+	assert.Equal(t, true, IsTruthy(3.14))
+	assert.Equal(t, false, IsTruthy([]int{}))
+	assert.Equal(t, true, IsTruthy([]int{1}))
+}
