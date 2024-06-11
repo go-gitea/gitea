@@ -112,7 +112,7 @@ export function initRepoEditor() {
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const commitButton = document.getElementById('commit-button');
+    const commitButton = document.querySelector('#commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
