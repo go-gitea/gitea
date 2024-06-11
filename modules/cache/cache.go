@@ -36,7 +36,10 @@ func Init() error {
 	return nil
 }
 
-const testCacheKey = "DefaultCache.TestKey"
+const (
+	testCacheKey       = "DefaultCache.TestKey"
+	SlowCacheThreshold = 100 * time.Microsecond
+)
 
 func Test() (time.Duration, error) {
 	if defaultCache == nil {
@@ -61,8 +64,7 @@ func Test() (time.Duration, error) {
 		return 0, fmt.Errorf("expect cache to return same value as stored but got other")
 	}
 
-	// we want the meridian of a single response so we divide with 3
-	return time.Since(start) / 3, nil
+	return time.Since(start), nil
 }
 
 // GetCache returns the currently configured cache

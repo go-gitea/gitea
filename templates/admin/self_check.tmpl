@@ -41,6 +41,12 @@
 				</details>
 			</div>
 		{{end}}
+		{{if .CacheError}}
+			<div class="ui red message">{{ctx.Locale.Tr "admin.config.cache_test_failed" .CacheError}}</div>
+		{{end}}
+		{{if .CacheSlow}}
+			<div class="ui warning message">{{ctx.Locale.Tr "admin.config.cache_test_slow" .CacheSlow}}</div>
+		{{end}}
 	</div>
 	{{end}}
 	{{/* only shown when there is no visible "self-check-problem" */}}

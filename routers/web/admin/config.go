@@ -49,7 +49,11 @@ func TestCache(ctx *context.Context) {
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.cache_test_failed", err))
 	} else {
-		ctx.Flash.Info(ctx.Tr("admin.config.cache_test_succeeded", elapsed))
+		if elapsed > cache.SlowCacheThreshold {
+			ctx.Flash.Warning(ctx.Tr("admin.config.cache_test_slow", elapsed))
+		} else {
+			ctx.Flash.Info(ctx.Tr("admin.config.cache_test_succeeded", elapsed))
+		}
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
