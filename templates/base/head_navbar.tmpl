@@ -4,14 +4,14 @@
 {{end}}
 
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
-	<div class="navbar-left ui secondary menu">
+	<div class="navbar-left">
 		<!-- the logo -->
 		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu item navbar-mobile-right only-mobile">
+		<div class="ui secondary menu item navbar-mobile-right only-mobile tw-my-0">
 			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
 			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
 				<div class="tw-relative">
@@ -61,7 +61,7 @@
 	</div>
 
 	<!-- the full dropdown menus -->
-	<div class="navbar-right ui secondary menu">
+	<div class="navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text tw-flex tw-items-center">
@@ -104,7 +104,7 @@
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
-				<div class="menu">
+				<div class="left menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
