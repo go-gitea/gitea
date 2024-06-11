@@ -23,18 +23,18 @@ export function initCompWebHookEditor() {
   }
 
   // some webhooks (like Gitea) allow to set the request method (GET/POST), and it would toggle the "Content Type" field
-  const httpMethodInput = document.getElementById('http_method');
+  const httpMethodInput = document.querySelector('#http_method');
   if (httpMethodInput) {
     const updateContentType = function () {
       const visible = httpMethodInput.value === 'POST';
-      toggleElem(document.getElementById('content_type').closest('.field'), visible);
+      toggleElem(document.querySelector('#content_type').closest('.field'), visible);
     };
     updateContentType();
     httpMethodInput.addEventListener('change', updateContentType);
   }
 
   // Test delivery
-  document.getElementById('test-delivery')?.addEventListener('click', async function () {
+  document.querySelector('#test-delivery')?.addEventListener('click', async function () {
     this.classList.add('is-loading', 'disabled');
     await POST(this.getAttribute('data-link'));
     setTimeout(() => {
