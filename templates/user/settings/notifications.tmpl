@@ -1,59 +1,96 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings notifications")}}
-	<div class="user-setting-content">
-		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "settings.manage_notifications"}}
-		</h4>
-		<div class="ui attached segment">
-			<div class="ui list">
-				{{if $.EnableNotifyMail}}
-				<div class="item">
-					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_notifications_desc"}}</div>
-					<form action="{{AppSubUrl}}/user/settings/notifications" class="ui form" method="post">
-						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="EMAIL">
-						<div class="tw-flex tw-flex-wrap tw-gap-2">
-							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="text"></div>
-								<div class="menu">
-									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.andyourown"}}</div>
-									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.onmention"}}</div>
-									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.disable"}}</div>
-								</div>
-							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.notifications.submit_email"}}</button>
-						</div>
-					</form>
-				</div>
-				{{end}}
-			</div>
-		</div>
-		<div class="ui attached segment">
-			<div class="ui list">
-				<div class="item">
-					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.ui_notifications_desc"}}</div>
-					<form action="{{AppSubUrl}}/user/settings/notifications" class="ui form" method="post">
-						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="UI">
-						<div class="tw-flex tw-flex-wrap tw-gap-2">
-							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.UINotificationsPreference}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="text"></div>
-								<div class="menu">
-									<div data-value="enabled" class="{{if eq .UINotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .UINotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.andyourown"}}</div>
-									<div data-value="onmention" class="{{if eq .UINotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.onmention"}}</div>
-									<div data-value="disabled" class="{{if eq .UINotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.notifications.disable"}}</div>
-								</div>
-							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.notifications.submit_ui"}}</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
+<div class="user-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "settings.manage_notifications"}}
+	</h4>
 
+	<div class="ui attached segment">
+		<div class="ui list">
+			{{if $.EnableNotifyMail}}
+			<h5 class="ui dividing header">{{ctx.Locale.Tr "settings.email_notifications_desc"}}</h5>
+			<form action="{{AppSubUrl}}/user/settings/notifications" class="ui form" method="post">
+				{{$.CsrfTokenHtml}}
+				<input name="_method" type="hidden" value="EMAIL">
+
+
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input name="preference" type="radio" value="disabled" class="toggle-target-disabled" {{if eq
+							.EmailNotificationsPreference "disabled"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.notifications.disable"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input name="preference" type="radio" value="enabled" class="toggle-target-disabled" {{if eq
+							.EmailNotificationsPreference "enabled"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.notifications.enable"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input name="preference" type="radio" value="andyourown" class="toggle-target-disabled" {{if eq
+							.EmailNotificationsPreference "andyourown"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.notifications.andyourown"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input name="preference" type="radio" value="onmention" class="toggle-target-disabled" {{if eq
+							.EmailNotificationsPreference "onmention"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.notifications.onmention"}}</label>
+					</div>
+					<br>
+					<br>
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.notifications.submit_email"}}</button>
+			</form>
+		</div>
+		{{end}}
+
+	</div>
+</div>
+
+<div class="ui attached segment">
+	<div class="ui list">
+		<h5 class="ui dividing header">{{ctx.Locale.Tr "settings.ui_notifications_desc"}}</h5>
+		<form action="{{AppSubUrl}}/user/settings/notifications" class="ui form" method="post">
+			{{$.CsrfTokenHtml}}
+			<input name="_method" type="hidden" value="UI">
+
+
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input name="preference" type="radio" value="disabled" class="toggle-target-disabled" {{if eq
+						.UINotificationsPreference "disabled"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "settings.notifications.disable"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input name="preference" type="radio" value="enabled" class="toggle-target-disabled" {{if eq
+						.UINotificationsPreference "enabled"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "settings.notifications.enable"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input name="preference" type="radio" value="andyourown" class="toggle-target-disabled" {{if eq
+						.UINotificationsPreference "andyourown"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "settings.notifications.andyourown"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input name="preference" type="radio" value="onmention" class="toggle-target-disabled" {{if eq
+						.UINotificationsPreference "onmention"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "settings.notifications.onmention"}}</label>
+				</div>
+				<br>
+				<br>
+				<button class="ui primary button">{{ctx.Locale.Tr "settings.notifications.submit_ui"}}</button>
+		</form>
+	</div>
+
+</div>
+</div>
 {{template "user/settings/layout_footer" .}}
