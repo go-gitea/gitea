@@ -222,7 +222,6 @@ func (f *file) loadMetaByPath() error {
 	} else if ok {
 		f.metaID = fileMeta.ID
 		f.blockSize = fileMeta.BlockSize
-		return nil
 	}
 	return nil
 }
