@@ -237,8 +237,8 @@ func DotEscape(raw string) string {
 
 // Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
 // and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
-func Iif(condition bool, vals ...any) any {
-	if condition {
+func Iif(condition any, vals ...any) any {
+	if condition != nil && condition.(bool) {
 		return vals[0]
 	} else if len(vals) > 1 {
 		return vals[1]
