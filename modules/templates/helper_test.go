@@ -5,7 +5,10 @@ package templates
 
 import (
 	"html/template"
+	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -66,17 +69,40 @@ func TestSanitizeHTML(t *testing.T) {
 	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }
 
-func TestIsTruthy(t *testing.T) {
-	var test any
-	assert.Equal(t, false, IsTruthy(test))
-	assert.Equal(t, false, IsTruthy(nil))
-	assert.Equal(t, false, IsTruthy(""))
-	assert.Equal(t, true, IsTruthy("non-empty"))
-	assert.Equal(t, true, IsTruthy(-1))
-	assert.Equal(t, false, IsTruthy(0))
-	assert.Equal(t, true, IsTruthy(42))
-	assert.Equal(t, false, IsTruthy(0.0))
-	assert.Equal(t, true, IsTruthy(3.14))
-	assert.Equal(t, false, IsTruthy([]int{}))
-	assert.Equal(t, true, IsTruthy([]int{1}))
+func TestTemplateTruthy(t *testing.T) {
+	tmpl := template.New("test")
+	tmpl.Funcs(template.FuncMap{"Iif": Iif})
+	template.Must(tmpl.Parse(`{{if .Value}}true{{else}}false{{end}}:{{Iif .Value "true" "false"}}`))
+
+	cases := []any{
+		nil, false, true, "", "string", 0, 1,
+		byte(0), byte(1), int64(0), int64(1), float64(0), float64(1),
+		complex(0, 0), complex(1, 0),
+		(chan int)(nil), make(chan int),
+		(func())(nil), func() {},
+		util.ToPointer(0), util.ToPointer(util.ToPointer(0)),
+		util.ToPointer(1), util.ToPointer(util.ToPointer(1)),
+		[0]int{},
+		[1]int{0},
+		[]int(nil),
+		[]int{},
+		[]int{0},
+		map[any]any(nil),
+		map[any]any{},
+		map[any]any{"k": "v"},
+		(*struct{})(nil),
+		struct{}{},
+		util.ToPointer(struct{}{}),
+	}
+	w := &strings.Builder{}
+	truthyCount := 0
+	for i, v := range cases {
+		w.Reset()
+		assert.NoError(t, tmpl.Execute(w, struct{ Value any }{v}), "case %d (%T) %#v fails", i, v, v)
+		out := w.String()
+		truthyCount += util.Iif(out == "true:true", 1, 0)
+		truthyMatches := out == "true:true" || out == "false:false"
+		assert.True(t, truthyMatches, "case %d (%T) %#v fail: %s", i, v, v, out)
+	}
+	assert.True(t, truthyCount != 0 && truthyCount != len(cases))
 }
