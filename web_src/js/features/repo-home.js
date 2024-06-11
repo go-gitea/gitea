@@ -7,11 +7,11 @@ import {showErrorToast} from '../modules/toast.js';
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const mgrBtn = document.getElementById('manage_topic');
+  const mgrBtn = document.querySelector('#manage_topic');
   if (!mgrBtn) return;
 
-  const editDiv = document.getElementById('topic_edit');
-  const viewDiv = document.getElementById('repo-topics');
+  const editDiv = document.querySelector('#topic_edit');
+  const viewDiv = document.querySelector('#repo-topics');
   const topicDropdown = editDiv.querySelector('.ui.dropdown');
   let lastErrorToast;
 
@@ -28,7 +28,7 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  document.getElementById('save_topic').addEventListener('click', async (e) => {
+  document.querySelector('#save_topic').addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
     const topics = editDiv.querySelector('input[name=topics]').value;
 

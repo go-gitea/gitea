@@ -47,13 +47,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a class="gt-word-break" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a class="gt-word-break" href="{{.Link}}">{{.Name}}</a>
+								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}

@@ -6,7 +6,6 @@ package setting
 import (
 	"fmt"
 	"math"
-	"net/url"
 	"os"
 	"path/filepath"
 
@@ -19,7 +18,6 @@ var (
 		Storage           *Storage
 		Enabled           bool
 		ChunkedUploadPath string
-		RegistryHost      string
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
@@ -65,9 +63,6 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	if err != nil {
 		return err
 	}
-
-	appURL, _ := url.Parse(AppURL)
-	Packages.RegistryHost = appURL.Host
 
 	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
 	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
