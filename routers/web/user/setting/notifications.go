@@ -6,7 +6,6 @@ package setting
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -101,25 +100,17 @@ func loadNotificationsData(ctx *context.Context) {
 	}
 	type UserEmail struct {
 		user_model.EmailAddress
-		CanBePrimary bool
 	}
-	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName)
 	emails := make([]*UserEmail, len(emlist))
 	for i, em := range emlist {
+		if !em.IsActivated {
+			continue
+		}
 		var email UserEmail
 		email.EmailAddress = *em
-		email.CanBePrimary = em.IsActivated
 		emails[i] = &email
 	}
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 	ctx.Data["UINotificationsPreference"] = ctx.Doer.UINotificationsPreference
-	ctx.Data["ActivationsPending"] = pendingActivation
-	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
-
-	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
-		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()
-		ctx.Data["UserDeleteWithComments"] = ctx.Doer.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
-	}
 }
