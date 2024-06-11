@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 
 export async function initRepoRecentCommits() {
-  const el = document.getElementById('repo-recent-commits-chart');
+  const el = document.querySelector('#repo-recent-commits-chart');
   if (!el) return;
 
   const {default: RepoRecentCommits} = await import(/* webpackChunkName: "recent-commits-graph" */'../components/RepoRecentCommits.vue');
