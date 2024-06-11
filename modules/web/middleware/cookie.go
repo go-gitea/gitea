@@ -35,6 +35,10 @@ func GetSiteCookie(req *http.Request, name string) string {
 
 // SetSiteCookie returns given cookie value from request header.
 func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
+	// Previous versions would use a cookie path with a trailing /.
+	// These are more specific than cookies without a trailing /, so
+	// we need to delete these if they exist.
+	deleteLegacySiteCookie(resp, name)
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    url.QueryEscape(value),
@@ -46,10 +50,6 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 		SameSite: setting.SessionConfig.SameSite,
 	}
 	resp.Header().Add("Set-Cookie", cookie.String())
-	// Previous versions would use a cookie path with a trailing /.
-	// These are more specific than cookies without a trailing /, so
-	// we need to delete these if they exist.
-	deleteLegacySiteCookie(resp, name)
 }
 
 // deleteLegacySiteCookie deletes the cookie with the given name at the cookie
