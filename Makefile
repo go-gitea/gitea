@@ -878,7 +878,7 @@ node_modules: package-lock.json
 	@touch node_modules
 
 .venv: poetry.lock
-	poetry install --no-root
+	poetry install
 	@touch .venv
 
 .PHONY: update
@@ -895,7 +895,7 @@ update-js: node-check | node_modules
 update-py: node-check | node_modules
 	npx updates -u -f pyproject.toml
 	rm -rf .venv poetry.lock
-	poetry install --no-root
+	poetry install
 	@touch .venv
 
 .PHONY: fomantic

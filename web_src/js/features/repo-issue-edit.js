@@ -55,7 +55,7 @@ async function onEditContent(event) {
           dropzone.querySelector('.files').append(input);
         });
         this.on('removedfile', async (file) => {
-          document.getElementById(file.uuid)?.remove();
+          document.querySelector(`#${file.uuid}`)?.remove();
           if (disableRemovedfileEvent) return;
           if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
             try {
@@ -137,7 +137,7 @@ async function onEditContent(event) {
       }
       editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
-        renderContent.innerHTML = document.getElementById('no-content').innerHTML;
+        renderContent.innerHTML = document.querySelector('#no-content').innerHTML;
         rawContent.textContent = '';
       } else {
         renderContent.innerHTML = data.content;
@@ -166,7 +166,7 @@ async function onEditContent(event) {
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
   if (!comboMarkdownEditor) {
-    editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
+    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
     comboMarkdownEditor.attachedDropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
     editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
@@ -189,11 +189,12 @@ export function initRepoIssueCommentEdit() {
   // Quote reply
   $(document).on('click', '.quote-reply', async function (event) {
     event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const target = this.getAttribute('data-target');
+    const quote = document.querySelector(`#${target}`).textContent.replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
+
     let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
+    if (this.classList.contains('quote-reply-diff')) {
       const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
       editor = await handleReply($replyBtn);
     } else {
