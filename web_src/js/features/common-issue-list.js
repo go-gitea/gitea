@@ -29,7 +29,7 @@ export function parseIssueListQuickGotoLink(repoLink, searchText) {
 }
 
 export function initCommonIssueListQuickGoto() {
-  const goto = document.getElementById('issue-list-quick-goto');
+  const goto = document.querySelector('#issue-list-quick-goto');
   if (!goto) return;
 
   const form = goto.closest('form');

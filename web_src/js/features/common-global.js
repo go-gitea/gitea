@@ -24,8 +24,8 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initHeadNavbarContentToggle() {
-  const navbar = document.getElementById('navbar');
-  const btn = document.getElementById('navbar-expand-toggle');
+  const navbar = document.querySelector('#navbar');
+  const btn = document.querySelector('#navbar-expand-toggle');
   if (!navbar || !btn) return;
 
   btn.addEventListener('click', () => {
@@ -301,52 +301,65 @@ async function linkAction(e) {
   }
 }
 
-export function initGlobalLinkActions() {
-  function showDeletePopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const dataArray = $this.data();
-    let filter = '';
-    if (this.getAttribute('data-modal-id')) {
-      filter += `#${this.getAttribute('data-modal-id')}`;
-    }
+export function initGlobalDeleteButton() {
+  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
+  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
+  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
+  // If there is no form, then the data will be posted to `data-url`.
+  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
+  for (const btn of document.querySelectorAll('.delete-button')) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
 
-    const $dialog = $(`.delete.modal${filter}`);
-    $dialog.find('.name').text($this.data('name'));
-    for (const [key, value] of Object.entries(dataArray)) {
-      if (key && key.startsWith('data')) {
-        $dialog.find(`.${key}`).text(value);
+      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
+      const dataObj = btn.dataset;
+
+      const modalId = btn.getAttribute('data-modal-id');
+      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
+
+      // set the modal "display name" by `data-name`
+      const modalNameEl = modal.querySelector('.name');
+      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
+
+      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
+      for (const [key, value] of Object.entries(dataObj)) {
+        if (key.startsWith('data')) {
+          const textEl = modal.querySelector(`.${key}`);
+          if (textEl) textEl.textContent = value;
+        }
       }
-    }
 
-    $dialog.modal({
-      closable: false,
-      onApprove: async () => {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-        const postData = new FormData();
-        for (const [key, value] of Object.entries(dataArray)) {
-          if (key && key.startsWith('data')) {
-            postData.append(key.slice(4), value);
+      $(modal).modal({
+        closable: false,
+        onApprove: async () => {
+          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
+          if (btn.getAttribute('data-type') === 'form') {
+            const formSelector = btn.getAttribute('data-form');
+            const form = document.querySelector(formSelector);
+            if (!form) throw new Error(`no form named ${formSelector} found`);
+            form.submit();
           }
-          if (key === 'id') {
-            postData.append('id', value);
-          }
-        }
 
-        const response = await POST($this.data('url'), {data: postData});
-        if (response.ok) {
-          const data = await response.json();
-          window.location.href = data.redirect;
-        }
-      },
-    }).modal('show');
+          // prepare an AJAX form by data attributes
+          const postData = new FormData();
+          for (const [key, value] of Object.entries(dataObj)) {
+            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
+              postData.append(key.slice(4), value);
+            }
+            if (key === 'id') { // for data-id="..."
+              postData.append('id', value);
+            }
+          }
+
+          const response = await POST(btn.getAttribute('data-url'), {data: postData});
+          if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.redirect;
+          }
+        },
+      }).modal('show');
+    });
   }
-
-  // Helpers.
-  $('.delete-button').on('click', showDeletePopup);
 }
 
 function initGlobalShowModal() {
@@ -382,7 +395,7 @@ function initGlobalShowModal() {
       } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
-        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
+        $attrTarget[0].textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
       }
     }
 

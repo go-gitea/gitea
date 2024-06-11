@@ -5,7 +5,7 @@ import {GET} from '../modules/fetch.js';
 export default {
   components: {SvgIcon},
   data: () => {
-    const el = document.getElementById('diff-commit-select');
+    const el = document.querySelector('#diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
