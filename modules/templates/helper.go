@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -238,12 +239,34 @@ func DotEscape(raw string) string {
 // Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
 // and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
 func Iif(condition any, vals ...any) any {
-	if condition != nil && condition.(bool) {
+	if IsTruthy(condition) {
 		return vals[0]
 	} else if len(vals) > 1 {
 		return vals[1]
 	}
 	return nil
+}
+
+func IsTruthy(v any) bool {
+	if v == nil {
+		return false
+	}
+
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Bool:
+		return rv.Bool()
+	case reflect.String:
+		return rv.String() != ""
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return rv.Float() > 0 || rv.Int() > 0
+	case reflect.Slice, reflect.Array, reflect.Map, reflect.Ptr, reflect.Interface:
+		return !rv.IsNil() && rv.Len() > 0
+	default:
+		return false
+	}
 }
 
 // Eval the expression and return the result, see the comment of eval.Expr for details.
