@@ -103,6 +103,7 @@ function delegateOne($dropdown) {
     $menu = $menu || $dropdown.find('> .menu');
     const elMenu = $menu[0];
     // detect whether the menu is outside the viewport, and adjust the position
+    // there is a bug in fomantic's builtin `direction` function, in some cases (when the menu width is only a little larger) it wrongly opens the menu at right and triggers the scrollbar.
     elMenu.classList.add(classNames.loading);
     if (elMenu.getBoundingClientRect().right > document.documentElement.clientWidth) {
       elMenu.classList.add(classNames.leftward);
