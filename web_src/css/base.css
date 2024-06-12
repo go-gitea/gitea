@@ -1002,12 +1002,12 @@ overflow-menu .ui.label {
   text-align: right !important;
   color: var(--color-text-light-2);
   width: 1%; /* this apparently needs to be a percentage so that code column stretches in diffs */
-  min-width: 50px;
+  min-width: 72px;
   white-space: nowrap;
 }
 
-.code-diff-unified .lines-num {
-  min-width: 40px;
+.code-diff .lines-num {
+  min-width: 50px;
 }
 
 .lines-num span.bottom-line::after {
