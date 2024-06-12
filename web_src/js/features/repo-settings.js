@@ -44,7 +44,7 @@ export function initRepoSettingsCollaboration() {
 }
 
 export function initRepoSettingSearchTeamBox() {
-  const searchTeamBox = document.getElementById('search-team-box');
+  const searchTeamBox = document.querySelector('#search-team-box');
   if (!searchTeamBox) return;
 
   $(searchTeamBox).search({
@@ -78,29 +78,29 @@ export function initRepoSettingGitHook() {
 export function initRepoSettingBranches() {
   if (!document.querySelector('.repository.settings.branches')) return;
 
-  for (const el of document.getElementsByClassName('toggle-target-enabled')) {
+  for (const el of document.querySelectorAll('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       target?.classList.toggle('disabled', !this.checked);
     });
   }
 
-  for (const el of document.getElementsByClassName('toggle-target-disabled')) {
+  for (const el of document.querySelectorAll('.toggle-target-disabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
     });
   }
 
-  document.getElementById('dismiss_stale_approvals')?.addEventListener('change', function () {
-    document.getElementById('ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
+  document.querySelector('#dismiss_stale_approvals')?.addEventListener('change', function () {
+    document.querySelector('#ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
   });
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
-    const patterns = (document.getElementById('status_check_contexts').value || '').split(/[\r\n]+/);
+    const patterns = (document.querySelector('#status_check_contexts').value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
-    const marks = document.getElementsByClassName('status-check-matched-mark');
+    const marks = document.querySelectorAll('.status-check-matched-mark');
 
     for (const el of marks) {
       let matched = false;
@@ -115,5 +115,5 @@ export function initRepoSettingBranches() {
     }
   };
   markMatchedStatusChecks();
-  document.getElementById('status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
+  document.querySelector('#status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }

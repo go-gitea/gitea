@@ -183,7 +183,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	cfg := setting.Config()
 
-	marshalBool := func(v string) (string, error) {
+	marshalBool := func(v string) (string, error) { //nolint:unparam
 		if b, _ := strconv.ParseBool(v); b {
 			return "true", nil
 		}
