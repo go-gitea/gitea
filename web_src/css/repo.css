@@ -1720,8 +1720,10 @@ td .commit-summary {
 }
 
 .file-is-empty {
-  font-size: var(--font-size-default) !important;
-  line-height: var(--line-height-default) !important;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1rem !important; /* undo style from .markup parent */
+  line-height: var(--line-height-default) !important; /* undo style from .markup parent */
 }
 
 .repository .activity-header {
