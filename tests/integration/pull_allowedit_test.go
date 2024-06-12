@@ -23,7 +23,7 @@ func TestPullAllowMaintainerEdit(t *testing.T) {
 		session := loginUser(t, "user1")
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		forkedName := "repo1"
-		testRepoFork(t, session, "org3", "repo5", "user1", forkedName)
+		testRepoFork(t, session, "org3", "repo5", "user1", forkedName, "master")
 		defer func() {
 			testDeleteRepository(t, session, "user1", forkedName)
 		}()
