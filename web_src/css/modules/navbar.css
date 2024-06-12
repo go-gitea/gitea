@@ -80,7 +80,7 @@
   }
   #navbar .navbar-mobile-right {
     display: flex;
-    margin-left: auto !important;
+    margin: 0 0 0 auto !important;
     width: auto !important;
   }
   #navbar .navbar-mobile-right > .item {
