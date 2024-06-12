@@ -1714,6 +1714,11 @@ td .commit-summary {
 .file-view.markup {
   padding: 1em 2em;
 }
+
+.file-view.markup:has(.file-is-empty) {
+  padding: 0;
+}
+
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
