@@ -1719,6 +1719,11 @@ td .commit-summary {
   padding: 0;
 }
 
+.file-is-empty {
+  font-size: var(--font-size-default) !important;
+  line-height: var(--line-height-default) !important;
+}
+
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
