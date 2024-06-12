@@ -1555,8 +1555,6 @@ td .commit-summary {
 
 .repository .diff-file-box .file-body.file-code .lines-num {
   text-align: right;
-  width: 1%;
-  min-width: 50px;
 }
 
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
@@ -1580,12 +1578,6 @@ td .commit-summary {
 
 .repository .diff-file-box .code-diff table {
   table-layout: fixed;
-}
-
-.repository .diff-file-box .code-diff tbody tr td.lines-num,
-.repository .diff-file-box .code-diff tbody tr td.lines-escape,
-.repository .diff-file-box .code-diff tbody tr td.lines-type-marker {
-  white-space: nowrap;
 }
 
 .repository .diff-file-box .code-diff tbody tr td.center {
