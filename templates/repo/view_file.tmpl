@@ -91,6 +91,8 @@
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+			{{else if not .FileSize}}
+				{{template "shared/fileisempty"}}
 			{{else if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent}}{{end}}
 			{{else if .IsPlainText}}
