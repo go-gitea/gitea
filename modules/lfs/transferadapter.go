@@ -37,6 +37,7 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("Download Request: %+v", req)
 	resp, err := performRequest(ctx, a.client, req)
 	if err != nil {
 		return nil, err

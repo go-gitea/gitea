@@ -64,7 +64,7 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	_, _, headGitRepo, ci, _, _ := parseCompareInfo(ctx, api.CreatePullRequestOption{
+	_, headGitRepo, ci, _, _ := parseCompareInfo(ctx, api.CreatePullRequestOption{
 		Base: infos[0],
 		Head: infos[1],
 	})
