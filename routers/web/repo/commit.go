@@ -382,6 +382,7 @@ func Diff(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {

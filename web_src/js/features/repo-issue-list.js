@@ -76,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     // for delete
     if (action === 'delete') {
       const confirmText = e.target.getAttribute('data-action-delete-confirm');
-      if (!await confirmModal({content: confirmText, buttonColor: 'orange'})) {
+      if (!await confirmModal(confirmText, {confirmButtonColor: 'red'})) {
         return;
       }
     }
@@ -158,7 +158,7 @@ function initRepoIssueListAuthorDropdown() {
 }
 
 function initPinRemoveButton() {
-  for (const button of document.getElementsByClassName('issue-card-unpin')) {
+  for (const button of document.querySelectorAll('.issue-card-unpin')) {
     button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
@@ -182,7 +182,7 @@ async function pinMoveEnd(e) {
 }
 
 async function initIssuePinSort() {
-  const pinDiv = document.getElementById('issue-pins');
+  const pinDiv = document.querySelector('#issue-pins');
 
   if (pinDiv === null) return;
 
