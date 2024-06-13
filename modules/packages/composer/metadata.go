@@ -169,7 +169,8 @@ func ParseComposerFile(archive *zip.Reader, pathPrefix string, r io.Reader) (*Pa
 	}
 	f, err := archive.Open(path.Join(pathPrefix, cj.Readme))
 	if err == nil {
-		buf, _ := io.ReadAll(f)
+		// 10kb limit for readme content
+		buf, _ := io.ReadAll(io.LimitReader(f, 10*1024))
 		cj.Readme = string(buf)
 		_ = f.Close()
 	} else {
