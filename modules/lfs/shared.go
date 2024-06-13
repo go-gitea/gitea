@@ -10,6 +10,8 @@ import (
 const (
 	// MediaType contains the media type for LFS server requests
 	MediaType = "application/vnd.git-lfs+json"
+	// Some LFS servers offer content with other types, so fallback to '*/*' if application/vnd.git-lfs+json cannot be served
+	AcceptHeader = "application/vnd.git-lfs+json;q=0.9, */*;q=0.8"
 )
 
 // BatchRequest contains multiple requests processed in one batch operation.

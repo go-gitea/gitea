@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 
 export async function initRepoCodeFrequency() {
-  const el = document.getElementById('repo-code-frequency-chart');
+  const el = document.querySelector('#repo-code-frequency-chart');
   if (!el) return;
 
   const {default: RepoCodeFrequency} = await import(/* webpackChunkName: "code-frequency-graph" */'../components/RepoCodeFrequency.vue');
