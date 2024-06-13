@@ -292,7 +292,7 @@ func DeleteTag(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// ListTagProtection list tag protections for a repo
+// ListTagProtection lists tag protections for a repo
 func ListTagProtection(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/tag_protections repository repoListTagProtection
 	// ---

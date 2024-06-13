@@ -41,7 +41,7 @@ type CreateTagOption struct {
 	Target  string `json:"target"`
 }
 
-// TagProtection represents an tag protection
+// TagProtection represents a tag protection
 type TagProtection struct {
 	ID                 int64    `json:"id"`
 	NamePattern        string   `json:"name_pattern"`

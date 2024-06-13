@@ -110,7 +110,7 @@ func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 	return tag, nil
 }
 
-// GetProtectedTagByNamePattern getting protected tag by name_pattern
+// GetProtectedTagByNamePattern gets protected tag by name_pattern
 func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern string) (*ProtectedTag, error) {
 	tag := &ProtectedTag{NamePattern: pattern, RepoID: repoID}
 	has, err := db.GetEngine(ctx).Get(tag)
