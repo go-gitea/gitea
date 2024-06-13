@@ -108,6 +108,11 @@
   border: 1px solid var(--color-secondary);
 }
 
+.organization.profile #readme_profile {
+    max-height: 40vh;
+    overflow: auto;
+}
+
 #notification_table {
   background: var(--color-box-body);
   border: 1px solid var(--color-secondary);
