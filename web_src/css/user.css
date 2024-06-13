@@ -109,8 +109,8 @@
 }
 
 .organization.profile #readme_profile {
-    max-height: 40vh;
-    overflow: auto;
+  max-height: 40vh;
+  overflow: auto;
 }
 
 #notification_table {
