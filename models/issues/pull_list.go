@@ -200,12 +200,9 @@ func (prs PullRequestList) LoadIssues(ctx context.Context) (IssueList, error) {
 		return nil, nil
 	}
 
-	// Load issues.
+	// Load issues which are not loaded
 	issueIDs := container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
-		if pr.Issue == nil {
-			return pr.IssueID, pr.IssueID > 0
-		}
-		return 0, false
+		return pr.IssueID, pr.Issue == nil && pr.IssueID > 0
 	})
 	issues := make(map[int64]*Issue, len(issueIDs))
 	if err := db.GetEngine(ctx).
