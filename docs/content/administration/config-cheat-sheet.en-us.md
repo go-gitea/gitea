@@ -724,11 +724,13 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Mailer (`mailer`)
 
-⚠️ This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
+:::warning
+This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
 please refer to
 [Gitea 1.17 app.ini example](https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini)
 and
 [Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
+:::
 
 - `ENABLED`: **false**: Enable to use a mail service.
 - `PROTOCOL`: **_empty_**: Mail server protocol. One of "smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
@@ -760,6 +762,21 @@ and
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
+
+## Override Email Headers (`mailer.override_header`)
+
+:::warning
+This is empty by default, use it only if you know what you need it for.
+:::
+
+examples would be:
+
+```ini
+[mailer.override_header]
+Reply-To = test@example.com, test2@example.com
+Content-Type = text/html; charset=utf-8
+In-Reply-To =
+```
 
 ## Incoming Email (`email.incoming`)
 
@@ -828,7 +845,7 @@ and
 
 ## Project (`project`)
 
-Default templates for project boards:
+Default templates for project board view:
 
 - `PROJECT_BOARD_BASIC_KANBAN_TYPE`: **To Do, In Progress, Done**
 - `PROJECT_BOARD_BUG_TRIAGE_TYPE`: **Needs Triage, High Priority, Low Priority, Closed**
@@ -843,7 +860,7 @@ Default templates for project boards:
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `PATH`: **attachments**: Path to store attachments only available when STORAGE_TYPE is `local`, relative paths will be resolved to `${AppDataPath}/${attachment.PATH}`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORAGE_TYPE is `minio`
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`. If not provided and STORAGE_TYPE is `minio`, will search for credentials in known environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORAGE_TYPE is `minio`
@@ -851,6 +868,7 @@ Default templates for project boards:
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORAGE_TYPE is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio checksum algorithm: `default` (for MinIO or AWS S3) or `md5` (for Cloudflare or Backblaze)
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -974,11 +992,19 @@ Default templates for project boards:
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
-## Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
+#### Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
 
 - `ENABLED`: **true**: Enable cleanup expired actions assets job.
 - `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
 - `SCHEDULE`: **@midnight** : Cron syntax for the job.
+
+#### Cron - Cleanup Deleted Branches (`cron.deleted_branches_cleanup`)
+
+- `ENABLED`: **true**: Enable deleted branches cleanup.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `NOTICE_ON_SUCCESS`: **false**: Set to true to log a success message.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling deleted branches cleanup.
+- `OLDER_THAN`: **24h**: Branches deleted OLDER_THAN ago will be cleaned up.
 
 ### Extended cron tasks (not enabled by default)
 
@@ -1265,27 +1291,35 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `PATH`: **./data/lfs**: Where to store LFS files, only available when `STORAGE_TYPE` is `local`. If not set it fall back to deprecated LFS_CONTENT_PATH value in [server] section.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`. If not provided and STORAGE_TYPE is `minio`, will search for credentials in known environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `STORAGE_TYPE` is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Storage (`storage`)
 
 Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact.
 
-- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk or `minio` for s3 compatible object storage service.
+- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk, `minio` for s3 compatible object storage service, `azureblob` for azure blob storage service.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`. If not provided and STORAGE_TYPE is `minio`, will search for credentials in known environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the data only available when `STORAGE_TYPE` is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+
+- `AZURE_BLOB_ENDPOINT`: **_empty_**: Azure Blob endpoint to connect only available when STORAGE_TYPE is `azureblob`,
+ e.g. https://accountname.blob.core.windows.net or http://127.0.0.1:10000/devstoreaccount1
+- `AZURE_BLOB_ACCOUNT_NAME`: **_empty_**: Azure Blob account name to connect only available when STORAGE_TYPE is `azureblob`
+- `AZURE_BLOB_ACCOUNT_KEY`: **_empty_**: Azure Blob account key to connect only available when STORAGE_TYPE is `azureblob`
+- `AZURE_BLOB_CONTAINER`: **gitea**: Azure Blob container to store the data only available when STORAGE_TYPE is `azureblob`
 
 The recommended storage configuration for minio like below:
 
@@ -1294,7 +1328,10 @@ The recommended storage configuration for minio like below:
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
 MINIO_ENDPOINT = localhost:9000
-; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`.
+; If not provided and STORAGE_TYPE is `minio`, will search for credentials in known
+; environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files
+; (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 MINIO_ACCESS_KEY_ID =
 ; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
 MINIO_SECRET_ACCESS_KEY =
@@ -1307,6 +1344,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 Defaultly every storage has their default base path like below
@@ -1341,7 +1380,10 @@ STORAGE_TYPE = my_minio
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
 MINIO_ENDPOINT = localhost:9000
-; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`.
+; If not provided and STORAGE_TYPE is `minio`, will search for credentials in known
+; environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files
+; (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 MINIO_ACCESS_KEY_ID =
 ; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
 MINIO_SECRET_ACCESS_KEY =
@@ -1353,6 +1395,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ## Repository Archive Storage (`storage.repo-archive`)
@@ -1365,13 +1409,14 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `PATH`: **./data/repo-archive**: Where to store archive files, only available when `STORAGE_TYPE` is `local`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
-- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`. If not provided and STORAGE_TYPE is `minio`, will search for credentials in known environment variables (MINIO_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID), credentials files (~/.mc/config.json, ~/.aws/credentials), and EC2 instance metadata.
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `STORAGE_TYPE` is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
 
 ## Repository Archives (`repo-archive`)
 

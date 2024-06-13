@@ -5,11 +5,9 @@ slug: "secrets"
 sidebar_position: 50
 draft: false
 toc: false
-aliases:
-  - /zh-cn/secrets
 menu:
   sidebar:
-    parent: "usage"
+    parent: "actions"
     name: "密钥管理"
     sidebar_position: 50
     identifier: "usage-secrets"

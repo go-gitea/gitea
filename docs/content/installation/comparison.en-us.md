@@ -104,7 +104,7 @@ _Symbols used in table:_
 | Comment reactions             | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Lock Discussion               | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Batch issue handling          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
-| Issue Boards (Kanban)         | [/](https://github.com/go-gitea/gitea/issues/14710) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            | ✘            |
+| Projects                      | [/](https://github.com/go-gitea/gitea/issues/14710) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Create branch from issue      | [✘](https://github.com/go-gitea/gitea/issues/20226) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Convert comment to new issue  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Issue search                  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            | ✘            |

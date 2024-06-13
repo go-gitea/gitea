@@ -796,6 +796,7 @@ Gitea 创建以下非唯一队列：
 - `MINIO_USE_SSL`: **false**: Minio 启用 SSL，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio 跳过 SSL 验证，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_CHECKSUM_ALGORITHM`: **default**: Minio 校验算法：`default`（适用于 MinIO 或 AWS S3）或 `md5`（适用于 Cloudflare 或 Backblaze）
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 日志 (`log`)
 
@@ -1201,12 +1202,13 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_BASE_PATH`：**lfs/**：桶上的 Minio 基本路径，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ## 存储 (`storage`)
 
 默认的附件、lfs、头像、仓库头像、仓库归档、软件包、操作日志、操作艺术品的存储配置。
 
-- `STORAGE_TYPE`：**local**：存储类型，`local` 表示本地磁盘，`minio` 表示 S3 兼容的对象存储服务。
+- `STORAGE_TYPE`：**local**：存储类型，`local` 表示本地磁盘，`minio` 表示 S3，`azureblob` 表示 azure 对象存储。
 - `SERVE_DIRECT`：**false**：允许存储驱动程序重定向到经过身份验证的 URL 以直接提供文件。目前，仅支持通过签名的 URL 提供 Minio/S3，本地不执行任何操作。
 - `MINIO_ENDPOINT`：**localhost:9000**：连接的 Minio 终端点，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_ACCESS_KEY_ID`：Minio 的 accessKeyID，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
@@ -1215,6 +1217,12 @@ ALLOW_DATA_URI_IMAGES = true
 - `MINIO_LOCATION`：**us-east-1**：创建桶的 Minio 位置，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_USE_SSL`：**false**：Minio 启用 ssl，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`：**false**：Minio 跳过 SSL 验证，仅在 `STORAGE_TYPE` 为 `minio` 时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
+
+- `AZURE_BLOB_ENDPOINT`: **_empty_**: Azure Blob 终端点，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。例如：https://accountname.blob.core.windows.net 或 http://127.0.0.1:10000/devstoreaccount1
+- `AZURE_BLOB_ACCOUNT_NAME`: **_empty_**: Azure Blob 账号名，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
+- `AZURE_BLOB_ACCOUNT_KEY`: **_empty_**: Azure Blob 访问密钥，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
+- `AZURE_BLOB_CONTAINER`: **gitea**: 用于存储数据的 Azure Blob 容器名，仅在 `STORAGE_TYPE` 为 `azureblob` 时可用。
 
 建议的 minio 存储配置如下：
 
@@ -1236,6 +1244,8 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 SERVE_DIRECT = true
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 默认情况下，每个存储都有其默认的基本路径，如下所示：
@@ -1282,6 +1292,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+; Minio bucket lookup method defaults to auto mode; set it to `dns` for virtual host style or `path` for path style, only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET_LOOKUP_TYPE = auto
 ```
 
 ### 存储库归档存储 (`storage.repo-archive`)
@@ -1299,6 +1311,7 @@ MINIO_INSECURE_SKIP_VERIFY = false
 - `MINIO_BASE_PATH`: **repo-archive/**：存储桶上的Minio基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_USE_SSL`: **false**：启用Minio的SSL，仅在`STORAGE_TYPE`为`minio`时可用。
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**：跳过Minio的SSL验证，仅在`STORAGE_TYPE`为`minio`时可用。
+- `MINIO_BUCKET_LOOKUP_TYPE`: **auto**: Minio的bucket查找方式默认为`auto`模式，可将其设置为`dns`（虚拟托管样式）或`path`（路径样式），仅当`STORAGE_TYPE`为`minio`时可用。
 
 ### 存储库归档 (`repo-archive`)
 
