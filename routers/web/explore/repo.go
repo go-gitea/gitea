@@ -6,6 +6,7 @@ package explore
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -57,7 +58,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy db.SearchOrderBy
 	)
 
-	sortOrder := ctx.FormString("sort")
+	sortOrder := strings.ToLower(ctx.FormString("sort"))
 	if sortOrder == "" {
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
