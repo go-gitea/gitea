@@ -201,7 +201,12 @@ func (prs PullRequestList) LoadIssues(ctx context.Context) (IssueList, error) {
 	}
 
 	// Load issues.
-	issueIDs := prs.GetIssueIDs()
+	issueIDs := container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
+		if pr.Issue == nil {
+			return pr.IssueID, pr.IssueID > 0
+		}
+		return 0, false
+	})
 	issues := make(map[int64]*Issue, len(issueIDs))
 	if err := db.GetEngine(ctx).
 		In("id", issueIDs).
@@ -237,10 +242,7 @@ func (prs PullRequestList) LoadIssues(ctx context.Context) (IssueList, error) {
 // GetIssueIDs returns all issue ids
 func (prs PullRequestList) GetIssueIDs() []int64 {
 	return container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
-		if pr.Issue == nil {
-			return pr.IssueID, pr.IssueID > 0
-		}
-		return 0, false
+		return pr.IssueID, pr.IssueID > 0
 	})
 }
 
