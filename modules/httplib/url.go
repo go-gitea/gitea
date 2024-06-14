@@ -91,7 +91,7 @@ func GuessCurrentHostURL(ctx context.Context) string {
 // MakeAbsoluteURL tries to make a link to an absolute URL:
 // * If link is empty, it returns the current app URL.
 // * If link is absolute, it returns the link.
-// * Otherwise, it returns the current host URL + link, the link itself should have correct sub-path (AppSurURL) if needed.
+// * Otherwise, it returns the current host URL + link, the link itself should have correct sub-path (AppSubURL) if needed.
 func MakeAbsoluteURL(ctx context.Context, link string) string {
 	if link == "" {
 		return GuessCurrentAppURL(ctx)
