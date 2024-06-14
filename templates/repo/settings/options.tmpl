@@ -1025,14 +1025,18 @@
 				{{ctx.Locale.Tr "repo.visibility"}}
 			</div>
 			<div class="content">
-				<p>
 					{{if .Repository.IsPrivate}}
-						{{ctx.Locale.Tr "repo.settings.visibility.public.text"}}
+						<p>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_title"}}</p>
+						<ul>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_one"}}</li>
+						</ul>
 					{{else}}
-						{{ctx.Locale.Tr "repo.settings.visibility.private.text"}}
-						{{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}
+						<p>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_title"}}</p>
+						<ul>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_one"}}</li>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_two"}}{{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</li>
+						</ul>
 					{{end}}
-				</p>
 			</div>
 			<form action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
