@@ -42,7 +42,7 @@ _Symbols used in table:_
 | Easy upgrades                                    | ✓                                                   | ✓    | ✘         | ✓         | ✓         | ✘         | ✓            | ✓            |
 | Telemetry                                        | **✘**                                               | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            | ✘            |
 | Third-party render tool support                  | ✓                                                   | ✘    | ✘         | ✘         | ✘         | ✓         | ✘            | ✘            |
-| WebAuthn (2FA)                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            | ✓            |
+| WebAuthn (2FA)                                   | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            | ✓            |
 | Extensive API                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            | ✓            |
 | Built-in Package/Container Registry              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            | ✘            |
 | Sync commits to an external repo (push mirror)   | ✓                                                   | ✓    | ✘         | ✓         | ✓         | ✘         | ✓            | ✓            |
