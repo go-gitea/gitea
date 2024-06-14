@@ -48,7 +48,7 @@ var (
 	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL string
-	// UseSubURLPath makes Gitea handles requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems.
+	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems without a reverse proxy.
 	UseSubURLPath bool
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
