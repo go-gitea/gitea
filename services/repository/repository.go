@@ -122,7 +122,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	return committer.Commit()
 }
 
-func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, IsPrivate bool) (err error) {
+func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository
 
 	defer committer.Close()
 
-	repo.IsPrivate = IsPrivate
+	repo.IsPrivate = isPrivate
 
 	if err = repo_module.UpdateRepository(ctx, repo, true); err != nil {
 		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
