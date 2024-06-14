@@ -162,3 +162,15 @@ func LoadHeaderCount(ctx *context.Context) error {
 
 	return nil
 }
+
+func RenderOrgHeader(ctx *context.Context) error {
+	if err := LoadHeaderCount(ctx); err != nil {
+		return err
+	}
+
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+
+	return nil
+}

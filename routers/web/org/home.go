@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -100,10 +99,35 @@ func Home(ctx *context.Context) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:       org.ID,
+		PublicOnly:  ctx.Org.PublicMemberOnly,
+		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
+	}
+	members, _, err := organization.FindOrgMembers(ctx, opts)
+	if err != nil {
+		ctx.ServerError("FindOrgMembers", err)
+		return
+	}
+	ctx.Data["Members"] = members
+	ctx.Data["Teams"] = ctx.Org.Teams
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
+	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
+
+	prepareOrgProfileReadme(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	var (
 		repos []*repo_model.Repository
 		count int64
-		err   error
 	)
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -128,46 +152,29 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	opts := &organization.FindOrgMembersOpts{
-		OrgID:       org.ID,
-		PublicOnly:  ctx.Org.PublicMemberOnly,
-		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
-	}
-	members, _, err := organization.FindOrgMembers(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindOrgMembers", err)
-		return
-	}
-
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
-
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("language", language)
 	ctx.Data["Page"] = pager
 
-	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
-
-	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
-	prepareOrgProfileReadme(ctx, profileGitRepo, profileDbRepo, profileReadmeBlob)
-
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+func prepareOrgProfileReadme(ctx *context.Context) {
+	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadme != nil
+
 	if profileGitRepo == nil || profileReadme == nil {
+		return
+	}
+
+	viewRepositorys := ctx.FormOptionalBool("view_repositorys")
+	if viewRepositorys.Value() {
 		return
 	}
 
@@ -190,4 +197,7 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 			ctx.Data["ProfileReadme"] = profileContent
 		}
 	}
+
+	ctx.Data["PageIsViewOverview"] = true
+	ctx.HTML(http.StatusOK, tplOrgHome)
 }
