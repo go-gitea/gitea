@@ -947,8 +947,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repo.IsPrivate = !repo.IsPrivate
-		if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
+		var err error
+
+		if repo.IsPrivate {
+			err = repo_service.MakeRepoPublic(ctx, repo)
+		} else {
+			err = repo_service.MakeRepoPrivate(ctx, repo)
+		}
+
+		if err != nil {
 			log.Error("Tried to change the visibility of the repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
