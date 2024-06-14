@@ -36,7 +36,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-func xmlResponse(ctx *context.Context, status int, obj any) {
+func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
@@ -96,20 +96,34 @@ func FeedCapabilityResource(ctx *context.Context) {
 	xmlResponse(ctx, http.StatusOK, Metadata)
 }
 
-var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+var (
+	searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+	searchTermExact   = regexp.MustCompile(`\s+eq\s+'`)
+)
 
-func getSearchTerm(ctx *context.Context) string {
+func getSearchTerm(ctx *context.Context) packages_model.SearchValue {
 	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
-	if searchTerm == "" {
-		// $filter contains a query like:
-		// (((Id ne null) and substringof('microsoft',tolower(Id)))
-		// We don't support these queries, just extract the search term.
-		match := searchTermExtract.FindStringSubmatch(ctx.FormTrim("$filter"))
-		if len(match) == 2 {
-			searchTerm = strings.TrimSpace(match[1])
+	if searchTerm != "" {
+		return packages_model.SearchValue{
+			Value:      searchTerm,
+			ExactMatch: false,
 		}
 	}
-	return searchTerm
+
+	// $filter contains a query like:
+	// (((Id ne null) and substringof('microsoft',tolower(Id)))
+	// https://www.odata.org/documentation/odata-version-2-0/uri-conventions/ section 4.5
+	// We don't support these queries, just extract the search term.
+	filter := ctx.FormTrim("$filter")
+	match := searchTermExtract.FindStringSubmatch(filter)
+	if len(match) == 2 {
+		return packages_model.SearchValue{
+			Value:      strings.TrimSpace(match[1]),
+			ExactMatch: searchTermExact.MatchString(filter),
+		}
+	}
+
+	return packages_model.SearchValue{}
 }
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
@@ -118,11 +132,9 @@ func SearchServiceV2(ctx *context.Context) {
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
-		Name: packages_model.SearchValue{
-			Value: getSearchTerm(ctx),
-		},
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNuGet,
+		Name:       getSearchTerm(ctx),
 		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
@@ -169,10 +181,8 @@ func SearchServiceV2(ctx *context.Context) {
 // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
 func SearchServiceV2Count(ctx *context.Context) {
 	count, err := nuget_model.CountPackages(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Name: packages_model.SearchValue{
-			Value: getSearchTerm(ctx),
-		},
+		OwnerID:    ctx.Package.Owner.ID,
+		Name:       getSearchTerm(ctx),
 		IsInternal: optional.Some(false),
 	})
 	if err != nil {

@@ -28,7 +28,7 @@ const (
 	TypeWiki                        // 5 Wiki
 	TypeExternalWiki                // 6 ExternalWiki
 	TypeExternalTracker             // 7 ExternalTracker
-	TypeProjects                    // 8 Kanban board
+	TypeProjects                    // 8 Projects
 	TypePackages                    // 9 Packages
 	TypeActions                     // 10 Actions
 )

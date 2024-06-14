@@ -1000,7 +1000,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
 					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
@@ -1008,10 +1008,10 @@ func registerRoutes(m *web.Route) {
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
-						m.Delete("", org.DeleteProjectBoard)
-						m.Post("/default", org.SetDefaultProjectBoard)
+					m.Group("/{columnID}", func() {
+						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+						m.Delete("", org.DeleteProjectColumn)
+						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
 					})
 				})
@@ -1125,6 +1125,9 @@ func registerRoutes(m *web.Route) {
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
@@ -1235,8 +1238,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
-
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
@@ -1356,7 +1357,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
-				m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
 				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
@@ -1364,10 +1365,10 @@ func registerRoutes(m *web.Route) {
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-				m.Group("/{boardID}", func() {
-					m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-					m.Delete("", repo.DeleteProjectBoard)
-					m.Post("/default", repo.SetDefaultProjectBoard)
+				m.Group("/{columnID}", func() {
+					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+					m.Delete("", repo.DeleteProjectColumn)
+					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
 				})
 			})

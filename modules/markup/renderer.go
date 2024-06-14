@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -46,7 +47,6 @@ func Init(ph *ProcessorHelper) {
 		DefaultProcessorHelper = *ph
 	}
 
-	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -74,9 +74,10 @@ type RenderContext struct {
 	Type             string
 	IsWiki           bool
 	Links            Links
-	Metas            map[string]string
+	Metas            map[string]string // user, repo, mode(comment/document)
 	DefaultLink      string
 	GitRepo          *git.Repository
+	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
 	SidebarTocNode   ast.Node
