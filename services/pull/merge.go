@@ -56,7 +56,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		issueReference = "!"
 	}
 
-	reviewedOn := fmt.Sprintf("Reviewed-on: %s/%s", setting.AppURL, pr.Issue.Link())
+	reviewedOn := fmt.Sprintf("Reviewed-on: %s%s", setting.AppURL, strings.TrimPrefix(pr.Issue.Link(), "/"))
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
