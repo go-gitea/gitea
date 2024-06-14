@@ -51,11 +51,7 @@
 							<input type="hidden" name="type" value="{{$.ViewType}}">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							{{if .PageIsPulls}}
-								{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr "search.pull_kind") "Tooltip" (ctx.Locale.Tr "explorer.go")}}
-							{{else}}
-								{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr "search.issue_kind") "Tooltip" (ctx.Locale.Tr "explorer.go")}}
-							{{end}}
+							{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr (Iif .PageIsPulls "search.pull_kind" "search.issue_kind")) "Tooltip" (ctx.Locale.Tr "explore.go_to")}}
 						</div>
 					</form>
 					<!-- Sort -->

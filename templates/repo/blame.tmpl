@@ -32,6 +32,8 @@
 		<div class="file-view code-view unicode-escaped">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+			{{else if not .FileSize}}
+				{{template "shared/fileisempty"}}
 			{{else}}
 			<table>
 				<tbody>
