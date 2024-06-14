@@ -14,8 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/yuin/goldmark/util"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -341,7 +340,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool
 			return false, nil
 		}
 	}
-	r := getCrossReference(util.StringToReadOnlyBytes(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(util.UnsafeStringToBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}
