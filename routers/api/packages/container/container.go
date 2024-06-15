@@ -117,7 +117,7 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 
 func apiUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
-	realmURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), setting.AppSubURL+"/") + "/v2/token"
+	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
 	apiErrorDefined(ctx, errUnauthorized)
 }
