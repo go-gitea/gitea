@@ -57,11 +57,16 @@ func getForwardedHost(req *http.Request) string {
 	return req.Header.Get("X-Forwarded-Host")
 }
 
-// GuessCurrentAppURL tries to guess the current full URL by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
+// GuessCurrentAppURL tries to guess the current full app URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
 func GuessCurrentAppURL(ctx context.Context) string {
+	return GuessCurrentHostURL(ctx) + setting.AppSubURL + "/"
+}
+
+// GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
+func GuessCurrentHostURL(ctx context.Context) string {
 	req, ok := ctx.Value(RequestContextKey).(*http.Request)
 	if !ok {
-		return setting.AppURL
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// If no scheme provided by reverse proxy, then do not guess the AppURL, use the configured one.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
@@ -74,20 +79,27 @@ func GuessCurrentAppURL(ctx context.Context) string {
 	// So in the future maybe it should introduce a new config option, to let site admin decide how to guess the AppURL.
 	reqScheme := getRequestScheme(req)
 	if reqScheme == "" {
-		return setting.AppURL
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	reqHost := getForwardedHost(req)
 	if reqHost == "" {
 		reqHost = req.Host
 	}
-	return reqScheme + "://" + reqHost + setting.AppSubURL + "/"
+	return reqScheme + "://" + reqHost
 }
 
-func MakeAbsoluteURL(ctx context.Context, s string) string {
-	if IsRelativeURL(s) {
-		return GuessCurrentAppURL(ctx) + strings.TrimPrefix(s, "/")
+// MakeAbsoluteURL tries to make a link to an absolute URL:
+// * If link is empty, it returns the current app URL.
+// * If link is absolute, it returns the link.
+// * Otherwise, it returns the current host URL + link, the link itself should have correct sub-path (AppSubURL) if needed.
+func MakeAbsoluteURL(ctx context.Context, link string) string {
+	if link == "" {
+		return GuessCurrentAppURL(ctx)
 	}
-	return s
+	if !IsRelativeURL(link) {
+		return link
+	}
+	return GuessCurrentHostURL(ctx) + "/" + strings.TrimPrefix(link, "/")
 }
 
 func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
