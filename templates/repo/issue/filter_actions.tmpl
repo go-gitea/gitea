@@ -30,7 +30,7 @@
 					{{end}}
 					{{$previousExclusiveScope = $exclusiveScope}}
 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
 						{{template "repo/issue/labels/label_archived" .}}
 					</div>
 				{{end}}
@@ -71,7 +71,7 @@
 		<!-- Projects -->
 		<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 			<span class="text">
-				{{ctx.Locale.Tr "repo.project_board"}}
+				{{ctx.Locale.Tr "repo.projects"}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">

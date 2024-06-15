@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -285,6 +286,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
 	ctx.Data["FileName"] = path.Join(subfolder, readmeFile.Name())
+	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 
 	if fInfo.isLFSFile {
@@ -300,7 +302,6 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true
-		ctx.Data["FileSize"] = fInfo.fileSize
 		return
 	}
 
@@ -551,7 +552,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			} else {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
-			ctx.Data["NumLinesSet"] = true
 
 			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 			if err != nil {
@@ -605,8 +605,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
-		// TODO: this logic seems strange, it duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
-		// maybe for this case, the file is a binary file, and shouldn't be rendered?
+		// TODO: this logic duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
+		// It is used by "external renders", markupRender will execute external programs to get rendered content.
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
@@ -1027,16 +1027,26 @@ func renderHomeCode(ctx *context.Context) {
 			return
 		}
 
-		showRecentlyPushedNewBranches := true
-		if ctx.Repo.Repository.IsMirror ||
-			!ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
-			showRecentlyPushedNewBranches = false
+		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
+			Repo:     ctx.Repo.Repository,
+			BaseRepo: ctx.Repo.Repository,
 		}
-		if showRecentlyPushedNewBranches {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if ctx.Repo.Repository.IsFork {
+			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
+		}
+
+		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+
+		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
+			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
+			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
-				ctx.ServerError("GetRecentlyPushedBranches", err)
-				return
+				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
 		}
 	}

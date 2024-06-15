@@ -13,7 +13,7 @@ import {POST, GET} from '../modules/fetch.js';
 const {pageData, i18n} = window.config;
 
 function initRepoDiffReviewButton() {
-  const reviewBox = document.getElementById('review-box');
+  const reviewBox = document.querySelector('#review-box');
   if (!reviewBox) return;
 
   const counter = reviewBox.querySelector('.review-comments-counter');

@@ -77,7 +77,7 @@ If your issue has not been reported yet, [open an issue](https://github.com/go-g
 and answer the questions so we can understand and reproduce the problematic behavior. \
 Please write clear and concise instructions so that we can reproduce the behavior — even if it seems obvious. \
 The more detailed and specific you are, the faster we can fix the issue. \
-It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://try.gitea.io>, as perhaps your problem has already been fixed on a current version. \
+It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://demo.gitea.com>, as perhaps your problem has already been fixed on a current version. \
 Please follow the guidelines described in [How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html) for your report.
 
 Please be kind, remember that Gitea comes at no cost to you, and you're getting free help.
@@ -358,11 +358,12 @@ $REWRITTEN_PR_SUMMARY
 
 ## Documentation
 
-If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in the same PR.
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in another PR at [https://gitea.com/gitea/docs](https://gitea.com/gitea/docs).
+**The docs directory on main repository will be removed at some time. We will have a yaml file to store configuration file's meta data. After that completed, configuration documentation should be in the main repository.**
 
 ## API v1
 
-The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
+The API is documented by [swagger](https://gitea.com/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
 
 ### GitHub API compatibility
 

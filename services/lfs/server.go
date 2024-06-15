@@ -453,7 +453,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			var link *lfs_module.Link
-			if setting.LFS.Storage.MinioConfig.ServeDirect {
+			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
@@ -477,7 +477,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			}
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
-			verifyHeader["Accept"] = lfs_module.MediaType
+			verifyHeader["Accept"] = lfs_module.AcceptHeader
 
 			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
 		}

@@ -197,8 +197,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectID.Has() {
 		query.Must(elastic.NewTermQuery("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID.Has() {
-		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectBoardID.Value()))
+	if options.ProjectColumnID.Has() {
+		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
 	if options.PosterID.Has() {

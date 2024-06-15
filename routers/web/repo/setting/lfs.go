@@ -303,6 +303,7 @@ func LFSFileGet(ctx *context.Context) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		// Building code view blocks with line number on server side.
+		// FIXME: the logic is not right here: it first calls EscapeControlReader then calls HTMLEscapeString: double-escaping
 		escapedContent := &bytes.Buffer{}
 		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
 
