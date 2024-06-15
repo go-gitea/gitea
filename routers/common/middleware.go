@@ -87,6 +87,8 @@ func normalizeRequestPathMiddleware(next http.Handler) http.Handler {
 		}
 
 		normalizedPath := strings.TrimRight(urlPath, "/")
+		// the following code block is a slow-path for replacing all repeated slashes "//" to one single "/"
+		// if the path doesn't have repeated slashes, then no need to execute it
 		if strings.Contains(normalizedPath, "//") {
 			buf := &strings.Builder{}
 			prevWasSlash := false
