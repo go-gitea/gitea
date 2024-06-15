@@ -19,10 +19,24 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
+	"github.com/go-chi/chi/v5"
 )
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
+	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := chi.RouteContext(req.Context())
+			if req.URL.RawPath == "" {
+				ctx.RoutePath = req.URL.EscapedPath()
+			} else {
+				ctx.RoutePath = req.URL.RawPath
+			}
+			next.ServeHTTP(resp, req)
+		})
+	})
+
 	// prepare the ContextData and panic recovery
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
