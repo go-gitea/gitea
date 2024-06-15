@@ -272,7 +272,7 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.selected').html(`
-        <a class="item muted sidebar-item-link" href=${htmlEscape(this.getAttribute('href'))}>
+        <a class="item muted sidebar-item-link" href="${htmlEscape(this.getAttribute('data-href'))}">
           ${icon}
           ${htmlEscape(this.textContent)}
         </a>
