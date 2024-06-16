@@ -22,7 +22,6 @@ import (
 const AppURL = "http://localhost:3000/"
 
 func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
-	t.Helper()
 	setting.AppURL = AppURL
 	context := "/gogits/gogs"
 	if !wiki {
@@ -44,7 +43,6 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 }
 
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
-	t.Helper()
 	setting.AppURL = AppURL
 	context := "/gogits/gogs"
 	if !wiki {
