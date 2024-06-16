@@ -86,8 +86,8 @@ type RenderContext struct {
 }
 
 type Links struct {
-	AbsolutePrefix bool
-	Base           string
+	AbsolutePrefix bool   // add absolute URL prefix to auto-resolved links like "#issue", but not for pre-provided links and medias
+	Base           string // base prefix for pre-provided links and medias (images, videos)
 	BranchPath     string
 	TreePath       string
 }

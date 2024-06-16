@@ -10,77 +10,59 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
-
-	"mvdan.cc/xurls/v2"
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
-func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPrefix, filePath string, wiki bool) {
-	var markupType string
-	relativePath := ""
+func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, pathContext, filePath string, wiki bool) {
+	// pathContext format is /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}
+	// for example: "/gitea/owner/repo/src/branch/features/feat-123"
 
-	if len(text) == 0 {
-		_, _ = ctx.Write([]byte(""))
-		return
+	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
+	// for example, when previewing file ""/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
+	// and filePath will be used as RenderContext.RelativePath
+
+	markupType := ""
+	relativePath := ""
+	links := markup.Links{
+		AbsolutePrefix: true,
+		Base:           pathContext, // TODO: this is the legacy logic, but it doesn't seem right, "Base" should also use an absolute URL
 	}
 
 	switch mode {
 	case "markdown":
 		// Raw markdown
 		if err := markdown.RenderRaw(&markup.RenderContext{
-			Ctx: ctx,
-			Links: markup.Links{
-				AbsolutePrefix: true,
-				Base:           urlPrefix,
-			},
+			Ctx:   ctx,
+			Links: links,
 		}, strings.NewReader(text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 		}
 		return
 	case "comment":
-		// Comment as markdown
+		// Issue & comment content
 		markupType = markdown.MarkupName
 	case "gfm":
-		// Github Flavored Markdown as document
+		// GitHub Flavored Markdown
 		markupType = markdown.MarkupName
 	case "file":
-		// File as document based on file extension
-		markupType = ""
+		markupType = "" // render the repo file content by its extension
 		relativePath = filePath
+		fields := strings.SplitN(strings.TrimPrefix(pathContext, setting.AppSubURL+"/"), "/", 5)
+		if len(fields) == 5 && fields[2] == "src" && fields[3] == "branch" {
+			links = markup.Links{
+				AbsolutePrefix: true,
+				Base:           fmt.Sprintf("%s%s/%s", httplib.GuessCurrentAppURL(ctx), fields[0], fields[1]), // provides "https://host/subpath/{user}/{repo}"
+				BranchPath:     strings.Join(fields[4:], "/"),
+			}
+		}
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
-	}
-
-	if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
-		// check if urlPrefix is already set to a URL
-		linkRegex, _ := xurls.StrictMatchingScheme("https?://")
-		m := linkRegex.FindStringIndex(urlPrefix)
-		if m == nil {
-			urlPrefix = util.URLJoin(setting.AppURL, urlPrefix)
-		}
-	}
-
-	links := markup.Links{
-		AbsolutePrefix: true,
-		Base:           urlPrefix,
-	}
-
-	// Parse branch path and tree path, for correct media links.
-	// The expected route is "{user}/{repo}/src/{branch, commit, tag]/{identifier}"
-	urlElements := strings.Split(strings.TrimPrefix(urlPrefix, setting.AppURL), "/")
-	if len(urlElements) >= 5 && urlElements[2] == "src" {
-		links = markup.Links{
-			AbsolutePrefix: true,
-			Base:           setting.AppURL + urlElements[0] + "/" + urlElements[1],
-			BranchPath:     urlElements[3] + "/" + urlElements[4],
-			TreePath:       strings.Join(urlElements[5:], "/"),
-		}
 	}
 
 	meta := map[string]string{}
