@@ -5,6 +5,7 @@
 package common
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -28,9 +28,9 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, pathC
 
 	markupType := ""
 	relativePath := ""
-	links := markup.Links{
-		AbsolutePrefix: true,
-		Base:           pathContext, // TODO: this is the legacy logic, but it doesn't seem right, "Base" should also use an absolute URL
+	links := markup.Links{AbsolutePrefix: true}
+	if pathContext != "" {
+		links.Base = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), pathContext)
 	}
 
 	switch mode {
@@ -52,17 +52,18 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, pathC
 	case "file":
 		markupType = "" // render the repo file content by its extension
 		relativePath = filePath
-		fields := strings.SplitN(strings.TrimPrefix(pathContext, setting.AppSubURL+"/"), "/", 5)
-		if len(fields) == 5 && fields[2] == "src" && fields[3] == "branch" {
-			links = markup.Links{
-				AbsolutePrefix: true,
-				Base:           fmt.Sprintf("%s%s/%s", httplib.GuessCurrentAppURL(ctx), fields[0], fields[1]), // provides "https://host/subpath/{user}/{repo}"
-				BranchPath:     strings.Join(fields[4:], "/"),
-			}
-		}
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
+	}
+
+	fields := strings.SplitN(strings.TrimPrefix(pathContext, setting.AppSubURL+"/"), "/", 5)
+	if len(fields) == 5 && fields[2] == "src" && fields[3] == "branch" {
+		links = markup.Links{
+			AbsolutePrefix: true,
+			Base:           fmt.Sprintf("%s%s/%s", httplib.GuessCurrentAppURL(ctx), fields[0], fields[1]), // provides "https://host/subpath/{user}/{repo}"
+			BranchPath:     strings.Join(fields[3:], "/"),
+		}
 	}
 
 	meta := map[string]string{}

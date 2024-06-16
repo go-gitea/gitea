@@ -19,18 +19,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	AppURL  = "http://localhost:3000/"
-	Repo    = "gogits/gogs"
-	Branch  = "main"
-	FullURL = AppURL + Repo + "/"
-)
+const AppURL = "http://localhost:3000/"
 
-func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, responseBody string, responseCode int) {
+func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
+	t.Helper()
 	setting.AppURL = AppURL
-	context := Repo
+	context := "/gogits/gogs"
 	if !wiki {
-		context += "/src/branch/" + Branch
+		context += "/src/branch/main"
 	}
 	options := api.MarkupOption{
 		Mode:     mode,
@@ -42,16 +38,17 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, resp
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
 	web.SetForm(ctx, &options)
 	Markup(ctx)
-	assert.Equal(t, responseBody, resp.Body.String())
-	assert.Equal(t, responseCode, resp.Code)
+	assert.Equal(t, expectedBody, resp.Body.String())
+	assert.Equal(t, expectedCode, resp.Code)
 	resp.Body.Reset()
 }
 
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
+	t.Helper()
 	setting.AppURL = AppURL
-	context := Repo
+	context := "/gogits/gogs"
 	if !wiki {
-		context += "/src/branch/" + Branch
+		context += "/src/branch/main"
 	}
 	options := api.MarkdownOption{
 		Mode:    mode,
@@ -83,20 +80,20 @@ func TestAPI_RenderGFM(t *testing.T) {
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
 <ul>
-<li><a href="` + FullURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="` + FullURL + `wiki/Tips" rel="nofollow">Tips</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
+<li><a href="http://localhost:3000/gogits/gogs/wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="http://localhost:3000/gogits/gogs/wiki/Tips" rel="nofollow">Tips</a></li>
+<li>Bezier widget (by <a href="http://localhost:3000/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p><a href="` + FullURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p><a href="http://localhost:3000/gogits/gogs/wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p><a href="` + FullURL + `wiki/Link" rel="nofollow">Name</a></p>
+		`<p><a href="http://localhost:3000/gogits/gogs/wiki/Link" rel="nofollow">Name</a></p>
 `,
 		// empty
 		``,
@@ -120,8 +117,8 @@ Here are some links to the most important topics. You can find the full list of 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 <h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-<p><a href="` + FullURL + `wiki/Configuration" rel="nofollow">Configuration</a>
-<a href="` + FullURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + FullURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
+<p><a href="http://localhost:3000/gogits/gogs/wiki/Configuration" rel="nofollow">Configuration</a>
+<a href="http://localhost:3000/gogits/gogs/wiki/raw/images/icon-bug.png" rel="nofollow"><img src="http://localhost:3000/gogits/gogs/wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 	}
 
@@ -132,8 +129,8 @@ Here are some links to the most important topics. You can find the full list of 
 ![Image](image.png)`,
 		// rendered
 		`<h1 id="user-content-title">Title</h1>
-<p><a href="` + FullURL + `src/branch/` + Branch + `/test.md" rel="nofollow">Link</a>
-<a href="` + FullURL + `media/branch/` + Branch + `/image.png" target="_blank" rel="nofollow noopener"><img src="` + FullURL + `media/branch/` + Branch + `/image.png" alt="Image"/></a></p>
+<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
 `,
 	}
 
@@ -189,7 +186,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 	options := api.MarkdownOption{
 		Mode:    "markdown",
 		Text:    "",
-		Context: Repo,
+		Context: "/gogits/gogs",
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
