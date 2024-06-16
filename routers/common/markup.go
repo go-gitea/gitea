@@ -7,6 +7,7 @@ package common
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,12 +20,12 @@ import (
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
 func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPathContext, filePath string, wiki bool) {
-	// urlPathContext format is /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}
-	// for example: "/gitea/owner/repo/src/branch/features/feat-123"
-
+	// urlPathContext format is "/subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file-base-path}"
 	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
-	// for example, when previewing file ""/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
-	// and filePath will be used as RenderContext.RelativePath
+	// filePath will be used as RenderContext.RelativePath
+
+	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
+	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
 	var markupType, relativePath string
 
@@ -59,10 +60,14 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 
 	fields := strings.SplitN(strings.TrimPrefix(urlPathContext, setting.AppSubURL+"/"), "/", 5)
 	if len(fields) == 5 && fields[2] == "src" && fields[3] == "branch" {
-		// they provide "https://host/subpath/{user}/{repo}" and "branch/features/feat-12" for links
+		// absolute base prefix is something like "https://host/subpath/{user}/{repo}"
 		absoluteBasePrefix := fmt.Sprintf("%s%s/%s", httplib.GuessCurrentAppURL(ctx), fields[0], fields[1])
-		refPath := strings.Join(fields[3:], "/")
-		links = markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath}
+
+		fileDir := path.Dir(filePath)                      // it is "doc" if filePath is "doc/CHANGE.md"
+		refPath := strings.Join(fields[3:], "/")           // it is "branch/features/feat-12/doc"
+		refPath = strings.TrimSuffix(refPath, "/"+fileDir) // now we get the correct branch path: "branch/features/feat-12"
+
+		links = markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath, TreePath: fileDir}
 	}
 
 	meta := map[string]string{}

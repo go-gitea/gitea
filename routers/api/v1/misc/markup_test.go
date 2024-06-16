@@ -7,6 +7,7 @@ import (
 	go_context "context"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 
@@ -25,7 +26,7 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 	setting.AppURL = AppURL
 	context := "/gogits/gogs"
 	if !wiki {
-		context += "/src/branch/main"
+		context += path.Join("/src/branch/main", path.Dir(filePath))
 	}
 	options := api.MarkupOption{
 		Mode:     mode,
@@ -120,18 +121,6 @@ Here are some links to the most important topics. You can find the full list of 
 `,
 	}
 
-	testCasesRepoBranch := []string{
-		// links to other files in a branch, no wiki syntax
-		`# Title
-[Link](test.md)
-![Image](image.png)`,
-		// rendered
-		`<h1 id="user-content-title">Title</h1>
-<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
-`,
-	}
-
 	for i := 0; i < len(testCasesWiki); i += 2 {
 		text := testCasesWiki[i]
 		response := testCasesWiki[i+1]
@@ -150,13 +139,22 @@ Here are some links to the most important topics. You can find the full list of 
 		testRenderMarkup(t, "file", true, "path/test.md", text, response, http.StatusOK)
 	}
 
-	for i := 0; i < len(testCasesRepoBranch); i += 2 {
-		text := testCasesRepoBranch[i]
-		response := testCasesRepoBranch[i+1]
-		testRenderMarkdown(t, "gfm", false, text, response, http.StatusOK)
-		testRenderMarkup(t, "gfm", false, "", text, response, http.StatusOK)
-		testRenderMarkup(t, "file", false, "path/test.md", text, response, http.StatusOK)
-	}
+	input := "[Link](test.md)\n![Image](image.png)"
+	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+`, http.StatusOK)
+
+	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+`, http.StatusOK)
+
+	testRenderMarkup(t, "gfm", false, "", input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+`, http.StatusOK)
+
+	testRenderMarkup(t, "file", false, "path/new-file.md", input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/path/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" alt="Image"/></a></p>
+`, http.StatusOK)
 
 	testRenderMarkup(t, "file", true, "path/test.unknown", "## Test", "Unsupported render extension: .unknown\n", http.StatusUnprocessableEntity)
 	testRenderMarkup(t, "unknown", true, "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
