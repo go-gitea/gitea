@@ -59,7 +59,7 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	}
 
 	fields := strings.SplitN(strings.TrimPrefix(urlPathContext, setting.AppSubURL+"/"), "/", 5)
-	if len(fields) == 5 && fields[2] == "src" && fields[3] == "branch" {
+	if len(fields) == 5 && fields[2] == "src" && (fields[3] == "branch" || fields[3] == "commit" || fields[3] == "tag") {
 		// absolute base prefix is something like "https://host/subpath/{user}/{repo}"
 		absoluteBasePrefix := fmt.Sprintf("%s%s/%s", httplib.GuessCurrentAppURL(ctx), fields[0], fields[1])
 
