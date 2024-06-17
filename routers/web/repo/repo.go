@@ -418,8 +418,9 @@ func RedirectDownload(ctx *context.Context) {
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:   curRepo.ID,
-		TagNames: tagNames,
+		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+		RepoID:        curRepo.ID,
+		TagNames:      tagNames,
 	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
@@ -615,7 +616,7 @@ func SearchRepo(ctx *context.Context) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {

@@ -5,7 +5,7 @@ import {GET} from '../modules/fetch.js';
 export default {
   components: {SvgIcon},
   data: () => {
-    const el = document.getElementById('diff-commit-select');
+    const el = document.querySelector('#diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
@@ -202,7 +202,7 @@ export default {
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
       <div v-if="!isLoading" class="vertical item" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
