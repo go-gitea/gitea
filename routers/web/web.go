@@ -226,8 +226,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
-	routes := web.NewRoute()
+func Routes() *web.Router {
+	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
@@ -283,7 +283,7 @@ func Routes() *web.Route {
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
-	others := web.NewRoute()
+	others := web.NewRouter()
 	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
@@ -293,7 +293,7 @@ func Routes() *web.Route {
 var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
 // registerRoutes register routes
-func registerRoutes(m *web.Route) {
+func registerRoutes(m *web.Router) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)

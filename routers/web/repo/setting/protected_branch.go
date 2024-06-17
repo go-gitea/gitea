@@ -266,7 +266,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
-	ruleID := ctx.ParamsInt64("id")
+	ruleID := ctx.PathParamInt64("id")
 	if ruleID <= 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
 		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))

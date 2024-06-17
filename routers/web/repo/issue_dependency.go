@@ -14,7 +14,7 @@ import (
 
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
-	issueIndex := ctx.ParamsInt64("index")
+	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
@@ -88,7 +88,7 @@ func AddDependency(ctx *context.Context) {
 
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
-	issueIndex := ctx.ParamsInt64("index")
+	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)

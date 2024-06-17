@@ -115,8 +115,8 @@ type EnumeratePackageVersionsResponse struct {
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#41-list-package-releases
 func EnumeratePackageVersions(ctx *context.Context) {
-	packageScope := ctx.Params("scope")
-	packageName := ctx.Params("name")
+	packageScope := ctx.PathParam("scope")
+	packageName := ctx.PathParam("name")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName))
 	if err != nil {
@@ -172,9 +172,9 @@ type PackageVersionMetadataResponse struct {
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-2
 func PackageVersionMetadata(ctx *context.Context) {
-	id := buildPackageID(ctx.Params("scope"), ctx.Params("name"))
+	id := buildPackageID(ctx.PathParam("scope"), ctx.PathParam("name"))
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, id, ctx.Params("version"))
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, id, ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -230,9 +230,9 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#43-fetch-manifest-for-a-package-release
 func DownloadManifest(ctx *context.Context) {
-	packageScope := ctx.Params("scope")
-	packageName := ctx.Params("name")
-	packageVersion := ctx.Params("version")
+	packageScope := ctx.PathParam("scope")
+	packageName := ctx.PathParam("name")
+	packageVersion := ctx.PathParam("version")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName), packageVersion)
 	if err != nil {
@@ -282,10 +282,10 @@ func DownloadManifest(ctx *context.Context) {
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6
 func UploadPackageFile(ctx *context.Context) {
-	packageScope := ctx.Params("scope")
-	packageName := ctx.Params("name")
+	packageScope := ctx.PathParam("scope")
+	packageName := ctx.PathParam("name")
 
-	v, err := version.NewVersion(ctx.Params("version"))
+	v, err := version.NewVersion(ctx.PathParam("version"))
 
 	if !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) || err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -381,7 +381,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-4
 func DownloadPackageFile(ctx *context.Context) {
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(ctx.Params("scope"), ctx.Params("name")), ctx.Params("version"))
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(ctx.PathParam("scope"), ctx.PathParam("name")), ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
