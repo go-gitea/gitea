@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -175,4 +178,45 @@ func TestRoute3(t *testing.T) {
 	r.ServeHTTP(recorder, req)
 	assert.EqualValues(t, http.StatusOK, recorder.Code)
 	assert.EqualValues(t, 4, hit)
+}
+
+func TestRouteNormalizePath(t *testing.T) {
+	type paths struct {
+		EscapedPath, RawPath, Path string
+	}
+	testPath := func(reqPath string, expectedPaths paths) {
+		recorder := httptest.NewRecorder()
+		recorder.Body = bytes.NewBuffer(nil)
+
+		actualPaths := paths{EscapedPath: "(none)", RawPath: "(none)", Path: "(none)"}
+		r := NewRoute()
+		r.Get("/*", func(resp http.ResponseWriter, req *http.Request) {
+			actualPaths.EscapedPath = req.URL.EscapedPath()
+			actualPaths.RawPath = req.URL.RawPath
+			actualPaths.Path = req.URL.Path
+		})
+
+		req, err := http.NewRequest("GET", reqPath, nil)
+		assert.NoError(t, err)
+		r.ServeHTTP(recorder, req)
+		assert.Equal(t, expectedPaths, actualPaths, "req path = %q", reqPath)
+	}
+
+	// RawPath could be empty if the EscapedPath is the same as escape(Path) and it is already normalized
+	testPath("/", paths{EscapedPath: "/", RawPath: "", Path: "/"})
+	testPath("//", paths{EscapedPath: "/", RawPath: "/", Path: "/"})
+	testPath("/%2f", paths{EscapedPath: "/%2f", RawPath: "/%2f", Path: "//"})
+	testPath("///a//b/", paths{EscapedPath: "/a/b", RawPath: "/a/b", Path: "/a/b"})
+
+	defer test.MockVariableValue(&setting.UseSubURLPath, true)()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub-path")()
+	testPath("/", paths{EscapedPath: "(none)", RawPath: "(none)", Path: "(none)"}) // 404
+	testPath("/sub-path", paths{EscapedPath: "/", RawPath: "/", Path: "/"})
+	testPath("/sub-path/", paths{EscapedPath: "/", RawPath: "/", Path: "/"})
+	testPath("/sub-path//a/b///", paths{EscapedPath: "/a/b", RawPath: "/a/b", Path: "/a/b"})
+	testPath("/sub-path/%2f/", paths{EscapedPath: "/%2f", RawPath: "/%2f", Path: "//"})
+	// "/v2" is special for OCI container registry, it should always be in the root of the site
+	testPath("/v2", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
+	testPath("/v2/", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
+	testPath("/v2/%2f", paths{EscapedPath: "/v2/%2f", RawPath: "/v2/%2f", Path: "/v2//"})
 }
