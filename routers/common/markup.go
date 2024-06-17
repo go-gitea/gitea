@@ -20,7 +20,7 @@ import (
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
 func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPathContext, filePath string, wiki bool) {
-	// urlPathContext format is "/subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file-base-path}"
+	// urlPathContext format is "/subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}"
 	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
 	// filePath will be used as RenderContext.RelativePath
 
