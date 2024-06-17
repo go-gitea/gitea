@@ -635,7 +635,7 @@ mail@domain.com
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
 <a href="/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a><br/>
 <a href="/path/file" target="_blank" rel="nofollow noopener"><img src="/path/file" alt="local image"/></a><br/>
@@ -691,7 +691,7 @@ space</p>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
 <a href="https://gitea.io/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="https://gitea.io/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://gitea.io/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="https://gitea.io/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/image.jpg" alt="local image"/></a><br/>
 <a href="https://gitea.io/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/path/file" alt="local image"/></a><br/>
@@ -749,7 +749,7 @@ space</p>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
 <a href="/relative/path/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/relative/path/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="/relative/path/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/image.jpg" alt="local image"/></a><br/>
 <a href="/relative/path/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/path/file" alt="local image"/></a><br/>
@@ -866,7 +866,7 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="/user/repo/src/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/src/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
@@ -984,7 +984,7 @@ space</p>
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
-		assert.Equal(t, template.HTML(c.Expected), result, "Unexpected result in testcase %v", i)
+		assert.Equal(t, c.Expected, string(result), "Unexpected result in testcase %v", i)
 	}
 }
 
