@@ -215,6 +215,7 @@ func TestRouteNormalizePath(t *testing.T) {
 	testPath("/sub-path/", paths{EscapedPath: "/", RawPath: "/", Path: "/"})
 	testPath("/sub-path//a/b///", paths{EscapedPath: "/a/b", RawPath: "/a/b", Path: "/a/b"})
 	testPath("/sub-path/%2f/", paths{EscapedPath: "/%2f", RawPath: "/%2f", Path: "//"})
+	// "/v2" is special for OCI container registry, it should always be in the root of the site
 	testPath("/v2", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/%2f", paths{EscapedPath: "/v2/%2f", RawPath: "/v2/%2f", Path: "/v2//"})
