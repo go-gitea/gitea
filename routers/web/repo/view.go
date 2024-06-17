@@ -286,6 +286,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
 	ctx.Data["FileName"] = path.Join(subfolder, readmeFile.Name())
+	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 
 	if fInfo.isLFSFile {
@@ -301,7 +302,6 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true
-		ctx.Data["FileSize"] = fInfo.fileSize
 		return
 	}
 
@@ -552,7 +552,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			} else {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
-			ctx.Data["NumLinesSet"] = true
 
 			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 			if err != nil {
@@ -606,8 +605,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
-		// TODO: this logic seems strange, it duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
-		// maybe for this case, the file is a binary file, and shouldn't be rendered?
+		// TODO: this logic duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
+		// It is used by "external renders", markupRender will execute external programs to get rendered content.
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true

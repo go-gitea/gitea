@@ -1001,6 +1001,13 @@ overflow-menu .ui.label {
   padding: 0 8px;
   text-align: right !important;
   color: var(--color-text-light-2);
+  width: 1%; /* this apparently needs to be a percentage so that code column stretches in diffs */
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+.code-diff .lines-num {
+  min-width: 50px;
 }
 
 .lines-num span.bottom-line::after {
@@ -1020,6 +1027,7 @@ overflow-menu .ui.label {
 
 .lines-type-marker {
   vertical-align: top;
+  white-space: nowrap;
 }
 
 .lines-num,
@@ -1052,6 +1060,7 @@ overflow-menu .ui.label {
 
 .lines-escape {
   width: 0;
+  white-space: nowrap;
 }
 
 .lines-code {
