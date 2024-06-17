@@ -63,7 +63,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
 
-	if order, ok := repo_model.SearchOrderByFlatMap[sortOrder]; ok {
+	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
 		orderBy = order
 	} else {
 		sortOrder = "recentupdate"

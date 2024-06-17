@@ -25,12 +25,7 @@ var (
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
 
-	// Other global setting objects
-
 	CfgProvider ConfigProvider
-	RunMode     string
-	RunUser     string
-	IsProd      bool
 	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
