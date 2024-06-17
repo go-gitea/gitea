@@ -61,7 +61,7 @@ func TestStripSlashesMiddleware(t *testing.T) {
 		})
 
 		// pass the test middleware to validate the changes
-		handlerToTest := stripSlashesMiddleware(testMiddleware)
+		handlerToTest := normalizeRequestPathMiddleware(testMiddleware)
 		// create a mock request to use
 		req := httptest.NewRequest("GET", tt.inputPath, nil)
 		// call the handler using a mock response recorder
