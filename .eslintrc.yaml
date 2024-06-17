@@ -740,6 +740,7 @@ rules:
   unicorn/no-lonely-if: [2]
   unicorn/no-magic-array-flat-depth: [0]
   unicorn/no-negated-condition: [0]
+  unicorn/no-negation-in-equality-check: [2]
   unicorn/no-nested-ternary: [0]
   unicorn/no-new-array: [0]
   unicorn/no-new-buffer: [0]
