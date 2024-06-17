@@ -106,11 +106,11 @@ async function loadRepoFiles() {
 }
 
 export function initFindFileInRepo() {
-  repoFindFileInput = document.getElementById('repo-file-find-input');
+  repoFindFileInput = document.querySelector('#repo-file-find-input');
   if (!repoFindFileInput) return;
 
   repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
-  repoFindFileNoResult = document.getElementById('repo-find-file-no-result');
+  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result');
   repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
 
   loadRepoFiles();
