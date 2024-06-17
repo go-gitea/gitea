@@ -6,6 +6,7 @@ package explore
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -57,47 +58,18 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy db.SearchOrderBy
 	)
 
-	sortOrder := ctx.FormString("sort")
+	sortOrder := strings.ToLower(ctx.FormString("sort"))
 	if sortOrder == "" {
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
-	ctx.Data["SortType"] = sortOrder
 
-	switch sortOrder {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "reversesize":
-		orderBy = db.SearchOrderBySizeReverse
-	case "size":
-		orderBy = db.SearchOrderBySize
-	case "reversegitsize":
-		orderBy = db.SearchOrderByGitSizeReverse
-	case "gitsize":
-		orderBy = db.SearchOrderByGitSize
-	case "reverselfssize":
-		orderBy = db.SearchOrderByLFSSizeReverse
-	case "lfssize":
-		orderBy = db.SearchOrderByLFSSize
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
+	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
+		orderBy = order
+	} else {
+		sortOrder = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
 	}
+	ctx.Data["SortType"] = sortOrder
 
 	keyword := ctx.FormTrim("q")
 

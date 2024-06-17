@@ -86,10 +86,10 @@ type RenderContext struct {
 }
 
 type Links struct {
-	AbsolutePrefix bool
-	Base           string
-	BranchPath     string
-	TreePath       string
+	AbsolutePrefix bool   // add absolute URL prefix to auto-resolved links like "#issue", but not for pre-provided links and medias
+	Base           string // base prefix for pre-provided links and medias (images, videos)
+	BranchPath     string // actually it is the ref path, eg: "branch/features/feat-12", "tag/v1.0"
+	TreePath       string // the dir of the file, eg: "doc" if the file "doc/CHANGE.md" is being rendered
 }
 
 func (l *Links) Prefix() string {

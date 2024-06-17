@@ -51,7 +51,7 @@ const sfc = {
 };
 
 export function initRepoActivityTopAuthorsChart() {
-  const el = document.getElementById('repo-activity-top-authors-chart');
+  const el = document.querySelector('#repo-activity-top-authors-chart');
   if (el) {
     createApp(sfc).mount(el);
   }

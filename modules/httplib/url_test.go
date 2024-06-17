@@ -46,14 +46,14 @@ func TestMakeAbsoluteURL(t *testing.T) {
 
 	ctx := context.Background()
 	assert.Equal(t, "http://cfg-host/sub/", MakeAbsoluteURL(ctx, ""))
-	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "foo"))
-	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "foo"))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
 	})
-	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
@@ -61,7 +61,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 			"X-Forwarded-Host": {"forwarded-host"},
 		},
 	})
-	assert.Equal(t, "http://cfg-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 
 	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
 		Host: "user-host",
@@ -70,7 +70,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 			"X-Forwarded-Proto": {"https"},
 		},
 	})
-	assert.Equal(t, "https://forwarded-host/sub/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "https://forwarded-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 }
 
 func TestIsCurrentGiteaSiteURL(t *testing.T) {

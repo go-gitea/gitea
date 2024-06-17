@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -56,7 +57,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		issueReference = "!"
 	}
 
-	reviewedOn := fmt.Sprintf("Reviewed-on: %s/%s", setting.AppURL, pr.Issue.Link())
+	reviewedOn := fmt.Sprintf("Reviewed-on: %s", httplib.MakeAbsoluteURL(ctx, pr.Issue.Link()))
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
@@ -246,7 +247,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) {
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
