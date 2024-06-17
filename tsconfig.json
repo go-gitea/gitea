@@ -5,11 +5,6 @@
     "tools/**/*",
     "web_src/js/**/*",
   ],
-  "exclude": [
-    "**/.git/**",
-    "**/.venv/**",
-    "**/vendor/**",
-  ],
   "compilerOptions": {
     "target": "esnext",
     "module": "nodenext",
