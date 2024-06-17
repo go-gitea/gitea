@@ -67,7 +67,7 @@
     "@stoplight/spectral-cli": "6.11.1",
     "@stylistic/eslint-plugin-js": "2.1.0",
     "@stylistic/stylelint-plugin": "2.1.2",
-    "@typescript-eslint/parser": "7.11.0",
+    "@typescript-eslint/parser": "7.13.1",
     "@vitejs/plugin-vue": "5.0.4",
     "eslint": "8.57.0",
     "eslint-import-resolver-typescript": "3.6.1",
