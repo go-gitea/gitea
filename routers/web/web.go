@@ -487,7 +487,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound("Rep unit code is disabled", nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
