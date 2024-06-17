@@ -120,9 +120,8 @@ func Home(ctx *context.Context) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	prepareOrgProfileReadme(ctx)
-	if ctx.Written() {
-		return
+	if !prepareOrgProfileReadme(ctx) {
+		ctx.Data["PageIsViewRepositories"] = true
 	}
 
 	var (
@@ -154,7 +153,6 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["PageIsViewRepositories"] = true
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -164,18 +162,18 @@ func Home(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context) {
+func prepareOrgProfileReadme(ctx *context.Context) bool {
 	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadme != nil
 
 	if profileGitRepo == nil || profileReadme == nil {
-		return
+		return false
 	}
 
 	viewRepositorys := ctx.FormOptionalBool("view_repositorys")
 	if viewRepositorys.Value() {
-		return
+		return false
 	}
 
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
@@ -199,5 +197,5 @@ func prepareOrgProfileReadme(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsViewOverview"] = true
-	ctx.HTML(http.StatusOK, tplOrgHome)
+	return true
 }
