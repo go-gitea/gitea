@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 const (
@@ -664,7 +665,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectColumn(ctx, column, sortedIssueIDs); err != nil {
+	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return
 	}
