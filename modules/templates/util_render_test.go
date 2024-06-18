@@ -174,7 +174,7 @@ func TestRenderMarkdownToHtml(t *testing.T) {
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
-<a href="/src/file.bin" rel="nofollow">local link</a>
+<a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
@@ -190,7 +190,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.EqualValues(t, expected, RenderMarkdownToHtml(context.Background(), testInput()))
+	assert.Equal(t, expected, string(RenderMarkdownToHtml(context.Background(), testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {

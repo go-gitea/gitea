@@ -59,7 +59,7 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/feeds v1.1.2
+	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.2.2
 	github.com/h2non/gock v1.2.0
 	github.com/hashicorp/go-version v1.6.0
@@ -308,8 +308,6 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.259.1
-
-replace github.com/gorilla/feeds => github.com/yardenshoham/feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
 // TODO: This could be removed after https://github.com/mholt/archiver/pull/396 merged
 replace github.com/mholt/archiver/v3 => github.com/anchore/archiver/v3 v3.5.2

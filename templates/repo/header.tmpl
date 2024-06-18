@@ -162,7 +162,7 @@
 						</a>
 					{{end}}
 
-					{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
 						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
@@ -178,7 +178,7 @@
 					{{end}}
 
 					{{$projectsUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeProjects}}
-					{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
+					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
 							{{if .Repository.NumOpenProjects}}
