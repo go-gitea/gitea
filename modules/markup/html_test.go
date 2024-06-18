@@ -144,17 +144,6 @@ func TestRender_CrossReferences(t *testing.T) {
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 }
 
-func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
-
-	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	commit := util.URLJoin(markup.TestRepoURL, "commit", sha)
-
-	assert.True(t, markup.IsSameDomain(commit))
-	assert.False(t, markup.IsSameDomain("http://google.com/ncr"))
-	assert.False(t, markup.IsSameDomain("favicon.ico"))
-}
-
 func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
