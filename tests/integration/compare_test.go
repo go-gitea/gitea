@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
@@ -32,7 +33,7 @@ func TestCompareTag(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid")
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.False(t, strings.Contains(resp.Body.String(), "/assets/img/500.png"), "expect 404 page not 500")
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "expect 404 page not 500")
 }
 
 // Compare with inferred default branch (master)

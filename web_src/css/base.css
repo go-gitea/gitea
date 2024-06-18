@@ -477,6 +477,15 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+.status-page-error-code {
+  font-size: 3em;
+  line-height: initial;
+  text-align: center;
+  padding: 2em 0;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-light-3);
+}
+
 /* add margin below .secondary nav when it is the first child */
 .page-content > :first-child.secondary-nav {
   margin-bottom: 14px;

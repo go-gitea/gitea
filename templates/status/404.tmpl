@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content {{if .IsRepo}}repository{{end}}">
 	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
 	<div class="ui container tw-text-center">
-		<img class="tw-max-w-[80vw] tw-py-16" src="{{AssetUrlPrefix}}/img/404.png" alt="404">
+		<div class="status-page-error-code">404 Not Found</div>
 		<p>{{if .NotFoundPrompt}}{{.NotFoundPrompt}}{{else}}{{ctx.Locale.Tr "error404"}}{{end}}</p>
 		{{if .NotFoundGoBackURL}}<a class="ui button" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>{{end}}
 	</div>
