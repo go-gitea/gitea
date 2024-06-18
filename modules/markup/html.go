@@ -748,10 +748,10 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
 			} else {
-				link = strings.ReplaceAll(link, " ", "-")
+				link = strings.ReplaceAll(link, " ", "-") // FIXME: it should support dashes in the link, eg: "the-dash-support.-"
 			}
 			if !strings.Contains(link, "/") {
-				link = url.PathEscape(link)
+				link = url.PathEscape(link) // FIXME: it doesn't seem right and it might cause double-escaping
 			}
 		}
 		if image {
@@ -783,28 +783,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 				childNode.Attr = childNode.Attr[:2]
 			}
 		} else {
-			if !absoluteLink {
-				var base string
-				if ctx.IsWiki {
-					switch ext {
-					case "":
-						// no file extension, create a regular wiki link
-						base = ctx.Links.WikiLink()
-					default:
-						// we have a file extension:
-						// return a regular wiki link if it's a renderable file (extension),
-						// raw link otherwise
-						if Type(link) != "" {
-							base = ctx.Links.WikiLink()
-						} else {
-							base = ctx.Links.WikiRawLink()
-						}
-					}
-				} else {
-					base = ctx.Links.SrcLink()
-				}
-				link = util.URLJoin(base, link)
-			}
+			link, _ = ResolveLink(ctx, link, "")
 			childNode.Type = html.TextNode
 			childNode.Data = name
 		}

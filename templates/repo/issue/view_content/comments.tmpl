@@ -574,7 +574,6 @@
 				{{template "repo/commits_list_small" dict "comment" . "root" $}}
 			{{end}}
 		{{else if eq .Type 30}}
-			{{if not $.UnitProjectsGlobalDisabled}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-project"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
@@ -599,7 +598,6 @@
 					{{end}}
 				</span>
 			</div>
-			{{end}}
 		{{else if eq .Type 32}}
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
