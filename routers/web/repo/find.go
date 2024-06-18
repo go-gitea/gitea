@@ -17,7 +17,7 @@ const (
 
 // FindFiles render the page to find repository files
 func FindFiles(ctx *context.Context) {
-	path := ctx.Params("*")
+	path := ctx.PathParam("*")
 	ctx.Data["TreeLink"] = ctx.Repo.RepoLink + "/src/" + util.PathEscapeSegments(path)
 	ctx.Data["DataLink"] = ctx.Repo.RepoLink + "/tree-list/" + util.PathEscapeSegments(path)
 	ctx.HTML(http.StatusOK, tplFindFiles)
