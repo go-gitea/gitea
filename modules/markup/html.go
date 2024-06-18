@@ -144,20 +144,6 @@ func CustomLinkURLSchemes(schemes []string) {
 	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
-// IsSameDomain checks if given url string has the same hostname as current Gitea instance
-func IsSameDomain(s string) bool {
-	if strings.HasPrefix(s, "/") {
-		return true
-	}
-	if uapp, err := url.Parse(setting.AppURL); err == nil {
-		if u, err := url.Parse(s); err == nil {
-			return u.Host == uapp.Host
-		}
-		return false
-	}
-	return false
-}
-
 type postProcessError struct {
 	context string
 	err     error
@@ -429,7 +415,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	// We ignore code and pre.
 	switch node.Type {
 	case html.TextNode:
-		textNode(ctx, procs, node)
+		processTextNodes(ctx, procs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
 			next := node.NextSibling
@@ -465,15 +451,16 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		for n := node.FirstChild; n != nil; {
 			n = visitNode(ctx, procs, n)
 		}
+	default:
 	}
 	return node.NextSibling
 }
 
-// textNode runs the passed node through various processors, in order to handle
+// processTextNodes runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
-func textNode(ctx *RenderContext, procs []processor, node *html.Node) {
-	for _, processor := range procs {
-		processor(ctx, node)
+func processTextNodes(ctx *RenderContext, procs []processor, node *html.Node) {
+	for _, p := range procs {
+		p(ctx, node)
 	}
 }
 
@@ -939,14 +926,11 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
-			path := "issues"
-			if ref.IsPull {
-				path = "pulls"
-			}
+			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
 			if ref.Owner == "" {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
 			} else {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
+				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
 			}
 		}
 
@@ -1207,7 +1191,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 					return
 				}
 				ctx.AddCancel(func() {
-					closer.Close()
+					_ = closer.Close()
 					ctx.GitRepo = nil
 				})
 			}
