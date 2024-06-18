@@ -31,7 +31,7 @@ func TestCompareTag(t *testing.T) {
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
-	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid")
+	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "expect 404 page not 500")
 }
