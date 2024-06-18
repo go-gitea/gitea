@@ -1006,12 +1006,12 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
 				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
-
-				ctx.Redirect(path.Join(
+				redirect := path.Join(
 					ctx.Repo.RepoLink,
 					util.PathEscapeSegments(prefix),
 					ctx.Repo.BranchNameSubURL(),
-					util.PathEscapeSegments(ctx.Repo.TreePath)))
+					util.PathEscapeSegments(ctx.Repo.TreePath))
+				ctx.Redirect(redirect)
 				return cancel
 			}
 		}
