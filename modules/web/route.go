@@ -5,8 +5,10 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -160,12 +162,67 @@ func (r *Route) Patch(pattern string, h ...any) {
 
 // ServeHTTP implements http.Handler
 func (r *Route) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.R.ServeHTTP(w, req)
+	r.normalizeRequestPath(w, req, r.R)
 }
 
 // NotFound defines a handler to respond whenever a route could not be found.
 func (r *Route) NotFound(h http.HandlerFunc) {
 	r.R.NotFound(h)
+}
+
+func (r *Route) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
+	normalized := false
+	normalizedPath := req.URL.EscapedPath()
+	if normalizedPath == "" {
+		normalizedPath, normalized = "/", true
+	} else if normalizedPath != "/" {
+		normalized = strings.HasSuffix(normalizedPath, "/")
+		normalizedPath = strings.TrimRight(normalizedPath, "/")
+	}
+	removeRepeatedSlashes := strings.Contains(normalizedPath, "//")
+	normalized = normalized || removeRepeatedSlashes
+
+	// the following code block is a slow-path for replacing all repeated slashes "//" to one single "/"
+	// if the path doesn't have repeated slashes, then no need to execute it
+	if removeRepeatedSlashes {
+		buf := &strings.Builder{}
+		for i := 0; i < len(normalizedPath); i++ {
+			if i == 0 || normalizedPath[i-1] != '/' || normalizedPath[i] != '/' {
+				buf.WriteByte(normalizedPath[i])
+			}
+		}
+		normalizedPath = buf.String()
+	}
+
+	// If the config tells Gitea to use a sub-url path directly without reverse proxy,
+	// then we need to remove the sub-url path from the request URL path.
+	// But "/v2" is special for OCI container registry, it should always be in the root of the site.
+	if setting.UseSubURLPath {
+		remainingPath, ok := strings.CutPrefix(normalizedPath, setting.AppSubURL+"/")
+		if ok {
+			normalizedPath = "/" + remainingPath
+		} else if normalizedPath == setting.AppSubURL {
+			normalizedPath = "/"
+		} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") {
+			// do not respond to other requests, to simulate a real sub-path environment
+			http.Error(resp, "404 page not found, sub-path is: "+setting.AppSubURL, http.StatusNotFound)
+			return
+		}
+		normalized = true
+	}
+
+	// if the path is normalized, then fill it back to the request
+	if normalized {
+		decodedPath, err := url.PathUnescape(normalizedPath)
+		if err != nil {
+			http.Error(resp, "400 Bad Request: unable to unescape path "+normalizedPath, http.StatusBadRequest)
+			return
+		}
+		req.URL.RawPath = normalizedPath
+		req.URL.Path = decodedPath
+	}
+
+	next.ServeHTTP(resp, req)
 }
 
 // Combo delegates requests to Combo

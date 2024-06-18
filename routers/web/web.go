@@ -384,18 +384,18 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("ContextUser is nil", nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
+					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
 					return
 				}
 			}
@@ -487,7 +487,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(unit.TypeCode.String(), nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
@@ -692,6 +692,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
