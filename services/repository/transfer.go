@@ -285,7 +285,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 }
 
 // changeRepositoryName changes all corresponding setting from old repository name to new one.
-func changeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newRepoName string) (err error) {
+func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = repo_model.IsUsableRepoName(newRepoName); err != nil {
@@ -347,7 +347,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := changeRepositoryName(ctx, doer, repo, newRepoName); err != nil {
+	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}

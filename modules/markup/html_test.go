@@ -120,8 +120,8 @@ func TestRender_CrossReferences(t *testing.T) {
 	}
 
 	test(
-		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
+		"test-owner/test-repo#12345",
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "test-owner", "test-repo", "issues", "12345")+`" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
@@ -142,17 +142,6 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
-}
-
-func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
-
-	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	commit := util.URLJoin(markup.TestRepoURL, "commit", sha)
-
-	assert.True(t, markup.IsSameDomain(commit))
-	assert.False(t, markup.IsSameDomain("http://google.com/ncr"))
-	assert.False(t, markup.IsSameDomain("favicon.ico"))
 }
 
 func TestRender_links(t *testing.T) {
@@ -456,6 +445,10 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
 	test(
+		"[[Link.-]]",
+		`<p><a href="http://localhost:3000/test-owner/test-repo/src/master/Link.-" rel="nofollow">Link.-</a></p>`,
+		`<p><a href="http://localhost:3000/test-owner/test-repo/wiki/Link.-" rel="nofollow">Link.-</a></p>`)
+	test(
 		"[[Link.jpg]]",
 		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Link.jpg" alt="Link.jpg"/></a></p>`,
 		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" title="Link.jpg" alt="Link.jpg"/></a></p>`)
@@ -530,43 +523,31 @@ func TestRender_ShortLinks(t *testing.T) {
 }
 
 func TestRender_RelativeImages(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
-
-	test := func(input, expected, expectedWiki string) {
+	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base:       markup.TestRepoURL,
-				BranchPath: "master",
-			},
-			Metas: localMetas,
-		}, input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: markup.TestRepoURL,
-			},
+			Ctx:    git.DefaultContext,
+			Links:  links,
 			Metas:  localMetas,
-			IsWiki: true,
+			IsWiki: isWiki,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
+		return strings.TrimSpace(string(buffer))
 	}
 
-	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
-	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
+	out := render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/LINK"/></a>`, out)
 
-	test(
-		`<img src="Link">`,
-		`<img src="`+util.URLJoin(mediatree, "Link")+`"/>`,
-		`<img src="`+util.URLJoin(rawwiki, "Link")+`"/>`)
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
 
-	test(
-		`<img src="./icon.png">`,
-		`<img src="`+util.URLJoin(mediatree, "icon.png")+`"/>`,
-		`<img src="`+util.URLJoin(rawwiki, "icon.png")+`"/>`)
+	out = render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/media/test-branch/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/media/test-branch/LINK"/></a>`, out)
+
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
+
+	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<img src="/LINK"/>`, out)
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
@@ -719,5 +700,6 @@ func TestIssue18471(t *testing.T) {
 func TestIsFullURL(t *testing.T) {
 	assert.True(t, markup.IsFullURLString("https://example.com"))
 	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
+	assert.True(t, markup.IsFullURLString("data:image/11111"))
 	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

@@ -588,6 +588,8 @@ func CommonRoutes() *web.Route {
 			r.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
 			r.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
 			r.Get("/gems/{filename}", rubygems.DownloadPackageFile)
+			r.Get("/info/{packagename}", rubygems.GetPackageInfo)
+			r.Get("/versions", rubygems.GetAllPackagesVersions)
 			r.Group("/api/v1/gems", func() {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
