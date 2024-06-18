@@ -6,7 +6,7 @@
 					{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
 				</a>
 			{{end}}
-			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}{{if .HasProfileReadme}}?view_repositorys=true{{end}}">
+			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}{{if .HasProfileReadme}}/-/repositories{{end}}">
 				{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
 				{{if .RepoCount}}
 					<div class="ui small label">{{.RepoCount}}</div>

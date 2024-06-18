@@ -40,6 +40,14 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	home(ctx, false)
+}
+
+func Repositories(ctx *context.Context) {
+	home(ctx, true)
+}
+
+func home(ctx *context.Context, viewRepositories bool) {
 	org := ctx.Org.Organization
 
 	ctx.Data["PageIsUserProfile"] = true
@@ -120,7 +128,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	if !prepareOrgProfileReadme(ctx) {
+	if !prepareOrgProfileReadme(ctx, viewRepositories) {
 		ctx.Data["PageIsViewRepositories"] = true
 	}
 
@@ -162,17 +170,12 @@ func Home(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context) bool {
+func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
 	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadme != nil
 
-	if profileGitRepo == nil || profileReadme == nil {
-		return false
-	}
-
-	viewRepositorys := ctx.FormOptionalBool("view_repositorys")
-	if viewRepositorys.Value() {
+	if profileGitRepo == nil || profileReadme == nil || viewRepositories {
 		return false
 	}
 
