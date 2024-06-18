@@ -6,7 +6,7 @@
     "web_src/js/**/*",
   ],
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2020",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "moduleDetection": "force",
