@@ -445,6 +445,10 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
 	test(
+		"[[Link.-]]",
+		`<p><a href="http://localhost:3000/test-owner/test-repo/src/master/Link.-" rel="nofollow">Link.-</a></p>`,
+		`<p><a href="http://localhost:3000/test-owner/test-repo/wiki/Link.-" rel="nofollow">Link.-</a></p>`)
+	test(
 		"[[Link.jpg]]",
 		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Link.jpg" alt="Link.jpg"/></a></p>`,
 		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" title="Link.jpg" alt="Link.jpg"/></a></p>`)
