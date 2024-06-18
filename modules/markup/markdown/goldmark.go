@@ -67,7 +67,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.Image:
 			g.transformImage(ctx, v, reader)
 		case *ast.Link:
-			g.transformLink(ctx, v, reader)
+			g.transformLink(ctx, v)
 		case *ast.List:
 			g.transformList(ctx, v, reader, rc)
 		case *ast.Text:

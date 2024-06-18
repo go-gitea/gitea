@@ -7,7 +7,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/text"
 )
 
 func (g *ASTTransformer) transformLink(ctx *markup.RenderContext, v *ast.Link) {
