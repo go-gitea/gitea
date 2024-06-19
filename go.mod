@@ -60,7 +60,7 @@ require (
 	github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
-	github.com/gorilla/sessions v1.2.2
+	github.com/gorilla/sessions v1.3.0
 	github.com/h2non/gock v1.2.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
