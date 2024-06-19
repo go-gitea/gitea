@@ -42,7 +42,7 @@ function handleIndentSelection(textarea, e) {
   triggerEditorContentChanged(textarea);
 }
 
-function handleNewLine(textarea, e) {
+function handleNewline(textarea, e) {
   const selStart = textarea.selectionStart;
   const selEnd = textarea.selectionEnd;
   if (selEnd !== selStart) return; // do not process when there is a selection
@@ -57,11 +57,11 @@ function handleNewLine(textarea, e) {
   if (!line) return; // if the line is empty, do nothing, let the browser handle it
 
   // parse the indention
-  const indention = line.match(/^\s*/)[0];
+  const indention = /^\s*/.exec(line)[0];
   line = line.slice(indention.length);
 
   // parse the prefixes: "1. ", "- ", "* ", "[ ] ", "[x] "
-  const prefixMatch = line.match(/^([0-9]+\.|[-*]|\[ \]|\[x\])\s/);
+  const prefixMatch = /^([0-9]+\.|[-*]|\[ \]|\[x\])\s/.exec(line);
   let prefix = '';
   if (prefixMatch) {
     prefix = prefixMatch[0];
@@ -89,10 +89,12 @@ function handleNewLine(textarea, e) {
 
 export function initTextareaMarkdown(textarea) {
   textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+    if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // use Tab/Shift-Tab to indent/unindent the selected lines
       handleIndentSelection(textarea, e);
-    } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
-      handleNewLine(textarea, e);
+    } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // use Enter to insert a new line with the same indention and prefix
+      handleNewline(textarea, e);
     }
   });
 }
