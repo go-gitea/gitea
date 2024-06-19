@@ -62,7 +62,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	if err != nil {
 		return err
 	}
-	buf = trend.Render(buf)
+	buf = []byte(trend.Render(buf))
 	buf = bytes.ReplaceAll(buf, []byte("\n"), []byte(`<br>`))
 	_, err = output.Write(buf)
 	return err
