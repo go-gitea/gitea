@@ -49,7 +49,7 @@ require (
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-ldap/ldap/v3 v3.4.8
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/go-swagger/go-swagger v0.30.5
+	github.com/go-swagger/go-swagger v0.31.0
 	github.com/go-testfixtures/testfixtures/v3 v3.10.0
 	github.com/go-webauthn/webauthn v0.10.2
 	github.com/gobwas/glob v0.2.3
@@ -111,7 +111,7 @@ require (
 	golang.org/x/crypto v0.24.0
 	golang.org/x/image v0.15.0
 	golang.org/x/net v0.26.0
-	golang.org/x/oauth2 v0.18.0
+	golang.org/x/oauth2 v0.20.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/text v0.16.0
 	golang.org/x/tools v0.22.0
@@ -128,7 +128,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.25.1 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
