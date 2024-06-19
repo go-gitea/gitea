@@ -57,7 +57,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/go-github/v61 v61.0.0
-	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7
+	github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.2.2
