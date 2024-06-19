@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
