@@ -73,7 +73,7 @@ require (
 	github.com/klauspost/compress v1.17.9
 	github.com/klauspost/cpuid/v2 v2.2.8
 	github.com/lib/pq v1.10.9
-	github.com/markbates/goth v1.79.0
+	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/meilisearch/meilisearch-go v0.26.2
@@ -111,7 +111,7 @@ require (
 	golang.org/x/crypto v0.24.0
 	golang.org/x/image v0.15.0
 	golang.org/x/net v0.26.0
-	golang.org/x/oauth2 v0.20.0
+	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/text v0.16.0
 	golang.org/x/tools v0.22.0
