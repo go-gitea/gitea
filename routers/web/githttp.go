@@ -25,7 +25,7 @@ func requireSignIn(ctx *context.Context) {
 	}
 }
 
-func gitHTTPRouters(m *web.Route) {
+func gitHTTPRouters(m *web.Router) {
 	m.Group("", func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)

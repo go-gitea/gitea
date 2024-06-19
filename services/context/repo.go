@@ -319,8 +319,8 @@ func ComposeGoGetImport(owner, repo string) string {
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
 func EarlyResponseForGoGetMeta(ctx *Context) {
-	username := ctx.Params(":username")
-	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	username := ctx.PathParam(":username")
+	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -339,8 +339,8 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
-	ownerName := ctx.Params(":username")
-	previousRepoName := ctx.Params(":reponame")
+	ownerName := ctx.PathParam(":username")
+	previousRepoName := ctx.PathParam(":reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
@@ -419,8 +419,8 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		err   error
 	)
 
-	userName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
+	userName := ctx.PathParam(":username")
+	repoName := ctx.PathParam(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		repoName = strings.TrimSuffix(repoName, ".rss")
@@ -463,7 +463,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
 		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
-		originalRepoName := ctx.Params(":reponame")
+		originalRepoName := ctx.PathParam(":reponame")
 		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
@@ -801,7 +801,7 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 }
 
 func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
-	path := ctx.Params("*")
+	path := ctx.PathParam("*")
 	switch pathType {
 	case RepoRefLegacy, RepoRefAny:
 		if refName := getRefName(ctx, repo, RepoRefBranch); len(refName) > 0 {
@@ -917,7 +917,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		}
 
 		// Get default branch.
-		if len(ctx.Params("*")) == 0 {
+		if len(ctx.PathParam("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
@@ -1005,7 +1005,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
 				redirect := path.Join(
 					ctx.Repo.RepoLink,
 					util.PathEscapeSegments(prefix),
