@@ -22,7 +22,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/alecthomas/chroma/v2 v2.14.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
-	github.com/blevesearch/bleve/v2 v2.3.10
+	github.com/blevesearch/bleve/v2 v2.4.0
 	github.com/buildkite/terminal-to-html/v3 v3.11.0
 	github.com/caddyserver/certmagic v0.20.0
 	github.com/chi-middleware/proxy v1.1.1
@@ -116,7 +116,7 @@ require (
 	golang.org/x/text v0.16.0
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 	google.golang.org/grpc v1.62.1
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.2
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -140,7 +140,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/RoaringBitmap/roaring v1.9.0 // indirect
+	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
@@ -148,12 +148,13 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
-	github.com/blevesearch/bleve_index_api v1.1.6 // indirect
+	github.com/blevesearch/bleve_index_api v1.1.9 // indirect
 	github.com/blevesearch/geo v0.1.20 // indirect
+	github.com/blevesearch/go-faiss v1.0.19 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
-	github.com/blevesearch/scorch_segment_api/v2 v2.2.8 // indirect
+	github.com/blevesearch/scorch_segment_api/v2 v2.2.14 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
@@ -163,6 +164,7 @@ require (
 	github.com/blevesearch/zapx/v13 v13.3.10 // indirect
 	github.com/blevesearch/zapx/v14 v14.3.10 // indirect
 	github.com/blevesearch/zapx/v15 v15.3.13 // indirect
+	github.com/blevesearch/zapx/v16 v16.1.4 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
 	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
@@ -285,7 +287,7 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
-	go.etcd.io/bbolt v1.3.9 // indirect
+	go.etcd.io/bbolt v1.3.10 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect

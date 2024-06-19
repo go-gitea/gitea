@@ -90,6 +90,8 @@ github.com/RoaringBitmap/roaring v0.4.23/go.mod h1:D0gp8kJQgE1A4LQ5wFLggQEyvDi06
 github.com/RoaringBitmap/roaring v0.7.1/go.mod h1:jdT9ykXwHFNdJbEtxePexlFYH9LXucApeS0/+/g+p1I=
 github.com/RoaringBitmap/roaring v1.9.0 h1:lwKhr90/j0jVXJyh5X+vQN1VVn77rQFfYnh6RDRGCcE=
 github.com/RoaringBitmap/roaring v1.9.0/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
+github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv2QzDdQ=
+github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/alecthomas/assert/v2 v2.7.0 h1:QtqSACNS3tF7oasA8CU6A6sXZSBDqnm7RfpLl9bZqbE=
 github.com/alecthomas/assert/v2 v2.7.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
 github.com/alecthomas/chroma/v2 v2.2.0/go.mod h1:vf4zrexSH54oEjJ7EdB65tGNHmH3pGZmVkgTP5RHvAs=
@@ -129,11 +131,17 @@ github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb/go.mod h1:PkYb9DJNAw
 github.com/blevesearch/bleve/v2 v2.0.5/go.mod h1:ZjWibgnbRX33c+vBRgla9QhPb4QOjD6fdVJ+R1Bk8LM=
 github.com/blevesearch/bleve/v2 v2.3.10 h1:z8V0wwGoL4rp7nG/O3qVVLYxUqCbEwskMt4iRJsPLgg=
 github.com/blevesearch/bleve/v2 v2.3.10/go.mod h1:RJzeoeHC+vNHsoLR54+crS1HmOWpnH87fL70HAUCzIA=
+github.com/blevesearch/bleve/v2 v2.4.0 h1:2xyg+Wv60CFHYccXc+moGxbL+8QKT/dZK09AewHgKsg=
+github.com/blevesearch/bleve/v2 v2.4.0/go.mod h1:IhQHoFAbHgWKYavb9rQgQEJJVMuY99cKdQ0wPpst2aY=
 github.com/blevesearch/bleve_index_api v1.0.0/go.mod h1:fiwKS0xLEm+gBRgv5mumf0dhgFr2mDgZah1pqv1c1M4=
 github.com/blevesearch/bleve_index_api v1.1.6 h1:orkqDFCBuNU2oHW9hN2YEJmet+TE9orml3FCGbl1cKk=
 github.com/blevesearch/bleve_index_api v1.1.6/go.mod h1:PbcwjIcRmjhGbkS/lJCpfgVSMROV6TRubGGAODaK1W8=
+github.com/blevesearch/bleve_index_api v1.1.9 h1:Cpq0Lp3As0Gfk3+PmcoNDRKeI50C5yuFNpj0YlN/bOE=
+github.com/blevesearch/bleve_index_api v1.1.9/go.mod h1:PbcwjIcRmjhGbkS/lJCpfgVSMROV6TRubGGAODaK1W8=
 github.com/blevesearch/geo v0.1.20 h1:paaSpu2Ewh/tn5DKn/FB5SzvH0EWupxHEIwbCk/QPqM=
 github.com/blevesearch/geo v0.1.20/go.mod h1:DVG2QjwHNMFmjo+ZgzrIq2sfCh6rIHzy9d9d0B59I6w=
+github.com/blevesearch/go-faiss v1.0.19 h1:UKoP8hS7DVsVSRRloNJb4qPfe2UQ99pP4D3oXd23g2A=
+github.com/blevesearch/go-faiss v1.0.19/go.mod h1:jrxHrbl42X/RnDPI+wBoZU8joxxuRwedrxqswQ3xfU8=
 github.com/blevesearch/go-porterstemmer v1.0.3 h1:GtmsqID0aZdCSNiY8SkuPJ12pD4jI+DdXTAn4YRcHCo=
 github.com/blevesearch/go-porterstemmer v1.0.3/go.mod h1:angGc5Ht+k2xhJdZi511LtmxuEf0OVpvUUNrwmM1P7M=
 github.com/blevesearch/gtreap v0.1.1 h1:2JWigFrzDMR+42WGIN/V2p0cUvn4UP3C4Q5nmaZGW8Y=
@@ -144,6 +152,8 @@ github.com/blevesearch/mmap-go v1.0.4/go.mod h1:EWmEAOmdAS9z/pi/+Toxu99DnsbhG1TI
 github.com/blevesearch/scorch_segment_api/v2 v2.0.1/go.mod h1:lq7yK2jQy1yQjtjTfU931aVqz7pYxEudHaDwOt1tXfU=
 github.com/blevesearch/scorch_segment_api/v2 v2.2.8 h1:+OLW38LuRKio6N6V0gIk1srwFz79FJ5v2sNqHz2HVAA=
 github.com/blevesearch/scorch_segment_api/v2 v2.2.8/go.mod h1:ckbeb7knyOOvAdZinn/ASbB7EA3HoagnJkmEV3J7+sg=
+github.com/blevesearch/scorch_segment_api/v2 v2.2.14 h1:fgMLMpGWR7u2TdRm7XSZVWhPvMAcdYHh25Lq1fQ6Fjo=
+github.com/blevesearch/scorch_segment_api/v2 v2.2.14/go.mod h1:B7+a7vfpY4NsjuTkpv/eY7RZ91Xr90VaJzT2t7upZN8=
 github.com/blevesearch/segment v0.9.0/go.mod h1:9PfHYUdQCgHktBgvtUOF4x+pc4/l8rdH0u5spnW85UQ=
 github.com/blevesearch/segment v0.9.1 h1:+dThDy+Lvgj5JMxhmOVlgFfkUtZV2kw49xax4+jTfSU=
 github.com/blevesearch/segment v0.9.1/go.mod h1:zN21iLm7+GnBHWTao9I+Au/7MBiL8pPFtJBJTsk6kQw=
@@ -171,6 +181,8 @@ github.com/blevesearch/zapx/v14 v14.3.10/go.mod h1:qqyuR0u230jN1yMmE4FIAuCxmahRQ
 github.com/blevesearch/zapx/v15 v15.2.0/go.mod h1:MmQceLpWfME4n1WrBFIwplhWmaQbQqLQARpaKUEOs/A=
 github.com/blevesearch/zapx/v15 v15.3.13 h1:6EkfaZiPlAxqXz0neniq35my6S48QI94W/wyhnpDHHQ=
 github.com/blevesearch/zapx/v15 v15.3.13/go.mod h1:Turk/TNRKj9es7ZpKK95PS7f6D44Y7fAFy8F4LXQtGg=
+github.com/blevesearch/zapx/v16 v16.1.4 h1:TBQfG77g2UUXwfjOVcEtB9pXkg6JBmGXkeZKI67+TiA=
+github.com/blevesearch/zapx/v16 v16.1.4/go.mod h1:+Q+Z89Iv7ewhdX2jyE6Qs/RUnN4tZuokaQ0xvTaFmx8=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/boombuler/barcode v1.0.1 h1:NDBbPmhS+EqABEs5Kg3n/5ZNjy73Pz7SIV+KCeqyXcs=
 github.com/boombuler/barcode v1.0.1/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
@@ -846,6 +858,8 @@ github.com/zeebo/pcg v1.0.1/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
 go.etcd.io/bbolt v1.3.9 h1:8x7aARPEXiXbHmtUwAIv7eV2fQFHrLLavdiJ3uzJXoI=
 go.etcd.io/bbolt v1.3.9/go.mod h1:zaO32+Ti0PK1ivdPtgMESzuzL2VPoIG1PCQNvOdo/dE=
+go.etcd.io/bbolt v1.3.10 h1:+BqfJTcCzTItrop8mq/lbzL8wSGtj94UO/3U31shqG0=
+go.etcd.io/bbolt v1.3.10/go.mod h1:bK3UQLPJZly7IlNmV7uVHJDxfe5aK9Ll93e/74Y9oEQ=
 go.mongodb.org/mongo-driver v1.11.4/go.mod h1:PTSz5yu21bkT/wXpkS7WR5f0ddqw5quethTUn9WM+2g=
 go.mongodb.org/mongo-driver v1.14.0 h1:P98w8egYRjYe3XDjxhYJagTokP/H6HzlsnojRgZRd80=
 go.mongodb.org/mongo-driver v1.14.0/go.mod h1:Vzb0Mk/pa7e6cWw85R4F/endUC3u0U9jGcNU603k65c=
@@ -1026,6 +1040,8 @@ google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQ
 google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 google.golang.org/protobuf v1.33.0 h1:uNO2rsAINq/JlFpSdYEKIZ0uKD/R9cpdv0T+yoGwGmI=
 google.golang.org/protobuf v1.33.0/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
+google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
+google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc h1:2gGKlE2+asNV9m7xrywl36YYNnBG5ZQ0r/BOOxqPpmk=
 gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc/go.mod h1:m7x9LTH6d71AHyAX77c9yqWCCa3UKHcVEj9y7hAtKDk=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
