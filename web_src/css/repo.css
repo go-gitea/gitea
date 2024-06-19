@@ -530,12 +530,8 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .comment .avatar {
+#new-issue .avatar {
   width: 3em;
-}
-
-.repository.new.issue .comment.form .content {
-  margin-left: 4em;
 }
 
 .repository.new.issue .comment.form .content::before,
