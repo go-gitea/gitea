@@ -591,6 +591,8 @@ var migrations = []Migration{
 
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Chnage original_author_id of issue, comments, release, reaction and review table to accomodate OAuth2 UserId", v1_23.changeOriginalAuthorIDDataTypeToNumeric),
 }
 
 // GetCurrentDBVersion returns the current db version
