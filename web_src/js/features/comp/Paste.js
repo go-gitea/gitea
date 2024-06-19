@@ -124,7 +124,7 @@ async function handleClipboardImages(editor, dropzone, images, e) {
   }
 }
 
-function handleClipboardText(textarea, e, text, isShiftDown) {
+function handleClipboardText(textarea, e, {text, isShiftDown}) {
   // pasting with "shift" means "paste as original content" in most applications
   if (isShiftDown) return; // let the browser handle it
 
@@ -161,7 +161,7 @@ export function initTextareaPaste(textarea, dropzone) {
     if (images.length) {
       handleClipboardImages(new TextareaEditor(textarea), dropzone, images, e);
     } else if (text) {
-      handleClipboardText(textarea, e, text, isShiftDown);
+      handleClipboardText(textarea, e, {text, isShiftDown});
     }
   });
 }
