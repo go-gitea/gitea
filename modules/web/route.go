@@ -36,30 +36,30 @@ func GetForm(dataStore middleware.ContextDataStore) any {
 	return dataStore.GetData()["__form"]
 }
 
-// Route defines a route based on chi's router
-type Route struct {
-	R              chi.Router
+// Router defines a route based on chi's router
+type Router struct {
+	chiRouter      chi.Router
 	curGroupPrefix string
 	curMiddlewares []any
 }
 
-// NewRoute creates a new route
-func NewRoute() *Route {
+// NewRouter creates a new route
+func NewRouter() *Router {
 	r := chi.NewRouter()
-	return &Route{R: r}
+	return &Router{chiRouter: r}
 }
 
 // Use supports two middlewares
-func (r *Route) Use(middlewares ...any) {
+func (r *Router) Use(middlewares ...any) {
 	for _, m := range middlewares {
 		if m != nil {
-			r.R.Use(toHandlerProvider(m))
+			r.chiRouter.Use(toHandlerProvider(m))
 		}
 	}
 }
 
 // Group mounts a sub-Router along a `pattern` string.
-func (r *Route) Group(pattern string, fn func(), middlewares ...any) {
+func (r *Router) Group(pattern string, fn func(), middlewares ...any) {
 	previousGroupPrefix := r.curGroupPrefix
 	previousMiddlewares := r.curMiddlewares
 	r.curGroupPrefix += pattern
@@ -71,7 +71,7 @@ func (r *Route) Group(pattern string, fn func(), middlewares ...any) {
 	r.curMiddlewares = previousMiddlewares
 }
 
-func (r *Route) getPattern(pattern string) string {
+func (r *Router) getPattern(pattern string) string {
 	newPattern := r.curGroupPrefix + pattern
 	if !strings.HasPrefix(newPattern, "/") {
 		newPattern = "/" + newPattern
@@ -82,7 +82,7 @@ func (r *Route) getPattern(pattern string) string {
 	return strings.TrimSuffix(newPattern, "/")
 }
 
-func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
+func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
 	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
 	for _, m := range r.curMiddlewares {
 		if m != nil {
@@ -96,7 +96,7 @@ func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Han
 	}
 	middlewares := handlerProviders[:len(handlerProviders)-1]
 	handlerFunc := handlerProviders[len(handlerProviders)-1](nil).ServeHTTP
-	mockPoint := RouteMockPoint(MockAfterMiddlewares)
+	mockPoint := RouterMockPoint(MockAfterMiddlewares)
 	if mockPoint != nil {
 		middlewares = append(middlewares, mockPoint)
 	}
@@ -105,72 +105,72 @@ func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Han
 
 // Methods adds the same handlers for multiple http "methods" (separated by ",").
 // If any method is invalid, the lower level router will panic.
-func (r *Route) Methods(methods, pattern string, h ...any) {
+func (r *Router) Methods(methods, pattern string, h ...any) {
 	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
 		methods := strings.Split(methods, ",")
 		for _, method := range methods {
-			r.R.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
+			r.chiRouter.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
 		}
 	} else {
-		r.R.With(middlewares...).Method(methods, fullPattern, handlerFunc)
+		r.chiRouter.With(middlewares...).Method(methods, fullPattern, handlerFunc)
 	}
 }
 
-// Mount attaches another Route along ./pattern/*
-func (r *Route) Mount(pattern string, subR *Route) {
-	subR.Use(r.curMiddlewares...)
-	r.R.Mount(r.getPattern(pattern), subR.R)
+// Mount attaches another Router along ./pattern/*
+func (r *Router) Mount(pattern string, subRouter *Router) {
+	subRouter.Use(r.curMiddlewares...)
+	r.chiRouter.Mount(r.getPattern(pattern), subRouter.chiRouter)
 }
 
 // Any delegate requests for all methods
-func (r *Route) Any(pattern string, h ...any) {
+func (r *Router) Any(pattern string, h ...any) {
 	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
-	r.R.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
+	r.chiRouter.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
 // Delete delegate delete method
-func (r *Route) Delete(pattern string, h ...any) {
+func (r *Router) Delete(pattern string, h ...any) {
 	r.Methods("DELETE", pattern, h...)
 }
 
 // Get delegate get method
-func (r *Route) Get(pattern string, h ...any) {
+func (r *Router) Get(pattern string, h ...any) {
 	r.Methods("GET", pattern, h...)
 }
 
 // Head delegate head method
-func (r *Route) Head(pattern string, h ...any) {
+func (r *Router) Head(pattern string, h ...any) {
 	r.Methods("HEAD", pattern, h...)
 }
 
 // Post delegate post method
-func (r *Route) Post(pattern string, h ...any) {
+func (r *Router) Post(pattern string, h ...any) {
 	r.Methods("POST", pattern, h...)
 }
 
 // Put delegate put method
-func (r *Route) Put(pattern string, h ...any) {
+func (r *Router) Put(pattern string, h ...any) {
 	r.Methods("PUT", pattern, h...)
 }
 
 // Patch delegate patch method
-func (r *Route) Patch(pattern string, h ...any) {
+func (r *Router) Patch(pattern string, h ...any) {
 	r.Methods("PATCH", pattern, h...)
 }
 
 // ServeHTTP implements http.Handler
-func (r *Route) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.normalizeRequestPath(w, req, r.R)
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.normalizeRequestPath(w, req, r.chiRouter)
 }
 
 // NotFound defines a handler to respond whenever a route could not be found.
-func (r *Route) NotFound(h http.HandlerFunc) {
-	r.R.NotFound(h)
+func (r *Router) NotFound(h http.HandlerFunc) {
+	r.chiRouter.NotFound(h)
 }
 
-func (r *Route) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
+func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
 	normalized := false
 	normalizedPath := req.URL.EscapedPath()
 	if normalizedPath == "" {
@@ -226,13 +226,13 @@ func (r *Route) normalizeRequestPath(resp http.ResponseWriter, req *http.Request
 }
 
 // Combo delegates requests to Combo
-func (r *Route) Combo(pattern string, h ...any) *Combo {
+func (r *Router) Combo(pattern string, h ...any) *Combo {
 	return &Combo{r, pattern, h}
 }
 
 // Combo represents a tiny group routes with same pattern
 type Combo struct {
-	r       *Route
+	r       *Router
 	pattern string
 	h       []any
 }

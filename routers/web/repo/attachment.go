@@ -154,5 +154,5 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 // GetAttachment serve attachments
 func GetAttachment(ctx *context.Context) {
-	ServeAttachment(ctx, ctx.Params(":uuid"))
+	ServeAttachment(ctx, ctx.PathParam(":uuid"))
 }

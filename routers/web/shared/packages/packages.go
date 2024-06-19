@@ -204,7 +204,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *packages_model.PackageCleanupRule {
 	id := ctx.FormInt64("id")
 	if id == 0 {
-		id = ctx.ParamsInt64("id")
+		id = ctx.PathParamInt64("id")
 	}
 
 	pcr, err := packages_model.GetCleanupRuleByID(ctx, id)
