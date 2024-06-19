@@ -24,7 +24,7 @@ type Team struct {
 // CreateTeamOption options for creating a team
 type CreateTeamOption struct {
 	// required: true
-	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(255)"`
 	Description             string `json:"description" binding:"MaxSize(255)"`
 	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
@@ -40,7 +40,7 @@ type CreateTeamOption struct {
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
 	// required: true
-	Name                    string  `json:"name" binding:"AlphaDashDot;MaxSize(30)"`
+	Name                    string  `json:"name" binding:"AlphaDashDot;MaxSize(255)"`
 	Description             *string `json:"description" binding:"MaxSize(255)"`
 	IncludesAllRepositories *bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
