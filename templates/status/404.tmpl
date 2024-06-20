@@ -4,8 +4,12 @@
 	<div class="ui container">
 		<div class="status-page-error">
 			<div class="status-page-error-title">404 Not Found</div>
-			<p class="status-page-error-detail">{{if .NotFoundPrompt}}{{.NotFoundPrompt}}{{else}}{{ctx.Locale.Tr "error404"}}{{end}}</p>
-			{{if .NotFoundGoBackURL}}<a class="ui button tw-mr-0" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>{{end}}
+			<div class="tw-text-center">
+				<div>{{if .NotFoundPrompt}}{{.NotFoundPrompt}}{{else}}{{ctx.Locale.Tr "error404"}}{{end}}</div>
+				{{if .NotFoundGoBackURL}}
+					<a class="tw-block tw-my-4" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>
+				{{end}}
+			</div>
 		</div>
 	</div>
 </div>
