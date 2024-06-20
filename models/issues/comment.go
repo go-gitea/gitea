@@ -1187,7 +1187,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
-			"original_author_id": 0,
+			"original_author_id": "0",
 		})
 	return err
 }

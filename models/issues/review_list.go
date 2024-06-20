@@ -134,7 +134,7 @@ func GetReviewersFromOriginalAuthorsByIssueID(ctx context.Context, issueID int64
 	reviews := make([]*Review, 0, 10)
 
 	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
+	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> '0' GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
 		return nil, err
@@ -150,14 +150,14 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error)
 	sess := db.GetEngine(ctx)
 
 	// Get latest review of each reviewer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = '0' GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
 		return nil, err
 	}
 
 	teamReviewRequests := make([]*Review, 0, 5)
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = '0' GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
 		issueID).
 		Find(&teamReviewRequests); err != nil {
 		return nil, err

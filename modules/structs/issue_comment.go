@@ -15,7 +15,7 @@ type Comment struct {
 	IssueURL         string        `json:"issue_url"`
 	Poster           *User         `json:"user"`
 	OriginalAuthor   string        `json:"original_author"`
-	OriginalAuthorID int64         `json:"original_author_id"`
+	OriginalAuthorID string        `json:"original_author_id"`
 	Body             string        `json:"body"`
 	Attachments      []*Attachment `json:"assets"`
 	// swagger:strfmt date-time

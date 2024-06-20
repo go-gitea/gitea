@@ -592,7 +592,7 @@ var migrations = []Migration{
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
 	// v300 -> v301
-	NewMigration("Convert original_author_id of issue, comments, release, reaction and review table to numeric", v1_23.ConvertAuthorIDToNumeric),
+	NewMigration("Convert original_author_id of issue, comments, release, reaction and review table to string", v1_23.ConvertAuthorIDToString),
 }
 
 // GetCurrentDBVersion returns the current db version

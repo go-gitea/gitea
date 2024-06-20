@@ -6,22 +6,17 @@ package v1_23 //nolint
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"xorm.io/xorm"
 )
 
-func ConvertAuthorIDToNumeric(x *xorm.Engine) error {
+func ConvertAuthorIDToString(x *xorm.Engine) error {
 	// Google OAuth2 provider may give very long user IDs
-	if !setting.Database.Type.IsPostgreSQL() {
-		return nil
-	}
 	sql := strings.Join([]string{
-		"ALTER TABLE issue ALTER COLUMN original_author_id TYPE NUMERIC USING original_author_id::NUMERIC;",
-		"ALTER TABLE comment ALTER COLUMN original_author_id TYPE NUMERIC USING original_author_id::NUMERIC;",
-		"ALTER TABLE release ALTER COLUMN original_author_id TYPE NUMERIC USING original_author_id::NUMERIC;",
-		"ALTER TABLE reaction ALTER COLUMN original_author_id TYPE NUMERIC USING original_author_id::NUMERIC;",
-		"ALTER TABLE review ALTER COLUMN original_author_id TYPE NUMERIC USING original_author_id::NUMERIC;",
+		"ALTER TABLE issue ALTER COLUMN original_author_id TYPE VARCHAR(255) USING original_author_id::VARCHAR;",
+		"ALTER TABLE comment ALTER COLUMN original_author_id TYPE VARCHAR(255) USING original_author_id::VARCHAR;",
+		"ALTER TABLE release ALTER COLUMN original_author_id TYPE VARCHAR(255) USING original_author_id::VARCHAR;",
+		"ALTER TABLE reaction ALTER COLUMN original_author_id TYPE VARCHAR(255) USING original_author_id::VARCHAR;",
+		"ALTER TABLE review ALTER COLUMN original_author_id TYPE VARCHAR(255) USING original_author_id::VARCHAR;",
 	}, " ")
 
 	_, err := x.Exec(sql)
