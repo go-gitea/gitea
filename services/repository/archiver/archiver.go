@@ -245,6 +245,13 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	// TODO: add lfs data to zip
 	// TODO: add submodule data to zip
 
+	// Commit and close here to avoid blocking the database for the entirety of the archive generation process
+	err = committer.Commit()
+	if err != nil {
+		return nil, err
+	}
+	committer.Close()
+
 	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
 		return nil, fmt.Errorf("unable to write archive: %w", err)
 	}
@@ -253,6 +260,14 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	if err != nil {
 		return nil, err
 	}
+
+	txCtx, committer, err = db.TxContext(db.DefaultContext)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+	ctx, _, finished = process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	defer finished()
 
 	if archiver.Status == repo_model.ArchiverGenerating {
 		archiver.Status = repo_model.ArchiverReady
