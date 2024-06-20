@@ -562,6 +562,7 @@ func DeleteFilePost(ctx *context.Context) {
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
 		}
+		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))

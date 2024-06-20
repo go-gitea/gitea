@@ -14,14 +14,14 @@ const MockAfterMiddlewares = "MockAfterMiddlewares"
 
 var routeMockPoints = map[string]func(next http.Handler) http.Handler{}
 
-// RouteMockPoint registers a mock point as a middleware for testing, example:
+// RouterMockPoint registers a mock point as a middleware for testing, example:
 //
-//	r.Use(web.RouteMockPoint("my-mock-point-1"))
-//	r.Get("/foo", middleware2, web.RouteMockPoint("my-mock-point-2"), middleware2, handler)
+//	r.Use(web.RouterMockPoint("my-mock-point-1"))
+//	r.Get("/foo", middleware2, web.RouterMockPoint("my-mock-point-2"), middleware2, handler)
 //
 // Then use web.RouteMock to mock the route execution.
 // It only takes effect in testing mode (setting.IsInTesting == true).
-func RouteMockPoint(pointName string) func(next http.Handler) http.Handler {
+func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 	if !setting.IsInTesting {
 		return nil
 	}

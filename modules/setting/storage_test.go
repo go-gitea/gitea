@@ -97,6 +97,44 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "repo-avatars/", RepoAvatar.Storage.MinioConfig.BasePath)
 }
 
+func Test_getStorageInheritStorageTypeAzureBlob(t *testing.T) {
+	iniStr := `
+[storage]
+STORAGE_TYPE = azureblob
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	assert.EqualValues(t, "azureblob", Packages.Storage.Type)
+	assert.EqualValues(t, "gitea", Packages.Storage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "packages/", Packages.Storage.AzureBlobConfig.BasePath)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "azureblob", RepoArchive.Storage.Type)
+	assert.EqualValues(t, "gitea", RepoArchive.Storage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+
+	assert.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, "azureblob", Actions.LogStorage.Type)
+	assert.EqualValues(t, "gitea", Actions.LogStorage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "actions_log/", Actions.LogStorage.AzureBlobConfig.BasePath)
+
+	assert.EqualValues(t, "azureblob", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, "gitea", Actions.ArtifactStorage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "actions_artifacts/", Actions.ArtifactStorage.AzureBlobConfig.BasePath)
+
+	assert.NoError(t, loadAvatarsFrom(cfg))
+	assert.EqualValues(t, "azureblob", Avatar.Storage.Type)
+	assert.EqualValues(t, "gitea", Avatar.Storage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "avatars/", Avatar.Storage.AzureBlobConfig.BasePath)
+
+	assert.NoError(t, loadRepoAvatarFrom(cfg))
+	assert.EqualValues(t, "azureblob", RepoAvatar.Storage.Type)
+	assert.EqualValues(t, "gitea", RepoAvatar.Storage.AzureBlobConfig.Container)
+	assert.EqualValues(t, "repo-avatars/", RepoAvatar.Storage.AzureBlobConfig.BasePath)
+}
+
 type testLocalStoragePathCase struct {
 	loader       func(rootCfg ConfigProvider) error
 	storagePtr   **Storage
@@ -464,4 +502,78 @@ MINIO_BASE_PATH = /lfs
 	assert.EqualValues(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
 	assert.EqualValues(t, true, LFS.Storage.MinioConfig.UseSSL)
 	assert.EqualValues(t, "/lfs", LFS.Storage.MinioConfig.BasePath)
+}
+
+func Test_getStorageConfiguration29(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = azureblob
+AZURE_BLOB_ACCOUNT_NAME = my_account_name
+AZURE_BLOB_ACCOUNT_KEY = my_account_key
+`)
+	assert.NoError(t, err)
+	// assert.Error(t, loadRepoArchiveFrom(cfg))
+	// FIXME: this should return error but now ini package's MapTo() doesn't check type
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+}
+
+func Test_getStorageConfiguration30(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[storage.repo-archive]
+STORAGE_TYPE = azureblob
+AZURE_BLOB_ACCOUNT_NAME = my_account_name
+AZURE_BLOB_ACCOUNT_KEY = my_account_key
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "my_account_name", RepoArchive.Storage.AzureBlobConfig.AccountName)
+	assert.EqualValues(t, "my_account_key", RepoArchive.Storage.AzureBlobConfig.AccountKey)
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+}
+
+func Test_getStorageConfiguration31(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = azureblob
+AZURE_BLOB_ACCOUNT_NAME = my_account_name
+AZURE_BLOB_ACCOUNT_KEY = my_account_key
+AZURE_BLOB_BASE_PATH = /prefix
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "my_account_name", RepoArchive.Storage.AzureBlobConfig.AccountName)
+	assert.EqualValues(t, "my_account_key", RepoArchive.Storage.AzureBlobConfig.AccountKey)
+	assert.EqualValues(t, "/prefix/repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+
+	cfg, err = NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = azureblob
+AZURE_BLOB_ACCOUNT_NAME = my_account_name
+AZURE_BLOB_ACCOUNT_KEY = my_account_key
+AZURE_BLOB_BASE_PATH = /prefix
+
+[lfs]
+AZURE_BLOB_BASE_PATH = /lfs
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "my_account_name", LFS.Storage.AzureBlobConfig.AccountName)
+	assert.EqualValues(t, "my_account_key", LFS.Storage.AzureBlobConfig.AccountKey)
+	assert.EqualValues(t, "/lfs", LFS.Storage.AzureBlobConfig.BasePath)
+
+	cfg, err = NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = azureblob
+AZURE_BLOB_ACCOUNT_NAME = my_account_name
+AZURE_BLOB_ACCOUNT_KEY = my_account_key
+AZURE_BLOB_BASE_PATH = /prefix
+
+[storage.lfs]
+AZURE_BLOB_BASE_PATH = /lfs
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "my_account_name", LFS.Storage.AzureBlobConfig.AccountName)
+	assert.EqualValues(t, "my_account_key", LFS.Storage.AzureBlobConfig.AccountKey)
+	assert.EqualValues(t, "/lfs", LFS.Storage.AzureBlobConfig.BasePath)
 }

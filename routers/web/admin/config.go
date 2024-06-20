@@ -12,6 +12,7 @@ import (
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -37,6 +38,22 @@ func SendTestMail(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
 	} else {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/config")
+}
+
+// TestCache test the cache settings
+func TestCache(ctx *context.Context) {
+	elapsed, err := cache.Test()
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.cache_test_failed", err))
+	} else {
+		if elapsed > cache.SlowCacheThreshold {
+			ctx.Flash.Warning(ctx.Tr("admin.config.cache_test_slow", elapsed))
+		} else {
+			ctx.Flash.Info(ctx.Tr("admin.config.cache_test_succeeded", elapsed))
+		}
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
@@ -183,7 +200,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	cfg := setting.Config()
 
-	marshalBool := func(v string) (string, error) {
+	marshalBool := func(v string) (string, error) { //nolint:unparam
 		if b, _ := strconv.ParseBool(v); b {
 			return "true", nil
 		}

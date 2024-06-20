@@ -312,7 +312,7 @@ const (
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
@@ -340,29 +340,29 @@ func Action(ctx *context.Context) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
 			return
 		}
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
 		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
 			return
 		}
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch":
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
@@ -412,14 +412,15 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 // RedirectDownload return a file based on the following infos:
 func RedirectDownload(ctx *context.Context) {
 	var (
-		vTag     = ctx.Params("vTag")
-		fileName = ctx.Params("fileName")
+		vTag     = ctx.PathParam("vTag")
+		fileName = ctx.PathParam("fileName")
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:   curRepo.ID,
-		TagNames: tagNames,
+		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+		RepoID:        curRepo.ID,
+		TagNames:      tagNames,
 	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
@@ -459,7 +460,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -484,8 +485,14 @@ func Download(ctx *context.Context) {
 func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
+		ctx.Repo.Repository.APIURL(),
+		archiver.CommitID, archiver.CommitID))
+
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
+	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -512,7 +519,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
@@ -609,7 +616,7 @@ func SearchRepo(ctx *context.Context) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {

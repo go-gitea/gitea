@@ -84,7 +84,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	newRequest := func(t testing.TB, br *lfs.BatchRequest) *RequestWrapper {
 		return NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br).
-			SetHeader("Accept", lfs.MediaType).
+			SetHeader("Accept", lfs.AcceptHeader).
 			SetHeader("Content-Type", lfs.MediaType)
 	}
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
@@ -447,7 +447,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 	newRequest := func(t testing.TB, p *lfs.Pointer) *RequestWrapper {
 		return NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p).
-			SetHeader("Accept", lfs.MediaType).
+			SetHeader("Accept", lfs.AcceptHeader).
 			SetHeader("Content-Type", lfs.MediaType)
 	}
 

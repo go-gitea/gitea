@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/tests"
 )
 
-var testE2eWebRoutes *web.Route
+var testE2eWebRoutes *web.Router
 
 func TestMain(m *testing.M) {
 	defer log.GetManager().Close()

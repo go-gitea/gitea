@@ -40,7 +40,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var testWebRoutes *web.Route
+var testWebRoutes *web.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
