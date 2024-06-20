@@ -1,6 +1,8 @@
 {{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings actions")}}
 	<div class="org-setting-content">
-	{{if eq .PageType "runners"}}
+	{{if eq .PageType "require_action"}}
+		{{template "shared/actions/require_action_list" .}}
+	{{else if eq .PageType "runners"}}
 		{{template "shared/actions/runner_list" .}}
 	{{else if eq .PageType "secrets"}}
 		{{template "shared/secrets/add_list" .}}
