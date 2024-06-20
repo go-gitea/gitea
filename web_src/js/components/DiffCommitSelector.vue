@@ -5,7 +5,7 @@ import {GET} from '../modules/fetch.js';
 export default {
   components: {SvgIcon},
   data: () => {
-    const el = document.getElementById('diff-commit-select');
+    const el = document.querySelector('#diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
@@ -14,7 +14,7 @@ export default {
       },
       commits: [],
       hoverActivated: false,
-      lastReviewCommitSha: null
+      lastReviewCommitSha: null,
     };
   },
   computed: {
@@ -29,7 +29,7 @@ export default {
     },
     issueLink() {
       return this.$el.parentNode.getAttribute('data-issuelink');
-    }
+    },
   },
   mounted() {
     document.body.addEventListener('click', this.onBodyClick);
@@ -103,7 +103,7 @@ export default {
       this.menuVisible = !this.menuVisible;
       // load our commits when the menu is not yet visible (it'll be toggled after loading)
       // and we got no commits
-      if (this.commits.length === 0 && this.menuVisible && !this.isLoading) {
+      if (!this.commits.length && this.menuVisible && !this.isLoading) {
         this.isLoading = true;
         try {
           await this.fetchCommits();
@@ -132,7 +132,7 @@ export default {
       }));
       this.commits.reverse();
       this.lastReviewCommitSha = results.last_review_commit_sha || null;
-      if (this.lastReviewCommitSha && this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) === -1) {
+      if (this.lastReviewCommitSha && !this.commits.some((x) => x.id === this.lastReviewCommitSha)) {
         // the lastReviewCommit is not available (probably due to a force push)
         // reset the last review commit sha
         this.lastReviewCommitSha = null;
@@ -185,7 +185,7 @@ export default {
         }
       }
     },
-  }
+  },
 };
 </script>
 <template>
@@ -202,13 +202,13 @@ export default {
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
       <div v-if="!isLoading" class="vertical item" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis text light-2 gt-mb-0">
+        <div class="gt-ellipsis text light-2 tw-mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -216,7 +216,7 @@ export default {
       <div
         v-if="lastReviewCommitSha != null" role="menuitem"
         class="vertical item"
-        :class="{disabled: commitsSinceLastReview === 0}"
+        :class="{disabled: !commitsSinceLastReview}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
       >
@@ -240,7 +240,7 @@ export default {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="gt-f1 gt-df gt-fc gt-gap-2">
+          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
@@ -252,7 +252,7 @@ export default {
               </span>
             </div>
           </div>
-          <div class="gt-mono">
+          <div class="tw-font-mono">
             {{ commit.short_sha }}
           </div>
         </div>

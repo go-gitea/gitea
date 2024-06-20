@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -53,7 +54,7 @@ func ListTopics(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	topics, total, err := repo_model.FindTopics(ctx, opts)
+	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -161,7 +162,7 @@ func AddTopic(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
@@ -172,7 +173,7 @@ func AddTopic(ctx *context.APIContext) {
 	}
 
 	// Prevent adding more topics than allowed to repo
-	count, err := repo_model.CountTopics(ctx, &repo_model.FindTopicOptions{
+	count, err := db.Count[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -228,7 +229,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
@@ -287,7 +288,7 @@ func TopicSearch(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	topics, total, err := repo_model.FindTopics(ctx, opts)
+	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

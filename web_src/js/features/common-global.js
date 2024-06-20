@@ -2,7 +2,6 @@ import $ from 'jquery';
 import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
-import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
@@ -12,21 +11,20 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request, POST, GET} from '../modules/fetch.js';
-import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if ($('.user.signin').length === 0) {
+  if (!$('.user.signin').length) {
     $('form:not(.ignore-dirty)').areYouSure();
   }
 }
 
 export function initHeadNavbarContentToggle() {
-  const navbar = document.getElementById('navbar');
-  const btn = document.getElementById('navbar-expand-toggle');
+  const navbar = document.querySelector('#navbar');
+  const btn = document.querySelector('#navbar-expand-toggle');
   if (!navbar || !btn) return;
 
   btn.addEventListener('click', () => {
@@ -47,10 +45,19 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
-      return false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }
@@ -110,7 +117,7 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       showErrorToast(`${i18n.network_error} ${e}`);
     }
   }
-  actionElem.classList.remove('is-loading', 'small-loading-icon');
+  actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
 async function formFetchAction(e) {
@@ -122,7 +129,7 @@ async function formFetchAction(e) {
 
   formEl.classList.add('is-loading');
   if (formEl.clientHeight < 50) {
-    formEl.classList.add('small-loading-icon');
+    formEl.classList.add('loading-icon-2px');
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
@@ -195,8 +202,6 @@ export function initGlobalCommon() {
   //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
-
-  $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
 
@@ -289,58 +294,71 @@ async function linkAction(e) {
     return;
   }
 
-  const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'primary'})) {
+  const isRisky = el.classList.contains('red') || el.classList.contains('negative');
+  if (await confirmModal(modalConfirmContent, {confirmButtonColor: isRisky ? 'red' : 'primary'})) {
     await doRequest();
   }
 }
 
-export function initGlobalLinkActions() {
-  function showDeletePopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const dataArray = $this.data();
-    let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
-    }
+export function initGlobalDeleteButton() {
+  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
+  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
+  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
+  // If there is no form, then the data will be posted to `data-url`.
+  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
+  for (const btn of document.querySelectorAll('.delete-button')) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
 
-    const $dialog = $(`.delete.modal${filter}`);
-    $dialog.find('.name').text($this.data('name'));
-    for (const [key, value] of Object.entries(dataArray)) {
-      if (key && key.startsWith('data')) {
-        $dialog.find(`.${key}`).text(value);
-      }
-    }
+      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
+      const dataObj = btn.dataset;
 
-    $dialog.modal({
-      closable: false,
-      onApprove: async () => {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-        const postData = new FormData();
-        for (const [key, value] of Object.entries(dataArray)) {
-          if (key && key.startsWith('data')) {
-            postData.append(key.slice(4), value);
-          }
-          if (key === 'id') {
-            postData.append('id', value);
-          }
-        }
+      const modalId = btn.getAttribute('data-modal-id');
+      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
 
-        const response = await POST($this.data('url'), {data: postData});
-        if (response.ok) {
-          const data = await response.json();
-          window.location.href = data.redirect;
+      // set the modal "display name" by `data-name`
+      const modalNameEl = modal.querySelector('.name');
+      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
+
+      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
+      for (const [key, value] of Object.entries(dataObj)) {
+        if (key.startsWith('data')) {
+          const textEl = modal.querySelector(`.${key}`);
+          if (textEl) textEl.textContent = value;
         }
       }
-    }).modal('show');
+
+      $(modal).modal({
+        closable: false,
+        onApprove: async () => {
+          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
+          if (btn.getAttribute('data-type') === 'form') {
+            const formSelector = btn.getAttribute('data-form');
+            const form = document.querySelector(formSelector);
+            if (!form) throw new Error(`no form named ${formSelector} found`);
+            form.submit();
+          }
+
+          // prepare an AJAX form by data attributes
+          const postData = new FormData();
+          for (const [key, value] of Object.entries(dataObj)) {
+            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
+              postData.append(key.slice(4), value);
+            }
+            if (key === 'id') { // for data-id="..."
+              postData.append('id', value);
+            }
+          }
+
+          const response = await POST(btn.getAttribute('data-url'), {data: postData});
+          if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.redirect;
+          }
+        },
+      }).modal('show');
+    });
   }
-
-  // Helpers.
-  $('.delete-button').on('click', showDeletePopup);
 }
 
 function initGlobalShowModal() {
@@ -352,8 +370,7 @@ function initGlobalShowModal() {
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
   $('.show-modal').on('click', function (e) {
     e.preventDefault();
-    const $el = $(this);
-    const modalSelector = $el.attr('data-modal');
+    const modalSelector = this.getAttribute('data-modal');
     const $modal = $(modalSelector);
     if (!$modal.length) {
       throw new Error('no modal for this action');
@@ -374,16 +391,13 @@ function initGlobalShowModal() {
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+      } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
-        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
+        $attrTarget[0].textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
       }
     }
-    const $colorPickers = $modal.find('.color-picker');
-    if ($colorPickers.length > 0) {
-      initCompColorPicker(); // FIXME: this might cause duplicate init
-    }
+
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -406,7 +420,7 @@ export function initGlobalButtons() {
     // a '.show-panel' element can show a panel, by `data-panel="selector"`
     // if it has "toggle" class, it toggles the panel
     e.preventDefault();
-    const sel = $(this).attr('data-panel');
+    const sel = this.getAttribute('data-panel');
     if (this.classList.contains('toggle')) {
       toggleElem(sel);
     } else {
@@ -417,12 +431,12 @@ export function initGlobalButtons() {
   $('.hide-panel').on('click', function (e) {
     // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
-    let sel = $(this).attr('data-panel');
+    let sel = this.getAttribute('data-panel');
     if (sel) {
       hideElem($(sel));
       return;
     }
-    sel = $(this).attr('data-panel-closest');
+    sel = this.getAttribute('data-panel-closest');
     if (sel) {
       hideElem($(this).closest(sel));
       return;
@@ -449,5 +463,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }

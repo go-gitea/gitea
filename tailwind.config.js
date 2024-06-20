@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
 import {parse} from 'postcss';
+import plugin from 'tailwindcss/plugin.js';
 
 const isProduction = env.NODE_ENV !== 'development';
 
@@ -41,6 +42,8 @@ export default {
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
     'backdrop-filter',
+    // we use double-class tw-hidden defined in web_src/css/helpers.css for increased specificity
+    'hidden',
     // unneeded classes
     '[-a-zA-Z:0-9_.]',
   ],
@@ -64,7 +67,58 @@ export default {
       'xl': '12px',
       '2xl': '16px',
       '3xl': '24px',
-      'full': 'var(--border-radius-circle)', // 50%
+      'full': 'var(--border-radius-full)',
+    },
+    fontFamily: {
+      sans: 'var(--fonts-regular)',
+      mono: 'var(--fonts-monospace)',
+    },
+    fontWeight: {
+      light: 'var(--font-weight-light)',
+      normal: 'var(--font-weight-normal)',
+      medium: 'var(--font-weight-medium)',
+      semibold: 'var(--font-weight-semibold)',
+      bold: 'var(--font-weight-bold)',
+    },
+    fontSize: { // not using `rem` units because our root is currently 14px
+      'xs': '12px',
+      'sm': '14px',
+      'base': '16px',
+      'lg': '18px',
+      'xl': '20px',
+      '2xl': '24px',
+      '3xl': '30px',
+      '4xl': '36px',
+      '5xl': '48px',
+      '6xl': '60px',
+      '7xl': '72px',
+      '8xl': '96px',
+      '9xl': '128px',
+      ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
+        return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
+      })),
     },
   },
+  plugins: [
+    plugin(({addUtilities}) => {
+      addUtilities({
+        // tw-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
+        // do not use:
+        // * "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
+        // * ".hidden" class: it has been polluted by Fomantic UI in many cases
+        // * inline style="display: none": it's difficult to tweak
+        // * jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
+        // only use:
+        // * this ".tw-hidden" class
+        // * showElem/hideElem/toggleElem functions in "utils/dom.js"
+        '.hidden.hidden': {
+          'display': 'none',
+        },
+        // proposed class from https://github.com/tailwindlabs/tailwindcss/pull/12128
+        '.break-anywhere': {
+          'overflow-wrap': 'anywhere',
+        },
+      });
+    }),
+  ],
 };

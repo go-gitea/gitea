@@ -204,7 +204,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	isCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
+	isTagCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
 	if err != nil {
 		return err
 	}
@@ -215,6 +215,12 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	defer committer.Close()
+
+	oldRelease, err := repo_model.GetReleaseByID(ctx, rel.ID)
+	if err != nil {
+		return err
+	}
+	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
 
 	if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 		return err
@@ -292,7 +298,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if !rel.IsDraft {
-		if !isCreated {
+		if !isTagCreated && !isConvertedFromTag {
 			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
 			return nil
 		}

@@ -7,45 +7,38 @@
 }
 
 .project-column {
-  background-color: var(--color-project-board-bg) !important;
+  background-color: var(--color-project-column-bg) !important;
   border: 1px solid var(--color-secondary) !important;
+  border-radius: var(--border-radius);
   margin: 0 0.5rem !important;
   padding: 0.5rem !important;
   width: 320px;
   height: calc(100vh - 450px);
   min-height: 60vh;
-  overflow-y: scroll;
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
   flex-direction: column;
+  cursor: default;
+}
+
+.project-column .issue-card {
+  color: var(--color-text);
 }
 
 .project-column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5em;
 }
 
-.project-column-header.dark-label {
-  color: var(--color-project-board-dark-label) !important;
+.ui.label.project-column-issue-count {
+  color: inherit;
 }
 
-.project-column-header.dark-label .project-column-title {
-  color: var(--color-project-board-dark-label) !important;
-}
-
-.project-column-header.light-label {
-  color: var(--color-project-board-light-label) !important;
-}
-
-.project-column-header.light-label .project-column-title {
-  color: var(--color-project-board-light-label) !important;
-}
-
-.project-column-title {
-  background: none !important;
-  line-height: 1.25 !important;
+.project-column-title-label {
+  flex: 1;
 }
 
 .project-column > .cards {
@@ -62,6 +55,8 @@
 
 .project-column > .divider {
   margin: 5px 0;
+  border-color: currentcolor;
+  opacity: .5;
 }
 
 .project-column:first-child {
@@ -92,33 +87,11 @@
 }
 
 .card-ghost {
+  border-color: var(--color-secondary-dark-4) !important;
   border-style: dashed !important;
   background: none !important;
 }
 
 .card-ghost * {
   opacity: 0;
-}
-
-.color-field .minicolors.minicolors-theme-default {
-  display: block;
-}
-
-.color-field .minicolors.minicolors-theme-default .minicolors-input {
-  height: 38px;
-  padding-left: 2rem;
-}
-
-.color-field .minicolors.minicolors-theme-default .minicolors-swatch {
-  top: 10px;
-}
-
-.edit-project-column-modal .color.picker.column,
-.new-project-column-modal .color.picker.column {
-  display: flex;
-}
-
-.edit-project-column-modal .color.picker.column .minicolors,
-.new-project-column-modal .color.picker.column .minicolors {
-  flex: 1;
 }

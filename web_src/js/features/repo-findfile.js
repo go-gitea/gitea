@@ -77,13 +77,13 @@ function filterRepoFiles(filter) {
 
   const filterResult = filterRepoFilesWeighted(files, filter);
 
-  toggleElem(repoFindFileNoResult, filterResult.length === 0);
+  toggleElem(repoFindFileNoResult, !filterResult.length);
   for (const r of filterResult) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     const a = document.createElement('a');
     a.setAttribute('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
-    a.innerHTML = svg('octicon-file', 16, 'gt-mr-3');
+    a.innerHTML = svg('octicon-file', 16, 'tw-mr-2');
     row.append(cell);
     cell.append(a);
     for (const [index, part] of r.matchResult.entries()) {
@@ -106,11 +106,11 @@ async function loadRepoFiles() {
 }
 
 export function initFindFileInRepo() {
-  repoFindFileInput = document.getElementById('repo-file-find-input');
+  repoFindFileInput = document.querySelector('#repo-file-find-input');
   if (!repoFindFileInput) return;
 
   repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
-  repoFindFileNoResult = document.getElementById('repo-find-file-no-result');
+  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result');
   repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
 
   loadRepoFiles();

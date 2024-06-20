@@ -77,7 +77,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	defer baseGitRepo.Close()
 
-	var reviewNotifers []*issue_service.ReviewRequestNotifier
+	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -137,7 +137,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
 			if err != nil {
 				return err
 			}
@@ -152,7 +152,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
+	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -526,6 +526,25 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	return nil
 }
 
+// UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
+func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
+	branch := update.RefFullName.BranchName()
+	// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
+	if err != nil {
+		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repo.ID, branch, err)
+	} else {
+		for _, pr := range prs {
+			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if err := PushToBaseRepo(ctx, pr); err != nil {
+					log.Error("PushToBaseRepo: %v", err)
+				}
+			}
+		}
+	}
+}
+
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
@@ -788,7 +807,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
-
 			}
 			if len(commits) == 0 {
 				break
@@ -883,7 +901,7 @@ func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
+	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }
@@ -970,12 +988,12 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
 		var commitTime time.Time
-		if commit.Committer != nil {
-			committerOrAuthorName = commit.Committer.Name
-			commitTime = commit.Committer.When
-		} else {
+		if commit.Author != nil {
 			committerOrAuthorName = commit.Author.Name
 			commitTime = commit.Author.When
+		} else {
+			committerOrAuthorName = commit.Committer.Name
+			commitTime = commit.Committer.When
 		}
 
 		commits = append(commits, CommitInfo{

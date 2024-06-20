@@ -16,14 +16,9 @@ import (
 type TaskList []*ActionTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	ids := make(container.Set[int64], len(tasks))
-	for _, t := range tasks {
-		if t.JobID == 0 {
-			continue
-		}
-		ids.Add(t.JobID)
-	}
-	return ids.Values()
+	return container.FilterSlice(tasks, func(t *ActionTask) (int64, bool) {
+		return t.JobID, t.JobID != 0
+	})
 }
 
 func (tasks TaskList) LoadJobs(ctx context.Context) error {
@@ -59,7 +54,6 @@ type FindTaskOptions struct {
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
 	RunnerID      int64
-	IDOrderDesc   bool
 }
 
 func (opts FindTaskOptions) ToConds() builder.Cond {
@@ -89,8 +83,5 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskOptions) ToOrders() string {
-	if opts.IDOrderDesc {
-		return "`id` DESC"
-	}
-	return ""
+	return "`id` DESC"
 }

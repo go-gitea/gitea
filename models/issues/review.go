@@ -66,6 +66,23 @@ func (err ErrNotValidReviewRequest) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+// ErrReviewRequestOnClosedPR represents an error when an user tries to request a re-review on a closed or merged PR.
+type ErrReviewRequestOnClosedPR struct{}
+
+// IsErrReviewRequestOnClosedPR checks if an error is an ErrReviewRequestOnClosedPR.
+func IsErrReviewRequestOnClosedPR(err error) bool {
+	_, ok := err.(ErrReviewRequestOnClosedPR)
+	return ok
+}
+
+func (err ErrReviewRequestOnClosedPR) Error() string {
+	return "cannot request a re-review on a closed or merged PR"
+}
+
+func (err ErrReviewRequestOnClosedPR) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ReviewType defines the sort of feedback a review gives
 type ReviewType int
 
@@ -138,14 +155,14 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
-func (r *Review) loadIssue(ctx context.Context) (err error) {
+func (r *Review) LoadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return err
 	}
@@ -182,7 +199,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes(ctx context.Context) (err error) {
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	if err = r.LoadCodeComments(ctx); err != nil {
@@ -328,11 +345,9 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 				return nil, err
 			}
 		}
-
 	} else if opts.ReviewerTeam != nil {
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
-
 	} else {
 		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}
@@ -618,9 +633,24 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, err
 	}
 
-	// skip it when reviewer hase been request to review
-	if review != nil && review.Type == ReviewTypeRequest {
-		return nil, nil
+	if review != nil {
+		// skip it when reviewer hase been request to review
+		if review.Type == ReviewTypeRequest {
+			return nil, committer.Commit() // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
+		}
+
+		if issue.IsClosed {
+			return nil, ErrReviewRequestOnClosedPR{}
+		}
+
+		if issue.IsPull {
+			if err := issue.LoadPullRequest(ctx); err != nil {
+				return nil, err
+			}
+			if issue.PullRequest.HasMerged {
+				return nil, ErrReviewRequestOnClosedPR{}
+			}
+		}
 	}
 
 	// if the reviewer is an official reviewer,

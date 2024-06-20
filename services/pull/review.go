@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -20,14 +21,35 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
 
+// ErrDismissRequestOnClosedPR represents an error when an user tries to dismiss a review associated to a closed or merged PR.
+type ErrDismissRequestOnClosedPR struct{}
+
+// IsErrDismissRequestOnClosedPR checks if an error is an ErrDismissRequestOnClosedPR.
+func IsErrDismissRequestOnClosedPR(err error) bool {
+	_, ok := err.(ErrDismissRequestOnClosedPR)
+	return ok
+}
+
+func (err ErrDismissRequestOnClosedPR) Error() string {
+	return "can't dismiss a review associated to a closed or merged PR"
+}
+
+func (err ErrDismissRequestOnClosedPR) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
+// ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
+var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
+
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func checkInvalidation(ctx context.Context, c *issues_model.Comment, doer *user_model.User, repo *git.Repository, branch string) error {
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
@@ -52,9 +74,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	issueIDs := prs.GetIssueIDs()
 
 	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: optional.Some(false),
 		IssueIDs:    issueIDs,
@@ -63,7 +83,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
-		if err := checkInvalidation(ctx, comment, doer, repo, branch); err != nil {
+		if err := checkInvalidation(ctx, comment, repo, branch); err != nil {
 			return err
 		}
 	}
@@ -277,6 +297,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
+		if issue.IsClosed {
+			return nil, nil, ErrSubmitReviewOnClosedPR
+		}
+
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err
@@ -322,12 +346,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 // DismissApprovalReviews dismiss all approval reviews because of new commits
 func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IssueID:   pull.IssueID,
-		Type:      issues_model.ReviewTypeApprove,
-		Dismissed: optional.Some(false),
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pull.IssueID,
+		Type:        issues_model.ReviewTypeApprove,
+		Dismissed:   optional.Some(false),
 	})
 	if err != nil {
 		return err
@@ -384,6 +406,21 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	// Check if the review's repoID is the one we're currently expecting.
 	if review.Issue.RepoID != repoID {
 		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
+	}
+
+	issue := review.Issue
+
+	if issue.IsClosed {
+		return nil, ErrDismissRequestOnClosedPR{}
+	}
+
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return nil, err
+		}
+		if issue.PullRequest.HasMerged {
+			return nil, ErrDismissRequestOnClosedPR{}
+		}
 	}
 
 	if err := issues_model.DismissReview(ctx, review, isDismiss); err != nil {

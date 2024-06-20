@@ -39,7 +39,7 @@ export default {
   props: {
     locale: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -67,7 +67,7 @@ export default {
           const weekValues = Object.values(this.data);
           const start = weekValues[0].week;
           const end = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(start), new Date(end));
+          const startDays = startDaysBetween(start, end);
           this.data = fillEmptyStartDaysWithZeroes(startDays, this.data);
           this.errorText = '';
         } else {
@@ -128,12 +128,12 @@ export default {
             },
             ticks: {
               maxRotation: 0,
-              maxTicksLimit: 12
+              maxTicksLimit: 12,
             },
           },
           y: {
             ticks: {
-              maxTicksLimit: 6
+              maxTicksLimit: 6,
             },
           },
         },
@@ -144,13 +144,13 @@ export default {
 </script>
 <template>
   <div>
-    <div class="ui header gt-df gt-ac gt-sb">
+    <div class="ui header tw-flex tw-items-center tw-justify-between">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
-    <div class="gt-df ui segment main-graph">
+    <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

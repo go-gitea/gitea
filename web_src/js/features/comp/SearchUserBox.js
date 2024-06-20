@@ -5,7 +5,7 @@ const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {
-  const searchUserBox = document.getElementById('search-user-box');
+  const searchUserBox = document.querySelector('#search-user-box');
   if (!searchUserBox) return;
 
   const $searchUserBox = $(searchUserBox);
@@ -22,7 +22,7 @@ export function initCompSearchUserBox() {
         $.each(response.data, (_i, item) => {
           const resultItem = {
             title: item.login,
-            image: item.avatar_url
+            image: item.avatar_url,
           };
           if (item.full_name) {
             resultItem.description = htmlEscape(item.full_name);
@@ -34,18 +34,18 @@ export function initCompSearchUserBox() {
           }
         });
 
-        if (allowEmailInput && items.length === 0 && looksLikeEmailAddressCheck.test(searchQuery)) {
+        if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
-            description: allowEmailDescription
+            description: allowEmailDescription,
           };
           items.push(resultItem);
         }
 
         return {results: items};
-      }
+      },
     },
     searchFields: ['login', 'full_name'],
-    showNoResults: false
+    showNoResults: false,
   });
 }

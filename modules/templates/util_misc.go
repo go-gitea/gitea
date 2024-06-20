@@ -24,7 +24,7 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
-func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 	// if needed
 	if len(normSort) == 0 || len(urlSort) == 0 {
 		return ""
@@ -50,8 +50,8 @@ func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	return ""
 }
 
-// IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func IsMultilineCommitMessage(msg string) bool {
+// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
+func isMultilineCommitMessage(msg string) bool {
 	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
@@ -69,8 +69,8 @@ type Actioner interface {
 	GetIssueInfos() []string
 }
 
-// ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType activities_model.ActionType) string {
+// actionIcon accepts an action operation type and returns an icon class name.
+func actionIcon(opType activities_model.ActionType) string {
 	switch opType {
 	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
@@ -126,8 +126,8 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
-func MigrationIcon(hostname string) string {
+// migrationIcon returns a SVG name matching the service an issue/comment was migrated from
+func migrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
 		return "octicon-mark-github"
@@ -142,43 +142,47 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
-	a := remoteAddress{}
-
-	remoteURL := m.OriginalURL
-	if ignoreOriginalURL || remoteURL == "" {
-		var err error
-		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
-		if err != nil {
-			log.Error("GetRemoteURL %v", err)
-			return a
-		}
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+	ret := remoteAddress{}
+	remoteURL, err := git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
+	if err != nil {
+		log.Error("GetRemoteURL %v", err)
+		return ret
 	}
 
 	u, err := giturl.Parse(remoteURL)
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
-		return a
+		return ret
 	}
 
 	if u.Scheme != "ssh" && u.Scheme != "file" {
 		if u.User != nil {
-			a.Username = u.User.Username()
-			a.Password, _ = u.User.Password()
+			ret.Username = u.User.Username()
+			ret.Password, _ = u.User.Password()
 		}
-		u.User = nil
 	}
-	a.Address = u.String()
 
-	return a
+	// The URL stored in the git repo could contain authentication,
+	// erase it, or it will be shown in the UI.
+	u.User = nil
+	ret.Address = u.String()
+	// Why not use m.OriginalURL to set ret.Address?
+	// It should be OK to use it, since m.OriginalURL should be the same as the authentication-erased URL from the Git repository.
+	// However, the old code has already stored authentication in m.OriginalURL when updating mirror settings.
+	// That means we need to use "giturl.Parse" for m.OriginalURL again to ensure authentication is erased.
+	// Instead of doing this, why not directly use the authentication-erased URL from the Git repository?
+	// It should be the same as long as there are no bugs.
+
+	return ret
 }
 
-func FilenameIsImage(filename string) bool {
+func filenameIsImage(filename string) bool {
 	mimeType := mime.TypeByExtension(filepath.Ext(filename))
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-func TabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
+func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 	if ec != nil {
 		def, err := ec.GetDefinitionForFilename(filename)
 		if err == nil && def.TabWidth >= 1 && def.TabWidth <= 16 {

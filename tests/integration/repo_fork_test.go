@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *httptest.ResponseRecorder {
+func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName, forkBranch string) *httptest.ResponseRecorder {
 	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName})
 
 	// Step0: check the existence of the to-fork repo
@@ -41,9 +41,10 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
 	assert.True(t, exists, fmt.Sprintf("Fork owner '%s' is not present in select box", forkOwnerName))
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":     htmlDoc.GetCSRF(),
-		"uid":       fmt.Sprintf("%d", forkOwner.ID),
-		"repo_name": forkRepoName,
+		"_csrf":              htmlDoc.GetCSRF(),
+		"uid":                fmt.Sprintf("%d", forkOwner.ID),
+		"repo_name":          forkRepoName,
+		"fork_single_branch": forkBranch,
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -57,13 +58,13 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 func TestRepoFork(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 }
 
 func TestRepoForkToOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoFork(t, session, "user2", "repo1", "org3", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "org3", "repo1", "")
 
 	// Check that no more forking is allowed as user2 owns repository
 	//  and org3 organization that owner user2 is also now has forked this repository

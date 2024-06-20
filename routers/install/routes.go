@@ -17,12 +17,12 @@ import (
 )
 
 // Routes registers the installation routes
-func Routes() *web.Route {
-	base := web.NewRoute()
+func Routes() *web.Router {
+	base := web.NewRouter()
 	base.Use(common.ProtocolMiddlewares()...)
 	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
-	r := web.NewRoute()
+	r := web.NewRouter()
 	r.Use(common.Sessioner(), Contexter())
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)

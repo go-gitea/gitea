@@ -1,83 +1,79 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const $mgrBtn = $('#manage_topic');
-  if (!$mgrBtn.length) return;
-  const $editDiv = $('#topic_edit');
-  const $viewDiv = $('#repo-topics');
-  const $saveBtn = $('#save_topic');
-  const $topicDropdown = $('#topic_edit .dropdown');
-  const $topicForm = $editDiv; // the old logic, $editDiv is topicForm
-  const $topicDropdownSearch = $topicDropdown.find('input.search');
-  const topicPrompts = {
-    countPrompt: $topicDropdown.attr('data-text-count-prompt'),
-    formatPrompt: $topicDropdown.attr('data-text-format-prompt'),
-  };
+  const mgrBtn = document.querySelector('#manage_topic');
+  if (!mgrBtn) return;
 
-  $mgrBtn.on('click', () => {
-    hideElem($viewDiv);
-    showElem($editDiv);
-    $topicDropdownSearch.trigger('focus');
+  const editDiv = document.querySelector('#topic_edit');
+  const viewDiv = document.querySelector('#repo-topics');
+  const topicDropdown = editDiv.querySelector('.ui.dropdown');
+  let lastErrorToast;
+
+  mgrBtn.addEventListener('click', () => {
+    hideElem(viewDiv);
+    showElem(editDiv);
+    topicDropdown.querySelector('input.search').focus();
   });
 
-  $('#cancel_topic_edit').on('click', () => {
-    hideElem($editDiv);
-    showElem($viewDiv);
-    $mgrBtn.trigger('focus');
+  document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
+    lastErrorToast?.hideToast();
+    hideElem(editDiv);
+    showElem(viewDiv);
+    mgrBtn.focus();
   });
 
-  $saveBtn.on('click', async () => {
-    const topics = $('input[name=topics]').val();
+  document.querySelector('#save_topic').addEventListener('click', async (e) => {
+    lastErrorToast?.hideToast();
+    const topics = editDiv.querySelector('input[name=topics]').value;
 
     const data = new FormData();
     data.append('topics', topics);
 
-    const response = await POST($saveBtn.attr('data-link'), {data});
+    const response = await POST(e.target.getAttribute('data-link'), {data});
 
     if (response.ok) {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
-        $viewDiv.children('.topic').remove();
+        queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
-            const $link = $('<a class="ui repo-topic large label topic gt-m-0"></a>');
-            $link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`);
-            $link.text(topic);
-            $link.insertBefore($mgrBtn); // insert all new topics before manage button
+            // it should match the code in repo/home.tmpl
+            const link = document.createElement('a');
+            link.classList.add('repo-topic', 'ui', 'large', 'label');
+            link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
+            link.textContent = topic;
+            mgrBtn.parentNode.insertBefore(link, mgrBtn); // insert all new topics before manage button
           }
         }
-        hideElem($editDiv);
-        showElem($viewDiv);
+        hideElem(editDiv);
+        showElem(viewDiv);
       }
     } else if (response.status === 422) {
+      // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
       const responseData = await response.json();
+      lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
       if (responseData.invalidTopics.length > 0) {
-        topicPrompts.formatPrompt = responseData.message;
-
         const {invalidTopics} = responseData;
-        const $topicLabels = $topicDropdown.children('a.ui.label');
+        const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
-            $topicLabels.eq(index).removeClass('green').addClass('red');
+            topicLabels[index].classList.remove('green');
+            topicLabels[index].classList.add('red');
           }
         }
-      } else {
-        topicPrompts.countPrompt = responseData.message;
       }
     }
-
-    // Always validate the form
-    $topicForm.form('validate form');
   });
 
-  $topicDropdown.dropdown({
+  $(topicDropdown).dropdown({
     allowAdditions: true,
     forceSelection: false,
     fullTextSearch: 'exact',
@@ -100,9 +96,9 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        $topicDropdown.find('a.label.visible').each((_, el) => {
+        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
           current_topics.push(el.getAttribute('data-value'));
-        });
+        }
 
         if (res.topics) {
           let found = false;
@@ -144,38 +140,8 @@ export function initRepoTopicBar() {
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();
-      $($addedChoice).attr('data-value', addedValue);
-      $($addedChoice).attr('data-text', addedValue);
-    }
-  });
-
-  $.fn.form.settings.rules.validateTopic = function (_values, regExp) {
-    const $topics = $topicDropdown.children('a.ui.label');
-    const status = $topics.length === 0 || $topics.last().attr('data-value').match(regExp);
-    if (!status) {
-      $topics.last().removeClass('green').addClass('red');
-    }
-    return status && $topicDropdown.children('a.ui.label.red').length === 0;
-  };
-
-  $topicForm.form({
-    on: 'change',
-    inline: true,
-    fields: {
-      topics: {
-        identifier: 'topics',
-        rules: [
-          {
-            type: 'validateTopic',
-            value: /^\s*[a-z0-9][-.a-z0-9]{0,35}\s*$/,
-            prompt: topicPrompts.formatPrompt
-          },
-          {
-            type: 'maxCount[25]',
-            prompt: topicPrompts.countPrompt
-          }
-        ]
-      },
-    }
+      $addedChoice[0].setAttribute('data-value', addedValue);
+      $addedChoice[0].setAttribute('data-text', addedValue);
+    },
   });
 }

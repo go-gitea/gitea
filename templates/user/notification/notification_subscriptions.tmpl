@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user notification">
 	<div class="ui container">
-		<div class="ui top attached tabular menu">
+		<div class="ui compact small menu small-menu-items">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">
 				{{ctx.Locale.Tr "notification.subscriptions"}}
 			</a>
@@ -9,25 +9,25 @@
 				{{ctx.Locale.Tr "notification.watching"}}
 			</a>
 		</div>
-		<div class="ui bottom attached active tab segment">
+		<div class="ui top attached segment">
 			{{if eq .Status 1}}
-				<div class="gt-df gt-sb">
-					<div class="gt-df">
+				<div class="tw-flex tw-justify-between">
+					<div class="tw-flex">
 						<div class="small-menu-items ui compact tiny menu">
 							<a class="{{if eq .State "all"}}active {{end}}item" href="?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{ctx.Locale.Tr "all"}}
 							</a>
 							<a class="{{if eq .State "open"}}active {{end}}item" href="?sort={{$.SortType}}&state=open&issueType={{$.IssueType}}&labels={{$.Labels}}">
-								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
+								{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
 								{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="{{if eq .State "closed"}}active {{end}}item" href="?sort={{$.SortType}}&state=closed&issueType={{$.IssueType}}&labels={{$.Labels}}">
-								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
+								{{svg "octicon-issue-closed" 16 "tw-mr-2"}}
 								{{ctx.Locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>
-					<div class="gt-df gt-sb">
+					<div class="tw-flex tw-justify-between">
 						<div class="ui right aligned secondary filter menu labels">
 							<!-- Type -->
 								<div class="ui dropdown type jump item">

@@ -26,7 +26,7 @@ export async function initUserAuthWebAuthn() {
   }
   try {
     const credential = await navigator.credentials.get({
-      publicKey: options.publicKey
+      publicKey: options.publicKey,
     });
     await verifyAssertion(credential);
   } catch (err) {
@@ -37,7 +37,7 @@ export async function initUserAuthWebAuthn() {
     delete options.publicKey.extensions.appid;
     try {
       const credential = await navigator.credentials.get({
-        publicKey: options.publicKey
+        publicKey: options.publicKey,
       });
       await verifyAssertion(credential);
     } catch (err) {
@@ -109,7 +109,7 @@ async function webauthnRegistered(newCredential) {
 }
 
 function webAuthnError(errorType, message) {
-  const elErrorMsg = document.getElementById(`webauthn-error-msg`);
+  const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
 
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
@@ -140,7 +140,7 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  const elRegister = document.getElementById('register-webauthn');
+  const elRegister = document.querySelector('#register-webauthn');
   if (!elRegister) {
     return;
   }
@@ -155,7 +155,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.getElementById('nickname');
+  const elNickname = document.querySelector('#nickname');
 
   const formData = new FormData();
   formData.append('name', elNickname.value);
@@ -185,7 +185,7 @@ async function webAuthnRegisterRequest() {
 
   try {
     const credential = await navigator.credentials.create({
-      publicKey: options.publicKey
+      publicKey: options.publicKey,
     });
     await webauthnRegistered(credential);
   } catch (err) {

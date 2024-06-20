@@ -1,17 +1,19 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
+import {toggleElem} from '../utils/dom.js';
+import {logoutFromWorker} from '../modules/worker.js';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
-  const table = document.getElementById('notification_table');
+  const table = document.querySelector('#notification_table');
   if (!table) return;
 
   // when page restores from bfcache, delete previously clicked items
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) { // page was restored from bfcache
-      const table = document.getElementById('notification_table');
+      const table = document.querySelector('#notification_table');
       const unreadCountEl = document.querySelector('.notifications-unread-count');
       let unreadCount = parseInt(unreadCountEl.textContent);
       for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
@@ -35,7 +37,7 @@ async function receiveUpdateCount(event) {
     const data = JSON.parse(event.data);
 
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('gt-hidden', data.Count === 0);
+      count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
@@ -45,17 +47,13 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const $notificationCount = $('.notification_count');
-
-  if (!$notificationCount.length) {
-    return;
-  }
+  if (!document.querySelector('.notification_count')) return;
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout, lastCount) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    lastCount = lastCount ?? $notificationCount.text();
+    lastCount = lastCount ?? getCurrentCount();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
@@ -94,7 +92,7 @@ export function initNotificationCount() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = `${appSubUrl}/`;
+        logoutFromWorker();
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
@@ -119,8 +117,12 @@ export function initNotificationCount() {
   startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
+function getCurrentCount() {
+  return document.querySelector('.notification_count').textContent;
+}
+
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
-  const currentCount = $('.notification_count').text();
+  const currentCount = getCurrentCount();
   if (lastCount !== currentCount) {
     callback(notificationSettings.MinTimeout, currentCount);
     return;
@@ -143,7 +145,7 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 }
 
 async function updateNotificationTable() {
-  const notificationDiv = document.getElementById('notification_div');
+  const notificationDiv = document.querySelector('#notification_div');
   if (notificationDiv) {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -177,14 +179,11 @@ async function updateNotificationCount() {
 
     const data = await response.json();
 
-    const $notificationCount = $('.notification_count');
-    if (data.new === 0) {
-      $notificationCount.addClass('gt-hidden');
-    } else {
-      $notificationCount.removeClass('gt-hidden');
-    }
+    toggleElem('.notification_count', data.new !== 0);
 
-    $notificationCount.text(`${data.new}`);
+    for (const el of document.querySelectorAll('.notification_count')) {
+      el.textContent = `${data.new}`;
+    }
 
     return `${data.new}`;
   } catch (error) {

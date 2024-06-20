@@ -28,7 +28,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGo, ctx.Params("name"))
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGo, ctx.PathParam("name"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -50,7 +50,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 }
 
 func PackageVersionMetadata(ctx *context.Context) {
-	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
+	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -70,7 +70,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 }
 
 func PackageVersionGoModContent(ctx *context.Context) {
-	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
+	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -90,7 +90,7 @@ func PackageVersionGoModContent(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
+	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -154,12 +154,12 @@ func resolvePackage(ctx *context.Context, ownerID int64, name, version string) (
 }
 
 func UploadPackage(ctx *context.Context) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 

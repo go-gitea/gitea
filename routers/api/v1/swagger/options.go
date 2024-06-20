@@ -171,6 +171,12 @@ type swaggerParameterBodies struct {
 	CreateTagOption api.CreateTagOption
 
 	// in:body
+	CreateTagProtectionOption api.CreateTagProtectionOption
+
+	// in:body
+	EditTagProtectionOption api.EditTagProtectionOption
+
+	// in:body
 	CreateAccessTokenOption api.CreateAccessTokenOption
 
 	// in:body
@@ -193,4 +199,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UserBadgeOption api.UserBadgeOption
+
+	// in:body
+	CreateVariableOption api.CreateVariableOption
+
+	// in:body
+	UpdateVariableOption api.UpdateVariableOption
 }

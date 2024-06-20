@@ -108,6 +108,10 @@ See [Creating an annotation for an error](https://docs.github.com/en/actions/usi
 
 It's ignored by Gitea Actions now.
 
+### Expressions
+
+For [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions), only [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) is supported.
+
 ## Missing UI features
 
 ### Pre and Post steps

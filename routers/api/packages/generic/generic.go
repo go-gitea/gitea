@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/log"
@@ -18,8 +19,8 @@ import (
 )
 
 var (
-	packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
-	filenameRegex    = packageNameRegex
+	packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -35,11 +36,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        ctx.Params("packagename"),
-			Version:     ctx.Params("packageversion"),
+			Name:        ctx.PathParam("packagename"),
+			Version:     ctx.PathParam("packageversion"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename: ctx.PathParam("filename"),
 		},
 	)
 	if err != nil {
@@ -54,29 +55,47 @@ func DownloadPackageFile(ctx *context.Context) {
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 
+func isValidPackageName(packageName string) bool {
+	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
+		return false
+	}
+	return packageNameRegex.MatchString(packageName) && packageName != ".."
+}
+
+func isValidFileName(filename string) bool {
+	return filenameRegex.MatchString(filename) &&
+		strings.TrimSpace(filename) == filename &&
+		filename != "." && filename != ".."
+}
+
 // UploadPackage uploads the specific generic package.
 // Duplicated packages get rejected.
 func UploadPackage(ctx *context.Context) {
-	packageName := ctx.Params("packagename")
-	filename := ctx.Params("filename")
+	packageName := ctx.PathParam("packagename")
+	filename := ctx.PathParam("filename")
 
-	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package name or filename"))
+	if !isValidPackageName(packageName) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
 		return
 	}
 
-	packageVersion := ctx.Params("packageversion")
+	if !isValidFileName(filename) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid filename"))
+		return
+	}
+
+	packageVersion := ctx.PathParam("packageversion")
 	if packageVersion != strings.TrimSpace(packageVersion) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package version"))
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package version"))
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -131,8 +150,8 @@ func DeletePackage(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        ctx.Params("packagename"),
-			Version:     ctx.Params("packageversion"),
+			Name:        ctx.PathParam("packagename"),
+			Version:     ctx.PathParam("packageversion"),
 		},
 	)
 	if err != nil {
@@ -150,12 +169,12 @@ func DeletePackage(ctx *context.Context) {
 // DeletePackageFile deletes the specific file of a generic package.
 func DeletePackageFile(ctx *context.Context) {
 	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.Params("packagename"), ctx.Params("packageversion"))
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"), ctx.PathParam("packageversion"))
 		if err != nil {
 			return nil, nil, err
 		}
 
-		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), packages_model.EmptyFileKey)
+		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.PathParam("filename"), packages_model.EmptyFileKey)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -77,10 +77,6 @@
   padding-bottom: 5px;
 }
 
-.user.settings .iconFloat {
-  float: left;
-}
-
 .user-orgs {
   display: flex;
   flex-flow: row wrap;
@@ -110,10 +106,6 @@
   border-radius: var(--border-radius);
   background: var(--color-card);
   border: 1px solid var(--color-secondary);
-}
-
-#notification_div {
-  padding-top: 15px;
 }
 
 #notification_table {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
@@ -21,8 +22,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -105,32 +108,45 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	return branch, nil
 }
 
+// getWhitelistEntities returns the names of the entities that are in the whitelist
+func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
+	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
+	whitelistNames := make([]string, 0)
+	for _, entity := range entities {
+		switch v := any(entity).(type) {
+		case *user_model.User:
+			if whitelistUserIDsSet.Contains(v.ID) {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		case *organization.Team:
+			if whitelistUserIDsSet.Contains(v.ID) {
+				whitelistNames = append(whitelistNames, v.Name)
+			}
+		}
+	}
+
+	return whitelistNames
+}
+
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.WhitelistUserIDs)
+func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
+	readers, err := access_model.GetRepoReaders(ctx, repo)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
+		log.Error("GetRepoReaders: %v", err)
 	}
-	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.MergeWhitelistUserIDs)
+
+	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
 	if err != nil {
-		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
-	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.ApprovalsWhitelistUserIDs)
-	if err != nil {
-		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
-	}
-	pushWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.WhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
-	}
-	mergeWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.MergeWhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
-	}
-	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.ApprovalsWhitelistTeamIDs)
-	if err != nil {
-		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
-	}
+
+	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
@@ -177,6 +193,31 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
 		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
 	}
+}
+
+// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
+	if err := t.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
+
+	return &api.ActionTask{
+		ID:           t.ID,
+		Name:         t.Job.Name,
+		HeadBranch:   t.Job.Run.PrettyRef(),
+		HeadSHA:      t.Job.CommitSHA,
+		RunNumber:    t.Job.Run.Index,
+		Event:        t.Job.Run.TriggerEvent,
+		DisplayTitle: t.Job.Run.Title,
+		Status:       t.Status.String(),
+		WorkflowID:   t.Job.Run.WorkflowID,
+		URL:          url,
+		CreatedAt:    t.Created.AsLocalTime(),
+		UpdatedAt:    t.Updated.AsLocalTime(),
+		RunStartedAt: t.Started.AsLocalTime(),
+	}, nil
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
@@ -322,7 +363,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
-			Permission:              t.AccessMode.String(),
+			Permission:              t.AccessMode.ToString(),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
 		}
@@ -364,6 +405,32 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
 		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+	}
+}
+
+// ToTagProtection convert a git.ProtectedTag to an api.TagProtection
+func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
+	readers, err := access_model.GetRepoReaders(ctx, repo)
+	if err != nil {
+		log.Error("GetRepoReaders: %v", err)
+	}
+
+	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
+	if err != nil {
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
+	}
+
+	whitelistTeams := getWhitelistEntities(teamReaders, pt.AllowlistTeamIDs)
+
+	return &api.TagProtection{
+		ID:                 pt.ID,
+		NamePattern:        pt.NamePattern,
+		WhitelistUsernames: whitelistUsernames,
+		WhitelistTeams:     whitelistTeams,
+		Created:            pt.CreatedUnix.AsTime(),
+		Updated:            pt.UpdatedUnix.AsTime(),
 	}
 }
 

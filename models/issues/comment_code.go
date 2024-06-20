@@ -74,6 +74,10 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
+	if err := comments.LoadAttachments(ctx); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	ids := make([]int64, 0, len(comments))
@@ -109,7 +113,8 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: ctx,
+			Ctx:  ctx,
+			Repo: issue.Repo,
 			Links: markup.Links{
 				Base: issue.Repo.Link(),
 			},

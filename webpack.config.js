@@ -76,7 +76,7 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/globals.js', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
@@ -171,14 +171,13 @@ export default {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                map: false, // https://github.com/postcss/postcss/issues/1914
                 plugins: [
                   tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
                 ],
               },
             },
-          }
+          },
         ],
       },
       {
@@ -191,21 +190,11 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
-        }
-      },
-      {
-        test: /\.png$/i,
-        type: 'asset/resource',
-        generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
-        }
+        },
       },
     ],
   },
   plugins: [
-    new webpack.ProvidePlugin({ // for htmx extensions
-      htmx: 'htmx.org',
-    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production

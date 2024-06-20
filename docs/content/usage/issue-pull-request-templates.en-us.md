@@ -308,7 +308,7 @@ This is a example for a issue config file
 blank_issues_enabled: true
 contact_links:
   - name: Gitea
-    url: https://gitea.io
+    url: https://gitea.com
     about: Visit the Gitea Website
 ```
 

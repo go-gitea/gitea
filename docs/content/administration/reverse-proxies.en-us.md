@@ -17,15 +17,35 @@ menu:
 
 # Reverse Proxies
 
+## General configuration
+
+1. Set `[server] ROOT_URL = https://git.example.com/` in your `app.ini` file.
+2. Make the reverse-proxy pass `https://git.example.com/foo` to `http://gitea:3000/foo`.
+3. Make sure the reverse-proxy does not decode the URI. The request `https://git.example.com/a%2Fb` should be passed as `http://gitea:3000/a%2Fb`.
+4. Make sure `Host` and `X-Fowarded-Proto` headers are correctly passed to Gitea to make Gitea see the real URL being visited.
+
+### Use a sub-path
+
+Usually it's **not recommended** to put Gitea in a sub-path, it's not widely used and may have some issues in rare cases.
+
+To make Gitea work with a sub-path (eg: `https://common.example.com/gitea/`),
+there are some extra requirements besides the general configuration above:
+
+1. Use `[server] ROOT_URL = https://common.example.com/gitea/` in your `app.ini` file.
+2. Make the reverse-proxy pass `https://common.example.com/gitea/foo` to `http://gitea:3000/foo`.
+3. The container registry requires a fixed sub-path `/v2` at the root level which must be configured:
+   - Make the reverse-proxy pass `https://common.example.com/v2` to `http://gitea:3000/v2`.
+   - Make sure the URI and headers are also correctly passed (see the general configuration above).
+
 ## Nginx
 
-If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:
+If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`.
 
-```
+Make sure `client_max_body_size` is large enough, otherwise there would be "413 Request Entity Too Large" error when uploading large files.
+
+```nginx
 server {
-    listen 80;
-    server_name git.example.com;
-
+    ...
     location / {
         client_max_body_size 512M;
         proxy_pass http://localhost:3000;
@@ -39,37 +59,35 @@ server {
 }
 ```
 
-### Resolving Error: 413 Request Entity Too Large
-
-This error indicates nginx is configured to restrict the file upload size,
-it affects attachment uploading, form posting, package uploading and LFS pushing, etc.
-You can fine tune the `client_max_body_size` option according to [nginx document](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size).
-
 ## Nginx with a sub-path
 
-In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
+In case you already have a site, and you want Gitea to share the domain name,
+you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section
+into the `http` section of `nginx.conf`:
 
-```
+```nginx
 server {
-    listen 80;
-    server_name git.example.com;
-
-    # Note: Trailing slash
-    location /gitea/ {
+    ...
+    location ~ ^/(gitea|v2)($|/) {
         client_max_body_size 512M;
 
-        # make nginx use unescaped URI, keep "%2F" as is
+        # make nginx use unescaped URI, keep "%2F" as-is, remove the "/gitea" sub-path prefix, pass "/v2" as-is.
         rewrite ^ $request_uri;
-        rewrite ^/gitea(/.*) $1 break;
+        rewrite ^(/gitea)?(/.*) $2 break;
         proxy_pass http://127.0.0.1:3000$uri;
 
         # other common HTTP headers, see the "Nginx" config section above
-        proxy_set_header ...
+        proxy_set_header Connection $http_connection;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
 
-Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/gitea/` correctly in your configuration.
 
 ## Nginx and serve static resources directly
 
@@ -93,7 +111,7 @@ or use a cdn for the static files.
 
 Set `[server] STATIC_URL_PREFIX = /_/static` in your configuration.
 
-```apacheconf
+```nginx
 server {
     listen 80;
     server_name git.example.com;
@@ -112,7 +130,7 @@ server {
 
 Set `[server] STATIC_URL_PREFIX = http://cdn.example.com/gitea` in your configuration.
 
-```apacheconf
+```nginx
 # application server running Gitea
 server {
     listen 80;
@@ -124,7 +142,7 @@ server {
 }
 ```
 
-```apacheconf
+```nginx
 # static content delivery server
 server {
     listen 80;
@@ -151,6 +169,7 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
+    RequestHeader set "X-Forwarded-Proto" expr=%{REQUEST_SCHEME}
 </VirtualHost>
 ```
 
@@ -172,6 +191,8 @@ In case you already have a site, and you want Gitea to share the domain name, yo
     AllowEncodedSlashes NoDecode
     # Note: no trailing slash after either /git or port
     ProxyPass /git http://localhost:3000 nocanon
+    ProxyPreserveHost On
+    RequestHeader set "X-Forwarded-Proto" expr=%{REQUEST_SCHEME}
 </VirtualHost>
 ```
 
@@ -183,7 +204,7 @@ Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 If you want Caddy to serve your Gitea instance, you can add the following server block to your Caddyfile:
 
-```apacheconf
+```
 git.example.com {
     reverse_proxy localhost:3000
 }
@@ -193,7 +214,7 @@ git.example.com {
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Caddy to serve Gitea under a sub-path by adding the following to your server block in your Caddyfile:
 
-```apacheconf
+```
 git.example.com {
     route /git/* {
         uri strip_prefix /git
@@ -371,19 +392,3 @@ gitea:
 This config assumes that you are handling HTTPS on the traefik side and using HTTP between Gitea and traefik.
 
 Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
-
-## General sub-path configuration
-
-Usually it's not recommended to put Gitea in a sub-path, it's not widely used and may have some issues in rare cases.
-
-If you really need to do so, to make Gitea works with sub-path (eg: `http://example.com/gitea/`), here are the requirements:
-
-1. Set `[server] ROOT_URL = http://example.com/gitea/` in your `app.ini` file.
-2. Make the reverse-proxy pass `http://example.com/gitea/foo` to `http://gitea-server:3000/foo`.
-3. Make sure the reverse-proxy not decode the URI, the request `http://example.com/gitea/a%2Fb` should be passed as `http://gitea-server:3000/a%2Fb`.
-
-## Docker / Container Registry
-
-The container registry uses a fixed sub-path `/v2` which can't be changed.
-Even if you deploy Gitea with a different sub-path, `/v2` will be used by the `docker` client.
-Therefore you may need to add an additional route to your reverse proxy configuration.
