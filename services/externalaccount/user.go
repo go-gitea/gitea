@@ -83,7 +83,7 @@ func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser got
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
 func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
-	// Dont update if externalUserID is not a number
+	// Skip update if externalUserID is not a valid numeric ID or exceeds int64
 	if _, err := strconv.ParseInt(externalUserID, 10, 64); err != nil {
 		return nil
 	}
