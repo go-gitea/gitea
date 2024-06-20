@@ -1,5 +1,5 @@
-import $ from 'jquery';
+import jquery from 'jquery';
 import htmx from 'htmx.org/dist/htmx.esm.js';
 
-window.$ = window.jQuery = $; // eslint-disable-line no-jquery/variable-pattern
+window.$ = window.jQuery = jquery;
 window.htmx = htmx;
