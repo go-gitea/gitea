@@ -50,6 +50,8 @@ function handleNewline(textarea, e) {
   const value = textarea.value;
 
   // find the current line
+  // * if selStart is 0, lastIndexOf(..., -1) is the same as lastIndexOf(..., 0)
+  // * if lastIndexOf reruns -1, lineStart is 0 and it is still correct.
   const lineStart = value.lastIndexOf('\n', selStart - 1) + 1;
   let lineEnd = value.indexOf('\n', selStart);
   lineEnd = lineEnd < 0 ? value.length : lineEnd;
@@ -61,6 +63,7 @@ function handleNewline(textarea, e) {
   line = line.slice(indention.length);
 
   // parse the prefixes: "1. ", "- ", "* ", "[ ] ", "[x] "
+  // there must be a space after the prefix because none of "1.foo" / "-foo" is a list item
   const prefixMatch = /^([0-9]+\.|[-*]|\[ \]|\[x\])\s/.exec(line);
   let prefix = '';
   if (prefixMatch) {
@@ -73,7 +76,7 @@ function handleNewline(textarea, e) {
 
   e.preventDefault();
   if (!line) {
-    // clear current line
+    // clear current line if we only have i.e. '1. ' and the user presses enter again to finish creating a list
     textarea.value = value.slice(0, lineStart) + value.slice(lineEnd);
   } else {
     // start a new line with the same indention and prefix
