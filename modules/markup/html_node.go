@@ -5,6 +5,7 @@ package markup
 
 import (
 	"code.gitea.io/gitea/modules/util"
+
 	"golang.org/x/net/html"
 )
 
