@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -89,13 +89,11 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
-// AvatarLink returns the full avatar link with http host
+// AvatarLink returns the full avatar url with http host.
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (u *User) AvatarLink(ctx context.Context) string {
-	link := u.AvatarLinkWithSize(ctx, 0)
-	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
-	}
-	return link
+	relLink := u.AvatarLinkWithSize(ctx, 0) // it can't be empty
+	return httplib.MakeAbsoluteURL(ctx, relLink)
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data

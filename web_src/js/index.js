@@ -1,5 +1,6 @@
 // bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
 import './bootstrap.js';
+import './htmx.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
@@ -43,7 +44,7 @@ import {
   initGlobalDropzone,
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
-  initGlobalLinkActions,
+  initGlobalDeleteButton,
   initHeadNavbarContentToggle,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
@@ -87,6 +88,7 @@ import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js'
 import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
 import {initColorPickers} from './features/colorpicker.js';
+import {initAdminSelfCheck} from './features/admin/selfcheck.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -102,7 +104,7 @@ onDomReady(() => {
   initGlobalDropzone();
   initGlobalEnterQuickSubmit();
   initGlobalFormDirtyLeaveConfirm();
-  initGlobalLinkActions();
+  initGlobalDeleteButton();
 
   initCommonOrganization();
   initCommonIssueListQuickGoto();
@@ -132,6 +134,7 @@ onDomReady(() => {
   initAdminEmails();
   initAdminUserListSearchForm();
   initAdminConfigs();
+  initAdminSelfCheck();
 
   initDashboardRepoList();
 

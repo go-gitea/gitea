@@ -7,6 +7,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkd
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './common-global.js';
 import {POST, GET} from '../modules/fetch.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
 
@@ -43,14 +44,14 @@ export function initRepoIssueTimeTracking() {
 
 async function updateDeadline(deadlineString) {
   hideElem('#deadline-err-invalid-date');
-  document.getElementById('deadline-loader')?.classList.add('is-loading');
+  document.querySelector('#deadline-loader')?.classList.add('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      document.getElementById('deadline-loader')?.classList.remove('is-loading');
+      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
       showElem('#deadline-err-invalid-date');
       return false;
     }
@@ -58,7 +59,7 @@ async function updateDeadline(deadlineString) {
   }
 
   try {
-    const response = await POST(document.getElementById('update-issue-deadline-form').getAttribute('action'), {
+    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
       data: {due_date: realDeadline},
     });
 
@@ -69,7 +70,7 @@ async function updateDeadline(deadlineString) {
     }
   } catch (error) {
     console.error(error);
-    document.getElementById('deadline-loader').classList.remove('is-loading');
+    document.querySelector('#deadline-loader').classList.remove('is-loading');
     showElem('#deadline-err-invalid-date');
   }
 }
@@ -123,8 +124,8 @@ export function initRepoIssueSidebarList() {
               return;
             }
             filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -181,7 +182,7 @@ export function initRepoIssueCommentDelete() {
           counter.textContent = String(num);
         }
 
-        document.getElementById(deleteButton.getAttribute('data-comment-id'))?.remove();
+        document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
 
         if (conversationHolder && !conversationHolder.querySelector('.comment')) {
           const path = conversationHolder.getAttribute('data-path');
@@ -277,11 +278,12 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const url = $choice[0].getAttribute('data-do');
+      const choiceEl = $choice[0];
+      const url = choiceEl.getAttribute('data-do');
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice.text();
+          buttonText.textContent = choiceEl.textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
@@ -296,25 +298,25 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  const wrapper = document.getElementById('allow-edits-from-maintainers');
+  const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;
-
-  wrapper.querySelector('input[type="checkbox"]')?.addEventListener('change', async (e) => {
-    const checked = e.target.checked;
+  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
-    e.target.disabled = true;
     try {
-      const response = await POST(url, {data: {allow_maintainer_edit: checked}});
-      if (!response.ok) {
+      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
+      const data = await resp.json();
+      checkbox.checked = data.allow_maintainer_edit;
     } catch (error) {
+      checkbox.checked = !checkbox.checked;
       console.error(error);
       showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error'));
     } finally {
       wrapper.classList.remove('is-loading');
-      e.target.disabled = false;
     }
   });
 }
@@ -449,12 +451,10 @@ export function initRepoPullRequestReview() {
           offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
         }
 
-        document.getElementById(`show-outdated-${id}`).classList.add('tw-hidden');
-        document.getElementById(`code-comments-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`code-preview-${id}`).classList.remove('tw-hidden');
-        document.getElementById(`hide-outdated-${id}`).classList.remove('tw-hidden');
+        hideElem(`#show-outdated-${id}`);
+        showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
         // if the comment box is folded, expand it
-        if (ancestorDiffBox.getAttribute('data-folded') === 'true') {
+        if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
 
@@ -504,6 +504,7 @@ export function initRepoPullRequestReview() {
   if ($reviewBtn.length && $panel.length) {
     const tippy = createTippy($reviewBtn[0], {
       content: $panel[0],
+      theme: 'default',
       placement: 'bottom',
       trigger: 'click',
       maxWidth: 'none',
@@ -567,14 +568,15 @@ export function initRepoPullRequestReview() {
 export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
-    const $this = $(this);
-    const content = $(`#${$this.data('target')}`).text();
-    const poster = $this.data('poster-username');
-    const reference = toAbsoluteUrl($this.data('reference'));
-    const $modal = $($this.data('modal'));
-    $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
-    $modal.modal('show');
-
+    const target = this.getAttribute('data-target');
+    const content = document.querySelector(`#${target}`)?.textContent ?? '';
+    const poster = this.getAttribute('data-poster-username');
+    const reference = toAbsoluteUrl(this.getAttribute('data-reference'));
+    const modalSelector = this.getAttribute('data-modal');
+    const modal = document.querySelector(modalSelector);
+    const textarea = modal.querySelector('textarea[name="content"]');
+    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
+    $(modal).modal('show');
     event.preventDefault();
   });
 }
@@ -603,85 +605,72 @@ export function initRepoIssueWipToggle() {
   });
 }
 
-async function pullrequest_targetbranch_change(update_url) {
-  const targetBranch = $('#pull-target-branch').data('branch');
-  const $branchTarget = $('#branch_target');
-  if (targetBranch === $branchTarget.text()) {
-    window.location.reload();
-    return false;
-  }
-  try {
-    await POST(update_url, {data: new URLSearchParams({target_branch: targetBranch})});
-  } catch (error) {
-    console.error(error);
-  } finally {
-    window.location.reload();
-  }
-}
-
 export function initRepoIssueTitleEdit() {
-  // Edit issue title
-  const $issueTitle = $('#issue-title');
-  const $editInput = $('#edit-title-input input');
+  const issueTitleDisplay = document.querySelector('#issue-title-display');
+  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  if (!issueTitleEditor) return;
 
-  const editTitleToggle = function () {
-    toggleElem($issueTitle);
-    toggleElem('.not-in-edit');
-    toggleElem('#edit-title-input');
-    toggleElem('#pull-desc');
-    toggleElem('#pull-desc-edit');
-    toggleElem('.in-edit');
-    toggleElem('.new-issue-button');
-    document.getElementById('issue-title-wrapper')?.classList.toggle('edit-active');
-    $editInput[0].focus();
-    $editInput[0].select();
-    return false;
-  };
-
-  $('#edit-title').on('click', editTitleToggle);
-  $('#cancel-edit-title').on('click', editTitleToggle);
-  $('#save-edit-title').on('click', editTitleToggle).on('click', async function () {
-    const pullrequest_target_update_url = this.getAttribute('data-target-update-url');
-    if (!$editInput.val().length || $editInput.val() === $issueTitle.text()) {
-      $editInput.val($issueTitle.text());
-      await pullrequest_targetbranch_change(pullrequest_target_update_url);
-    } else {
-      try {
-        const params = new URLSearchParams();
-        params.append('title', $editInput.val());
-        const response = await POST(this.getAttribute('data-update-url'), {data: params});
-        const data = await response.json();
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        if (pullrequest_target_update_url) {
-          await pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
-        } else {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error(error);
-      }
+  const issueTitleInput = issueTitleEditor.querySelector('input');
+  const oldTitle = issueTitleInput.getAttribute('data-old-title');
+  issueTitleDisplay.querySelector('#issue-title-edit-show').addEventListener('click', () => {
+    hideElem(issueTitleDisplay);
+    hideElem('#pull-desc-display');
+    showElem(issueTitleEditor);
+    showElem('#pull-desc-editor');
+    if (!issueTitleInput.value.trim()) {
+      issueTitleInput.value = oldTitle;
     }
-    return false;
+    issueTitleInput.focus();
+  });
+  issueTitleEditor.querySelector('.ui.cancel.button').addEventListener('click', () => {
+    hideElem(issueTitleEditor);
+    hideElem('#pull-desc-editor');
+    showElem(issueTitleDisplay);
+    showElem('#pull-desc-display');
+  });
+
+  const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
+  const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
+  editSaveButton.addEventListener('click', async () => {
+    const newTitle = issueTitleInput.value.trim();
+    try {
+      if (newTitle && newTitle !== oldTitle) {
+        const resp = await POST(editSaveButton.getAttribute('data-update-url'), {data: new URLSearchParams({title: newTitle})});
+        if (!resp.ok) {
+          throw new Error(`Failed to update issue title: ${resp.statusText}`);
+        }
+      }
+      if (prTargetUpdateUrl) {
+        const newTargetBranch = document.querySelector('#pull-target-branch').getAttribute('data-branch');
+        const oldTargetBranch = document.querySelector('#branch_target').textContent;
+        if (newTargetBranch !== oldTargetBranch) {
+          const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: newTargetBranch})});
+          if (!resp.ok) {
+            throw new Error(`Failed to update PR target branch: ${resp.statusText}`);
+          }
+        }
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      showErrorToast(error.message);
+    }
   });
 }
 
 export function initRepoIssueBranchSelect() {
-  const changeBranchSelect = function () {
-    const $selectionTextField = $('#pull-target-branch');
-
-    const baseName = $selectionTextField.data('basename');
-    const branchNameNew = $(this).data('branch');
-    const branchNameOld = $selectionTextField.data('branch');
-
-    // Replace branch name to keep translation from HTML template
-    $selectionTextField.html($selectionTextField.html().replace(
-      `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`,
-    ));
-    $selectionTextField.data('branch', branchNameNew); // update branch name in setting
-  };
-  $('#branch-select > .item').on('click', changeBranchSelect);
+  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+    const el = e.target.closest('.item[data-branch]');
+    if (!el) return;
+    const pullTargetBranch = document.querySelector('#pull-target-branch');
+    const baseName = pullTargetBranch.getAttribute('data-basename');
+    const branchNameNew = el.getAttribute('data-branch');
+    const branchNameOld = pullTargetBranch.getAttribute('data-branch');
+    pullTargetBranch.textContent = pullTargetBranch.textContent.replace(`${baseName}:${branchNameOld}`, `${baseName}:${branchNameNew}`);
+    pullTargetBranch.setAttribute('data-branch', branchNameNew);
+  });
 }
 
 export function initSingleCommentEditor($commentForm) {
@@ -689,7 +678,7 @@ export function initSingleCommentEditor($commentForm) {
   // * normal new issue/pr page, no status-button
   // * issue/pr view page, with comment form, has status-button
   const opts = {};
-  const statusButton = document.getElementById('status-button');
+  const statusButton = document.querySelector('#status-button');
   if (statusButton) {
     opts.onContentChanged = (editor) => {
       const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');

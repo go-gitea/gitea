@@ -11,7 +11,6 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request, POST, GET} from '../modules/fetch.js';
-import '../htmx.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -24,8 +23,8 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initHeadNavbarContentToggle() {
-  const navbar = document.getElementById('navbar');
-  const btn = document.getElementById('navbar-expand-toggle');
+  const navbar = document.querySelector('#navbar');
+  const btn = document.querySelector('#navbar-expand-toggle');
   if (!navbar || !btn) return;
 
   btn.addEventListener('click', () => {
@@ -46,10 +45,19 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  $(document).on('keydown', '.js-quick-submit', (e) => {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
-      handleGlobalEnterQuickSubmit(e.target);
-      return false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
+      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
+      // eslint-disable-next-line unicorn/no-lonely-if
+      if (handleGlobalEnterQuickSubmit(e.target)) {
+        e.preventDefault();
+      }
     }
   });
 }
@@ -286,58 +294,71 @@ async function linkAction(e) {
     return;
   }
 
-  const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'primary'})) {
+  const isRisky = el.classList.contains('red') || el.classList.contains('negative');
+  if (await confirmModal(modalConfirmContent, {confirmButtonColor: isRisky ? 'red' : 'primary'})) {
     await doRequest();
   }
 }
 
-export function initGlobalLinkActions() {
-  function showDeletePopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const dataArray = $this.data();
-    let filter = '';
-    if (this.getAttribute('data-modal-id')) {
-      filter += `#${this.getAttribute('data-modal-id')}`;
-    }
+export function initGlobalDeleteButton() {
+  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
+  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
+  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
+  // If there is no form, then the data will be posted to `data-url`.
+  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
+  for (const btn of document.querySelectorAll('.delete-button')) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
 
-    const $dialog = $(`.delete.modal${filter}`);
-    $dialog.find('.name').text($this.data('name'));
-    for (const [key, value] of Object.entries(dataArray)) {
-      if (key && key.startsWith('data')) {
-        $dialog.find(`.${key}`).text(value);
+      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
+      const dataObj = btn.dataset;
+
+      const modalId = btn.getAttribute('data-modal-id');
+      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
+
+      // set the modal "display name" by `data-name`
+      const modalNameEl = modal.querySelector('.name');
+      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
+
+      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
+      for (const [key, value] of Object.entries(dataObj)) {
+        if (key.startsWith('data')) {
+          const textEl = modal.querySelector(`.${key}`);
+          if (textEl) textEl.textContent = value;
+        }
       }
-    }
 
-    $dialog.modal({
-      closable: false,
-      onApprove: async () => {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-        const postData = new FormData();
-        for (const [key, value] of Object.entries(dataArray)) {
-          if (key && key.startsWith('data')) {
-            postData.append(key.slice(4), value);
+      $(modal).modal({
+        closable: false,
+        onApprove: async () => {
+          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
+          if (btn.getAttribute('data-type') === 'form') {
+            const formSelector = btn.getAttribute('data-form');
+            const form = document.querySelector(formSelector);
+            if (!form) throw new Error(`no form named ${formSelector} found`);
+            form.submit();
           }
-          if (key === 'id') {
-            postData.append('id', value);
-          }
-        }
 
-        const response = await POST($this.data('url'), {data: postData});
-        if (response.ok) {
-          const data = await response.json();
-          window.location.href = data.redirect;
-        }
-      },
-    }).modal('show');
+          // prepare an AJAX form by data attributes
+          const postData = new FormData();
+          for (const [key, value] of Object.entries(dataObj)) {
+            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
+              postData.append(key.slice(4), value);
+            }
+            if (key === 'id') { // for data-id="..."
+              postData.append('id', value);
+            }
+          }
+
+          const response = await POST(btn.getAttribute('data-url'), {data: postData});
+          if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.redirect;
+          }
+        },
+      }).modal('show');
+    });
   }
-
-  // Helpers.
-  $('.delete-button').on('click', showDeletePopup);
 }
 
 function initGlobalShowModal() {
@@ -373,7 +394,7 @@ function initGlobalShowModal() {
       } else if ($attrTarget[0].matches('input, textarea')) {
         $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
-        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
+        $attrTarget[0].textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
       }
     }
 
@@ -442,5 +463,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }

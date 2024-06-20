@@ -35,8 +35,8 @@ import (
 
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
-	runIndex := ctx.ParamsInt64("run")
-	jobIndex := ctx.ParamsInt64("job")
+	runIndex := ctx.PathParamInt64("run")
+	jobIndex := ctx.PathParamInt64("job")
 	ctx.Data["RunIndex"] = runIndex
 	ctx.Data["JobIndex"] = jobIndex
 	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
@@ -67,6 +67,9 @@ type ViewResponse struct {
 			CanRerun          bool       `json:"canRerun"`
 			CanDeleteArtifact bool       `json:"canDeleteArtifact"`
 			Done              bool       `json:"done"`
+			WorkflowID        string     `json:"workflowID"`
+			WorkflowLink      string     `json:"workflowLink"`
+			IsSchedule        bool       `json:"isSchedule"`
 			Jobs              []*ViewJob `json:"jobs"`
 			Commit            ViewCommit `json:"commit"`
 		} `json:"run"`
@@ -90,12 +93,10 @@ type ViewJob struct {
 }
 
 type ViewCommit struct {
-	LocaleCommit   string     `json:"localeCommit"`
-	LocalePushedBy string     `json:"localePushedBy"`
-	ShortSha       string     `json:"shortSHA"`
-	Link           string     `json:"link"`
-	Pusher         ViewUser   `json:"pusher"`
-	Branch         ViewBranch `json:"branch"`
+	ShortSha string     `json:"shortSHA"`
+	Link     string     `json:"link"`
+	Pusher   ViewUser   `json:"pusher"`
+	Branch   ViewBranch `json:"branch"`
 }
 
 type ViewUser struct {
@@ -129,8 +130,8 @@ type ViewStepLogLine struct {
 
 func ViewPost(ctx *context_module.Context) {
 	req := web.GetForm(ctx).(*ViewRequest)
-	runIndex := ctx.ParamsInt64("run")
-	jobIndex := ctx.ParamsInt64("job")
+	runIndex := ctx.PathParamInt64("run")
+	jobIndex := ctx.PathParamInt64("job")
 
 	current, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
@@ -151,6 +152,9 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
+	resp.State.Run.WorkflowID = run.WorkflowID
+	resp.State.Run.WorkflowLink = run.WorkflowLink()
+	resp.State.Run.IsSchedule = run.IsSchedule()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
@@ -172,12 +176,10 @@ func ViewPost(ctx *context_module.Context) {
 		Link: run.RefLink(),
 	}
 	resp.State.Run.Commit = ViewCommit{
-		LocaleCommit:   ctx.Locale.TrString("actions.runs.commit"),
-		LocalePushedBy: ctx.Locale.TrString("actions.runs.pushed_by"),
-		ShortSha:       base.ShortSha(run.CommitSHA),
-		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
-		Pusher:         pusher,
-		Branch:         branch,
+		ShortSha: base.ShortSha(run.CommitSHA),
+		Link:     fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
+		Pusher:   pusher,
+		Branch:   branch,
 	}
 
 	var task *actions_model.ActionTask
@@ -266,8 +268,8 @@ func ViewPost(ctx *context_module.Context) {
 // Rerun will rerun jobs in the given run
 // If jobIndexStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-	jobIndexStr := ctx.Params("job")
+	runIndex := ctx.PathParamInt64("run")
+	jobIndexStr := ctx.PathParam("job")
 	var jobIndex int64
 	if jobIndexStr != "" {
 		jobIndex, _ = strconv.ParseInt(jobIndexStr, 10, 64)
@@ -356,8 +358,8 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 }
 
 func Logs(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-	jobIndex := ctx.ParamsInt64("job")
+	runIndex := ctx.PathParamInt64("run")
+	jobIndex := ctx.PathParamInt64("job")
 
 	job, _ := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
@@ -405,7 +407,7 @@ func Logs(ctx *context_module.Context) {
 }
 
 func Cancel(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
+	runIndex := ctx.PathParamInt64("run")
 
 	_, jobs := getRunJobs(ctx, runIndex, -1)
 	if ctx.Written() {
@@ -446,7 +448,7 @@ func Cancel(ctx *context_module.Context) {
 }
 
 func Approve(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
+	runIndex := ctx.PathParamInt64("run")
 
 	current, jobs := getRunJobs(ctx, runIndex, -1)
 	if ctx.Written() {
@@ -502,7 +504,7 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return nil, nil
 	}
 	if len(jobs) == 0 {
-		ctx.Error(http.StatusNotFound, err.Error())
+		ctx.Error(http.StatusNotFound)
 		return nil, nil
 	}
 
@@ -527,7 +529,7 @@ type ArtifactsViewItem struct {
 }
 
 func ArtifactsView(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
+	runIndex := ctx.PathParamInt64("run")
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -565,8 +567,8 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 		return
 	}
 
-	runIndex := ctx.ParamsInt64("run")
-	artifactName := ctx.Params("artifact_name")
+	runIndex := ctx.PathParamInt64("run")
+	artifactName := ctx.PathParam("artifact_name")
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -583,8 +585,8 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 }
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-	artifactName := ctx.Params("artifact_name")
+	runIndex := ctx.PathParamInt64("run")
+	artifactName := ctx.PathParam("artifact_name")
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -623,7 +625,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
 	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
 		art := artifacts[0]
-		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+		if setting.Actions.ArtifactStorage.ServeDirect() {
 			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
@@ -644,7 +646,6 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	writer := zip.NewWriter(ctx.Resp)
 	defer writer.Close()
 	for _, art := range artifacts {
-
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())

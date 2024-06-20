@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -142,24 +143,28 @@ func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
 }
 
-// Params returns the param on route
-func (b *Base) Params(p string) string {
-	s, _ := url.PathUnescape(chi.URLParam(b.Req, strings.TrimPrefix(p, ":")))
+// PathParam returns the param in request path, eg: "/{var}" => "/a%2fb", then `var == "a/b"`
+func (b *Base) PathParam(name string) string {
+	s, err := url.PathUnescape(b.PathParamRaw(name))
+	if err != nil && !setting.IsProd {
+		panic("Failed to unescape path param: " + err.Error() + ", there seems to be a double-unescaping bug")
+	}
 	return s
 }
 
-func (b *Base) PathParamRaw(p string) string {
-	return chi.URLParam(b.Req, strings.TrimPrefix(p, ":"))
+// PathParamRaw returns the raw param in request path, eg: "/{var}" => "/a%2fb", then `var == "a%2fb"`
+func (b *Base) PathParamRaw(name string) string {
+	return chi.URLParam(b.Req, strings.TrimPrefix(name, ":"))
 }
 
-// ParamsInt64 returns the param on route as int64
-func (b *Base) ParamsInt64(p string) int64 {
-	v, _ := strconv.ParseInt(b.Params(p), 10, 64)
+// PathParamInt64 returns the param in request path as int64
+func (b *Base) PathParamInt64(p string) int64 {
+	v, _ := strconv.ParseInt(b.PathParam(p), 10, 64)
 	return v
 }
 
-// SetParams set params into routes
-func (b *Base) SetParams(k, v string) {
+// SetPathParam set request path params into routes
+func (b *Base) SetPathParam(k, v string) {
 	chiCtx := chi.RouteContext(b)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
@@ -234,9 +239,7 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	b.Resp.WriteHeader(status)
-	if _, err := b.Resp.Write(bs); err != nil {
-		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
-	}
+	_, _ = b.Resp.Write(bs)
 }
 
 // PlainTextBytes renders bytes as plain text
@@ -256,7 +259,7 @@ func (b *Base) Redirect(location string, status ...int) {
 		code = status[0]
 	}
 
-	if strings.HasPrefix(location, "http://") || strings.HasPrefix(location, "https://") || strings.HasPrefix(location, "//") {
+	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
 		// 1. the first request to "/my-path" contains cookie
 		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
@@ -311,7 +314,8 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, close
 		Locale:    middleware.Locale(resp, req),
 		Data:      middleware.GetContextData(req.Context()),
 	}
-	b.AppendContextValue(translation.ContextKey, b.Locale)
 	b.Req = b.Req.WithContext(b)
+	b.AppendContextValue(translation.ContextKey, b.Locale)
+	b.AppendContextValue(httplib.RequestContextKey, b.Req)
 	return b, b.cleanUp
 }

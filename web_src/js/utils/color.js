@@ -1,23 +1,21 @@
-// Check similar implementation in modules/util/color.go and keep synchronization
-// Return R, G, B values defined in reletive luminance
-function getLuminanceRGB(channel) {
-  const sRGB = channel / 255;
-  return (sRGB <= 0.03928) ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
+import tinycolor from 'tinycolor2';
+
+// Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
+// Keep this in sync with modules/util/color.go
+function getRelativeLuminance(color) {
+  const {r, g, b} = tinycolor(color).toRgb();
+  return (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 255;
 }
 
-// Reference from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
-function getLuminance(r, g, b) {
-  const R = getLuminanceRGB(r);
-  const G = getLuminanceRGB(g);
-  const B = getLuminanceRGB(b);
-  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+function useLightText(backgroundColor) {
+  return getRelativeLuminance(backgroundColor) < 0.453;
 }
 
-// Reference from: https://firsching.ch/github_labels.html
-// In the future WCAG 3 APCA may be a better solution.
-// Check if text should use light color based on RGB of background
-export function useLightTextOnBackground(r, g, b) {
-  return getLuminance(r, g, b) < 0.453;
+// Given a background color, returns a black or white foreground color that the highest
+// contrast ratio. In the future, the APCA contrast function, or CSS `contrast-color` will be better.
+// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
+export function contrastColor(backgroundColor) {
+  return useLightText(backgroundColor) ? '#fff' : '#000';
 }
 
 function resolveColors(obj) {

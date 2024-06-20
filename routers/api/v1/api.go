@@ -93,6 +93,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -135,8 +136,8 @@ func sudo() func(ctx *context.APIContext) {
 
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		userName := ctx.Params("username")
-		repoName := ctx.Params("reponame")
+		userName := ctx.PathParam("username")
+		repoName := ctx.PathParam("reponame")
 
 		var (
 			owner *user_model.User
@@ -209,11 +210,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
 				return
 			}
-			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
-			for _, u := range ctx.Repo.Repository.Units {
-				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
-			}
+			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
@@ -222,7 +219,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.HasAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() {
 			ctx.NotFound()
 			return
 		}
@@ -416,7 +413,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.HasAccess() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
@@ -558,12 +555,12 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam(":org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.Params(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -578,7 +575,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64(":teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
@@ -815,8 +812,8 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
-	m := web.NewRoute()
+func Routes() *web.Router {
+	m := web.NewRouter()
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
@@ -838,6 +835,34 @@ func Routes() *web.Route {
 	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
+
+	addActionsRoutes := func(
+		m *web.Router,
+		reqChecker func(ctx *context.APIContext),
+		act actions.API,
+	) {
+		m.Group("/actions", func() {
+			m.Group("/secrets", func() {
+				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqChecker, act.DeleteSecret)
+			})
+
+			m.Group("/variables", func() {
+				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Combo("/{variablename}").
+					Get(reqToken(), reqChecker, act.GetVariable).
+					Delete(reqToken(), reqChecker, act.DeleteVariable).
+					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+			})
+
+			m.Group("/runners", func() {
+				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+			})
+		})
+	}
 
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
@@ -1066,6 +1091,8 @@ func Routes() *web.Route {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
+				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
+
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
@@ -1075,26 +1102,11 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Group("/actions", func() {
-					m.Group("/secrets", func() {
-						m.Combo("/{secretname}").
-							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
-							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
-					})
-
-					m.Group("/variables", func() {
-						m.Get("", reqToken(), reqOwner(), repo.ListVariables)
-						m.Combo("/{variablename}").
-							Get(reqToken(), reqOwner(), repo.GetVariable).
-							Delete(reqToken(), reqOwner(), repo.DeleteVariable).
-							Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateVariable).
-							Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateVariable)
-					})
-
-					m.Group("/runners", func() {
-						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
-					})
-				})
+				addActionsRoutes(
+					m,
+					reqOwner(),
+					repo.NewAction(),
+				)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1156,6 +1168,18 @@ func Routes() *web.Route {
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				m.Group("/tag_protections", func() {
+					m.Combo("").Get(repo.ListTagProtection).
+						Post(bind(api.CreateTagProtectionOption{}), mustNotBeArchived, repo.CreateTagProtection)
+					m.Group("/{id}", func() {
+						m.Combo("").Get(repo.GetTagProtection).
+							Patch(bind(api.EditTagProtectionOption{}), mustNotBeArchived, repo.EditTagProtection).
+							Delete(repo.DeleteTagProtection)
+					})
+				}, reqToken(), reqAdmin())
+				m.Group("/actions", func() {
+					m.Get("/tasks", repo.ListActionTasks)
+				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -1462,27 +1486,11 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			m.Group("/actions", func() {
-				m.Group("/secrets", func() {
-					m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-					m.Combo("/{secretname}").
-						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
-				})
-
-				m.Group("/variables", func() {
-					m.Get("", reqToken(), reqOrgOwnership(), org.ListVariables)
-					m.Combo("/{variablename}").
-						Get(reqToken(), reqOrgOwnership(), org.GetVariable).
-						Delete(reqToken(), reqOrgOwnership(), org.DeleteVariable).
-						Post(reqToken(), reqOrgOwnership(), bind(api.CreateVariableOption{}), org.CreateVariable).
-						Put(reqToken(), reqOrgOwnership(), bind(api.UpdateVariableOption{}), org.UpdateVariable)
-				})
-
-				m.Group("/runners", func() {
-					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
-				})
-			})
+			addActionsRoutes(
+				m,
+				reqOrgOwnership(),
+				org.NewAction(),
+			)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).

@@ -45,7 +45,7 @@ To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
 
 In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.
 
-[Example (requires login)](https://try.gitea.io/repo/migrate)
+[Example (requires login)](https://demo.gitea.com/repo/migrate)
 
 To migrate from GitLab to Gitea, you can use this non-affiliated tool:
 
@@ -137,9 +137,9 @@ All Gitea instances have the built-in API and there is no way to disable it comp
 You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
 For more information, refer to Gitea's [API docs](development/api-usage.md).
 
-You can see the latest API (for example) on https://try.gitea.io/api/swagger
+You can see the latest API (for example) on https://gitea.com/api/swagger
 
-You can also see an example of the `swagger.json` file at https://try.gitea.io/swagger.v1.json
+You can also see an example of the `swagger.json` file at https://gitea.com/swagger.v1.json
 
 ## Adjusting your server for public/private use
 
@@ -177,17 +177,6 @@ At some point, a customer or third party needs access to a specific repo and onl
 ### Enable Fail2ban
 
 Use [Fail2Ban](administration/fail2ban-setup.md) to monitor and stop automated login attempts or other malicious behavior based on log patterns
-
-## How to add/use custom themes
-
-Gitea supports three official themes right now, `gitea-light`, `gitea-dark`, and `gitea-auto` (automatically switches between the previous two depending on operating system settings).
-To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
-
-As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
-
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/assets/css`
-
-Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
 ## SSHD vs built-in SSH
 

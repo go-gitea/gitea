@@ -1,4 +1,3 @@
-import * as htmx from 'htmx.org';
 import {showErrorToast} from './modules/toast.js';
 import 'htmx.org/dist/ext/ws.js';
 

@@ -266,7 +266,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
-	ruleID := ctx.ParamsInt64("id")
+	ruleID := ctx.PathParamInt64("id")
 	if ruleID <= 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
 		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
@@ -313,7 +313,13 @@ func RenameBranchPost(ctx *context.Context) {
 
 	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
-		ctx.ServerError("RenameBranch", err)
+		switch {
+		case git_model.IsErrBranchAlreadyExists(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		default:
+			ctx.ServerError("RenameBranch", err)
+		}
 		return
 	}
 

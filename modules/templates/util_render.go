@@ -41,12 +41,12 @@ func RenderCommitMessage(ctx context.Context, msg string, metas map[string]strin
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
-	return RenderCodeBlock(template.HTML(msgLines[0]))
+	return renderCodeBlock(template.HTML(msgLines[0]))
 }
 
-// RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
+// renderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string, metas map[string]string) template.HTML {
+func renderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -68,11 +68,11 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string,
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
 	}
-	return RenderCodeBlock(template.HTML(renderedMessage))
+	return renderCodeBlock(template.HTML(renderedMessage))
 }
 
-// RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(ctx context.Context, msg string, metas map[string]string) template.HTML {
+// renderCommitBody extracts the body of a commit message without its title.
+func renderCommitBody(ctx context.Context, msg string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimSpace(msg)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -99,14 +99,14 @@ func RenderCommitBody(ctx context.Context, msg string, metas map[string]string) 
 // Match text that is between back ticks.
 var codeMatcher = regexp.MustCompile("`([^`]+)`")
 
-// RenderCodeBlock renders "`…`" as highlighted "<code>" block, intended for issue and PR titles
-func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
+// renderCodeBlock renders "`…`" as highlighted "<code>" block, intended for issue and PR titles
+func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
 }
 
-// RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(ctx context.Context, text string, metas map[string]string) template.HTML {
+// renderIssueTitle renders issue/pull title with defined post processors
+func renderIssueTitle(ctx context.Context, text string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
 		Ctx:   ctx,
 		Metas: metas,
@@ -118,42 +118,32 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
 	return template.HTML(renderedText)
 }
 
-// RenderLabel renders a label
+// renderLabel renders a label
 // locale is needed due to an import cycle with our context providing the `Tr` function
-func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
-	var (
-		archivedCSSClass string
-		textColor        = "#111"
-		labelScope       = label.ExclusiveScope()
-	)
-
-	r, g, b := util.HexToRBGColor(label.Color)
-	// Determine if label text should be light or dark to be readable on background color
-	if util.UseLightTextOnBackground(r, g, b) {
-		textColor = "#eee"
-	}
-
-	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+func renderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
+	var extraCSSClasses string
+	textColor := util.ContrastColor(label.Color)
+	labelScope := label.ExclusiveScope()
+	descriptionText := emoji.ReplaceAliases(label.Description)
 
 	if label.IsArchived() {
-		archivedCSSClass = "archived-label"
-		description = fmt.Sprintf("(%s) %s", locale.TrString("archived"), description)
+		extraCSSClasses = "archived-label"
+		descriptionText = fmt.Sprintf("(%s) %s", locale.TrString("archived"), descriptionText)
 	}
 
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label %s' style='color: %s !important; background-color: %s !important;' data-tooltip-content title='%s'>%s</div>",
-			archivedCSSClass, textColor, label.Color, description, RenderEmoji(ctx, label.Name))
-		return template.HTML(s)
+		return HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, renderEmoji(ctx, label.Name))
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(ctx, labelScope)
-	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
+	scopeHTML := renderEmoji(ctx, labelScope)
+	itemHTML := renderEmoji(ctx, label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
-	luminance := util.GetLuminance(r, g, b)
+	luminance := util.GetRelativeLuminance(label.Color)
 	contrast := 0.01 + luminance*0.03
 	// Ensure we add the same amount of contrast also near 0 and 1.
 	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
@@ -162,6 +152,7 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
 	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
 
+	r, g, b := util.HexToRBGColor(label.Color)
 	scopeBytes := []byte{
 		uint8(math.Min(math.Round(r*darkenFactor), 255)),
 		uint8(math.Min(math.Round(g*darkenFactor), 255)),
@@ -176,18 +167,17 @@ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label %s scope-parent' data-tooltip-content title='%s'>"+
-		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"</span>",
-		archivedCSSClass, description,
-		textColor, scopeColor, scopeText,
-		textColor, itemColor, itemText)
-	return template.HTML(s)
+	return HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`</span>`,
+		extraCSSClasses, descriptionText,
+		textColor, scopeColor, scopeHTML,
+		textColor, itemColor, itemHTML)
 }
 
-// RenderEmoji renders html text with emoji post processors
-func RenderEmoji(ctx context.Context, text string) template.HTML {
+// renderEmoji renders html text with emoji post processors
+func renderEmoji(ctx context.Context, text string) template.HTML {
 	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ctx},
 		template.HTMLEscapeString(text))
 	if err != nil {
@@ -197,8 +187,8 @@ func RenderEmoji(ctx context.Context, text string) template.HTML {
 	return template.HTML(renderedText)
 }
 
-// ReactionToEmoji renders emoji for use in reactions
-func ReactionToEmoji(reaction string) template.HTML {
+// reactionToEmoji renders emoji for use in reactions
+func reactionToEmoji(reaction string) template.HTML {
 	val := emoji.FromCode(reaction)
 	if val != nil {
 		return template.HTML(val.Emoji)
@@ -221,15 +211,16 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return output
 }
 
-func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string) template.HTML {
+func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
+	isPullRequest := issue != nil && issue.IsPull
+	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-			repoLink, label.ID, RenderLabel(ctx, locale, label))
+		htmlCode += fmt.Sprintf(`<a href="%s?labels=%d">%s</a>`, baseLink, label.ID, renderLabel(ctx, locale, label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)

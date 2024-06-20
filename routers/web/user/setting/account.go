@@ -74,7 +74,6 @@ func AccountPost(ctx *context.Context) {
 			case errors.Is(err, password.ErrIsPwned):
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned"))
 			case password.IsErrIsPwnedRequest(err):
-				log.Error("%s", err.Error())
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned_err"))
 			default:
 				ctx.ServerError("UpdateAuth", err)

@@ -29,7 +29,7 @@ export function parseIssueListQuickGotoLink(repoLink, searchText) {
 }
 
 export function initCommonIssueListQuickGoto() {
-  const goto = document.getElementById('issue-list-quick-goto');
+  const goto = document.querySelector('#issue-list-quick-goto');
   if (!goto) return;
 
   const form = goto.closest('form');
@@ -53,7 +53,7 @@ export function initCommonIssueListQuickGoto() {
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
     if (targetUrl) {
-      const res = await GET(`${targetUrl}/info`);
+      const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
       if (res.status !== 200) targetUrl = '';
     }
     // if the input value has changed, then ignore the result

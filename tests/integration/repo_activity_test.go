@@ -20,7 +20,7 @@ func TestRepoActivity(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		// Create PRs (1 merged & 2 proposed)
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 		elem := strings.Split(test.RedirectURL(resp), "/")

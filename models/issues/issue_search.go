@@ -33,7 +33,7 @@ type IssuesOptions struct { //nolint
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
-	ProjectBoardID     int64
+	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
@@ -99,9 +99,9 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	}
 }
 
-func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyLimit(sess *xorm.Session, opts *IssuesOptions) {
 	if opts.Paginator == nil || opts.Paginator.IsListAll() {
-		return sess
+		return
 	}
 
 	start := 0
@@ -109,11 +109,9 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		start = (opts.Paginator.Page - 1) * opts.Paginator.PageSize
 	}
 	sess.Limit(opts.Paginator.PageSize, start)
-
-	return sess
 }
 
-func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
 	if len(opts.LabelIDs) > 0 {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
@@ -136,11 +134,9 @@ func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session
 	if len(opts.ExcludedLabelNames) > 0 {
 		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
-
-	return sess
 }
 
-func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
 	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
 		sess.And("issue.milestone_id = 0")
 	} else if len(opts.MilestoneIDs) > 0 {
@@ -153,11 +149,9 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sess
 				From("milestone").
 				Where(builder.In("name", opts.IncludeMilestones)))
 	}
-
-	return sess
 }
 
-func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 	if opts.ProjectID > 0 { // specific project
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
@@ -166,21 +160,19 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 	}
 	// opts.ProjectID == 0 means all projects,
 	// do not need to apply any condition
-	return sess
 }
 
-func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	// opts.ProjectBoardID == 0 means all project boards,
+func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) {
+	// opts.ProjectColumnID == 0 means all project columns,
 	// do not need to apply any condition
-	if opts.ProjectBoardID > 0 {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-	} else if opts.ProjectBoardID == db.NoConditionID {
+	if opts.ProjectColumnID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
+	} else if opts.ProjectColumnID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}
-	return sess
 }
 
-func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) {
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
 	} else if len(opts.RepoIDs) > 1 {
@@ -195,10 +187,9 @@ func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session 
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
 	}
-	return sess
 }
 
-func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
@@ -246,7 +237,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectCondition(sess, opts)
 
-	applyProjectBoardCondition(sess, opts)
+	applyProjectColumnCondition(sess, opts)
 
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
@@ -261,8 +252,6 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if opts.User != nil {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
 	}
-
-	return sess
 }
 
 // teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
@@ -339,22 +328,22 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
-	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) {
+	sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 		And("issue_assignees.assignee_id = ?", assigneeID)
 }
 
-func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
-	return sess.And("issue.poster_id=?", posterID)
+func applyPosterCondition(sess *xorm.Session, posterID int64) {
+	sess.And("issue.poster_id=?", posterID)
 }
 
-func applyMentionedCondition(sess *xorm.Session, mentionedID int64) *xorm.Session {
-	return sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+func applyMentionedCondition(sess *xorm.Session, mentionedID int64) {
+	sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 		And("issue_user.is_mentioned = ?", true).
 		And("issue_user.uid = ?", mentionedID)
 }
 
-func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) *xorm.Session {
+func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) {
 	existInTeamQuery := builder.Select("team_user.team_id").
 		From("team_user").
 		Where(builder.Eq{"team_user.uid": reviewRequestedID})
@@ -375,11 +364,11 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 			),
 			builder.In("review.id", maxReview),
 		))
-	return sess.Where("issue.poster_id <> ?", reviewRequestedID).
+	sess.Where("issue.poster_id <> ?", reviewRequestedID).
 		And(builder.In("issue.id", subQuery))
 }
 
-func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
+func applyReviewedCondition(sess *xorm.Session, reviewedID int64) {
 	// Query for pull requests where you are a reviewer or commenter, excluding
 	// any pull requests already returned by the review requested filter.
 	notPoster := builder.Neq{"issue.poster_id": reviewedID}
@@ -406,11 +395,11 @@ func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session 
 			builder.In("type", CommentTypeComment, CommentTypeCode, CommentTypeReview),
 		)),
 	)
-	return sess.And(notPoster, builder.Or(reviewed, commented))
+	sess.And(notPoster, builder.Or(reviewed, commented))
 }
 
-func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
-	return sess.And(
+func applySubscribedCondition(sess *xorm.Session, subscriberID int64) {
+	sess.And(
 		builder.
 			NotIn("issue.id",
 				builder.Select("issue_id").

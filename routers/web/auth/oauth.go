@@ -470,8 +470,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// Redirect if user already granted access
-	if grant != nil {
+	// Redirect if user already granted access and the application is confidential.
+	// I.e. always require authorization for public clients as recommended by RFC 6749 Section 10.2
+	if app.ConfidentialClient && grant != nil {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -540,20 +541,45 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
+
+	if !form.Granted {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "the request is denied",
+			ErrorCode:        ErrorCodeAccessDenied,
+		}, form.RedirectURI)
+		return
+	}
+
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		return
+	}
+	if grant == nil {
+		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+		if err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot create grant for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
+	} else if grant.Scope != form.Scope {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
-			ErrorDescription: "cannot create grant for user",
+			ErrorDescription: "a grant exists with different scope",
 			ErrorCode:        ErrorCodeServerError,
 		}, form.RedirectURI)
 		return
 	}
+
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
@@ -839,7 +865,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
-	provider := ctx.Params(":provider")
+	provider := ctx.PathParam(":provider")
 
 	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
@@ -878,7 +904,7 @@ func SignInOAuth(ctx *context.Context) {
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	provider := ctx.Params(":provider")
+	provider := ctx.PathParam(":provider")
 
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string
@@ -934,7 +960,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	if u == nil {
 		if ctx.Doer != nil {
-			// attach user to already logged in user
+			// attach user to the current signed-in user
 			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
@@ -952,21 +978,30 @@ func SignInOAuthCallback(ctx *context.Context) {
 			if gothUser.Email == "" {
 				missingFields = append(missingFields, "email")
 			}
-			if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname && gothUser.NickName == "" {
-				missingFields = append(missingFields, "nickname")
-			}
-			if len(missingFields) > 0 {
-				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				if authSource.IsOAuth2() && authSource.Cfg.(*oauth2.Source).Provider == "openidConnect" {
-					log.Error("You may need to change the 'OPENID_CONNECT_SCOPES' setting to request all required fields")
-				}
-				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				ctx.ServerError("CreateUser", err)
-				return
-			}
-			uname, err := getUserName(&gothUser)
+			uname, err := extractUserNameFromOAuth2(&gothUser)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
+				return
+			}
+			if uname == "" {
+				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+					missingFields = append(missingFields, "nickname")
+				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+					missingFields = append(missingFields, "preferred_username")
+				} // else: "UserID" and "Email" have been handled above separately
+			}
+			if len(missingFields) > 0 {
+				log.Error(`OAuth2 auto registration (ENABLE_AUTO_REGISTRATION) is enabled but OAuth2 provider %q doesn't return required fields: %s. `+
+					`Suggest to: disable auto registration, or make OPENID_CONNECT_SCOPES (for OpenIDConnect) / Authentication Source Scopes (for Admin panel) to request all required fields, and the fields shouldn't be empty.`,
+					authSource.Name, strings.Join(missingFields, ","))
+				// The RawData is the only way to pass the missing fields to the another page at the moment, other ways all have various problems:
+				// by session or cookie: difficult to clean or reset; by URL: could be injected with uncontrollable content; by ctx.Flash: the link_account page is a mess ...
+				// Since the RawData is for the provider's data, so we need to use our own prefix here to avoid conflict.
+				if gothUser.RawData == nil {
+					gothUser.RawData = make(map[string]any)
+				}
+				gothUser.RawData["__giteaAutoRegMissingFields"] = missingFields
+				showLinkingLogin(ctx, gothUser)
 				return
 			}
 			u = &user_model.User{
