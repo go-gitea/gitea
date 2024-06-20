@@ -522,7 +522,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
 }
 
-func TestRender_RelativeImages(t *testing.T) {
+func TestRender_RelativeMedias(t *testing.T) {
 	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:    git.DefaultContext,
@@ -548,46 +548,15 @@ func TestRender_RelativeImages(t *testing.T) {
 
 	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
 	assert.Equal(t, `<img src="/LINK"/>`, out)
-}
 
-func TestRender_RelativeVideos(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
+	out = render(`<video src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/LINK"></video>`, out)
 
-	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base:       markup.TestRepoURL,
-				BranchPath: "master",
-			},
-			Metas: localMetas,
-		}, input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: markup.TestRepoURL,
-			},
-			Metas:  localMetas,
-			IsWiki: true,
-		}, input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
-	}
+	out = render(`<video src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/wiki/raw/LINK"></video>`, out)
 
-	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
-	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
-
-	test(
-		`<video src="Link">`,
-		`<video src="`+util.URLJoin(mediatree, "Link")+`"></video>`,
-		`<video src="`+util.URLJoin(rawwiki, "Link")+`"></video>`)
-
-	test(
-		`<video src="./video.mp4">`,
-		`<video src="`+util.URLJoin(mediatree, "video.mp4")+`"></video>`,
-		`<video src="`+util.URLJoin(rawwiki, "video.mp4")+`"></video>`)
+	out = render(`<video src="/LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/LINK"></video>`, out)
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
