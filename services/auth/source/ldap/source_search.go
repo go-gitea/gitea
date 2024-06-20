@@ -117,11 +117,10 @@ func dial(source *Source) (*ldap.Conn, error) {
 	}
 
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		dialOpt := ldap.DialWithTLSConfig(tlsConfig)
-		return ldap.DialURL(net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), dialOpt)
+		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig)
 	}
 
-	conn, err := ldap.DialURL(net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
+	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
 		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
