@@ -33,6 +33,7 @@ overrides:
   - files: ["web_src/**/*"]
     globals:
       __webpack_public_path__: true
+      htmx: true
       process: false # https://github.com/webpack/webpack/issues/15833
   - files: ["web_src/**/*", "docs/**/*"]
     env:
