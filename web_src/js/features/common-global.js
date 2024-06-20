@@ -204,7 +204,10 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
 
+  const t1 = performance.now();
+  console.log('start tab');
   $('.tabular.menu .item').tab();
+  console.log('end tab', performance.now() - t1);
 
   initSubmitEventPolyfill();
   document.addEventListener('submit', formFetchAction);
