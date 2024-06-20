@@ -102,7 +102,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params("sha")
+	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "", "SHA not provided")
 		return
@@ -147,7 +147,7 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	tagName := ctx.Params("*")
+	tagName := ctx.PathParam("*")
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
@@ -263,7 +263,7 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	tagName := ctx.Params("*")
+	tagName := ctx.PathParam("*")
 
 	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
@@ -358,7 +358,7 @@ func GetTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)
@@ -522,7 +522,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
 
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)
@@ -617,7 +617,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)

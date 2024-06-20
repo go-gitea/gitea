@@ -56,7 +56,7 @@ func GetBranch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	branchName := ctx.Params("*")
+	branchName := ctx.PathParam("*")
 
 	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
@@ -131,7 +131,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchName := ctx.Params("*")
+	branchName := ctx.PathParam("*")
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
@@ -426,7 +426,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.Params(":name")
+	bpName := ctx.PathParam(":name")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
@@ -724,7 +724,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
-	bpName := ctx.Params(":name")
+	bpName := ctx.PathParam(":name")
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
@@ -992,7 +992,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.Params(":name")
+	bpName := ctx.PathParam(":name")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
