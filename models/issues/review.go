@@ -514,7 +514,7 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 
 	has, err := db.GetEngine(ctx).Where(
 		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": "0"})).
+			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
 		Desc("id").
 		Get(review)
 	if err != nil {
@@ -1050,7 +1050,7 @@ func UpdateReviewsMigrationsByType(ctx context.Context, tp structs.GitServiceTyp
 		Update(map[string]any{
 			"reviewer_id":        posterID,
 			"original_author":    "",
-			"original_author_id": "0",
+			"original_author_id": 0,
 		})
 	return err
 }

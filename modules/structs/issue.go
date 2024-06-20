@@ -50,7 +50,7 @@ type Issue struct {
 	Index            int64         `json:"number"`
 	Poster           *User         `json:"user"`
 	OriginalAuthor   string        `json:"original_author"`
-	OriginalAuthorID string        `json:"original_author_id"`
+	OriginalAuthorID int64         `json:"original_author_id"`
 	Title            string        `json:"title"`
 	Body             string        `json:"body"`
 	Ref              string        `json:"ref"`

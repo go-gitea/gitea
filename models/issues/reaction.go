@@ -130,7 +130,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	if opts.UserID > 0 {
 		cond = cond.And(builder.Eq{
 			"reaction.user_id":            opts.UserID,
-			"reaction.original_author_id": "0",
+			"reaction.original_author_id": 0,
 		})
 	}
 	if opts.Reaction != "" {
@@ -249,7 +249,7 @@ func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 		CommentID: opts.CommentID,
 	}
 
-	sess := db.GetEngine(ctx).Where("original_author_id = '0'")
+	sess := db.GetEngine(ctx).Where("original_author_id = 0")
 	if opts.CommentID == -1 {
 		reaction.CommentID = 0
 		sess.MustCols("comment_id")

@@ -623,7 +623,7 @@ func UpdateIssuesMigrationsByType(ctx context.Context, gitServiceType api.GitSer
 		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
-			"original_author_id": "0",
+			"original_author_id": 0,
 		})
 	return err
 }
@@ -636,7 +636,7 @@ func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.Git
 		Update(map[string]any{
 			"user_id":            userID,
 			"original_author":    "",
-			"original_author_id": "0",
+			"original_author_id": 0,
 		})
 	return err
 }

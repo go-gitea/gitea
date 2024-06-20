@@ -432,7 +432,7 @@ func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.
 		Update(map[string]any{
 			"publisher_id":       posterID,
 			"original_author":    "",
-			"original_author_id": "0",
+			"original_author_id": 0,
 		})
 	return err
 }
