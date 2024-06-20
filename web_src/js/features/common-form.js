@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import '../vendor/jquery.are-you-sure.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 
 export function initGlobalFormDirtyLeaveConfirm() {

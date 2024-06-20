@@ -79,7 +79,12 @@ import {initRepositorySearch} from './features/repo-search.js';
 import {initColorPickers} from './features/colorpicker.js';
 import {initAdminSelfCheck} from './features/admin/selfcheck.js';
 import {initGlobalFetchAction} from './features/common-fetch-action.js';
-import {initFootLanguageMenu, initGlobalComponents, initHeadNavbarContentToggle} from './features/common-page.js';
+import {
+  initFootLanguageMenu,
+  initGlobalDropdown,
+  initGlobalTabularMenu,
+  initHeadNavbarContentToggle,
+} from './features/common-page.js';
 import {
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -95,7 +100,8 @@ initDirAuto();
 initSubmitEventPolyfill();
 
 onDomReady(() => {
-  initGlobalComponents();
+  initGlobalDropdown();
+  initGlobalTabularMenu();
   initGlobalShowModal();
   initGlobalFetchAction();
   initGlobalTooltips();
