@@ -50,7 +50,7 @@ const (
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
 func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
-	orgName := ctx.Params(":org")
+	orgName := ctx.PathParam(":org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
 		ctx.Data["Teams"] = ctx.Org.Teams
@@ -262,6 +262,7 @@ func Milestones(ctx *context.Context) {
 			},
 			Metas: milestones[i].Repo.ComposeMetas(ctx),
 			Ctx:   ctx,
+			Repo:  milestones[i].Repo,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -713,9 +714,9 @@ func ShowGPGKeys(ctx *context.Context) {
 func UsernameSubRoute(ctx *context.Context) {
 	// WORKAROUND to support usernames with "." in it
 	// https://github.com/go-chi/chi/issues/781
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 	reloadParam := func(suffix string) (success bool) {
-		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+		ctx.SetPathParam("username", strings.TrimSuffix(username, suffix))
 		context.UserAssignmentWeb()(ctx)
 		if ctx.Written() {
 			return false

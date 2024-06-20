@@ -15,6 +15,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
@@ -222,6 +223,14 @@ func SelfCheck(ctx *context.Context) {
 
 		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
 	}
+
+	elapsed, err := cache.Test()
+	if err != nil {
+		ctx.Data["CacheError"] = err
+	} else if elapsed > cache.SlowCacheThreshold {
+		ctx.Data["CacheSlow"] = fmt.Sprint(elapsed)
+	}
+
 	ctx.HTML(http.StatusOK, tplSelfCheck)
 }
 

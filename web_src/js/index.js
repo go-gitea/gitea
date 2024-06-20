@@ -43,7 +43,7 @@ import {
   initGlobalDropzone,
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
-  initGlobalLinkActions,
+  initGlobalDeleteButton,
   initHeadNavbarContentToggle,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
@@ -103,7 +103,7 @@ onDomReady(() => {
   initGlobalDropzone();
   initGlobalEnterQuickSubmit();
   initGlobalFormDirtyLeaveConfirm();
-  initGlobalLinkActions();
+  initGlobalDeleteButton();
 
   initCommonOrganization();
   initCommonIssueListQuickGoto();
