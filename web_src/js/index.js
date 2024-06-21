@@ -45,6 +45,7 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalDeleteButton,
   initHeadNavbarContentToggle,
+  initGlobalEnableSystemCheckbox,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
@@ -88,6 +89,7 @@ import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
 import {initColorPickers} from './features/colorpicker.js';
 import {initAdminSelfCheck} from './features/admin/selfcheck.js';
+import { initOAuth2SettingsDisableCheckbox } from './features/oauth2-settings.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -192,4 +194,6 @@ onDomReady(() => {
   initPdfViewer();
   initScopedAccessTokenCategories();
   initColorPickers();
+
+  initOAuth2SettingsDisableCheckbox();
 });

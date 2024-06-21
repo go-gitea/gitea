@@ -223,10 +223,11 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
 	app, err := auth_model.CreateOAuth2Application(ctx, auth_model.CreateOAuth2ApplicationOptions{
-		Name:               data.Name,
-		UserID:             ctx.Doer.ID,
-		RedirectURIs:       data.RedirectURIs,
-		ConfidentialClient: data.ConfidentialClient,
+		Name:                       data.Name,
+		UserID:                     ctx.Doer.ID,
+		RedirectURIs:               data.RedirectURIs,
+		ConfidentialClient:         data.ConfidentialClient,
+		SkipSecondaryAuthorization: data.SkipSecondaryAuthorization,
 	})
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
@@ -381,11 +382,12 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
 	app, err := auth_model.UpdateOAuth2Application(ctx, auth_model.UpdateOAuth2ApplicationOptions{
-		Name:               data.Name,
-		UserID:             ctx.Doer.ID,
-		ID:                 appID,
-		RedirectURIs:       data.RedirectURIs,
-		ConfidentialClient: data.ConfidentialClient,
+		Name:                       data.Name,
+		UserID:                     ctx.Doer.ID,
+		ID:                         appID,
+		RedirectURIs:               data.RedirectURIs,
+		ConfidentialClient:         data.ConfidentialClient,
+		SkipSecondaryAuthorization: data.SkipSecondaryAuthorization,
 	})
 	if err != nil {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
