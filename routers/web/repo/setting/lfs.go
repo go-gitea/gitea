@@ -236,7 +236,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := git_model.DeleteLFSLockByID(ctx, ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
+	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -251,7 +251,7 @@ func LFSFileGet(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
-	oid := ctx.Params("oid")
+	oid := ctx.PathParam("oid")
 
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
@@ -348,7 +348,7 @@ func LFSDelete(ctx *context.Context) {
 		ctx.NotFound("LFSDelete", nil)
 		return
 	}
-	oid := ctx.Params("oid")
+	oid := ctx.PathParam("oid")
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
 		ctx.NotFound("LFSDelete", nil)

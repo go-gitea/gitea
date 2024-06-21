@@ -219,7 +219,7 @@ func NewUserPost(ctx *context.Context) {
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
-	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users")
@@ -481,12 +481,12 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 }
 
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -495,7 +495,7 @@ func DeleteUser(ctx *context.Context) {
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
-		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		return
 	}
 
@@ -503,16 +503,16 @@ func DeleteUser(ctx *context.Context) {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

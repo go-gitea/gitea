@@ -33,39 +33,18 @@ const (
 	TypeActions                     // 10 Actions
 )
 
-// Value returns integer value for unit type
+// Value returns integer value for unit type (used by template)
 func (u Type) Value() int {
 	return int(u)
 }
 
-func (u Type) String() string {
-	switch u {
-	case TypeCode:
-		return "TypeCode"
-	case TypeIssues:
-		return "TypeIssues"
-	case TypePullRequests:
-		return "TypePullRequests"
-	case TypeReleases:
-		return "TypeReleases"
-	case TypeWiki:
-		return "TypeWiki"
-	case TypeExternalWiki:
-		return "TypeExternalWiki"
-	case TypeExternalTracker:
-		return "TypeExternalTracker"
-	case TypeProjects:
-		return "TypeProjects"
-	case TypePackages:
-		return "TypePackages"
-	case TypeActions:
-		return "TypeActions"
-	}
-	return fmt.Sprintf("Unknown Type %d", u)
-}
-
 func (u Type) LogString() string {
-	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
+	unit, ok := Units[u]
+	unitName := "unknown"
+	if ok {
+		unitName = unit.NameKey
+	}
+	return fmt.Sprintf("<UnitType:%d:%s>", u, unitName)
 }
 
 var (
@@ -133,7 +112,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", settingUnit.String())
+				log.Warn("Not allowed as default unit: %s", settingUnit.LogString())
 				continue
 			}
 			units = append(units, settingUnit)
