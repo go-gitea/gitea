@@ -36,7 +36,10 @@ import (
 )
 
 const (
-	lfsAuthenticateVerb = "git-lfs-authenticate"
+	verbUploadPack      = "git-upload-pack"
+	verbUploadArchive   = "git-upload-archive"
+	verbReceivePack     = "git-receive-pack"
+	verbLfsAuthenticate = "git-lfs-authenticate"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -73,11 +76,16 @@ func setup(ctx context.Context, debug bool) {
 }
 
 var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
+	// anything not in map will return false (zero value)
+	// keep getAccessMode() in sync
+	allowedCommands = map[string]bool{
+		verbUploadPack:      true,
+		verbUploadArchive:   true,
+		verbReceivePack:     true,
+		verbLfsAuthenticate: true,
+	}
+	allowedCommandsLfs = map[string]bool{
+		verbLfsAuthenticate: true,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -122,6 +130,24 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 		return cli.Exit(extra.Error, 1)
 	}
 	return nil
+}
+
+func getAccessMode(verb string, lfsVerb string) perm.AccessMode {
+	switch verb {
+	case verbUploadPack, verbUploadArchive:
+		return perm.AccessModeRead
+	case verbReceivePack:
+		return perm.AccessModeWrite
+	case verbLfsAuthenticate:
+		switch lfsVerb {
+		case "upload":
+			return perm.AccessModeWrite
+		case "download":
+			return perm.AccessModeRead
+		}
+	}
+	// should be unreachable
+	return perm.AccessModeNone
 }
 
 func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
@@ -216,15 +242,6 @@ func runServ(c *cli.Context) error {
 	}
 
 	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
-		if !setting.LFS.StartServer {
-			return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
-		}
-
-		if len(words) > 2 {
-			lfsVerb = words[2]
-		}
-	}
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
@@ -261,20 +278,20 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	requestedMode, has := allowedCommands[verb]
-	if !has {
+	if allowedCommands[verb] {
+		if allowedCommandsLfs[verb] {
+			if !setting.LFS.StartServer {
+				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+			}
+			if len(words) > 2 {
+				lfsVerb = words[2]
+			}
+		}
+	} else {
 		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
 	}
 
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = perm.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = perm.AccessModeRead
-		} else {
-			return fail(ctx, "Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
-		}
-	}
+	requestedMode := getAccessMode(verb, lfsVerb)
 
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
@@ -282,7 +299,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	// LFS token authentication
-	if verb == lfsAuthenticateVerb {
+	if verb == verbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		token, err := getLFSAuthToken(ctx, lfsVerb, results)
