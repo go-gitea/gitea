@@ -36,7 +36,10 @@ import (
 )
 
 const (
-	lfsAuthenticateVerb = "git-lfs-authenticate"
+	verbUploadPack      = "git-upload-pack"
+	verbUploadArchive   = "git-upload-archive"
+	verbReceivePack     = "git-receive-pack"
+	verbLfsAuthenticate = "git-lfs-authenticate"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -73,11 +76,16 @@ func setup(ctx context.Context, debug bool) {
 }
 
 var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
+	// anything not in map will return false (zero value)
+	// keep getAccessMode() in sync
+	allowedCommands = map[string]bool{
+		verbUploadPack:      true,
+		verbUploadArchive:   true,
+		verbReceivePack:     true,
+		verbLfsAuthenticate: true,
+	}
+	allowedCommandsLfs = map[string]bool{
+		verbLfsAuthenticate: true,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -122,6 +130,24 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 		return cli.Exit(extra.Error, 1)
 	}
 	return nil
+}
+
+func getAccessMode(verb string, lfsVerb string) perm.AccessMode {
+	switch verb {
+	case verbUploadPack, verbUploadArchive:
+		return perm.AccessModeRead
+	case verbReceivePack:
+		return perm.AccessModeWrite
+	case verbLfsAuthenticate:
+		switch lfsVerb {
+		case "upload":
+			return perm.AccessModeWrite
+		case "download":
+			return perm.AccessModeRead
+		}
+	}
+	// should be unreachable
+	return perm.AccessModeNone
 }
 
 func runServ(c *cli.Context) error {
@@ -193,17 +219,7 @@ func runServ(c *cli.Context) error {
 	if repoPath[0] == '/' {
 		repoPath = repoPath[1:]
 	}
-
 	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
-		if !setting.LFS.StartServer {
-			return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
-		}
-
-		if len(words) > 2 {
-			lfsVerb = words[2]
-		}
-	}
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
@@ -240,20 +256,20 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	requestedMode, has := allowedCommands[verb]
-	if !has {
+	if allowedCommands[verb] {
+		if allowedCommandsLfs[verb] {
+			if !setting.LFS.StartServer {
+				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+			}
+			if len(words) > 2 {
+				lfsVerb = words[2]
+			}
+		}
+	} else {
 		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
 	}
 
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = perm.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = perm.AccessModeRead
-		} else {
-			return fail(ctx, "Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
-		}
-	}
+	requestedMode := getAccessMode(verb, lfsVerb)
 
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
@@ -261,7 +277,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	// LFS token authentication
-	if verb == lfsAuthenticateVerb {
+	if verb == verbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
@@ -296,22 +312,22 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	var gitcmd *exec.Cmd
 	gitBinPath := filepath.Dir(git.GitExecutable) // e.g. /usr/bin
 	gitBinVerb := filepath.Join(gitBinPath, verb) // e.g. /usr/bin/git-upload-pack
+	gitExe := gitBinVerb
+	gitArgs := make([]string, 0, 3) // capacity to accommodate max args
 	if _, err := os.Stat(gitBinVerb); err != nil {
 		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
 		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
 		verbFields := strings.SplitN(verb, "-", 2)
 		if len(verbFields) == 2 {
 			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			gitcmd = exec.CommandContext(ctx, git.GitExecutable, verbFields[1], repoPath)
+			gitExe = git.GitExecutable
+			gitArgs = append(gitArgs, verbFields[1])
 		}
 	}
-	if gitcmd == nil {
-		// by default, use the verb (it has been checked above by allowedCommands)
-		gitcmd = exec.CommandContext(ctx, gitBinVerb, repoPath)
-	}
+	gitArgs = append(gitArgs, repoPath)
+	gitcmd := exec.CommandContext(ctx, gitExe, gitArgs...)
 
 	process.SetSysProcAttribute(gitcmd)
 	gitcmd.Dir = setting.RepoRootPath
