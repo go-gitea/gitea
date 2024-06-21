@@ -1,9 +1,9 @@
 export function initOAuth2SettingsDisableCheckbox() {
-  document.querySelectorAll('.disable-setting').forEach(e => e.addEventListener('change',  ({ target }) => {
+  for (const e of document.querySelectorAll('.disable-setting')) e.addEventListener('change', ({target}) => {
     if (target.checked) {
-      document.querySelector(e.dataset.target).classList.add('disabled');
+      document.querySelector(e.getAttribute('data-target')).classList.add('disabled');
     } else {
-      document.querySelector(e.dataset.target).classList.remove('disabled');
+      document.querySelector(e.getAttribute('data-target')).classList.remove('disabled');
     }
-  }));
+  });
 }
