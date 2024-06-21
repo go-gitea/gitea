@@ -127,7 +127,8 @@ overrides:
       vue/max-attributes-per-line: [0]
       vue/singleline-html-element-content-newline: [0]
   - files: ["tests/e2e/**"]
-    plugins: [eslint-plugin-playwright]
+    plugins:
+      - eslint-plugin-playwright
     extends: plugin:playwright/recommended
 
 rules:
