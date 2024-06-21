@@ -478,7 +478,8 @@ img.ui.avatar,
 }
 
 .status-page-error {
-  margin: 80px 0;
+  margin-top: max(45vh - 90px, 80px);
+  margin-bottom: 80px;
 }
 
 .status-page-error-title {
