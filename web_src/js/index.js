@@ -36,17 +36,6 @@ import {
   initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
 } from './features/repo-issue.js';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.js';
-import {
-  initFootLanguageMenu,
-  initGlobalButtonClickOnEnter,
-  initGlobalButtons,
-  initGlobalCommon,
-  initGlobalDropzone,
-  initGlobalEnterQuickSubmit,
-  initGlobalFormDirtyLeaveConfirm,
-  initGlobalDeleteButton,
-  initHeadNavbarContentToggle,
-} from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
 import {initAdminCommon} from './features/admin/common.js';
@@ -78,7 +67,7 @@ import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
-import {onDomReady} from './utils/dom.js';
+import {initSubmitEventPolyfill, onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoContributors} from './features/contributors.js';
@@ -89,14 +78,26 @@ import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
 import {initColorPickers} from './features/colorpicker.js';
 import {initAdminSelfCheck} from './features/admin/selfcheck.js';
+import {initGlobalFetchAction} from './features/common-fetch-action.js';
+import {initFootLanguageMenu, initGlobalComponents, initHeadNavbarContentToggle} from './features/common-page.js';
+import {
+  initGlobalButtonClickOnEnter,
+  initGlobalButtons,
+  initGlobalDeleteButton,
+  initGlobalShowModal,
+} from './features/common-button.js';
+import {initGlobalDropzone} from './features/dropzone.js';
+import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
 initDirAuto();
+initSubmitEventPolyfill();
 
 onDomReady(() => {
-  initGlobalCommon();
-
+  initGlobalComponents();
+  initGlobalShowModal();
+  initGlobalFetchAction();
   initGlobalTooltips();
   initGlobalButtonClickOnEnter();
   initGlobalButtons();
