@@ -1,0 +1,14 @@
+{{template "base/head" .}}
+
+{{range $idx := SliceUtils.Range 300}}
+<div class="tw-m-4 tw-border">
+	<div class="ui tabular menu">
+		<a class="item" data-tab="devtest-tab-{{$idx}}-a">Tab {{$idx}} A</a>
+		<a class="item" data-tab="devtest-tab-{{$idx}}-b">Tab {{$idx}} B</a>
+	</div>
+	<div class="ui tab active" data-tab="devtest-tab-{{$idx}}-a">Page A</div>
+	<div class="ui tab" data-tab="devtest-tab-{{$idx}}-b">Page B</div>
+</div>
+{{end}}
+
+{{template "base/footer" .}}
