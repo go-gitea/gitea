@@ -2,11 +2,11 @@
 FROM docker.io/library/golang:1.22-alpine3.20 AS build-env
 
 ARG GOPROXY
-ENV GOPROXY ${GOPROXY:-direct}
+ENV GOPROXY=${GOPROXY:-direct}
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
-ENV TAGS "bindata timetzdata $TAGS"
+ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 # Build deps
@@ -72,8 +72,8 @@ RUN addgroup \
     git && \
   echo "git:*" | chpasswd -e
 
-ENV USER git
-ENV GITEA_CUSTOM /data/gitea
+ENV USER=git
+ENV GITEA_CUSTOM=/data/gitea
 
 VOLUME ["/data"]
 
