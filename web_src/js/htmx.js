@@ -1,4 +1,3 @@
-import * as htmx from 'htmx.org';
 import {showErrorToast} from './modules/toast.js';
 
 // https://github.com/bigskysoftware/idiomorph#htmx
