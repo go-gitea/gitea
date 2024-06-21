@@ -522,7 +522,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
 }
 
-func TestRender_RelativeImages(t *testing.T) {
+func TestRender_RelativeMedias(t *testing.T) {
 	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:    git.DefaultContext,
@@ -548,6 +548,15 @@ func TestRender_RelativeImages(t *testing.T) {
 
 	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
 	assert.Equal(t, `<img src="/LINK"/>`, out)
+
+	out = render(`<video src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/LINK"></video>`, out)
+
+	out = render(`<video src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/wiki/raw/LINK"></video>`, out)
+
+	out = render(`<video src="/LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/LINK"></video>`, out)
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
