@@ -1,5 +1,6 @@
 // bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
 import './bootstrap.js';
+import './htmx.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
