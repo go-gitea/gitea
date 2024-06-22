@@ -1,0 +1,27 @@
+{{template "base/head" .}}
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Label</h1>
+		<div class="flex-text-block tw-my-2">
+			<span class="ui label">simple label</span>
+			<span class="ui red label">red label</span>
+			<span class="ui green label">green label</span>
+		</div>
+		<div class="flex-text-block tw-my-2">
+			<span class="ui basic label">basic label</span>
+			<span class="ui basic red label">basic red label</span>
+			<span class="ui basic green label">basic green label</span>
+		</div>
+		<div class="flex-text-block tw-my-2">
+			<span class="ui label">long content must be in a non-flex "gt-ellipsis" element, otherwise it won't get ellipsis. very looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong label</span>
+		</div>
+		<div class="flex-text-block tw-my-2">
+			<span class="ui label"><span class="gt-ellipsis">very looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong label</span></span>
+		</div>
+		<div class="tw-my-2">
+			<span class="ui label tw-max-w-full"><span class="gt-ellipsis">very looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong label</span></span>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -141,7 +141,7 @@ export default {
     'custom-property-pattern': null,
     'declaration-block-no-duplicate-custom-properties': true,
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
-    'declaration-block-no-redundant-longhand-properties': null,
+    'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow']}],
     'declaration-block-no-shorthand-property-overrides': null,
     'declaration-block-single-line-max-declarations': null,
     'declaration-empty-line-before': null,
@@ -150,7 +150,7 @@ export default {
     'declaration-property-unit-allowed-list': null,
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
     'declaration-property-value-allowed-list': null,
-    'declaration-property-value-disallowed-list': null,
+    'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'declaration-property-value-no-unknown': true,
     'font-family-name-quotes': 'always-where-recommended',
     'font-family-no-duplicate-names': true,
@@ -191,8 +191,9 @@ export default {
     'no-invalid-double-slash-comments': true,
     'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
     'no-irregular-whitespace': true,
-    'no-unknown-animations': null,
-    'no-unknown-custom-properties': null,
+    'no-unknown-animations': null, // disabled until stylelint supports multi-file linting
+    'no-unknown-custom-media': null, // disabled until stylelint supports multi-file linting
+    'no-unknown-custom-properties': null,  // disabled until stylelint supports multi-file linting
     'number-max-precision': null,
     'plugin/declaration-block-no-ignored-properties': true,
     'property-allowed-list': null,

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user notification">
 	<div class="ui container">
-		<div class="ui top attached tabular menu">
+		<div class="ui compact small menu small-menu-items">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">
 				{{ctx.Locale.Tr "notification.subscriptions"}}
 			</a>
@@ -9,7 +9,7 @@
 				{{ctx.Locale.Tr "notification.watching"}}
 			</a>
 		</div>
-		<div class="ui bottom attached active tab segment">
+		<div class="ui top attached segment">
 			{{if eq .Status 1}}
 				<div class="tw-flex tw-justify-between">
 					<div class="tw-flex">

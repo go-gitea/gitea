@@ -1,15 +1,15 @@
-<div class="file-info text grey normal tw-font-mono">
+<div class="file-info tw-font-mono">
 	{{if .FileIsSymlink}}
 		<div class="file-info-entry">
 			{{ctx.Locale.Tr "repo.symbolic_link"}}
 		</div>
 	{{end}}
-	{{if .NumLinesSet}}{{/* Explicit attribute needed to show 0 line changes */}}
+	{{if ne .NumLines nil}}
 		<div class="file-info-entry">
 			{{.NumLines}} {{ctx.Locale.TrN .NumLines "repo.line" "repo.lines"}}
 		</div>
 	{{end}}
-	{{if .FileSize}}
+	{{if ne .FileSize nil}}
 		<div class="file-info-entry">
 			{{FileSize .FileSize}}{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
 		</div>

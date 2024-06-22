@@ -10,6 +10,7 @@ import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
+import {initTextareaMarkdown} from './EditorMarkdown.js';
 
 let elementIdCounter = 0;
 
@@ -84,17 +85,6 @@ class ComboMarkdownEditor {
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
-    this.textarea.addEventListener('keydown', (e) => {
-      if (e.shiftKey) {
-        e.target._shiftDown = true;
-      }
-    });
-    this.textarea.addEventListener('keyup', (e) => {
-      if (!e.shiftKey) {
-        e.target._shiftDown = false;
-      }
-    });
-
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
     const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
@@ -118,6 +108,7 @@ class ComboMarkdownEditor {
       await this.switchToEasyMDE();
     });
 
+    initTextareaMarkdown(this.textarea);
     if (this.dropzone) {
       initTextareaPaste(this.textarea, this.dropzone);
     }

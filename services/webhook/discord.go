@@ -260,7 +260,7 @@ type discordConvertor struct {
 
 var _ payloadConvertor[DiscordPayload] = discordConvertor{}
 
-func newDiscordRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newDiscordRequest meta json: %w", err)
@@ -274,14 +274,12 @@ func newDiscordRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
-
 	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
 		return "rejected", nil
 	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
-
 	default:
 		return "", errors.New("unknown event type")
 	}

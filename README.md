@@ -8,9 +8,8 @@
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
 [![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
-[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/go-gitea/gitea)
+[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
-[![](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main "TODOs")
 
 [View this document in Chinese](./README_ZH.md)
 
@@ -26,7 +25,7 @@ This project has been
 [forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
 
-For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
+For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
 
 For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
@@ -56,7 +55,7 @@ More info: https://docs.gitea.com/installation/install-from-source
     ./gitea web
 
 > [!NOTE]
-> If you're interested in using our APIs, we have experimental support with [documentation](https://try.gitea.io/api/swagger).
+> If you're interested in using our APIs, we have experimental support with [documentation](https://docs.gitea.com/api).
 
 ## Contributing
 
@@ -80,7 +79,7 @@ https://docs.gitea.com/contributing/localization
 ## Further information
 
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
-If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
+If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://forum.gitea.com/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
 

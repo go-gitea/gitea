@@ -17,8 +17,8 @@ Template Attributes:
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
-		<a class="active item" data-tab-for="markdown-writer">{{ctx.Locale.Tr "write"}}</a>
-		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}" {{if .MarkdownPreviewMode}}data-preview-mode="{{.MarkdownPreviewMode}}"{{end}}>{{ctx.Locale.Tr "preview"}}</a>
+		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
+		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}" {{if .MarkdownPreviewMode}}data-preview-mode="{{.MarkdownPreviewMode}}"{{end}}>{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
 	</div>
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
@@ -50,7 +50,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @" suffix="">
-			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}} {{if .TextareaMaxLength}}maxlength="{{.TextareaMaxLength}}"{{end}}>{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}} {{if .TextareaMaxLength}}maxlength="{{.TextareaMaxLength}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
 			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {

@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -91,7 +92,7 @@ func runListAuth(c *cli.Context) error {
 
 func runDeleteAuth(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()

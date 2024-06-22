@@ -524,7 +524,12 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	if opts.RequestedRepo != nil {
-		cond = cond.And(builder.Eq{"repo_id": opts.RequestedRepo.ID})
+		// repo's actions could have duplicate items, see the comment of NotifyWatchers
+		// so here we only filter the "original items", aka: user_id == act_user_id
+		cond = cond.And(
+			builder.Eq{"`action`.repo_id": opts.RequestedRepo.ID},
+			builder.Expr("`action`.user_id = `action`.act_user_id"),
+		)
 	}
 
 	if opts.RequestedTeam != nil {
@@ -577,6 +582,10 @@ func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) 
 }
 
 // NotifyWatchers creates batch of actions for every watcher.
+// It could insert duplicate actions for a repository action, like this:
+// * Original action: UserID=1 (the real actor), ActUserID=1
+// * Organization action: UserID=100 (the repo's org), ActUserID=1
+// * Watcher action: UserID=20 (a user who is watching a repo), ActUserID=1
 func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 	var watchers []*repo_model.Watch
 	var repo *repo_model.Repository

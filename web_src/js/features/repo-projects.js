@@ -2,12 +2,11 @@ import $ from 'jquery';
 import {contrastColor} from '../utils/color.js';
 import {createSortable} from '../modules/sortable.js';
 import {POST, DELETE, PUT} from '../modules/fetch.js';
-import tinycolor from 'tinycolor2';
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('issue-card').length;
-  parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
+  const cnt = parent.querySelectorAll('.issue-card').length;
+  parent.querySelectorAll('.project-column-issue-count')[0].textContent = cnt;
 }
 
 async function createNewColumn(url, columnTitle, projectColorInput) {
@@ -27,7 +26,7 @@ async function createNewColumn(url, columnTitle, projectColorInput) {
 }
 
 async function moveIssue({item, from, to, oldIndex}) {
-  const columnCards = to.getElementsByClassName('issue-card');
+  const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
@@ -54,7 +53,7 @@ async function initRepoProjectSortable() {
 
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
   const mainBoard = els[0];
-  let boardColumns = mainBoard.getElementsByClassName('project-column');
+  let boardColumns = mainBoard.querySelectorAll('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
@@ -62,24 +61,27 @@ async function initRepoProjectSortable() {
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => {
-      boardColumns = mainBoard.getElementsByClassName('project-column');
-      for (let i = 0; i < boardColumns.length; i++) {
-        const column = boardColumns[i];
-        if (parseInt(column.getAttribute('data-sorting')) !== i) {
-          try {
-            const bgColor = column.style.backgroundColor; // will be rgb() string
-            const color = bgColor ? tinycolor(bgColor).toHexString() : '';
-            await PUT(column.getAttribute('data-url'), {data: {sorting: i, color}});
-          } catch (error) {
-            console.error(error);
-          }
-        }
+      boardColumns = mainBoard.querySelectorAll('.project-column');
+
+      const columnSorting = {
+        columns: Array.from(boardColumns, (column, i) => ({
+          columnID: parseInt(column.getAttribute('data-id')),
+          sorting: i,
+        })),
+      };
+
+      try {
+        await POST(mainBoard.getAttribute('data-url'), {
+          data: columnSorting,
+        });
+      } catch (error) {
+        console.error(error);
       }
     },
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName('cards')[0];
+    const boardCardList = boardColumn.querySelectorAll('.cards')[0];
     createSortable(boardCardList, {
       group: 'shared',
       onAdd: moveIssue,
@@ -97,7 +99,7 @@ export function initRepoProject() {
 
   const _promise = initRepoProjectSortable();
 
-  for (const modal of document.getElementsByClassName('edit-project-column-modal')) {
+  for (const modal of document.querySelectorAll('.edit-project-column-modal')) {
     const projectHeader = modal.closest('.project-column-header');
     const projectTitleLabel = projectHeader?.querySelector('.project-column-title-label');
     const projectTitleInput = modal.querySelector('.project-column-title-input');

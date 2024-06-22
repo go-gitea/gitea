@@ -151,6 +151,15 @@
   border-top: none;
 }
 
+.ui.attached.segment:has(+ .ui[class*="top attached"].header),
+.ui.attached.segment:has(+ .page.buttons),
+.ui.attached.segment:last-child,
+.ui.segment:has(+ .ui.segment:not(.attached)),
+.ui.attached.segment:has(+ .ui.modal) {
+  border-bottom-left-radius: 0.28571429rem;
+  border-bottom-right-radius: 0.28571429rem;
+}
+
 .ui[class*="top attached"].segment {
   bottom: 0;
   margin-bottom: 0;
@@ -160,6 +169,10 @@
 }
 .ui.segment[class*="top attached"]:first-child {
   margin-top: 0;
+}
+.ui[class*="top attached"].segment:last-child {
+  border-top-left-radius: 0.28571429rem;
+  border-top-right-radius: 0.28571429rem;
 }
 
 .ui.segment[class*="bottom attached"] {
