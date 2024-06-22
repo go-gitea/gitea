@@ -172,6 +172,7 @@ async function onEditContent(event) {
   if (!comboMarkdownEditor.value()) {
     comboMarkdownEditor.value(rawContent.textContent);
   }
+  comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
 }
 
