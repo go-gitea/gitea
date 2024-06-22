@@ -94,110 +94,138 @@ import {
 import {initGlobalDropzone} from './features/dropzone.js';
 import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.js';
 
-// Init Gitea's Fomantic settings
 initGiteaFomantic();
 initDirAuto();
 initSubmitEventPolyfill();
 
+function callInitFunctions(functions) {
+  // Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
+  // It is a quick check, no side effect so no need to do slow URL parsing.
+  const initStart = performance.now();
+  if (window.location.search.includes('_ui_performance_trace=1')) {
+    let results = [];
+    for (const func of functions) {
+      const start = performance.now();
+      func();
+      results.push({name: func.name, dur: performance.now() - start});
+    }
+    results = results.sort((a, b) => b.dur - a.dur);
+    for (let i = 0; i < 20 && i < results.length; i++) {
+      // eslint-disable-next-line no-console
+      console.log(`performance trace: ${results[i].name} ${results[i].dur.toFixed(3)}`);
+    }
+  } else {
+    for (const func of functions) {
+      func();
+    }
+  }
+  const initDur = performance.now() - initStart;
+  if (initDur > 500) {
+    console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
+  }
+}
+
 onDomReady(() => {
-  initGlobalDropdown();
-  initGlobalTabularMenu();
-  initGlobalShowModal();
-  initGlobalFetchAction();
-  initGlobalTooltips();
-  initGlobalButtonClickOnEnter();
-  initGlobalButtons();
-  initGlobalCopyToClipboardListener();
-  initGlobalDropzone();
-  initGlobalEnterQuickSubmit();
-  initGlobalFormDirtyLeaveConfirm();
-  initGlobalDeleteButton();
+  callInitFunctions([
+    initGlobalDropdown,
+    initGlobalTabularMenu,
+    initGlobalShowModal,
+    initGlobalFetchAction,
+    initGlobalTooltips,
+    initGlobalButtonClickOnEnter,
+    initGlobalButtons,
+    initGlobalCopyToClipboardListener,
+    initGlobalDropzone,
+    initGlobalEnterQuickSubmit,
+    initGlobalFormDirtyLeaveConfirm,
+    initGlobalDeleteButton,
 
-  initCommonOrganization();
-  initCommonIssueListQuickGoto();
+    initCommonOrganization,
+    initCommonIssueListQuickGoto,
 
-  initCompSearchUserBox();
-  initCompWebHookEditor();
+    initCompSearchUserBox,
+    initCompWebHookEditor,
 
-  initInstall();
+    initInstall,
 
-  initHeadNavbarContentToggle();
-  initFootLanguageMenu();
+    initHeadNavbarContentToggle,
+    initFootLanguageMenu,
 
-  initCommentContent();
-  initContextPopups();
-  initHeatmap();
-  initImageDiff();
-  initMarkupAnchors();
-  initMarkupContent();
-  initSshKeyFormParser();
-  initStopwatch();
-  initTableSort();
-  initAutoFocusEnd();
-  initFindFileInRepo();
-  initCopyContent();
+    initCommentContent,
+    initContextPopups,
+    initHeatmap,
+    initImageDiff,
+    initMarkupAnchors,
+    initMarkupContent,
+    initSshKeyFormParser,
+    initStopwatch,
+    initTableSort,
+    initAutoFocusEnd,
+    initFindFileInRepo,
+    initCopyContent,
 
-  initAdminCommon();
-  initAdminEmails();
-  initAdminUserListSearchForm();
-  initAdminConfigs();
-  initAdminSelfCheck();
+    initAdminCommon,
+    initAdminEmails,
+    initAdminUserListSearchForm,
+    initAdminConfigs,
+    initAdminSelfCheck,
 
-  initDashboardRepoList();
+    initDashboardRepoList,
 
-  initNotificationCount();
-  initNotificationsTable();
+    initNotificationCount,
+    initNotificationsTable,
 
-  initOrgTeamSearchRepoBox();
-  initOrgTeamSettings();
+    initOrgTeamSearchRepoBox,
+    initOrgTeamSettings,
 
-  initRepoActivityTopAuthorsChart();
-  initRepoArchiveLinks();
-  initRepoBranchButton();
-  initRepoCodeView();
-  initRepoCommentForm();
-  initRepoEllipsisButton();
-  initRepoDiffCommitBranchesAndTags();
-  initRepoEditor();
-  initRepoGraphGit();
-  initRepoIssueContentHistory();
-  initRepoIssueDue();
-  initRepoIssueList();
-  initRepoIssueSidebarList();
-  initArchivedLabelHandler();
-  initRepoIssueReferenceRepositorySearch();
-  initRepoIssueTimeTracking();
-  initRepoIssueWipTitle();
-  initRepoMigration();
-  initRepoMigrationStatusChecker();
-  initRepoProject();
-  initRepoPullRequestMergeInstruction();
-  initRepoPullRequestAllowMaintainerEdit();
-  initRepoPullRequestReview();
-  initRepoRelease();
-  initRepoReleaseNew();
-  initRepoSettingGitHook();
-  initRepoSettingSearchTeamBox();
-  initRepoSettingsCollaboration();
-  initRepoTemplateSearch();
-  initRepoTopicBar();
-  initRepoWikiForm();
-  initRepository();
-  initRepositoryActionView();
-  initRepositorySearch();
-  initRepoContributors();
-  initRepoCodeFrequency();
-  initRepoRecentCommits();
+    initRepoActivityTopAuthorsChart,
+    initRepoArchiveLinks,
+    initRepoBranchButton,
+    initRepoCodeView,
+    initRepoCommentForm,
+    initRepoEllipsisButton,
+    initRepoDiffCommitBranchesAndTags,
+    initRepoEditor,
+    initRepoGraphGit,
+    initRepoIssueContentHistory,
+    initRepoIssueDue,
+    initRepoIssueList,
+    initRepoIssueSidebarList,
+    initArchivedLabelHandler,
+    initRepoIssueReferenceRepositorySearch,
+    initRepoIssueTimeTracking,
+    initRepoIssueWipTitle,
+    initRepoMigration,
+    initRepoMigrationStatusChecker,
+    initRepoProject,
+    initRepoPullRequestMergeInstruction,
+    initRepoPullRequestAllowMaintainerEdit,
+    initRepoPullRequestReview,
+    initRepoRelease,
+    initRepoReleaseNew,
+    initRepoSettingGitHook,
+    initRepoSettingSearchTeamBox,
+    initRepoSettingsCollaboration,
+    initRepoTemplateSearch,
+    initRepoTopicBar,
+    initRepoWikiForm,
+    initRepository,
+    initRepositoryActionView,
+    initRepositorySearch,
+    initRepoContributors,
+    initRepoCodeFrequency,
+    initRepoRecentCommits,
 
-  initCommitStatuses();
-  initCaptcha();
+    initCommitStatuses,
+    initCaptcha,
 
-  initUserAuthOauth2();
-  initUserAuthWebAuthn();
-  initUserAuthWebAuthnRegister();
-  initUserSettings();
-  initRepoDiffView();
-  initPdfViewer();
-  initScopedAccessTokenCategories();
-  initColorPickers();
+    initUserAuthOauth2,
+    initUserAuthWebAuthn,
+    initUserAuthWebAuthnRegister,
+    initUserSettings,
+    initRepoDiffView,
+    initPdfViewer,
+    initScopedAccessTokenCategories,
+    initColorPickers,
+  ]);
 });
