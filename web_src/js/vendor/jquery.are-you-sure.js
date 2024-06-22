@@ -1,5 +1,6 @@
-// Fork of the upstream module. The only changes are the addition of `const` on
-// lines 93 and 161 to make it strict mode compatible.
+// Fork of the upstream module. The only changes are:
+// * use export to make it work with ES6 modules.
+// * the addition of `const` to make it strict mode compatible.
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
@@ -13,7 +14,7 @@
  * Version: 1.9.0
  * Date:    13th August 2014
  */
-(function($) {
+export function initAreYouSure($) {
 
   $.fn.areYouSure = function(options) {
 
@@ -192,4 +193,4 @@
       initForm($form);
     });
   };
-})(jQuery);
+}

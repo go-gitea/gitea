@@ -88,6 +88,10 @@ func IsFullURLString(link string) bool {
 	return fullURLPattern.MatchString(link)
 }
 
+func IsNonEmptyRelativePath(link string) bool {
+	return link != "" && !IsFullURLString(link) && link[0] != '/' && link[0] != '?' && link[0] != '#'
+}
+
 // regexp for full links to issues/pulls
 var issueFullPattern *regexp.Regexp
 
@@ -358,41 +362,6 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func handleNodeImg(ctx *RenderContext, img *html.Node) {
-	for i, attr := range img.Attr {
-		if attr.Key != "src" {
-			continue
-		}
-
-		if attr.Val != "" && !IsFullURLString(attr.Val) && !strings.HasPrefix(attr.Val, "/") {
-			attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
-
-			// By default, the "<img>" tag should also be clickable,
-			// because frontend use `<img>` to paste the re-scaled image into the markdown,
-			// so it must match the default markdown image behavior.
-			hasParentAnchor := false
-			for p := img.Parent; p != nil; p = p.Parent {
-				if hasParentAnchor = p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
-					break
-				}
-			}
-			if !hasParentAnchor {
-				imgA := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
-					{Key: "href", Val: attr.Val},
-					{Key: "target", Val: "_blank"},
-				}}
-				parent := img.Parent
-				imgNext := img.NextSibling
-				parent.RemoveChild(img)
-				parent.InsertBefore(imgA, imgNext)
-				imgA.AppendChild(img)
-			}
-		}
-		attr.Val = camoHandleLink(attr.Val)
-		img.Attr[i] = attr
-	}
-}
-
 func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
@@ -412,20 +381,20 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		}
 	}
 
-	// We ignore code and pre.
 	switch node.Type {
 	case html.TextNode:
 		processTextNodes(ctx, procs, node)
 	case html.ElementNode:
-		if node.Data == "img" {
-			next := node.NextSibling
-			handleNodeImg(ctx, node)
-			return next
+		if node.Data == "code" || node.Data == "pre" {
+			// ignore code and pre nodes
+			return node.NextSibling
+		} else if node.Data == "img" {
+			return visitNodeImg(ctx, node)
+		} else if node.Data == "video" {
+			return visitNodeVideo(ctx, node)
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
 			procs = emojiProcessors
-		} else if node.Data == "code" || node.Data == "pre" {
-			return node.NextSibling
 		} else if node.Data == "i" {
 			for _, attr := range node.Attr {
 				if attr.Key != "class" {
