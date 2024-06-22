@@ -679,10 +679,17 @@ export function initSingleCommentEditor($commentForm) {
   // * issue/pr view page, with comment form, has status-button
   const opts = {};
   const statusButton = document.querySelector('#status-button');
-  if (statusButton) {
+  const commentButton = document.querySelector('#comment-button');
+  if (statusButton || commentButton) {
     opts.onContentChanged = (editor) => {
-      const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');
-      statusButton.textContent = statusText;
+      const editorText = editor.value().trim();
+      if (statusButton) {
+        const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+        statusButton.textContent = statusText;
+      }
+      if (commentButton) {
+        commentButton.disabled = !editorText;
+      }
     };
   }
   initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
