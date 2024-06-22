@@ -26,7 +26,7 @@ export function initFootLanguageMenu() {
   $('.language-menu a[lang]').on('click', linkLanguageAction);
 }
 
-export function initGlobalComponents() {
+export function initGlobalDropdown() {
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
 
@@ -68,8 +68,10 @@ export function initGlobalComponents() {
   //   eg: the "Create New Repo" menu on the navbar.
   $uiDropdowns.filter('.upward').dropdown('setting', 'direction', 'upward');
   $uiDropdowns.filter('.downward').dropdown('setting', 'direction', 'downward');
+}
 
-  $('.ui.menu.tabular .item').tab({autoTabActivation: false});
+export function initGlobalTabularMenu() {
+  $('.ui.menu.tabular:not(.custom) .item').tab({autoTabActivation: false});
 }
 
 /**
