@@ -2,7 +2,7 @@
 	{{$revsFileLink := URLJoin .RepoLink "src" .BranchNameSubURL "/.git-blame-ignore-revs"}}
 	{{if .UsesIgnoreRevs}}
 		<div class="ui info message">
-			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs" $revsFileLink (print $revsFileLink "?bypass-blame-ignore=true")}}</p>
+			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs" $revsFileLink "?bypass-blame-ignore=true"}}</p>
 		</div>
 	{{else}}
 		<div class="ui error message">
