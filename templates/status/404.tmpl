@@ -1,10 +1,16 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content {{if .IsRepo}}repository{{end}}">
 	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
-	<div class="ui container tw-text-center">
-		<img class="tw-max-w-[80vw] tw-py-16" src="{{AssetUrlPrefix}}/img/404.png" alt="404">
-		<p>{{if .NotFoundPrompt}}{{.NotFoundPrompt}}{{else}}{{ctx.Locale.Tr "error404"}}{{end}}</p>
-		{{if .NotFoundGoBackURL}}<a class="ui button" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>{{end}}
+	<div class="ui container">
+		<div class="status-page-error">
+			<div class="status-page-error-title">404 Not Found</div>
+			<div class="tw-text-center">
+				<div class="tw-my-4">{{if .NotFoundPrompt}}{{.NotFoundPrompt}}{{else}}{{ctx.Locale.Tr "error404"}}{{end}}</div>
+				{{if .NotFoundGoBackURL}}
+					<a class="tw-block tw-my-4" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>
+				{{end}}
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
