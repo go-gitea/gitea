@@ -1,12 +1,12 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
 import {initDropzone} from './dropzone.js';
-import {POST, GET} from '../modules/fetch.js';
+import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
@@ -675,26 +675,22 @@ export function initRepoIssueBranchSelect() {
 
 export async function initSingleCommentEditor($commentForm) {
   // pages:
-  // * normal new issue/pr page, no status-button
-  // * issue/pr view page, with comment form, has status-button
+  // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
+  // * issue/pr view page: with comment form, has status-button and comment-button
   const opts = {};
   const statusButton = document.querySelector('#status-button');
   const commentButton = document.querySelector('#comment-button');
-  if (statusButton || commentButton) {
-    opts.onContentChanged = (editor) => {
-      const editorText = editor.value().trim();
-      if (statusButton) {
-        const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-        statusButton.textContent = statusText;
-      }
-      if (commentButton) {
-        commentButton.disabled = !editorText;
-      }
-    };
-  }
+  opts.onContentChanged = (editor) => {
+    const editorText = editor.value().trim();
+    if (statusButton) {
+      statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+    }
+    if (commentButton) {
+      commentButton.disabled = !editorText;
+    }
+  };
   const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
-  // initialize comment button
-  opts.onContentChanged(editor);
+  opts.onContentChanged(editor); // sync state of buttons with the initial content
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
