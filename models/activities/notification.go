@@ -286,7 +286,8 @@ type UserIDCount struct {
 	Count  int64
 }
 
-// GetUIDsAndNotificationCounts between the two provided times
+// GetUIDsAndNotificationCounts returns the unread counts for every user between the two provided times.
+// It must return all user IDs which appear during the period, including count=0 for users who have read all.
 func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.TimeStamp) ([]UserIDCount, error) {
 	sql := `SELECT user_id, sum(case when status= ? then 1 else 0 end) AS count FROM notification ` +
 		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
