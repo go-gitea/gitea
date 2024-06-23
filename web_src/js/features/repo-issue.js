@@ -673,7 +673,7 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export function initSingleCommentEditor($commentForm) {
+export async function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page, no status-button
   // * issue/pr view page, with comment form, has status-button
@@ -692,7 +692,9 @@ export function initSingleCommentEditor($commentForm) {
       }
     };
   }
-  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  // initialize comment button
+  opts.onContentChanged(editor);
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
