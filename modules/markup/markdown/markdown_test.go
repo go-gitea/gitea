@@ -551,6 +551,10 @@ func TestMathBlock(t *testing.T) {
 			"$$a$$",
 			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
 		},
+		{
+			"$a$ ($b$) [$c$] {$d$}",
+			`<p><code class="language-math is-loading">a</code> (<code class="language-math is-loading">b</code>) [$c$] {$d$}</p>` + nl,
+		},
 	}
 
 	for _, test := range testcases {

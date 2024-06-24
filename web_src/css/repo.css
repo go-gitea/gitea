@@ -79,6 +79,11 @@
   white-space: nowrap;
 }
 
+.repository .issue-content-right .filter.menu {
+  max-height: 500px;
+  overflow-x: auto;
+}
+
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
   padding: 0.5rem 0;
@@ -560,11 +565,6 @@ td .commit-summary {
 
 .repository.new.issue .comment.form .content .markup {
   font-size: 14px;
-}
-
-.repository.new.issue .comment.form .issue-content-right .filter.menu {
-  max-height: 500px;
-  overflow-x: auto;
 }
 
 .repository.view.issue .instruct-toggle {
