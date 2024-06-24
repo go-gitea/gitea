@@ -70,6 +70,7 @@ export function initDropzone(el) {
             data: new URLSearchParams({file: file.uuid}),
           });
         }
+        // TODO: remove the link from editor and maybe merge the duplicate code
       });
       this.on('error', function (file, message) {
         showErrorToast(message);

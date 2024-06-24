@@ -1,8 +1,11 @@
 import {htmlEscape} from 'escape-goat';
 import {POST} from '../../modules/fetch.js';
 import {imageInfo} from '../../utils/image.js';
-import {getPastedContent, replaceTextareaSelection} from '../../utils/dom.js';
+import {replaceTextareaSelection} from '../../utils/dom.js';
 import {isUrl} from '../../utils/url.js';
+import {extname} from '../../utils.js';
+import {triggerEditorContentChanged} from './EditorMarkdown.js';
+import {getComboMarkdownEditor} from './ComboMarkdownEditor.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -10,10 +13,6 @@ async function uploadFile(file, uploadUrl) {
 
   const res = await POST(uploadUrl, {data: formData});
   return await res.json();
-}
-
-export function triggerEditorContentChanged(target) {
-  target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
 }
 
 class TextareaEditor {
@@ -82,23 +81,21 @@ class CodeMirrorEditor {
   }
 }
 
+// FIXME: handle non-image files
 async function handleClipboardImages(editor, dropzone, images, e) {
   const uploadUrl = dropzone.getAttribute('data-upload-url');
   const filesContainer = dropzone.querySelector('.files');
-
-  if (!dropzone || !uploadUrl || !filesContainer || !images.length) return;
 
   e.preventDefault();
   e.stopPropagation();
 
   for (const img of images) {
     const name = img.name.slice(0, img.name.lastIndexOf('.'));
-
-    const placeholder = `![${name}](uploading ...)`;
-    editor.insertPlaceholder(placeholder);
-
-    const {uuid} = await uploadFile(img, uploadUrl);
     const {width, dppx} = await imageInfo(img);
+    const placeholder = `![${name}](uploading ...)`;
+
+    editor.insertPlaceholder(placeholder);
+    const {uuid} = await uploadFile(img, uploadUrl);
 
     let text;
     if (width > 0 && dppx > 1) {
@@ -139,6 +136,18 @@ function handleClipboardText(textarea, e, {text, isShiftDown}) {
   // else, let the browser handle it
 }
 
+// extract text and images from "paste" event
+function getPastedContent(e) {
+  const images = [];
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.type?.startsWith('image/')) {
+      images.push(item.getAsFile());
+    }
+  }
+  const text = e.clipboardData?.getData?.('text') ?? '';
+  return {text, images};
+}
+
 export function initEasyMDEPaste(easyMDE, dropzone) {
   easyMDE.codemirror.on('paste', (_, e) => {
     const {images} = getPastedContent(e);
@@ -163,5 +172,18 @@ export function initTextareaPaste(textarea, dropzone) {
     } else if (text) {
       handleClipboardText(textarea, e, {text, isShiftDown});
     }
+  });
+  textarea.addEventListener('drop', (e) => {
+    const acceptedFiles = getComboMarkdownEditor(textarea).dropzone.getAttribute('data-accepts');
+    const files = [];
+    for (const item of e.dataTransfer?.items ?? []) {
+      if (item?.kind !== 'file') continue;
+      const file = item.getAsFile();
+      if (acceptedFiles.includes(extname(file.name))) {
+        files.push(file);
+      }
+    }
+    // FIXME: handle upload files
+    handleClipboardImages(new TextareaEditor(textarea), dropzone, files, e);
   });
 }

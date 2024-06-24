@@ -64,6 +64,7 @@ async function onEditContent(event) {
               console.error(error);
             }
           }
+          // TODO: remove the link from editor and maybe merge the duplicate code
         });
         this.on('submit', () => {
           for (const fileUuid of Object.keys(fileUuidDict)) {

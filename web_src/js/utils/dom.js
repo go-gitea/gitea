@@ -263,27 +263,6 @@ export function isElemVisible(element) {
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
 
-export function getComboMarkdownEditor(el) {
-  return el?._giteaComboMarkdownEditor;
-}
-
-// extract text and images from "paste" event
-export function getPastedContent(e) {
-  const acceptedFiles = getComboMarkdownEditor(e.currentTarget).dropzone.getAttribute('data-accepts');
-  const files = [];
-  const data = e.clipboardData?.items || e.dataTransfer?.items;
-  for (const item of data ?? []) {
-    if (item?.kind === 'file') {
-      const file = item.getAsFile();
-      if (acceptedFiles.includes(extname(file.name))) {
-        files.push(file);
-      }
-    }
-  }
-  const text = e.clipboardData?.getData?.('text') ?? '';
-  return {text, files};
-}
-
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
 export function replaceTextareaSelection(textarea, text) {
   const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
