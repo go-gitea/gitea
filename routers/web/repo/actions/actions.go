@@ -225,7 +225,7 @@ func List(ctx *context.Context) {
 		runs = append(runs, run)
 	}
 
-	ctx.Data["Runs"] = runs
+	ctx.Data["WorkflowActionRuns"] = runs
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
