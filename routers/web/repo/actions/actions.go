@@ -218,9 +218,7 @@ func List(ctx *context.Context) {
 
 		// Connect the workflow to the run
 		for _, wf := range workflows {
-			fmt.Printf("Search workflow of %v", actionRun.WorkflowID)
 			if wf.WorkflowID == actionRun.WorkflowID {
-				fmt.Println("Found")
 				run.Workflow = wf
 			}
 		}
