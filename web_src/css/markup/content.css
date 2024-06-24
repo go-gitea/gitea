@@ -284,6 +284,7 @@
   width: max-content;
   max-width: 100%;
   overflow: auto;
+  overflow-wrap: break-word;
 }
 
 .markup table th {
