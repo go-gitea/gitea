@@ -8,7 +8,6 @@
 	{{range $run := .WorkflowActionRuns}}
 		{{$actionRun := $run.ActionRun}}
 		{{$workflow := $run.Workflow}}
-
 		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" $actionRun.Status.String)}}
