@@ -96,5 +96,20 @@
   },
   "browserslist": [
     "defaults"
-  ]
+  ],
+  "overrides": {
+    "array-includes": "npm:@nolyfill/array-includes@latest",
+    "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@latest",
+    "array.prototype.flat": "npm:@nolyfill/array.prototype.flat@latest",
+    "array.prototype.flatmap": "npm:@nolyfill/array.prototype.flatmap@latest",
+    "deep-equal": "npm:@nolyfill/deep-equal@latest",
+    "es-aggregate-error": "npm:@nolyfill/es-aggregate-error@latest",
+    "es-iterator-helpers": "npm:@nolyfill/es-iterator-helpers@latest",
+    "hasown": "npm:@nolyfill/hasown@latest",
+    "object.assign": "npm:@nolyfill/object.assign@latest",
+    "object.entries": "npm:@nolyfill/object.entries@latest",
+    "object.fromentries": "npm:@nolyfill/object.fromentries@latest",
+    "object.groupby": "npm:@nolyfill/object.groupby@latest",
+    "object.values": "npm:@nolyfill/object.values@latest"
+  }
 }
