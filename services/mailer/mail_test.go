@@ -288,7 +288,7 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 	}
 }
 
-func Test_createReference(t *testing.T) {
+func TestGenerateMessageIDForIssue(t *testing.T) {
 	_, _, issue, comment := prepareMailerTest(t)
 	_, _, pullIssue, _ := prepareMailerTest(t)
 	pullIssue.IsPull = true
@@ -388,10 +388,18 @@ func Test_createReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := createReference(tt.args.issue, tt.args.comment, tt.args.actionType)
+			got := generateMessageIDForIssue(tt.args.issue, tt.args.comment, tt.args.actionType)
 			if !strings.HasPrefix(got, tt.prefix) {
-				t.Errorf("createReference() = %v, want %v", got, tt.prefix)
+				t.Errorf("generateMessageIDForIssue() = %v, want %v", got, tt.prefix)
 			}
 		})
 	}
+}
+
+func TestGenerateMessageIDForRelease(t *testing.T) {
+	msgID := generateMessageIDForRelease(&repo_model.Release{
+		ID:   1,
+		Repo: &repo_model.Repository{OwnerName: "owner", Name: "repo"},
+	})
+	assert.Equal(t, "<owner/repo/releases/1@localhost>", msgID)
 }

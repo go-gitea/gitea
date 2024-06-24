@@ -59,7 +59,7 @@
 							{{ctx.Locale.Tr "packages.settings.delete"}}
 						</div>
 						<div class="content">
-							<div class="ui warning message gt-word-break">
+							<div class="ui warning message tw-break-anywhere">
 								{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">

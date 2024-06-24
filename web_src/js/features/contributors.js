@@ -1,12 +1,13 @@
 import {createApp} from 'vue';
 
 export async function initRepoContributors() {
-  const el = document.getElementById('repo-contributors-chart');
+  const el = document.querySelector('#repo-contributors-chart');
   if (!el) return;
 
   const {default: RepoContributors} = await import(/* webpackChunkName: "contributors-graph" */'../components/RepoContributors.vue');
   try {
     const View = createApp(RepoContributors, {
+      repoLink: el.getAttribute('data-repo-link'),
       locale: {
         filterLabel: el.getAttribute('data-locale-filter-label'),
         contributionType: {

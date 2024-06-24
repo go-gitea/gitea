@@ -10,10 +10,9 @@ import (
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/text"
 )
 
-func (g *ASTTransformer) transformImage(ctx *markup.RenderContext, v *ast.Image, reader text.Reader) {
+func (g *ASTTransformer) transformImage(ctx *markup.RenderContext, v *ast.Image) {
 	// Images need two things:
 	//
 	// 1. Their src needs to munged to be a real value

@@ -4,12 +4,15 @@
 package base
 
 import (
+	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,13 +27,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 )
-
-// EncodeSha1 string to sha1 hex value.
-func EncodeSha1(str string) string {
-	h := sha1.New()
-	_, _ = h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
-}
 
 // EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
@@ -62,63 +58,62 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 }
 
 // VerifyTimeLimitCode verify time limit code
-func VerifyTimeLimitCode(data string, minutes int, code string) bool {
+func VerifyTimeLimitCode(now time.Time, data string, minutes int, code string) bool {
 	if len(code) <= 18 {
 		return false
 	}
 
-	// split code
-	start := code[:12]
-	lives := code[12:18]
-	if d, err := strconv.ParseInt(lives, 10, 0); err == nil {
-		minutes = int(d)
-	}
+	startTimeStr := code[:12]
+	aliveTimeStr := code[12:18]
+	aliveTime, _ := strconv.Atoi(aliveTimeStr) // no need to check err, if anything wrong, the following code check will fail soon
 
-	// right active code
-	retCode := CreateTimeLimitCode(data, minutes, start)
-	if retCode == code && minutes > 0 {
-		// check time is expired or not
-		before, _ := time.ParseInLocation("200601021504", start, time.Local)
-		now := time.Now()
-		if before.Add(time.Minute*time.Duration(minutes)).Unix() > now.Unix() {
-			return true
+	// check code
+	retCode := CreateTimeLimitCode(data, aliveTime, startTimeStr, nil)
+	if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
+		retCode = CreateTimeLimitCode(data, aliveTime, startTimeStr, sha1.New()) // TODO: this is only for the support of legacy codes, remove this in/after 1.23
+		if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
+			return false
 		}
 	}
 
-	return false
+	// check time is expired or not: startTime <= now && now < startTime + minutes
+	startTime, _ := time.ParseInLocation("200601021504", startTimeStr, time.Local)
+	return (startTime.Before(now) || startTime.Equal(now)) && now.Before(startTime.Add(time.Minute*time.Duration(minutes)))
 }
 
 // TimeLimitCodeLength default value for time limit code
 const TimeLimitCodeLength = 12 + 6 + 40
 
-// CreateTimeLimitCode create a time limit code
-// code format: 12 length date time string + 6 minutes string + 40 sha1 encoded string
-func CreateTimeLimitCode(data string, minutes int, startInf any) string {
-	format := "200601021504"
+// CreateTimeLimitCode create a time-limited code.
+// Format: 12 length date time string + 6 minutes string (not used) + 40 hash string, some other code depends on this fixed length
+// If h is nil, then use the default hmac hash.
+func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTimeGeneric T, h hash.Hash) string {
+	const format = "200601021504"
 
-	var start, end time.Time
-	var startStr, endStr string
-
-	if startInf == nil {
-		// Use now time create code
-		start = time.Now()
-		startStr = start.Format(format)
+	var start time.Time
+	var startTimeAny any = startTimeGeneric
+	if t, ok := startTimeAny.(time.Time); ok {
+		start = t
 	} else {
-		// use start string create code
-		startStr = startInf.(string)
-		start, _ = time.ParseInLocation(format, startStr, time.Local)
-		startStr = start.Format(format)
+		var err error
+		start, err = time.ParseInLocation(format, startTimeAny.(string), time.Local)
+		if err != nil {
+			return "" // return an invalid code because the "parse" failed
+		}
 	}
+	startStr := start.Format(format)
+	end := start.Add(time.Minute * time.Duration(minutes))
 
-	end = start.Add(time.Minute * time.Duration(minutes))
-	endStr = end.Format(format)
-
-	// create sha1 encode string
-	sh := sha1.New()
-	_, _ = sh.Write([]byte(fmt.Sprintf("%s%s%s%s%d", data, hex.EncodeToString(setting.GetGeneralTokenSigningSecret()), startStr, endStr, minutes)))
-	encoded := hex.EncodeToString(sh.Sum(nil))
+	if h == nil {
+		h = hmac.New(sha1.New, setting.GetGeneralTokenSigningSecret())
+	}
+	_, _ = fmt.Fprintf(h, "%s%s%s%s%d", data, hex.EncodeToString(setting.GetGeneralTokenSigningSecret()), startStr, end.Format(format), minutes)
+	encoded := hex.EncodeToString(h.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
+	if len(code) != TimeLimitCodeLength {
+		panic("there is a hard requirement for the length of time-limited code") // it shouldn't happen
+	}
 	return code
 }
 

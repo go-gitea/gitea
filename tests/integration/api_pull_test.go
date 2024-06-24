@@ -223,23 +223,33 @@ func TestAPIEditPull(t *testing.T) {
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	title := "create a success pr"
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  "develop",
 		Base:  "master",
-		Title: "create a success pr",
+		Title: title,
 	}).AddTokenAuth(token)
-	pull := new(api.PullRequest)
+	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "master", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "master", apiPull.Base.Name)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
+	newTitle := "edit a this pr"
+	newBody := "edited body"
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, apiPull.Index), &api.EditPullRequestOption{
 		Base:  "feature/1",
-		Title: "edit a this pr",
+		Title: newTitle,
+		Body:  &newBody,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "feature/1", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "feature/1", apiPull.Base.Name)
+	// check comment history
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
+	err := pull.LoadIssue(db.DefaultContext)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pull.Issue.ID, OldTitle: title, NewTitle: newTitle})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: pull.Issue.ID, ContentText: newBody, IsFirstCreated: false})
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
 		Base: "not-exist",

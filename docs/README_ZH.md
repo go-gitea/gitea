@@ -1,9 +1,5 @@
 # Gitea: 文档
 
-[![Build Status](http://drone.gitea.io/api/badges/go-gitea/docs/status.svg)](http://drone.gitea.io/go-gitea/docs)
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
-[![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
-
 https://gitea.com/gitea/gitea-docusaurus
 
 ## 关于我们
@@ -18,5 +14,5 @@ https://gitea.com/gitea/gitea-docusaurus
 ## 版权声明
 
 ```
-Copyright (c) 2016 The Gitea Authors <https://gitea.io>
+Copyright (c) 2016 The Gitea Authors
 ```

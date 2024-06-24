@@ -24,7 +24,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
-func newMatrixRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &MatrixMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("GetMatrixPayload meta json: %w", err)
@@ -179,7 +179,6 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 		if i < len(p.Commits)-1 {
 			text += "<br>"
 		}
-
 	}
 
 	return m.newPayload(text, p.Commits...)

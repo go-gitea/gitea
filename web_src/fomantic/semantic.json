@@ -22,7 +22,6 @@
   "admin": false,
   "components": [
     "api",
-    "dimmer",
     "dropdown",
     "form",
     "modal",

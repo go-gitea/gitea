@@ -188,8 +188,8 @@
 .ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
 .ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + .icon + .button:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button,
+.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button:hover {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {

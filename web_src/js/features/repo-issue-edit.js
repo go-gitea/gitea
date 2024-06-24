@@ -1,9 +1,10 @@
 import $ from 'jquery';
 import {handleReply} from './repo-issue.js';
-import {initComboMarkdownEditor, removeLinksInTextarea} from './comp/ComboMarkdownEditor.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {createDropzone} from './dropzone.js';
 import {GET, POST} from '../modules/fetch.js';
-import {hideElem, showElem, getComboMarkdownEditor} from '../utils/dom.js';
+import {showErrorToast} from '../modules/toast.js';
+import {hideElem, showElem} from '../utils/dom.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 
@@ -26,6 +27,7 @@ async function onEditContent(event) {
     if (!dropzone) return null;
 
     let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
+    let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
     const dz = await createDropzone(dropzone, {
       url: dropzone.getAttribute('data-upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
@@ -44,6 +46,7 @@ async function onEditContent(event) {
       init() {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
+          fileUuidDict[file.uuid] = {submitted: false};
           const input = document.createElement('input');
           input.id = data.uuid;
           input.name = 'files';
@@ -52,15 +55,19 @@ async function onEditContent(event) {
           dropzone.querySelector('.files').append(input);
         });
         this.on('removedfile', async (file) => {
-          document.getElementById(file.uuid)?.remove();
+          document.querySelector(`#${file.uuid}`)?.remove();
           if (disableRemovedfileEvent) return;
-          if (dropzone.getAttribute('data-remove-url')) {
+          if (dropzone.getAttribute('data-remove-url') && !fileUuidDict[file.uuid].submitted) {
             try {
               await POST(dropzone.getAttribute('data-remove-url'), {data: new URLSearchParams({file: file.uuid})});
-              removeLinksInTextarea(getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor')), file);
             } catch (error) {
               console.error(error);
             }
+          }
+        });
+        this.on('submit', () => {
+          for (const fileUuid of Object.keys(fileUuidDict)) {
+            fileUuidDict[fileUuid].submitted = true;
           }
         });
         this.on('reload', async () => {
@@ -72,16 +79,16 @@ async function onEditContent(event) {
             dz.removeAllFiles(true);
             dropzone.querySelector('.files').innerHTML = '';
             for (const el of dropzone.querySelectorAll('.dz-preview')) el.remove();
+            fileUuidDict = {};
             disableRemovedfileEvent = false;
 
             for (const attachment of data) {
+              const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
               dz.emit('addedfile', attachment);
-              if (/\.(jpg|jpeg|png|gif|bmp|svg)$/i.test(attachment.name)) {
-                const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
-                dz.emit('thumbnail', attachment, imgSrc);
-                dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
-              }
+              dz.emit('thumbnail', attachment, imgSrc);
               dz.emit('complete', attachment);
+              fileUuidDict[attachment.uuid] = {submitted: true};
+              dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
               const input = document.createElement('input');
               input.id = attachment.uuid;
               input.name = 'files';
@@ -118,13 +125,19 @@ async function onEditContent(event) {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
+        content_version: editContentZone.getAttribute('data-content-version'),
       });
       for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
 
       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
       const data = await response.json();
+      if (response.status === 400) {
+        showErrorToast(data.errorMessage);
+        return;
+      }
+      editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
-        renderContent.innerHTML = document.getElementById('no-content').innerHTML;
+        renderContent.innerHTML = document.querySelector('#no-content').innerHTML;
         rawContent.textContent = '';
       } else {
         renderContent.innerHTML = data.content;
@@ -153,11 +166,11 @@ async function onEditContent(event) {
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
   if (!comboMarkdownEditor) {
-    editContentZone.innerHTML = document.getElementById('issue-comment-editor-template').innerHTML;
+    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
     comboMarkdownEditor.attachedDropzoneInst = await setupDropzone(editContentZone.querySelector('.dropzone'));
-    editContentZone.querySelector('.cancel.button').addEventListener('click', cancelAndReset);
-    editContentZone.querySelector('.save.button').addEventListener('click', saveAndRefresh);
+    editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
+    editContentZone.querySelector('.ui.primary.button').addEventListener('click', saveAndRefresh);
   }
 
   // Show write/preview tab and copy raw content as needed
@@ -166,6 +179,7 @@ async function onEditContent(event) {
   if (!comboMarkdownEditor.value()) {
     comboMarkdownEditor.value(rawContent.textContent);
   }
+  comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
 }
 
@@ -176,16 +190,17 @@ export function initRepoIssueCommentEdit() {
   // Quote reply
   $(document).on('click', '.quote-reply', async function (event) {
     event.preventDefault();
-    const target = $(this).data('target');
-    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
+    const target = this.getAttribute('data-target');
+    const quote = document.querySelector(`#${target}`).textContent.replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
+
     let editor;
-    if ($(this).hasClass('quote-reply-diff')) {
+    if (this.classList.contains('quote-reply-diff')) {
       const $replyBtn = $(this).closest('.comment-code-cloud').find('button.comment-form-reply');
       editor = await handleReply($replyBtn);
     } else {
       // for normal issue/comment page
-      editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
+      editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
     }
     if (editor) {
       if (editor.value()) {

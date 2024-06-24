@@ -70,6 +70,10 @@ export function queryElemChildren(parent, selector = '*', fn) {
   return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
+export function queryElems(selector, fn) {
+  return applyElemsCallback(document.querySelectorAll(selector), fn);
+}
+
 export function onDomReady(cb) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
@@ -302,4 +306,11 @@ export function replaceTextareaSelection(textarea, text) {
     textarea.value = `${before}${text}${after}`;
     textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
   }
+}
+
+// Warning: Do not enter any unsanitized variables here
+export function createElementFromHTML(htmlString) {
+  const div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.firstChild;
 }

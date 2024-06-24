@@ -27,7 +27,7 @@ type commonStorageCheckOptions struct {
 	name       string
 }
 
-func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, opts *commonStorageCheckOptions) error {
+func commonCheckStorage(logger log.Logger, autofix bool, opts *commonStorageCheckOptions) error {
 	totalCount, orphanedCount := 0, 0
 	totalSize, orphanedSize := int64(0), int64(0)
 
@@ -98,7 +98,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.Attachments || opts.All {
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Attachments,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -116,7 +116,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 				logger.Info("LFS isn't enabled (skipped)")
 				return nil
 			}
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -132,7 +132,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.Avatars || opts.All {
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Avatars,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -146,7 +146,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.RepoAvatars || opts.All {
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.RepoAvatars,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -160,7 +160,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		}
 
 		if opts.RepoArchives || opts.All {
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.RepoArchives,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -182,7 +182,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 				logger.Info("Packages isn't enabled (skipped)")
 				return nil
 			}
-			if err := commonCheckStorage(ctx, logger, autofix,
+			if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Packages,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {

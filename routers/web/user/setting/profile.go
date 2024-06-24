@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 const (
@@ -319,6 +320,13 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
+	allThemes := webtheme.GetAvailableThemes()
+	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
+		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
+		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
+	}
+	ctx.Data["AllThemes"] = allThemes
+
 	var hiddenCommentTypes *big.Int
 	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
@@ -341,11 +349,12 @@ func UpdateUIThemePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
-	if !form.IsThemeExists() {
+	if !webtheme.IsThemeAvailable(form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

@@ -118,7 +118,7 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 
 		// Remove watches from all users and now unaccessible repos
 		for _, user := range t.Members {
-			has, err := access_model.HasAccess(ctx, user.ID, repo)
+			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 			if err != nil {
 				return err
 			} else if has {
@@ -544,7 +544,7 @@ func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 }
 
 func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if has, err := access_model.HasAccess(ctx, user.ID, repo); err != nil || has {
+	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
 		return err
 	}
 	if err := repo_model.WatchRepo(ctx, user, repo, false); err != nil {

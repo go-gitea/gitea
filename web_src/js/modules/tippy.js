@@ -37,8 +37,10 @@ export function createTippy(target, opts = {}) {
       return onShow?.(instance);
     },
     arrow: arrow || (theme === 'bare' ? false : arrowSvg),
-    role: role || 'menu', // HTML role attribute
-    theme: theme || role || 'menu', // CSS theme, either "tooltip", "menu", "box-with-header" or "bare"
+    // HTML role attribute, ideally the default role would be "popover" but it does not exist
+    role: role || 'menu',
+    // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+    theme: theme || role || 'default',
     plugins: [followCursor],
     ...other,
   });

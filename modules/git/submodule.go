@@ -64,7 +64,6 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 		// ex: git@try.gitea.io:go-gitea/gitea
 		match := scpSyntax.FindAllStringSubmatch(refURI, -1)
 		if len(match) > 0 {
-
 			m := match[0]
 			refHostname := m[2]
 			pth := m[3]

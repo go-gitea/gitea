@@ -1,6 +1,5 @@
 <script>
 import {SvgIcon} from '../svg.js';
-import {contrastColor} from '../utils/color.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, i18n} = window.config;
@@ -10,6 +9,7 @@ export default {
   data: () => ({
     loading: false,
     issue: null,
+    renderedLabels: '',
     i18nErrorOccurred: i18n.error_occurred,
     i18nErrorMessage: null,
   }),
@@ -56,14 +56,6 @@ export default {
       }
       return 'red'; // Closed Issue
     },
-
-    labels() {
-      return this.issue.labels.map((label) => ({
-        name: label.name,
-        color: `#${label.color}`,
-        textColor: contrastColor(`#${label.color}`),
-      }));
-    },
   },
   mounted() {
     this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
@@ -79,13 +71,14 @@ export default {
       this.i18nErrorMessage = null;
 
       try {
-        const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`);
+        const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`); // backend: GetIssueInfo
         const respJson = await response.json();
         if (!response.ok) {
           this.i18nErrorMessage = respJson.message ?? i18n.network_error;
           return;
         }
-        this.issue = respJson;
+        this.issue = respJson.convertedIssue;
+        this.renderedLabels = respJson.renderedLabels;
       } catch {
         this.i18nErrorMessage = i18n.network_error;
       } finally {
@@ -98,24 +91,22 @@ export default {
 <template>
   <div ref="root">
     <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
-    <div v-if="!loading && issue !== null">
-      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
-      <p>{{ body }}</p>
-      <div class="labels-list">
-        <div
-          v-for="label in labels"
-          :key="label.name"
-          class="ui label"
-          :style="{ color: label.textColor, backgroundColor: label.color }"
-        >
-          {{ label.name }}
-        </div>
+    <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
+      <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
+      <div class="flex-text-block">
+        <svg-icon :name="icon" :class="['text', color]"/>
+        <span class="issue-title tw-font-semibold tw-break-anywhere">
+          {{ issue.title }}
+          <span class="index">#{{ issue.number }}</span>
+        </span>
       </div>
+      <div v-if="body">{{ body }}</div>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
-    <div v-if="!loading && issue === null">
-      <p><small>{{ i18nErrorOccurred }}</small></p>
-      <p>{{ i18nErrorMessage }}</p>
+    <div class="tw-flex tw-flex-col tw-gap-2" v-if="!loading && issue === null">
+      <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
+      <div>{{ i18nErrorMessage }}</div>
     </div>
   </div>
 </template>

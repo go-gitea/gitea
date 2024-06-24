@@ -1,15 +1,15 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElems, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
+  const $tabMenu = $form.find('.repo-editor-menu');
   $tabMenu.find('.item').tab();
-  const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
+  const $previewTab = $tabMenu.find('a[data-tab="preview"]');
   if ($previewTab.length) {
     $previewTab.on('click', async function () {
       const $this = $(this);
@@ -24,13 +24,15 @@ function initEditPreviewTab($form) {
       const formData = new FormData();
       formData.append('mode', mode);
       formData.append('context', context);
-      formData.append('text', $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val());
+      formData.append('text', $form.find('.tab[data-tab="write"] textarea').val());
       formData.append('file_path', $treePathEl.val());
       try {
         const response = await POST($this.data('url'), {data: formData});
         const data = await response.text();
-        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        renderPreviewPanelContent($previewPanel, data);
+        const $previewPanel = $form.find('.tab[data-tab="preview"]');
+        if ($previewPanel.length) {
+          renderPreviewPanelContent($previewPanel, data);
+        }
       } catch (error) {
         console.error('Error:', error);
       }
@@ -38,102 +40,79 @@ function initEditPreviewTab($form) {
   }
 }
 
-function initEditorForm() {
-  const $form = $('.repository .edit.form');
-  if (!$form) return;
-  initEditPreviewTab($form);
-}
-
-function getCursorPosition($e) {
-  const el = $e.get(0);
-  let pos = 0;
-  if ('selectionStart' in el) {
-    pos = el.selectionStart;
-  } else if ('selection' in document) {
-    el.focus();
-    const Sel = document.selection.createRange();
-    const SelLength = document.selection.createRange().text.length;
-    Sel.moveStart('character', -el.value.length);
-    pos = Sel.text.length - SelLength;
-  }
-  return pos;
-}
-
 export function initRepoEditor() {
-  initEditorForm();
+  const $editArea = $('.repository.editor textarea#edit_area');
+  if (!$editArea.length) return;
 
-  $('.js-quick-pull-choice-option').on('change', function () {
-    if ($(this).val() === 'commit-to-new-branch') {
-      showElem('.quick-pull-branch-name');
-      document.querySelector('.quick-pull-branch-name input').required = true;
-    } else {
-      hideElem('.quick-pull-branch-name');
-      document.querySelector('.quick-pull-branch-name input').required = false;
-    }
-    $('#commit-button').text(this.getAttribute('button_text'));
-  });
-
-  const joinTreePath = ($fileNameEl) => {
-    const parts = [];
-    $('.breadcrumb span.section').each(function () {
-      const $element = $(this);
-      if ($element.find('a').length) {
-        parts.push($element.find('a').text());
+  for (const el of queryElems('.js-quick-pull-choice-option')) {
+    el.addEventListener('input', () => {
+      if (el.value === 'commit-to-new-branch') {
+        showElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = true;
       } else {
-        parts.push($element.text());
+        hideElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = false;
       }
+      document.querySelector('#commit-button').textContent = el.getAttribute('data-button-text');
     });
-    if ($fileNameEl.val()) parts.push($fileNameEl.val());
-    $('#tree_path').val(parts.join('/'));
-  };
+  }
 
-  const $editFilename = $('#file-name');
-  $editFilename.on('input', function () {
-    const parts = $(this).val().split('/');
-
+  const filenameInput = document.querySelector('#file-name');
+  function joinTreePath() {
+    const parts = [];
+    for (const el of document.querySelectorAll('.breadcrumb span.section')) {
+      const link = el.querySelector('a');
+      parts.push(link ? link.textContent : el.textContent);
+    }
+    if (filenameInput.value) {
+      parts.push(filenameInput.value);
+    }
+    document.querySelector('#tree_path').value = parts.join('/');
+  }
+  filenameInput.addEventListener('input', function () {
+    const parts = filenameInput.value.split('/');
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
-            $('<div class="breadcrumb-divider">/</div>').insertBefore($(this));
+            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
+            $('<div class="breadcrumb-divider">/</div>').insertBefore($(filenameInput));
           }
         } else {
-          $(this).val(value);
+          filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
       }
     }
-
-    joinTreePath($(this));
+    joinTreePath();
   });
-
-  $editFilename.on('keydown', function (e) {
-    const $section = $('.breadcrumb span.section');
-
+  filenameInput.addEventListener('keydown', function (e) {
+    const sections = queryElems('.breadcrumb span.section');
+    const dividers = queryElems('.breadcrumb .breadcrumb-divider');
     // Jump back to last directory once the filename is empty
-    if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
+    if (e.code === 'Backspace' && filenameInput.selectionStart === 0 && sections.length > 0) {
       e.preventDefault();
-      const $divider = $('.breadcrumb .breadcrumb-divider');
-      const value = $section.last().find('a').text();
-      $(this).val(value + $(this).val());
+      const lastSection = sections[sections.length - 1];
+      const lastDivider = dividers.length ? dividers[dividers.length - 1] : null;
+      const value = lastSection.querySelector('a').textContent;
+      filenameInput.value = value + filenameInput.value;
       this.setSelectionRange(value.length, value.length);
-      $section.last().remove();
-      $divider.last().remove();
-      joinTreePath($(this));
+      lastDivider?.remove();
+      lastSection.remove();
+      joinTreePath();
     }
   });
 
-  const $editArea = $('.repository.editor textarea#edit_area');
-  if (!$editArea.length) return;
+  const $form = $('.repository.editor .edit.form');
+  initEditPreviewTab($form);
 
   (async () => {
-    const editor = await createCodeEditor($editArea[0], $editFilename[0]);
+    const editor = await createCodeEditor($editArea[0], filenameInput);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const commitButton = document.getElementById('commit-button');
+    const commitButton = document.querySelector('#commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
@@ -175,10 +154,10 @@ export function initRepoEditor() {
   })();
 }
 
-export function renderPreviewPanelContent($panelPreviewer, data) {
-  $panelPreviewer.html(data);
+export function renderPreviewPanelContent($previewPanel, data) {
+  $previewPanel.html(data);
   initMarkupContent();
 
-  const $refIssues = $panelPreviewer.find('p .ref-issue');
+  const $refIssues = $previewPanel.find('p .ref-issue');
   attachRefIssueContextPopup($refIssues);
 }

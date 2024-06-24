@@ -18,6 +18,7 @@ export function attachRefIssueContextPopup(refIssues) {
     if (!owner) return;
 
     const el = document.createElement('div');
+    el.classList.add('tw-p-3');
     refIssue.parentNode.insertBefore(el, refIssue.nextSibling);
 
     const view = createApp(ContextPopup);
@@ -30,6 +31,7 @@ export function attachRefIssueContextPopup(refIssues) {
     }
 
     createTippy(refIssue, {
+      theme: 'default',
       content: el,
       placement: 'top-start',
       interactive: true,

@@ -86,12 +86,13 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	lineNums := make([]int, 0, lineCount)
 	lineCodes := make([]string, 0, lineCount)
 	for i := opts.LineStart; i <= opts.LineStop; i++ {
-		if line, err := reader.ReadString('\n'); err != nil && line == "" {
+		line, err := reader.ReadString('\n')
+		if err != nil && line == "" {
 			break
-		} else {
-			lineNums = append(lineNums, i)
-			lineCodes = append(lineCodes, line)
 		}
+
+		lineNums = append(lineNums, i)
+		lineCodes = append(lineCodes, line)
 	}
 	realLineStop := max(opts.LineStart, opts.LineStart+len(lineNums)-1)
 	highlightLines := code.HighlightSearchResultCode(opts.FilePath, language, lineNums, strings.Join(lineCodes, ""))

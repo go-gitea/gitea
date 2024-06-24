@@ -63,7 +63,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam(":sha")
 	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
@@ -312,8 +312,8 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	sha := ctx.Params(":sha")
-	diffType := git.RawDiffType(ctx.Params(":diffType"))
+	sha := ctx.PathParam(":sha")
+	diffType := git.RawDiffType(ctx.PathParam(":diffType"))
 
 	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
@@ -354,7 +354,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.Params(":sha"))
+	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam(":sha"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetPullRequestByMergedCommit", err)

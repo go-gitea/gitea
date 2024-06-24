@@ -4,6 +4,8 @@
 package httplib
 
 import (
+	"context"
+	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -37,9 +39,44 @@ func TestIsRelativeURL(t *testing.T) {
 	}
 }
 
+func TestMakeAbsoluteURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.Protocol, "http")()
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+
+	ctx := context.Background()
+	assert.Equal(t, "http://cfg-host/sub/", MakeAbsoluteURL(ctx, ""))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "foo"))
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "user-host",
+	})
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host": {"forwarded-host"},
+		},
+	})
+	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host":  {"forwarded-host"},
+			"X-Forwarded-Proto": {"https"},
+		},
+	})
+	assert.Equal(t, "https://forwarded-host/foo", MakeAbsoluteURL(ctx, "/foo"))
+}
+
 func TestIsCurrentGiteaSiteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	ctx := context.Background()
 	good := []string{
 		"?key=val",
 		"/sub",
@@ -50,7 +87,7 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		"http://localhost:3000/sub/",
 	}
 	for _, s := range good {
-		assert.True(t, IsCurrentGiteaSiteURL(s), "good = %q", s)
+		assert.True(t, IsCurrentGiteaSiteURL(ctx, s), "good = %q", s)
 	}
 	bad := []string{
 		".",
@@ -64,13 +101,23 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		"http://other/",
 	}
 	for _, s := range bad {
-		assert.False(t, IsCurrentGiteaSiteURL(s), "bad = %q", s)
+		assert.False(t, IsCurrentGiteaSiteURL(ctx, s), "bad = %q", s)
 	}
 
 	setting.AppURL = "http://localhost:3000/"
 	setting.AppSubURL = ""
-	assert.False(t, IsCurrentGiteaSiteURL("//"))
-	assert.False(t, IsCurrentGiteaSiteURL("\\\\"))
-	assert.False(t, IsCurrentGiteaSiteURL("http://localhost"))
-	assert.True(t, IsCurrentGiteaSiteURL("http://localhost:3000?key=val"))
+	assert.False(t, IsCurrentGiteaSiteURL(ctx, "//"))
+	assert.False(t, IsCurrentGiteaSiteURL(ctx, "\\\\"))
+	assert.False(t, IsCurrentGiteaSiteURL(ctx, "http://localhost"))
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000?key=val"))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "user-host",
+		Header: map[string][]string{
+			"X-Forwarded-Host":  {"forwarded-host"},
+			"X-Forwarded-Proto": {"https"},
+		},
+	})
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000"))
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "https://forwarded-host"))
 }

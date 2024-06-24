@@ -18,10 +18,10 @@
 	</div>
 </h2>
 
-{{if (or (.Permission.CanRead $.UnitTypeIssues) (.Permission.CanRead $.UnitTypePullRequests))}}
+{{if (or (.Permission.CanRead ctx.Consts.RepoUnitTypeIssues) (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests))}}
 <h4 class="ui top attached header">{{ctx.Locale.Tr "repo.activity.overview"}}</h4>
 <div class="ui attached segment two column grid">
-	{{if .Permission.CanRead $.UnitTypePullRequests}}
+	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<div class="column">
 			{{if gt .Activity.ActivePRCount 0}}
 			<div class="stats-table">
@@ -38,7 +38,7 @@
 			{{ctx.Locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount}}
 		</div>
 	{{end}}
-	{{if .Permission.CanRead $.UnitTypeIssues}}
+	{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 		<div class="column">
 			{{if gt .Activity.ActiveIssueCount 0}}
 			<div class="stats-table">
@@ -57,7 +57,7 @@
 	{{end}}
 </div>
 <div class="ui attached segment horizontal segments">
-	{{if .Permission.CanRead $.UnitTypePullRequests}}
+	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<a href="#merged-pull-requests" class="ui attached segment text center">
 			<span class="text purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n"}}
@@ -67,7 +67,7 @@
 			{{ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n"}}
 		</a>
 	{{end}}
-	{{if .Permission.CanRead $.UnitTypeIssues}}
+	{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 		<a href="#closed-issues" class="ui attached segment text center">
 			<span class="text red">{{svg "octicon-issue-closed"}}</span> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n"}}
@@ -80,7 +80,7 @@
 </div>
 {{end}}
 
-{{if .Permission.CanRead $.UnitTypeCode}}
+{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	{{if eq .Activity.Code.CommitCountInAllBranches 0}}
 		<div class="ui center aligned segment">
 		<h4 class="ui header">{{ctx.Locale.Tr "repo.activity.no_git_activity"}}</h4>

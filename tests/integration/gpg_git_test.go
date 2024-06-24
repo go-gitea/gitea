@@ -19,9 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func TestGPGGit(t *testing.T) {
@@ -35,7 +35,7 @@ func TestGPGGit(t *testing.T) {
 	defer os.Setenv("GNUPGHOME", oldGNUPGHome)
 
 	// Need to create a root key
-	rootKeyPair, err := importTestingKey(tmpDir, "gitea", "gitea@fake.local")
+	rootKeyPair, err := importTestingKey()
 	if !assert.NoError(t, err, "importTestingKey") {
 		return
 	}
@@ -262,7 +262,7 @@ func TestGPGGit(t *testing.T) {
 	})
 }
 
-func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
+func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return doAPICreateFile(ctx, path, &api.CreateFileOptions{
 		FileOptions: api.FileOptions{
 			BranchName:    from,
@@ -281,7 +281,7 @@ func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.Use
 	}, callback...)
 }
 
-func importTestingKey(tmpDir, name, email string) (*openpgp.Entity, error) {
+func importTestingKey() (*openpgp.Entity, error) {
 	if _, _, err := process.GetManager().Exec("gpg --import tests/integration/private-testing.key", "gpg", "--import", "tests/integration/private-testing.key"); err != nil {
 		return nil, err
 	}

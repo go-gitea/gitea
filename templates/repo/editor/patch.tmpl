@@ -19,10 +19,10 @@
 				</div>
 			</div>
 			<div class="field">
-				<div class="ui top attached tabular menu" data-write="write">
+				<div class="ui compact small menu small-menu-items repo-editor-menu">
 					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
-				<div class="ui bottom attached active tab segment" data-tab="write">
+				<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
 					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">

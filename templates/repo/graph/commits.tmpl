@@ -37,7 +37,7 @@
 							{{if eq $refGroup "pull"}}
 								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
-									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
+									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request"}} #{{.ShortName}}
 									</a>
 								{{end}}

@@ -23,8 +23,6 @@ import {sleep} from '../utils.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
 
-const {pageData} = window.config;
-
 const customEventListener = {
   id: 'customEventListener',
   afterEvent: (chart, args, opts) => {
@@ -59,14 +57,17 @@ export default {
       type: Object,
       required: true,
     },
+    repoLink: {
+      type: String,
+      required: true,
+    },
   },
   data: () => ({
     isLoading: false,
     errorText: '',
     totalStats: {},
     sortedContributors: {},
-    repoLink: pageData.repoLink || [],
-    type: pageData.contributionType,
+    type: 'commits',
     contributorsStats: [],
     xAxisStart: null,
     xAxisEnd: null,
@@ -114,7 +115,7 @@ export default {
           const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
+          const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
           total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
@@ -333,19 +334,17 @@ export default {
         <!-- Contribution type -->
         <div class="ui dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
-            <span class="text">
-              <span class="not-mobile">{{ locale.filterLabel }}&nbsp;</span><strong>{{ locale.contributionType[type] }}</strong>
-              <svg-icon name="octicon-triangle-down" :size="14"/>
-            </span>
+            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
+            <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
           <div class="menu">
-            <div :class="['item', {'active': type === 'commits'}]">
+            <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
-            <div :class="['item', {'active': type === 'additions'}]">
+            <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
               {{ locale.contributionType.additions }}
             </div>
-            <div :class="['item', {'active': type === 'deletions'}]">
+            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
               {{ locale.contributionType.deletions }}
             </div>
           </div>

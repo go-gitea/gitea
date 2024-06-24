@@ -187,7 +187,6 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 					Stats: &commitStats,
 				}
 				extendedCommitStats = append(extendedCommitStats, res)
-
 			}
 			_ = stdoutReader.Close()
 			return nil

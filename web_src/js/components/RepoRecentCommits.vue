@@ -62,7 +62,7 @@ export default {
           const data = await response.json();
           const start = Object.values(data)[0].week;
           const end = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(start), new Date(end));
+          const startDays = startDaysBetween(start, end);
           this.data = fillEmptyStartDaysWithZeroes(startDays, data).slice(-52);
           this.errorText = '';
         } else {

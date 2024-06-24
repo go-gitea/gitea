@@ -8,7 +8,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
-      div.tabIndex = '-1'; // for initial focus, programmatic focus only
+      div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll('[role="menuitem"]');
@@ -60,21 +60,35 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       this.tippyContent = div;
     }
 
+    const itemFlexSpace = this.menuItemsEl.querySelector('.item-flex-space');
+
     // move items in tippy back into the menu items for subsequent measurement
     for (const item of this.tippyItems || []) {
-      this.menuItemsEl.append(item);
+      if (!itemFlexSpace || item.getAttribute('data-after-flex-space')) {
+        this.menuItemsEl.append(item);
+      } else {
+        itemFlexSpace.insertAdjacentElement('beforebegin', item);
+      }
     }
 
     // measure which items are partially outside the element and move them into the button menu
+    itemFlexSpace?.style.setProperty('display', 'none', 'important');
     this.tippyItems = [];
     const menuRight = this.offsetLeft + this.offsetWidth;
-    const menuItems = this.menuItemsEl.querySelectorAll('.item');
+    const menuItems = this.menuItemsEl.querySelectorAll('.item, .item-flex-space');
+    let afterFlexSpace = false;
     for (const item of menuItems) {
+      if (item.classList.contains('item-flex-space')) {
+        afterFlexSpace = true;
+        continue;
+      }
+      if (afterFlexSpace) item.setAttribute('data-after-flex-space', 'true');
       const itemRight = item.offsetLeft + item.offsetWidth;
-      if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button
+      if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
         this.tippyItems.push(item);
       }
     }
+    itemFlexSpace?.style.removeProperty('display');
 
     // if there are no overflown items, remove any previously created button
     if (!this.tippyItems?.length) {
@@ -105,7 +119,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
     // create button initially
     const btn = document.createElement('button');
-    btn.classList.add('overflow-menu-button', 'btn', 'tw-px-2', 'hover:tw-text-text-dark');
+    btn.classList.add('overflow-menu-button');
     btn.setAttribute('aria-label', window.config.i18n.more_items);
     btn.innerHTML = octiconKebabHorizontal;
     this.append(btn);
@@ -117,6 +131,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       interactive: true,
       placement: 'bottom-end',
       role: 'menu',
+      theme: 'menu',
       content: this.tippyContent,
       onShow: () => { // FIXME: onShown doesn't work (never be called)
         setTimeout(() => {

@@ -63,16 +63,16 @@ func NewComplexity() {
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
-			if complex, ok := charComplexities[val]; ok {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			if complexity, ok := charComplexities[val]; ok {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
-			for _, complex := range charComplexities {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			for _, complexity := range charComplexities {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 	}

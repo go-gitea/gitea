@@ -14,6 +14,7 @@
 }
 
 .ui.comments .comment {
+  display: flex;
   position: relative;
   background: none;
   margin: 3px 0 0;
@@ -21,6 +22,10 @@
   border: none;
   border-top: none;
   line-height: 1.2;
+}
+
+.edit-content-zone .comment {
+  flex-direction: column;
 }
 
 .ui.comments .comment:first-child {
@@ -46,16 +51,17 @@
 }
 
 .ui.comments .comment .avatar {
-  float: left;
-  width: 2.5em;
+  width: 30px;
 }
 
 .ui.comments .comment > .content {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .ui.comments .comment > .avatar ~ .content {
-  margin-left: 3.5em;
+  margin-left: 12px;
 }
 
 .ui.comments .comment .author {

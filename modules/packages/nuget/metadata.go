@@ -48,10 +48,11 @@ const maxNuspecFileSize = 3 * 1024 * 1024
 
 // Package represents a Nuget package
 type Package struct {
-	PackageType PackageType
-	ID          string
-	Version     string
-	Metadata    *Metadata
+	PackageType   PackageType
+	ID            string
+	Version       string
+	Metadata      *Metadata
+	NuspecContent *bytes.Buffer
 }
 
 // Metadata represents the metadata of a Nuget package
@@ -138,8 +139,9 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 
 // ParseNuspecMetaData parses a Nuspec file to retrieve the metadata of a Nuget package
 func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
+	var nuspecBuf bytes.Buffer
 	var p nuspecPackage
-	if err := xml.NewDecoder(r).Decode(&p); err != nil {
+	if err := xml.NewDecoder(io.TeeReader(r, &nuspecBuf)).Decode(&p); err != nil {
 		return nil, err
 	}
 
@@ -212,10 +214,11 @@ func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 		}
 	}
 	return &Package{
-		PackageType: packageType,
-		ID:          p.Metadata.ID,
-		Version:     toNormalizedVersion(v),
-		Metadata:    m,
+		PackageType:   packageType,
+		ID:            p.Metadata.ID,
+		Version:       toNormalizedVersion(v),
+		Metadata:      m,
+		NuspecContent: &nuspecBuf,
 	}, nil
 }
 

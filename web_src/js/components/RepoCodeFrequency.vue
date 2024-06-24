@@ -67,7 +67,7 @@ export default {
           const weekValues = Object.values(this.data);
           const start = weekValues[0].week;
           const end = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(start), new Date(end));
+          const startDays = startDaysBetween(start, end);
           this.data = fillEmptyStartDaysWithZeroes(startDays, this.data);
           this.errorText = '';
         } else {
