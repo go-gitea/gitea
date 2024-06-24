@@ -6,7 +6,7 @@
 }
 
 .conversation-holder .markup {
-  overflow-wrap: anywhere; /* prevent overflow in code comments */
+  overflow-wrap: anywhere; /* prevent overflow in code comments. TODO: properly restrict .conversation-holder width and remove this */
 }
 
 .markup > *:first-child {
