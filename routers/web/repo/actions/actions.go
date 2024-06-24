@@ -31,8 +31,15 @@ const (
 )
 
 type Workflow struct {
-	Entry  git.TreeEntry
-	ErrMsg string
+	Entry      git.TreeEntry
+	ErrMsg     string
+	Name       string
+	WorkflowID string
+}
+
+type Run struct {
+	ActionRun actions_model.ActionRun
+	Workflow  Workflow
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -60,6 +67,7 @@ func List(ctx *context.Context) {
 	ctx.Data["PageIsActions"] = true
 
 	var workflows []Workflow
+	var runs []Run
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.ServerError("IsEmpty", err)
 		return
@@ -92,7 +100,7 @@ func List(ctx *context.Context) {
 
 		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
-			workflow := Workflow{Entry: *entry}
+			workflow := Workflow{Entry: *entry, WorkflowID: entry.Name(), Name: entry.Name()}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.ServerError("GetContentFromEntry", err)
@@ -104,6 +112,12 @@ func List(ctx *context.Context) {
 				workflows = append(workflows, workflow)
 				continue
 			}
+
+			// The workflow name is the name from the yaml file, otherwise remains the filename.
+			if wf.Name != "" {
+				workflow.Name = wf.Name
+			}
+
 			// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 			hasJobWithoutNeeds := false
 			// Check whether have matching runner and a job without "needs"
@@ -186,19 +200,31 @@ func List(ctx *context.Context) {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
-	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+	actionRuns, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindAndCount", err)
 		return
 	}
 
-	for _, run := range runs {
-		run.Repo = ctx.Repo.Repository
-	}
-
-	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
+	if err := actions_model.RunList(actionRuns).LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
 		return
+	}
+
+	runs = make([]Run, 0, len(actionRuns))
+	for _, actionRun := range actionRuns {
+		actionRun.Repo = ctx.Repo.Repository
+		run := Run{ActionRun: *actionRun}
+
+		// Connect the workflow to the run
+		for _, wf := range workflows {
+			fmt.Printf("Search workflow of %v", actionRun.WorkflowID)
+			if wf.WorkflowID == actionRun.WorkflowID {
+				fmt.Println("Found")
+				run.Workflow = wf
+			}
+		}
+		runs = append(runs, run)
 	}
 
 	ctx.Data["Runs"] = runs
