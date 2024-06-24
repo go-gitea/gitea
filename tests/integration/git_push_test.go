@@ -37,6 +37,41 @@ func testGitPush(t *testing.T, u *url.URL) {
 		})
 	})
 
+	t.Run("Push branches exists", func(t *testing.T) {
+		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
+			for i := 0; i < 10; i++ {
+				branchName := fmt.Sprintf("branch-%d", i)
+				if i < 5 {
+					pushed = append(pushed, branchName)
+				}
+				doGitCreateBranch(gitPath, branchName)(t)
+			}
+			// only push master and the first 5 branches
+			pushed = append(pushed, "master")
+			args := append([]string{"origin"}, pushed...)
+			doGitPushTestRepository(gitPath, args...)(t)
+
+			pushed = pushed[:0]
+			// do some changes for the first 5 branches created above
+			for i := 0; i < 5; i++ {
+				branchName := fmt.Sprintf("branch-%d", i)
+				pushed = append(pushed, branchName)
+
+				doGitAddSomeCommits(gitPath, branchName)(t)
+			}
+
+			for i := 5; i < 10; i++ {
+				pushed = append(pushed, fmt.Sprintf("branch-%d", i))
+			}
+			pushed = append(pushed, "master")
+
+			// push all, so that master are not chagned
+			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+
+			return pushed, deleted
+		})
+	})
+
 	t.Run("Push branches one by one", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
 			for i := 0; i < 100; i++ {

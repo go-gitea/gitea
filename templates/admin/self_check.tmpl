@@ -17,32 +17,40 @@
 	<div class="ui attached segment tw-hidden self-check-problem" id="self-check-by-frontend"></div>
 
 	{{if .DatabaseCheckHasProblems}}
-	<div class="ui attached segment self-check-problem">
-		{{if .DatabaseType.IsMySQL}}
-			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
-		{{else if .DatabaseType.IsMSSQL}}
-			<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
-		{{end}}
-		{{if .DatabaseCheckCollationMismatch}}
-			<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
-		{{end}}
-		{{if .DatabaseCheckCollationCaseInsensitive}}
-			<div class="ui warning message">{{ctx.Locale.Tr "admin.self_check.database_collation_case_insensitive" .DatabaseCheckResult.DatabaseCollation}}</div>
-		{{end}}
-		{{if .DatabaseCheckInconsistentCollationColumns}}
-			<div class="ui red message">
-				<details>
-					<summary>{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}</summary>
-					<ul class="tw-w-full">
-					{{range .DatabaseCheckInconsistentCollationColumns}}
-						<li>{{.}}</li>
-					{{end}}
-					</ul>
-				</details>
-			</div>
-		{{end}}
-	</div>
+		<div class="ui attached segment self-check-problem">
+			{{if .DatabaseType.IsMySQL}}
+				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
+			{{else if .DatabaseType.IsMSSQL}}
+				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
+			{{end}}
+			{{if .DatabaseCheckCollationMismatch}}
+				<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
+			{{end}}
+			{{if .DatabaseCheckCollationCaseInsensitive}}
+				<div class="ui warning message">{{ctx.Locale.Tr "admin.self_check.database_collation_case_insensitive" .DatabaseCheckResult.DatabaseCollation}}</div>
+			{{end}}
+			{{if .DatabaseCheckInconsistentCollationColumns}}
+				<div class="ui red message">
+					<details>
+						<summary>{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}</summary>
+						<ul class="tw-w-full">
+						{{range .DatabaseCheckInconsistentCollationColumns}}
+							<li>{{.}}</li>
+						{{end}}
+						</ul>
+					</details>
+				</div>
+			{{end}}
+		</div>
 	{{end}}
+
+	{{if .CacheError}}
+		<div class="ui red message">{{ctx.Locale.Tr "admin.config.cache_test_failed" .CacheError}}</div>
+	{{end}}
+	{{if .CacheSlow}}
+		<div class="ui warning message">{{ctx.Locale.Tr "admin.config.cache_test_slow" .CacheSlow}}</div>
+	{{end}}
+
 	{{/* only shown when there is no visible "self-check-problem" */}}
 	<div class="ui attached segment tw-hidden self-check-no-problem">
 		{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}

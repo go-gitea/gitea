@@ -42,7 +42,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	tag := ctx.Params(":tag")
+	tag := ctx.PathParam(":tag")
 
 	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {
@@ -95,7 +95,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	tag := ctx.Params(":tag")
+	tag := ctx.PathParam(":tag")
 
 	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {

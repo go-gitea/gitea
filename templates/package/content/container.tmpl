@@ -54,7 +54,7 @@
 	{{end}}
 	{{if .PackageDescriptor.Metadata.ImageLayers}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.layers"}}</h4>
-		<div class="ui attached segment gt-word-break">
+		<div class="ui attached segment tw-break-anywhere">
 			<table class="ui very basic compact table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.ImageLayers}}
@@ -80,7 +80,7 @@
 					{{range $key, $value := .PackageDescriptor.Metadata.Labels}}
 						<tr>
 							<td class="top aligned">{{$key}}</td>
-							<td class="gt-word-break">{{$value}}</td>
+							<td class="tw-break-anywhere">{{$value}}</td>
 						</tr>
 					{{end}}
 				</tbody>

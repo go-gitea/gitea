@@ -47,7 +47,7 @@ HTML 页面由[Go HTML Template](https://pkg.go.dev/html/template)渲染。
 9. 避免在 CSS 中使用不必要的`!important`，如果无法避免，添加注释解释为什么需要它。
 10. 避免在一个事件监听器中混合不同的事件，优先为每个事件使用独立的事件监听器。
 11. 推荐使用自定义事件名称前缀`ce-`。
-12. 建议使用 Tailwind CSS，它可以通过 `tw-` 前缀获得，例如 `tw-relative`. Gitea 自身的助手类 CSS 使用 `gt-` 前缀（`gt-word-break`），Gitea 自身的私有框架级 CSS 类使用 `g-` 前缀（`g-modal-confirm`）。
+12. 建议使用 Tailwind CSS，它可以通过 `tw-` 前缀获得，例如 `tw-relative`. Gitea 自身的助手类 CSS 使用 `gt-` 前缀（`gt-ellipsis`），Gitea 自身的私有框架级 CSS 类使用 `g-` 前缀（`g-modal-confirm`）。
 13. 尽量避免内联脚本和样式，建议将JS代码放入JS文件中并使用CSS类。如果内联脚本和样式不可避免，请解释无法避免的原因。
 
 ### 可访问性 / ARIA

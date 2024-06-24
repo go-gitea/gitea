@@ -46,17 +46,17 @@
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
 							<td class="gt-ellipsis tw-max-w-48">{{.FullName}}</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
-							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{svg (Iif .IsPrimary "octicon-check" "octicon-x")}}</td>
 							<td>
 								{{if .CanChange}}
 									<a class="link-email-action" href data-uid="{{.UID}}"
 										data-email="{{.Email}}"
 										data-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
 										data-activate="{{if .IsActivated}}0{{else}}1{{end}}">
-										{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
+										{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 									</a>
 								{{else}}
-									{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
+									{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 								{{end}}
 							</td>
 						</tr>

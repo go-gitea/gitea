@@ -70,7 +70,7 @@
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
-						<td class="runner-tags">
+						<td class="tw-flex tw-flex-wrap tw-gap-2 runner-tags">
 							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>

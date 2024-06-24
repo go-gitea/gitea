@@ -16,25 +16,25 @@ import (
 // CommentList defines a list of comments
 type CommentList []*Comment
 
-func (comments CommentList) getPosterIDs() []int64 {
-	return container.FilterSlice(comments, func(c *Comment) (int64, bool) {
-		return c.PosterID, c.PosterID > 0
-	})
-}
-
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	posterMaps, err := getPosters(ctx, comments.getPosterIDs())
+	posterIDs := container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+		return c.PosterID, c.Poster == nil && c.PosterID > 0
+	})
+
+	posterMaps, err := getPostersByIDs(ctx, posterIDs)
 	if err != nil {
 		return err
 	}
 
 	for _, comment := range comments {
-		comment.Poster = getPoster(comment.PosterID, posterMaps)
+		if comment.Poster == nil {
+			comment.Poster = getPoster(comment.PosterID, posterMaps)
+		}
 	}
 	return nil
 }

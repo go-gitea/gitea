@@ -358,7 +358,8 @@ $REWRITTEN_PR_SUMMARY
 
 ## Documentation
 
-If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in the same PR.
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in another PR at [https://gitea.com/gitea/docs](https://gitea.com/gitea/docs).
+**The docs directory on main repository will be removed at some time. We will have a yaml file to store configuration file's meta data. After that completed, configuration documentation should be in the main repository.**
 
 ## API v1
 

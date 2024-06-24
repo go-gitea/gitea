@@ -7,10 +7,10 @@ export default {
     return {store: diffTreeStore()};
   },
   mounted() {
-    document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').addEventListener('click', this.toggleFileList);
   },
   unmounted() {
-    document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').removeEventListener('click', this.toggleFileList);
   },
   methods: {
     toggleFileList() {

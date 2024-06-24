@@ -27,9 +27,9 @@ export async function initCitationFileCopyContent() {
 
   if (!pageData.citationFileContent) return;
 
-  const citationCopyApa = document.getElementById('citation-copy-apa');
-  const citationCopyBibtex = document.getElementById('citation-copy-bibtex');
-  const inputContent = document.getElementById('citation-copy-content');
+  const citationCopyApa = document.querySelector('#citation-copy-apa');
+  const citationCopyBibtex = document.querySelector('#citation-copy-bibtex');
+  const inputContent = document.querySelector('#citation-copy-content');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
@@ -41,7 +41,7 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  document.getElementById('cite-repo-button')?.addEventListener('click', async (e) => {
+  document.querySelector('#cite-repo-button')?.addEventListener('click', async (e) => {
     const dropdownBtn = e.target.closest('.ui.dropdown.button');
     dropdownBtn.classList.add('is-loading');
 

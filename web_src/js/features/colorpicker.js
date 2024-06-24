@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.js';
 
 export async function initColorPickers() {
-  const els = document.getElementsByClassName('js-color-picker-input');
+  const els = document.querySelectorAll('.js-color-picker-input');
   if (!els.length) return;
 
   await Promise.all([

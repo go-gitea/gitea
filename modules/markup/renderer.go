@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -46,7 +47,6 @@ func Init(ph *ProcessorHelper) {
 		DefaultProcessorHelper = *ph
 	}
 
-	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -74,9 +74,10 @@ type RenderContext struct {
 	Type             string
 	IsWiki           bool
 	Links            Links
-	Metas            map[string]string
+	Metas            map[string]string // user, repo, mode(comment/document)
 	DefaultLink      string
 	GitRepo          *git.Repository
+	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
 	SidebarTocNode   ast.Node
@@ -85,10 +86,10 @@ type RenderContext struct {
 }
 
 type Links struct {
-	AbsolutePrefix bool
-	Base           string
-	BranchPath     string
-	TreePath       string
+	AbsolutePrefix bool   // add absolute URL prefix to auto-resolved links like "#issue", but not for pre-provided links and medias
+	Base           string // base prefix for pre-provided links and medias (images, videos)
+	BranchPath     string // actually it is the ref path, eg: "branch/features/feat-12", "tag/v1.0"
+	TreePath       string // the dir of the file, eg: "doc" if the file "doc/CHANGE.md" is being rendered
 }
 
 func (l *Links) Prefix() string {
@@ -371,20 +372,12 @@ func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return ErrUnsupportedRenderExtension{extension}
 }
 
-// Type returns if markup format via the filename
-func Type(filename string) string {
+// DetectMarkupTypeByFileName returns the possible markup format type via the filename
+func DetectMarkupTypeByFileName(filename string) string {
 	if parser := GetRendererByFileName(filename); parser != nil {
 		return parser.Name()
 	}
 	return ""
-}
-
-// IsMarkupFile reports whether file is a markup type file
-func IsMarkupFile(name, markup string) bool {
-	if parser := GetRendererByFileName(name); parser != nil {
-		return parser.Name() == markup
-	}
-	return false
 }
 
 func PreviewableExtensions() []string {

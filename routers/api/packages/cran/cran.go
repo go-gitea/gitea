@@ -28,18 +28,18 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func EnumerateSourcePackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
 	})
 }
 
 func EnumerateBinaryPackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
 	})
 }
 
@@ -225,7 +225,7 @@ func DownloadSourcePackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
-		Filename: ctx.Params("filename"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 
@@ -233,9 +233,9 @@ func DownloadBinaryPackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
-		Filename: ctx.Params("filename"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 

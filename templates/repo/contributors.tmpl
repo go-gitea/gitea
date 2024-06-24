@@ -1,5 +1,6 @@
 {{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	<div id="repo-contributors-chart"
+		data-repo-link="{{.RepoLink}}"
 		data-locale-filter-label="{{ctx.Locale.Tr "repo.contributors.contribution_type.filter_label"}}"
 		data-locale-contribution-type-commits="{{ctx.Locale.Tr "repo.contributors.contribution_type.commits"}}"
 		data-locale-contribution-type-additions="{{ctx.Locale.Tr "repo.contributors.contribution_type.additions"}}"

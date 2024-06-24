@@ -107,17 +107,13 @@ func (opts FindBranchOptions) ToConds() builder.Cond {
 
 func (opts FindBranchOptions) ToOrders() string {
 	orderBy := opts.OrderBy
-	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the end
-		if orderBy != "" {
-			orderBy += ", "
-		}
-		orderBy += "is_deleted ASC"
-	}
 	if orderBy == "" {
 		// the commit_time might be the same, so add the "name" to make sure the order is stable
-		return "commit_time DESC, name ASC"
+		orderBy = "commit_time DESC, name ASC"
 	}
-
+	if opts.IsDeletedBranch.ValueOrDefault(true) { // if deleted branch included, put them at the beginning
+		orderBy = "is_deleted ASC, " + orderBy
+	}
 	return orderBy
 }
 

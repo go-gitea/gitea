@@ -22,7 +22,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{
 		"dict": dict,
-		"Eval": Eval,
+		"Eval": evalTokens,
 
 		"EllipsisString": base.EllipsisString,
 		"AppName": func() string {

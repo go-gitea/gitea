@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -142,24 +143,28 @@ func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
 }
 
-// Params returns the param on route
-func (b *Base) Params(p string) string {
-	s, _ := url.PathUnescape(chi.URLParam(b.Req, strings.TrimPrefix(p, ":")))
+// PathParam returns the param in request path, eg: "/{var}" => "/a%2fb", then `var == "a/b"`
+func (b *Base) PathParam(name string) string {
+	s, err := url.PathUnescape(b.PathParamRaw(name))
+	if err != nil && !setting.IsProd {
+		panic("Failed to unescape path param: " + err.Error() + ", there seems to be a double-unescaping bug")
+	}
 	return s
 }
 
-func (b *Base) PathParamRaw(p string) string {
-	return chi.URLParam(b.Req, strings.TrimPrefix(p, ":"))
+// PathParamRaw returns the raw param in request path, eg: "/{var}" => "/a%2fb", then `var == "a%2fb"`
+func (b *Base) PathParamRaw(name string) string {
+	return chi.URLParam(b.Req, strings.TrimPrefix(name, ":"))
 }
 
-// ParamsInt64 returns the param on route as int64
-func (b *Base) ParamsInt64(p string) int64 {
-	v, _ := strconv.ParseInt(b.Params(p), 10, 64)
+// PathParamInt64 returns the param in request path as int64
+func (b *Base) PathParamInt64(p string) int64 {
+	v, _ := strconv.ParseInt(b.PathParam(p), 10, 64)
 	return v
 }
 
-// SetParams set params into routes
-func (b *Base) SetParams(k, v string) {
+// SetPathParam set request path params into routes
+func (b *Base) SetPathParam(k, v string) {
 	chiCtx := chi.RouteContext(b)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }

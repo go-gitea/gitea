@@ -317,7 +317,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			ctx.Repo.TreePath = ctx.Params("*")
+			ctx.Repo.TreePath = ctx.PathParam("*")
 			next.ServeHTTP(w, req)
 			return
 		}
@@ -347,7 +347,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
 			return
 		}
 

@@ -103,7 +103,7 @@ func TestRenderCommitBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, RenderCommitBody(tt.args.ctx, tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v, %v)", tt.args.ctx, tt.args.msg, tt.args.metas)
+			assert.Equalf(t, tt.want, renderCommitBody(tt.args.ctx, tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v, %v)", tt.args.ctx, tt.args.msg, tt.args.metas)
 		})
 	}
 
@@ -127,7 +127,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
 
-	assert.EqualValues(t, expected, RenderCommitBody(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, renderCommitBody(context.Background(), testInput(), testMetas))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
@@ -139,7 +139,7 @@ func TestRenderCommitMessage(t *testing.T) {
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
 	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" class="mention">@mention-user</a>`
 
-	assert.EqualValues(t, expected, RenderCommitMessageLinkSubject(context.Background(), testInput(), "https://example.com/link", testMetas))
+	assert.EqualValues(t, expected, renderCommitMessageLinkSubject(context.Background(), testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
@@ -165,7 +165,7 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, RenderIssueTitle(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, renderIssueTitle(context.Background(), testInput(), testMetas))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -174,7 +174,7 @@ func TestRenderMarkdownToHtml(t *testing.T) {
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
-<a href="/src/file.bin" rel="nofollow">local link</a>
+<a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
@@ -190,7 +190,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.EqualValues(t, expected, RenderMarkdownToHtml(context.Background(), testInput()))
+	assert.Equal(t, expected, string(RenderMarkdownToHtml(context.Background(), testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {

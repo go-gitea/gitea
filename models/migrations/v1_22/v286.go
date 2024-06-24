@@ -92,7 +92,7 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 
 	// Here to catch weird edge-cases where column constraints above are
 	// not applied by the DB backend
-	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	_, err := x.Exec("UPDATE `repository` set `object_format_name` = 'sha1' WHERE `object_format_name` = '' or `object_format_name` IS NULL")
 	return err
 }
 

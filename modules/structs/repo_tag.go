@@ -3,6 +3,8 @@
 
 package structs
 
+import "time"
+
 // Tag represents a repository tag
 type Tag struct {
 	Name       string      `json:"name"`
@@ -37,4 +39,30 @@ type CreateTagOption struct {
 	TagName string `json:"tag_name" binding:"Required"`
 	Message string `json:"message"`
 	Target  string `json:"target"`
+}
+
+// TagProtection represents a tag protection
+type TagProtection struct {
+	ID                 int64    `json:"id"`
+	NamePattern        string   `json:"name_pattern"`
+	WhitelistUsernames []string `json:"whitelist_usernames"`
+	WhitelistTeams     []string `json:"whitelist_teams"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
+}
+
+// CreateTagProtectionOption options for creating a tag protection
+type CreateTagProtectionOption struct {
+	NamePattern        string   `json:"name_pattern"`
+	WhitelistUsernames []string `json:"whitelist_usernames"`
+	WhitelistTeams     []string `json:"whitelist_teams"`
+}
+
+// EditTagProtectionOption options for editing a tag protection
+type EditTagProtectionOption struct {
+	NamePattern        *string  `json:"name_pattern"`
+	WhitelistUsernames []string `json:"whitelist_usernames"`
+	WhitelistTeams     []string `json:"whitelist_teams"`
 }

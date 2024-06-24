@@ -226,8 +226,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
-	routes := web.NewRoute()
+func Routes() *web.Router {
+	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
@@ -283,7 +283,7 @@ func Routes() *web.Route {
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
-	others := web.NewRoute()
+	others := web.NewRouter()
 	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
@@ -293,7 +293,7 @@ func Routes() *web.Route {
 var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
 // registerRoutes register routes
-func registerRoutes(m *web.Route) {
+func registerRoutes(m *web.Router) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
@@ -384,18 +384,18 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("ContextUser is nil", nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
+					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
 					return
 				}
 			}
@@ -487,7 +487,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(unit.TypeCode.String(), nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
@@ -692,6 +692,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
@@ -1125,6 +1126,9 @@ func registerRoutes(m *web.Route) {
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
@@ -1235,8 +1239,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
-
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)

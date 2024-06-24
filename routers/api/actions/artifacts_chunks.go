@@ -39,7 +39,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		r = io.TeeReader(r, hasher)
 	}
 	// save chunk to storage
-	writtenSize, err := st.Save(storagePath, r, -1)
+	writtenSize, err := st.Save(storagePath, r, contentSize)
 	if err != nil {
 		return -1, fmt.Errorf("save chunk to storage error: %v", err)
 	}
@@ -55,7 +55,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		}
 	}
 	if writtenSize != contentSize {
-		checkErr = errors.Join(checkErr, fmt.Errorf("contentSize not match body size"))
+		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
 	}
 	if checkErr != nil {
 		if err := st.Delete(storagePath); err != nil {
@@ -208,7 +208,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 
 	// save merged file
 	storagePath := fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
-	written, err := st.Save(storagePath, mergedReader, -1)
+	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
 		return fmt.Errorf("save merged file error: %v", err)
 	}

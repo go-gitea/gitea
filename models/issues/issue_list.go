@@ -72,29 +72,29 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 	return repo_model.ValuesRepository(repoMaps), nil
 }
 
-func (issues IssueList) getPosterIDs() []int64 {
-	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
-		return issue.PosterID, true
-	})
-}
-
-func (issues IssueList) loadPosters(ctx context.Context) error {
+func (issues IssueList) LoadPosters(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	posterMaps, err := getPosters(ctx, issues.getPosterIDs())
+	posterIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.PosterID, issue.Poster == nil && issue.PosterID > 0
+	})
+
+	posterMaps, err := getPostersByIDs(ctx, posterIDs)
 	if err != nil {
 		return err
 	}
 
 	for _, issue := range issues {
-		issue.Poster = getPoster(issue.PosterID, posterMaps)
+		if issue.Poster == nil {
+			issue.Poster = getPoster(issue.PosterID, posterMaps)
+		}
 	}
 	return nil
 }
 
-func getPosters(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
+func getPostersByIDs(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
@@ -136,7 +136,7 @@ func (issues IssueList) getIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadLabels(ctx context.Context) error {
+func (issues IssueList) LoadLabels(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -168,7 +168,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 			err = rows.Scan(&labelIssue)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
+					return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
 				}
 				return err
 			}
@@ -177,7 +177,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 		// When there are no rows left and we try to close it.
 		// Since that is not relevant for us, we can safely ignore it.
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
+			return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -185,6 +185,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Labels = issueLabels[issue.ID]
+		issue.isLabelsLoaded = true
 	}
 	return nil
 }
@@ -195,7 +196,7 @@ func (issues IssueList) getMilestoneIDs() []int64 {
 	})
 }
 
-func (issues IssueList) loadMilestones(ctx context.Context) error {
+func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	milestoneIDs := issues.getMilestoneIDs()
 	if len(milestoneIDs) == 0 {
 		return nil
@@ -220,6 +221,7 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Milestone = milestoneMaps[issue.MilestoneID]
+		issue.isMilestoneLoaded = true
 	}
 	return nil
 }
@@ -263,7 +265,7 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 	return nil
 }
 
-func (issues IssueList) loadAssignees(ctx context.Context) error {
+func (issues IssueList) LoadAssignees(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -310,6 +312,10 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Assignees = assignees[issue.ID]
+		if len(issue.Assignees) > 0 {
+			issue.Assignee = issue.Assignees[0]
+		}
+		issue.isAssigneeLoaded = true
 	}
 	return nil
 }
@@ -413,6 +419,7 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 
 	for _, issue := range issues {
 		issue.Attachments = attachments[issue.ID]
+		issue.isAttachmentsLoaded = true
 	}
 	return nil
 }
@@ -538,23 +545,23 @@ func (issues IssueList) LoadAttributes(ctx context.Context) error {
 		return fmt.Errorf("issue.loadAttributes: LoadRepositories: %w", err)
 	}
 
-	if err := issues.loadPosters(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadPosters: %w", err)
+	if err := issues.LoadPosters(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadPosters: %w", err)
 	}
 
-	if err := issues.loadLabels(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadLabels: %w", err)
+	if err := issues.LoadLabels(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadLabels: %w", err)
 	}
 
-	if err := issues.loadMilestones(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadMilestones: %w", err)
+	if err := issues.LoadMilestones(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadMilestones: %w", err)
 	}
 
 	if err := issues.LoadProjects(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 
-	if err := issues.loadAssignees(ctx); err != nil {
+	if err := issues.LoadAssignees(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadAssignees: %w", err)
 	}
 

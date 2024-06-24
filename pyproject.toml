@@ -1,8 +1,5 @@
 [tool.poetry]
-name = "gitea"
-version = "0.0.0"
-description = ""
-authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"

@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="repo-description gt-word-break">
+		<div class="repo-description tw-break-anywhere">
 			{{- $description := .Repository.DescriptionHTML ctx -}}
 			{{if $description}}{{$description | RenderCodeBlock}}{{end}}
 			{{if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}

@@ -19,13 +19,13 @@
 						<div class="flex-item-trailing">
 							<div class="flex-text-block">
 								{{svg "octicon-shield-lock"}}
-								<div class="ui inline dropdown access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{printf "%d" .Collaboration.Mode}}">
+								<div class="ui dropdown custom access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{.Collaboration.Mode}}">
 									<div class="text">{{if eq .Collaboration.Mode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
-										<div class="item" data-text="{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}</div>
-										<div class="item" data-text="{{ctx.Locale.Tr "repo.settings.collaboration.write"}}" data-value="2">{{ctx.Locale.Tr "repo.settings.collaboration.write"}}</div>
-										<div class="item" data-text="{{ctx.Locale.Tr "repo.settings.collaboration.read"}}" data-value="1">{{ctx.Locale.Tr "repo.settings.collaboration.read"}}</div>
+										<div class="item" data-value="3">{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}</div>
+										<div class="item" data-value="2">{{ctx.Locale.Tr "repo.settings.collaboration.write"}}</div>
+										<div class="item" data-value="1">{{ctx.Locale.Tr "repo.settings.collaboration.read"}}</div>
 									</div>
 								</div>
 							</div>

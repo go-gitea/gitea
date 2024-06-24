@@ -87,11 +87,11 @@ func ToSnakeCase(input string) string {
 }
 
 // UnsafeBytesToString uses Go's unsafe package to convert a byte slice to a string.
-// TODO: replace all "goldmark/util.BytesToReadOnlyString" with this official approach
 func UnsafeBytesToString(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
+// UnsafeStringToBytes uses Go's unsafe package to convert a string to a byte slice.
 func UnsafeStringToBytes(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

@@ -45,6 +45,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	if err != nil {
 		return 0, fmt.Errorf("UpdateRepository: %w", err)
 	}
+	repo.ObjectFormatName = objFmt.Name() // keep consistent with db
 
 	allBranches := container.Set[string]{}
 	{

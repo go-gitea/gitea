@@ -37,8 +37,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
-		"/assets/img/404.png",
-		"/assets/img/500.png",
 		"/.well-known/security.txt",
 	}
 

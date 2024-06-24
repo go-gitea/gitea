@@ -42,7 +42,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
-	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
+	newTag := createNewTagUsingAPI(t, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &tags)
 	assert.Len(t, tags, 2)
@@ -72,7 +72,7 @@ func TestAPIRepoTags(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, repoName, name, target, msg string) *api.Tag {
+func createNewTagUsingAPI(t *testing.T, token, ownerName, repoName, name, target, msg string) *api.Tag {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags", ownerName, repoName)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateTagOption{
 		TagName: name,

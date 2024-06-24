@@ -41,9 +41,9 @@
 									{{ShortSha .Oid}}
 								</a>
 							</td>
-							<td>{{if .InRepo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .Exists}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .Accessible}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{svg (Iif .InRepo "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif .Exists "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif .Accessible "octicon-check" "octicon-x")}}</td>
 							<td class="tw-text-right">
 								<a class="ui primary button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>

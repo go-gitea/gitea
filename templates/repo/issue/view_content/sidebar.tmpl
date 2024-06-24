@@ -92,7 +92,7 @@
 								</span>
 							{{end}}
 							{{if and .CanChange (or .Checked (and (not $.Issue.IsClosed) (not $.Issue.PullRequest.HasMerged)))}}
-								<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{ctx.Locale.Tr "repo.issues.remove_request_review"}}{{else}}{{ctx.Locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
+								<a href="#" class="ui muted icon re-request-review{{if .Checked}} checked{{end}}" data-tooltip-content="{{if .Checked}}{{ctx.Locale.Tr "repo.issues.remove_request_review"}}{{else}}{{ctx.Locale.Tr "repo.issues.re_request_review"}}{{end}}" data-issue-id="{{$.Issue.ID}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{svg (Iif .Checked "octicon-trash" "octicon-sync")}}</a>
 							{{end}}
 							{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
 						</div>

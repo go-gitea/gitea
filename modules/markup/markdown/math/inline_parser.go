@@ -45,6 +45,10 @@ func isPunctuation(b byte) bool {
 	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
 }
 
+func isBracket(b byte) bool {
+	return b == ')'
+}
+
 func isAlphanumeric(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
@@ -84,7 +88,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 			break
 		}
 		suceedingCharacter := line[pos]
-		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') {
+		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') && !isBracket(suceedingCharacter) {
 			return nil
 		}
 		if line[ender-1] != '\\' {

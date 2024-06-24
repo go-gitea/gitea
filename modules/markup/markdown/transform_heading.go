@@ -7,10 +7,10 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
 )
 
 func (g *ASTTransformer) transformHeading(_ *markup.RenderContext, v *ast.Heading, reader text.Reader, tocList *[]markup.Header) {
@@ -21,11 +21,11 @@ func (g *ASTTransformer) transformHeading(_ *markup.RenderContext, v *ast.Headin
 	}
 	txt := v.Text(reader.Source())
 	header := markup.Header{
-		Text:  util.BytesToReadOnlyString(txt),
+		Text:  util.UnsafeBytesToString(txt),
 		Level: v.Level,
 	}
 	if id, found := v.AttributeString("id"); found {
-		header.ID = util.BytesToReadOnlyString(id.([]byte))
+		header.ID = util.UnsafeBytesToString(id.([]byte))
 	}
 	*tocList = append(*tocList, header)
 	g.applyElementDir(v)

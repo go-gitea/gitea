@@ -164,6 +164,11 @@
   flex: 1;
 }
 
+/* expand direction 3 is both ways with two buttons */
+.code-expander-buttons[data-expand-direction="3"] .code-expander-button {
+  height: 18px;
+}
+
 .code-expander-button:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);

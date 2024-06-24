@@ -168,6 +168,6 @@ type feishuConvertor struct{}
 
 var _ payloadConvertor[FeishuPayload] = feishuConvertor{}
 
-func newFeishuRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	return newJSONRequest(feishuConvertor{}, w, t, true)
 }

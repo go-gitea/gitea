@@ -5,7 +5,7 @@
 			{{ctx.Locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
 			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">
-				<form method="post" action="/admin/packages/cleanup">
+				<form method="post" action="{{AppSubUrl}}/admin/packages/cleanup">
 					{{.CsrfTokenHtml}}
 					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
 				</form>

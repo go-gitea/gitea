@@ -16,7 +16,7 @@ import (
 func TestRouteMock(t *testing.T) {
 	setting.IsInTesting = true
 
-	r := NewRoute()
+	r := NewRouter()
 	middleware1 := func(resp http.ResponseWriter, req *http.Request) {
 		resp.Header().Set("X-Test-Middleware1", "m1")
 	}
@@ -26,7 +26,7 @@ func TestRouteMock(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.Header().Set("X-Test-Handler", "h")
 	}
-	r.Get("/foo", middleware1, RouteMockPoint("mock-point"), middleware2, handler)
+	r.Get("/foo", middleware1, RouterMockPoint("mock-point"), middleware2, handler)
 
 	// normal request
 	recorder := httptest.NewRecorder()

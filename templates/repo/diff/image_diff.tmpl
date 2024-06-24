@@ -7,7 +7,7 @@
 			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
 			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
 		>
-			<overflow-menu class="ui secondary pointing tabular top attached borderless menu">
+			<overflow-menu class="ui secondary pointing tabular menu custom">
 				<div class="overflow-menu-items tw-justify-center">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}

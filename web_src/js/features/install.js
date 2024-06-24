@@ -22,12 +22,12 @@ function initPreInstall() {
     mssql: '127.0.0.1:1433',
   };
 
-  const dbHost = document.getElementById('db_host');
-  const dbUser = document.getElementById('db_user');
-  const dbName = document.getElementById('db_name');
+  const dbHost = document.querySelector('#db_host');
+  const dbUser = document.querySelector('#db_user');
+  const dbName = document.querySelector('#db_name');
 
   // Database type change detection.
-  document.getElementById('db_type').addEventListener('change', function () {
+  document.querySelector('#db_type').addEventListener('change', function () {
     const dbType = this.value;
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
@@ -46,14 +46,14 @@ function initPreInstall() {
       }
     } // else: for SQLite3, the default path is always prepared by backend code (setting)
   });
-  document.getElementById('db_type').dispatchEvent(new Event('change'));
+  document.querySelector('#db_type').dispatchEvent(new Event('change'));
 
-  const appUrl = document.getElementById('app_url');
+  const appUrl = document.querySelector('#app_url');
   if (appUrl.value.includes('://localhost')) {
     appUrl.value = window.location.href;
   }
 
-  const domain = document.getElementById('domain');
+  const domain = document.querySelector('#domain');
   if (domain.value.trim() === 'localhost') {
     domain.value = window.location.hostname;
   }
@@ -103,7 +103,7 @@ function initPreInstall() {
 }
 
 function initPostInstall() {
-  const el = document.getElementById('goto-user-login');
+  const el = document.querySelector('#goto-user-login');
   if (!el) return;
 
   const targetUrl = el.getAttribute('href');

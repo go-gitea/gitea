@@ -429,22 +429,33 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 	t.Run("SearchService", func(t *testing.T) {
 		cases := []struct {
-			Query           string
-			Skip            int
-			Take            int
-			ExpectedTotal   int64
-			ExpectedResults int
+			Query              string
+			Skip               int
+			Take               int
+			ExpectedTotal      int64
+			ExpectedResults    int
+			ExpectedExactMatch bool
 		}{
-			{"", 0, 0, 1, 1},
-			{"", 0, 10, 1, 1},
-			{"gitea", 0, 10, 0, 0},
-			{"test", 0, 10, 1, 1},
-			{"test", 1, 10, 1, 0},
+			{"", 0, 0, 4, 4, false},
+			{"", 0, 10, 4, 4, false},
+			{"gitea", 0, 10, 0, 0, false},
+			{"test", 0, 10, 1, 1, false},
+			{"test", 1, 10, 1, 0, false},
+			{"almost.similar", 0, 0, 3, 3, true},
 		}
 
-		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+		fakePackages := []string{
+			packageName,
+			"almost.similar.dependency",
+			"almost.similar",
+			"almost.similar.dependant",
+		}
+
+		for _, fakePackageName := range fakePackages {
+			req := NewRequestWithBody(t, "PUT", url, createPackage(fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
 
 		t.Run("v2", func(t *testing.T) {
 			t.Run("Search()", func(t *testing.T) {
@@ -489,6 +500,63 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
 				}
+			})
+
+			t.Run("Packages()", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				t.Run("substringof", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
+
+				t.Run("IdEq", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						if c.Query == "" {
+							// Ignore the `tolower(Id) eq ''` as it's unlikely to happen
+							continue
+						}
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						expectedCount := 0
+						if c.ExpectedExactMatch {
+							expectedCount = 1
+						}
+
+						assert.Equal(t, int64(expectedCount), result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, expectedCount, "case %d: unexpected result count", i)
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(int64(expectedCount), 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
 			})
 
 			t.Run("Next", func(t *testing.T) {
@@ -548,9 +616,11 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			})
 		})
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNoContent)
+		for _, fakePackageName := range fakePackages {
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {

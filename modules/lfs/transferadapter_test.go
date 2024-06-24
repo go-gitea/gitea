@@ -26,7 +26,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 	p := Pointer{Oid: "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259", Size: 5}
 
 	roundTripHandler := func(req *http.Request) *http.Response {
-		assert.Equal(t, MediaType, req.Header.Get("Accept"))
+		assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 		assert.Equal(t, "test-value", req.Header.Get("test-header"))
 
 		url := req.URL.String()

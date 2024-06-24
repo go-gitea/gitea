@@ -7,13 +7,13 @@ const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
-  const table = document.getElementById('notification_table');
+  const table = document.querySelector('#notification_table');
   if (!table) return;
 
   // when page restores from bfcache, delete previously clicked items
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) { // page was restored from bfcache
-      const table = document.getElementById('notification_table');
+      const table = document.querySelector('#notification_table');
       const unreadCountEl = document.querySelector('.notifications-unread-count');
       let unreadCount = parseInt(unreadCountEl.textContent);
       for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
@@ -47,17 +47,13 @@ async function receiveUpdateCount(event) {
 }
 
 export function initNotificationCount() {
-  const $notificationCount = $('.notification_count');
-
-  if (!$notificationCount.length) {
-    return;
-  }
+  if (!document.querySelector('.notification_count')) return;
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout, lastCount) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    lastCount = lastCount ?? $notificationCount.text();
+    lastCount = lastCount ?? getCurrentCount();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
@@ -121,8 +117,12 @@ export function initNotificationCount() {
   startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
+function getCurrentCount() {
+  return document.querySelector('.notification_count').textContent;
+}
+
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
-  const currentCount = $('.notification_count').text();
+  const currentCount = getCurrentCount();
   if (lastCount !== currentCount) {
     callback(notificationSettings.MinTimeout, currentCount);
     return;
@@ -145,7 +145,7 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 }
 
 async function updateNotificationTable() {
-  const notificationDiv = document.getElementById('notification_div');
+  const notificationDiv = document.querySelector('#notification_div');
   if (notificationDiv) {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -181,7 +181,7 @@ async function updateNotificationCount() {
 
     toggleElem('.notification_count', data.new !== 0);
 
-    for (const el of document.getElementsByClassName('notification_count')) {
+    for (const el of document.querySelectorAll('.notification_count')) {
       el.textContent = `${data.new}`;
     }
 

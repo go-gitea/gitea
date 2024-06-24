@@ -77,10 +77,6 @@
   padding-bottom: 5px;
 }
 
-.user.settings .iconFloat {
-  float: left;
-}
-
 .user-orgs {
   display: flex;
   flex-flow: row wrap;

@@ -24,7 +24,7 @@ func Queues(ctx *context.Context) {
 
 // QueueManage shows details for a specific queue
 func QueueManage(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)
@@ -38,7 +38,7 @@ func QueueManage(ctx *context.Context) {
 
 // QueueSet sets the maximum number of workers and other settings for this queue
 func QueueSet(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)
@@ -72,7 +72,7 @@ func QueueRemoveAllItems(ctx *context.Context) {
 	// Gitea's queue doesn't have transaction support
 	// So in rare cases, the queue could be corrupted/out-of-sync
 	// Site admin could remove all items from the queue to make it work again
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)

@@ -97,7 +97,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 
 // decodeEnvironmentKey decode the environment key to section and key
 // The environment key is in the form of GITEA__SECTION__KEY or GITEA__SECTION__KEY__FILE
-func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) {
+func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) { //nolint:unparam
 	if !strings.HasPrefix(envKey, prefixGitea) {
 		return false, "", "", false
 	}

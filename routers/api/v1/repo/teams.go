@@ -222,7 +222,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {
-	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.Params(":team"))
+	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.PathParam(":team"))
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Error(http.StatusNotFound, "TeamNotExit", err)
