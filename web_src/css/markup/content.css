@@ -2,7 +2,11 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+.conversation-holder .markup {
+  overflow-wrap: anywhere; /* prevent overflow in code comments */
 }
 
 .markup > *:first-child {
@@ -284,7 +288,6 @@
   width: max-content;
   max-width: 100%;
   overflow: auto;
-  overflow-wrap: break-word;
 }
 
 .markup table th {
