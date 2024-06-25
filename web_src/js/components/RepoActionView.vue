@@ -325,7 +325,7 @@ const sfc = {
 export default sfc;
 
 export function initRepositoryActionView() {
-  const el = document.getElementById('repo-action-view');
+  const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
   // TODO: the parent element's full height doesn't work well now,

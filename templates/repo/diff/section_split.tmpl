@@ -1,4 +1,5 @@
 {{$file := .file}}
+{{$blobExcerptRepoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
 <colgroup>
 	<col width="50">
 	<col width="10">
@@ -15,20 +16,21 @@
 		{{if or (ne .GetType 2) (not $hasmatch)}}
 			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 				{{if eq .GetType 4}}
+					{{$expandDirection := $line.GetExpandDirection}}
 					<td class="lines-num lines-num-old">
-						<div class="tw-flex">
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+						<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+						{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</button>
 						{{end}}
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+						{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</button>
 						{{end}}
-						{{if eq $line.GetExpandDirection 2}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+						{{if eq $expandDirection 2}}
+							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
 							</button>
 						{{end}}

@@ -839,6 +839,7 @@ func ActivateEmail(ctx *context.Context) {
 	if user, email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); user != nil && email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
+			return
 		}
 
 		log.Trace("Email activated: %s", email.Email)

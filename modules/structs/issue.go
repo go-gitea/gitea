@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 	HasMerged        bool       `json:"merged"`
 	Merged           *time.Time `json:"merged_at"`
 	IsWorkInProgress bool       `json:"draft"`
+	HTMLURL          string     `json:"html_url"`
 }
 
 // RepositoryMeta basic repository information

@@ -1,13 +1,13 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
-const service = document.getElementById('service_type');
-const user = document.getElementById('auth_username');
-const pass = document.getElementById('auth_password');
-const token = document.getElementById('auth_token');
-const mirror = document.getElementById('mirror');
-const lfs = document.getElementById('lfs');
-const lfsSettings = document.getElementById('lfs_settings');
-const lfsEndpoint = document.getElementById('lfs_endpoint');
+const service = document.querySelector('#service_type');
+const user = document.querySelector('#auth_username');
+const pass = document.querySelector('#auth_password');
+const token = document.querySelector('#auth_token');
+const mirror = document.querySelector('#mirror');
+const lfs = document.querySelector('#lfs');
+const lfsSettings = document.querySelector('#lfs_settings');
+const lfsEndpoint = document.querySelector('#lfs_endpoint');
 const items = document.querySelectorAll('#migrate_items input[type=checkbox]');
 
 export function initRepoMigration() {
@@ -18,16 +18,16 @@ export function initRepoMigration() {
   pass?.addEventListener('input', () => {checkItems(false)});
   token?.addEventListener('input', () => {checkItems(true)});
   mirror?.addEventListener('change', () => {checkItems(true)});
-  document.getElementById('lfs_settings_show')?.addEventListener('click', (e) => {
+  document.querySelector('#lfs_settings_show')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
     showElem(lfsEndpoint);
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
 
-  const cloneAddr = document.getElementById('clone_addr');
+  const cloneAddr = document.querySelector('#clone_addr');
   cloneAddr?.addEventListener('change', () => {
-    const repoName = document.getElementById('repo_name');
+    const repoName = document.querySelector('#repo_name');
     if (cloneAddr.value && !repoName?.value) { // Only modify if repo_name input is blank
       repoName.value = cloneAddr.value.match(/^(.*\/)?((.+?)(\.git)?)$/)[3];
     }

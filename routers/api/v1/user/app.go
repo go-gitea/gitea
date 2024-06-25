@@ -165,7 +165,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/error"
 
-	token := ctx.Params(":id")
+	token := ctx.PathParam(":id")
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
 	var t *auth_model.AccessToken
@@ -318,7 +318,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	app, err := auth_model.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth_model.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()
@@ -332,7 +332,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteOAuth2Application", err)
 		}
 		return
 	}
@@ -361,7 +361,7 @@ func GetOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OAuth2Application"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	appID := ctx.ParamsInt64(":id")
+	appID := ctx.PathParamInt64(":id")
 	app, err := auth_model.GetOAuth2ApplicationByID(ctx, appID)
 	if err != nil {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
@@ -405,7 +405,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OAuth2Application"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	appID := ctx.ParamsInt64(":id")
+	appID := ctx.PathParamInt64(":id")
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 

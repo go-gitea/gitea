@@ -31,7 +31,7 @@
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
 }
 
 .is-loading.loading-icon-2px::after {

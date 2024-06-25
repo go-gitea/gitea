@@ -512,11 +512,14 @@
   background: var(--color-hover);
 }
 
+.ui.secondary.menu .active.item {
+  border-radius: 0.28571429rem;
+}
+
 .ui.secondary.menu .active.item,
 .ui.secondary.menu .active.item:hover {
   color: var(--color-text-dark);
   background: var(--color-active);
-  border-radius: 0.28571429rem;
 }
 
 .ui.secondary.item.menu {

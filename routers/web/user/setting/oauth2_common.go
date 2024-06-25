@@ -86,7 +86,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 // EditShow displays the given application
 func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -114,7 +114,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	app, err := auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
-		ID:                 ctx.ParamsInt64("id"),
+		ID:                 ctx.PathParamInt64("id"),
 		Name:               form.Name,
 		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
 		UserID:             oa.ownerID(),
@@ -135,7 +135,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 // RegenerateSecret regenerates the secret
 func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -163,7 +163,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 
 // DeleteApp deletes the given oauth2 application
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound("Application not found", err)
@@ -186,7 +186,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
-	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.ParamsInt64("grantId"))
+	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.PathParamInt64("grantId"))
 	if err != nil {
 		ctx.ServerError("GetOAuth2GrantByID", err)
 		return

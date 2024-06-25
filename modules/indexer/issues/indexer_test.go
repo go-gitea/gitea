@@ -369,13 +369,13 @@ func searchIssueInProject(t *testing.T) {
 		},
 		{
 			SearchOptions{
-				ProjectBoardID: optional.Some(int64(1)),
+				ProjectColumnID: optional.Some(int64(1)),
 			},
 			[]int64{1},
 		},
 		{
 			SearchOptions{
-				ProjectBoardID: optional.Some(int64(0)), // issue with in default board
+				ProjectColumnID: optional.Some(int64(0)), // issue with in default column
 			},
 			[]int64{2},
 		},

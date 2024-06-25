@@ -177,6 +177,6 @@ type wechatworkConvertor struct{}
 
 var _ payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
 
-func newWechatworkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newWechatworkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	return newJSONRequest(wechatworkConvertor{}, w, t, true)
 }

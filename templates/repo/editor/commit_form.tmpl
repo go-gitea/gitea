@@ -23,7 +23,7 @@
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
 				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
+					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" data-button-text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
 						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" .BranchName}}
@@ -43,9 +43,9 @@
 				<div class="field">
 					<div class="ui radio checkbox">
 						{{if .CanCreatePullRequest}}
-							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" data-button-text="{{ctx.Locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 						{{else}}
-							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+							<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" data-button-text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 						{{end}}
 						<label>
 							{{svg "octicon-git-pull-request"}}

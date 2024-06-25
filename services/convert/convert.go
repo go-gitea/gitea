@@ -408,6 +408,32 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 	}
 }
 
+// ToTagProtection convert a git.ProtectedTag to an api.TagProtection
+func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
+	readers, err := access_model.GetRepoReaders(ctx, repo)
+	if err != nil {
+		log.Error("GetRepoReaders: %v", err)
+	}
+
+	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
+	if err != nil {
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
+	}
+
+	whitelistTeams := getWhitelistEntities(teamReaders, pt.AllowlistTeamIDs)
+
+	return &api.TagProtection{
+		ID:                 pt.ID,
+		NamePattern:        pt.NamePattern,
+		WhitelistUsernames: whitelistUsernames,
+		WhitelistTeams:     whitelistTeams,
+		Created:            pt.CreatedUnix.AsTime(),
+		Updated:            pt.UpdatedUnix.AsTime(),
+	}
+}
+
 // ToTopicResponse convert from models.Topic to api.TopicResponse
 func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
