@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+`// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package issues
@@ -14,12 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-<<<<<<< main
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
-=======
+  "code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
->>>>>>> main
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
