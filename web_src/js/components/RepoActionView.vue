@@ -90,7 +90,9 @@ const sfc = {
     // load job data and then auto-reload periodically
     // need to await first loadData so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadData();
-    this.intervalID = setInterval(this.loadData, 1000);
+    this.intervalID = setInterval(() => {
+      this.loadData();
+    }, 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -146,7 +148,7 @@ const sfc = {
         this.currentJobStepsStates[idx].loading = true;
         // force-load the data, otherwise the state will end up incorrect if loadData
         // is already running and the job step will never expand.
-        this.loadData(true);
+        this.loadData({force: true});
       }
     },
     // cancel a run
@@ -226,7 +228,7 @@ const sfc = {
       return await resp.json();
     },
 
-    async loadData(force = false) {
+    async loadData({force = false} = {}) {
       if (this.loading && !force) return;
       try {
         this.loading = true;
