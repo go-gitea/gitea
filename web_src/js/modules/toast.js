@@ -21,11 +21,11 @@ const levels = {
 };
 
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message, level, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other} = {}) {
+function showToast(message, level, {gravity, position, duration, useHtmlBody, allowDuplicates, ...other} = {}) {
   const body = String(useHtmlBody ? message : htmlEscape(message));
 
   // prevent showing duplicate toasts with same level and message
-  if (preventDuplicates && document.querySelector(`.toastify[data-body="${CSS.escape(body)}"][data-level="${CSS.escape(level)}"]`)) {
+  if (!allowDuplicates && document.querySelector(`.toastify[data-body="${CSS.escape(body)}"][data-level="${CSS.escape(level)}"]`)) {
     return;
   }
 
