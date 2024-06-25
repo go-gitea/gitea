@@ -110,6 +110,8 @@
     "object.entries": "npm:@nolyfill/object.entries@latest",
     "object.fromentries": "npm:@nolyfill/object.fromentries@latest",
     "object.groupby": "npm:@nolyfill/object.groupby@latest",
-    "object.values": "npm:@nolyfill/object.values@latest"
+    "object.values": "npm:@nolyfill/object.values@latest",
+    "safe-regex-test": "npm:@nolyfill/safe-regex-test@latest",
+    "string.prototype.includes": "npm:@nolyfill/string.prototype.includes@latest"
   }
 }
