@@ -304,3 +304,12 @@ export function createElementFromHTML(htmlString) {
   div.innerHTML = htmlString.trim();
   return div.firstChild;
 }
+
+export function createElementFromObject(tag, obj) {
+  const el = document.createElement(tag);
+  for (const [key, value] of Object.entries(obj)) {
+    // TODO: we could also support `data-` prefix to set data attributes in the future
+    el[key] = value;
+  }
+  return el;
+}
