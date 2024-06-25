@@ -12,7 +12,7 @@ async function uploadFile(file, uploadUrl) {
   return await res.json();
 }
 
-function triggerEditorContentChanged(target) {
+export function triggerEditorContentChanged(target) {
   target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
 }
 
@@ -124,17 +124,19 @@ async function handleClipboardImages(editor, dropzone, images, e) {
   }
 }
 
-function handleClipboardText(textarea, text, e) {
-  // when pasting links over selected text, turn it into [text](link), except when shift key is held
-  const {value, selectionStart, selectionEnd, _shiftDown} = textarea;
-  if (_shiftDown) return;
+function handleClipboardText(textarea, e, {text, isShiftDown}) {
+  // pasting with "shift" means "paste as original content" in most applications
+  if (isShiftDown) return; // let the browser handle it
+
+  // when pasting links over selected text, turn it into [text](link)
+  const {value, selectionStart, selectionEnd} = textarea;
   const selectedText = value.substring(selectionStart, selectionEnd);
   const trimmedText = text.trim();
   if (selectedText && isUrl(trimmedText)) {
-    e.stopPropagation();
     e.preventDefault();
     replaceTextareaSelection(textarea, `[${selectedText}](${trimmedText})`);
   }
+  // else, let the browser handle it
 }
 
 export function initEasyMDEPaste(easyMDE, dropzone) {
@@ -147,12 +149,19 @@ export function initEasyMDEPaste(easyMDE, dropzone) {
 }
 
 export function initTextareaPaste(textarea, dropzone) {
+  let isShiftDown = false;
+  textarea.addEventListener('keydown', (e) => {
+    if (e.shiftKey) isShiftDown = true;
+  });
+  textarea.addEventListener('keyup', (e) => {
+    if (!e.shiftKey) isShiftDown = false;
+  });
   textarea.addEventListener('paste', (e) => {
     const {images, text} = getPastedContent(e);
     if (images.length) {
       handleClipboardImages(new TextareaEditor(textarea), dropzone, images, e);
     } else if (text) {
-      handleClipboardText(textarea, text, e);
+      handleClipboardText(textarea, e, {text, isShiftDown});
     }
   });
 }
