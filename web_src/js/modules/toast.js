@@ -26,8 +26,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
 
   // prevent showing duplicate toasts with same level and message
   if (preventDuplicates) {
-    const el = document.querySelector(`.toastify[data-body="${CSS.escape(body)}"]`);
-    if (el?.matches(`.toastify[data-level="${CSS.escape(level)}"]`)) return;
+    if (document.querySelector(`.toastify[data-body="${CSS.escape(body)}"][data-level="${CSS.escape(level)}"]`)) return;
   }
 
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
