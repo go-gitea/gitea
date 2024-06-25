@@ -7,6 +7,7 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,7 +29,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/cicdfeedback"
 	context_module "code.gitea.io/gitea/services/context"
+	"github.com/6543/cicd_feedback"
 
 	"xorm.io/builder"
 )
@@ -133,7 +136,7 @@ func ViewPost(ctx *context_module.Context) {
 	runIndex := ctx.PathParamInt64("run")
 	jobIndex := ctx.PathParamInt64("job")
 
-	current, jobs := getRunJobs(ctx, runIndex, jobIndex)
+	current, jobs, externalInfo := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
@@ -162,7 +165,7 @@ func ViewPost(ctx *context_module.Context) {
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
-			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions) && !v.External,
 			Duration: v.Duration().String(),
 		})
 	}
@@ -205,64 +208,133 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps := actions.FullSteps(task)
-
-		for _, v := range steps {
-			resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
-				Summary:  v.Name,
-				Duration: v.Duration().String(),
-				Status:   v.Status.String(),
-			})
+		loadTaskAttrib(ctx, req, resp, task)
+		if ctx.Written() {
+			return
 		}
-
-		for _, cursor := range req.LogCursors {
-			if !cursor.Expanded {
-				continue
-			}
-
-			step := steps[cursor.Step]
-
-			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-
-			index := step.LogIndex + cursor.Cursor
-			validCursor := cursor.Cursor >= 0 &&
-				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
-				// So return the same cursor and empty lines to let the frontend retry.
-				cursor.Cursor < step.LogLength &&
-				// !(index < task.LogIndexes[index]) when task data is older than step data.
-				// It can be fixed by making sure write/read tasks and steps in the same transaction,
-				// but it's easier to just treat it as fetching the next line before it's ready.
-				index < int64(len(task.LogIndexes))
-
-			if validCursor {
-				length := step.LogLength - cursor.Cursor
-				offset := task.LogIndexes[index]
-				var err error
-				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-				if err != nil {
-					ctx.Error(http.StatusInternalServerError, err.Error())
-					return
-				}
-
-				for i, row := range logRows {
-					logLines = append(logLines, &ViewStepLogLine{
-						Index:     cursor.Cursor + int64(i) + 1, // start at 1
-						Message:   row.Content,
-						Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-					})
-				}
-			}
-
-			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-				Step:    cursor.Step,
-				Cursor:  cursor.Cursor + int64(len(logLines)),
-				Lines:   logLines,
-				Started: int64(step.Started),
-			})
+	}
+	if current.External {
+		loadExternalTask(ctx, req, resp, current, externalInfo)
+		if ctx.Written() {
+			return
 		}
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func loadExternalTask(ctx *context_module.Context, req *ViewRequest, resp *ViewResponse, job *actions_model.ActionRunJob, info *cicdfeedback.WorkflowInfo) {
+	externalSteps := make([]*cicd_feedback.Step, 0, 4)
+	if err := json.Unmarshal(job.WorkflowPayload, &externalSteps); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for _, v := range externalSteps {
+		status, _ := cicdfeedback.ConvertStatus(v.Status)
+
+		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
+			Summary: v.Name,
+			Status:  status.String(),
+		})
+	}
+
+	for _, cursor := range req.LogCursors {
+		if !cursor.Expanded {
+			continue
+		}
+
+		logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
+
+		// we don't support live update atm
+		if job.Status != actions_model.StatusRunning {
+			if cursor.Step >= len(externalSteps) {
+				// out of bounds
+				ctx.Error(http.StatusForbidden, "out ouf bounds step cursor")
+				return
+			}
+			step := externalSteps[cursor.Step]
+			logs, err := cicdfeedback.LoadLogs(ctx, step, info)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "could not fetch external logs")
+				return
+			}
+			if logs[len(logs)-1] == '\n' {
+				logs = logs[:len(logs)-1]
+			}
+
+			for i, line := range strings.Split(logs, "\n") {
+				logLines = append(logLines, &ViewStepLogLine{
+					Index:   int64(i + 1),
+					Message: line,
+				})
+			}
+		}
+
+		resp.Logs.StepsLog = []*ViewStepLog{{
+			Step:   cursor.Step,
+			Cursor: cursor.Cursor + int64(len(logLines)),
+			Lines:  logLines,
+		}}
+	}
+}
+
+func loadTaskAttrib(ctx *context_module.Context, req *ViewRequest, resp *ViewResponse, task *actions_model.ActionTask) {
+	steps := actions.FullSteps(task)
+
+	for _, v := range steps {
+		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
+			Summary:  v.Name,
+			Duration: v.Duration().String(),
+			Status:   v.Status.String(),
+		})
+	}
+
+	for _, cursor := range req.LogCursors {
+		if !cursor.Expanded {
+			continue
+		}
+
+		step := steps[cursor.Step]
+
+		logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
+
+		index := step.LogIndex + cursor.Cursor
+		validCursor := cursor.Cursor >= 0 &&
+			// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+			// So return the same cursor and empty lines to let the frontend retry.
+			cursor.Cursor < step.LogLength &&
+			// !(index < task.LogIndexes[index]) when task data is older than step data.
+			// It can be fixed by making sure write/read tasks and steps in the same transaction,
+			// but it's easier to just treat it as fetching the next line before it's ready.
+			index < int64(len(task.LogIndexes))
+
+		if validCursor {
+			length := step.LogLength - cursor.Cursor
+			offset := task.LogIndexes[index]
+			var err error
+			logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			for i, row := range logRows {
+				logLines = append(logLines, &ViewStepLogLine{
+					Index:     cursor.Cursor + int64(i) + 1, // start at 1
+					Message:   row.Content,
+					Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
+				})
+			}
+		}
+
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+			Step:    cursor.Step,
+			Cursor:  cursor.Cursor + int64(len(logLines)),
+			Lines:   logLines,
+			Started: int64(step.Started),
+		})
+	}
 }
 
 // Rerun will rerun jobs in the given run
@@ -278,6 +350,11 @@ func Rerun(ctx *context_module.Context) {
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if run.External {
+		ctx.Error(http.StatusForbidden, "can not control external run")
 		return
 	}
 
@@ -300,9 +377,13 @@ func Rerun(ctx *context_module.Context) {
 		}
 	}
 
-	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
+	job, jobs, _ := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
+	}
+
+	if job.External {
+		ctx.Error(http.StatusForbidden, "can not control external run")
 	}
 
 	if jobIndexStr == "" { // rerun all jobs
@@ -361,12 +442,17 @@ func Logs(ctx *context_module.Context) {
 	runIndex := ctx.PathParamInt64("run")
 	jobIndex := ctx.PathParamInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	job, _, externalInfo := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
 	if job.TaskID == 0 {
 		ctx.Error(http.StatusNotFound, "job is not started")
+		return
+	}
+
+	if job.External || externalInfo != nil {
+		ctx.Error(http.StatusForbidden, "streaming of external logs not implemented")
 		return
 	}
 
@@ -409,9 +495,12 @@ func Logs(ctx *context_module.Context) {
 func Cancel(ctx *context_module.Context) {
 	runIndex := ctx.PathParamInt64("run")
 
-	_, jobs := getRunJobs(ctx, runIndex, -1)
+	_, jobs, _ := getRunJobs(ctx, runIndex, -1)
 	if ctx.Written() {
 		return
+	}
+	if jobs[0].External {
+		ctx.Error(http.StatusForbidden, "can not control external run")
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -450,10 +539,15 @@ func Cancel(ctx *context_module.Context) {
 func Approve(ctx *context_module.Context) {
 	runIndex := ctx.PathParamInt64("run")
 
-	current, jobs := getRunJobs(ctx, runIndex, -1)
+	current, jobs, _ := getRunJobs(ctx, runIndex, -1)
 	if ctx.Written() {
 		return
 	}
+
+	if current.External {
+		ctx.Error(http.StatusForbidden, "can not control external run")
+	}
+
 	run := current.Run
 	doer := ctx.Doer
 
@@ -486,26 +580,33 @@ func Approve(ctx *context_module.Context) {
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob) {
+func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, *cicdfeedback.WorkflowInfo) {
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, err.Error())
-			return nil, nil
+			return nil, nil, nil
 		}
 		ctx.Error(http.StatusInternalServerError, err.Error())
-		return nil, nil
+		return nil, nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	var jobs []*actions_model.ActionRunJob
+	var externalInfo *cicdfeedback.WorkflowInfo
+	if run.External {
+		jobs, externalInfo, err = cicdfeedback.GetExternalRunJobs(ctx, run)
+	} else {
+		jobs, err = actions_model.GetRunJobsByRunID(ctx, run.ID)
+	}
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
-		return nil, nil
+		return nil, nil, nil
 	}
+
 	if len(jobs) == 0 {
 		ctx.Error(http.StatusNotFound)
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	for _, v := range jobs {
@@ -513,9 +614,9 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 	}
 
 	if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
-		return jobs[jobIndex], jobs
+		return jobs[jobIndex], jobs, externalInfo
 	}
-	return jobs[0], jobs
+	return jobs[0], jobs, externalInfo
 }
 
 type ArtifactsViewResponse struct {
