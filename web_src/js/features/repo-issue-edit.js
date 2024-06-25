@@ -125,7 +125,9 @@ async function onEditContent(event) {
         content: comboMarkdownEditor.value(),
         context: editContentZone.getAttribute('data-context'),
       });
-      for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
+      for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]') ?? []) {
+        params.append('files[]', fileInput.value);
+      }
 
       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
       const data = await response.json();
