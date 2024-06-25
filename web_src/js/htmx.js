@@ -7,11 +7,15 @@ import 'idiomorph/dist/idiomorph-ext.js';
 htmx.config.requestClass = 'is-loading';
 htmx.config.scrollIntoViewOnBoost = false;
 
+function isPollingElement(el) {
+  return Boolean(el.getAttribute('hx-trigger')?.startsWith('every '));
+}
+
 // https://htmx.org/events/#htmx:sendError
 document.body.addEventListener('htmx:sendError', (event) => {
   // TODO: add translations
   showErrorToast(`Network error when calling ${event.detail.requestConfig.path}`, {
-    preventDuplicates: true,
+    preventDuplicates: isPollingElement(event.target),
   });
 });
 
@@ -19,6 +23,6 @@ document.body.addEventListener('htmx:sendError', (event) => {
 document.body.addEventListener('htmx:responseError', (event) => {
   // TODO: add translations
   showErrorToast(`Error ${event.detail.xhr.status} when calling ${event.detail.requestConfig.path}`, {
-    preventDuplicates: true,
+    preventDuplicates: isPollingElement(event.target),
   });
 });
